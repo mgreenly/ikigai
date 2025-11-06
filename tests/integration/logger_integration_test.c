@@ -70,8 +70,8 @@ START_TEST (test_concurrent_logging)
   // If we got here without crashing or deadlocking, the test passed
   ck_assert (1);
 }
-END_TEST
 
+END_TEST
 // Test: Basic logger functionality with all levels
 START_TEST (test_all_log_levels)
 {
@@ -98,9 +98,8 @@ START_TEST (test_all_log_levels)
   close (saved_stderr);
   fclose (devnull);
 }
-END_TEST
 
-Suite *
+END_TEST Suite *
 logger_integration_suite (void)
 {
   Suite *s;

@@ -17,6 +17,8 @@ typedef enum
   IK_ERR_OOM,			// Out of memory
   IK_ERR_INVALID_ARG,
   IK_ERR_OUT_OF_RANGE,
+  IK_ERR_IO,			// File operations, config loading
+  IK_ERR_PARSE,			// JSON/protocol parsing
 } ik_error_code_t;
 
 // Error with context and embedded message buffer
@@ -26,7 +28,7 @@ typedef struct ik_error
   ik_error_code_t code;
   const char *file;
   int32_t line;
-  char message[128];
+  char msg[128];
 } ik_error_t;
 
 // Result type - stack-allocated, zero overhead for success case
@@ -80,7 +82,7 @@ static const ik_error_t ik_oom_error = {
   .code = IK_ERR_OOM,
   .file = "<oom>",
   .line = 0,
-  .message = "Out of memory"
+  .msg = "Out of memory"
 };
 
 // Check if an error is the static OOM error (cannot be freed)
@@ -106,7 +108,7 @@ _ik_make_error (TALLOC_CTX *ctx, ik_error_code_t code, const char *file, int lin
 
   va_list args;
   va_start (args, fmt);
-  vsnprintf (err->message, sizeof (err->message), fmt, args);
+  vsnprintf (err->msg, sizeof (err->msg), fmt, args);
   va_end (args);
 
   return err;
@@ -141,6 +143,10 @@ ik_error_code_str (ik_error_code_t code)
       return "Invalid argument";
     case IK_ERR_OUT_OF_RANGE:
       return "Out of range";
+    case IK_ERR_IO:
+      return "IO error";
+    case IK_ERR_PARSE:
+      return "Parse error";
     default:
       return "Unknown error";
     }
@@ -158,7 +164,7 @@ ik_error_message (const ik_error_t *err)
 {
   if (!err)
     return "Success";
-  return err->message[0] ? err->message : ik_error_code_str (err->code);
+  return err->msg[0] ? err->msg : ik_error_code_str (err->code);
 }
 
 // Error formatting for debugging

@@ -20,11 +20,11 @@ COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
 
-CLIENT_SOURCES = src/client.c src/foo.c src/error.c src/logger.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c
 CLIENT_OBJ = $(patsubst src/%.c,build/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
-SERVER_SOURCES = src/server.c src/error.c src/logger.c
+SERVER_SOURCES = src/server.c src/error.c src/logger.c src/config.c
 SERVER_OBJ = $(patsubst src/%.c,build/%.o,$(SERVER_SOURCES))
 SERVER_TARGET = bin/ikigai-server
 
@@ -36,7 +36,7 @@ INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/%_test.c,build/tests/int
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS)
 
-MODULE_SOURCES = src/foo.c src/error.c src/logger.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c
 MODULE_OBJ = $(patsubst src/%.c,build/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
@@ -59,13 +59,13 @@ build/tests/unit/%_test.o: tests/unit/%_test.c | build/tests/unit
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 build/tests/unit/%_test: build/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | build/tests/unit
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -lpthread
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -lpthread
 
 build/tests/integration/%_test.o: tests/integration/%_test.c | build/tests/integration
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 build/tests/integration/%_test: build/tests/integration/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | build/tests/integration
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -lpthread
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -lpthread
 
 build/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | build/tests
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -158,7 +158,10 @@ coverage: clean-coverage
 	@lcov --capture --directory . --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated --quiet
 	@lcov --extract $(COVERAGE_DIR)/coverage.info '*/src/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --quiet
 	@echo ""
-	@echo "=== Coverage Summary ===" > $(COVERAGE_DIR)/summary.txt
+	@echo "=== Coverage by File ===" > $(COVERAGE_DIR)/summary.txt
+	@lcov --list $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 2>&1 >> $(COVERAGE_DIR)/summary.txt
+	@echo "" >> $(COVERAGE_DIR)/summary.txt
+	@echo "=== Coverage Summary ===" >> $(COVERAGE_DIR)/summary.txt
 	@lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors deprecated 2>&1 >> $(COVERAGE_DIR)/summary.txt
 	@echo "" >> $(COVERAGE_DIR)/summary.txt
 	@cat $(COVERAGE_DIR)/summary.txt

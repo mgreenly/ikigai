@@ -74,6 +74,9 @@ Never use exclusions without explicit user permission.
 
 ## Git Commit Policy
 
+**Before every commit:**
+- Run `make fmt` to ensure consistent code formatting
+
 Do NOT include:
 - Attributions in commits.
 - "Co-Authored-By: Claude <noreply@anthropic.com>"

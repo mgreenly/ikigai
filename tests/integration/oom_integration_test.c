@@ -11,7 +11,7 @@ START_TEST (test_oom_error_properties)
 
   // Verify its properties
   ck_assert_int_eq (ik_oom_error.code, IK_ERR_OOM);
-  ck_assert_str_eq (ik_oom_error.message, "Out of memory");
+  ck_assert_str_eq (ik_oom_error.msg, "Out of memory");
   ck_assert_str_eq (ik_oom_error.file, "<oom>");
   ck_assert_int_eq (ik_oom_error.line, 0);
 
@@ -46,7 +46,7 @@ START_TEST (test_constrained_memory)
   // But the code path exists for when talloc_zero really fails
   if (!ik_error_is_static (res.err))
     {
-      ck_assert_str_eq (res.err->message, "Test in constrained memory");
+      ck_assert_str_eq (res.err->msg, "Test in constrained memory");
     }
 
   talloc_free (ctx);

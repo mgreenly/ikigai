@@ -31,7 +31,7 @@ ik_log_check_timestamp_mode (void)
 }
 
 static void
-ik_log_print_timestamp (FILE * stream)
+ik_log_print_timestamp (FILE *stream)
 {
   if (!ik_log_timestamps_enabled)
     return;
@@ -41,8 +41,7 @@ ik_log_print_timestamp (FILE * stream)
   localtime_r (&now, &tm);
 
   fprintf (stream, "%04d-%02d-%02d %02d:%02d:%02d ",
-	   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-	   tm.tm_hour, tm.tm_min, tm.tm_sec);
+	   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
 void
@@ -126,6 +125,7 @@ ik_log_fatal (const char *fmt, ...)
   pthread_mutex_unlock (&ik_log_mutex);
   abort ();
 }
+
 // LCOV_EXCL_STOP
 
 void

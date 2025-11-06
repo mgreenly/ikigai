@@ -9,4 +9,5 @@ __attribute__((weak))
 {
   return talloc_zero_size (ctx, size);
 }
+
 // LCOV_EXCL_STOP

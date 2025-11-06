@@ -69,7 +69,7 @@ START_TEST (test_err_construction)
   ck_assert (!ik_is_ok (&res));
   ck_assert_ptr_nonnull (res.err);
   ck_assert_int_eq (res.err->code, IK_ERR_INVALID_ARG);
-  ck_assert_str_eq (res.err->message, "Test error: 42");
+  ck_assert_str_eq (res.err->msg, "Test error: 42");
   ck_assert_ptr_nonnull (res.err->file);
 
   talloc_free (ctx);
@@ -120,7 +120,7 @@ START_TEST (test_try_error)
   ik_result_t res = helper_propagate (ctx, true);
 
   ck_assert (ik_is_err (&res));
-  ck_assert_str_eq (res.err->message, "Test error message");
+  ck_assert_str_eq (res.err->msg, "Test error message");
 
   talloc_free (ctx);
 }
@@ -273,7 +273,7 @@ START_TEST (test_error_message_empty)
   // Manually create an error with an invalid error code to test default case
   ik_error_t *bad_err = talloc_zero (ctx, ik_error_t);
   bad_err->code = (ik_error_code_t) 999;
-  bad_err->message[0] = '\0';  // Empty message to trigger ik_error_code_str
+  bad_err->msg[0] = '\0';	// Empty message to trigger ik_error_code_str
   msg = ik_error_message (bad_err);
   ck_assert_str_eq (msg, "Unknown error");
 
@@ -303,9 +303,9 @@ START_TEST (test_error_fprintf_null_file)
   // Manually create an error with NULL file field
   ik_error_t *err = talloc_zero (ctx, ik_error_t);
   err->code = IK_ERR_INVALID_ARG;
-  err->file = NULL;  // NULL file field
+  err->file = NULL;		// NULL file field
   err->line = 42;
-  snprintf (err->message, sizeof (err->message), "Test error");
+  snprintf (err->msg, sizeof (err->msg), "Test error");
 
   char buffer[256];
   FILE *memfile = fmemopen (buffer, sizeof (buffer), "w");
@@ -363,7 +363,7 @@ START_TEST (test_oom_error_is_static)
   extern const ik_error_t ik_oom_error;
   ck_assert (ik_error_is_static (&ik_oom_error));
   ck_assert_int_eq (ik_oom_error.code, IK_ERR_OOM);
-  ck_assert_str_eq (ik_oom_error.message, "Out of memory");
+  ck_assert_str_eq (ik_oom_error.msg, "Out of memory");
 
   talloc_free (ctx);
 }
@@ -383,7 +383,7 @@ START_TEST (test_oom_on_error_allocation)
   ck_assert (ik_is_err (&res));
   ck_assert (ik_error_is_static (res.err));
   ck_assert_int_eq (res.err->code, IK_ERR_OOM);
-  ck_assert_str_eq (res.err->message, "Out of memory");
+  ck_assert_str_eq (res.err->msg, "Out of memory");
 
   // Reset allocator state
   oom_test_reset ();
@@ -392,7 +392,7 @@ START_TEST (test_oom_on_error_allocation)
   res = ERR (ctx, INVALID_ARG, "This should work");
   ck_assert (ik_is_err (&res));
   ck_assert (!ik_error_is_static (res.err));
-  ck_assert_str_eq (res.err->message, "This should work");
+  ck_assert_str_eq (res.err->msg, "This should work");
 
   talloc_free (ctx);
 }

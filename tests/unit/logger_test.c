@@ -69,8 +69,8 @@ START_TEST (test_logger_info_stdout)
   ck_assert_str_eq (stdout_buffer, "INFO: test message\n");
   unsetenv ("JOURNAL_STREAM");
 }
-END_TEST
 
+END_TEST
 // Test: ik_log_debug outputs to stdout with correct format
 START_TEST (test_logger_debug_stdout)
 {
@@ -82,8 +82,8 @@ START_TEST (test_logger_debug_stdout)
   ck_assert_str_eq (stdout_buffer, "DEBUG: debug message\n");
   unsetenv ("JOURNAL_STREAM");
 }
-END_TEST
 
+END_TEST
 // Test: ik_log_warn outputs to stdout with correct format
 START_TEST (test_logger_warn_stdout)
 {
@@ -95,8 +95,8 @@ START_TEST (test_logger_warn_stdout)
   ck_assert_str_eq (stdout_buffer, "WARN: warning message\n");
   unsetenv ("JOURNAL_STREAM");
 }
-END_TEST
 
+END_TEST
 // Test: ik_log_error outputs to stderr with correct format
 START_TEST (test_logger_error_stderr)
 {
@@ -108,8 +108,8 @@ START_TEST (test_logger_error_stderr)
   ck_assert_str_eq (stderr_buffer, "ERROR: error message\n");
   unsetenv ("JOURNAL_STREAM");
 }
-END_TEST
 
+END_TEST
 // Test: ik_log_fatal outputs to stderr and calls abort
 // Note: We can't easily test the abort behavior without forking,
 // so for now we just ensure it exists and compiles.
@@ -122,8 +122,8 @@ START_TEST (test_logger_fatal_stderr)
   // compile-time verification.
   // Intentionally not calling ik_log_fatal since it would abort the test
 }
-END_TEST
 
+END_TEST
 // Test: printf-style formatting works correctly
 START_TEST (test_logger_formatting)
 {
@@ -135,8 +135,8 @@ START_TEST (test_logger_formatting)
   ck_assert_str_eq (stdout_buffer, "INFO: value=42 string=test\n");
   unsetenv ("JOURNAL_STREAM");
 }
-END_TEST
 
+END_TEST
 // Test: Multiple format specifiers work
 START_TEST (test_logger_multiple_formats)
 {
@@ -148,8 +148,8 @@ START_TEST (test_logger_multiple_formats)
   ck_assert_str_eq (stderr_buffer, "ERROR: error 123: failure (code 0xab)\n");
   unsetenv ("JOURNAL_STREAM");
 }
-END_TEST
 
+END_TEST
 // Test: Timestamps are NOT added when JOURNAL_STREAM is set (systemd mode)
 START_TEST (test_logger_no_timestamp_in_systemd)
 {
@@ -165,8 +165,8 @@ START_TEST (test_logger_no_timestamp_in_systemd)
 
   unsetenv ("JOURNAL_STREAM");
 }
-END_TEST
 
+END_TEST
 // Test: Timestamps ARE added when JOURNAL_STREAM is not set (direct mode)
 START_TEST (test_logger_timestamp_in_direct_mode)
 {
@@ -182,9 +182,8 @@ START_TEST (test_logger_timestamp_in_direct_mode)
   ck_assert (strstr (stdout_buffer, "INFO: test\n") != NULL);
   ck_assert (strlen (stdout_buffer) > strlen ("INFO: test\n"));
 }
-END_TEST
 
-Suite *
+END_TEST Suite *
 logger_suite (void)
 {
   Suite *s;

@@ -46,7 +46,7 @@ Implement the config module (`src/config.c/h`) for loading and validating server
 - Run `make check` to verify test fails
 
 **GREEN (Implement Minimum Code)**:
-- Create `include/config.h`
+- Create `src/config.h`
 - Add struct definition:
   ```c
   typedef struct {
