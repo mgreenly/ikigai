@@ -1,0 +1,80 @@
+name: Auto-close External Contributions
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+jobs:
+  auto-close:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Check if author is whitelisted
+        id: check
+        run: |
+          WHITELIST=("mgreenly" "ai4mgreenly")
+          AUTHOR="${{ github.event.sender.login }}"
+
+          echo "Author: $AUTHOR"
+
+          for user in "${WHITELIST[@]}"; do
+            if [[ "$user" == "$AUTHOR" ]]; then
+              echo "whitelisted=true" >> $GITHUB_OUTPUT
+              echo "Author is whitelisted"
+              exit 0
+            fi
+          done
+
+          echo "whitelisted=false" >> $GITHUB_OUTPUT
+          echo "Author is not whitelisted"
+
+      - name: Comment and close issue
+        if: steps.check.outputs.whitelisted == 'false' && github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Thank you for your interest in this project!
+
+            This is a private project that we've made public so others can explore and fork it. We're not accepting issue reports or contributions at this time.
+
+            Feel free to fork the repository if you'd like to use or modify it for your own purposes.`
+            });
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });
+
+      - name: Comment and close pull request
+        if: steps.check.outputs.whitelisted == 'false' && github.event_name == 'pull_request_target'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Thank you for your interest in this project!
+
+            This is a private project that we've made public so others can explore and fork it. We're not accepting issue reports or contributions at this time.
+
+            Feel free to fork the repository if you'd like to use or modify it for your own purposes.`
+            });
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              state: 'closed'
+            });

@@ -1,0 +1,9 @@
+build/
+bin/
+dist/
+coverage/
+
+prompt.md
+
+**/core
+**/*.gcov

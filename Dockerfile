@@ -1,0 +1,22 @@
+FROM debian:trixie
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    indent \
+    complexity \
+    check \
+    libtalloc-dev \
+    libulfius-dev \
+    libjansson-dev \
+    libcurl4-gnutls-dev \
+    uuid-dev \
+    lcov \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /workspace
+
+# Default command
+CMD ["/bin/bash"]

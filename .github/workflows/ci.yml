@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          build-essential \
+          indent \
+          complexity \
+          check \
+          libtalloc-dev \
+          libulfius-dev \
+          libjansson-dev \
+          libcurl4-gnutls-dev \
+          uuid-dev \
+          lcov \
+          git
+
+    - name: Show tool versions
+      run: |
+        lcov --version
+        gcc --version | head -1
+
+    - name: Run CI checks
+      run: make ci
