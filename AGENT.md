@@ -79,6 +79,12 @@ Do NOT include:
 - "Co-Authored-By: Claude <noreply@anthropic.com>"
 - "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 
+## Code Style
+
+**Comments**:
+- Use `//` style comments only. Never use `/* ... */` style comments.
+- Use comments sparingly. Don't comment what the code does - comment why it does it or provide context that isn't obvious from the code itself.
+
 ## Naming Conventions
 
 All public symbols (functions, types, globals) follow the pattern: `ik_MODULE_THING`

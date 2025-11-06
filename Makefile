@@ -5,12 +5,11 @@ prefix ?= /usr/local
 bindir ?= $(prefix)/bin
 
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c17 -O2 -fPIC
-CPPFLAGS =
+CFLAGS = -Wall -Wextra -std=c17 -O2 -fPIC -D_GNU_SOURCE
 LDFLAGS =
 
-CLIENT_LIBS = -ltalloc
-SERVER_LIBS = -lulfius -ljansson -lcurl -ltalloc -luuid
+CLIENT_LIBS = -ltalloc -lpthread
+SERVER_LIBS = -lulfius -ljansson -lcurl -ltalloc -luuid -lpthread
 
 COMPLEXITY_THRESHOLD = 15
 LINE_LENGTH = 120
@@ -21,11 +20,11 @@ COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
 
-CLIENT_SOURCES = src/client.c src/foo.c src/error.c
+CLIENT_SOURCES = src/client.c src/foo.c src/error.c src/logger.c
 CLIENT_OBJ = $(patsubst src/%.c,build/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
-SERVER_SOURCES = src/server.c src/error.c
+SERVER_SOURCES = src/server.c src/error.c src/logger.c
 SERVER_OBJ = $(patsubst src/%.c,build/%.o,$(SERVER_SOURCES))
 SERVER_TARGET = bin/ikigai-server
 
@@ -37,7 +36,7 @@ INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/%_test.c,build/tests/int
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS)
 
-MODULE_SOURCES = src/foo.c src/error.c
+MODULE_SOURCES = src/foo.c src/error.c src/logger.c
 MODULE_OBJ = $(patsubst src/%.c,build/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
@@ -54,22 +53,22 @@ $(SERVER_TARGET): $(SERVER_OBJ) | bin
 	$(CC) $(LDFLAGS) -o $@ $^ $(SERVER_LIBS)
 
 build/%.o: src/%.c | build
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 build/tests/unit/%_test.o: tests/unit/%_test.c | build/tests/unit
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 build/tests/unit/%_test: build/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | build/tests/unit
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -lpthread
 
 build/tests/integration/%_test.o: tests/integration/%_test.c | build/tests/integration
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 build/tests/integration/%_test: build/tests/integration/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | build/tests/integration
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -lpthread
 
 build/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | build/tests
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 bin:
 	mkdir -p bin
@@ -156,8 +155,8 @@ coverage: clean-coverage
 	@$(MAKE) check CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)"
 	@echo "Generating coverage report..."
 	@mkdir -p $(COVERAGE_DIR)
-	@lcov --capture --directory . --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated
-	@lcov --remove $(COVERAGE_DIR)/coverage.info '/usr/*' '*/tests/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors unused
+	@lcov --capture --directory . --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated --quiet
+	@lcov --extract $(COVERAGE_DIR)/coverage.info '*/src/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --quiet
 	@echo ""
 	@echo "=== Coverage Summary ===" > $(COVERAGE_DIR)/summary.txt
 	@lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors deprecated 2>&1 >> $(COVERAGE_DIR)/summary.txt

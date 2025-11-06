@@ -1,15 +1,15 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include "foo.h"
 #include "version.h"
+#include "logger.h"
 
 int
 main (void)
 {
-  printf ("Hello from ikigai %s!\n", IK_VERSION);
+  ik_log_info ("Hello from ikigai %s!", IK_VERSION);
 
   int result = add (5, 3);
-  printf ("5 + 3 = %d\n", result);
+  ik_log_info ("5 + 3 = %d", result);
 
   return EXIT_SUCCESS;
 }

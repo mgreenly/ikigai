@@ -1,10 +1,10 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include "version.h"
+#include "logger.h"
 
 int
 main (void)
 {
-  printf ("Hello from ikigai-server %s!\n", IK_VERSION);
+  ik_log_info ("Hello from ikigai-server %s!", IK_VERSION);
   return EXIT_SUCCESS;
 }

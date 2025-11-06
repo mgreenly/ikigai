@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <check.h>
 #include <talloc.h>
 #include "../../src/error.h"

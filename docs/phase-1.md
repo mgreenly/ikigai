@@ -143,7 +143,7 @@ extern volatile sig_atomic_t g_httpd_shutdown;
 Registers WebSocket endpoint (`/ws`), handles SIGINT/SIGTERM for graceful shutdown with < 200ms response time.
 
 ### `src/logger.c/h` - Logging
-Stdout/stderr logging following systemd conventions.
+Stdout/stderr logging following systemd conventions. Thread-safe with atomic log line writes using pthread mutex.
 
 ```c
 void ik_log_debug(const char *fmt, ...)
@@ -181,7 +181,7 @@ SERVER_LIBS = -lulfius -ljansson -lcurl -ltalloc -luuid -lb64 -lpthread
 - `openai_test.c` - OpenAI API streaming, SSE parsing, shutdown abort
 - `handler_test.c` - WebSocket handshake, message routing, connection lifecycle
 - `httpd_test.c` - Server initialization, signal handling, shutdown
-- `logger_test.c` - Log output routing and formatting
+- `logger_test.c` - Log output routing, formatting, and thread safety
 
 ### Integration Tests (`tests/integration/`)
 - `websocket_openai_test.c` - Full flow: connect → handshake → query → stream → disconnect
@@ -190,7 +190,7 @@ SERVER_LIBS = -lulfius -ljansson -lcurl -ltalloc -luuid -lb64 -lpthread
 ## Implementation Order
 
 1. **Logger module** (`logger.c/h`)
-   - No dependencies
+   - Depends on: pthread (for thread-safe mutex)
    - Used by all other modules
    - Foundation for observability
 
