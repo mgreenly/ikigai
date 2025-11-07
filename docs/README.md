@@ -43,6 +43,7 @@ A terminal-based assistant that executes tools locally, remembers conversations 
 - **[memory.md](memory.md)** - Memory management with talloc, ownership rules, patterns
 - **[error_handling.md](error_handling.md)** - Error handling with talloc-integrated Result types
 - **[build-system.md](build-system.md)** - Build system with quality gates, testing infrastructure, and multi-distro support
+- **[vulnerabilities.md](vulnerabilities.md)** - CVE vulnerability tracking for dependencies
 
 ### Future Work
 - **[roadmap.md](roadmap.md)** - Post-v1.0 exploration areas
