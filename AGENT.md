@@ -88,6 +88,25 @@ Do NOT include:
 - Use `//` style comments only. Never use `/* ... */` style comments.
 - Use comments sparingly. Don't comment what the code does - comment why it does it or provide context that isn't obvious from the code itself.
 
+**Numeric Types**:
+- **Always use `<inttypes.h>`** for all numeric type definitions and format specifiers
+- `<inttypes.h>` includes `<stdint.h>`, so you get both fixed-width types and printf/scanf macros
+- **Never use primitive types** (`int`, `long`, `unsigned`, etc.) - always use explicit sized types:
+  - `int8_t`, `int16_t`, `int32_t`, `int64_t` for signed integers
+  - `uint8_t`, `uint16_t`, `uint32_t`, `uint64_t` for unsigned integers
+  - `size_t` for sizes and counts (from `<stddef.h>`, also included by `<inttypes.h>`)
+- Use `PRId32`, `PRIu64`, etc. macros for printf format specifiers
+- Use `SCNd32`, `SCNu64`, etc. macros for scanf format specifiers
+
+Example:
+```c
+#include <inttypes.h>
+
+int32_t count = 42;
+uint64_t size = 1024;
+printf("Count: %" PRId32 ", Size: %" PRIu64 "\n", count, size);
+```
+
 ## Naming Conventions
 
 All public symbols (functions, types, globals) follow the pattern: `ik_MODULE_THING`

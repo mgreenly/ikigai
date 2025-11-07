@@ -10,7 +10,7 @@ Server: WebSocket-based LLM proxy with conversation storage and RAG retrieval. C
 
 Built for experimentation and iteration. All conversations feed a shared knowledge base.
 
-**Current Status**: Phase 1 - In Progress (4 of 9 core modules complete)
+**Current Status**: Phase 1 - In Progress (Phase 1b: 4/9 server modules complete; Phase 1a: starting client work)
 
 ## Codebase Structure
 
@@ -30,46 +30,60 @@ Built for experimentation and iteration. All conversations feed a shared knowled
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
 - **[memory.md](memory.md)** - Memory management with talloc, ownership rules, patterns
 - **[error_handling.md](error_handling.md)** - Error handling with talloc-integrated Result types
-- **[phase-1.md](phase-1.md)** - Phase 1 implementation details (module structure, dependencies, build order)
-- **[phase-1-details.md](phase-1-details.md)** - Phase 1 detailed implementation specification
-- **[shutdown-verification.md](shutdown-verification.md)** - ⚠️ **REQUIRED TEST** - Verify libulfius shutdown behavior before Phase 1 implementation
+- **[phase-1a-repl.md](phase-1a-repl.md)** - Phase 1a: Minimal REPL terminal interface (current work target)
+- **[phase-1.md](phase-1.md)** - Phase 1b implementation details (module structure, dependencies, build order)
+- **[phase-1-details.md](phase-1-details.md)** - Phase 1b detailed implementation specification
+- **[shutdown-verification.md](shutdown-verification.md)** - ⚠️ **REQUIRED TEST** - Verify libulfius shutdown behavior before Phase 1b implementation
 
 ## Development Phases
 
 These are **incremental build phases**, not standalone releases. Each phase builds on the previous one's foundation.
 
-### Phase 1: Architectural Foundation
+### Phase 1: Foundations + Manual Test Client
 
-**Goal**: Implement the core architectural patterns that all subsequent phases depend on.
+**Goal**: Establish core architectural patterns AND create a manual testing harness for AI module development.
 
-**Not a shippable product** - Phase 1 establishes production-quality foundations, not end-user features. Think of it as building the frame and foundation of a house before adding rooms.
+**Phase 1 runs two parallel tracks:**
 
-**What Phase 1 builds:**
-- **Concurrency model**: Worker threads with abort semantics (needed for shutdown, DB operations, tool execution in later phases)
-- **Memory management**: talloc patterns for hierarchical allocation (prevents entire classes of bugs)
-- **Error handling**: Result types with CHECK macro propagation (systematic error flow)
-- **HTTP/WebSocket server**: libulfius lifecycle and connection management
-- **Streaming architecture**: SSE parsing, chunk forwarding, client disconnect handling
-- **OpenAI integration**: Proof that streaming LLM proxy pattern works
+#### Phase 1a: Minimal Standalone Client
+- **Purpose**: Manual testing harness for developing AI model modules
+- **What it builds**:
+  - `bin/ikigai` - Basic REPL chatbot using vterm
+  - Direct OpenAI client library integration (streaming)
+  - Config module for API keys/settings
+  - Text in/out only - no fancy UI features
+- **Why now**: Enables manual testing while developing the openai module patterns
+- **No server connection** - talks directly to OpenAI API
 
-**What Phase 1 validates:**
+#### Phase 1b: Server Architectural Foundation
+- **Purpose**: Core architectural patterns that all subsequent server phases depend on
+- **What it builds**:
+  - **Concurrency model**: Worker threads with abort semantics (needed for shutdown, DB operations, tool execution)
+  - **Memory management**: talloc patterns for hierarchical allocation (prevents entire classes of bugs)
+  - **Error handling**: Result types with CHECK macro propagation (systematic error flow)
+  - **HTTP/WebSocket server**: libulfius lifecycle and connection management
+  - **Streaming architecture**: SSE parsing, chunk forwarding, client disconnect handling
+  - **OpenAI integration**: Proof that streaming LLM proxy pattern works
+
+**What Phase 1b validates:**
 - libulfius shutdown behavior with active callbacks (shutdown-verification.md required)
 - talloc + worker threads + Result types compose correctly
 - Graceful shutdown with in-flight requests works
 
-**What Phase 1 omits** (added in later phases):
+**What Phase 1b omits** (added in later phases):
 - No persistence or message history (Phase 3)
 - No tool execution (Phases 5-6)
 - No multiple providers (Phase 2)
-- No production client UI (Phase 4)
 
-**Why this complexity in Phase 1?** These architectural decisions can't be retrofitted later without massive refactoring. Get the foundation right first, then build features on top.
+**Why this complexity in Phase 1b?** These architectural decisions can't be retrofitted later without massive refactoring. Get the foundation right first, then build features on top.
 
-**Phase 2**: Abstract LLM provider interface (OpenAI, Anthropic, Google)
+---
 
-**Phase 3**: Add PostgreSQL storage and message history
+**Phase 2**: Abstract LLM provider interface (OpenAI, Anthropic, Google) - testable with standalone client
 
-**Phase 4**: Client terminal with libvterm - concurrent background messages, external editor support
+**Phase 3**: Add PostgreSQL storage and message history (server-side)
+
+**Phase 4**: Connect client to server - convert standalone client to use WebSocket protocol, proxy through server
 
 **Phase 5**: Server-side web search tool
 
