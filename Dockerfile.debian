@@ -11,8 +11,11 @@ RUN apt-get update && apt-get install -y \
     libjansson-dev \
     libcurl4-gnutls-dev \
     uuid-dev \
+    libb64-dev \
     lcov \
+    valgrind \
     git \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
