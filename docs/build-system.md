@@ -1,21 +1,10 @@
 # Build System
 
-The ikigai build system is designed for **fast iteration with rigorous quality gates**. Every tool provides instant, actionable feedback. Every check catches real bugs.
+The ikigai build system provides multiple layers of quality checks, fast iteration tools, and multi-distro support.
 
-## Philosophy
+## Quality Assurance
 
-The build system enables a tight development loop:
-
-1. **Write code** - Comprehensive warnings catch bugs at compile time
-2. **Run tests** - Fast unit/integration tests with Check framework
-3. **Deep validation** - Sanitizers, Valgrind, and coverage gates catch what tests miss
-4. **Ship confidently** - Release builds optimize aggressively with all checks compiled away
-
-This isn't about bureaucracy. It's about catching bugs early when they're cheap to fix, and shipping code you trust.
-
-## Quality Assurance: Layered Defense
-
-The build system provides multiple layers of bug detection, each catching different classes of errors:
+Multiple layers of checks catch different classes of bugs:
 
 ### Compile-Time: Comprehensive Warnings
 
@@ -34,8 +23,6 @@ These catch:
 - Format string vulnerabilities
 - Variable shadowing and uninitialized variables
 - VLAs and alloca (we use talloc instead)
-
-**Result**: Many bugs never make it past compilation.
 
 ### Runtime: Dynamic Analysis
 
@@ -64,21 +51,17 @@ Four different sanitizers and tools, each specialized:
 
 The combo target `make check-dynamic` runs all four. Clean rebuild between each to avoid conflicts.
 
-**Result**: Memory errors, races, and undefined behavior caught before they reach users.
-
 ### Coverage: 100% Threshold Enforced
 
 ```bash
 make coverage
 ```
 
-Generates line and branch coverage report, **enforced at 100%**.
+Generates line and branch coverage report, enforced at 100%.
 
-Uses `lcov` for fast, text-based reports (no HTML generation overhead). Shows per-file coverage and summary.
+Uses `lcov` for text-based reports. Shows per-file coverage and summary.
 
-**Why 100%?** Because untested code is untested error paths. With MOCKABLE seams (see below), we can test every allocation failure, every parse error, every edge case.
-
-**Result**: Every code path is validated. No dark corners where bugs hide.
+With MOCKABLE seams (see below), every allocation failure and error path can be tested, making 100% coverage achievable.
 
 ### Code Quality: Complexity Gating
 
@@ -88,32 +71,26 @@ make lint
 
 Uses the `complexity` tool to enforce cyclomatic complexity threshold of 15.
 
-Functions exceeding this threshold must be refactored. Complexity correlates with bugs—simpler functions are easier to test, understand, and maintain.
+Functions exceeding this threshold must be refactored.
 
-**Result**: Code stays maintainable and testable.
-
-### Release: Turn Errors Into Build Failures
+### Release Build
 
 ```bash
 make release
 ```
 
-Adds `-Werror` to turn all warnings into errors. If it compiles in release mode, it's clean.
+Adds `-Werror` to turn all warnings into errors.
 
 Also enables:
 - `-O2` optimization
 - `-D_FORTIFY_SOURCE=2` for runtime buffer overflow detection
-- `-DNDEBUG` to inline all MOCKABLE functions (zero overhead)
+- `-DNDEBUG` to inline all MOCKABLE functions
 
-The `make ci` target enforces this: lint → coverage → dynamic analysis → release build.
-
-**Result**: No warnings, no skipped tests, no compromises in production code.
+The `make ci` target runs: lint → coverage → dynamic analysis → release build.
 
 ## Test Infrastructure: MOCKABLE Seams
 
-Testing C code is hard because you can't easily inject failures into external libraries. How do you test OOM handling if you can't make `talloc_zero()` return NULL?
-
-**Solution**: Link seams via the `MOCKABLE` pattern.
+All external library calls are wrapped to enable failure injection in tests.
 
 ### What are link seams?
 
@@ -139,22 +116,17 @@ void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size) {
 }
 ```
 
-In **release builds** (`-DNDEBUG`), the wrappers are `static inline` and defined in the header. The compiler inlines them completely—**zero runtime overhead**, no symbols in the binary.
+In **release builds** (`-DNDEBUG`), the wrappers are `static inline` and defined in the header. The compiler inlines them completely—zero runtime overhead, no symbols in the binary.
 
-### Why this pattern?
+Benefits:
+- Tests can inject any error condition (OOM, parse failures, etc.)
+- Release builds have zero overhead (wrappers inlined away)
+- Industry standard pattern (known as "link seams")
+- Single codebase for tests and production
 
-- **Comprehensive testing**: Test every error path (OOM, parse failures, etc.)
-- **Zero production overhead**: Release builds inline everything away
-- **Industry standard**: Known as "link seams" (Michael Feathers), used by Linux kernel (KUnit)
-- **Single codebase**: No `#ifdef` soup, tests and production share the same code
+See `docs/decisions/link-seams-mocking.md` for full details and `src/wrapper.h` for implementation.
 
-See `docs/decisions/link-seams-mocking.md` for full rationale and `src/wrapper.h` for implementation.
-
-**Examples**:
-- `tests/integration/oom_integration_test.c` - Verifies OOM error handling
-- All unit tests can inject failures via link seams
-
-**Result**: Every error path is testable. 100% coverage is achievable.
+Example: `tests/integration/oom_integration_test.c` verifies OOM error handling.
 
 ## Multi-Distribution Support
 
@@ -187,8 +159,6 @@ The `distro-check` target:
 2. Runs `make ci` inside container (lint → coverage → dynamic analysis → release)
 3. Fails if any distro fails
 
-**Result**: Code validated on multiple distros before release.
-
 ### Handling missing dependencies
 
 Some libraries aren't available on all distros, or we want to avoid version conflicts.
@@ -215,19 +185,15 @@ $(CC) $(LDFLAGS) -o $@ $^ -Wl,-Bstatic $(CLIENT_STATIC_LIBS) -Wl,-Bdynamic $(CLI
 
 This links `CLIENT_STATIC_LIBS` statically and `CLIENT_LIBS` dynamically.
 
-**Result**: Flexible dependency management per distribution.
-
 ## Efficiency for Development
 
-Every tool in the build system is chosen for **speed and clarity**:
+Tools selected for speed and terse output:
 
-### Fast tools, terse output
-
-- **Check framework**: Minimal output, fast execution. Only prints failures.
-- **lcov**: Text-based coverage reports, no HTML generation overhead
-- **complexity**: Instant feedback, single-line output per function
+- **Check framework**: Only prints failures
+- **lcov**: Text-based coverage reports
+- **complexity**: Single-line output per function
 - **uncrustify**: Fast formatter with K&R style (120-char lines)
-- **Sanitizers**: Run at near-native speed with ASan/UBSan (2-5x slowdown vs 100x for Valgrind)
+- **Sanitizers**: 2-5x slowdown (vs 100x for Valgrind)
 
 ### Incremental builds
 
@@ -243,7 +209,7 @@ GCC generates `.d` files listing each source file's dependencies (headers). Make
 -include $(wildcard build/*.d)
 ```
 
-**Result**: Only recompile what changed. No manual dependency tracking.
+Only recompile what changed. No manual dependency tracking.
 
 ### Parallel test execution
 
@@ -262,8 +228,6 @@ Each test runs in isolation with its own talloc context.
 ```
 
 Prevents Make from deleting intermediate files (like `.gcno` coverage files). Coverage data persists across incremental builds.
-
-**Result**: Fast edit-compile-test cycle. Typical iteration under 1 second for single-file changes.
 
 ## Build Modes
 
@@ -298,8 +262,6 @@ Release mode adds:
 -D_FORTIFY_SOURCE=2  # Runtime buffer overflow detection
 ```
 
-**Result**: Defense in depth, even in debug builds.
-
 ## CI Integration
 
 The `make ci` target runs the full validation pipeline:
@@ -314,15 +276,13 @@ Executes:
 3. `make check-dynamic` - All sanitizers + Valgrind
 4. `make release` - Build with `-Werror`
 
-If any step fails, CI fails. No partial success.
+If any step fails, CI fails.
 
 This is what runs in `distro-check` for each distribution.
 
-**Result**: Single command validates everything. No manual checklist.
-
 ## Zero-Overhead Abstractions
 
-The MOCKABLE pattern demonstrates the philosophy: **pay nothing for testability in production**.
+The MOCKABLE pattern provides testability with no production cost.
 
 Release builds:
 - Inline all wrappers (`static inline`)
@@ -334,7 +294,7 @@ Debug/test builds:
 - Enable sanitizers
 - Maintain weak symbols for test overrides
 
-**Verification**:
+Verification:
 
 ```bash
 # Debug: wrapper functions are weak symbols
@@ -347,8 +307,6 @@ make BUILD=release
 nm build/wrapper.o | grep ik_talloc
 # Shows: (nothing - inlined away)
 ```
-
-**Result**: Testing infrastructure disappears in production. No runtime cost.
 
 ## Example Workflows
 
@@ -392,16 +350,12 @@ make check-dynamic
 
 ## Summary
 
-The build system enforces quality through:
+The build system provides:
 
-- **19 warning flags** catching bugs at compile time
-- **4 dynamic analysis tools** catching runtime issues
-- **100% coverage threshold** ensuring every path is tested
-- **Complexity gating** keeping code maintainable
-- **MOCKABLE seams** making every error path testable
-- **Multi-distro validation** catching platform-specific issues
-- **Fast, terse tools** enabling rapid iteration
-
-Every check is fast. Every failure is actionable. Every bug is caught early.
-
-**Philosophy**: Trust your code because you've validated it thoroughly, not because you hope it works.
+- **19 warning flags** at compile time
+- **4 dynamic analysis tools** (ASan/UBSan, TSan, Valgrind Memcheck, Helgrind)
+- **100% coverage threshold** enforced
+- **Complexity gating** (threshold: 15)
+- **MOCKABLE seams** for testing error paths
+- **Multi-distro validation** (Debian, Fedora)
+- **Fast, terse tools** for quick iteration
