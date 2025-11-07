@@ -3,7 +3,7 @@
 [![CI](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml/badge.svg)](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml)
 
 
-A experiment to build a Linux focused, multi-model, coding agent with RAG accessible permanent memory.
+An experiment to build a Linux focused, multi-model, coding agent with RAG accessible permanent memory.
 
 Why?  Because I want to and no one can stop me!
 
