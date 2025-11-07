@@ -1,5 +1,5 @@
 PACKAGE = ikigai
-VERSION = 0.1.0
+VERSION = $(shell grep '\#define IK_VERSION "' src/version.h | cut -d'"' -f2)
 
 PREFIX ?= /usr/local
 bindir ?= $(PREFIX)/bin
