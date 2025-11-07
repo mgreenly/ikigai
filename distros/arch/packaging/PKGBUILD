@@ -16,8 +16,7 @@ build() {
     make all BUILD=release
 }
 
-# check() disabled - tests already run in CI before packaging
-# OOM injection tests using weak symbols don't work reliably with Arch's toolchain
+# Tests are run in CI workflow before packaging, not during package build
 # check() {
 #     cd "${srcdir}/${pkgname}-${pkgver}"
 #     make check
