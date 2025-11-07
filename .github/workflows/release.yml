@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.1.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Validate version format
+      run: |
+        if ! echo "${{ inputs.version }}" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+          echo "Error: Version must be in format X.Y.Z (e.g., 0.1.0)"
+          exit 1
+        fi
+
+    - name: Build and test Debian
+      id: debian
+      continue-on-error: true
+      run: |
+        echo "=== Building Debian image ==="
+        docker build -f distros/debian/Dockerfile -t ikigai-ci-debian .
+        echo "=== Running Debian CI ==="
+        docker run --rm -v "$(pwd)":/workspace ikigai-ci-debian bash -c "make ci"
+        echo "=== Building Debian package ==="
+        make dist
+        docker run --rm -v "$(pwd)":/workspace ikigai-ci-debian bash -c "distros/debian/package.sh"
+
+    - name: Build and test Fedora
+      id: fedora
+      continue-on-error: true
+      run: |
+        echo "=== Building Fedora image ==="
+        docker build -f distros/fedora/Dockerfile -t ikigai-ci-fedora .
+        echo "=== Running Fedora CI ==="
+        docker run --rm -v "$(pwd)":/workspace ikigai-ci-fedora bash -c "make ci"
+        echo "=== Building Fedora package ==="
+        make dist
+        docker run --rm -v "$(pwd)":/workspace ikigai-ci-fedora bash -c "distros/fedora/package.sh"
+
+    - name: Build and test Arch
+      id: arch
+      continue-on-error: true
+      run: |
+        echo "=== Building Arch image ==="
+        docker build -f distros/arch/Dockerfile -t ikigai-ci-arch .
+        echo "=== Running Arch CI ==="
+        docker run --rm -v "$(pwd)":/workspace ikigai-ci-arch bash -c "make ci"
+        echo "=== Building Arch package ==="
+        make dist
+        docker run --rm -v "$(pwd)":/workspace ikigai-ci-arch bash -c "distros/arch/package.sh"
+
+    - name: Check build results
+      run: |
+        echo "=== Build Results ==="
+        echo "Debian: ${{ steps.debian.outcome }}"
+        echo "Fedora: ${{ steps.fedora.outcome }}"
+        echo "Arch: ${{ steps.arch.outcome }}"
+        echo ""
+        echo "=== Available packages ==="
+        ls -lh distros/dist/ 2>/dev/null || echo "No packages built"
+
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ inputs.version }}
+        name: Release v${{ inputs.version }}
+        body: |
+          ## ikigai v${{ inputs.version }}
+
+          ### Installation
+
+          **Debian/Ubuntu:**
+          ```bash
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/ikigai_${{ inputs.version }}_amd64.deb
+          sudo dpkg -i ikigai_${{ inputs.version }}_amd64.deb
+          ```
+
+          **Fedora/RHEL:**
+          ```bash
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/ikigai-${{ inputs.version }}-1.x86_64.rpm
+          sudo rpm -i ikigai-${{ inputs.version }}-1.x86_64.rpm
+          ```
+
+          **Arch Linux:**
+          ```bash
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/ikigai-${{ inputs.version }}-1-x86_64.pkg.tar.zst
+          sudo pacman -U ikigai-${{ inputs.version }}-1-x86_64.pkg.tar.zst
+          ```
+
+          ### What's Changed
+          <!-- Add release notes here -->
+
+          🤖 Generated with [Claude Code](https://claude.com/claude-code)
+        files: |
+          distros/dist/*.deb
+          distros/dist/*.rpm
+          distros/dist/*.pkg.tar.zst
+        draft: false
+        prerelease: ${{ inputs.prerelease }}
+        fail_on_unmatched_files: false
