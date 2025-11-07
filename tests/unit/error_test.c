@@ -353,7 +353,7 @@ START_TEST(test_oom_error_is_static)
 
     // The OOM error is static (we can't easily trigger real OOM in a test,
     // but we can verify the detection function works)
-    extern const ik_error_t ik_oom_error;
+    extern ik_error_t ik_oom_error;
     ck_assert(ik_error_is_static(&ik_oom_error));
     ck_assert_int_eq(ik_oom_error.code, IK_ERR_OOM);
     ck_assert_str_eq(ik_oom_error.msg, "Out of memory");

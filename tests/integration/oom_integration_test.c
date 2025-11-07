@@ -6,7 +6,7 @@
 // when talloc allocation fails
 START_TEST(test_oom_error_properties) {
     // Access the static OOM error directly
-    extern const ik_error_t ik_oom_error;
+    extern ik_error_t ik_oom_error;
 
     // Verify its properties
     ck_assert_int_eq(ik_oom_error.code, IK_ERR_OOM);
@@ -18,7 +18,7 @@ START_TEST(test_oom_error_properties) {
     ck_assert(ik_error_is_static(&ik_oom_error));
 
     // Verify we can create a result from it
-    ik_result_t res = ik_err((ik_error_t *)&ik_oom_error);
+    ik_result_t res = ik_err(&ik_oom_error);
     ck_assert(ik_is_err(&res));
     ck_assert_ptr_eq(res.err, &ik_oom_error);
 }
@@ -53,10 +53,10 @@ END_TEST
 // Test that static OOM error can be safely used without freeing
 START_TEST(test_static_oom_no_free_needed)
 {
-    extern const ik_error_t ik_oom_error;
+    extern ik_error_t ik_oom_error;
 
     // In a real OOM scenario, we'd get this error
-    ik_result_t res = ik_err((ik_error_t *)&ik_oom_error);
+    ik_result_t res = ik_err(&ik_oom_error);
 
     // We can check it, print it, propagate it
     ck_assert(ik_is_err(&res));

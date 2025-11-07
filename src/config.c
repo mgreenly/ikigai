@@ -8,6 +8,9 @@
 #include <libgen.h>
 #include <jansson.h>
 
+// Internal function prototypes (exposed for testing, not in public API)
+char *expand_tilde(TALLOC_CTX *ctx, const char *path);
+
 // Expand tilde (~) to HOME directory
 // Returns NULL if path starts with ~ but HOME is not set
 char *expand_tilde(TALLOC_CTX *ctx, const char *path)
@@ -134,11 +137,12 @@ ik_result_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     }
 
     // Extract port value and validate range
-    int port_value = json_integer_value(port);
-    if (port_value < 1024 || port_value > 65535) {
+    json_int_t port_int64 = json_integer_value(port);
+    if (port_int64 < 1024 || port_int64 > 65535) {
         json_decref(root);
-        return ERR(ctx, OUT_OF_RANGE, "Port must be 1024-65535, got %d", port_value);
+        return ERR(ctx, OUT_OF_RANGE, "Port must be 1024-65535, got %lld", (long long)port_int64);
     }
+    int port_value = (int)port_int64;
 
     // Copy values to config
     cfg->openai_api_key = talloc_strdup(cfg, json_string_value(api_key));
