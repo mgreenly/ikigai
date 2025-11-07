@@ -159,7 +159,7 @@ build/tests/integration:
 -include $(wildcard build/tests/integration/*.d)
 
 clean:
-	rm -rf build bin dist
+	rm -rf build bin dist $(COVERAGE_DIR)
 	@find . -name "*.gcda" -o -name "*.gcno" -delete 2>/dev/null || true
 
 clean-coverage:
