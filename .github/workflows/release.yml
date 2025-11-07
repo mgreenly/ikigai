@@ -3,10 +3,6 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version to release (e.g., 0.1.0)'
-        required: true
-        type: string
       prerelease:
         description: 'Mark as pre-release'
         required: false
@@ -22,10 +18,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Validate version format
+    - name: Extract version from src/version.h
+      id: get_version
       run: |
-        if ! echo "${{ inputs.version }}" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+        VERSION=$(grep '#define IK_VERSION "' src/version.h | cut -d'"' -f2)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Extracted version: $VERSION"
+        if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; then
           echo "Error: Version must be in format X.Y.Z (e.g., 0.1.0)"
+          echo "Found: $VERSION"
           exit 1
         fi
 
@@ -79,29 +80,29 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v${{ inputs.version }}
-        name: Release v${{ inputs.version }}
+        tag_name: v${{ steps.get_version.outputs.version }}
+        name: Release v${{ steps.get_version.outputs.version }}
         body: |
-          ## ikigai v${{ inputs.version }}
+          ## ikigai v${{ steps.get_version.outputs.version }}
 
           ### Installation
 
           **Debian/Ubuntu:**
           ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/ikigai_${{ inputs.version }}_amd64.deb
-          sudo dpkg -i ikigai_${{ inputs.version }}_amd64.deb
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai_${{ steps.get_version.outputs.version }}_amd64.deb
+          sudo dpkg -i ikigai_${{ steps.get_version.outputs.version }}_amd64.deb
           ```
 
           **Fedora/RHEL:**
           ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/ikigai-${{ inputs.version }}-1.x86_64.rpm
-          sudo rpm -i ikigai-${{ inputs.version }}-1.x86_64.rpm
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai-${{ steps.get_version.outputs.version }}-1.x86_64.rpm
+          sudo rpm -i ikigai-${{ steps.get_version.outputs.version }}-1.x86_64.rpm
           ```
 
           **Arch Linux:**
           ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/ikigai-${{ inputs.version }}-1-x86_64.pkg.tar.zst
-          sudo pacman -U ikigai-${{ inputs.version }}-1-x86_64.pkg.tar.zst
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai-${{ steps.get_version.outputs.version }}-1-x86_64.pkg.tar.zst
+          sudo pacman -U ikigai-${{ steps.get_version.outputs.version }}-1-x86_64.pkg.tar.zst
           ```
 
           ### What's Changed
