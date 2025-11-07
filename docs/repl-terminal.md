@@ -1,4 +1,4 @@
-# Phase 1a: Minimal Standalone Client
+# REPL Terminal Interface
 
 ## Overview
 
@@ -6,9 +6,9 @@ Build a minimal REPL chatbot with a split-buffer terminal interface that will ev
 
 ## Progressive Development
 
-Phase 1a is split into incremental steps:
+This work is split into incremental steps:
 
-### Step 1: Split-Buffer REPL Terminal (Current Target)
+### Split-Buffer REPL Terminal (Current Target)
 
 Build the terminal interface mechanics without any LLM integration.
 
@@ -102,7 +102,7 @@ All keyboard and mouse input flows through the terminal emulator (Ghostty/Kitty)
    - Arrow Up/Down (scroll history)
    - Page Up/Down (jump by screen)
 
-2. **Before Step 1 complete** - Add mouse wheel:
+2. **Before completing current work** - Add mouse wheel:
    - Enable mouse tracking mode (`\x1b[?1000h` + `\x1b[?1006h`)
    - Parse mouse wheel events from escape sequences
    - Adjust scroll_offset and re-render
@@ -137,13 +137,13 @@ When user presses Enter, the line dispatcher examines the input and decides acti
    - All entered lines → append to scrollback buffer
    - Ctrl+C → exit program (simplest escape hatch)
 
-2. **Later in Phase 1a** - Add command processor:
+2. **Later in current work** - Add command processor:
    - Lines starting with `/` → dispatch to command handler
    - `/exit` → cleanup and exit program (doesn't go to scrollback)
    - Regular lines (not starting with `/`) → append to scrollback buffer
    - Leaves room for future commands: `/clear`, `/help`, etc.
 
-3. **Future (Step 2 with AI)** - Enhanced dispatcher:
+3. **Future (with AI integration)** - Enhanced dispatcher:
    - `/ask <question>` → send to AI, wait for response, append to scrollback
    - Regular lines → context for AI conversation
    - Commands → special actions
@@ -320,7 +320,7 @@ while (!quit) {
 
 ---
 
-### Step 2: OpenAI Integration (Future)
+### OpenAI Integration (Future)
 
 Add direct OpenAI client library integration to make this a working chatbot.
 
@@ -330,13 +330,13 @@ Add direct OpenAI client library integration to make this a working chatbot.
 - Spinner in dynamic zone while waiting for response
 - Stream chunks into scrollback as they arrive
 
-**Not in scope for Step 1** - focus on terminal mechanics first.
+**Not in scope for current work** - focus on terminal mechanics first.
 
 ---
 
 ## Testing Strategy
 
-Manual testing only for Step 1:
+Manual testing only for initial implementation:
 1. Launch app, verify alternate screen
 2. Type lines, press Enter, verify they move to scrollback
 3. Fill screen with lines, verify scrolling works

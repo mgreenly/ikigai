@@ -4,90 +4,104 @@ This directory contains documentation primarily for AI agents working on the iki
 
 ## Project Overview
 
-**ikigai** is a multi-user AI coding agent with organizational memory. Written in C.
+**ikigai** is a desktop AI coding agent with persistent memory. Written in C.
 
-Server: WebSocket-based LLM proxy with conversation storage and RAG retrieval. Client: Terminal interface with libvterm that executes tools locally.
+A terminal-based assistant that executes tools locally, remembers conversations in a database, and works with multiple LLM providers. Built for experimentation and iteration.
 
-Built for experimentation and iteration. All conversations feed a shared knowledge base.
+**Current Status**: Early development - Building REPL terminal foundation
 
-**Current Status**: Phase 1 - In Progress (Phase 1b: 4/9 server modules complete; Phase 1a: starting client work)
+## v1.0 Vision
+
+**Long-term target**: Robust desktop client with:
+- **Database integration**: Persistent conversation history (PostgreSQL/DuckDB)
+- **Multi-LLM support**: OpenAI, Anthropic, Google with unified interface
+- **Local tool execution**: File operations, shell commands, code analysis
+- **Robust CLI**: Terminal UI with streaming responses, scrollback, editor integration
+
+**What v1.0 is NOT**:
+- Not a multi-user server (future exploration)
+- Not a web service (local desktop tool)
+- Not trying to be production infrastructure (experimentation platform)
 
 ## Codebase Structure
 
-- **Monorepo**: `src/` contains both client and server code
-- **Build targets**: `bin/ikigai` (client) and `bin/ikigai-server` (server)
-- **Current state**: Core infrastructure modules complete; server/client entry points are stubs
+- **Monorepo**: `src/` contains client code
+- **Build target**: `bin/ikigai` (desktop client)
 - **Build system**: Make with comprehensive warnings, sanitizers, Valgrind, and coverage support
 - **Testing**: Check framework with unit and integration tests; OOM injection via test seams
 - **Standard**: C17 with K&R style (120-char width)
 
 ## Documentation Files
 
-- **[architecture.md](architecture.md)** - System architecture and implementation phases
+### Current Work
+- **[repl-terminal.md](repl-terminal.md)** - REPL terminal interface (current implementation target)
+
+### Core Documentation
+- **[architecture.md](architecture.md)** - System architecture and design decisions
 - **[decisions/](decisions/)** - Architecture decision records (ADRs) for key design choices
-- **[protocol.md](protocol.md)** - Client-server WebSocket protocol
-- **[storage.md](storage.md)** - Database schema
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
 - **[memory.md](memory.md)** - Memory management with talloc, ownership rules, patterns
 - **[error_handling.md](error_handling.md)** - Error handling with talloc-integrated Result types
-- **[phase-1a-repl.md](phase-1a-repl.md)** - Phase 1a: Minimal REPL terminal interface (current work target)
-- **[phase-1.md](phase-1.md)** - Phase 1b implementation details (module structure, dependencies, build order)
-- **[phase-1-details.md](phase-1-details.md)** - Phase 1b detailed implementation specification
-- **[shutdown-verification.md](shutdown-verification.md)** - ⚠️ **REQUIRED TEST** - Verify libulfius shutdown behavior before Phase 1b implementation
 
-## Development Phases
+### Future Work
+- **[roadmap.md](roadmap.md)** - Post-v1.0 exploration areas
+- **[archive/](archive/)** - Earlier server-focused design docs (historical reference)
 
-These are **incremental build phases**, not standalone releases. Each phase builds on the previous one's foundation.
+## Development Roadmap
 
-### Phase 1: Foundations + Manual Test Client
+### Immediate: REPL Terminal Foundation
+**Current work target** - See [repl-terminal.md](repl-terminal.md) for details.
 
-**Goal**: Establish core architectural patterns AND create a manual testing harness for AI module development.
+Building a terminal interface with:
+- Split-buffer layout (scrollback + dynamic input)
+- Alternate screen mode with clean exit
+- Mouse and keyboard scrolling
+- Config integration
+- Foundation for streaming AI responses
 
-**Phase 1 runs two parallel tracks:**
+### Future: Core v1.0 Features
 
-#### Phase 1a: Minimal Standalone Client
-- **Purpose**: Manual testing harness for developing AI model modules
-- **What it builds**:
-  - `bin/ikigai` - Basic REPL chatbot using vterm
-  - Direct OpenAI client library integration (streaming)
-  - Config module for API keys/settings
-  - Text in/out only - no fancy UI features
-- **Why now**: Enables manual testing while developing the openai module patterns
-- **No server connection** - talks directly to OpenAI API
+**Database Integration**
+- Choose storage backend (PostgreSQL or DuckDB)
+- Persistent conversation history
+- Message storage and retrieval
+- Query/search capabilities
 
-#### Phase 1b: Server Architectural Foundation
-- **Purpose**: Core architectural patterns that all subsequent server phases depend on
-- **What it builds**:
-  - **Concurrency model**: Worker threads with abort semantics (needed for shutdown, DB operations, tool execution)
-  - **Memory management**: talloc patterns for hierarchical allocation (prevents entire classes of bugs)
-  - **Error handling**: Result types with CHECK macro propagation (systematic error flow)
-  - **HTTP/WebSocket server**: libulfius lifecycle and connection management
-  - **Streaming architecture**: SSE parsing, chunk forwarding, client disconnect handling
-  - **OpenAI integration**: Proof that streaming LLM proxy pattern works
+**Multi-LLM Provider Support**
+- Abstract provider interface
+- OpenAI integration (streaming)
+- Anthropic integration
+- Google integration
+- Unified conversation format
 
-**What Phase 1b validates:**
-- libulfius shutdown behavior with active callbacks (shutdown-verification.md required)
-- talloc + worker threads + Result types compose correctly
-- Graceful shutdown with in-flight requests works
+**Local Tool Execution**
+- Tool interface design
+- File operations (read, write, search)
+- Shell command execution
+- Code analysis tools
+- Full trust model (user's machine)
 
-**What Phase 1b omits** (added in later phases):
-- No persistence or message history (Phase 3)
-- No tool execution (Phases 5-6)
-- No multiple providers (Phase 2)
+**Enhanced Terminal Client**
+- Streaming response display
+- External editor integration ($EDITOR)
+- Command history
+- Session management
+- Rich formatting
 
-**Why this complexity in Phase 1b?** These architectural decisions can't be retrofitted later without massive refactoring. Get the foundation right first, then build features on top.
+### Future Exploration
+See [roadmap.md](roadmap.md) for post-v1.0 directions including:
+- Multi-user server architecture
+- WebSocket protocol for remote access
+- Organizational memory and RAG
+- Collaborative features
 
----
+## Development Philosophy
 
-**Phase 2**: Abstract LLM provider interface (OpenAI, Anthropic, Google) - testable with standalone client
+**Build incrementally**. Each phase establishes solid foundations before adding features. Focus on getting core patterns right (memory management, error handling, concurrency) early.
 
-**Phase 3**: Add PostgreSQL storage and message history (server-side)
+**Experiment freely**. This is a platform for trying ideas, not production infrastructure. Make architectural choices that enable rapid iteration.
 
-**Phase 4**: Connect client to server - convert standalone client to use WebSocket protocol, proxy through server
-
-**Phase 5**: Server-side web search tool
-
-**Phase 6**: Client-side tools (dir_list, file_read) with delegation protocol
+**Keep it focused**. v1.0 is about a great desktop experience. Server/multi-user features are future exploration, not current distractions.
 
 ---
 

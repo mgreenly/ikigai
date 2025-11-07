@@ -1,8 +1,8 @@
 PACKAGE = ikigai
 VERSION = 0.1.0
 
-prefix ?= /usr/local
-bindir ?= $(prefix)/bin
+PREFIX ?= /usr/local
+bindir ?= $(PREFIX)/bin
 
 CC = gcc
 

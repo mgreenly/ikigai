@@ -3,8 +3,33 @@
 [![CI](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml/badge.svg)](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml)
 
 
-A personal learning project and experiment to build a multi-user coding agent with permanent group memory.
+A experiment to build a Linux focused, multi-model, coding agent with RAG accessible permanent memory.
 
 Why?  Because I want to and no one can stop me!
 
-See [docs/](docs/) for architecture and implementation phases.
+## Building
+
+**Platform**: Debian 13 (Trixie) - may not work on other distributions.
+
+**Clone and build**:
+```bash
+git clone https://github.com/mgreenly/ikigai.git
+cd ikigai
+make
+```
+
+**Install**:
+```bash
+make install PREFIX=$HOME/.local
+```
+
+**Uninstall**:
+```bash
+make uninstall PREFIX=$HOME/.local
+```
+
+**Distro-specific builds**: For brave users, see `distro/` directory for alternative build configurations.
+
+## Documentation
+
+See [docs/](docs/) for design and implementation details.

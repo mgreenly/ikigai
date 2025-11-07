@@ -2,111 +2,248 @@
 
 ## Overview
 
-Client-server architecture with WebSocket communication. Server proxies LLM requests and manages conversation storage. Client executes all tools locally.
+Desktop AI coding agent with local tool execution and persistent conversation history. Direct LLM API integration with streaming support.
 
-## Binaries
+## Binary
 
-- `bin/ikigai` - Client (terminal interface)
-- `bin/ikigai-server` - Server (WebSocket listener, LLM proxy)
+- `bin/ikigai` - Desktop client (terminal interface)
 
 ## Dependencies
 
 ### Core Libraries
-- **libulfius** - HTTP/WebSocket server framework
+- **libvterm** - Terminal emulator for client UI
 - **libjansson** - JSON serialization
 - **libcurl** - HTTP client for LLM APIs
-- **libvterm** - Terminal emulator for client
-- **libpq** - PostgreSQL C client library
-- **libhiredis** - C client for Valkey/Redis
+- **libb64** - Base64 encoding for identifiers
+- **talloc** - Hierarchical pool-based memory allocator
 - **libuuid** - RFC 4122 UUID generation (util-linux)
 - **check** - Unit testing framework
 
-### Additional Libraries
-- **libb64** - Base64 encoding for UUIDs (Phase 1)
-- **talloc** - Hierarchical pool-based memory allocator (Phase 1)
+### Database (To Be Selected)
+- **libpq** - PostgreSQL C client library (option 1)
+- **libduckdb** - DuckDB embedded database (option 2)
 
 ### Future Libraries
 - **libutf8proc** - UTF-8 text processing and Unicode normalization
 - **libpcre2** - Perl-compatible regex library for text processing
 - **libtree-sitter** - Incremental parsing library for code analysis
-- **jemalloc** - Scalable concurrent malloc implementation
-
-### Storage Systems
-- **PostgreSQL** - Persistent conversation history
-- **Valkey** - Cache, session storage, and message queue
 
 Target platform: Debian 13 (Trixie)
 
-## Implementation Phases
+## v1.0 Architecture
 
-**Note**: These are incremental build phases, not standalone releases. Each phase establishes production-quality foundations for subsequent features.
+### Component Overview
 
-### Phase 1: WebSocket Server with Streaming LLM Proxy
+```
+┌─────────────────────────────────────────────────┐
+│              bin/ikigai                          │
+│                                                  │
+│  ┌────────────────┐        ┌─────────────────┐  │
+│  │  Terminal UI   │        │   LLM Clients   │  │
+│  │   (libvterm)   │        │   (streaming)   │  │
+│  │                │        │                 │  │
+│  │ - Split buffer │        │ - OpenAI       │  │
+│  │ - Scrollback   │        │ - Anthropic    │  │
+│  │ - Input zone   │        │ - Google       │  │
+│  └────────────────┘        └─────────────────┘  │
+│                                                  │
+│  ┌────────────────┐        ┌─────────────────┐  │
+│  │  Local Tools   │        │    Database     │  │
+│  │                │        │   (PostgreSQL   │  │
+│  │ - File ops     │        │    or DuckDB)   │  │
+│  │ - Shell exec   │        │                 │  │
+│  │ - Code analysis│        │ - Conversations │  │
+│  └────────────────┘        │ - Messages      │  │
+│                            │ - Search        │  │
+│  ┌────────────────┐        └─────────────────┘  │
+│  │  Config        │                              │
+│  │  ~/.ikigai/    │                              │
+│  └────────────────┘                              │
+└─────────────────────────────────────────────────┘
+```
 
-**Architectural Foundations Established:**
-- **Concurrency model**: Worker threads + abort semantics (required for correct shutdown, used in all phases)
-- **Memory management**: talloc patterns (hierarchical contexts, no manual free)
-- **Error handling**: Result types with talloc integration
-- **HTTP/WebSocket server**: libulfius configuration and lifecycle
-- **Testing patterns**: TDD with Check framework, OOM injection via weak symbol test seams
-- **External library wrappers**: Mockable functions for comprehensive error path testing
+### Design Principles
 
-**Functional Scope:**
-- WebSocket connection between client and server (`ws://localhost:1984/ws`)
-- Handshake protocol (hello/welcome) with session_id generation
-- Server loads config from `~/.ikigai/config.json`
-- Server forwards queries to OpenAI API (gpt-4o-mini) with streaming
-- Stream responses back to client
-- No message history, no tools, no storage (deferred to later phases)
+**Local-first**: Everything runs on the user's machine. No external server dependencies except LLM APIs.
 
-**Client:** stdio stub for basic verification; Python WebSocket client for testing
+**Direct API integration**: Client talks directly to OpenAI/Anthropic/Google APIs using libcurl with streaming.
 
-**Testing:** Check framework with real OpenAI API during development; mocked responses for CI
+**Persistent memory**: All conversations stored locally in database for search and context.
 
-### Phase 2: LLM Provider Abstraction
-- Abstract provider interface (function pointers)
-- Support OpenAI, Anthropic, Google
+**Full trust model**: Tools execute with user's permissions. No sandboxing. User's machine, user's responsibility.
 
-### Phase 3: Message History
-- Add PostgreSQL storage
-- Store conversations, exchanges, messages
-- Send message history to LLM
+**Single-threaded simplicity**: Main event loop handles terminal input, LLM streaming, and tool execution sequentially. Async complexity deferred to future explorations.
 
-### Phase 4: Client Terminal (libvterm)
-- Handle concurrent background messages during user input
-- External editor support ($EDITOR)
-- Proper terminal UI for streaming responses
+## Implementation Roadmap
 
-### Phase 5: Web Search Tool
-- Web search tool proxies through server
-- Client executes tool, implementation calls server
+### Current: REPL Terminal Foundation
 
-### Phase 6: Client-Side Tools
-- File operations and shell commands execute locally
-- Uniform tool interface (client doesn't know which proxy to server)
-- Full trust model (no sandboxing)
+**Foundation**: Terminal interface mechanics without LLM integration.
 
-## Identity
+Establishes:
+- Terminal initialization (raw mode, alternate screen)
+- Split-buffer layout (scrollback + dynamic input zone)
+- Input handling (keyboard, mouse, scrolling)
+- Rendering pipeline (compose + blit)
+- Config module integration
 
-- **Client identity**: `hostname@username` (trust-based, no authentication)
-- **Session ID**: UUID per WebSocket connection
-- **Correlation ID**: UUID per exchange (server-generated, for logging and observability)
+**Deliverable**: Working REPL where lines move from input to scrollback. Foundation for streaming AI responses.
 
-## Concurrency Model
+See [repl-terminal.md](repl-terminal.md) for detailed design.
 
-The server handles one request at a time per WebSocket connection, blocking until the request completes (e.g., OpenAI streams until `[DONE]`). Clients open multiple connections for concurrent operations—one for streaming LLM responses, another for file operations, etc. This keeps both client and server code simple and synchronous while enabling practical concurrency. Each connection maintains independent state with its own `session_id`.
+### Next: OpenAI Integration
 
-## Server Configuration
+Add streaming LLM responses to the REPL.
 
-Server loads configuration from `~/.ikigai/config.json`:
+Features:
+- OpenAI API client (libcurl + streaming)
+- Send prompts, display streaming responses
+- Show spinner/status while waiting
+- Append chunks to scrollback as they arrive
 
-**Phase 1:**
+### Future: Database Persistence
+
+Store conversation history locally.
+
+Features:
+- Choose database (PostgreSQL or DuckDB)
+- Schema for conversations, messages
+- Save/load conversation history
+- Search across past conversations
+
+### Future: Multi-LLM Support
+
+Abstract provider interface.
+
+Features:
+- Provider abstraction layer (function pointers)
+- OpenAI implementation
+- Anthropic implementation
+- Google implementation
+- Switch providers via config or command
+
+### Future: Local Tools
+
+Enable file operations and shell execution.
+
+Features:
+- Tool interface design
+- File read/write/search
+- Shell command execution
+- Code analysis (tree-sitter)
+- Results flow back to conversation
+
+### Future: Enhanced Terminal
+
+Polish the UI experience.
+
+Features:
+- Syntax highlighting in code blocks
+- External editor integration ($EDITOR)
+- Multi-line input with editing
+- Command history
+- Rich formatting
+
+## Configuration
+
+Client loads configuration from `~/.ikigai/config.json`:
+
+**Initial (REPL Terminal)**:
 ```json
 {
-  "openai_api_key": "sk-...",
-  "listen_address": "127.0.0.1",
-  "listen_port": 1984
+  "terminal": {
+    "scrollback_lines": 10000
+  }
 }
 ```
 
-Future phases will add database connection strings and other provider API keys.
+**With OpenAI Integration**:
+```json
+{
+  "terminal": {
+    "scrollback_lines": 10000
+  },
+  "llm": {
+    "default_provider": "openai",
+    "openai_api_key": "sk-..."
+  }
+}
+```
+
+**With Multi-LLM Support**:
+```json
+{
+  "terminal": {
+    "scrollback_lines": 10000
+  },
+  "llm": {
+    "default_provider": "openai",
+    "openai_api_key": "sk-...",
+    "anthropic_api_key": "sk-ant-...",
+    "google_api_key": "..."
+  },
+  "database": {
+    "type": "postgresql",
+    "connection_string": "postgresql://localhost/ikigai"
+  }
+}
+```
+
+## Memory Management
+
+All allocations use **talloc** for hierarchical context management:
+- Main context owns all subsystems
+- Cleanup is automatic with `talloc_free()`
+- No manual free tracking
+- Memory leaks eliminated by design
+
+See [memory.md](memory.md) for detailed patterns.
+
+## Error Handling
+
+**Result types** with talloc integration:
+- Functions return `Result` wrappers (Ok/Err)
+- `CHECK()` macro propagates errors up call stack
+- Errors carry context strings for debugging
+- Systematic error flow throughout codebase
+
+See [error_handling.md](error_handling.md) for patterns.
+
+## Testing Strategy
+
+**Test-Driven Development**:
+- Write failing test first
+- Implement minimal code to pass
+- Run `make check && make lint && make coverage`
+- 100% coverage requirement (lines, functions, branches)
+
+**OOM Testing**:
+- Weak symbol test seams for library functions
+- Inject allocation failures
+- Verify error path handling
+
+**Integration Testing**:
+- Real LLM API calls during development
+- Mocked responses for CI
+- Database tests with test fixtures
+
+## Concurrency Model (Future)
+
+v1.0 is single-threaded for simplicity. Future explorations may add:
+- Worker threads for long-running tool execution
+- Async I/O for LLM streaming
+- Background database queries
+
+Keep it simple until proven necessary.
+
+## Future: Server Architecture
+
+Post-v1.0 may explore multi-user server. See [roadmap.md](roadmap.md).
+
+Key concepts from earlier design (see `docs/archive/` for details):
+- WebSocket protocol for client-server communication
+- Server proxies LLM requests
+- Centralized conversation storage
+- Tools still execute locally on client machines
+
+Not in scope for v1.0.
