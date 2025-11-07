@@ -1,7 +1,7 @@
 #ifndef IK_CONFIG_H
 #define IK_CONFIG_H
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <talloc.h>
 #include "error.h"
 
