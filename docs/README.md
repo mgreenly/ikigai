@@ -27,7 +27,7 @@ A terminal-based assistant that executes tools locally, remembers conversations 
 
 - **Monorepo**: `src/` contains client code
 - **Build target**: `bin/ikigai` (desktop client)
-- **Build system**: Make with comprehensive warnings, sanitizers, Valgrind, and coverage support
+- **Build system**: Make with comprehensive warnings, sanitizers, Valgrind, and coverage support - see [build-system.md](build-system.md)
 - **Testing**: Check framework with unit and integration tests; OOM injection via test seams
 - **Standard**: C17 with K&R style (120-char width)
 
@@ -42,6 +42,7 @@ A terminal-based assistant that executes tools locally, remembers conversations 
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
 - **[memory.md](memory.md)** - Memory management with talloc, ownership rules, patterns
 - **[error_handling.md](error_handling.md)** - Error handling with talloc-integrated Result types
+- **[build-system.md](build-system.md)** - Build system with quality gates, testing infrastructure, and multi-distro support
 
 ### Future Work
 - **[roadmap.md](roadmap.md)** - Post-v1.0 exploration areas
