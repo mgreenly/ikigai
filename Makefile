@@ -58,8 +58,8 @@ endif
 # Allow LDFLAGS override if not set by BUILD type
 LDFLAGS ?=
 
-CLIENT_LIBS = -ltalloc -lpthread
-SERVER_LIBS = -lulfius -ljansson -lcurl -ltalloc -luuid -lpthread
+CLIENT_LIBS = -ltalloc -ljansson -luuid -lb64 -lpthread
+SERVER_LIBS = -lulfius -ljansson -lcurl -ltalloc -luuid -lb64 -lpthread
 
 COMPLEXITY_THRESHOLD = 15
 LINE_LENGTH = 120
@@ -70,11 +70,11 @@ COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c
 CLIENT_OBJ = $(patsubst src/%.c,build/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
-SERVER_SOURCES = src/server.c src/error.c src/logger.c src/config.c
+SERVER_SOURCES = src/server.c src/error.c src/logger.c src/config.c src/wrapper.c
 SERVER_OBJ = $(patsubst src/%.c,build/%.o,$(SERVER_SOURCES))
 SERVER_TARGET = bin/ikigai-server
 
@@ -86,7 +86,7 @@ INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/%_test.c,build/tests/int
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS)
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c
 MODULE_OBJ = $(patsubst src/%.c,build/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
@@ -125,13 +125,13 @@ build/tests/unit/%_test.o: tests/unit/%_test.c | build/tests/unit
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 build/tests/unit/%_test: build/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | build/tests/unit
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -lpthread
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread
 
 build/tests/integration/%_test.o: tests/integration/%_test.c | build/tests/integration
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 build/tests/integration/%_test: build/tests/integration/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | build/tests/integration
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -lpthread
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread
 
 build/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | build/tests
 	$(CC) $(CFLAGS) -c -o $@ $<

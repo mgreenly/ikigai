@@ -77,8 +77,8 @@ ik_is_err (const ik_result_t *result)
 void *ik_talloc_zero_for_error (TALLOC_CTX * ctx, size_t size);
 
 // Global static error for OOM situations
-// Read-only singleton, no race conditions, cannot be freed with talloc_free()
-// Note: Not const to avoid cast-qual warning when returning from _ik_make_error
+// WARNING: This is read-only! Never modify this structure.
+// No race conditions possible, cannot be freed with talloc_free()
 static ik_error_t ik_oom_error = {
   .code = IK_ERR_OOM,
   .file = "<oom>",
