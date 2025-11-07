@@ -30,38 +30,50 @@ jobs:
           exit 1
         fi
 
-    - name: Build and test Debian
-      id: debian
+    - name: Build and CI test Debian
+      id: debian_ci
       continue-on-error: true
       run: |
         echo "=== Building Debian image ==="
         docker build -f distros/debian/Dockerfile -t ikigai-ci-debian .
         echo "=== Running Debian CI ==="
         docker run --rm -v "$(pwd)":/workspace ikigai-ci-debian bash -c "make ci"
+
+    - name: Package Debian
+      if: steps.debian_ci.outcome == 'success'
+      run: |
         echo "=== Building Debian package ==="
         make dist
         docker run --rm -v "$(pwd)":/workspace ikigai-ci-debian bash -c "distros/debian/package.sh"
 
-    - name: Build and test Fedora
-      id: fedora
+    - name: Build and CI test Fedora
+      id: fedora_ci
       continue-on-error: true
       run: |
         echo "=== Building Fedora image ==="
         docker build -f distros/fedora/Dockerfile -t ikigai-ci-fedora .
         echo "=== Running Fedora CI ==="
         docker run --rm -v "$(pwd)":/workspace ikigai-ci-fedora bash -c "make ci"
+
+    - name: Package Fedora
+      if: steps.fedora_ci.outcome == 'success'
+      run: |
         echo "=== Building Fedora package ==="
         make dist
         docker run --rm -v "$(pwd)":/workspace ikigai-ci-fedora bash -c "distros/fedora/package.sh"
 
-    - name: Build and test Arch
-      id: arch
+    - name: Build and CI test Arch
+      id: arch_ci
       continue-on-error: true
       run: |
         echo "=== Building Arch image ==="
         docker build -f distros/arch/Dockerfile -t ikigai-ci-arch .
         echo "=== Running Arch CI ==="
         docker run --rm -v "$(pwd)":/workspace ikigai-ci-arch bash -c "make ci"
+
+    - name: Package Arch
+      if: steps.arch_ci.outcome == 'success'
+      run: |
         echo "=== Building Arch package ==="
         make dist
         docker run --rm -v "$(pwd)":/workspace ikigai-ci-arch bash -c "distros/arch/package.sh"
@@ -69,9 +81,9 @@ jobs:
     - name: Check build results
       run: |
         echo "=== Build Results ==="
-        echo "Debian: ${{ steps.debian.outcome }}"
-        echo "Fedora: ${{ steps.fedora.outcome }}"
-        echo "Arch: ${{ steps.arch.outcome }}"
+        echo "Debian CI: ${{ steps.debian_ci.outcome }}"
+        echo "Fedora CI: ${{ steps.fedora_ci.outcome }}"
+        echo "Arch CI: ${{ steps.arch_ci.outcome }}"
         echo ""
         echo "=== Available packages ==="
         ls -lh distros/dist/ 2>/dev/null || echo "No packages built"
