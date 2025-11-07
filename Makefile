@@ -97,7 +97,7 @@ MODULE_OBJ = $(patsubst src/%.c,build/%.o,$(MODULE_SOURCES))
 # Test utilities (linked with all tests)
 TEST_UTILS_OBJ = build/tests/test_utils.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint ci install-deps coverage help distro-check distro-images distro-images-clean distro-clean distro-package
+.PHONY: all release clean install uninstall check check-unit check-integration check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint cloc ci install-deps coverage help distro-check distro-images distro-images-clean distro-clean distro-package
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -325,6 +325,9 @@ lint:
 	@[ ! -d tests/integration ] || complexity --threshold=$(COMPLEXITY_THRESHOLD) tests/integration/*.c || [ $$? -eq 5 ]
 	@echo "✓ All complexity checks passed"
 
+cloc:
+	@cloc src/ tests/ Makefile
+
 ci: lint coverage check-dynamic
 	@echo "Building release build to enforce -Werror..."
 	@$(MAKE) clean
@@ -426,6 +429,7 @@ help:
 	@echo "Other targets:"
 	@echo "  dist            - Create source distribution"
 	@echo "  fmt             - Format source code with uncrustify (K&R style, line length: $(LINE_LENGTH))"
+	@echo "  cloc            - Count lines of code in src/, tests/, and Makefile"
 	@echo "  install-deps    - Install build dependencies (Debian/Ubuntu)"
 	@echo ""
 	@echo "Build modes (use with any target):"
