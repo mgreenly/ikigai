@@ -24,7 +24,7 @@ Built for experimentation and iteration. All conversations feed a shared knowled
 ## Documentation Files
 
 - **[architecture.md](architecture.md)** - System architecture and implementation phases
-- **[decisions.md](decisions.md)** - Architecture decision records (ADRs)
+- **[decisions/](decisions/)** - Architecture decision records (ADRs) for key design choices
 - **[protocol.md](protocol.md)** - Client-server WebSocket protocol
 - **[storage.md](storage.md)** - Database schema
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
