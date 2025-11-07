@@ -89,26 +89,24 @@ jobs:
 
           **Debian/Ubuntu:**
           ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai_${{ steps.get_version.outputs.version }}_amd64.deb
+          curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai_${{ steps.get_version.outputs.version }}_amd64.deb
           sudo dpkg -i ikigai_${{ steps.get_version.outputs.version }}_amd64.deb
           ```
 
           **Fedora/RHEL:**
           ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai-${{ steps.get_version.outputs.version }}-1.x86_64.rpm
+          curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai-${{ steps.get_version.outputs.version }}-1.x86_64.rpm
           sudo rpm -i ikigai-${{ steps.get_version.outputs.version }}-1.x86_64.rpm
           ```
 
           **Arch Linux:**
           ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai-${{ steps.get_version.outputs.version }}-1-x86_64.pkg.tar.zst
+          curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai-${{ steps.get_version.outputs.version }}-1-x86_64.pkg.tar.zst
           sudo pacman -U ikigai-${{ steps.get_version.outputs.version }}-1-x86_64.pkg.tar.zst
           ```
 
           ### What's Changed
-          <!-- Add release notes here -->
-
-          🤖 Generated with [Claude Code](https://claude.com/claude-code)
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
         files: |
           distros/dist/*.deb
           distros/dist/*.rpm
