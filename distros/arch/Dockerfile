@@ -31,8 +31,7 @@ RUN pacman -Syu --noconfirm && \
     perl-capture-tiny \
     perl-datetime \
     python \
-    cppunit \
-    glibc-debug
+    cppunit
 
 # Create mk/arch.mk with Arch-specific package list
 RUN mkdir -p /workspace/mk && cat > /workspace/mk/arch.mk <<'EOF'
@@ -68,8 +67,7 @@ PACKAGES = \
 	perl-capture-tiny \
 	perl-datetime \
 	python \
-	cppunit \
-	glibc-debug
+	cppunit
 EOF
 
 # Set working directory
