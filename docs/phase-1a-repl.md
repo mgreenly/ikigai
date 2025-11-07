@@ -85,6 +85,88 @@ Build the terminal interface mechanics without any LLM integration.
 
 **Implementation Strategy**: Use libvterm for ALL rendering (one coherent system), but maintain our own scrollback buffer for control.
 
+#### Detailed Design Decisions
+
+**Input Flow**:
+All keyboard and mouse input flows through the terminal emulator (Ghostty/Kitty):
+- Terminal receives OS-level events
+- Encodes them as byte sequences (regular chars or escape sequences)
+- Writes to app's stdin
+- App reads in raw mode and processes
+
+**Progressive Input Implementation**:
+1. **Initial REPL** - Basic reliable keys only:
+   - Regular typing (letters, numbers, punctuation)
+   - Enter (submit line)
+   - Backspace (edit)
+   - Arrow Up/Down (scroll history)
+   - Page Up/Down (jump by screen)
+
+2. **Before Step 1 complete** - Add mouse wheel:
+   - Enable mouse tracking mode (`\x1b[?1000h` + `\x1b[?1006h`)
+   - Parse mouse wheel events from escape sequences
+   - Adjust scroll_offset and re-render
+
+3. **Future enhancement** - Kitty keyboard protocol:
+   - Unambiguous encoding for all key combos
+   - Distinguishes ESC vs Alt
+   - Optional, with graceful fallback
+
+**Cursor Management**:
+Two distinct cursor concepts:
+1. **Logical cursor** - Position in input buffer (byte offset)
+   - Tracked in input buffer data structure
+   - Updated by editing operations (insert, backspace, arrow left/right)
+
+2. **Screen cursor** - Visual position on terminal
+   - Managed by vterm during rendering
+   - Calculated from scroll position + layout + logical cursor
+
+**Scrollback Line Format**:
+Variable-length logical lines (NOT fixed-width grid):
+- Each line stores semantic content: "user: hello" or "ai: long response..."
+- Lines can be any length (UTF-8 strings)
+- Render module handles wrapping to current terminal width
+- **Terminal resize**: Just re-render with new dimensions, no buffer modification needed
+- Simpler than fixed-width approach (no reflow logic required)
+
+**Line Processing Pipeline**:
+When user presses Enter, the line dispatcher examines the input and decides action:
+
+1. **Very first draft** - Simple flow:
+   - All entered lines → append to scrollback buffer
+   - Ctrl+C → exit program (simplest escape hatch)
+
+2. **Later in Phase 1a** - Add command processor:
+   - Lines starting with `/` → dispatch to command handler
+   - `/exit` → cleanup and exit program (doesn't go to scrollback)
+   - Regular lines (not starting with `/`) → append to scrollback buffer
+   - Leaves room for future commands: `/clear`, `/help`, etc.
+
+3. **Future (Step 2 with AI)** - Enhanced dispatcher:
+   - `/ask <question>` → send to AI, wait for response, append to scrollback
+   - Regular lines → context for AI conversation
+   - Commands → special actions
+
+**Dispatcher responsibilities**:
+- Parse line to determine type (command vs regular text)
+- Route to appropriate handler (command processor, buffer append, AI sender)
+- Return action to main loop (continue, exit, etc.)
+
+**Module Organization**:
+- **repl module** - Main context, owns all data structures, provides init/cleanup/run
+- **terminal module** - Raw mode, alternate screen, termios state
+- **buffer module** - Scrollback buffer and input buffer management
+- **render module** - vterm ownership, compose and blit operations
+- **input module** - Process raw byte sequences, dispatch to buffer/render
+- **expandable array utility** - Generic reusable array (for scrollback and future needs)
+
+**Memory Strategy**:
+- Use talloc for all allocations (consistent with existing codebase)
+- Main context owns everything via talloc hierarchy
+- Cleanup is automatic with talloc_free()
+- Expandable arrays use talloc_realloc() for growth
+
 #### Data Structures
 
 ```c
