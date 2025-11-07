@@ -7,7 +7,7 @@ A experiment to build a Linux focused, multi-model, coding agent with RAG access
 
 Why?  Because I want to and no one can stop me!
 
-See [docs/](docs/) for design and implementation details.
+See [docs/](docs/README.md/) for design and implementation details.
 
 ## Install
 
