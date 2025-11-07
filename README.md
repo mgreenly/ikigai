@@ -15,8 +15,7 @@ See [docs/](docs/) for design and implementation details.
 
 **Clone**:
 ```bash
-git clone https://github.com/mgreenly/ikigai.git
-cd ikigai
+git clone https://github.com/mgreenly/ikigai.git && cd ikigai
 ```
 
 **Install**:
