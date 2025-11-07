@@ -34,7 +34,7 @@ make all BUILD=release
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT prefix=/usr
+make install DESTDIR=$RPM_BUILD_ROOT PREFIX=/usr
 
 %files
 %{_bindir}/ikigai

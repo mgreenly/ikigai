@@ -272,7 +272,7 @@ distro-images-clean:
 
 distro-clean:
 	@echo "Cleaning build artifacts using $(word 1,$(DISTROS)) Docker image..."
-	@docker run --rm -v "$$(pwd)":/workspace ikigai-ci-$(word 1,$(DISTROS)) bash -c "make clean"
+	@docker run --rm --user $$(id -u):$$(id -g) -v "$$(pwd)":/workspace ikigai-ci-$(word 1,$(DISTROS)) bash -c "make clean"
 	@echo "✓ Clean complete!"
 
 distro-check:
@@ -281,7 +281,7 @@ distro-check:
 		echo ""; \
 		echo "=== Testing on $$distro ==="; \
 		docker build -f distros/$$distro/Dockerfile -t ikigai-ci-$$distro . || exit 1; \
-		docker run --rm -v "$$(pwd)":/workspace ikigai-ci-$$distro bash -c "make ci" || exit 1; \
+		docker run --rm --user $$(id -u):$$(id -g) -v "$$(pwd)":/workspace ikigai-ci-$$distro bash -c "make ci" || exit 1; \
 		echo "✓ $$distro passed!"; \
 	done
 	@echo ""
@@ -294,7 +294,7 @@ distro-package:
 		echo ""; \
 		echo "=== Building package for $$distro ==="; \
 		docker build -f distros/$$distro/Dockerfile -t ikigai-ci-$$distro . || exit 1; \
-		docker run --rm -v "$$(pwd)":/workspace ikigai-ci-$$distro bash -c "distros/$$distro/package.sh" || exit 1; \
+		docker run --rm --user $$(id -u):$$(id -g) -v "$$(pwd)":/workspace ikigai-ci-$$distro bash -c "distros/$$distro/package.sh" || exit 1; \
 		echo "✓ $$distro package built!"; \
 	done
 	@echo ""
