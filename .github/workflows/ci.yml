@@ -28,7 +28,9 @@ jobs:
           libjansson-dev \
           libcurl4-gnutls-dev \
           uuid-dev \
+          libb64-dev \
           lcov \
+          valgrind \
           git
 
     - name: Show tool versions
