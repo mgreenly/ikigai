@@ -11,7 +11,7 @@ See [docs/](docs/) for design and implementation details.
 
 ## Install
 
-**Platform**: The build system runs natively on Debian 13 (Trixie), other distributions may have dependency issues.  If you're brave you can check out the distros/ folder for distro specific builds but it's to early in the project life-cycle to for me to officially support those.
+**Platform**: The build system runs natively on Debian 13 (Trixie), other distributions may have dependency issues.  If you're brave you can check out the distros/ folder for distro specific builds but it's to early in the project's life-cycle for me to officially support those yet.
 
 **Clone**:
 ```bash

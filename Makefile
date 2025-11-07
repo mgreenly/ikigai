@@ -311,11 +311,10 @@ dist:
 	@echo "Created distros/dist/$(PACKAGE)-$(VERSION).tar.gz"
 
 fmt:
-	@indent -gnu -l$(LINE_LENGTH) src/*.c src/*.h
-	@[ ! -d tests/unit ] || indent -gnu -l$(LINE_LENGTH) tests/unit/*.c
-	@[ ! -d tests/integration ] || indent -gnu -l$(LINE_LENGTH) tests/integration/*.c
-	@[ ! -f tests/test_utils.c ] || indent -gnu -l$(LINE_LENGTH) tests/test_utils.c tests/test_utils.h
-	@find src tests -name "*~" -delete 2>/dev/null || true
+	@uncrustify -c .uncrustify.cfg --replace --no-backup src/*.c src/*.h
+	@[ ! -d tests/unit ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/unit/*.c
+	@[ ! -d tests/integration ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/integration/*.c
+	@[ ! -f tests/test_utils.c ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/test_utils.c tests/test_utils.h
 
 lint:
 	@echo "Checking complexity in src/*.c..."
@@ -372,7 +371,7 @@ PKG_UPDATE ?= apt-get update
 PKG_INSTALL ?= apt-get install -y
 PACKAGES ?= \
 	build-essential \
-	indent \
+	uncrustify \
 	complexity \
 	check \
 	libtalloc-dev \
@@ -426,7 +425,7 @@ help:
 	@echo ""
 	@echo "Other targets:"
 	@echo "  dist            - Create source distribution"
-	@echo "  fmt             - Format source code with GNU indent (line length: $(LINE_LENGTH))"
+	@echo "  fmt             - Format source code with uncrustify (K&R style, line length: $(LINE_LENGTH))"
 	@echo "  install-deps    - Install build dependencies (Debian/Ubuntu)"
 	@echo ""
 	@echo "Build modes (use with any target):"

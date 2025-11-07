@@ -26,28 +26,26 @@
 
 #ifdef NDEBUG
 // Release build: inline definitions for zero overhead
-MOCKABLE void *
-ik_talloc_zero_wrapper (TALLOC_CTX *ctx, size_t size)
+MOCKABLE void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size)
 {
-  return talloc_zero_size (ctx, size);
+    return talloc_zero_size(ctx, size);
 }
 
-MOCKABLE char *
-ik_talloc_strdup_wrapper (TALLOC_CTX *ctx, const char *str)
+MOCKABLE char *ik_talloc_strdup_wrapper(TALLOC_CTX *ctx, const char *str)
 {
-  return talloc_strdup (ctx, str);
+    return talloc_strdup(ctx, str);
 }
 
-MOCKABLE void *
-ik_talloc_array_wrapper (TALLOC_CTX *ctx, size_t el_size, size_t count)
+MOCKABLE void *ik_talloc_array_wrapper(TALLOC_CTX *ctx, size_t el_size, size_t count)
 {
-  return talloc_zero_size (ctx, el_size * count);
+    return talloc_zero_size(ctx, el_size * count);
 }
+
 #else
 // Debug/test build: weak symbol declarations
-MOCKABLE void *ik_talloc_zero_wrapper (TALLOC_CTX * ctx, size_t size);
-MOCKABLE char *ik_talloc_strdup_wrapper (TALLOC_CTX * ctx, const char *str);
-MOCKABLE void *ik_talloc_array_wrapper (TALLOC_CTX * ctx, size_t el_size, size_t count);
+MOCKABLE void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size);
+MOCKABLE char *ik_talloc_strdup_wrapper(TALLOC_CTX *ctx, const char *str);
+MOCKABLE void *ik_talloc_array_wrapper(TALLOC_CTX *ctx, size_t el_size, size_t count);
 #endif
 
 // ============================================================================
@@ -56,35 +54,32 @@ MOCKABLE void *ik_talloc_array_wrapper (TALLOC_CTX * ctx, size_t el_size, size_t
 
 #ifdef NDEBUG
 // Release build: inline definitions for zero overhead
-MOCKABLE json_t *
-ik_json_object_wrapper (void)
+MOCKABLE json_t *ik_json_object_wrapper(void)
 {
-  return json_object ();
+    return json_object();
 }
 
-MOCKABLE char *
-ik_json_dumps_wrapper (const json_t *json, size_t flags)
+MOCKABLE char *ik_json_dumps_wrapper(const json_t *json, size_t flags)
 {
-  return json_dumps (json, flags);
+    return json_dumps(json, flags);
 }
 
-MOCKABLE int
-ik_json_is_object_wrapper (const json_t *json)
+MOCKABLE int ik_json_is_object_wrapper(const json_t *json)
 {
-  return json_is_object (json);
+    return json_is_object(json);
 }
 
-MOCKABLE int
-ik_json_is_string_wrapper (const json_t *json)
+MOCKABLE int ik_json_is_string_wrapper(const json_t *json)
 {
-  return json_is_string (json);
+    return json_is_string(json);
 }
+
 #else
 // Debug/test build: weak symbol declarations
-MOCKABLE json_t *ik_json_object_wrapper (void);
-MOCKABLE char *ik_json_dumps_wrapper (const json_t * json, size_t flags);
-MOCKABLE int ik_json_is_object_wrapper (const json_t * json);
-MOCKABLE int ik_json_is_string_wrapper (const json_t * json);
+MOCKABLE json_t *ik_json_object_wrapper(void);
+MOCKABLE char *ik_json_dumps_wrapper(const json_t *json, size_t flags);
+MOCKABLE int ik_json_is_object_wrapper(const json_t *json);
+MOCKABLE int ik_json_is_string_wrapper(const json_t *json);
 #endif
 
 #endif // IK_WRAPPER_H

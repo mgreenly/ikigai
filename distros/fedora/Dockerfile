@@ -8,7 +8,7 @@ PKG_INSTALL = dnf install -y
 PACKAGES = \
 	gcc \
 	gcc-c++ \
-	indent \
+	uncrustify \
 	check-devel \
 	libtalloc-devel \
 	jansson-devel \

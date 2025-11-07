@@ -3,7 +3,7 @@ FROM debian:trixie
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    indent \
+    uncrustify \
     complexity \
     check \
     libtalloc-dev \
