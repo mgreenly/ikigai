@@ -21,13 +21,15 @@ Client-server architecture with WebSocket communication. Server proxies LLM requ
 - **libuuid** - RFC 4122 UUID generation (util-linux)
 - **check** - Unit testing framework
 
-### Additional Libraries (Future)
+### Additional Libraries
+- **libb64** - Base64 encoding for UUIDs (Phase 1)
+- **talloc** - Hierarchical pool-based memory allocator (Phase 1)
+
+### Future Libraries
 - **libutf8proc** - UTF-8 text processing and Unicode normalization
 - **libpcre2** - Perl-compatible regex library for text processing
 - **libtree-sitter** - Incremental parsing library for code analysis
-- **libb64** - Base64 encoding/decoding library
 - **jemalloc** - Scalable concurrent malloc implementation
-- **talloc** - Hierarchical pool-based memory allocator
 
 ### Storage Systems
 - **PostgreSQL** - Persistent conversation history
@@ -46,7 +48,8 @@ Target platform: Debian 13 (Trixie)
 - **Memory management**: talloc patterns (hierarchical contexts, no manual free)
 - **Error handling**: Result types with talloc integration
 - **HTTP/WebSocket server**: libulfius configuration and lifecycle
-- **Testing patterns**: TDD with Check framework, OOM injection
+- **Testing patterns**: TDD with Check framework, OOM injection via weak symbol test seams
+- **External library wrappers**: Mockable functions for comprehensive error path testing
 
 **Functional Scope:**
 - WebSocket connection between client and server (`ws://localhost:1984/ws`)

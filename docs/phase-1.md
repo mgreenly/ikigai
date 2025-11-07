@@ -22,17 +22,30 @@
 
 ## Module Structure
 
-### `src/server.c` - Entry point
-Main function that coordinates startup and shutdown.
+### `src/error.c/h` - Error handling ✅ COMPLETE
+Result type for systematic error propagation with talloc integration.
 
 ```c
-int main(int argc, char *argv[])
-  - config_load()
-  - httpd_run(config)
-  - cleanup
+typedef struct {
+  void *ok;
+  ik_error_t *err;
+} ik_result_t;
+
+#define OK(val) ((ik_result_t){.ok = (val), .err = NULL})
+#define ERR(ctx, code, ...) ((ik_result_t){.ok = NULL, .err = ik_error_create(ctx, code, __VA_ARGS__)})
 ```
 
-### `src/config.c/h` - Configuration management
+### `src/logger.c/h` - Logging ✅ COMPLETE
+Thread-safe logging with mutex protection for atomic log line writes.
+
+```c
+void ik_log_info(const char *fmt, ...)
+void ik_log_warn(const char *fmt, ...)
+void ik_log_error(const char *fmt, ...)
+void ik_log_fatal(const char *fmt, ...) __attribute__((noreturn))
+```
+
+### `src/config.c/h` - Configuration management ✅ COMPLETE
 Loads and validates server configuration from `~/.ikigai/config.json`.
 
 ```c
@@ -50,8 +63,18 @@ typedef struct {
 
 All memory is talloc-managed. Caller frees with `talloc_free(ctx)`.
 
-### `src/protocol.c/h` - Message parsing and serialization
-Handles WebSocket message envelope and JSON serialization. UUID generation for session/correlation IDs.
+### `src/wrapper.c/h` - External library wrappers ✅ COMPLETE
+Thread-safe wrappers for external library calls with test seams for OOM injection. Uses weak symbols in debug builds, inlined in release builds for zero overhead.
+
+```c
+MOCKABLE void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size);
+MOCKABLE char *ik_talloc_strdup_wrapper(TALLOC_CTX *ctx, const char *str);
+MOCKABLE json_t *ik_json_object_wrapper(void);
+MOCKABLE int ik_json_is_string_wrapper(const json_t *json);
+```
+
+### `src/protocol.c/h` - Message parsing and serialization ✅ COMPLETE
+Handles WebSocket message envelope and JSON serialization. UUID generation for session/correlation IDs. Includes talloc destructors for automatic JSON cleanup.
 
 ```c
 typedef struct {
@@ -77,7 +100,19 @@ ik_result_t ik_protocol_msg_create_assistant_resp(TALLOC_CTX *ctx,
 
 Handshake messages (`hello`/`welcome`) are parsed inline in handler module.
 
-### `src/openai.c/h` - OpenAI API client
+Memory management uses talloc destructors to automatically decrement JSON reference counts when protocol messages are freed.
+
+### `src/server.c` - Entry point ⚠️ STUB
+Main function that coordinates startup and shutdown. Currently a hello-world stub.
+
+```c
+int main(int argc, char *argv[])
+  - config_load()
+  - httpd_run(config)
+  - cleanup
+```
+
+### `src/openai.c/h` - OpenAI API client ❌ NOT IMPLEMENTED
 HTTP client for OpenAI Chat Completions API with streaming SSE support. Uses libcurl multi interface for immediate shutdown.
 
 ```c
@@ -95,7 +130,7 @@ ik_result_t ik_openai_stream_req(TALLOC_CTX *ctx,
 
 Parses Server-Sent Events (SSE) format, validates JSON chunks, calls callback for each complete chunk.
 
-### `src/handler.c/h` - WebSocket connection handling
+### `src/handler.c/h` - WebSocket connection handling ❌ NOT IMPLEMENTED
 Manages WebSocket lifecycle and routes messages to worker thread for processing. Handles handshake protocol and message dispatch.
 
 ```c
@@ -131,7 +166,7 @@ void ik_handler_websocket_manager(const struct _u_request *req,
 
 **Threading model**: Each WebSocket connection has a dedicated worker thread. WebSocket thread handles protocol (framing, handshake), enqueues tasks, and waits for completion. Worker thread processes tasks (OpenAI requests, etc.) and can be immediately aborted on disconnect/shutdown.
 
-### `src/httpd.c/h` - HTTP/WebSocket server
+### `src/httpd.c/h` - HTTP/WebSocket server ❌ NOT IMPLEMENTED
 Manages libulfius server lifecycle, signal handling, and graceful shutdown.
 
 ```c
@@ -141,17 +176,6 @@ extern volatile sig_atomic_t g_httpd_shutdown;
 ```
 
 Registers WebSocket endpoint (`/ws`), handles SIGINT/SIGTERM for graceful shutdown with < 200ms response time.
-
-### `src/logger.c/h` - Logging
-Stdout/stderr logging following systemd conventions. Thread-safe with atomic log line writes using pthread mutex.
-
-```c
-void ik_log_debug(const char *fmt, ...)
-void ik_log_info(const char *fmt, ...)
-void ik_log_warn(const char *fmt, ...)
-void ik_log_error(const char *fmt, ...)
-void ik_log_fatal(const char *fmt, ...) __attribute__((noreturn))
-```
 
 ## Library Dependencies
 
@@ -176,55 +200,73 @@ SERVER_LIBS = -lulfius -ljansson -lcurl -ltalloc -luuid -lb64 -lpthread
 ## Test Files
 
 ### Unit Tests (`tests/unit/`)
-- `config_test.c` - Config file loading, validation, tilde expansion
-- `protocol_test.c` - Message parsing/serialization, UUID generation
-- `openai_test.c` - OpenAI API streaming, SSE parsing, shutdown abort
-- `handler_test.c` - WebSocket handshake, message routing, connection lifecycle
-- `httpd_test.c` - Server initialization, signal handling, shutdown
-- `logger_test.c` - Log output routing, formatting, and thread safety
+- `error_test.c` ✅ - Error creation, codes, messages, OOM handling
+- `logger_test.c` ✅ - Log output routing, formatting, and thread safety
+- `config_test.c` ✅ - Config file loading, validation, tilde expansion, defaults
+- `protocol_test.c` ✅ - Message parsing/serialization, UUID generation, JSON lifecycle
+- `openai_test.c` ❌ - OpenAI API streaming, SSE parsing, shutdown abort
+- `handler_test.c` ❌ - WebSocket handshake, message routing, connection lifecycle
+- `httpd_test.c` ❌ - Server initialization, signal handling, shutdown
 
 ### Integration Tests (`tests/integration/`)
-- `websocket_openai_test.c` - Full flow: connect → handshake → query → stream → disconnect
-- `httpd_lifecycle_test.c` - Server startup, client connections, graceful shutdown
+- `config_integration_test.c` ✅ - Config creation and loading full flow
+- `logger_integration_test.c` ✅ - Multi-level logging scenarios
+- `oom_integration_test.c` ✅ - Out-of-memory error handling patterns
+- `protocol_integration_test.c` ✅ - Full message flow: create → serialize → parse
+- `websocket_openai_test.c` ❌ - Full flow: connect → handshake → query → stream → disconnect
+- `httpd_lifecycle_test.c` ❌ - Server startup, client connections, graceful shutdown
+
+### Test Utilities
+- `tests/test_utils.c/h` ✅ - OOM injection helpers with strong symbol overrides
 
 ## Implementation Order
 
-1. **Logger module** (`logger.c/h`)
+1. **Error module** (`error.c/h`) ✅ COMPLETE
+   - Depends on: talloc
+   - Result type and error handling
+   - Foundation for all error propagation
+
+2. **Logger module** (`logger.c/h`) ✅ COMPLETE
    - Depends on: pthread (for thread-safe mutex)
    - Used by all other modules
    - Foundation for observability
 
-2. **Config module** (`config.c/h`)
-   - Depends on: logger
-   - Foundation for API credentials
-   - Testable in isolation
+3. **Wrapper module** (`wrapper.c/h`) ✅ COMPLETE
+   - Depends on: talloc, jansson
+   - Test seams for OOM injection
+   - Weak symbols in debug, inlined in release
 
-3. **Protocol module** (`protocol.c/h`)
-   - Depends on: logger
+4. **Config module** (`config.c/h`) ✅ COMPLETE
+   - Depends on: error, logger, wrapper
+   - Foundation for API credentials
+   - Auto-creates config with defaults
+
+5. **Protocol module** (`protocol.c/h`) ✅ COMPLETE
+   - Depends on: error, logger, wrapper
    - Message types and serialization
    - UUID generation for session/correlation IDs
-   - Testable in isolation
+   - talloc destructors for JSON cleanup
 
-4. **OpenAI client** (`openai.c/h`)
-   - Depends on: config, logger
+6. **OpenAI client** (`openai.c/h`) ⏳ NEXT
+   - Depends on: config, error, logger, wrapper
    - Test independently with real API calls
    - Handle streaming SSE response parsing
    - Implements curl multi for shutdown support
 
-5. **Handler module** (`handler.c/h`)
-   - Depends on: protocol, openai, logger
+7. **Handler module** (`handler.c/h`) ❌ PLANNED
+   - Depends on: protocol, openai, error, logger
    - WebSocket connection lifecycle
    - Handshake logic
    - Message routing between client and OpenAI
 
-6. **HTTPD module** (`httpd.c/h`)
-   - Depends on: config, handler, logger
+8. **HTTPD module** (`httpd.c/h`) ❌ PLANNED
+   - Depends on: config, handler, error, logger
    - Initialize libulfius
    - Register WebSocket endpoint
    - Signal handling and graceful shutdown
 
-7. **Server entry point** (`server.c`)
-   - Depends on: config, httpd, logger
+9. **Server entry point** (`server.c`) ❌ STUB
+   - Depends on: config, httpd, error, logger
    - Main entry point
    - Top-level error handling and cleanup
 

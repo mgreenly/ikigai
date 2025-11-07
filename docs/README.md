@@ -10,16 +10,16 @@ Server: WebSocket-based LLM proxy with conversation storage and RAG retrieval. C
 
 Built for experimentation and iteration. All conversations feed a shared knowledge base.
 
-**Current Status**: Phase 1 - Planning
+**Current Status**: Phase 1 - In Progress (4 of 9 core modules complete)
 
 ## Codebase Structure
 
 - **Monorepo**: `src/` contains both client and server code
 - **Build targets**: `bin/ikigai` (client) and `bin/ikigai-server` (server)
-- **Current state**: Both `server.c` and `client.c` are hello-world stubs
-- **Build system**: Make with GNU indent formatting and complexity checks
-- **Testing**: Uses Check framework
-- **Standard**: C17 with `-Wall -Wextra`
+- **Current state**: Core infrastructure modules complete; server/client entry points are stubs
+- **Build system**: Make with comprehensive warnings, sanitizers, Valgrind, and coverage support
+- **Testing**: Check framework with unit and integration tests; OOM injection via test seams
+- **Standard**: C17 with K&R style (120-char width)
 
 ## Documentation Files
 
