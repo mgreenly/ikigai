@@ -1,6 +1,7 @@
 #ifndef IK_ERROR_H
 #define IK_ERROR_H
 
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -95,7 +96,7 @@ ik_error_is_static (const ik_error_t *err)
 
 // Error creation - allocates on talloc context
 static inline ik_error_t *
-_ik_make_error (TALLOC_CTX *ctx, ik_error_code_t code, const char *file, int line, const char *fmt, ...)
+_ik_make_error (TALLOC_CTX *ctx, ik_error_code_t code, const char *file, int32_t line, const char *fmt, ...)
 {
   ik_error_t *err = ik_talloc_zero_for_error (ctx, sizeof (ik_error_t));
   if (!err)
@@ -178,7 +179,7 @@ ik_error_fprintf (FILE *f, const ik_error_t *err)
       return;
     }
 
-  fprintf (f, "Error: %s [%s:%d]\n", ik_error_message (err), err->file ? err->file : "unknown", err->line);
+  fprintf (f, "Error: %s [%s:%" PRId32 "]\n", ik_error_message (err), err->file ? err->file : "unknown", err->line);
 }
 
 // Common error conditions as inline functions

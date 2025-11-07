@@ -203,8 +203,8 @@ ik_protocol_generate_uuid (TALLOC_CTX *ctx)
       return ERR (ctx, OOM, "Failed to allocate UUID string");
     }
 
-  int j = 0;
-  for (int i = 0; b64_temp[i] && b64_temp[i] != '=' && j < 22; i++)	// LCOV_EXCL_BR_LINE - defensive bounds check and padding check, always 22 chars for UUID
+  size_t j = 0;
+  for (size_t i = 0; b64_temp[i] && b64_temp[i] != '=' && j < 22; i++)	// LCOV_EXCL_BR_LINE - defensive bounds check and padding check, always 22 chars for UUID
     {
       if (b64_temp[i] == '+')
 	{

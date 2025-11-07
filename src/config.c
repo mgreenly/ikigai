@@ -177,7 +177,7 @@ ik_cfg_load (TALLOC_CTX *ctx, const char *path)
       json_decref (root);
       return ERR (ctx, OUT_OF_RANGE, "Port must be 1024-65535, got %lld", port_raw);
     }
-  int port_value = (int) port_raw;
+  uint16_t port_value = (uint16_t) port_raw;
 
   // Copy values to config
   cfg->openai_api_key = talloc_strdup (cfg, json_string_value (api_key));

@@ -30,7 +30,7 @@ main (void)
   ik_cfg_t *cfg = result.ok;
   ik_log_info ("openai_api_key: %s", cfg->openai_api_key);
   ik_log_info ("listen_address: %s", cfg->listen_address);
-  ik_log_info ("listen_port: %d", cfg->listen_port);
+  ik_log_info ("listen_port: %u", cfg->listen_port);
   ik_log_info ("Server initialization complete");
 
   // ...
