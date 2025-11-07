@@ -7,6 +7,18 @@
 #include <uuid/uuid.h>
 #include <b64/cencode.h>
 
+// Destructor for ik_protocol_msg_t - decrements JSON payload reference
+static int
+ik_protocol_msg_destructor (ik_protocol_msg_t *msg)
+{
+  if (msg->payload)
+    {
+      json_decref (msg->payload);
+      msg->payload = NULL;
+    }
+  return 0;
+}
+
 ik_result_t
 ik_protocol_msg_parse (TALLOC_CTX *ctx, const char *json_str)
 {
@@ -32,6 +44,9 @@ ik_protocol_msg_parse (TALLOC_CTX *ctx, const char *json_str)
       json_decref (root);
       return ERR (ctx, OOM, "Failed to allocate message");
     }
+
+  // Set destructor to clean up JSON payload
+  talloc_set_destructor (msg, ik_protocol_msg_destructor);
 
   // Extract sess_id (required, string)
   json_t *sess_id_json = json_object_get (root, "sess_id");
@@ -227,6 +242,9 @@ ik_protocol_msg_create_err (TALLOC_CTX *ctx,
       return ERR (ctx, OOM, "Failed to allocate error message");
     }
 
+  // Set destructor to clean up JSON payload
+  talloc_set_destructor (msg, ik_protocol_msg_destructor);
+
   // Copy string fields
   msg->sess_id = ik_talloc_strdup_wrapper (msg, sess_id);
   if (!msg->sess_id)
@@ -269,6 +287,9 @@ ik_protocol_msg_create_assistant_resp (TALLOC_CTX *ctx, const char *sess_id, con
       return ERR (ctx, OOM, "Failed to allocate assistant response message");
     }
 
+  // Set destructor to clean up JSON payload
+  talloc_set_destructor (msg, ik_protocol_msg_destructor);
+
   // Copy string fields
   msg->sess_id = ik_talloc_strdup_wrapper (msg, sess_id);
   if (!msg->sess_id)
@@ -288,7 +309,8 @@ ik_protocol_msg_create_assistant_resp (TALLOC_CTX *ctx, const char *sess_id, con
       return ERR (ctx, OOM, "Failed to allocate type");	// LCOV_EXCL_LINE
     }
 
-  // Set payload (reference, not copy - caller owns the json_t)
+  // Take ownership of payload (caller must not use/free it after this call)
+  // Destructor will decrement the reference when message is freed
   msg->payload = payload;
 
   return OK (msg);

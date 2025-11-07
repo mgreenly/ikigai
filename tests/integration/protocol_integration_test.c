@@ -70,11 +70,10 @@ START_TEST (test_protocol_full_message_flow)
   ik_protocol_msg_t *msg4 = (ik_protocol_msg_t *) res.ok;
   ck_assert_str_eq (msg4->type, "assistant_response");
 
-  // Cleanup
+  // Cleanup - msg1 was manually created without destructor
   json_decref (msg1->payload);
-  json_decref (msg2->payload);
-  json_decref (resp_payload);
-  json_decref (msg4->payload);
+  // msg2, msg3, and msg4 have destructors that will clean up their payloads
+  // resp_payload was passed to create_assistant_resp which took ownership
   talloc_free (ctx);
 }
 
@@ -117,9 +116,7 @@ START_TEST (test_protocol_error_handling_flow)
   json_t *parsed_source = json_object_get (parsed_err->payload, "source");
   ck_assert_str_eq (json_string_value (parsed_source), "openai");
 
-  // Cleanup
-  json_decref (err_msg->payload);
-  json_decref (parsed_err->payload);
+  // Cleanup - destructors will clean up payloads automatically
   talloc_free (ctx);
 }
 

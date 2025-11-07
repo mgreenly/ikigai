@@ -385,13 +385,16 @@ START_TEST (test_protocol_serialize_message)
 {
   TALLOC_CTX *ctx = talloc_new (NULL);
 
-  // Create a message manually
+  // Create a message manually for serialization testing
   ik_protocol_msg_t *msg = talloc_zero (ctx, ik_protocol_msg_t);
   msg->sess_id = talloc_strdup (msg, "VQ6EAOKbQdSnFkRmVUQAAA");
   msg->corr_id = talloc_strdup (msg, "8fKm3pLxTdOqZ1YnHjW9Gg");
   msg->type = talloc_strdup (msg, "user_query");
   msg->payload = json_object ();
   json_object_set_new (msg->payload, "test", json_string ("data"));
+
+  // Manually decref payload since we're not using the constructor functions
+  json_t *payload_to_cleanup = msg->payload;
 
   // Serialize
   ik_result_t res = ik_protocol_msg_serialize (ctx, msg);
@@ -418,7 +421,7 @@ START_TEST (test_protocol_serialize_message)
   ck_assert (json_is_object (payload));
 
   json_decref (root);
-  json_decref (msg->payload);
+  json_decref (payload_to_cleanup);
   talloc_free (ctx);
 }
 
@@ -452,8 +455,6 @@ START_TEST (test_protocol_serialize_round_trip)
   ck_assert_str_eq (msg2->corr_id, "8fKm3pLxTdOqZ1YnHjW9Gg");
   ck_assert_str_eq (msg2->type, "user_query");
 
-  json_decref (msg1->payload);
-  json_decref (msg2->payload);
   talloc_free (ctx);
 }
 
@@ -479,7 +480,6 @@ START_TEST (test_protocol_serialize_oom_result_alloc)
   ck_assert_int_eq (ik_error_code (res.err), IK_ERR_OOM);
 
   oom_test_reset ();
-  json_decref (msg->payload);
   talloc_free (ctx);
 }
 
@@ -504,7 +504,6 @@ START_TEST (test_protocol_serialize_oom_json_object)
   ck_assert_int_eq (ik_error_code (res.err), IK_ERR_OOM);
 
   oom_test_reset ();
-  json_decref (msg->payload);
   talloc_free (ctx);
 }
 
@@ -529,7 +528,6 @@ START_TEST (test_protocol_serialize_oom_json_dumps)
   ck_assert_int_eq (ik_error_code (res.err), IK_ERR_OOM);
 
   oom_test_reset ();
-  json_decref (msg->payload);
   talloc_free (ctx);
 }
 
@@ -563,7 +561,6 @@ START_TEST (test_protocol_create_error_message)
   ck_assert_ptr_nonnull (message);
   ck_assert_str_eq (json_string_value (message), "test error");
 
-  json_decref (msg->payload);
   talloc_free (ctx);
 }
 
@@ -673,7 +670,7 @@ START_TEST (test_protocol_create_assistant_response)
   // Verify payload matches input
   ck_assert_ptr_eq (msg->payload, payload);
 
-  json_decref (payload);
+  // Payload ownership transferred to message, destructor will clean it up
   talloc_free (ctx);
 }
 
@@ -776,7 +773,6 @@ START_TEST (test_protocol_memory_cleanup)
 
   // All allocations should be children of ctx
   // Single talloc_free should clean everything up
-  json_decref (msg->payload);
   talloc_free (ctx);
 
   // Test passes if no memory leaks (verified by valgrind in CI)
@@ -799,8 +795,7 @@ START_TEST (test_protocol_jansson_cleanup)
   // Payload should be valid JSON object
   ck_assert (json_is_object (msg->payload));
 
-  // Properly clean up jansson ref
-  json_decref (msg->payload);
+  // Destructor will clean up jansson ref automatically
 
   // Clean up talloc allocations
   talloc_free (ctx);
