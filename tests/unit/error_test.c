@@ -443,7 +443,7 @@ START_TEST(test_oom_call_count)
 
 END_TEST
 // Test suite setup
-Suite * error_suite(void)
+static Suite *error_suite(void)
 {
     Suite *s;
     TCase *tc_core;

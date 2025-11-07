@@ -485,7 +485,7 @@ END_TEST START_TEST(test_config_memory_cleanup)
     // This test verifies no crashes occur during cleanup
 }
 
-END_TEST Suite *config_suite(void)
+END_TEST static Suite *config_suite(void)
 {
     Suite *s = suite_create("Config");
     TCase *tc_core = tcase_create("Core");

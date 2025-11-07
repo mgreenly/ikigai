@@ -72,7 +72,7 @@ START_TEST(test_config_full_flow) {
     talloc_free(ctx);
 }
 
-END_TEST Suite *config_integration_suite(void)
+END_TEST static Suite *config_integration_suite(void)
 {
     Suite *s = suite_create("ConfigIntegration");
     TCase *tc_core = tcase_create("Core");

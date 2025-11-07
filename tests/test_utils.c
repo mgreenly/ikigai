@@ -11,6 +11,9 @@ static struct {
     int call_count;
 } oom_state = { 0 };
 
+// Forward declaration for strong symbol override
+void *ik_talloc_zero_for_error(TALLOC_CTX *ctx, size_t size);
+
 // Strong symbol - overrides the weak symbol in src/error.c
 // This version allows controlled failure injection for testing
 void *ik_talloc_zero_for_error(TALLOC_CTX *ctx, size_t size)

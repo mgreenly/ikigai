@@ -26,13 +26,19 @@ DEBUG_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
 # Sanitizer flags (for sanitize build)
 SANITIZE_FLAGS = -fsanitize=address,undefined
 
+# Thread sanitizer flags (for tsan build)
+TSAN_FLAGS = -fsanitize=thread
+
+# Valgrind build flags (optimized for backtraces)
+VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
+
 # Release build flags
 RELEASE_FLAGS = -O2 -g -DNDEBUG -Werror
 
 # Base flags (always present)
 BASE_FLAGS = -std=c17 -fPIC -D_GNU_SOURCE
 
-# Build type selection (debug, release, or sanitize)
+# Build type selection (debug, release, sanitize, tsan, or valgrind)
 BUILD ?= debug
 
 ifeq ($(BUILD),release)
@@ -40,6 +46,11 @@ ifeq ($(BUILD),release)
 else ifeq ($(BUILD),sanitize)
   CFLAGS = $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(DEP_FLAGS) $(DEBUG_FLAGS) $(SANITIZE_FLAGS)
   LDFLAGS = -fsanitize=address,undefined
+else ifeq ($(BUILD),tsan)
+  CFLAGS = $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(DEP_FLAGS) $(DEBUG_FLAGS) $(TSAN_FLAGS)
+  LDFLAGS = -fsanitize=thread
+else ifeq ($(BUILD),valgrind)
+  CFLAGS = $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(DEP_FLAGS) $(VALGRIND_FLAGS)
 else
   CFLAGS = $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(DEP_FLAGS) $(DEBUG_FLAGS)
 endif
@@ -81,7 +92,7 @@ MODULE_OBJ = $(patsubst src/%.c,build/%.o,$(MODULE_SOURCES))
 # Test utilities (linked with all tests)
 TEST_UTILS_OBJ = build/tests/test_utils.o
 
-.PHONY: all clean install uninstall check check-unit check-integration dist fmt lint ci install-deps coverage clean-coverage help release debug sanitize
+.PHONY: all clean install uninstall check check-unit check-integration check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint ci install-deps coverage clean-coverage help release debug sanitize tsan valgrind
 
 all: $(CLIENT_TARGET) $(SERVER_TARGET)
 
@@ -94,6 +105,12 @@ debug:
 
 sanitize:
 	@$(MAKE) all BUILD=sanitize
+
+tsan:
+	@$(MAKE) all BUILD=tsan
+
+valgrind:
+	@$(MAKE) all BUILD=valgrind
 
 $(CLIENT_TARGET): $(CLIENT_OBJ) | bin
 	$(CC) $(LDFLAGS) -o $@ $^ $(CLIENT_LIBS)
@@ -178,6 +195,68 @@ check-integration: $(INTEGRATION_TEST_TARGETS)
 	done
 	@echo "Integration tests passed!"
 
+check-sanitize:
+	@echo "Building with AddressSanitizer + UndefinedBehaviorSanitizer..."
+	@$(MAKE) clean
+	@$(MAKE) check BUILD=sanitize
+	@echo "✓ Sanitizer checks passed!"
+
+check-valgrind:
+	@echo "Building for Valgrind with enhanced debug info..."
+	@$(MAKE) clean
+	@$(MAKE) $(TEST_TARGETS) BUILD=valgrind
+	@echo "Running tests under Valgrind Memcheck..."
+	@passed=0; failed=0; \
+	for test in $(TEST_TARGETS); do \
+		echo -n "Valgrind: $$test... "; \
+		if valgrind --leak-check=full --show-leak-kinds=all \
+		            --track-origins=yes --error-exitcode=1 \
+		            --quiet --gen-suppressions=no \
+		            ./$$test > /tmp/valgrind-$$$$.log 2>&1; then \
+			echo "✓"; \
+			passed=$$((passed + 1)); \
+		else \
+			echo "✗ FAILED"; \
+			cat /tmp/valgrind-$$$$.log; \
+			failed=$$((failed + 1)); \
+		fi; \
+		rm -f /tmp/valgrind-$$$$.log; \
+	done; \
+	echo "Valgrind: $$passed passed, $$failed failed"; \
+	[ $$failed -eq 0 ]
+
+check-helgrind:
+	@echo "Building for Helgrind with enhanced debug info..."
+	@$(MAKE) clean
+	@$(MAKE) $(TEST_TARGETS) BUILD=valgrind
+	@echo "Running tests under Valgrind Helgrind..."
+	@passed=0; failed=0; \
+	for test in $(TEST_TARGETS); do \
+		echo -n "Helgrind: $$test... "; \
+		if valgrind --tool=helgrind --error-exitcode=1 \
+		            --history-level=approx --quiet \
+		            ./$$test > /tmp/helgrind-$$$$.log 2>&1; then \
+			echo "✓"; \
+			passed=$$((passed + 1)); \
+		else \
+			echo "✗ FAILED"; \
+			cat /tmp/helgrind-$$$$.log; \
+			failed=$$((failed + 1)); \
+		fi; \
+		rm -f /tmp/helgrind-$$$$.log; \
+	done; \
+	echo "Helgrind: $$passed passed, $$failed failed"; \
+	[ $$failed -eq 0 ]
+
+check-tsan:
+	@echo "Building with ThreadSanitizer..."
+	@$(MAKE) clean
+	@$(MAKE) check BUILD=tsan
+	@echo "✓ ThreadSanitizer checks passed!"
+
+check-dynamic: check-sanitize check-valgrind check-helgrind check-tsan
+	@echo "✓ All dynamic analysis checks passed!"
+
 dist:
 	@echo "Creating distribution tarball..."
 	@mkdir -p dist $(PACKAGE)-$(VERSION)
@@ -202,11 +281,11 @@ lint:
 	@[ ! -d tests/integration ] || complexity --threshold=$(COMPLEXITY_THRESHOLD) tests/integration/*.c || [ $$? -eq 5 ]
 	@echo "✓ All complexity checks passed"
 
-ci: lint coverage
+ci: lint coverage check-dynamic
 	@echo "Building release build to enforce -Werror..."
 	@$(MAKE) clean
 	@$(MAKE) all BUILD=release
-	@echo "✓ Release build passed (zero warnings)"
+	@echo "✓ All CI checks passed (lint, coverage, dynamic analysis, release build)"
 
 coverage: clean-coverage
 	@echo "Building with coverage instrumentation..."
@@ -254,7 +333,8 @@ install-deps:
 		libjansson-dev \
 		libcurl4-gnutls-dev \
 		uuid-dev \
-		lcov
+		lcov \
+		valgrind
 
 help:
 	@echo "Available targets:"
@@ -262,16 +342,29 @@ help:
 	@echo "  release         - Build in release mode (-O2 -g -Werror)"
 	@echo "  debug           - Build in debug mode (-O0 -g3, same as 'all')"
 	@echo "  sanitize        - Build with AddressSanitizer + UBSanitizer"
+	@echo "  tsan            - Build with ThreadSanitizer"
+	@echo "  valgrind        - Build optimized for Valgrind (enhanced debug info)"
 	@echo "  clean           - Remove built files"
 	@echo "  clean-coverage  - Remove coverage data and reports"
 	@echo "  install         - Install both binaries to $(prefix)"
 	@echo "  uninstall       - Remove installed files"
+	@echo ""
+	@echo "Testing targets:"
 	@echo "  check           - Build and run all tests (unit + integration)"
 	@echo "  check-unit      - Build and run only unit tests"
 	@echo "  check-integration - Build and run only integration tests"
+	@echo "  check-sanitize  - Run all tests with AddressSanitizer + UBSanitizer"
+	@echo "  check-valgrind  - Run all tests under Valgrind Memcheck"
+	@echo "  check-helgrind  - Run all tests under Valgrind Helgrind (thread errors)"
+	@echo "  check-tsan      - Run all tests with ThreadSanitizer"
+	@echo "  check-dynamic   - Run all dynamic analysis (all of the above)"
+	@echo ""
+	@echo "Quality assurance:"
 	@echo "  coverage        - Generate text-based coverage report (requires lcov)"
 	@echo "  lint            - Check code complexity (threshold: $(COMPLEXITY_THRESHOLD))"
-	@echo "  ci              - Run all CI checks (lint + coverage + release build)"
+	@echo "  ci              - Run all CI checks (lint + coverage + dynamic + release)"
+	@echo ""
+	@echo "Other targets:"
 	@echo "  dist            - Create source distribution"
 	@echo "  fmt             - Format source code with GNU indent (line length: $(LINE_LENGTH))"
 	@echo "  install-deps    - Install build dependencies (Debian/Ubuntu)"
@@ -280,6 +373,8 @@ help:
 	@echo "  make <target> BUILD=debug    - Debug: -O0 -g3 -DDEBUG (default)"
 	@echo "  make <target> BUILD=release  - Release: -O2 -g -DNDEBUG -Werror"
 	@echo "  make <target> BUILD=sanitize - Sanitize: debug + ASan + UBSan"
+	@echo "  make <target> BUILD=tsan     - TSan: debug + ThreadSanitizer"
+	@echo "  make <target> BUILD=valgrind - Valgrind: enhanced backtraces"
 	@echo "  Example: make check BUILD=release"
 	@echo ""
 	@echo "Other options:"

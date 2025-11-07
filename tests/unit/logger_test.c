@@ -178,7 +178,7 @@ START_TEST(test_logger_timestamp_in_direct_mode)
     ck_assert(strlen(stdout_buffer) > strlen("INFO: test\n"));
 }
 
-END_TEST Suite *logger_suite(void)
+END_TEST static Suite *logger_suite(void)
 {
     Suite *s;
     TCase *tc_core;

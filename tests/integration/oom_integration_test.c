@@ -68,7 +68,7 @@ START_TEST(test_static_oom_no_free_needed)
 
 END_TEST
 // Test suite
-Suite * oom_suite(void)
+static Suite *oom_suite(void)
 {
     Suite *s;
     TCase *tc_core;

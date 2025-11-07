@@ -94,7 +94,7 @@ START_TEST(test_all_log_levels)
     fclose(devnull);
 }
 
-END_TEST Suite *logger_integration_suite(void)
+END_TEST static Suite *logger_integration_suite(void)
 {
     Suite *s;
     TCase *tc_core;
