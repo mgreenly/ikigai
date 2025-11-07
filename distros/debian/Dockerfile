@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
     valgrind \
     git \
     sudo \
+    debhelper \
+    dpkg-dev \
+    fakeroot \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
