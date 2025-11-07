@@ -185,7 +185,7 @@ $(CC) $(LDFLAGS) -o $@ $^ -Wl,-Bstatic $(CLIENT_STATIC_LIBS) -Wl,-Bdynamic $(CLI
 
 This links `CLIENT_STATIC_LIBS` statically and `CLIENT_LIBS` dynamically.
 
-For Fedora, some dependencies (ulfius, yder, orcania) are built from source during the Docker image build and linked statically to avoid version conflicts.
+When a distro is missing dependencies, they are built from source during the Docker image build and linked statically.
 
 ## Efficiency for Development
 
