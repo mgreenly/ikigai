@@ -566,10 +566,11 @@ START_TEST(test_array_stale_pointer_after_reallocation)
         ck_assert(is_ok(&res));
     }
 
-    // Verify reallocation occurred
-    ck_assert_ptr_ne(array->data, old_data);
+    // Note: We don't check if array->data changed because realloc may expand in place
+    // The important lesson: don't keep pointers into the array across modifications
+    (void)old_data; // Suppress unused warning
 
-    // The old pointer 'ptr' now points to freed memory (use-after-free)
+    // The old pointer 'ptr' may point to freed memory (use-after-free if reallocated)
     // We cannot safely use it, but we can verify the data is still correct via new get
     int32_t *new_ptr = (int32_t *)ik_array_get(array, 0);
     ck_assert_int_eq(*new_ptr, 42);

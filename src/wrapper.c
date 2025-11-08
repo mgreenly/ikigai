@@ -67,5 +67,43 @@ MOCKABLE int ik_json_is_string_wrapper(const json_t *json)
     return json_is_string(json);
 }
 
+// ============================================================================
+// POSIX system call wrappers - debug/test builds only
+// ============================================================================
+
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+MOCKABLE int ik_open_wrapper(const char *pathname, int flags)
+{
+    return open(pathname, flags);
+}
+
+MOCKABLE int ik_close_wrapper(int fd)
+{
+    return close(fd);
+}
+
+MOCKABLE int ik_tcgetattr_wrapper(int fd, struct termios *termios_p)
+{
+    return tcgetattr(fd, termios_p);
+}
+
+MOCKABLE int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p)
+{
+    return tcsetattr(fd, optional_actions, termios_p);
+}
+
+MOCKABLE int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
+{
+    return ioctl(fd, request, argp);
+}
+
+MOCKABLE ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+{
+    return write(fd, buf, count);
+}
+
 // LCOV_EXCL_STOP
 #endif

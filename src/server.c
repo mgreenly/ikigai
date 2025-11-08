@@ -5,6 +5,7 @@
 #include "version.h"
 #include "logger.h"
 #include "config.h"
+#include "error.h"
 
 #define IK_CONFIG_PATH "~/.ikigai/config.json"
 
@@ -18,13 +19,13 @@ int main(void)
     }
 
     ik_log_info("Loading configuration from %s", IK_CONFIG_PATH);
-    ik_res_t result = ik_cfg_load(ctx, IK_CONFIG_PATH);
-    if (result.is_err) {
+    res_t result = ik_cfg_load(ctx, IK_CONFIG_PATH);
+    if (is_err(&result)) {
         ik_log_error("Failed to load config: %s", result.err->msg);
         talloc_free(ctx);
         return EXIT_FAILURE;
     }
-    ik_cfg_t *cfg = result.ok;
+    ik_cfg_t *cfg = (ik_cfg_t *)result.ok;
     ik_log_info("openai_api_key: %s", cfg->openai_api_key);
     ik_log_info("listen_address: %s", cfg->listen_address);
     ik_log_info("listen_port: %u", cfg->listen_port);
