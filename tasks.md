@@ -22,28 +22,29 @@ This task is implemented in **four sequential steps**, each with full TDD and 10
 - [x] Ensure 100% coverage of TRY macro paths
 - [x] Run quality gates: `make check`, `make lint`, `make coverage`
 
-### Step 2: Implement Generic Array
+### Step 2: Implement Generic Array ✅ COMPLETE
 
-- [ ] Add `ik_talloc_realloc_wrapper` to `src/wrapper.h` and `src/wrapper.c`
-- [ ] Create `src/array.h` and `src/array.c`
-- [ ] Implement `ik_array_t` structure (generic, element_size configurable)
-- [ ] Implement `ik_array_create()` - Create new array (lazy allocation)
-- [ ] Implement `ik_array_append()` - Add element to end
-- [ ] Implement `ik_array_insert()` - Insert element at position
-- [ ] Implement `ik_array_delete()` - Delete element at position
-- [ ] Implement `ik_array_get()` - Get element at position
-- [ ] Implement `ik_array_set()` - Set element at position
-- [ ] Implement `ik_array_clear()` - Remove all elements
-- [ ] Implement `ik_array_size()` - Get current count
-- [ ] Implement `ik_array_capacity()` - Get allocated capacity
-- [ ] Implement growth by doubling capacity (first allocation uses increment)
-- [ ] Write tests in `tests/unit/array_test.c` for all operations
-- [ ] Test OOM scenarios using `oom_test_*` functions
-- [ ] Test contract violations using `tcase_add_test_raise_signal()`
-- [ ] Test boundary conditions (empty array, single element, etc.)
-- [ ] Test capacity growth (verify increment then doubling)
-- [ ] Update Makefile to include array.c in build
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Add `ik_talloc_realloc_wrapper` to `src/wrapper.h` and `src/wrapper.c`
+- [x] Create `src/array.h` and `src/array.c`
+- [x] Implement `ik_array_t` structure (generic, element_size configurable)
+- [x] Implement `ik_array_create()` - Create new array (lazy allocation)
+- [x] Implement `ik_array_append()` - Add element to end
+- [x] Implement `ik_array_insert()` - Insert element at position
+- [x] Implement `ik_array_delete()` - Delete element at position
+- [x] Implement `ik_array_get()` - Get element at position
+- [x] Implement `ik_array_set()` - Set element at position
+- [x] Implement `ik_array_clear()` - Remove all elements
+- [x] Implement `ik_array_size()` - Get current count
+- [x] Implement `ik_array_capacity()` - Get allocated capacity
+- [x] Implement growth by doubling capacity (first allocation uses increment)
+- [x] Write tests in `tests/unit/array_test.c` for all operations
+- [x] Test OOM scenarios using `oom_test_*` functions
+- [x] Test contract violations using `tcase_add_test_raise_signal()`
+- [x] Test boundary conditions (empty array, single element, etc.)
+- [x] Test capacity growth (verify increment then doubling)
+- [x] Test security scenarios (use-after-free, underflow, pathological sequences)
+- [x] Update Makefile to include array.c in build
+- [x] Run quality gates: `make check`, `make lint`, `make coverage`
 
 ### Step 3: Implement Byte Array Wrapper
 
