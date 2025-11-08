@@ -1,13 +1,13 @@
 /**
- * @file dynzone.h
- * @brief Dynamic zone text buffer for REPL input area
+ * @file workspace.h
+ * @brief Workspace text buffer for REPL input area
  *
- * Provides a text buffer for the dynamic zone (input area) of the REPL.
+ * Provides a text buffer for the workspace (input area) of the REPL.
  * Uses ik_byte_array_t for UTF-8 text storage and tracks cursor position.
  */
 
-#ifndef IKIGAI_DYNZONE_H
-#define IKIGAI_DYNZONE_H
+#ifndef IKIGAI_WORKSPACE_H
+#define IKIGAI_WORKSPACE_H
 
 #include "byte_array.h"
 #include "error.h"
@@ -15,24 +15,24 @@
 #include <stdint.h>
 
 /**
- * @brief Dynamic zone context
+ * @brief Workspace context
  *
- * Represents the editable text buffer in the REPL's dynamic zone.
+ * Represents the editable text buffer in the REPL's workspace.
  * Stores UTF-8 text and tracks the cursor position in bytes.
  */
-typedef struct ik_dynzone_t {
+typedef struct ik_workspace_t {
     ik_byte_array_t *text;       /**< UTF-8 text buffer */
     size_t cursor_byte_offset;   /**< Cursor position (byte offset) */
-} ik_dynzone_t;
+} ik_workspace_t;
 
 /**
- * @brief Create a new dynamic zone
+ * @brief Create a new workspace
  *
  * @param parent Talloc parent context
- * @param zone_out Pointer to receive allocated zone
+ * @param workspace_out Pointer to receive allocated workspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_dynzone_create(void *parent, ik_dynzone_t **zone_out);
+res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out);
 
 /**
  * @brief Insert a Unicode codepoint at the cursor position
@@ -40,21 +40,21 @@ res_t ik_dynzone_create(void *parent, ik_dynzone_t **zone_out);
  * Encodes the codepoint to UTF-8 and inserts at cursor_byte_offset.
  * Advances the cursor after the inserted bytes.
  *
- * @param zone Dynamic zone
+ * @param workspace Workspace
  * @param codepoint Unicode codepoint to insert
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_dynzone_insert_codepoint(ik_dynzone_t *zone, uint32_t codepoint);
+res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoint);
 
 /**
  * @brief Insert a newline character at the cursor position
  *
  * Inserts '\n' at cursor_byte_offset and advances cursor.
  *
- * @param zone Dynamic zone
+ * @param workspace Workspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_dynzone_insert_newline(ik_dynzone_t *zone);
+res_t ik_workspace_insert_newline(ik_workspace_t *workspace);
 
 /**
  * @brief Delete the character before the cursor (backspace)
@@ -63,10 +63,10 @@ res_t ik_dynzone_insert_newline(ik_dynzone_t *zone);
  * Moves cursor to the start of the deleted character.
  * No-op if cursor is at the start of the buffer.
  *
- * @param zone Dynamic zone
+ * @param workspace Workspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_dynzone_backspace(ik_dynzone_t *zone);
+res_t ik_workspace_backspace(ik_workspace_t *workspace);
 
 /**
  * @brief Delete the character at the cursor position
@@ -75,10 +75,10 @@ res_t ik_dynzone_backspace(ik_dynzone_t *zone);
  * Cursor position remains unchanged.
  * No-op if cursor is at the end of the buffer.
  *
- * @param zone Dynamic zone
+ * @param workspace Workspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_dynzone_delete(ik_dynzone_t *zone);
+res_t ik_workspace_delete(ik_workspace_t *workspace);
 
 /**
  * @brief Get the text buffer contents
@@ -86,20 +86,20 @@ res_t ik_dynzone_delete(ik_dynzone_t *zone);
  * Returns a pointer to the internal text buffer and its length.
  * The returned pointer is valid until the next modification.
  *
- * @param zone Dynamic zone
+ * @param workspace Workspace
  * @param text_out Pointer to receive text buffer
  * @param len_out Pointer to receive text length in bytes
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_dynzone_get_text(ik_dynzone_t *zone, char **text_out, size_t *len_out);
+res_t ik_workspace_get_text(ik_workspace_t *workspace, char **text_out, size_t *len_out);
 
 /**
- * @brief Clear the dynamic zone
+ * @brief Clear the workspace
  *
  * Removes all text and resets cursor to position 0.
  *
- * @param zone Dynamic zone
+ * @param workspace Workspace
  */
-void ik_dynzone_clear(ik_dynzone_t *zone);
+void ik_workspace_clear(ik_workspace_t *workspace);
 
-#endif /* IKIGAI_DYNZONE_H */
+#endif /* IKIGAI_WORKSPACE_H */

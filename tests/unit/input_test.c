@@ -754,7 +754,6 @@ START_TEST(test_input_parse_unrecognized_letter_sequence)
 }
 
 END_TEST
-
 // Test: incomplete escape sequence with non-letter at esc_len==2
 START_TEST(test_input_parse_escape_non_letter)
 {
@@ -785,7 +784,6 @@ START_TEST(test_input_parse_escape_non_letter)
 }
 
 END_TEST
-
 // Test: escape sequence with character between Z and end of ASCII
 START_TEST(test_input_parse_escape_char_above_Z)
 {

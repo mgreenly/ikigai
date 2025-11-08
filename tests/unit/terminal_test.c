@@ -20,6 +20,14 @@ static int mock_close_count = 0;
 static int mock_write_count = 0;
 static int mock_tcsetattr_count = 0;
 
+// Mock function prototypes
+int ik_open_wrapper(const char *pathname, int flags);
+int ik_close_wrapper(int fd);
+int ik_tcgetattr_wrapper(int fd, struct termios *termios_p);
+int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p);
+int ik_ioctl_wrapper(int fd, unsigned long request, void *argp);
+ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
+
 // Mock implementations
 int ik_open_wrapper(const char *pathname, int flags)
 {

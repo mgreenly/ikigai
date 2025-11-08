@@ -8,11 +8,11 @@ All Phase 0 tasks completed with 100% test coverage.
 
 See [docs/repl-terminal.md](docs/repl-terminal.md) for complete design.
 
-**Goal**: Build minimal interactive terminal with just a dynamic zone (no scrollback buffer). Validate terminal fundamentals: raw mode, UTF-8, cursor handling, vterm rendering.
+**Goal**: Build minimal interactive terminal with just a workspace (no scrollback buffer). Validate terminal fundamentals: raw mode, UTF-8, cursor handling, vterm rendering.
 
 **Features**:
 - Terminal setup (raw mode, alternate screen)
-- Single dynamic zone using `ik_byte_array_t`
+- Single workspace using `ik_byte_array_t`
 - Text input (typing characters)
 - UTF-8 and grapheme cluster handling via libutf8proc
 - Cursor tracking (dual offset: byte + grapheme)
@@ -314,58 +314,76 @@ Create input parser to convert raw byte sequences into semantic actions.
 
 ## Task 3: Dynamic Zone Text Buffer
 
-Create text buffer for dynamic zone using `ik_byte_array_t`.
+Create text buffer for workspace using `ik_byte_array_t`.
 
-**Files**: `src/dynzone.h`, `src/dynzone.c`, `tests/unit/dynzone_test.c`
+**Files**: `src/workspace.h`, `src/workspace.c`, `tests/unit/workspace_test.c`
 
 ### Step 1: Dynamic Zone Structure ✅
 
-- [x] Create `src/dynzone.h` header
-- [x] Define `ik_dynzone_t` structure:
+- [x] Create `src/workspace.h` header
+- [x] Define `ik_workspace_t` structure:
   - `ik_byte_array_t *text` - UTF-8 text buffer
   - `size_t cursor_byte_offset` - Cursor position (byte offset)
 - [x] Add function declarations:
-  - `res_t ik_dynzone_create(void *parent, ik_dynzone_t **zone_out)`
-  - `res_t ik_dynzone_insert_codepoint(ik_dynzone_t *zone, uint32_t codepoint)`
-  - `res_t ik_dynzone_insert_newline(ik_dynzone_t *zone)`
-  - `res_t ik_dynzone_backspace(ik_dynzone_t *zone)`
-  - `res_t ik_dynzone_delete(ik_dynzone_t *zone)`
-  - `res_t ik_dynzone_get_text(ik_dynzone_t *zone, char **text_out, size_t *len_out)`
-  - `void ik_dynzone_clear(ik_dynzone_t *zone)`
+  - `res_t ik_workspace_create(void *parent, ik_workspace_t **zone_out)`
+  - `res_t ik_workspace_insert_codepoint(ik_workspace_t *zone, uint32_t codepoint)`
+  - `res_t ik_workspace_insert_newline(ik_workspace_t *zone)`
+  - `res_t ik_workspace_backspace(ik_workspace_t *zone)`
+  - `res_t ik_workspace_delete(ik_workspace_t *zone)`
+  - `res_t ik_workspace_get_text(ik_workspace_t *zone, char **text_out, size_t *len_out)`
+  - `void ik_workspace_clear(ik_workspace_t *zone)`
 
 ### Step 2: Dynamic Zone Creation ✅
 
-- [x] Create `src/dynzone.c` implementation
-- [x] Implement `ik_dynzone_create()`:
+- [x] Create `src/workspace.c` implementation
+- [x] Implement `ik_workspace_create()`:
   - Allocate zone with talloc
   - Create byte array for text
   - Initialize cursor_byte_offset to 0
-- [x] Write test `test_dynzone_create()` in `tests/unit/dynzone_test.c`:
+- [x] Write test `test_workspace_create()` in `tests/unit/workspace_test.c`:
   - Create zone
   - Verify successful allocation
   - Verify text buffer is empty
   - Verify cursor at position 0
-- [x] Write test `test_dynzone_create_oom()`:
+- [x] Write test `test_workspace_create_oom()`:
   - Test OOM scenarios
 - [x] Write assertion tests for NULL parameters
-- [x] Implement `ik_dynzone_get_text()` and `ik_dynzone_clear()` (needed for tests)
-- [x] Update Makefile to include dynzone.c in build
+- [x] Implement `ik_workspace_get_text()` and `ik_workspace_clear()` (needed for tests)
+- [x] Update Makefile to include workspace.c in build
 - [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass
+
+### Step 2.5: Rename workspace to workspace ✅ COMPLETE
+
+- [x] Rename source files:
+  - `src/workspace.h` → `src/workspace.h`
+  - `src/workspace.c` → `src/workspace.c`
+  - `tests/unit/workspace_test.c` → `tests/unit/workspace_test.c`
+- [x] Update all code references:
+  - `ik_workspace_t` → `ik_workspace_t`
+  - `ik_workspace_*()` functions → `ik_workspace_*()`
+  - All internal variable names and comments
+- [x] Update documentation:
+  - Search and replace in `tasks.md`
+  - Search and replace in all `docs/*.md` files
+  - Update any other doc references (README, comments, etc.)
+- [x] Update Makefile references
+- [x] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Commit work: "Rename workspace to workspace for clarity"
 
 ### Step 3: Insert Codepoint at Cursor
 
-- [ ] Implement `ik_dynzone_insert_codepoint()`:
+- [ ] Implement `ik_workspace_insert_codepoint()`:
   - Encode codepoint to UTF-8 bytes
   - Insert bytes at cursor_byte_offset
   - Advance cursor_byte_offset by byte count
-- [ ] Write test `test_dynzone_insert_ascii()`:
+- [ ] Write test `test_workspace_insert_ascii()`:
   - Insert 'a', verify text is "a"
   - Insert 'b', verify text is "ab"
   - Verify cursor at end
-- [ ] Write test `test_dynzone_insert_utf8()`:
+- [ ] Write test `test_workspace_insert_utf8()`:
   - Insert é (U+00E9), verify correct UTF-8 encoding
   - Insert 🎉 (U+1F389), verify 4-byte encoding
-- [ ] Write test `test_dynzone_insert_middle()`:
+- [ ] Write test `test_workspace_insert_middle()`:
   - Insert "ab", move cursor to 1, insert 'x'
   - Verify text is "axb"
   - Verify cursor at position 2
@@ -373,79 +391,79 @@ Create text buffer for dynamic zone using `ik_byte_array_t`.
 
 ### Step 4: Insert Newline at Cursor
 
-- [ ] Implement `ik_dynzone_insert_newline()`:
+- [ ] Implement `ik_workspace_insert_newline()`:
   - Insert '\n' byte at cursor_byte_offset
   - Advance cursor_byte_offset by 1
-- [ ] Write test `test_dynzone_insert_newline()`:
+- [ ] Write test `test_workspace_insert_newline()`:
   - Insert "hello", insert newline, insert "world"
   - Verify text is "hello\nworld"
 - [ ] Run quality gates: `make check`, `make lint`, `make coverage`
 
 ### Step 5: Backspace (Delete Before Cursor)
 
-- [ ] Implement `ik_dynzone_backspace()`:
+- [ ] Implement `ik_workspace_backspace()`:
   - If cursor_byte_offset == 0, return success (no-op)
   - Find start of previous UTF-8 character
   - Delete bytes from previous char start to cursor
   - Update cursor_byte_offset to previous char start
-- [ ] Write test `test_dynzone_backspace_ascii()`:
+- [ ] Write test `test_workspace_backspace_ascii()`:
   - Insert "abc", backspace once
   - Verify text is "ab", cursor at 2
-- [ ] Write test `test_dynzone_backspace_utf8()`:
+- [ ] Write test `test_workspace_backspace_utf8()`:
   - Insert "a" + é (2 bytes) + "b", backspace once
   - Verify é deleted (both bytes), text is "ab"
-- [ ] Write test `test_dynzone_backspace_emoji()`:
+- [ ] Write test `test_workspace_backspace_emoji()`:
   - Insert 🎉 (4 bytes), backspace once
   - Verify all 4 bytes deleted, text is empty
-- [ ] Write test `test_dynzone_backspace_at_start()`:
+- [ ] Write test `test_workspace_backspace_at_start()`:
   - Empty buffer, backspace
   - Verify no-op, no error
 - [ ] Run quality gates: `make check`, `make lint`, `make coverage`
 
 ### Step 6: Delete (Delete After Cursor)
 
-- [ ] Implement `ik_dynzone_delete()`:
+- [ ] Implement `ik_workspace_delete()`:
   - If cursor at end of text, return success (no-op)
   - Find end of current UTF-8 character
   - Delete bytes from cursor to end of char
   - cursor_byte_offset stays same
-- [ ] Write test `test_dynzone_delete_ascii()`:
+- [ ] Write test `test_workspace_delete_ascii()`:
   - Insert "abc", move cursor to 0, delete once
   - Verify text is "bc", cursor still at 0
-- [ ] Write test `test_dynzone_delete_utf8()`:
+- [ ] Write test `test_workspace_delete_utf8()`:
   - Insert "a" + é + "b", move cursor to 1, delete once
   - Verify é deleted, text is "ab"
-- [ ] Write test `test_dynzone_delete_emoji()`:
+- [ ] Write test `test_workspace_delete_emoji()`:
   - Insert 🎉, move cursor to 0, delete once
   - Verify all 4 bytes deleted
-- [ ] Write test `test_dynzone_delete_at_end()`:
+- [ ] Write test `test_workspace_delete_at_end()`:
   - Insert "abc", cursor at end, delete
   - Verify no-op, no error
 - [ ] Run quality gates: `make check`, `make lint`, `make coverage`
 
 ### Step 7: Get Text and Clear
 
-- [ ] Implement `ik_dynzone_get_text()`:
+- [ ] Implement `ik_workspace_get_text()`:
   - Return pointer to text buffer contents
   - Return length via out parameter
-- [ ] Implement `ik_dynzone_clear()`:
+- [ ] Implement `ik_workspace_clear()`:
   - Clear byte array
   - Reset cursor_byte_offset to 0
-- [ ] Write test `test_dynzone_get_text()`:
+- [ ] Write test `test_workspace_get_text()`:
   - Insert "hello", get text
   - Verify returned text matches
-- [ ] Write test `test_dynzone_clear()`:
+- [ ] Write test `test_workspace_clear()`:
   - Insert "hello", clear, verify empty
   - Verify cursor at 0
-- [ ] Update Makefile to include dynzone.c in build
+- [ ] Update Makefile to include workspace.c in build
 - [ ] Run quality gates: `make check`, `make lint`, `make coverage`
 
 ### Step 8: Demo in client.c
 
-- [ ] Update `src/client.c` to demonstrate dynamic zone:
+- [ ] Update `src/client.c` to demonstrate workspace:
   - Keep terminal and input parser from previous demo
-  - Add dynamic zone creation
-  - Main loop: parse input actions, apply to dynzone
+  - Add workspace creation
+  - Main loop: parse input actions, apply to workspace
     - CHAR → insert codepoint
     - BACKSPACE → backspace
     - DELETE → delete
@@ -458,7 +476,7 @@ Create text buffer for dynamic zone using `ik_byte_array_t`.
   - Use backspace/delete, verify correct deletion
   - Type UTF-8 characters, verify proper storage
   - Press Ctrl+C to exit
-- [ ] Commit work: "Implement dynamic zone text buffer with UTF-8 support"
+- [ ] Commit work: "Implement workspace text buffer with UTF-8 support"
 
 ---
 
@@ -570,18 +588,18 @@ Create cursor manager for tracking both byte and grapheme offsets.
 
 ### Step 5: Integration with Dynamic Zone
 
-- [ ] Update `src/dynzone.h` to include `ik_cursor_t *cursor` field
-- [ ] Update `ik_dynzone_create()` to create cursor
-- [ ] Update all dynzone operations to keep cursor in sync:
-  - `ik_dynzone_insert_codepoint()` - update cursor after insert
-  - `ik_dynzone_insert_newline()` - update cursor after insert
-  - `ik_dynzone_backspace()` - update cursor after delete
-  - `ik_dynzone_delete()` - cursor stays same
+- [ ] Update `src/workspace.h` to include `ik_cursor_t *cursor` field
+- [ ] Update `ik_workspace_create()` to create cursor
+- [ ] Update all workspace operations to keep cursor in sync:
+  - `ik_workspace_insert_codepoint()` - update cursor after insert
+  - `ik_workspace_insert_newline()` - update cursor after insert
+  - `ik_workspace_backspace()` - update cursor after delete
+  - `ik_workspace_delete()` - cursor stays same
 - [ ] Add new functions:
-  - `res_t ik_dynzone_cursor_left(ik_dynzone_t *zone)`
-  - `res_t ik_dynzone_cursor_right(ik_dynzone_t *zone)`
-  - `res_t ik_dynzone_get_cursor_position(ik_dynzone_t *zone, size_t *byte_out, size_t *grapheme_out)`
-- [ ] Update tests in `tests/unit/dynzone_test.c`:
+  - `res_t ik_workspace_cursor_left(ik_workspace_t *zone)`
+  - `res_t ik_workspace_cursor_right(ik_workspace_t *zone)`
+  - `res_t ik_workspace_get_cursor_position(ik_workspace_t *zone, size_t *byte_out, size_t *grapheme_out)`
+- [ ] Update tests in `tests/unit/workspace_test.c`:
   - Verify cursor position after each operation
   - Test cursor movement with various UTF-8 content
 - [ ] Run quality gates: `make check`, `make lint`, `make coverage`
@@ -589,7 +607,7 @@ Create cursor manager for tracking both byte and grapheme offsets.
 ### Step 6: Demo in client.c
 
 - [ ] Update `src/client.c` to demonstrate cursor with grapheme support:
-  - Keep previous components (terminal, input parser, dynzone)
+  - Keep previous components (terminal, input parser, workspace)
   - Add arrow key handling:
     - ARROW_LEFT → move cursor left (by grapheme)
     - ARROW_RIGHT → move cursor right (by grapheme)
@@ -715,9 +733,9 @@ Create rendering module using libvterm.
   - Keep all previous components
   - Add render context creation (use terminal dimensions)
   - On each input action:
-    - Apply action to dynzone
+    - Apply action to workspace
     - Clear render context
-    - Write dynzone text to render context
+    - Write workspace text to render context
     - Calculate cursor screen position (accounting for wrapping)
     - Set cursor in render context
     - Blit to screen
@@ -747,7 +765,7 @@ Integrate all modules into main REPL.
 - [ ] Define `ik_repl_ctx_t` structure:
   - `ik_term_ctx_t *term` - Terminal context
   - `ik_render_ctx_t *render` - Render context
-  - `ik_dynzone_t *dynzone` - Dynamic zone
+  - `ik_workspace_t *workspace` - Workspace
   - `ik_input_parser_t *input_parser` - Input parser
   - `bool quit` - Exit flag
 - [ ] Add function declarations:
@@ -763,7 +781,7 @@ Integrate all modules into main REPL.
   - Initialize terminal (raw mode, alternate screen)
   - Get terminal dimensions
   - Initialize render context with terminal dimensions
-  - Initialize dynamic zone
+  - Initialize workspace
   - Initialize input parser
   - Set quit flag to false
 - [ ] Write integration test `test_repl_init()` in `tests/integration/repl_test.c`:
@@ -786,9 +804,9 @@ Integrate all modules into main REPL.
 
 - [ ] Add helper function `ik_repl_render_frame()`:
   - Clear render context
-  - Get text from dynamic zone
+  - Get text from workspace
   - Write text to render context
-  - Get cursor position from dynamic zone
+  - Get cursor position from workspace
   - Calculate screen position for cursor (account for wrapping)
   - Set cursor in render context
   - Blit to screen
@@ -799,10 +817,10 @@ Integrate all modules into main REPL.
 
 - [ ] Add helper function `ik_repl_process_action()`:
   - Handle each action type:
-    - `IK_INPUT_CHAR` → insert codepoint into dynzone
-    - `IK_INPUT_NEWLINE` → insert newline into dynzone
-    - `IK_INPUT_BACKSPACE` → backspace in dynzone
-    - `IK_INPUT_DELETE` → delete in dynzone
+    - `IK_INPUT_CHAR` → insert codepoint into workspace
+    - `IK_INPUT_NEWLINE` → insert newline into workspace
+    - `IK_INPUT_BACKSPACE` → backspace in workspace
+    - `IK_INPUT_DELETE` → delete in workspace
     - `IK_INPUT_ARROW_LEFT` → move cursor left
     - `IK_INPUT_ARROW_RIGHT` → move cursor right
     - `IK_INPUT_ARROW_UP` → (defer to Phase 2, no-op for now)
