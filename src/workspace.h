@@ -56,4 +56,16 @@ res_t ik_workspace_get_text(ik_workspace_t *workspace, char **text_out, size_t *
  */
 void ik_workspace_clear(ik_workspace_t *workspace);
 
+/**
+ * @brief Insert a Unicode codepoint at the cursor position
+ *
+ * Encodes the codepoint to UTF-8 and inserts it at the current cursor position.
+ * Advances the cursor by the number of bytes inserted.
+ *
+ * @param workspace Workspace
+ * @param codepoint Unicode codepoint to insert (U+0000 to U+10FFFF)
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoint);
+
 #endif /* IKIGAI_WORKSPACE_H */

@@ -370,24 +370,32 @@ Create text buffer for workspace using `ik_byte_array_t`.
 - [x] Run quality gates: `make check`, `make lint`, `make coverage`
 - [x] Commit work: "Rename workspace to workspace for clarity"
 
-### Step 3: Insert Codepoint at Cursor
+### Step 3: Insert Codepoint at Cursor ✅ COMPLETE
 
-- [ ] Implement `ik_workspace_insert_codepoint()`:
+- [x] Implement `ik_workspace_insert_codepoint()`:
   - Encode codepoint to UTF-8 bytes
   - Insert bytes at cursor_byte_offset
   - Advance cursor_byte_offset by byte count
-- [ ] Write test `test_workspace_insert_ascii()`:
+- [x] Write test `test_workspace_insert_ascii()`:
   - Insert 'a', verify text is "a"
   - Insert 'b', verify text is "ab"
   - Verify cursor at end
-- [ ] Write test `test_workspace_insert_utf8()`:
+- [x] Write test `test_workspace_insert_utf8()`:
   - Insert é (U+00E9), verify correct UTF-8 encoding
   - Insert 🎉 (U+1F389), verify 4-byte encoding
-- [ ] Write test `test_workspace_insert_middle()`:
+- [x] Write test `test_workspace_insert_utf8_3byte()`:
+  - Insert ☃ (U+2603), verify 3-byte encoding
+- [x] Write test `test_workspace_insert_middle()`:
   - Insert "ab", move cursor to 1, insert 'x'
   - Verify text is "axb"
   - Verify cursor at position 2
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Write test `test_workspace_insert_invalid_codepoint()`:
+  - Try to insert invalid codepoint (> U+10FFFF)
+  - Verify error returned
+- [x] Write test `test_workspace_insert_codepoint_oom()`:
+  - Trigger OOM during byte array realloc
+  - Verify error returned
+- [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass with 100% coverage
 
 ### Step 4: Insert Newline at Cursor
 
