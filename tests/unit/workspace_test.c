@@ -46,7 +46,9 @@ START_TEST(test_workspace_create_oom)
     oom_test_reset();
 
     /* Test OOM during byte array allocation (after workspace alloc succeeds) */
-    oom_test_fail_after_n_calls(1);
+    //  Call 1: workspace struct allocation (succeeds)
+    //  Call 2: array struct allocation (fails here)
+    oom_test_fail_after_n_calls(2);
     res = ik_workspace_create(ctx, &workspace);
     ck_assert(is_err(&res));
     ck_assert_ptr_null(workspace);

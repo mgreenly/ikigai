@@ -35,52 +35,6 @@ typedef struct ik_workspace_t {
 res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out);
 
 /**
- * @brief Insert a Unicode codepoint at the cursor position
- *
- * Encodes the codepoint to UTF-8 and inserts at cursor_byte_offset.
- * Advances the cursor after the inserted bytes.
- *
- * @param workspace Workspace
- * @param codepoint Unicode codepoint to insert
- * @return RES_OK on success, RES_ERR on failure
- */
-res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoint);
-
-/**
- * @brief Insert a newline character at the cursor position
- *
- * Inserts '\n' at cursor_byte_offset and advances cursor.
- *
- * @param workspace Workspace
- * @return RES_OK on success, RES_ERR on failure
- */
-res_t ik_workspace_insert_newline(ik_workspace_t *workspace);
-
-/**
- * @brief Delete the character before the cursor (backspace)
- *
- * Finds the start of the previous UTF-8 character and deletes it.
- * Moves cursor to the start of the deleted character.
- * No-op if cursor is at the start of the buffer.
- *
- * @param workspace Workspace
- * @return RES_OK on success, RES_ERR on failure
- */
-res_t ik_workspace_backspace(ik_workspace_t *workspace);
-
-/**
- * @brief Delete the character at the cursor position
- *
- * Finds the end of the current UTF-8 character and deletes it.
- * Cursor position remains unchanged.
- * No-op if cursor is at the end of the buffer.
- *
- * @param workspace Workspace
- * @return RES_OK on success, RES_ERR on failure
- */
-res_t ik_workspace_delete(ik_workspace_t *workspace);
-
-/**
  * @brief Get the text buffer contents
  *
  * Returns a pointer to the internal text buffer and its length.

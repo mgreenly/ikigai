@@ -4,6 +4,7 @@
  */
 
 #include "workspace.h"
+#include "wrapper.h"
 #include "error.h"
 #include <assert.h>
 #include <talloc.h>
@@ -12,7 +13,7 @@ res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out)
 {
     assert(workspace_out != NULL); /* LCOV_EXCL_BR_LINE */
 
-    ik_workspace_t *workspace = talloc_zero(parent, ik_workspace_t);
+    ik_workspace_t *workspace = ik_talloc_zero_wrapper(parent, sizeof(ik_workspace_t));
     if (workspace == NULL) {
         return ERR(parent, OOM, "Failed to allocate workspace");
     }
@@ -27,35 +28,6 @@ res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out)
     workspace->cursor_byte_offset = 0;
     *workspace_out = workspace;
     return OK(workspace);
-}
-
-res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoint)
-{
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
-
-    (void)codepoint;
-    return OK(NULL);
-}
-
-res_t ik_workspace_insert_newline(ik_workspace_t *workspace)
-{
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
-
-    return OK(NULL);
-}
-
-res_t ik_workspace_backspace(ik_workspace_t *workspace)
-{
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
-
-    return OK(NULL);
-}
-
-res_t ik_workspace_delete(ik_workspace_t *workspace)
-{
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
-
-    return OK(NULL);
 }
 
 res_t ik_workspace_get_text(ik_workspace_t *workspace, char **text_out, size_t *len_out)
