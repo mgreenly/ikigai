@@ -261,7 +261,7 @@ Create input parser to convert raw byte sequences into semantic actions.
   - Try arrow keys, verify they parse correctly
   - Try UTF-8: type é, 🎉, verify correct codepoint display
   - Press Ctrl+C to exit
-- [ ] Commit work: "Implement input parser with UTF-8 and escape sequence support"
+- [x] Commit work: "Demo input parser in client.c with full UTF-8 and escape sequence support"
 
 ---
 
