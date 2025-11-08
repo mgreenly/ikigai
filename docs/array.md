@@ -145,19 +145,25 @@ See `docs/error_handling.md` for complete error handling philosophy.
 - `element_size` must be > 0 (returns `ERR(ctx, INVALID_ARG, "element_size must be > 0")` if 0)
 - `increment` must be > 0 (returns `ERR(ctx, INVALID_ARG, "increment must be > 0")` if 0)
 
-## Typed Wrappers (Future Phases)
+## Typed Wrappers
 
-**Phase 0 includes ONLY the generic `ik_array_t` implementation.**
+**Phase 0 includes typed wrappers as sequential steps AFTER the generic array.**
 
-The generic `ik_array_t` will be wrapped by typed modules in future phases that provide type-safe, ergonomic APIs.
+The generic `ik_array_t` will be wrapped by typed modules that provide type-safe, ergonomic APIs.
 
-### Byte Array (ik_byte_array_t) - NOT IN PHASE 0
+**Implementation order within Phase 0:**
+1. Step 1: Add TRY macro to error handling ✅ COMPLETE
+2. Step 2: Implement generic `ik_array_t` ← CURRENT
+3. Step 3: Implement `ik_byte_array_t` wrapper
+4. Step 4: Implement `ik_line_array_t` wrapper
+
+### Byte Array (ik_byte_array_t) - Phase 0, Step 3
 
 **Purpose**: Stores bytes (for UTF-8 text in dynamic input zone).
 
 **Files**: `src/byte_array.c` + `src/byte_array.h`
 
-**Created in Phase 1** when dynamic zone text storage is needed.
+**When**: Step 3 of Phase 0, after generic array is complete and tested.
 
 **Pattern**:
 ```c
@@ -181,22 +187,22 @@ res_t ik_byte_array_append(ik_byte_array_t *array, uint8_t byte) {
 // ... etc
 ```
 
-### Line Array (ik_line_array_t) - NOT IN PHASE 0
+### Line Array (ik_line_array_t) - Phase 0, Step 4
 
 **Purpose**: Stores line pointers (for scrollback buffer).
 
 **Files**: `src/line_array.c` + `src/line_array.h`
 
-**Created in Phase 2** when scrollback buffer is needed.
+**When**: Step 4 of Phase 0, after byte array wrapper is complete and tested.
 
 ## Use Cases in REPL Terminal
 
-1. **Dynamic zone text** - Use `ik_byte_array_t`
+1. **Dynamic zone text** - Use `ik_byte_array_t` (Phase 0, Step 3)
    - Store UTF-8 text being edited
    - Insert/delete bytes at cursor position
    - Grow as user types
 
-2. **Scrollback buffer** - Use `ik_line_array_t` (Phase 2)
+2. **Scrollback buffer** - Use `ik_line_array_t` (Phase 0, Step 4)
    - Store array of line pointers
    - Append new lines as they're submitted
    - Random access for rendering
@@ -216,9 +222,11 @@ res_t ik_byte_array_append(ik_byte_array_t *array, uint8_t byte) {
 
 ## Implementation Guide
 
-### Phase 0 Implementation Order
+### Phase 0, Task 2 - Implementation Order
 
-**Step 1: Add TRY macro to error handling (FIRST)**
+Task 2 is implemented in four sequential steps, each with full TDD and 100% coverage before moving to the next:
+
+**Step 1: Add TRY macro to error handling ✅ COMPLETE**
 
 Before implementing the array, add ergonomic error propagation to `src/error.h`:
 
@@ -251,36 +259,45 @@ void *element = TRY(ik_array_get(array, index));  // Propagates error or returns
 
 Once TRY macro is working and tested, proceed with array implementation.
 
+**Step 3: Implement byte array wrapper**
+
+Once generic array has 100% coverage, create typed wrapper for bytes.
+
+**Step 4: Implement line array wrapper**
+
+Once byte array has 100% coverage, create typed wrapper for line pointers.
+
 ### Files and Build System
 
-**Phase 0 includes ONLY these files:**
+**Phase 0, Task 2 creates these files sequentially:**
 
-Generic array implementation:
-- `src/array.c` - Generic `ik_array_t` implementation
-- `src/array.h` - Generic `ik_array_t` API
-
-Error handling enhancement (Step 1):
+Step 1 - Error handling enhancement:
 - `src/error.h` - Add TRY macro
 - `tests/unit/error_test.c` - Add TRY macro tests
 
-External library wrapper (add to existing):
+Step 2 - Generic array:
+- `src/array.c` - Generic `ik_array_t` implementation
+- `src/array.h` - Generic `ik_array_t` API
+- `tests/unit/array_test.c` - Unit tests for generic array
 - `src/wrapper.h` - Add `ik_talloc_realloc_wrapper` declaration (MOCKABLE pattern)
 - `src/wrapper.c` - Add `ik_talloc_realloc_wrapper` implementation
 
-**Test files for Phase 0:**
-- `tests/unit/error_test.c` - Update with TRY macro tests (Step 1)
-- `tests/unit/array_test.c` - Unit tests for generic array (Step 2)
+Step 3 - Byte array wrapper:
+- `src/byte_array.c` - `ik_byte_array_t` typed wrapper
+- `src/byte_array.h` - `ik_byte_array_t` API
+- `tests/unit/byte_array_test.c` - Unit tests for byte array
 
-**Makefile integration for Phase 0:**
-Add to `Makefile` (see existing patterns):
+Step 4 - Line array wrapper:
+- `src/line_array.c` - `ik_line_array_t` typed wrapper
+- `src/line_array.h` - `ik_line_array_t` API
+- `tests/unit/line_array_test.c` - Unit tests for line array
+
+**Makefile integration:**
+Add to `Makefile` as each step completes (see existing patterns):
 ```make
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c src/array.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c src/array.c src/byte_array.c src/line_array.c
 ```
-
-**Future phases will add:**
-- Phase 1: `src/byte_array.c` + `src/byte_array.h` + `tests/unit/byte_array_test.c`
-- Phase 2: `src/line_array.c` + `src/line_array.h` + `tests/unit/line_array_test.c`
 
 **Dependencies:** Add `ik_talloc_realloc_wrapper` to `src/wrapper.h` and `src/wrapper.c`:
 

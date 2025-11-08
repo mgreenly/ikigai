@@ -8,6 +8,7 @@
 - Common Patterns: L141-193
 - Assertions: L195-232
 - Testing: L234-288
+- Coverage Requirements for Assertions: L295-367
 
 ---
 
@@ -289,6 +290,82 @@ tcase_add_test_raise_signal(tc, test_array_null_asserts, SIGABRT);
 ```
 
 **How it works:** Test runs in forked child process, assertion fires → `abort()` → child terminates with `SIGABRT` → parent catches and verifies signal.
+
+---
+
+## Coverage Requirements for Assertions
+
+**Policy:** All assertions must be excluded from branch coverage, but both assertion paths must be tested.
+
+**Implementation:**
+1. Mark all assertions with `// LCOV_EXCL_BR_LINE` to exclude from coverage
+2. Write tests that **pass** the assertion (normal path)
+3. Write tests that **fail** the assertion (using `tcase_add_test_raise_signal` with `SIGABRT`)
+
+**Rationale:**
+- Assertions compile out in release builds (`-DNDEBUG`), creating untested branches in production code
+- Excluding them from coverage metrics prevents artificially low coverage scores
+- We still test both paths to verify contracts during development
+- This maintains 100% coverage without compromising test quality
+
+**Example:**
+```c
+// In src/array.c:
+void *ik_array_get(const ik_array_t *array, size_t index)
+{
+    assert(array != NULL); // LCOV_EXCL_BR_LINE
+    assert(index < array->size); // LCOV_EXCL_BR_LINE
+
+    return (char *)array->data + (index * array->element_size);
+}
+
+// In tests/unit/array_test.c:
+// Test 1: Normal path (assertion passes)
+START_TEST(test_array_get_valid)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    res_t res = ik_array_create(ctx, sizeof(int), 10);
+    ik_array_t *array = res.ok;
+
+    int value = 42;
+    ik_array_append(array, &value);
+
+    int *result = ik_array_get(array, 0);  // Valid - assertion passes
+    ck_assert_int_eq(*result, 42);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test 2: Contract violation (assertion fails)
+#ifndef NDEBUG
+START_TEST(test_array_get_null_array)
+{
+    ik_array_get(NULL, 0);  // NULL array - assertion fires SIGABRT
+}
+END_TEST
+
+START_TEST(test_array_get_out_of_bounds)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    res_t res = ik_array_create(ctx, sizeof(int), 10);
+    ik_array_t *array = res.ok;
+
+    ik_array_get(array, 0);  // Out of bounds (size=0) - assertion fires SIGABRT
+
+    talloc_free(ctx);
+}
+END_TEST
+#endif
+
+// In suite setup:
+#ifndef NDEBUG
+tcase_add_test_raise_signal(tc, test_array_get_null_array, SIGABRT);
+tcase_add_test_raise_signal(tc, test_array_get_out_of_bounds, SIGABRT);
+#endif
+```
+
+**Coverage Result:** 100% branch coverage despite excluded assertion branches, with full test coverage of all code paths.
 
 ---
 

@@ -14,7 +14,7 @@ This work is split into incremental phases, each building on the previous.
 - **Phase 2**: Add scrollback buffer and scrolling (complete terminal UI)
 - **Phase 3**: OpenAI integration (make it a real chatbot)
 
-**Current focus**: Phase 0, Task 1 (error handling cleanup)
+**Current focus**: Phase 0, Task 2, Step 2 (generic array implementation)
 
 Each phase follows strict TDD (Test-Driven Development) with 100% coverage requirement.
 
@@ -38,11 +38,15 @@ Clean up existing code to properly follow the 3 modes of operation (IO operation
 
 **Impact:** The codebase now properly follows the 3 modes of operation philosophy. All tests pass with proper separation of concerns between IO errors, contract violations, and pure operations.
 
-#### Task 2: Generic Array Utility
+#### Task 2: Generic Array Utility ← CURRENT
 
 **See [docs/array.md](array.md) for complete design.**
 
-After error handling cleanup, build the generic expandable array utility that will be used throughout the REPL implementation.
+Build the generic expandable array utility that will be used throughout the REPL implementation.
+
+**Status:**
+- Step 1 (TRY macro) ✅ COMPLETE
+- Step 2 (generic array) ← IN PROGRESS
 
 **Key components:**
 1. Generic `ik_array_t` implementation (element_size configurable)

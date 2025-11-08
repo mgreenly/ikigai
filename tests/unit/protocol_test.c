@@ -533,9 +533,9 @@ START_TEST(test_protocol_create_error_message)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_protocol_msg_create_err(ctx,
-                                                 "sess123",
-                                                 "corr456",
-                                                 "server", "test error");
+                                           "sess123",
+                                           "corr456",
+                                           "server", "test error");
     ck_assert(is_ok(&res));
 
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;
@@ -651,9 +651,9 @@ START_TEST(test_protocol_create_assistant_response)
     json_object_set_new(payload, "model", json_string("gpt-4o-mini"));
 
     res_t res = ik_protocol_msg_create_assistant_resp(ctx,
-                                                            "sess789",
-                                                            "corr012",
-                                                            payload);
+                                                      "sess789",
+                                                      "corr012",
+                                                      payload);
     ck_assert(is_ok(&res));
 
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;

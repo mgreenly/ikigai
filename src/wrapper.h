@@ -11,6 +11,7 @@
 #include <talloc.h>
 #include <jansson.h>
 #include <stddef.h>
+#include <stdarg.h>
 
 // MOCKABLE: Weak symbols for testing in debug builds,
 // inline with definitions in header for zero overhead in release builds
@@ -41,11 +42,27 @@ MOCKABLE void *ik_talloc_array_wrapper(TALLOC_CTX *ctx, size_t el_size, size_t c
     return talloc_zero_size(ctx, el_size * count);
 }
 
+MOCKABLE void *ik_talloc_realloc_wrapper(TALLOC_CTX *ctx, void *ptr, size_t size)
+{
+    return talloc_realloc_size(ctx, ptr, size);
+}
+
+MOCKABLE char *ik_talloc_asprintf_wrapper(TALLOC_CTX *ctx, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    char *result = talloc_vasprintf(ctx, fmt, ap);
+    va_end(ap);
+    return result;
+}
+
 #else
 // Debug/test build: weak symbol declarations
 MOCKABLE void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size);
 MOCKABLE char *ik_talloc_strdup_wrapper(TALLOC_CTX *ctx, const char *str);
 MOCKABLE void *ik_talloc_array_wrapper(TALLOC_CTX *ctx, size_t el_size, size_t count);
+MOCKABLE void *ik_talloc_realloc_wrapper(TALLOC_CTX *ctx, void *ptr, size_t size);
+MOCKABLE char *ik_talloc_asprintf_wrapper(TALLOC_CTX *ctx, const char *fmt, ...);
 #endif
 
 // ============================================================================

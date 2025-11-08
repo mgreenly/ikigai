@@ -27,15 +27,12 @@ res_t ik_protocol_generate_uuid(TALLOC_CTX *ctx);
 
 // Create error message
 res_t ik_protocol_msg_create_err(TALLOC_CTX *ctx,
-                                       const char *sess_id,
-                                       const char *corr_id,
-                                       const char *source,
-                                       const char *err_msg);
+                                 const char *sess_id,
+                                 const char *corr_id,
+                                 const char *source,
+                                 const char *err_msg);
 
 // Create assistant response message
-res_t ik_protocol_msg_create_assistant_resp(TALLOC_CTX *ctx,
-                                                  const char *sess_id,
-                                                  const char *corr_id,
-                                                  json_t *payload);
+res_t ik_protocol_msg_create_assistant_resp(TALLOC_CTX *ctx, const char *sess_id, const char *corr_id, json_t *payload);
 
 #endif // IK_PROTOCOL_H

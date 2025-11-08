@@ -1,5 +1,6 @@
 #include "config.h"
 #include "logger.h"
+#include "wrapper.h"
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -12,10 +13,10 @@
 // Returns error if path starts with ~ but HOME is not set
 res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
 {
-    assert(ctx != NULL);
-    assert(path != NULL);
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(path != NULL); // LCOV_EXCL_BR_LINE
     if (path[0] != '~') {
-        char *result = talloc_strdup(ctx, path);
+        char *result = ik_talloc_strdup_wrapper(ctx, path);
         if (!result) {
             return ERR(ctx, OOM, "Failed to allocate path");
         }
@@ -27,7 +28,7 @@ res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
         return ERR(ctx, INVALID_ARG, "HOME not set, cannot expand ~");
     }
 
-    char *result = talloc_asprintf(ctx, "%s%s", home, path + 1);
+    char *result = ik_talloc_asprintf_wrapper(ctx, "%s%s", home, path + 1);
     if (!result) {
         return ERR(ctx, OOM, "Failed to allocate expanded path");
     }
@@ -37,8 +38,8 @@ res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
 // Create default config file with default values
 static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
 {
-    assert(ctx != NULL);
-    assert(path != NULL);
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(path != NULL); // LCOV_EXCL_BR_LINE
     // Extract directory from path
     char *path_copy = talloc_strdup(ctx, path);
     // LCOV_EXCL_START - OOM will be tested via injectable allocator in Task 8
@@ -87,8 +88,8 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
 
 res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
 {
-    assert(ctx != NULL);
-    assert(path != NULL);
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(path != NULL); // LCOV_EXCL_BR_LINE
     // Expand tilde in path
     char *expanded_path = TRY(expand_tilde(ctx, path));
 

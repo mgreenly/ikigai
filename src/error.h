@@ -50,7 +50,7 @@ static inline res_t ok(void *value)
 
 static inline res_t err(err_t *error)
 {
-    assert(error != NULL);
+    assert(error != NULL); // LCOV_EXCL_BR_LINE
     return (res_t)
            {
                .err = error, .is_err = true
@@ -60,13 +60,13 @@ static inline res_t err(err_t *error)
 // Result checking
 static inline bool is_ok(const res_t *result)
 {
-    assert(result != NULL);
+    assert(result != NULL); // LCOV_EXCL_BR_LINE
     return !result->is_err;
 }
 
 static inline bool is_err(const res_t *result)
 {
-    assert(result != NULL);
+    assert(result != NULL); // LCOV_EXCL_BR_LINE
     return result->is_err;
 }
 
@@ -87,20 +87,20 @@ static err_t oom_error = {
 // Check if an error is the static OOM error (cannot be freed)
 static inline bool error_is_static(const err_t *err)
 {
-    assert(err != NULL);
+    assert(err != NULL); // LCOV_EXCL_BR_LINE
     return err == &oom_error;
 }
 
 // Error creation - allocates on talloc context
 static inline err_t *_make_error(TALLOC_CTX *ctx,
-                                         err_code_t code,
-                                         const char *file,
-                                         int32_t line,
-                                         const char *fmt,
-                                         ...)
+                                 err_code_t code,
+                                 const char *file,
+                                 int32_t line,
+                                 const char *fmt,
+                                 ...)
 {
-    assert(ctx != NULL);
-    assert(fmt != NULL);
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(fmt != NULL); // LCOV_EXCL_BR_LINE
     err_t *err = talloc_zero_for_error(ctx, sizeof(err_t));
     if (!err) {
         return &oom_error;
@@ -137,12 +137,12 @@ static inline err_t *_make_error(TALLOC_CTX *ctx,
 // Uses GCC statement expression to allow use in assignments
 #define TRY(expr) \
         ({ \
-            res_t _try_result = (expr); \
-            if (_try_result.is_err) { \
-                return _try_result; \
-            } \
-            _try_result.ok; \
-        })
+        res_t _try_result = (expr); \
+        if (_try_result.is_err) { \
+            return _try_result; \
+        } \
+        _try_result.ok; \
+    })
 
 // Error code to string conversion
 static inline const char *error_code_str(err_code_t code)
@@ -168,21 +168,21 @@ static inline const char *error_code_str(err_code_t code)
 // Error inspection
 static inline err_code_t error_code(const err_t *err)
 {
-    assert(err != NULL);
+    assert(err != NULL); // LCOV_EXCL_BR_LINE
     return err->code;
 }
 
 static inline const char *error_message(const err_t *err)
 {
-    assert(err != NULL);
+    assert(err != NULL); // LCOV_EXCL_BR_LINE
     return err->msg[0] ? err->msg : error_code_str(err->code);
 }
 
 // Error formatting for debugging
 static inline void error_fprintf(FILE *f, const err_t *err)
 {
-    assert(f != NULL);
-    assert(err != NULL);
+    assert(f != NULL); // LCOV_EXCL_BR_LINE
+    assert(err != NULL); // LCOV_EXCL_BR_LINE
     fprintf(f, "Error: %s [%s:%" PRId32 "]\n", error_message(err), err->file ? err->file : "unknown", err->line);
 }
 

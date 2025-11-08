@@ -19,8 +19,8 @@ static int ik_protocol_msg_destructor(ik_protocol_msg_t *msg)
 
 res_t ik_protocol_msg_parse(TALLOC_CTX *ctx, const char *json_str)
 {
-    assert(ctx != NULL);
-    assert(json_str != NULL);
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(json_str != NULL); // LCOV_EXCL_BR_LINE
     // Parse JSON
     json_error_t jerr;
     json_t *root = json_loads(json_str, 0, &jerr);
@@ -116,11 +116,11 @@ res_t ik_protocol_msg_parse(TALLOC_CTX *ctx, const char *json_str)
 
 res_t ik_protocol_msg_serialize(TALLOC_CTX *ctx, ik_protocol_msg_t *msg)
 {
-    assert(ctx != NULL);
-    assert(msg != NULL);
-    assert(msg->sess_id != NULL);
-    assert(msg->type != NULL);
-    assert(msg->payload != NULL);
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(msg != NULL); // LCOV_EXCL_BR_LINE
+    assert(msg->sess_id != NULL); // LCOV_EXCL_BR_LINE
+    assert(msg->type != NULL); // LCOV_EXCL_BR_LINE
+    assert(msg->payload != NULL); // LCOV_EXCL_BR_LINE
     // Create JSON object
     json_t *root = ik_json_object_wrapper();
     if (!root) {
@@ -161,7 +161,7 @@ res_t ik_protocol_msg_serialize(TALLOC_CTX *ctx, ik_protocol_msg_t *msg)
 
 res_t ik_protocol_generate_uuid(TALLOC_CTX *ctx)
 {
-    assert(ctx != NULL);
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
     // Generate random UUID (16 bytes)
     uuid_t uuid;
     uuid_generate_random(uuid);
@@ -206,14 +206,14 @@ res_t ik_protocol_generate_uuid(TALLOC_CTX *ctx)
 }
 
 res_t ik_protocol_msg_create_err(TALLOC_CTX *ctx,
-                                       const char *sess_id, const char *corr_id, const char *source,
-                                       const char *err_msg)
+                                 const char *sess_id, const char *corr_id, const char *source,
+                                 const char *err_msg)
 {
-    assert(ctx != NULL);
-    assert(sess_id != NULL);
-    assert(corr_id != NULL);
-    assert(source != NULL);
-    assert(err_msg != NULL);
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(sess_id != NULL); // LCOV_EXCL_BR_LINE
+    assert(corr_id != NULL); // LCOV_EXCL_BR_LINE
+    assert(source != NULL); // LCOV_EXCL_BR_LINE
+    assert(err_msg != NULL); // LCOV_EXCL_BR_LINE
     // Allocate message on context
     ik_protocol_msg_t *msg = ik_talloc_zero_wrapper(ctx, sizeof(ik_protocol_msg_t));
     if (!msg) {
@@ -252,14 +252,14 @@ res_t ik_protocol_msg_create_err(TALLOC_CTX *ctx,
 }
 
 res_t ik_protocol_msg_create_assistant_resp(TALLOC_CTX *ctx,
-                                                  const char *sess_id,
-                                                  const char *corr_id,
-                                                  json_t *payload)
+                                            const char *sess_id,
+                                            const char *corr_id,
+                                            json_t *payload)
 {
-    assert(ctx != NULL);
-    assert(sess_id != NULL);
-    assert(corr_id != NULL);
-    assert(payload != NULL);
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(sess_id != NULL); // LCOV_EXCL_BR_LINE
+    assert(corr_id != NULL); // LCOV_EXCL_BR_LINE
+    assert(payload != NULL); // LCOV_EXCL_BR_LINE
     // Allocate message on context
     ik_protocol_msg_t *msg = ik_talloc_zero_wrapper(ctx, sizeof(ik_protocol_msg_t));
     if (!msg) {

@@ -2,6 +2,7 @@
 #include <talloc.h>
 #include <jansson.h>
 #include <string.h>
+#include <stdarg.h>
 
 // ========== OOM Test State ==========
 
@@ -93,6 +94,48 @@ void *ik_talloc_array_wrapper(TALLOC_CTX *ctx, size_t el_size, size_t count)
 
     // Normal allocation
     return talloc_zero_size(ctx, el_size * count);
+}
+
+void *ik_talloc_realloc_wrapper(TALLOC_CTX *ctx, void *ptr, size_t size)
+{
+    oom_state.call_count++;
+
+    // Check if we should fail the next allocation
+    if (oom_state.should_fail_next) {
+        oom_state.should_fail_next = 0;
+        return NULL;
+    }
+
+    // Check if we should fail after N calls
+    if (oom_state.fail_after_n_calls > 0 && oom_state.call_count >= oom_state.fail_after_n_calls) {
+        return NULL;
+    }
+
+    // Normal allocation
+    return talloc_realloc_size(ctx, ptr, size);
+}
+
+char *ik_talloc_asprintf_wrapper(TALLOC_CTX *ctx, const char *fmt, ...)
+{
+    oom_state.call_count++;
+
+    // Check if we should fail the next allocation
+    if (oom_state.should_fail_next) {
+        oom_state.should_fail_next = 0;
+        return NULL;
+    }
+
+    // Check if we should fail after N calls
+    if (oom_state.fail_after_n_calls > 0 && oom_state.call_count >= oom_state.fail_after_n_calls) {
+        return NULL;
+    }
+
+    // Normal allocation
+    va_list ap;
+    va_start(ap, fmt);
+    char *result = talloc_vasprintf(ctx, fmt, ap);
+    va_end(ap);
+    return result;
 }
 
 // ========== Jansson Wrapper Overrides ==========
