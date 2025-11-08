@@ -98,20 +98,20 @@ Merged into Step 2 above.
 
 Merged into Step 2 above.
 
-### Step 5: Demo in client.c
+### Step 5: Demo in client.c ✅ COMPLETE
 
-- [ ] Update `src/client.c` to demonstrate terminal module:
+- [x] Update `src/client.c` to demonstrate terminal module:
   - Initialize terminal (raw mode + alternate screen)
   - Display terminal dimensions on screen
   - Display "Press Ctrl+C to exit" message
   - Read bytes in loop until Ctrl+C (0x03)
   - Cleanup terminal and exit
-- [ ] Build and manually test:
+- [x] Build and manually test:
   - `make && ./ikigai`
   - Verify alternate screen activates
   - Verify dimensions display
   - Press Ctrl+C, verify clean exit and terminal restore
-- [ ] Commit work: "Implement terminal module with raw mode and alternate screen"
+- [x] Commit work: "Demo terminal module in client.c"
 
 ---
 
