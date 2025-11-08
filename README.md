@@ -14,16 +14,16 @@ See [docs/](docs/README.md/) for design and implementation details.
 **Platform**: The build system runs natively on Debian 13 (Trixie), other distributions may have dependency issues.  If you're brave you can check out the distros/ folder for distro specific builds but it's to early in the project's life-cycle for me to officially support those yet.
 
 **Clone**:
-```bash
+```text
 git clone https://github.com/mgreenly/ikigai.git && cd ikigai
 ```
 
 **Install**:
-```bash
+```text
 make install PREFIX=$HOME/.local
 ```
 
 **Uninstall**:
-```bash
+```text
 make uninstall PREFIX=$HOME/.local
 ```
