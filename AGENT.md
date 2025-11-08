@@ -101,6 +101,12 @@ Coverage is built at **-O0** (no optimization) to ensure accurate branch coverag
 
 Never use exclusions without explicit user permission.
 
+**Coverage Philosophy:**
+
+Coverage gaps are learning opportunities. They show us where our design can improve. Don't silence the messenger—fix the design.
+
+Skipping coverage in our own code is never acceptable. It's only used for external dependencies.
+
 ## Git Configuration
 
 - **Remote**: origin (github.com:mgreenly/ikigai.git)
