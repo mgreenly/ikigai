@@ -75,7 +75,7 @@ COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c
 CLIENT_OBJ = $(patsubst src/%.c,build/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
