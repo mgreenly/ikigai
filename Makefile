@@ -91,7 +91,7 @@ INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/%_test.c,build/tests/int
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS)
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c src/array.c src/byte_array.c src/line_array.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c src/array.c src/byte_array.c src/line_array.c src/terminal.c
 MODULE_OBJ = $(patsubst src/%.c,build/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
@@ -157,6 +157,7 @@ clean:
 	rm -rf build bin $(COVERAGE_DIR)
 	@rm -rf distros/dist distros/*/build 2>/dev/null || true
 	@find . -name "*.gcda" -o -name "*.gcno" -delete 2>/dev/null || true
+	@rm -f core.* vgcore.* 2>/dev/null || true
 
 install: all
 	install -d $(DESTDIR)$(bindir)
