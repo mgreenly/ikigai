@@ -538,6 +538,216 @@ START_TEST(test_array_clear)
 }
 
 END_TEST
+// Security test: Use-after-free attempt via stale pointer after reallocation
+START_TEST(test_array_stale_pointer_after_reallocation)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    res_t res = ik_array_create(ctx, sizeof(int32_t), 2);
+    ck_assert(is_ok(&res));
+    ik_array_t *array = res.ok;
+
+    // Fill to capacity
+    int32_t value = 42;
+    res = ik_array_append(array, &value);
+    ck_assert(is_ok(&res));
+
+    // Get pointer to first element
+    int32_t *ptr = (int32_t *)ik_array_get(array, 0);
+    ck_assert_ptr_nonnull(ptr);
+    ck_assert_int_eq(*ptr, 42);
+
+    // Save the old data pointer
+    void *old_data = array->data;
+
+    // Force reallocation by appending more elements (capacity 2 -> 4)
+    for (int32_t i = 0; i < 5; i++) {
+        res = ik_array_append(array, &i);
+        ck_assert(is_ok(&res));
+    }
+
+    // Verify reallocation occurred
+    ck_assert_ptr_ne(array->data, old_data);
+
+    // The old pointer 'ptr' now points to freed memory (use-after-free)
+    // We cannot safely use it, but we can verify the data is still correct via new get
+    int32_t *new_ptr = (int32_t *)ik_array_get(array, 0);
+    ck_assert_int_eq(*new_ptr, 42);
+
+    // Verify all data survived reallocation
+    ck_assert_uint_eq(array->size, 6);
+    for (size_t i = 1; i < 6; i++) {
+        int32_t *val = (int32_t *)ik_array_get(array, i);
+        ck_assert_int_eq(*val, (int32_t)(i - 1));
+    }
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Security test: Delete all elements one by one (check for size underflow)
+START_TEST(test_array_delete_all_elements_no_underflow)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
+    ck_assert(is_ok(&res));
+    ik_array_t *array = res.ok;
+
+    // Add 5 elements
+    for (int32_t i = 0; i < 5; i++) {
+        res = ik_array_append(array, &i);
+        ck_assert(is_ok(&res));
+    }
+
+    ck_assert_uint_eq(array->size, 5);
+
+    // Delete all elements one by one from the end
+    for (size_t i = 0; i < 5; i++) {
+        ik_array_delete(array, 0);
+        ck_assert_uint_eq(array->size, 4 - i);
+    }
+
+    // Verify size is exactly 0, not wrapped around to SIZE_MAX
+    ck_assert_uint_eq(array->size, 0);
+    ck_assert_uint_eq(array->capacity, 10); // Capacity unchanged
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Security test: Complex interleaved insert/delete sequence
+START_TEST(test_array_interleaved_insert_delete_stress)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
+    ck_assert(is_ok(&res));
+    ik_array_t *array = res.ok;
+
+    // Build initial array [0, 1, 2, 3, 4]
+    for (int32_t i = 0; i < 5; i++) {
+        res = ik_array_append(array, &i);
+        ck_assert(is_ok(&res));
+    }
+
+    // Delete middle element -> [0, 1, 3, 4]
+    ik_array_delete(array, 2);
+    ck_assert_uint_eq(array->size, 4);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 2), 3);
+
+    // Insert at beginning -> [99, 0, 1, 3, 4]
+    int32_t value = 99;
+    res = ik_array_insert(array, 0, &value);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(array->size, 5);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 0), 99);
+
+    // Delete from beginning -> [0, 1, 3, 4]
+    ik_array_delete(array, 0);
+    ck_assert_uint_eq(array->size, 4);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 0), 0);
+
+    // Insert in middle -> [0, 1, 88, 3, 4]
+    value = 88;
+    res = ik_array_insert(array, 2, &value);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(array->size, 5);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 2), 88);
+
+    // Delete from end -> [0, 1, 88, 3]
+    ik_array_delete(array, 4);
+    ck_assert_uint_eq(array->size, 4);
+
+    // Insert at end -> [0, 1, 88, 3, 77]
+    value = 77;
+    res = ik_array_insert(array, 4, &value);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(array->size, 5);
+
+    // Verify final state: [0, 1, 88, 3, 77]
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 0), 0);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 1), 1);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 2), 88);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 3), 3);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 4), 77);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Security test: Clear then append (verify array still works)
+START_TEST(test_array_clear_then_append)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
+    ck_assert(is_ok(&res));
+    ik_array_t *array = res.ok;
+
+    // Add elements
+    for (int32_t i = 0; i < 5; i++) {
+        res = ik_array_append(array, &i);
+        ck_assert(is_ok(&res));
+    }
+
+    // Clear
+    ik_array_clear(array);
+    ck_assert_uint_eq(array->size, 0);
+    ck_assert_uint_eq(array->capacity, 10);
+
+    // Append new elements (should reuse existing capacity)
+    for (int32_t i = 100; i < 103; i++) {
+        res = ik_array_append(array, &i);
+        ck_assert(is_ok(&res));
+    }
+
+    // Verify new elements
+    ck_assert_uint_eq(array->size, 3);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 0), 100);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 1), 101);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 2), 102);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Security test: Repeated insert/delete at same position
+START_TEST(test_array_repeated_insert_delete_same_position)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
+    ck_assert(is_ok(&res));
+    ik_array_t *array = res.ok;
+
+    // Build initial array [0, 1, 2]
+    for (int32_t i = 0; i < 3; i++) {
+        res = ik_array_append(array, &i);
+        ck_assert(is_ok(&res));
+    }
+
+    // Repeatedly insert and delete at position 1
+    for (int32_t i = 0; i < 10; i++) {
+        int32_t value = 99 + i;
+        res = ik_array_insert(array, 1, &value);
+        ck_assert(is_ok(&res));
+        ck_assert_uint_eq(array->size, 4);
+        ck_assert_int_eq(*(int32_t *)ik_array_get(array, 1), value);
+
+        ik_array_delete(array, 1);
+        ck_assert_uint_eq(array->size, 3);
+    }
+
+    // Verify original elements intact: [0, 1, 2]
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 0), 0);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 1), 1);
+    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 2), 2);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 #ifndef NDEBUG
 // Test assertion: get with NULL array
@@ -665,6 +875,13 @@ static Suite *array_suite(void)
     tcase_add_test(tc_core, test_array_delete_from_end);
     tcase_add_test(tc_core, test_array_set);
     tcase_add_test(tc_core, test_array_clear);
+
+    // Security tests
+    tcase_add_test(tc_core, test_array_stale_pointer_after_reallocation);
+    tcase_add_test(tc_core, test_array_delete_all_elements_no_underflow);
+    tcase_add_test(tc_core, test_array_interleaved_insert_delete_stress);
+    tcase_add_test(tc_core, test_array_clear_then_append);
+    tcase_add_test(tc_core, test_array_repeated_insert_delete_same_position);
 
 #ifndef NDEBUG
     // Assertion tests - only in debug builds
