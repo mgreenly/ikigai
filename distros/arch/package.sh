@@ -27,8 +27,10 @@ if [ ! -f "$TARBALL" ]; then
     exit 1
 fi
 
-echo "Copying PKGBUILD and tarball..."
-cp "$SCRIPT_DIR/packaging/PKGBUILD" "$BUILD_DIR/"
+echo "Copying and updating PKGBUILD with version $VERSION..."
+sed "s/__VERSION__/$VERSION/g" "$SCRIPT_DIR/packaging/PKGBUILD" > "$BUILD_DIR/PKGBUILD"
+
+echo "Copying tarball..."
 cp "$TARBALL" "$BUILD_DIR/"
 
 # Step 3: Build the package with makepkg

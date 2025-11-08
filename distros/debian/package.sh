@@ -30,9 +30,12 @@ fi
 echo "Extracting $TARBALL..."
 tar -xzf "$TARBALL" -C "$BUILD_DIR"
 
-# Step 3: Copy debian directory into extracted source
+# Step 3: Copy debian directory into extracted source and update version
 echo "Copying debian packaging files..."
 cp -r "$SCRIPT_DIR/packaging" "$BUILD_DIR/${PACKAGE}-${VERSION}/debian"
+
+echo "Updating version to $VERSION in debian files..."
+sed -i "s/__VERSION__/$VERSION/g" "$BUILD_DIR/${PACKAGE}-${VERSION}/debian/changelog"
 
 # Step 4: Build the package
 echo "Building Debian package..."

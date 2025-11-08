@@ -1,6 +1,6 @@
 # Maintainer: Michael Greenly <mgreenly@example.com>
 pkgname=ikigai
-pkgver=0.1.0
+pkgver=__VERSION__
 pkgrel=1
 pkgdesc="Ikigai client and server for network communication and task management"
 arch=('x86_64' 'i686' 'aarch64')

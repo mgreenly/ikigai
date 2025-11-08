@@ -1,5 +1,5 @@
 Name:           ikigai
-Version:        0.1.0
+Version:        __VERSION__
 Release:        1%{?dist}
 Summary:        Ikigai client and server
 
@@ -43,5 +43,5 @@ make install DESTDIR=$RPM_BUILD_ROOT PREFIX=/usr
 %license LICENSE
 
 %changelog
-* Fri Nov 07 2025 Michael Greenly <mgreenly@example.com> - 0.1.0-1
+* Fri Nov 07 2025 Michael Greenly <mgreenly@example.com> - __VERSION__-1
 - Initial release

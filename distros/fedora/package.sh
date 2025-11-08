@@ -34,8 +34,8 @@ fi
 echo "Copying source tarball..."
 cp "$TARBALL" "$BUILD_DIR/rpmbuild/SOURCES/"
 
-echo "Copying spec file..."
-cp "$SCRIPT_DIR/packaging/ikigai.spec" "$BUILD_DIR/rpmbuild/SPECS/"
+echo "Copying and updating spec file with version $VERSION..."
+sed "s/__VERSION__/$VERSION/g" "$SCRIPT_DIR/packaging/ikigai.spec" > "$BUILD_DIR/rpmbuild/SPECS/ikigai.spec"
 
 # Step 4: Build the RPM package
 echo "Building RPM package..."
