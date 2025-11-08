@@ -15,7 +15,7 @@ WARNING_FLAGS = -Wall -Wextra -Wshadow \
   -Wformat=2 -Wconversion -Wcast-qual -Wundef \
   -Wdate-time -Winit-self -Wstrict-overflow=2 \
   -Wimplicit-fallthrough -Walloca -Wvla \
-  -Wnull-dereference -Wdouble-promotion
+  -Wnull-dereference -Wdouble-promotion -Werror
 
 # Security hardening flags (stack protector works at all optimization levels)
 SECURITY_FLAGS = -fstack-protector-strong
@@ -36,7 +36,7 @@ TSAN_FLAGS = -fsanitize=thread
 VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
 
 # Release build flags (_FORTIFY_SOURCE requires optimization)
-RELEASE_FLAGS = -O2 -g -DNDEBUG -Werror -D_FORTIFY_SOURCE=2
+RELEASE_FLAGS = -O2 -g -DNDEBUG -D_FORTIFY_SOURCE=2
 
 # Base flags (always present)
 BASE_FLAGS = -std=c17 -fPIC -D_GNU_SOURCE
@@ -75,7 +75,7 @@ COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c
 CLIENT_OBJ = $(patsubst src/%.c,build/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
@@ -91,7 +91,7 @@ INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/%_test.c,build/tests/int
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS)
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c src/array.c src/byte_array.c src/line_array.c src/terminal.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c
 MODULE_OBJ = $(patsubst src/%.c,build/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
@@ -105,6 +105,7 @@ TEST_UTILS_OBJ = build/tests/test_utils.o
 all: $(CLIENT_TARGET) $(SERVER_TARGET)
 
 release:
+	@$(MAKE) clean
 	@$(MAKE) all BUILD=release
 
 $(CLIENT_TARGET): $(CLIENT_OBJ) | bin
