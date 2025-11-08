@@ -30,9 +30,6 @@ jobs:
           exit 1
         fi
 
-    - name: Create source tarball
-      run: make dist
-
     - name: Build and CI test Debian
       id: debian_ci
       continue-on-error: true
@@ -45,6 +42,8 @@ jobs:
     - name: Package Debian
       if: steps.debian_ci.outcome == 'success'
       run: |
+        echo "=== Creating source tarball ==="
+        docker run --rm --user $(id -u):$(id -g) -v "$(pwd)":/workspace ikigai-ci-debian bash -c "make dist"
         echo "=== Building Debian package ==="
         docker run --rm --user $(id -u):$(id -g) -v "$(pwd)":/workspace ikigai-ci-debian bash -c "distros/debian/package.sh"
 
