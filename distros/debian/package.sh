@@ -6,7 +6,7 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build"
 DIST_DIR="$SCRIPT_DIR/../dist"
 PACKAGE="ikigai"
-VERSION="0.1.0"
+VERSION=$(grep '#define IK_VERSION "' "$PROJECT_DIR/src/version.h" | cut -d'"' -f2)
 
 echo "=== Debian Package Build ==="
 echo "Project: $PROJECT_DIR"
