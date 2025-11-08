@@ -43,42 +43,64 @@ static void reset_utf8_state(ik_input_parser_t *parser)
 }
 
 // Helper to decode complete UTF-8 sequence into codepoint
+// Returns U+FFFD (replacement character) for invalid sequences
 static uint32_t decode_utf8_sequence(const char *buf, size_t len)
 {
     assert(len >= 1 && len <= 4);  // LCOV_EXCL_BR_LINE
 
     unsigned char b0 = (unsigned char)buf[0];
+    uint32_t codepoint = 0;
 
     if (len == 2) {
         // 110xxxxx 10xxxxxx
         unsigned char b1 = (unsigned char)buf[1];
-        uint32_t codepoint = ((uint32_t)(b0 & 0x1F) << 6) |
-                             ((uint32_t)(b1 & 0x3F));
-        return codepoint;
-    }
-    if (len == 3) {
+        codepoint = ((uint32_t)(b0 & 0x1F) << 6) |
+                    ((uint32_t)(b1 & 0x3F));
+    } else if (len == 3) {
         // 1110xxxx 10xxxxxx 10xxxxxx
         unsigned char b1 = (unsigned char)buf[1];
         unsigned char b2 = (unsigned char)buf[2];
-        uint32_t codepoint = ((uint32_t)(b0 & 0x0F) << 12) |
-                             ((uint32_t)(b1 & 0x3F) << 6) |
-                             ((uint32_t)(b2 & 0x3F));
-        return codepoint;
-    }
-    if (len == 4) {  // LCOV_EXCL_BR_LINE
+        codepoint = ((uint32_t)(b0 & 0x0F) << 12) |
+                    ((uint32_t)(b1 & 0x3F) << 6) |
+                    ((uint32_t)(b2 & 0x3F));
+    } else if (len == 4) {  // LCOV_EXCL_BR_LINE
         // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
         unsigned char b1 = (unsigned char)buf[1];
         unsigned char b2 = (unsigned char)buf[2];
         unsigned char b3 = (unsigned char)buf[3];
-        uint32_t codepoint = ((uint32_t)(b0 & 0x07) << 18) |
-                             ((uint32_t)(b1 & 0x3F) << 12) |
-                             ((uint32_t)(b2 & 0x3F) << 6) |
-                             ((uint32_t)(b3 & 0x3F));
-        return codepoint;
+        codepoint = ((uint32_t)(b0 & 0x07) << 18) |
+                    ((uint32_t)(b1 & 0x3F) << 12) |
+                    ((uint32_t)(b2 & 0x3F) << 6) |
+                    ((uint32_t)(b3 & 0x3F));
+    } else {
+        // Should never reach here due to assertion
+        return 0xFFFD;  // LCOV_EXCL_LINE
     }
 
-    // Should never reach here due to assertion
-    return 0;  // LCOV_EXCL_LINE
+    // Validate codepoint (reject overlong encodings, surrogates, out-of-range)
+
+    // Reject overlong encodings (RFC 3629)
+    if (len == 2 && codepoint < 0x80) {
+        return 0xFFFD;  // Overlong 2-byte encoding
+    }
+    if (len == 3 && codepoint < 0x800) {
+        return 0xFFFD;  // Overlong 3-byte encoding
+    }
+    if (len == 4 && codepoint < 0x10000) {
+        return 0xFFFD;  // Overlong 4-byte encoding
+    }
+
+    // Reject UTF-16 surrogates (U+D800 to U+DFFF)
+    if (codepoint >= 0xD800 && codepoint <= 0xDFFF) {
+        return 0xFFFD;  // Surrogate codepoint
+    }
+
+    // Reject codepoints beyond valid Unicode range (> U+10FFFF)
+    if (codepoint > 0x10FFFF) {
+        return 0xFFFD;  // Out-of-range codepoint
+    }
+
+    return codepoint;
 }
 
 // Handle UTF-8 continuation byte
