@@ -63,30 +63,30 @@ This task is implemented in **four sequential steps**, each with full TDD and 10
 - [x] Update Makefile to include byte_array.c in build
 - [x] Run quality gates: `make check`, `make lint`, `make coverage`
 
-### Step 4: Implement Line Array Wrapper
+### Step 4: Implement Line Array Wrapper ✅ COMPLETE
 
-- [ ] Create `src/line_array.h` and `src/line_array.c`
-- [ ] Define `ik_line_array_t` as typedef of `ik_array_t`
-- [ ] Implement `ik_line_array_create()` wrapper
-- [ ] Implement `ik_line_array_append()` wrapper
-- [ ] Implement `ik_line_array_insert()` wrapper
-- [ ] Implement `ik_line_array_delete()` wrapper
-- [ ] Implement `ik_line_array_get()` wrapper
-- [ ] Implement `ik_line_array_set()` wrapper
-- [ ] Implement `ik_line_array_clear()` wrapper
-- [ ] Implement `ik_line_array_size()` wrapper
-- [ ] Implement `ik_line_array_capacity()` wrapper
-- [ ] Write tests in `tests/unit/line_array_test.c`
-- [ ] Update Makefile to include line_array.c in build
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Create `src/line_array.h` and `src/line_array.c`
+- [x] Define `ik_line_array_t` as typedef of `ik_array_t`
+- [x] Implement `ik_line_array_create()` wrapper
+- [x] Implement `ik_line_array_append()` wrapper
+- [x] Implement `ik_line_array_insert()` wrapper
+- [x] Implement `ik_line_array_delete()` wrapper
+- [x] Implement `ik_line_array_get()` wrapper
+- [x] Implement `ik_line_array_set()` wrapper
+- [x] Implement `ik_line_array_clear()` wrapper
+- [x] Implement `ik_line_array_size()` wrapper
+- [x] Implement `ik_line_array_capacity()` wrapper
+- [x] Write tests in `tests/unit/line_array_test.c`
+- [x] Update Makefile to include line_array.c in build
+- [x] Run quality gates: `make check`, `make lint`, `make coverage`
 
-### Final Quality Gates
+### Final Quality Gates ✅ COMPLETE
 
-- [ ] All steps complete with 100% coverage
-- [ ] `make check` passes (all tests)
-- [ ] `make lint` passes (complexity under threshold)
-- [ ] `make coverage` shows 100% coverage (Lines, Functions, Branches)
-- [ ] Run `make fmt` before committing
+- [x] All steps complete with 100% coverage
+- [x] `make check` passes (all tests)
+- [x] `make lint` passes (complexity under threshold)
+- [x] `make coverage` shows 100% coverage (Lines, Functions, Branches)
+- [x] Run `make fmt` before committing
 
 ---
 
