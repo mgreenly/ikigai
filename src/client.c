@@ -39,7 +39,9 @@ int main(void)
                       "Terminal dimensions: %d rows x %d columns\r\n"
                       "Press Ctrl+C to exit\r\n",
                       rows, cols);
-    write(term_ctx->tty_fd, msg, (size_t)len);
+    if (write(term_ctx->tty_fd, msg, (size_t)len) < 0) {
+        // Ignore write errors in demo
+    }
 
     // Main loop: read bytes until Ctrl+C
     char byte;
@@ -55,7 +57,9 @@ int main(void)
         }
 
         // Echo the byte for demonstration (optional)
-        write(term_ctx->tty_fd, &byte, 1);
+        if (write(term_ctx->tty_fd, &byte, 1) < 0) {
+            // Ignore write errors in demo
+        }
     }
 
     // Cleanup and exit
