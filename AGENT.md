@@ -35,7 +35,7 @@ When discussing improvements:
    - `make check` - All tests must pass
    - `make lint` - Code complexity must be under threshold
 
-**Never** commit code that doesn't pass both `make check` and `make lint` and `make coverage`.
+During the TDD cycle, use `make check` for fast feedback. Before committing, see **Pre-Commit Requirements** below.
 
 ## Zero Technical Debt
 
@@ -107,15 +107,22 @@ Never use exclusions without explicit user permission.
 - **Primary branch**: main
 - **Upstream**: origin/main
 
+## Pre-Commit Requirements
+
+**BEFORE creating ANY commit** (mandatory, no exceptions):
+
+1. Run `make distro-check` - must pass completely
+2. If it fails: fix all issues, re-run, repeat until it passes
+3. Only commit after `make distro-check` passes
+4. Run `make fmt` before committing
+
+**Never commit or push code that hasn't passed `make distro-check`.**
+
 ## Git Commit Policy
 
-**Before every commit:**
-- Run `make fmt` to ensure consistent code formatting
-
-Do NOT include:
-- Attributions in commits.
-- "Co-Authored-By: Claude <noreply@anthropic.com>"
-- "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+Do NOT include attributions in commits:
+- No "Co-Authored-By: Claude <noreply@anthropic.com>"
+- No "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 
 ## Code Style
 

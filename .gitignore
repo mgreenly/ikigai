@@ -3,7 +3,6 @@ bin/
 dist/
 coverage/
 
-prompt.md
-
-**/core
+**/core.*
+**/vgcore.*
 **/*.gcov
