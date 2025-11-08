@@ -1,5 +1,8 @@
 FROM archlinux:latest
 
+# Enable debug repositories for glibc debug symbols
+RUN echo -e "\n[core-debug]\nInclude = /etc/pacman.d/mirrorlist\n\n[extra-debug]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
+
 # Update system and install base development tools
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
@@ -32,6 +35,9 @@ RUN pacman -Syu --noconfirm && \
     perl-datetime \
     python \
     cppunit
+
+# Install glibc debug symbols from debug repository
+RUN pacman -S --noconfirm glibc-debug
 
 # Create mk/arch.mk with Arch-specific package list
 RUN mkdir -p /workspace/mk && cat > /workspace/mk/arch.mk <<'EOF'
