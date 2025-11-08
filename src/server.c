@@ -18,7 +18,7 @@ int main(void)
     }
 
     ik_log_info("Loading configuration from %s", IK_CONFIG_PATH);
-    ik_result_t result = ik_cfg_load(ctx, IK_CONFIG_PATH);
+    ik_res_t result = ik_cfg_load(ctx, IK_CONFIG_PATH);
     if (result.is_err) {
         ik_log_error("Failed to load config: %s", result.err->msg);
         talloc_free(ctx);

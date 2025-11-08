@@ -35,11 +35,11 @@ START_TEST(test_protocol_msg_parse_function_exists)
 
     // This will fail to compile until we declare the function
     const char *json_str = "{\"sess_id\":\"test\",\"type\":\"user_query\",\"payload\":{}}";
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
 
     // We expect an error at this point (not implemented yet)
     // But the function must exist to compile
-    ck_assert(ik_is_err(&res) || ik_is_ok(&res));
+    ck_assert(is_err(&res) || is_ok(&res));
 
     talloc_free(ctx);
 }
@@ -51,8 +51,8 @@ START_TEST(test_protocol_generate_uuid)
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    ik_result_t res = ik_protocol_generate_uuid(ctx);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_generate_uuid(ctx);
+    ck_assert(is_ok(&res));
 
     char *uuid = (char *)res.ok;
     ck_assert_ptr_nonnull(uuid);
@@ -82,8 +82,8 @@ START_TEST(test_protocol_uuid_uniqueness)
 
     // Generate 100 UUIDs
     for (int i = 0; i < NUM_UUIDS; i++) {
-        ik_result_t res = ik_protocol_generate_uuid(ctx);
-        ck_assert(ik_is_ok(&res));
+        res_t res = ik_protocol_generate_uuid(ctx);
+        ck_assert(is_ok(&res));
         uuids[i] = (char *)res.ok;
     }
 
@@ -106,9 +106,9 @@ START_TEST(test_protocol_generate_uuid_oom)
     // Fail the array allocation for the base64url result
     oom_test_fail_next_alloc();
 
-    ik_result_t res = ik_protocol_generate_uuid(ctx);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_generate_uuid(ctx);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -125,8 +125,8 @@ START_TEST(test_protocol_parse_valid_message)
         "{\"sess_id\":\"VQ6EAOKbQdSnFkRmVUQAAA\","
         "\"corr_id\":\"8fKm3pLxTdOqZ1YnHjW9Gg\"," "\"type\":\"user_query\"," "\"payload\":{\"test\":\"data\"}}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_ok(&res));
 
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;
     ck_assert_ptr_nonnull(msg);
@@ -148,9 +148,9 @@ START_TEST(test_protocol_parse_invalid_json)
 
     const char *json_str = "{invalid json}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_PARSE);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
 
     talloc_free(ctx);
 }
@@ -165,9 +165,9 @@ START_TEST(test_protocol_parse_json_not_object)
     // Valid JSON array, but not an object
     const char *json_str = "[1,2,3]";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_PARSE);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
 
     talloc_free(ctx);
 }
@@ -183,9 +183,9 @@ START_TEST(test_protocol_parse_oom_msg_alloc)
     // Fail the talloc_zero allocation for message struct
     oom_test_fail_next_alloc();
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -202,9 +202,9 @@ START_TEST(test_protocol_parse_oom_sess_id)
     // Skip first allocation (msg struct), fail second (sess_id string)
     oom_test_fail_after_n_calls(2);
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -221,9 +221,9 @@ START_TEST(test_protocol_parse_oom_corr_id)
     // Skip msg struct and sess_id, fail corr_id
     oom_test_fail_after_n_calls(3);
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -241,9 +241,9 @@ START_TEST(test_protocol_parse_oom_type)
     // Skip msg struct and sess_id, fail type (3rd allocation)
     oom_test_fail_after_n_calls(3);
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -257,9 +257,9 @@ START_TEST(test_protocol_parse_missing_sess_id)
     const char *json_str =
         "{\"corr_id\":\"8fKm3pLxTdOqZ1YnHjW9Gg\"," "\"type\":\"user_query\"," "\"payload\":{\"test\":\"data\"}}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_PARSE);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
 
     talloc_free(ctx);
 }
@@ -273,9 +273,9 @@ START_TEST(test_protocol_parse_missing_type)
         "{\"sess_id\":\"VQ6EAOKbQdSnFkRmVUQAAA\","
         "\"corr_id\":\"8fKm3pLxTdOqZ1YnHjW9Gg\"," "\"payload\":{\"test\":\"data\"}}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_PARSE);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
 
     talloc_free(ctx);
 }
@@ -288,9 +288,9 @@ START_TEST(test_protocol_parse_missing_payload)
     const char *json_str =
         "{\"sess_id\":\"VQ6EAOKbQdSnFkRmVUQAAA\"," "\"corr_id\":\"8fKm3pLxTdOqZ1YnHjW9Gg\"," "\"type\":\"user_query\"}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_PARSE);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
 
     talloc_free(ctx);
 }
@@ -304,9 +304,9 @@ START_TEST(test_protocol_parse_wrong_type_sess_id)
         "{\"sess_id\":12345,"
         "\"corr_id\":\"8fKm3pLxTdOqZ1YnHjW9Gg\"," "\"type\":\"user_query\"," "\"payload\":{\"test\":\"data\"}}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_PARSE);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
 
     talloc_free(ctx);
 }
@@ -318,9 +318,9 @@ START_TEST(test_protocol_parse_wrong_type_type)
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *json_str = "{\"sess_id\":\"VQ6EAOKbQdSnFkRmVUQAAA\"," "\"type\":42," "\"payload\":{\"test\":\"data\"}}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_PARSE);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
 
     talloc_free(ctx);
 }
@@ -332,9 +332,9 @@ START_TEST(test_protocol_parse_wrong_type_payload)
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *json_str = "{\"sess_id\":\"VQ6EAOKbQdSnFkRmVUQAAA\"," "\"type\":\"user_query\"," "\"payload\":[1,2,3]}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_PARSE);
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
 
     talloc_free(ctx);
 }
@@ -348,8 +348,8 @@ START_TEST(test_protocol_parse_wrong_type_corr_id)
         "{\"sess_id\":\"VQ6EAOKbQdSnFkRmVUQAAA\","
         "\"corr_id\":999," "\"type\":\"user_query\"," "\"payload\":{\"test\":\"data\"}}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_ok(&res));
 
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;
     ck_assert_ptr_null(msg->corr_id);   // Wrong type treated as missing
@@ -365,8 +365,8 @@ START_TEST(test_protocol_parse_corr_id_optional)
     const char *json_str =
         "{\"sess_id\":\"VQ6EAOKbQdSnFkRmVUQAAA\"," "\"type\":\"user_query\"," "\"payload\":{\"test\":\"data\"}}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_ok(&res));
 
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;
     ck_assert_ptr_null(msg->corr_id);
@@ -392,8 +392,8 @@ START_TEST(test_protocol_serialize_message)
     json_t *payload_to_cleanup = msg->payload;
 
     // Serialize
-    ik_result_t res = ik_protocol_msg_serialize(ctx, msg);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_msg_serialize(ctx, msg);
+    ck_assert(is_ok(&res));
 
     char *json_str = (char *)res.ok;
     ck_assert_ptr_nonnull(json_str);
@@ -431,18 +431,18 @@ START_TEST(test_protocol_serialize_round_trip)
         "\"corr_id\":\"8fKm3pLxTdOqZ1YnHjW9Gg\"," "\"type\":\"user_query\"," "\"payload\":{\"test\":\"data\"}}";
 
     // Parse
-    ik_result_t res = ik_protocol_msg_parse(ctx, original_json);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_msg_parse(ctx, original_json);
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *msg1 = (ik_protocol_msg_t *)res.ok;
 
     // Serialize
     res = ik_protocol_msg_serialize(ctx, msg1);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     char *serialized = (char *)res.ok;
 
     // Parse again
     res = ik_protocol_msg_parse(ctx, serialized);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *msg2 = (ik_protocol_msg_t *)res.ok;
 
     // Verify fields match original
@@ -462,8 +462,8 @@ START_TEST(test_protocol_serialize_oom_result_alloc)
     const char *json_str =
         "{\"sess_id\":\"VQ6EAOKbQdSnFkRmVUQAAA\"," "\"type\":\"user_query\"," "\"payload\":{\"test\":\"data\"}}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;
 
     // Fail the allocation when copying the serialized string
@@ -471,8 +471,8 @@ START_TEST(test_protocol_serialize_oom_result_alloc)
     oom_test_fail_after_n_calls(3);
 
     res = ik_protocol_msg_serialize(ctx, msg);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -487,16 +487,16 @@ START_TEST(test_protocol_serialize_oom_json_object)
     const char *json_str =
         "{\"sess_id\":\"VQ6EAOKbQdSnFkRmVUQAAA\"," "\"type\":\"user_query\"," "\"payload\":{\"test\":\"data\"}}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;
 
     // Fail json_object() call
     oom_test_fail_next_alloc();
 
     res = ik_protocol_msg_serialize(ctx, msg);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -511,16 +511,16 @@ START_TEST(test_protocol_serialize_oom_json_dumps)
     const char *json_str =
         "{\"sess_id\":\"VQ6EAOKbQdSnFkRmVUQAAA\"," "\"type\":\"user_query\"," "\"payload\":{\"test\":\"data\"}}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;
 
     // Fail after json_object succeeds, fail json_dumps
     oom_test_fail_after_n_calls(2);
 
     res = ik_protocol_msg_serialize(ctx, msg);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -532,11 +532,11 @@ START_TEST(test_protocol_create_error_message)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_result_t res = ik_protocol_msg_create_err(ctx,
+    res_t res = ik_protocol_msg_create_err(ctx,
                                                  "sess123",
                                                  "corr456",
                                                  "server", "test error");
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
 
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;
     ck_assert_ptr_nonnull(msg);
@@ -567,9 +567,9 @@ START_TEST(test_protocol_create_err_oom_msg_alloc)
 
     oom_test_fail_next_alloc();
 
-    ik_result_t res = ik_protocol_msg_create_err(ctx, "sess", "corr", "src", "msg");
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_create_err(ctx, "sess", "corr", "src", "msg");
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -583,9 +583,9 @@ START_TEST(test_protocol_create_err_oom_sess_id)
 
     oom_test_fail_after_n_calls(1);     // Fail on 2nd allocation (sess_id)
 
-    ik_result_t res = ik_protocol_msg_create_err(ctx, "sess", "corr", "src", "msg");
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_create_err(ctx, "sess", "corr", "src", "msg");
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -599,9 +599,9 @@ START_TEST(test_protocol_create_err_oom_corr_id)
 
     oom_test_fail_after_n_calls(2);     // Fail on 3rd allocation (corr_id)
 
-    ik_result_t res = ik_protocol_msg_create_err(ctx, "sess", "corr", "src", "msg");
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_create_err(ctx, "sess", "corr", "src", "msg");
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -615,9 +615,9 @@ START_TEST(test_protocol_create_err_oom_type)
 
     oom_test_fail_after_n_calls(4);     // Fail on 5th allocation (type string copy)
 
-    ik_result_t res = ik_protocol_msg_create_err(ctx, "sess", "corr", "src", "msg");
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_create_err(ctx, "sess", "corr", "src", "msg");
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -631,9 +631,9 @@ START_TEST(test_protocol_create_err_oom_payload)
 
     oom_test_fail_after_n_calls(5);     // Fail on 5th allocation (payload json_object)
 
-    ik_result_t res = ik_protocol_msg_create_err(ctx, "sess", "corr", "src", "msg");
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_create_err(ctx, "sess", "corr", "src", "msg");
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     talloc_free(ctx);
@@ -650,11 +650,11 @@ START_TEST(test_protocol_create_assistant_response)
     json_object_set_new(payload, "content", json_string("Hello there"));
     json_object_set_new(payload, "model", json_string("gpt-4o-mini"));
 
-    ik_result_t res = ik_protocol_msg_create_assistant_resp(ctx,
+    res_t res = ik_protocol_msg_create_assistant_resp(ctx,
                                                             "sess789",
                                                             "corr012",
                                                             payload);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
 
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;
     ck_assert_ptr_nonnull(msg);
@@ -678,9 +678,9 @@ START_TEST(test_protocol_create_assistant_resp_oom_msg_alloc)
 
     oom_test_fail_next_alloc();
 
-    ik_result_t res = ik_protocol_msg_create_assistant_resp(ctx, "sess", "corr", payload);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_create_assistant_resp(ctx, "sess", "corr", payload);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     json_decref(payload);
@@ -696,9 +696,9 @@ START_TEST(test_protocol_create_assistant_resp_oom_sess_id)
 
     oom_test_fail_after_n_calls(1);     // Fail on 2nd allocation (sess_id)
 
-    ik_result_t res = ik_protocol_msg_create_assistant_resp(ctx, "sess", "corr", payload);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_create_assistant_resp(ctx, "sess", "corr", payload);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     json_decref(payload);
@@ -714,9 +714,9 @@ START_TEST(test_protocol_create_assistant_resp_oom_corr_id)
 
     oom_test_fail_after_n_calls(2);     // Fail on 3rd allocation (corr_id)
 
-    ik_result_t res = ik_protocol_msg_create_assistant_resp(ctx, "sess", "corr", payload);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_create_assistant_resp(ctx, "sess", "corr", payload);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     json_decref(payload);
@@ -732,9 +732,9 @@ START_TEST(test_protocol_create_assistant_resp_oom_type)
 
     oom_test_fail_after_n_calls(3);     // Fail on 4th allocation (type)
 
-    ik_result_t res = ik_protocol_msg_create_assistant_resp(ctx, "sess", "corr", payload);
-    ck_assert(ik_is_err(&res));
-    ck_assert_int_eq(ik_error_code(res.err), IK_ERR_OOM);
+    res_t res = ik_protocol_msg_create_assistant_resp(ctx, "sess", "corr", payload);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
 
     oom_test_reset();
     json_decref(payload);
@@ -748,8 +748,8 @@ START_TEST(test_protocol_memory_cleanup)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Generate UUID
-    ik_result_t res = ik_protocol_generate_uuid(ctx);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_generate_uuid(ctx);
+    ck_assert(is_ok(&res));
     char *uuid = (char *)res.ok;
     ck_assert_ptr_nonnull(uuid);
 
@@ -759,12 +759,12 @@ START_TEST(test_protocol_memory_cleanup)
         "\"corr_id\":\"8fKm3pLxTdOqZ1YnHjW9Gg\"," "\"type\":\"user_query\"," "\"payload\":{\"test\":\"data\"}}";
 
     res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;
 
     // Serialize message
     res = ik_protocol_msg_serialize(ctx, msg);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
 
     // All allocations should be children of ctx
     // Single talloc_free should clean everything up
@@ -783,8 +783,8 @@ START_TEST(test_protocol_jansson_cleanup)
     const char *json_str =
         "{\"sess_id\":\"test123\"," "\"type\":\"user_query\"," "\"payload\":{\"nested\":{\"data\":true}}}";
 
-    ik_result_t res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_msg_parse(ctx, json_str);
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *msg = (ik_protocol_msg_t *)res.ok;
 
     // Payload should be valid JSON object

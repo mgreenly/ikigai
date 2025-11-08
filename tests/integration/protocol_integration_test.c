@@ -14,14 +14,14 @@ START_TEST(test_protocol_full_message_flow) {
     ck_assert_ptr_nonnull(ctx);
 
     // 1. Generate session ID
-    ik_result_t res = ik_protocol_generate_uuid(ctx);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_generate_uuid(ctx);
+    ck_assert(is_ok(&res));
     char *sess_id = (char *)res.ok;
     ck_assert_int_eq((int)strlen(sess_id), 22);
 
     // 2. Generate correlation ID
     res = ik_protocol_generate_uuid(ctx);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     char *corr_id = (char *)res.ok;
     ck_assert_int_eq((int)strlen(corr_id), 22);
 
@@ -36,13 +36,13 @@ START_TEST(test_protocol_full_message_flow) {
 
     // 4. Serialize the message
     res = ik_protocol_msg_serialize(ctx, msg1);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     char *json_str = (char *)res.ok;
     ck_assert_ptr_nonnull(json_str);
 
     // 5. Parse the serialized message
     res = ik_protocol_msg_parse(ctx, json_str);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *msg2 = (ik_protocol_msg_t *)res.ok;
 
     // 6. Verify all fields match
@@ -56,16 +56,16 @@ START_TEST(test_protocol_full_message_flow) {
     json_object_set_new(resp_payload, "content", json_string("Hello!"));
 
     res = ik_protocol_msg_create_assistant_resp(ctx, sess_id, corr_id, resp_payload);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *msg3 = (ik_protocol_msg_t *)res.ok;
 
     // 8. Serialize and parse assistant response
     res = ik_protocol_msg_serialize(ctx, msg3);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     char *resp_json = (char *)res.ok;
 
     res = ik_protocol_msg_parse(ctx, resp_json);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *msg4 = (ik_protocol_msg_t *)res.ok;
     ck_assert_str_eq(msg4->type, "assistant_response");
 
@@ -83,17 +83,17 @@ START_TEST(test_protocol_error_handling_flow)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Generate IDs
-    ik_result_t res = ik_protocol_generate_uuid(ctx);
-    ck_assert(ik_is_ok(&res));
+    res_t res = ik_protocol_generate_uuid(ctx);
+    ck_assert(is_ok(&res));
     char *sess_id = (char *)res.ok;
 
     res = ik_protocol_generate_uuid(ctx);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     char *corr_id = (char *)res.ok;
 
     // Create error message
     res = ik_protocol_msg_create_err(ctx, sess_id, corr_id, "openai", "Authentication failed");
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *err_msg = (ik_protocol_msg_t *)res.ok;
 
     // Verify error structure
@@ -103,11 +103,11 @@ START_TEST(test_protocol_error_handling_flow)
 
     // Serialize and parse error
     res = ik_protocol_msg_serialize(ctx, err_msg);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     char *err_json = (char *)res.ok;
 
     res = ik_protocol_msg_parse(ctx, err_json);
-    ck_assert(ik_is_ok(&res));
+    ck_assert(is_ok(&res));
     ik_protocol_msg_t *parsed_err = (ik_protocol_msg_t *)res.ok;
 
     // Verify parsed error matches

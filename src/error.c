@@ -3,7 +3,7 @@
 #include <talloc.h>
 
 // Use the shared allocator wrapper for consistency
-void *ik_talloc_zero_for_error(TALLOC_CTX *ctx, size_t size)
+void *talloc_zero_for_error(TALLOC_CTX *ctx, size_t size)
 {
     return ik_talloc_zero_wrapper(ctx, size);
 }

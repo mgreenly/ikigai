@@ -9,24 +9,36 @@
 #include <jansson.h>
 
 // Expand tilde (~) to HOME directory
-// Returns NULL if path starts with ~ but HOME is not set
-char *expand_tilde(TALLOC_CTX *ctx, const char *path)
+// Returns error if path starts with ~ but HOME is not set
+res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
 {
-    if (!path || path[0] != '~') {
-        return talloc_strdup(ctx, path);
+    assert(ctx != NULL);
+    assert(path != NULL);
+    if (path[0] != '~') {
+        char *result = talloc_strdup(ctx, path);
+        if (!result) {
+            return ERR(ctx, OOM, "Failed to allocate path");
+        }
+        return OK(result);
     }
 
     const char *home = getenv("HOME");
     if (!home) {
-        return NULL;
+        return ERR(ctx, INVALID_ARG, "HOME not set, cannot expand ~");
     }
 
-    return talloc_asprintf(ctx, "%s%s", home, path + 1);
+    char *result = talloc_asprintf(ctx, "%s%s", home, path + 1);
+    if (!result) {
+        return ERR(ctx, OOM, "Failed to allocate expanded path");
+    }
+    return OK(result);
 }
 
 // Create default config file with default values
-static ik_result_t create_default_config(TALLOC_CTX *ctx, const char *path)
+static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
 {
+    assert(ctx != NULL);
+    assert(path != NULL);
     // Extract directory from path
     char *path_copy = talloc_strdup(ctx, path);
     // LCOV_EXCL_START - OOM will be tested via injectable allocator in Task 8
@@ -73,23 +85,18 @@ static ik_result_t create_default_config(TALLOC_CTX *ctx, const char *path)
     return OK(NULL);
 }
 
-ik_result_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
+res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
 {
-    if (!path) {
-        return ERR(ctx, INVALID_ARG, "Config path is NULL");
-    }
-
+    assert(ctx != NULL);
+    assert(path != NULL);
     // Expand tilde in path
-    char *expanded_path = expand_tilde(ctx, path);
-    if (!expanded_path) {
-        return ERR(ctx, INVALID_ARG, "HOME not set, cannot expand ~");
-    }
+    char *expanded_path = TRY(expand_tilde(ctx, path));
 
     // Check if file exists
     struct stat st;
     if (stat(expanded_path, &st) != 0) {
         // File doesn't exist, create default config
-        ik_result_t create_result = create_default_config(ctx, expanded_path);
+        res_t create_result = create_default_config(ctx, expanded_path);
         // LCOV_EXCL_START - create errors tested above, path covered in other tests
         if (create_result.is_err) {
             return create_result;

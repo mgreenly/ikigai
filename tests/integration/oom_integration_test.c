@@ -8,18 +8,18 @@ START_TEST(test_oom_error_properties) {
     // Access the static OOM error directly (visible from error.h)
 
     // Verify its properties
-    ck_assert_int_eq(ik_oom_error.code, IK_ERR_OOM);
-    ck_assert_str_eq(ik_oom_error.msg, "Out of memory");
-    ck_assert_str_eq(ik_oom_error.file, "<oom>");
-    ck_assert_int_eq(ik_oom_error.line, 0);
+    ck_assert_int_eq(oom_error.code, ERR_OOM);
+    ck_assert_str_eq(oom_error.msg, "Out of memory");
+    ck_assert_str_eq(oom_error.file, "<oom>");
+    ck_assert_int_eq(oom_error.line, 0);
 
     // Verify it's detected as static
-    ck_assert(ik_error_is_static(&ik_oom_error));
+    ck_assert(error_is_static(&oom_error));
 
     // Verify we can create a result from it
-    ik_result_t res = ik_err((ik_error_t *)&ik_oom_error);
-    ck_assert(ik_is_err(&res));
-    ck_assert_ptr_eq(res.err, &ik_oom_error);
+    res_t res = err((err_t *)&oom_error);
+    ck_assert(is_err(&res));
+    ck_assert_ptr_eq(res.err, &oom_error);
 }
 
 END_TEST
@@ -35,13 +35,13 @@ START_TEST(test_constrained_memory)
     }
 
     // Now try to create an error - should still work in normal conditions
-    ik_result_t res = ERR(ctx, INVALID_ARG, "Test in constrained memory");
+    res_t res = ERR(ctx, INVALID_ARG, "Test in constrained memory");
 
-    ck_assert(ik_is_err(&res));
+    ck_assert(is_err(&res));
 
     // In normal conditions, this won't be the static OOM error
     // But the code path exists for when talloc_zero really fails
-    if (!ik_error_is_static(res.err)) {
+    if (!error_is_static(res.err)) {
         ck_assert_str_eq(res.err->msg, "Test in constrained memory");
     }
 
@@ -53,11 +53,11 @@ END_TEST
 START_TEST(test_static_oom_no_free_needed)
 {
     // In a real OOM scenario, we'd get this error
-    ik_result_t res = ik_err((ik_error_t *)&ik_oom_error);
+    res_t res = err((err_t *)&oom_error);
 
     // We can check it, print it, propagate it
-    ck_assert(ik_is_err(&res));
-    ck_assert(ik_error_is_static(res.err));
+    ck_assert(is_err(&res));
+    ck_assert(error_is_static(res.err));
 
     // No talloc_free needed - it's static
     // This simulates the pattern: check error, exit gracefully

@@ -100,9 +100,9 @@ typedef struct {
 
 **Function signatures**:
 ```c
-ik_result_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);
-ik_result_t ik_protocol_msg_parse(TALLOC_CTX *ctx, const char *json_str);
-ik_result_t ik_openai_stream_req(TALLOC_CTX *ctx,
+res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);
+res_t ik_protocol_msg_parse(TALLOC_CTX *ctx, const char *json_str);
+res_t ik_openai_stream_req(TALLOC_CTX *ctx,
                                   const ik_cfg_t *cfg,
                                   json_t *req_payload,
                                   openai_stream_cb_t cb,
@@ -118,9 +118,9 @@ void ik_handler_websocket_msg_cb(struct _u_websocket_manager *ws_mgr,
     ik_handler_ws_conn_t *conn = user_data;
     TALLOC_CTX *tmp = talloc_new(conn->ctx);
 
-    ik_result_t res = ik_protocol_msg_parse(tmp, json_str);
-    if (ik_is_err(&res)) {
-        const char *err_msg = ik_error_message(res.err);
+    res_t res = ik_protocol_msg_parse(tmp, json_str);
+    if (is_err(&res)) {
+        const char *err_msg = error_message(res.err);
         // handle error
     }
 

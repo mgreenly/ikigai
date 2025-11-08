@@ -22,7 +22,7 @@ START_TEST(test_config_full_flow) {
     rmdir(test_dir);
 
     // First call: config doesn't exist, should create defaults
-    ik_result_t result1 = ik_cfg_load(ctx, test_config);
+    res_t result1 = ik_cfg_load(ctx, test_config);
     ck_assert(!result1.is_err);
 
     ik_cfg_t *cfg1 = result1.ok;
@@ -37,7 +37,7 @@ START_TEST(test_config_full_flow) {
     ck_assert(S_ISREG(st.st_mode));
 
     // Second call: config exists, should load the same defaults
-    ik_result_t result2 = ik_cfg_load(ctx, test_config);
+    res_t result2 = ik_cfg_load(ctx, test_config);
     ck_assert(!result2.is_err);
 
     ik_cfg_t *cfg2 = result2.ok;
@@ -57,7 +57,7 @@ START_TEST(test_config_full_flow) {
     fclose(f);
 
     // Third call: should load modified values
-    ik_result_t result3 = ik_cfg_load(ctx, test_config);
+    res_t result3 = ik_cfg_load(ctx, test_config);
     ck_assert(!result3.is_err);
 
     ik_cfg_t *cfg3 = result3.ok;

@@ -17,23 +17,23 @@ typedef struct {
 } ik_protocol_msg_t;
 
 // Parse envelope message from JSON string
-ik_result_t ik_protocol_msg_parse(TALLOC_CTX *ctx, const char *json_str);
+res_t ik_protocol_msg_parse(TALLOC_CTX *ctx, const char *json_str);
 
 // Serialize envelope message to JSON string
-ik_result_t ik_protocol_msg_serialize(TALLOC_CTX *ctx, ik_protocol_msg_t *msg);
+res_t ik_protocol_msg_serialize(TALLOC_CTX *ctx, ik_protocol_msg_t *msg);
 
 // Generate base64url-encoded UUID (22 characters)
-ik_result_t ik_protocol_generate_uuid(TALLOC_CTX *ctx);
+res_t ik_protocol_generate_uuid(TALLOC_CTX *ctx);
 
 // Create error message
-ik_result_t ik_protocol_msg_create_err(TALLOC_CTX *ctx,
+res_t ik_protocol_msg_create_err(TALLOC_CTX *ctx,
                                        const char *sess_id,
                                        const char *corr_id,
                                        const char *source,
                                        const char *err_msg);
 
 // Create assistant response message
-ik_result_t ik_protocol_msg_create_assistant_resp(TALLOC_CTX *ctx,
+res_t ik_protocol_msg_create_assistant_resp(TALLOC_CTX *ctx,
                                                   const char *sess_id,
                                                   const char *corr_id,
                                                   json_t *payload);

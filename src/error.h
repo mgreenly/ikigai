@@ -1,6 +1,7 @@
 #ifndef IK_ERROR_H
 #define IK_ERROR_H
 
+#include <assert.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -12,91 +13,97 @@
 
 // Error codes - start empty, add as needed during Phase 1
 typedef enum {
-    IK_OK = 0,
-    IK_ERR_OOM,                 // Out of memory
-    IK_ERR_INVALID_ARG,
-    IK_ERR_OUT_OF_RANGE,
-    IK_ERR_IO,                  // File operations, config loading
-    IK_ERR_PARSE,               // JSON/protocol parsing
-} ik_error_code_t;
+    OK = 0,
+    ERR_OOM,                 // Out of memory
+    ERR_INVALID_ARG,
+    ERR_OUT_OF_RANGE,
+    ERR_IO,                  // File operations, config loading
+    ERR_PARSE,               // JSON/protocol parsing
+} err_code_t;
 
 // Error with context and embedded message buffer
 // Always talloc-allocated on a parent context
-typedef struct ik_error {
-    ik_error_code_t code;
+typedef struct err {
+    err_code_t code;
     const char *file;
     int32_t line;
     char msg[128];
-} ik_error_t;
+} err_t;
 
 // Result type - stack-allocated, zero overhead for success case
 typedef struct {
     union {
         void *ok;
-        ik_error_t *err;
+        err_t *err;
     };
     bool is_err;
-} ik_result_t;
+} res_t;
 
 // Core Result construction - always inline for zero overhead
-static inline ik_result_t ik_ok(void *value)
+static inline res_t ok(void *value)
 {
-    return (ik_result_t)
+    return (res_t)
            {
                .ok = value, .is_err = false
            };
 }
 
-static inline ik_result_t ik_err(ik_error_t *error)
+static inline res_t err(err_t *error)
 {
-    return (ik_result_t)
+    assert(error != NULL);
+    return (res_t)
            {
                .err = error, .is_err = true
            };
 }
 
 // Result checking
-static inline bool ik_is_ok(const ik_result_t *result)
+static inline bool is_ok(const res_t *result)
 {
+    assert(result != NULL);
     return !result->is_err;
 }
 
-static inline bool ik_is_err(const ik_result_t *result)
+static inline bool is_err(const res_t *result)
 {
+    assert(result != NULL);
     return result->is_err;
 }
 
 // Injectable allocator for error structures (defined in error.c)
 // Weak symbol - tests can override to inject allocation failures
-void *ik_talloc_zero_for_error(TALLOC_CTX *ctx, size_t size);
+void *talloc_zero_for_error(TALLOC_CTX *ctx, size_t size);
 
 // Global static error for OOM situations
 // WARNING: This is read-only! Never modify this structure.
 // No race conditions possible, cannot be freed with talloc_free()
-static ik_error_t ik_oom_error = {
-    .code = IK_ERR_OOM,
+static err_t oom_error = {
+    .code = ERR_OOM,
     .file = "<oom>",
     .line = 0,
     .msg = "Out of memory"
 };
 
 // Check if an error is the static OOM error (cannot be freed)
-static inline bool ik_error_is_static(const ik_error_t *err)
+static inline bool error_is_static(const err_t *err)
 {
-    return err == &ik_oom_error;
+    assert(err != NULL);
+    return err == &oom_error;
 }
 
 // Error creation - allocates on talloc context
-static inline ik_error_t *_ik_make_error(TALLOC_CTX *ctx,
-                                         ik_error_code_t code,
+static inline err_t *_make_error(TALLOC_CTX *ctx,
+                                         err_code_t code,
                                          const char *file,
                                          int32_t line,
                                          const char *fmt,
                                          ...)
 {
-    ik_error_t *err = ik_talloc_zero_for_error(ctx, sizeof(ik_error_t));
+    assert(ctx != NULL);
+    assert(fmt != NULL);
+    err_t *err = talloc_zero_for_error(ctx, sizeof(err_t));
     if (!err) {
-        return &ik_oom_error;
+        return &oom_error;
     }
 
     err->code = code;
@@ -112,35 +119,46 @@ static inline ik_error_t *_ik_make_error(TALLOC_CTX *ctx,
 }
 
 // Clean public API - Rust-style OK/ERR
-#define OK(value) ik_ok(value)
+#define OK(value) ok(value)
 
 #define ERR(ctx, code_suffix, ...) \
-        ik_err(_ik_make_error(ctx, IK_ERR_ ## code_suffix, __FILE__, __LINE__, __VA_ARGS__))
+        err(_make_error(ctx, ERR_ ## code_suffix, __FILE__, __LINE__, __VA_ARGS__))
 
 // CHECK macro - propagate error to caller (return early if error)
 #define CHECK(expr) \
         do { \
-            ik_result_t _result = (expr); \
+            res_t _result = (expr); \
             if (_result.is_err) { \
                 return _result; \
             } \
         } while (0)
 
+// TRY macro - extract ok value or propagate error (returns early if error)
+// Uses GCC statement expression to allow use in assignments
+#define TRY(expr) \
+        ({ \
+            res_t _try_result = (expr); \
+            if (_try_result.is_err) { \
+                return _try_result; \
+            } \
+            _try_result.ok; \
+        })
+
 // Error code to string conversion
-static inline const char *ik_error_code_str(ik_error_code_t code)
+static inline const char *error_code_str(err_code_t code)
 {
     switch (code) {
-        case IK_OK:
+        case OK:
             return "OK";
-        case IK_ERR_OOM:
+        case ERR_OOM:
             return "Out of memory";
-        case IK_ERR_INVALID_ARG:
+        case ERR_INVALID_ARG:
             return "Invalid argument";
-        case IK_ERR_OUT_OF_RANGE:
+        case ERR_OUT_OF_RANGE:
             return "Out of range";
-        case IK_ERR_IO:
+        case ERR_IO:
             return "IO error";
-        case IK_ERR_PARSE:
+        case ERR_PARSE:
             return "Parse error";
         default:
             return "Unknown error";
@@ -148,46 +166,24 @@ static inline const char *ik_error_code_str(ik_error_code_t code)
 }
 
 // Error inspection
-static inline ik_error_code_t ik_error_code(const ik_error_t *err)
+static inline err_code_t error_code(const err_t *err)
 {
-    return err ? err->code : IK_OK;
+    assert(err != NULL);
+    return err->code;
 }
 
-static inline const char *ik_error_message(const ik_error_t *err)
+static inline const char *error_message(const err_t *err)
 {
-    if (!err)
-        return "Success";
-    return err->msg[0] ? err->msg : ik_error_code_str(err->code);
+    assert(err != NULL);
+    return err->msg[0] ? err->msg : error_code_str(err->code);
 }
 
 // Error formatting for debugging
-static inline void ik_error_fprintf(FILE *f, const ik_error_t *err)
+static inline void error_fprintf(FILE *f, const err_t *err)
 {
-    if (!err) {
-        fprintf(f, "Success\n");
-        return;
-    }
-
-    fprintf(f, "Error: %s [%s:%" PRId32 "]\n", ik_error_message(err), err->file ? err->file : "unknown", err->line);
-}
-
-// Common error conditions as inline functions
-static inline ik_result_t ik_check_null(TALLOC_CTX *ctx, const void *ptr, const char *param_name)
-{
-    (void)param_name;
-    if (!ptr) {
-        return ERR(ctx, INVALID_ARG, "NULL pointer parameter");
-    }
-    return ik_ok((void *)(uintptr_t)ptr);
-}
-
-static inline ik_result_t ik_check_range(TALLOC_CTX *ctx, size_t value, size_t min, size_t max, const char *param_name)
-{
-    (void)param_name;
-    if (value < min || value > max) {
-        return ERR(ctx, OUT_OF_RANGE, "Value out of range");
-    }
-    return ik_ok(NULL);
+    assert(f != NULL);
+    assert(err != NULL);
+    fprintf(f, "Error: %s [%s:%" PRId32 "]\n", error_message(err), err->file ? err->file : "unknown", err->line);
 }
 
 #endif // IK_ERROR_H

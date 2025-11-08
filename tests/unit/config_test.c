@@ -8,9 +8,6 @@
 #include "../../src/error.h"
 #include "../test_utils.h"
 
-// Expose internal expand_tilde function for testing
-char *expand_tilde(TALLOC_CTX *ctx, const char *path);
-
 START_TEST(test_config_types_exist) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -38,7 +35,7 @@ END_TEST START_TEST(test_config_load_function_exists)
 
     // This test verifies that ik_cfg_load function exists and can be called
     // We expect it to fail since we haven't implemented it yet
-    ik_result_t result = ik_cfg_load(ctx, "/tmp/nonexistent_test_config.json");
+    res_t result = ik_cfg_load(ctx, "/tmp/nonexistent_test_config.json");
 
     // For now, just verify the function exists and returns a result
     // Later tests will verify actual behavior
@@ -56,7 +53,9 @@ END_TEST START_TEST(test_config_expand_tilde)
     ck_assert_ptr_nonnull(home);
 
     // Test path with tilde
-    char *expanded = expand_tilde(ctx, "~/test/path");
+    res_t res = expand_tilde(ctx, "~/test/path");
+    ck_assert(is_ok(&res));
+    char *expanded = res.ok;
     ck_assert_ptr_nonnull(expanded);
 
     char expected[256];
@@ -64,13 +63,11 @@ END_TEST START_TEST(test_config_expand_tilde)
     ck_assert_str_eq(expanded, expected);
 
     // Test path without tilde (should return unchanged)
-    char *no_tilde = expand_tilde(ctx, "/absolute/path");
+    res = expand_tilde(ctx, "/absolute/path");
+    ck_assert(is_ok(&res));
+    char *no_tilde = res.ok;
     ck_assert_ptr_nonnull(no_tilde);
     ck_assert_str_eq(no_tilde, "/absolute/path");
-
-    // Test NULL path (should return NULL)
-    char *null_path = expand_tilde(ctx, NULL);
-    ck_assert_ptr_null(null_path);
 
     talloc_free(ctx);
 }
@@ -90,9 +87,10 @@ END_TEST START_TEST(test_config_expand_tilde_home_unset)
     // Unset HOME
     unsetenv("HOME");
 
-    // Should return NULL when HOME is not set
-    char *result = expand_tilde(ctx, "~/test");
-    ck_assert_ptr_null(result);
+    // Should return error when HOME is not set
+    res_t result = expand_tilde(ctx, "~/test");
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
 
     // Restore HOME
     if (saved_home) {
@@ -119,7 +117,7 @@ END_TEST START_TEST(test_config_auto_create_directory)
     rmdir(test_dir);
 
     // Call ik_cfg_load - should create directory and file
-    ik_result_t result = ik_cfg_load(ctx, test_config);
+    res_t result = ik_cfg_load(ctx, test_config);
 
     // Should succeed
     ck_assert(!result.is_err);
@@ -164,7 +162,7 @@ END_TEST START_TEST(test_config_auto_create_with_existing_directory)
     ck_assert(S_ISDIR(st.st_mode));
 
     // Call ik_cfg_load - should create config in existing directory
-    ik_result_t result = ik_cfg_load(ctx, test_config);
+    res_t result = ik_cfg_load(ctx, test_config);
 
     // Should succeed
     ck_assert(!result.is_err);
@@ -195,7 +193,7 @@ END_TEST START_TEST(test_config_auto_create_defaults)
     rmdir(test_dir);
 
     // Call ik_cfg_load - should create with defaults
-    ik_result_t result = ik_cfg_load(ctx, test_config);
+    res_t result = ik_cfg_load(ctx, test_config);
     ck_assert(!result.is_err);
 
     // Load the config
@@ -210,19 +208,6 @@ END_TEST START_TEST(test_config_auto_create_defaults)
     // Clean up
     unlink(test_config);
     rmdir(test_dir);
-    talloc_free(ctx);
-}
-
-END_TEST START_TEST(test_config_load_null_path)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // NULL path should return error
-    ik_result_t result = ik_cfg_load(ctx, NULL);
-    ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, IK_ERR_INVALID_ARG);
-
     talloc_free(ctx);
 }
 
@@ -241,9 +226,9 @@ END_TEST START_TEST(test_config_load_invalid_json)
     fclose(f);
 
     // Try to load - should fail with PARSE error
-    ik_result_t result = ik_cfg_load(ctx, test_file);
+    res_t result = ik_cfg_load(ctx, test_file);
     ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, IK_ERR_PARSE);
+    ck_assert_int_eq(result.err->code, ERR_PARSE);
 
     // Clean up
     unlink(test_file);
@@ -265,9 +250,9 @@ END_TEST START_TEST(test_config_missing_field_openai_key)
     fclose(f);
 
     // Try to load - should fail with PARSE error
-    ik_result_t result = ik_cfg_load(ctx, test_file);
+    res_t result = ik_cfg_load(ctx, test_file);
     ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, IK_ERR_PARSE);
+    ck_assert_int_eq(result.err->code, ERR_PARSE);
 
     // Clean up
     unlink(test_file);
@@ -289,9 +274,9 @@ END_TEST START_TEST(test_config_missing_field_listen_address)
     fclose(f);
 
     // Try to load - should fail with PARSE error
-    ik_result_t result = ik_cfg_load(ctx, test_file);
+    res_t result = ik_cfg_load(ctx, test_file);
     ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, IK_ERR_PARSE);
+    ck_assert_int_eq(result.err->code, ERR_PARSE);
 
     // Clean up
     unlink(test_file);
@@ -313,9 +298,9 @@ END_TEST START_TEST(test_config_missing_field_listen_port)
     fclose(f);
 
     // Try to load - should fail with PARSE error
-    ik_result_t result = ik_cfg_load(ctx, test_file);
+    res_t result = ik_cfg_load(ctx, test_file);
     ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, IK_ERR_PARSE);
+    ck_assert_int_eq(result.err->code, ERR_PARSE);
 
     // Clean up
     unlink(test_file);
@@ -337,9 +322,9 @@ END_TEST START_TEST(test_config_wrong_type_port)
     fclose(f);
 
     // Try to load - should fail with PARSE error
-    ik_result_t result = ik_cfg_load(ctx, test_file);
+    res_t result = ik_cfg_load(ctx, test_file);
     ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, IK_ERR_PARSE);
+    ck_assert_int_eq(result.err->code, ERR_PARSE);
 
     // Clean up
     unlink(test_file);
@@ -361,9 +346,9 @@ END_TEST START_TEST(test_config_wrong_type_api_key)
     fclose(f);
 
     // Try to load - should fail with PARSE error
-    ik_result_t result = ik_cfg_load(ctx, test_file);
+    res_t result = ik_cfg_load(ctx, test_file);
     ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, IK_ERR_PARSE);
+    ck_assert_int_eq(result.err->code, ERR_PARSE);
 
     // Clean up
     unlink(test_file);
@@ -385,9 +370,9 @@ END_TEST START_TEST(test_config_wrong_type_address)
     fclose(f);
 
     // Try to load - should fail with PARSE error
-    ik_result_t result = ik_cfg_load(ctx, test_file);
+    res_t result = ik_cfg_load(ctx, test_file);
     ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, IK_ERR_PARSE);
+    ck_assert_int_eq(result.err->code, ERR_PARSE);
 
     // Clean up
     unlink(test_file);
@@ -410,9 +395,9 @@ END_TEST START_TEST(test_config_load_tilde_home_unset)
     unsetenv("HOME");
 
     // Try to load with tilde path - should fail
-    ik_result_t result = ik_cfg_load(ctx, "~/test/config.json");
+    res_t result = ik_cfg_load(ctx, "~/test/config.json");
     ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, IK_ERR_INVALID_ARG);
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
 
     // Restore HOME
     if (saved_home) {
@@ -426,10 +411,10 @@ END_TEST START_TEST(test_config_load_tilde_home_unset)
 END_TEST START_TEST(test_error_code_strings)
 {
     // Test that new error codes have string representations
-    const char *io_str = ik_error_code_str(IK_ERR_IO);
+    const char *io_str = error_code_str(ERR_IO);
     ck_assert_str_eq(io_str, "IO error");
 
-    const char *parse_str = ik_error_code_str(IK_ERR_PARSE);
+    const char *parse_str = error_code_str(ERR_PARSE);
     ck_assert_str_eq(parse_str, "Parse error");
 }
 
@@ -448,9 +433,9 @@ END_TEST START_TEST(test_config_port_too_low)
     fclose(f);
 
     // Try to load - should fail with OUT_OF_RANGE error
-    ik_result_t result = ik_cfg_load(ctx, test_file);
+    res_t result = ik_cfg_load(ctx, test_file);
     ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, IK_ERR_OUT_OF_RANGE);
+    ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
 
     // Clean up
     unlink(test_file);
@@ -472,9 +457,9 @@ END_TEST START_TEST(test_config_port_too_high)
     fclose(f);
 
     // Try to load - should fail with OUT_OF_RANGE error
-    ik_result_t result = ik_cfg_load(ctx, test_file);
+    res_t result = ik_cfg_load(ctx, test_file);
     ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, IK_ERR_OUT_OF_RANGE);
+    ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
 
     // Clean up
     unlink(test_file);
@@ -495,7 +480,7 @@ END_TEST START_TEST(test_config_port_valid_range)
     fprintf(f1, "{\"openai_api_key\": \"test\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1024}");
     fclose(f1);
 
-    ik_result_t result1 = ik_cfg_load(ctx, test_file1);
+    res_t result1 = ik_cfg_load(ctx, test_file1);
     ck_assert(!result1.is_err);
     ck_assert_int_eq(((ik_cfg_t *)result1.ok)->listen_port, 1024);
 
@@ -508,7 +493,7 @@ END_TEST START_TEST(test_config_port_valid_range)
     fprintf(f2, "{\"openai_api_key\": \"test\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 65535}");
     fclose(f2);
 
-    ik_result_t result2 = ik_cfg_load(ctx, test_file2);
+    res_t result2 = ik_cfg_load(ctx, test_file2);
     ck_assert(!result2.is_err);
     ck_assert_int_eq(((ik_cfg_t *)result2.ok)->listen_port, 65535);
 
@@ -521,7 +506,7 @@ END_TEST START_TEST(test_config_port_valid_range)
     fprintf(f3, "{\"openai_api_key\": \"test\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f3);
 
-    ik_result_t result3 = ik_cfg_load(ctx, test_file3);
+    res_t result3 = ik_cfg_load(ctx, test_file3);
     ck_assert(!result3.is_err);
     ck_assert_int_eq(((ik_cfg_t *)result3.ok)->listen_port, 1984);
 
@@ -547,7 +532,7 @@ END_TEST START_TEST(test_config_memory_cleanup)
     fclose(f);
 
     // Load config
-    ik_result_t result = ik_cfg_load(ctx, test_file);
+    res_t result = ik_cfg_load(ctx, test_file);
     ck_assert(!result.is_err);
 
     ik_cfg_t *cfg = result.ok;
@@ -584,7 +569,6 @@ END_TEST static Suite *config_suite(void)
     tcase_add_test(tc_core, test_config_auto_create_directory);
     tcase_add_test(tc_core, test_config_auto_create_with_existing_directory);
     tcase_add_test(tc_core, test_config_auto_create_defaults);
-    tcase_add_test(tc_core, test_config_load_null_path);
     tcase_add_test(tc_core, test_config_load_invalid_json);
     tcase_add_test(tc_core, test_config_missing_field_openai_key);
     tcase_add_test(tc_core, test_config_missing_field_listen_address);

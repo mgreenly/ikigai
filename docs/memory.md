@@ -82,7 +82,7 @@ void *talloc_reference(const void *ctx, const void *ptr);
 ```c
 // Caller owns returned config
 // All strings are children of returned config
-ik_result_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);
+res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);
 ```
 
 **talloc usage**: Config is allocated on provided context. All strings (`openai_api_key`, `listen_address`) are children. Single `talloc_free(ctx)` frees everything.
@@ -92,10 +92,10 @@ ik_result_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);
 ```c
 // Caller owns returned message
 // Pass parent context to make message a child
-ik_result_t ik_protocol_msg_parse(TALLOC_CTX *ctx, const char *json_str);
+res_t ik_protocol_msg_parse(TALLOC_CTX *ctx, const char *json_str);
 
 // Returns owned string (child of ctx)
-ik_result_t ik_protocol_msg_serialize(TALLOC_CTX *ctx, ik_protocol_msg_t *msg);
+res_t ik_protocol_msg_serialize(TALLOC_CTX *ctx, ik_protocol_msg_t *msg);
 ```
 
 **talloc usage**: WebSocket handler creates per-request context, passes to `ik_protocol_msg_parse()`. All message data are children, freed when request context freed.
@@ -117,8 +117,8 @@ void ik_handler_websocket_message_callback(manager, message, user_data) {
     ik_handler_ws_conn_t *conn = user_data;
     TALLOC_CTX *msg_ctx = talloc_new(conn->ctx);
 
-    ik_result_t res = ik_protocol_msg_parse(msg_ctx, json);
-    if (ik_is_err(&res)) { /* handle error */ }
+    res_t res = ik_protocol_msg_parse(msg_ctx, json);
+    if (is_err(&res)) { /* handle error */ }
     ik_protocol_msg_t *msg = res.ok;
     // ... process ...
 
@@ -139,7 +139,7 @@ void ik_handler_websocket_message_callback(manager, message, user_data) {
 typedef void (*ik_openai_stream_cb_t)(const char *chunk, void *user_data);
 
 // Caller provides context for buffering chunks
-ik_result_t ik_openai_stream_req(TALLOC_CTX *ctx,
+res_t ik_openai_stream_req(TALLOC_CTX *ctx,
                                      const ik_cfg_t *config,
                                      json_t *request_payload,
                                      ik_openai_stream_cb_t callback,
@@ -151,15 +151,15 @@ ik_result_t ik_openai_stream_req(TALLOC_CTX *ctx,
 
 ## Error Handling Integration
 
-Our `ik_result_t` system works with talloc:
+Our `res_t` system works with talloc:
 
 ```c
-ik_result_t load_config_example(void) {
+res_t load_config_example(void) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_result_t res = ik_cfg_load(ctx, "~/.ikigai/config.json");
-    if (ik_is_err(&res)) {
-        ik_error_fprintf(stderr, res.err);
+    res_t res = ik_cfg_load(ctx, "~/.ikigai/config.json");
+    if (is_err(&res)) {
+        error_fprintf(stderr, res.err);
         talloc_free(ctx);
         return res;
     }
@@ -189,8 +189,8 @@ void handle_request(const char *input) {
     TALLOC_CTX *req_ctx = talloc_new(NULL);
 
     // All processing allocations are children
-    ik_result_t res = ik_protocol_msg_parse(req_ctx, input);
-    if (ik_is_err(&res)) { /* handle error */ }
+    res_t res = ik_protocol_msg_parse(req_ctx, input);
+    if (is_err(&res)) { /* handle error */ }
     ik_protocol_msg_t *msg = res.ok;
 
     // ... process message ...
@@ -202,7 +202,7 @@ void handle_request(const char *input) {
 ### Pattern 2: Allocating result on caller's context
 
 ```c
-ik_result_t ik_cfg_load(TALLOC_CTX *ctx, const char *path) {
+res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path) {
     // Allocate config on caller's context
     ik_cfg_t *config = talloc_zero(ctx, ik_cfg_t);
     if (!config) {
@@ -236,8 +236,8 @@ ik_handler_ws_conn_t *connection_create(void) {
     ik_handler_ws_conn_t *conn = talloc_zero(ctx, ik_handler_ws_conn_t);
     conn->ctx = ctx;
 
-    ik_result_t res = ik_protocol_generate_uuid(conn);
-    if (ik_is_err(&res)) { /* handle error */ }
+    res_t res = ik_protocol_generate_uuid(conn);
+    if (is_err(&res)) { /* handle error */ }
     conn->sess_id = res.ok;  // Child of conn
 
     return conn;
@@ -251,7 +251,7 @@ void connection_free(ik_handler_ws_conn_t *conn) {
 ### Pattern 4: Using temporary contexts for intermediate work
 
 ```c
-ik_result_t ik_openai_stream_req(TALLOC_CTX *ctx, ...) {
+res_t ik_openai_stream_req(TALLOC_CTX *ctx, ...) {
     // Create temporary context for request processing
     TALLOC_CTX *tmp = talloc_new(ctx);
 
@@ -261,7 +261,7 @@ ik_result_t ik_openai_stream_req(TALLOC_CTX *ctx, ...) {
     // ... perform request ...
 
     // Result allocated on ctx if returning error
-    ik_result_t result;
+    res_t result;
     if (error_occurred) {
         result = ERR(ctx, NETWORK, "Request failed");
     } else {

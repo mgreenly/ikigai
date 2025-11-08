@@ -37,6 +37,41 @@ When discussing improvements:
 
 **Never** commit code that doesn't pass both `make check` and `make lint` and `make coverage`.
 
+## Zero Technical Debt
+
+**Philosophy**: Write code to the best of your ability and correct deficiencies as soon as you become aware of them.
+
+This project operates with **zero tolerance for known technical debt**. When you discover a problem, inconsistency, or violation of project standards:
+
+1. **Fix it immediately** - Don't defer, document, or create TODO comments
+2. **Fix it completely** - Address the root cause, not just symptoms
+3. **Fix it systematically** - If the problem exists in one place, search for similar issues elsewhere
+
+**Examples of deficiencies to fix immediately:**
+- Code that violates error handling philosophy (defensive checks vs assertions)
+- Missing assertions on function preconditions
+- Inconsistent naming conventions
+- Functions missing NULL checks or bounds validation
+- Code that doesn't follow established patterns
+- Test coverage gaps discovered during development
+
+**Rationale:**
+- Known problems compound over time
+- Future code copies flawed patterns
+- "Later" rarely comes
+- Clean code is easier to modify
+- Quality erosion is insidious
+
+**When to pause and ask:**
+- Architectural changes (always ask first per Work Style)
+- Unclear which solution is correct
+- Fix requires breaking changes to public APIs
+- Uncertain about project conventions
+
+This applies to both new code and existing code. If you discover a deficiency in existing code while working nearby, fix it as part of your current work.
+
+**Example**: While adding assertions to new code, you notice existing functions lack assertions → add assertions to all functions in that module, not just the new ones.
+
 ## Coverage Analysis
 
 **CRITICAL: All new code must achieve 100% coverage of Lines, Functions, and Branches.**
