@@ -263,6 +263,53 @@ Create input parser to convert raw byte sequences into semantic actions.
   - Press Ctrl+C to exit
 - [x] Commit work: "Demo input parser in client.c with full UTF-8 and escape sequence support"
 
+### Step 8: Security Hardening - Fix UTF-8 Vulnerabilities ✅ COMPLETE
+
+**Status**: All critical UTF-8 security vulnerabilities fixed with 100% test coverage.
+
+**Files**: `src/input.c`, `tests/unit/input_pathological_test.c`
+
+**Security Analysis**: See `SECURITY_ANALYSIS.md` for full details.
+
+- [x] Create pathological test suite (`tests/unit/input_pathological_test.c`):
+  - [x] 19 tests covering overlong encodings, surrogates, state confusion, boundaries, etc.
+  - [x] All tests passing
+- [x] Fix vulnerability #1: UTF-8 overlong encoding acceptance
+  - [x] Add validation in `decode_utf8_sequence()` to reject 2-byte sequences with codepoint < 0x80
+  - [x] Add validation to reject 3-byte sequences with codepoint < 0x800
+  - [x] Add validation to reject 4-byte sequences with codepoint < 0x10000
+  - [x] Return U+FFFD (replacement character) for overlong encodings
+  - [x] Update tests: `test_utf8_overlong_2byte` expects rejection
+  - [x] Update tests: `test_utf8_overlong_3byte_slash` expects rejection
+  - [x] Update tests: `test_utf8_null_codepoint_overlong` expects rejection
+  - [x] Write new test: `test_utf8_overlong_4byte` for 4-byte overlong
+  - [x] Write new test: `test_utf8_valid_boundary_codepoints` (U+0080, U+0800, U+10000)
+- [x] Fix vulnerability #2: UTF-16 surrogate acceptance
+  - [x] Add validation in `decode_utf8_sequence()` to reject codepoints U+D800-U+DFFF
+  - [x] Return U+FFFD for surrogate codepoints
+  - [x] Update test: `test_utf8_surrogate_high` expects rejection
+  - [x] Write new test: `test_utf8_surrogate_low` (U+DFFF)
+- [x] Fix vulnerability #3: Out-of-range codepoint acceptance
+  - [x] Add validation in `decode_utf8_sequence()` to reject codepoints > U+10FFFF
+  - [x] Return U+FFFD for out-of-range codepoints
+  - [x] Update test: `test_utf8_codepoint_too_large` expects rejection
+  - [x] Write new test: `test_utf8_max_valid_codepoint` (U+10FFFF works correctly)
+- [x] Add comprehensive validation test suite:
+  - [x] Write test: `test_utf8_replacement_char_U_FFFD` (verify U+FFFD itself works)
+  - [x] Write test: `test_utf8_valid_boundary_codepoints` (boundary edge cases)
+  - [x] Write test: `test_utf8_max_valid_codepoint` (maximum valid codepoint)
+  - [x] Write test: `test_utf8_surrogate_low` (low surrogate boundary)
+  - [x] Write test: `test_utf8_overlong_4byte` (4-byte overlong coverage)
+- [x] Makefile automatically includes `input_pathological_test` in `make check` (via wildcard)
+- [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass
+- [x] Verify coverage at 100% (lines, functions, branches)
+- [x] Commit work: "Fix critical UTF-8 security vulnerabilities (overlong, surrogates, range)"
+
+**References**:
+- RFC 3629 (UTF-8 specification)
+- Unicode Standard (surrogate and range definitions)
+- CVE-2000-0884, CVE-2008-2938 (overlong encoding vulnerabilities)
+
 ---
 
 ## Task 3: Dynamic Zone Text Buffer
