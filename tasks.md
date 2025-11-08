@@ -318,13 +318,13 @@ Create text buffer for dynamic zone using `ik_byte_array_t`.
 
 **Files**: `src/dynzone.h`, `src/dynzone.c`, `tests/unit/dynzone_test.c`
 
-### Step 1: Dynamic Zone Structure
+### Step 1: Dynamic Zone Structure ✅
 
-- [ ] Create `src/dynzone.h` header
-- [ ] Define `ik_dynzone_t` structure:
+- [x] Create `src/dynzone.h` header
+- [x] Define `ik_dynzone_t` structure:
   - `ik_byte_array_t *text` - UTF-8 text buffer
   - `size_t cursor_byte_offset` - Cursor position (byte offset)
-- [ ] Add function declarations:
+- [x] Add function declarations:
   - `res_t ik_dynzone_create(void *parent, ik_dynzone_t **zone_out)`
   - `res_t ik_dynzone_insert_codepoint(ik_dynzone_t *zone, uint32_t codepoint)`
   - `res_t ik_dynzone_insert_newline(ik_dynzone_t *zone)`
@@ -333,21 +333,24 @@ Create text buffer for dynamic zone using `ik_byte_array_t`.
   - `res_t ik_dynzone_get_text(ik_dynzone_t *zone, char **text_out, size_t *len_out)`
   - `void ik_dynzone_clear(ik_dynzone_t *zone)`
 
-### Step 2: Dynamic Zone Creation
+### Step 2: Dynamic Zone Creation ✅
 
-- [ ] Create `src/dynzone.c` implementation
-- [ ] Implement `ik_dynzone_create()`:
+- [x] Create `src/dynzone.c` implementation
+- [x] Implement `ik_dynzone_create()`:
   - Allocate zone with talloc
   - Create byte array for text
   - Initialize cursor_byte_offset to 0
-- [ ] Write test `test_dynzone_create()` in `tests/unit/dynzone_test.c`:
+- [x] Write test `test_dynzone_create()` in `tests/unit/dynzone_test.c`:
   - Create zone
   - Verify successful allocation
   - Verify text buffer is empty
   - Verify cursor at position 0
-- [ ] Write test `test_dynzone_create_oom()`:
+- [x] Write test `test_dynzone_create_oom()`:
   - Test OOM scenarios
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Write assertion tests for NULL parameters
+- [x] Implement `ik_dynzone_get_text()` and `ik_dynzone_clear()` (needed for tests)
+- [x] Update Makefile to include dynzone.c in build
+- [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass
 
 ### Step 3: Insert Codepoint at Cursor
 

@@ -75,7 +75,7 @@ COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/dynzone.c
 CLIENT_OBJ = $(patsubst src/%.c,build/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
@@ -91,7 +91,7 @@ INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/%_test.c,build/tests/int
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS)
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/dynzone.c
 MODULE_OBJ = $(patsubst src/%.c,build/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
