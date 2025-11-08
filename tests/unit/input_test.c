@@ -7,8 +7,7 @@
 #include "../test_utils.h"
 
 // Test: successful input parser creation
-START_TEST(test_input_parser_create)
-{
+START_TEST(test_input_parser_create) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = NULL;
 
@@ -22,7 +21,6 @@ START_TEST(test_input_parser_create)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: OOM scenario
 START_TEST(test_input_parser_create_oom)
 {
@@ -40,6 +38,7 @@ START_TEST(test_input_parser_create_oom)
     oom_test_reset();
     talloc_free(ctx);
 }
+
 END_TEST
 
 #ifndef NDEBUG
@@ -49,8 +48,8 @@ START_TEST(test_input_parser_create_null_parent_asserts)
     ik_input_parser_t *parser = NULL;
     ik_input_parser_create(NULL, &parser);
 }
-END_TEST
 
+END_TEST
 // Test: ik_input_parser_create with NULL parser_out asserts
 START_TEST(test_input_parser_create_null_parser_out_asserts)
 {
@@ -58,16 +57,16 @@ START_TEST(test_input_parser_create_null_parser_out_asserts)
     ik_input_parser_create(ctx, NULL);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_input_parse_byte with NULL parser asserts
 START_TEST(test_input_parse_byte_null_parser_asserts)
 {
     ik_input_action_t action = {0};
     ik_input_parse_byte(NULL, 'a', &action);
 }
-END_TEST
 
+END_TEST
 // Test: ik_input_parse_byte with NULL action_out asserts
 START_TEST(test_input_parse_byte_null_action_out_asserts)
 {
@@ -77,6 +76,7 @@ START_TEST(test_input_parse_byte_null_action_out_asserts)
     ik_input_parse_byte(parser, 'a', NULL);
     talloc_free(ctx);
 }
+
 END_TEST
 #endif
 
@@ -110,8 +110,8 @@ START_TEST(test_input_parse_regular_char)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: parse non-printable characters return UNKNOWN
 START_TEST(test_input_parse_nonprintable)
 {
@@ -134,8 +134,8 @@ START_TEST(test_input_parse_nonprintable)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: parse newline character
 START_TEST(test_input_parse_newline)
 {
@@ -153,8 +153,27 @@ START_TEST(test_input_parse_newline)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
+// Test: parse carriage return (Enter key in raw mode)
+START_TEST(test_input_parse_carriage_return)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse '\r' (0x0D) - Enter key sends this in raw mode
+    res = ik_input_parse_byte(parser, '\r', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_NEWLINE);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 // Test: parse backspace character
 START_TEST(test_input_parse_backspace)
 {
@@ -172,8 +191,8 @@ START_TEST(test_input_parse_backspace)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: parse Ctrl+C character
 START_TEST(test_input_parse_ctrl_c)
 {
@@ -191,8 +210,8 @@ START_TEST(test_input_parse_ctrl_c)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: parse arrow up escape sequence byte by byte
 START_TEST(test_input_parse_arrow_up)
 {
@@ -223,8 +242,8 @@ START_TEST(test_input_parse_arrow_up)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: parse arrow down escape sequence
 START_TEST(test_input_parse_arrow_down)
 {
@@ -250,8 +269,8 @@ START_TEST(test_input_parse_arrow_down)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: parse arrow left escape sequence
 START_TEST(test_input_parse_arrow_left)
 {
@@ -277,8 +296,8 @@ START_TEST(test_input_parse_arrow_left)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: parse arrow right escape sequence
 START_TEST(test_input_parse_arrow_right)
 {
@@ -304,8 +323,8 @@ START_TEST(test_input_parse_arrow_right)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: parse delete escape sequence
 START_TEST(test_input_parse_delete)
 {
@@ -335,8 +354,8 @@ START_TEST(test_input_parse_delete)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: parse invalid escape sequence resets parser
 START_TEST(test_input_parse_invalid_escape)
 {
@@ -367,8 +386,8 @@ START_TEST(test_input_parse_invalid_escape)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: buffer overflow protection
 START_TEST(test_input_parse_buffer_overflow)
 {
@@ -413,8 +432,8 @@ START_TEST(test_input_parse_buffer_overflow)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: invalid delete-like sequence (ESC [ X ~ where X is not '3')
 START_TEST(test_input_parse_invalid_delete_like_sequence)
 {
@@ -442,13 +461,13 @@ START_TEST(test_input_parse_invalid_delete_like_sequence)
     res = ik_input_parse_byte(parser, '~', &action);
     ck_assert(is_ok(&res));
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
-    ck_assert(parser->in_escape); // Still in escape, not a recognized sequence
+    ck_assert(!parser->in_escape); // Should reset - complete but unrecognized sequence
 
     talloc_free(ctx);
 }
-END_TEST
 
-// Test: incomplete arrow sequence that doesn't complete
+END_TEST
+// Test: unrecognized arrow-like sequence (ESC [ Z)
 START_TEST(test_input_parse_incomplete_arrow_like_sequence)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -458,7 +477,7 @@ START_TEST(test_input_parse_incomplete_arrow_like_sequence)
     res_t res = ik_input_parser_create(ctx, &parser);
     ck_assert(is_ok(&res));
 
-    // Parse ESC [ X where X is not A/B/C/D
+    // Parse ESC [ Z (complete but unrecognized arrow-like sequence)
     res = ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert(is_ok(&res));
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
@@ -470,12 +489,12 @@ START_TEST(test_input_parse_incomplete_arrow_like_sequence)
     res = ik_input_parse_byte(parser, 'Z', &action);
     ck_assert(is_ok(&res));
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
-    ck_assert(parser->in_escape); // Still waiting for more input
+    ck_assert(!parser->in_escape); // Should reset - complete but unrecognized sequence
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: incomplete delete-like sequence (ESC [ 3 X where X is not '~')
 START_TEST(test_input_parse_incomplete_delete_sequence)
 {
@@ -506,6 +525,296 @@ START_TEST(test_input_parse_incomplete_delete_sequence)
 
     talloc_free(ctx);
 }
+
+END_TEST
+// Test: parse 2-byte UTF-8 character (é = U+00E9 = 0xC3 0xA9)
+START_TEST(test_input_parse_utf8_2byte)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse é (0xC3 0xA9) - 2 byte UTF-8
+    // First byte (lead byte)
+    res = ik_input_parse_byte(parser, (char)0xC3, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete sequence
+
+    // Second byte (continuation byte)
+    res = ik_input_parse_byte(parser, (char)0xA9, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, 0x00E9); // U+00E9 (é)
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse 3-byte UTF-8 character (☃ = U+2603 = 0xE2 0x98 0x83)
+START_TEST(test_input_parse_utf8_3byte)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse ☃ (0xE2 0x98 0x83) - 3 byte UTF-8
+    // First byte (lead byte)
+    res = ik_input_parse_byte(parser, (char)0xE2, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
+
+    // Second byte (continuation)
+    res = ik_input_parse_byte(parser, (char)0x98, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Still incomplete
+
+    // Third byte (continuation)
+    res = ik_input_parse_byte(parser, (char)0x83, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, 0x2603); // U+2603 (☃)
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse 4-byte UTF-8 character (🎉 = U+1F389 = 0xF0 0x9F 0x8E 0x89)
+START_TEST(test_input_parse_utf8_4byte)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse 🎉 (0xF0 0x9F 0x8E 0x89) - 4 byte UTF-8
+    // First byte (lead byte)
+    res = ik_input_parse_byte(parser, (char)0xF0, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
+
+    // Second byte (continuation)
+    res = ik_input_parse_byte(parser, (char)0x9F, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Still incomplete
+
+    // Third byte (continuation)
+    res = ik_input_parse_byte(parser, (char)0x8E, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Still incomplete
+
+    // Fourth byte (continuation)
+    res = ik_input_parse_byte(parser, (char)0x89, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, 0x1F389); // U+1F389 (🎉)
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: incomplete UTF-8 sequence (only lead byte)
+START_TEST(test_input_parse_utf8_incomplete)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse only lead byte of 2-byte sequence
+    res = ik_input_parse_byte(parser, (char)0xC3, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
+    ck_assert(parser->in_utf8); // Should be in UTF-8 mode
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: invalid UTF-8 sequence (invalid continuation byte)
+START_TEST(test_input_parse_utf8_invalid)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Start 2-byte sequence
+    res = ik_input_parse_byte(parser, (char)0xC3, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(parser->in_utf8);
+
+    // Send invalid continuation byte (not 10xxxxxx pattern)
+    // Using 0xFF which is 11111111 (not a valid continuation byte)
+    res = ik_input_parse_byte(parser, (char)0xFF, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(!parser->in_utf8); // Should reset
+
+    // Verify parser can handle next input correctly
+    res = ik_input_parse_byte(parser, 'a', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, 'a');
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: unrecognized escape sequence with tilde (e.g., Insert key)
+START_TEST(test_input_parse_unrecognized_tilde_sequence)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse Insert key sequence: ESC [ 2 ~
+    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(parser->in_escape);
+
+    res = ik_input_parse_byte(parser, '[', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(parser->in_escape);
+
+    res = ik_input_parse_byte(parser, '2', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(parser->in_escape);
+
+    // When we get '~', the sequence is complete but unrecognized
+    // Parser should reset and be ready for next input
+    res = ik_input_parse_byte(parser, '~', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(!parser->in_escape); // Should have reset
+
+    // Verify parser can handle next input correctly
+    res = ik_input_parse_byte(parser, 'a', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, 'a');
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: unrecognized 2-char escape sequence with letter
+START_TEST(test_input_parse_unrecognized_letter_sequence)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse unrecognized sequence: ESC [ Z (shift-tab in some terminals)
+    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(parser->in_escape);
+
+    res = ik_input_parse_byte(parser, '[', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(parser->in_escape);
+
+    // When we get a letter that's not A/B/C/D, sequence is complete but unrecognized
+    // Parser should reset
+    res = ik_input_parse_byte(parser, 'Z', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(!parser->in_escape); // Should have reset
+
+    // Verify parser can handle next input correctly
+    res = ik_input_parse_byte(parser, 'b', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, 'b');
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Test: incomplete escape sequence with non-letter at esc_len==2
+START_TEST(test_input_parse_escape_non_letter)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse ESC [ followed by a digit (not a letter)
+    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    res = ik_input_parse_byte(parser, '[', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    // Send a digit - not A-Z, so doesn't match the unrecognized letter check
+    // This is still incomplete, waiting for more bytes (could be ESC [ 2 ~)
+    res = ik_input_parse_byte(parser, '1', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(parser->in_escape); // Still in escape mode
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Test: escape sequence with character between Z and end of ASCII
+START_TEST(test_input_parse_escape_char_above_Z)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse ESC [ followed by a character > 'Z' (e.g., ']' which is 0x5D)
+    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    res = ik_input_parse_byte(parser, '[', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    // Send ']' (0x5D) - this is >= 'A' (0x41) but > 'Z' (0x5A)
+    // Should not match the A-Z check, stays in escape mode
+    res = ik_input_parse_byte(parser, ']', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(parser->in_escape); // Still in escape mode
+
+    talloc_free(ctx);
+}
+
 END_TEST
 
 // Test suite
@@ -519,6 +828,7 @@ static Suite *input_suite(void)
     tcase_add_test(tc_core, test_input_parse_regular_char);
     tcase_add_test(tc_core, test_input_parse_nonprintable);
     tcase_add_test(tc_core, test_input_parse_newline);
+    tcase_add_test(tc_core, test_input_parse_carriage_return);
     tcase_add_test(tc_core, test_input_parse_backspace);
     tcase_add_test(tc_core, test_input_parse_ctrl_c);
     tcase_add_test(tc_core, test_input_parse_arrow_up);
@@ -531,6 +841,15 @@ static Suite *input_suite(void)
     tcase_add_test(tc_core, test_input_parse_invalid_delete_like_sequence);
     tcase_add_test(tc_core, test_input_parse_incomplete_arrow_like_sequence);
     tcase_add_test(tc_core, test_input_parse_incomplete_delete_sequence);
+    tcase_add_test(tc_core, test_input_parse_utf8_2byte);
+    tcase_add_test(tc_core, test_input_parse_utf8_3byte);
+    tcase_add_test(tc_core, test_input_parse_utf8_4byte);
+    tcase_add_test(tc_core, test_input_parse_utf8_incomplete);
+    tcase_add_test(tc_core, test_input_parse_utf8_invalid);
+    tcase_add_test(tc_core, test_input_parse_unrecognized_tilde_sequence);
+    tcase_add_test(tc_core, test_input_parse_unrecognized_letter_sequence);
+    tcase_add_test(tc_core, test_input_parse_escape_non_letter);
+    tcase_add_test(tc_core, test_input_parse_escape_char_above_Z);
 
 #ifndef NDEBUG
     tcase_add_test_raise_signal(tc_core, test_input_parser_create_null_parent_asserts, SIGABRT);

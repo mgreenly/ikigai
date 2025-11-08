@@ -27,18 +27,21 @@ typedef struct {
     uint32_t codepoint; // For IK_INPUT_CHAR
 } ik_input_action_t;
 
-// Input parser state for escape sequence buffering
+// Input parser state for escape sequence buffering and UTF-8 decoding
 typedef struct {
-    char esc_buf[16];    // Escape sequence buffer
-    size_t esc_len;      // Current escape sequence length
-    bool in_escape;      // Currently parsing escape sequence
+    char esc_buf[16];        // Escape sequence buffer
+    size_t esc_len;          // Current escape sequence length
+    bool in_escape;          // Currently parsing escape sequence
+    char utf8_buf[4];        // UTF-8 byte buffer (max 4 bytes)
+    size_t utf8_len;         // Current UTF-8 sequence length
+    size_t utf8_expected;    // Expected total bytes for current UTF-8 sequence
+    bool in_utf8;            // Currently parsing UTF-8 sequence
 } ik_input_parser_t;
 
 // Create input parser
 res_t ik_input_parser_create(void *parent, ik_input_parser_t **parser_out);
 
 // Parse single byte into action
-res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte,
-                           ik_input_action_t *action_out);
+res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte, ik_input_action_t *action_out);
 
 #endif // IK_INPUT_H

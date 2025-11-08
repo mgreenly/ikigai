@@ -121,10 +121,10 @@ Create input parser to convert raw byte sequences into semantic actions.
 
 **Files**: `src/input.h`, `src/input.c`, `tests/unit/input_test.c`
 
-### Step 1: Input Action Types
+### Step 1: Input Action Types ✅
 
-- [ ] Create `src/input.h` header
-- [ ] Define `ik_input_action_type_t` enum:
+- [x] Create `src/input.h` header
+- [x] Define `ik_input_action_type_t` enum:
   - `IK_INPUT_CHAR` - Regular character
   - `IK_INPUT_NEWLINE` - Enter key
   - `IK_INPUT_BACKSPACE` - Backspace key
@@ -135,58 +135,62 @@ Create input parser to convert raw byte sequences into semantic actions.
   - `IK_INPUT_ARROW_DOWN` - Down arrow
   - `IK_INPUT_CTRL_C` - Ctrl+C (exit)
   - `IK_INPUT_UNKNOWN` - Unrecognized sequence
-- [ ] Define `ik_input_action_t` structure:
+- [x] Define `ik_input_action_t` structure:
   - `ik_input_action_type_t type`
   - `uint32_t codepoint` - For IK_INPUT_CHAR
-- [ ] Define `ik_input_parser_t` structure (opaque, for escape sequence buffering):
+- [x] Define `ik_input_parser_t` structure (opaque, for escape sequence buffering):
   - `char esc_buf[16]` - Escape sequence buffer
   - `size_t esc_len` - Current escape sequence length
   - `bool in_escape` - Currently parsing escape sequence
-- [ ] Add function declarations:
+- [x] Add function declarations:
   - `res_t ik_input_parser_create(void *parent, ik_input_parser_t **parser_out)`
   - `res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte, ik_input_action_t *action_out)`
 
-### Step 2: Input Parser Creation
+### Step 2: Input Parser Creation ✅ COMPLETE
 
-- [ ] Create `src/input.c` implementation
-- [ ] Implement `ik_input_parser_create()`:
+- [x] Create `src/input.c` implementation
+- [x] Implement `ik_input_parser_create()`:
   - Allocate parser with talloc
   - Initialize fields (esc_len = 0, in_escape = false)
-- [ ] Write test `test_input_parser_create()` in `tests/unit/input_test.c`:
+- [x] Write test `test_input_parser_create()` in `tests/unit/input_test.c`:
   - Create parser
   - Verify successful allocation
-- [ ] Write test `test_input_parser_create_oom()`:
+- [x] Write test `test_input_parser_create_oom()`:
   - Test OOM scenario
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Run quality gates: `make check`, `make lint`, `make coverage`
 
-### Step 3: Parse Regular Characters
+### Step 3: Parse Regular Characters ✅ COMPLETE
 
-- [ ] Implement `ik_input_parse_byte()` for regular ASCII characters:
+- [x] Implement `ik_input_parse_byte()` for regular ASCII characters:
   - If byte is printable ASCII (0x20-0x7E), return IK_INPUT_CHAR
   - Set action_out->codepoint to byte value
-- [ ] Write test `test_input_parse_regular_char()`:
+- [x] Write test `test_input_parse_regular_char()`:
   - Parse 'a', verify IK_INPUT_CHAR with codepoint 'a'
   - Parse 'Z', verify IK_INPUT_CHAR with codepoint 'Z'
   - Parse '5', verify IK_INPUT_CHAR with codepoint '5'
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Write test `test_input_parse_nonprintable()`:
+  - Parse bytes outside printable ASCII range (0x01, 0x7F)
+  - Verify IK_INPUT_UNKNOWN returned
+- [x] Write assertion tests for NULL parameters
+- [x] Run quality gates: `make check`, `make lint`, `make coverage`
 
-### Step 4: Parse Control Characters
+### Step 4: Parse Control Characters ✅ COMPLETE
 
-- [ ] Implement parsing for control characters:
+- [x] Implement parsing for control characters:
   - `\n` (0x0A) → IK_INPUT_NEWLINE
   - `\x7F` (DEL) → IK_INPUT_BACKSPACE
   - `\x03` (Ctrl+C) → IK_INPUT_CTRL_C
-- [ ] Write test `test_input_parse_newline()`:
+- [x] Write test `test_input_parse_newline()`:
   - Parse '\n', verify IK_INPUT_NEWLINE
-- [ ] Write test `test_input_parse_backspace()`:
+- [x] Write test `test_input_parse_backspace()`:
   - Parse 0x7F, verify IK_INPUT_BACKSPACE
-- [ ] Write test `test_input_parse_ctrl_c()`:
+- [x] Write test `test_input_parse_ctrl_c()`:
   - Parse 0x03, verify IK_INPUT_CTRL_C
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Run quality gates: `make check`, `make lint`, `make coverage`
 
-### Step 5: Parse Escape Sequences (Arrow Keys)
+### Step 5: Parse Escape Sequences (Arrow Keys) ✅ COMPLETE
 
-- [ ] Implement escape sequence parsing:
+- [x] Implement escape sequence parsing:
   - Detect ESC (0x1B) and enter escape mode
   - Buffer subsequent bytes in esc_buf
   - Recognize complete sequences:
@@ -197,54 +201,61 @@ Create input parser to convert raw byte sequences into semantic actions.
     - `\x1b[3~` → IK_INPUT_DELETE
   - Return IK_INPUT_UNKNOWN for incomplete sequences (need more bytes)
   - Reset parser state after complete or invalid sequence
-- [ ] Write test `test_input_parse_arrow_up()`:
+- [x] Write test `test_input_parse_arrow_up()`:
   - Parse ESC, verify IK_INPUT_UNKNOWN (incomplete)
   - Parse '[', verify IK_INPUT_UNKNOWN (incomplete)
   - Parse 'A', verify IK_INPUT_ARROW_UP (complete)
-- [ ] Write test `test_input_parse_arrow_down()`:
+- [x] Write test `test_input_parse_arrow_down()`:
   - Parse full sequence `\x1b[B`, verify IK_INPUT_ARROW_DOWN
-- [ ] Write test `test_input_parse_arrow_left()`:
+- [x] Write test `test_input_parse_arrow_left()`:
   - Parse full sequence `\x1b[D`, verify IK_INPUT_ARROW_LEFT
-- [ ] Write test `test_input_parse_arrow_right()`:
+- [x] Write test `test_input_parse_arrow_right()`:
   - Parse full sequence `\x1b[C`, verify IK_INPUT_ARROW_RIGHT
-- [ ] Write test `test_input_parse_delete()`:
+- [x] Write test `test_input_parse_delete()`:
   - Parse full sequence `\x1b[3~`, verify IK_INPUT_DELETE
-- [ ] Write test `test_input_parse_invalid_escape()`:
+- [x] Write test `test_input_parse_invalid_escape()`:
   - Parse ESC followed by invalid sequence
   - Verify parser resets and handles next input correctly
-- [ ] Update Makefile to include input.c in build
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Added additional edge case tests for buffer overflow and incomplete sequences
+- [x] Update Makefile to include input.c in build (already done in previous step)
+- [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass with 100% coverage
 
-### Step 6: UTF-8 Multi-byte Character Support
+**Status**: Escape sequence parsing complete with full test coverage. Used LCOV_EXCL_BR_LINE for 3 unreachable defensive branches.
 
-- [ ] Extend `ik_input_parse_byte()` to handle UTF-8:
+### Step 6: UTF-8 Multi-byte Character Support ✅ COMPLETE
+
+- [x] Extend `ik_input_parse_byte()` to handle UTF-8:
   - Detect UTF-8 lead bytes (0xC0-0xF7)
   - Buffer continuation bytes (0x80-0xBF)
   - Decode complete UTF-8 sequence into codepoint
   - Return IK_INPUT_CHAR with decoded codepoint
   - Return IK_INPUT_UNKNOWN for incomplete sequences
-- [ ] Write test `test_input_parse_utf8_2byte()`:
+- [x] Write test `test_input_parse_utf8_2byte()`:
   - Parse é (0xC3 0xA9), verify IK_INPUT_CHAR with codepoint U+00E9
-- [ ] Write test `test_input_parse_utf8_3byte()`:
+- [x] Write test `test_input_parse_utf8_3byte()`:
   - Parse ☃ (0xE2 0x98 0x83), verify IK_INPUT_CHAR with codepoint U+2603
-- [ ] Write test `test_input_parse_utf8_4byte()`:
+- [x] Write test `test_input_parse_utf8_4byte()`:
   - Parse 🎉 (0xF0 0x9F 0x8E 0x89), verify IK_INPUT_CHAR with codepoint U+1F389
-- [ ] Write test `test_input_parse_utf8_incomplete()`:
+- [x] Write test `test_input_parse_utf8_incomplete()`:
   - Parse only lead byte, verify IK_INPUT_UNKNOWN (incomplete)
-- [ ] Write test `test_input_parse_utf8_invalid()`:
+- [x] Write test `test_input_parse_utf8_invalid()`:
   - Parse invalid UTF-8 sequence
   - Verify parser resets correctly
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass with 100% coverage
 
 ### Step 7: Demo in client.c
 
-- [ ] Update `src/client.c` to demonstrate input parser:
+- [x] Update `src/client.c` to demonstrate input parser:
   - Keep terminal initialization from previous demo
   - Add input parser creation
   - Main loop: read bytes, parse into actions, display action type and details
   - Example output: "CHAR: 'a' (U+0061)" or "ARROW_LEFT" or "CTRL_C"
+  - Fixed Enter key to recognize both '\r' (carriage return) and '\n' (line feed)
+  - Fixed parser freeze on unrecognized escape sequences (Insert key, etc.)
+  - Refactored to reduce complexity below threshold (15)
+  - Achieved 100% test coverage (217 checks, 0 failures)
   - Exit on Ctrl+C
-- [ ] Build and manually test:
+- [x] Build and manually test:
   - `make && ./ikigai`
   - Type regular keys, verify they display as CHAR with codepoint
   - Try arrow keys, verify they parse correctly
