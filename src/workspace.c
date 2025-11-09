@@ -124,3 +124,50 @@ res_t ik_workspace_insert_newline(ik_workspace_t *workspace)
 
     return OK(NULL);
 }
+
+/**
+ * @brief Find the start of the previous UTF-8 character before the cursor
+ *
+ * @param data Text buffer
+ * @param cursor_pos Current cursor position (must be > 0)
+ * @return Position of the start of the previous UTF-8 character
+ */
+static size_t find_prev_char_start(const uint8_t *data, size_t cursor_pos)
+{
+    assert(cursor_pos > 0); /* LCOV_EXCL_BR_LINE */
+
+    /* Move back at least one byte */
+    size_t pos = cursor_pos - 1;
+
+    /* Skip UTF-8 continuation bytes (10xxxxxx) */
+    while (pos > 0 && (data[pos] & 0xC0) == 0x80) {
+        pos--;
+    }
+
+    return pos;
+}
+
+res_t ik_workspace_backspace(ik_workspace_t *workspace)
+{
+    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+
+    /* If cursor is at start, this is a no-op */
+    if (workspace->cursor_byte_offset == 0) {
+        return OK(NULL);
+    }
+
+    /* Find the start of the previous UTF-8 character */
+    const uint8_t *data = workspace->text->data;
+    size_t prev_char_start = find_prev_char_start(data, workspace->cursor_byte_offset);
+
+    /* Delete all bytes from prev_char_start to cursor */
+    size_t num_bytes_to_delete = workspace->cursor_byte_offset - prev_char_start;
+    for (size_t i = 0; i < num_bytes_to_delete; i++) {
+        ik_byte_array_delete(workspace->text, prev_char_start);
+    }
+
+    /* Update cursor to the start of the deleted character */
+    workspace->cursor_byte_offset = prev_char_start;
+
+    return OK(NULL);
+}

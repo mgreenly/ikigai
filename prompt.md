@@ -1,2 +1,1 @@
-Read @AGENT.md, docs/README.md and docs/repl-terminal.md. Operate in a strictly TDD cycle. After completing a task mark it done. Stop and wait for instructions after each task. Read tasks.md and continue with the next incomplete task.
-
+Read @AGENT.md, docs/README.md and docs/repl-terminal.md and then tasks.md.  When you're redy to proceed with the next task let me know what it is and that you're ready.  After you complete the work let me know so I can validate it.  Then after that you can create a commit.

@@ -79,4 +79,16 @@ res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoin
  */
 res_t ik_workspace_insert_newline(ik_workspace_t *workspace);
 
+/**
+ * @brief Delete the character before the cursor (backspace)
+ *
+ * Deletes the previous UTF-8 character (grapheme cluster) before the cursor.
+ * Moves the cursor backward by the number of bytes deleted.
+ * If cursor is at position 0, this is a no-op.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_backspace(ik_workspace_t *workspace);
+
 #endif /* IKIGAI_WORKSPACE_H */

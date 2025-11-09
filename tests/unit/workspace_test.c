@@ -412,6 +412,133 @@ START_TEST(test_workspace_insert_newline_oom)
     talloc_free(ctx);
 }
 END_TEST
+/* Test: Backspace ASCII character */
+START_TEST(test_workspace_backspace_ascii)
+{
+    void *ctx = talloc_new(NULL);
+    ik_workspace_t *workspace = NULL;
+
+    ik_workspace_create(ctx, &workspace);
+
+    /* Insert "abc" */
+    ik_workspace_insert_codepoint(workspace, 'a');
+    ik_workspace_insert_codepoint(workspace, 'b');
+    ik_workspace_insert_codepoint(workspace, 'c');
+
+    /* Backspace once */
+    res_t res = ik_workspace_backspace(workspace);
+    ck_assert(is_ok(&res));
+
+    /* Verify text is "ab" */
+    char *text = NULL;
+    size_t len = 0;
+    ik_workspace_get_text(workspace, &text, &len);
+    ck_assert_uint_eq(len, 2);
+    ck_assert_mem_eq(text, "ab", 2);
+
+    /* Verify cursor at position 2 */
+    ck_assert_uint_eq(workspace->cursor_byte_offset, 2);
+
+    talloc_free(ctx);
+}
+END_TEST
+/* Test: Backspace UTF-8 character */
+START_TEST(test_workspace_backspace_utf8)
+{
+    void *ctx = talloc_new(NULL);
+    ik_workspace_t *workspace = NULL;
+
+    ik_workspace_create(ctx, &workspace);
+
+    /* Insert "a" + é (2 bytes) + "b" */
+    ik_workspace_insert_codepoint(workspace, 'a');
+    ik_workspace_insert_codepoint(workspace, 0x00E9); // é
+    ik_workspace_insert_codepoint(workspace, 'b');
+
+    /* Text should be "aéb" (4 bytes total: a + C3 A9 + b) */
+    char *text = NULL;
+    size_t len = 0;
+    ik_workspace_get_text(workspace, &text, &len);
+    ck_assert_uint_eq(len, 4);
+
+    /* Backspace once (should delete 'b') */
+    res_t res = ik_workspace_backspace(workspace);
+    ck_assert(is_ok(&res));
+
+    /* Verify text is "aé" (3 bytes) */
+    ik_workspace_get_text(workspace, &text, &len);
+    ck_assert_uint_eq(len, 3);
+    ck_assert_mem_eq(text, "a\xC3\xA9", 3);
+    ck_assert_uint_eq(workspace->cursor_byte_offset, 3);
+
+    /* Backspace again (should delete both bytes of é) */
+    res = ik_workspace_backspace(workspace);
+    ck_assert(is_ok(&res));
+
+    /* Verify text is "a" (1 byte) */
+    ik_workspace_get_text(workspace, &text, &len);
+    ck_assert_uint_eq(len, 1);
+    ck_assert_mem_eq(text, "a", 1);
+    ck_assert_uint_eq(workspace->cursor_byte_offset, 1);
+
+    talloc_free(ctx);
+}
+END_TEST
+/* Test: Backspace emoji (4-byte UTF-8) */
+START_TEST(test_workspace_backspace_emoji)
+{
+    void *ctx = talloc_new(NULL);
+    ik_workspace_t *workspace = NULL;
+
+    ik_workspace_create(ctx, &workspace);
+
+    /* Insert 🎉 (4 bytes: F0 9F 8E 89) */
+    ik_workspace_insert_codepoint(workspace, 0x1F389);
+
+    /* Verify text length */
+    char *text = NULL;
+    size_t len = 0;
+    ik_workspace_get_text(workspace, &text, &len);
+    ck_assert_uint_eq(len, 4);
+    ck_assert_uint_eq(workspace->cursor_byte_offset, 4);
+
+    /* Backspace once (should delete all 4 bytes) */
+    res_t res = ik_workspace_backspace(workspace);
+    ck_assert(is_ok(&res));
+
+    /* Verify text is empty */
+    ik_workspace_get_text(workspace, &text, &len);
+    ck_assert_uint_eq(len, 0);
+    ck_assert_uint_eq(workspace->cursor_byte_offset, 0);
+
+    talloc_free(ctx);
+}
+END_TEST
+/* Test: Backspace at start (no-op) */
+START_TEST(test_workspace_backspace_at_start)
+{
+    void *ctx = talloc_new(NULL);
+    ik_workspace_t *workspace = NULL;
+
+    ik_workspace_create(ctx, &workspace);
+
+    /* Cursor is at start (position 0) */
+    ck_assert_uint_eq(workspace->cursor_byte_offset, 0);
+
+    /* Backspace should be a no-op */
+    res_t res = ik_workspace_backspace(workspace);
+    ck_assert(is_ok(&res));
+
+    /* Verify still empty */
+    char *text = NULL;
+    size_t len = 0;
+    ik_workspace_get_text(workspace, &text, &len);
+    ck_assert_uint_eq(len, 0);
+    ck_assert_uint_eq(workspace->cursor_byte_offset, 0);
+
+    talloc_free(ctx);
+}
+END_TEST
 
 static Suite *workspace_suite(void)
 {
@@ -430,6 +557,10 @@ static Suite *workspace_suite(void)
     tcase_add_test(tc_core, test_workspace_insert_codepoint_oom);
     tcase_add_test(tc_core, test_workspace_insert_newline);
     tcase_add_test(tc_core, test_workspace_insert_newline_oom);
+    tcase_add_test(tc_core, test_workspace_backspace_ascii);
+    tcase_add_test(tc_core, test_workspace_backspace_utf8);
+    tcase_add_test(tc_core, test_workspace_backspace_emoji);
+    tcase_add_test(tc_core, test_workspace_backspace_at_start);
 
     /* Assertion tests */
     tcase_add_test_raise_signal(tc_core, test_workspace_create_null_param, SIGABRT);
