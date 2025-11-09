@@ -525,53 +525,60 @@ Create cursor manager for tracking both byte and grapheme offsets.
 - [x] Update Makefile to include cursor.c
 - [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass with 100%
 
-### Step 2: Set Cursor Position
+### Step 2: Set Cursor Position ✅ COMPLETE
 
-- [ ] Implement `ik_cursor_set_position()`:
+- [x] Implement `ik_cursor_set_position()`:
   - Assert byte_offset <= text_len
   - Set cursor->byte_offset
   - Count grapheme clusters from start to byte_offset using libutf8proc
   - Set cursor->grapheme_offset
-- [ ] Write test `test_cursor_set_position_ascii()`:
+- [x] Write test `test_cursor_set_position_ascii()`:
   - Text "hello", set position to byte 3
   - Verify byte_offset = 3, grapheme_offset = 3
-- [ ] Write test `test_cursor_set_position_utf8()`:
+- [x] Write test `test_cursor_set_position_utf8()`:
   - Text "aéb" (4 bytes: a + C3 A9 + b)
   - Set position to byte 3 (after é)
   - Verify byte_offset = 3, grapheme_offset = 2
-- [ ] Write test `test_cursor_set_position_emoji()`:
+- [x] Write test `test_cursor_set_position_emoji()`:
   - Text "a🎉b" (6 bytes: a + F0 9F 8E 89 + b)
   - Set position to byte 5 (after 🎉)
   - Verify byte_offset = 5, grapheme_offset = 2
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Write test `test_cursor_set_position_invalid_utf8()`:
+  - Test error handling for invalid UTF-8 sequences
+- [x] Write assertion tests for NULL parameters and invalid offsets
+- [x] Update Makefile to link with libutf8proc (-lutf8proc)
+- [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass with 100% coverage for cursor.c
 
-### Step 3: Move Left by Grapheme Cluster
+### Step 3: Move Left by Grapheme Cluster ✅ COMPLETE
 
-- [ ] Implement `ik_cursor_move_left()`:
+- [x] Implement `ik_cursor_move_left()`:
   - If cursor at start (byte_offset == 0), return success (no-op)
   - Use libutf8proc to find previous grapheme boundary
   - Update both byte_offset and grapheme_offset
-- [ ] Write test `test_cursor_move_left_ascii()`:
+- [x] Write test `test_cursor_move_left_ascii()`:
   - Text "abc", cursor at end
   - Move left, verify byte_offset = 2, grapheme_offset = 2
   - Move left, verify byte_offset = 1, grapheme_offset = 1
-- [ ] Write test `test_cursor_move_left_utf8()`:
+- [x] Write test `test_cursor_move_left_utf8()`:
   - Text "aéb", cursor at end (byte 4)
   - Move left, verify moves to byte 1 (skips both bytes of é)
   - Verify grapheme_offset = 1
-- [ ] Write test `test_cursor_move_left_emoji()`:
+- [x] Write test `test_cursor_move_left_emoji()`:
   - Text "a🎉", cursor at end (byte 5)
   - Move left, verify moves to byte 1 (skips all 4 bytes of 🎉)
   - Verify grapheme_offset = 1
-- [ ] Write test `test_cursor_move_left_combining()`:
+- [x] Write test `test_cursor_move_left_combining()`:
   - Text "e\u0301" (e + combining acute accent = é)
   - Cursor at end, move left
   - Verify moves to byte 0 (treats as single grapheme)
   - Verify grapheme_offset = 0
-- [ ] Write test `test_cursor_move_left_at_start()`:
+- [x] Write test `test_cursor_move_left_at_start()`:
   - Cursor at start, move left
   - Verify no-op, stays at 0
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Write test `test_cursor_move_left_invalid_utf8()`:
+  - Test invalid UTF-8 handling
+  - Verify error returned
+- [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass with 100% coverage for cursor.c
 
 ### Step 4: Move Right by Grapheme Cluster
 

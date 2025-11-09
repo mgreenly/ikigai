@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <string.h>
 #include <talloc.h>
+#include <utf8proc.h>
 
 res_t ik_cursor_create(void *parent, ik_cursor_t **cursor_out)
 {
@@ -21,5 +22,97 @@ res_t ik_cursor_create(void *parent, ik_cursor_t **cursor_out)
 
     // Both offsets initialize to 0 via talloc_zero_wrapper (via memset)
     *cursor_out = cursor;
+    return OK(cursor);
+}
+
+res_t ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_len, size_t byte_offset)
+{
+    assert(cursor != NULL);         /* LCOV_EXCL_BR_LINE */
+    assert(text != NULL);           /* LCOV_EXCL_BR_LINE */
+    assert(byte_offset <= text_len); /* LCOV_EXCL_BR_LINE */
+
+    // Set byte offset
+    cursor->byte_offset = byte_offset;
+
+    // Count grapheme clusters from start to byte_offset
+    size_t grapheme_count = 0;
+    size_t pos = 0;
+    utf8proc_int32_t prev_codepoint = -1;
+
+    while (pos < byte_offset) {
+        utf8proc_int32_t codepoint;
+        utf8proc_ssize_t bytes_read = utf8proc_iterate((const utf8proc_uint8_t *)(text + pos),
+                                                       (utf8proc_ssize_t)(text_len - pos),
+                                                       &codepoint);
+
+        if (bytes_read <= 0) {
+            // Invalid UTF-8 or error
+            return ERR(cursor, INVALID_ARG, "Invalid UTF-8 in text");
+        }
+
+        // Check if this is a grapheme break
+        // A grapheme break occurs when we transition from one grapheme cluster to another
+        if (prev_codepoint == -1 || utf8proc_grapheme_break(prev_codepoint, codepoint)) {
+            grapheme_count++;
+        }
+
+        prev_codepoint = codepoint;
+        pos += (size_t)bytes_read;
+    }
+
+    cursor->grapheme_offset = grapheme_count;
+    return OK(cursor);
+}
+
+res_t ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len)
+{
+    assert(cursor != NULL);  /* LCOV_EXCL_BR_LINE */
+    assert(text != NULL);    /* LCOV_EXCL_BR_LINE */
+
+    // If cursor is at start, this is a no-op
+    if (cursor->byte_offset == 0) {
+        return OK(cursor);
+    }
+
+    // Scan through text and find grapheme boundaries
+    // We need to find the last grapheme boundary that is before cursor->byte_offset
+    size_t last_boundary_byte = 0;
+    size_t grapheme_count = 0;
+    size_t pos = 0;
+    utf8proc_int32_t prev_codepoint = -1;
+
+    while (pos < text_len) {
+        // Decode one codepoint
+        utf8proc_int32_t codepoint;
+        utf8proc_ssize_t bytes_read = utf8proc_iterate((const utf8proc_uint8_t *)(text + pos),
+                                                       (utf8proc_ssize_t)(text_len - pos),
+                                                       &codepoint);
+
+        if (bytes_read <= 0) {
+            // Invalid UTF-8
+            return ERR(cursor, INVALID_ARG, "Invalid UTF-8 in text");
+        }
+
+        // Check if this starts a new grapheme cluster
+        if (prev_codepoint == -1 || utf8proc_grapheme_break(prev_codepoint, codepoint)) {
+            // This is a grapheme boundary
+            if (pos < cursor->byte_offset) {
+                // This boundary is before cursor, save it
+                last_boundary_byte = pos;
+                grapheme_count++;
+            } else {
+                // We've reached or passed cursor position
+                break;
+            }
+        }
+
+        prev_codepoint = codepoint;
+        pos += (size_t)bytes_read;
+    }
+
+    // Move cursor to the last grapheme boundary before current position
+    cursor->byte_offset = last_boundary_byte;
+    cursor->grapheme_offset = grapheme_count > 0 ? grapheme_count - 1 : 0;  /* LCOV_EXCL_BR_LINE */
+
     return OK(cursor);
 }
