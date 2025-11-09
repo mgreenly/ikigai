@@ -74,9 +74,26 @@ This applies to both new code and existing code. If you discover a deficiency in
 
 ## Coverage Analysis
 
-**CRITICAL: All new code must achieve 100% coverage of Lines, Functions, and Branches.**
+**CRITICAL: The ENTIRE codebase must maintain 100% coverage of Lines, Functions, and Branches.**
+
+**NEVER commit unless `make coverage` shows 100.0% for all three metrics.**
 
 There are **NO exceptions** to this rule without first discussing it with the user.
+
+**The coverage requirement is ABSOLUTE:**
+- Not "100% of new code" - it's 100% of ALL code
+- Not "100% of the file you modified" - it's 100% of the ENTIRE codebase
+- Not "you can commit if you didn't break coverage" - ALL gaps must be fixed
+- A single uncovered line or branch in ANY file blocks ALL commits
+
+**Before ANY commit:**
+1. Run `make coverage`
+2. Check the summary at the end: `lines.......`, `functions...`, `branches....` must ALL show 100.0%
+3. If ANY metric shows less than 100.0%, you MUST find and fix ALL coverage gaps
+4. Use `grep "^BRDA:" coverage/coverage.info | grep ",0$"` to find uncovered branches
+5. Use `grep "^DA:" coverage/coverage.info | grep ",0$"` to find uncovered lines
+6. Fix every single gap found - no exceptions for "pre-existing" or "other files"
+7. Re-run `make coverage` and verify 100.0% before proceeding
 
 When analyzing code coverage:
 
@@ -107,6 +124,8 @@ Coverage gaps are learning opportunities. They show us where our design can impr
 
 Skipping coverage in our own code is never acceptable. It's only used for external dependencies.
 
+**You cannot commit ANY code - even if your new code has 100% coverage - if the overall codebase coverage is below 100%. Fix all gaps first.**
+
 ## Git Configuration
 
 - **Remote**: origin (github.com:mgreenly/ikigai.git)
@@ -117,12 +136,27 @@ Skipping coverage in our own code is never acceptable. It's only used for extern
 
 **BEFORE creating ANY commit** (mandatory, no exceptions):
 
-1. Run `make distro-check` - must pass completely
-2. If it fails: fix all issues, re-run, repeat until it passes
-3. Only commit after `make distro-check` passes
-4. Run `make fmt` before committing
+1. Run `make fmt` first
+2. Run `make check` - ALL tests must pass (100% pass rate)
+3. Run `make lint` - ALL complexity checks must pass, ALL file line count checks must pass
+4. Run `make coverage` - ALL three metrics (lines, functions, branches) must be 100.0%
+5. Run `make check-dynamic` - ALL dynamic analysis checks must pass (AddressSanitizer, UndefinedBehaviorSanitizer, ThreadSanitizer)
+6. If ANY of these fail: fix ALL issues, re-run ALL checks, repeat until everything passes
+7. Only commit after ALL quality gates pass with zero deficiencies
 
-**Never commit or push code that hasn't passed `make distro-check`.**
+**There can be NO known deficiency of any kind before committing.**
+
+This means:
+- **100% test pass rate** - no failing tests
+- **100% coverage** - lines, functions, AND branches all at 100.0%
+- **Zero complexity violations** - all functions under threshold
+- **Zero file size violations** - all files under 500 lines
+- **Zero lint errors** - all code style checks pass
+- **Zero sanitizer violations** - no memory errors, undefined behavior, or data races
+
+**Never commit code with ANY known issue - even if it's "pre-existing" or "in another file".**
+
+**If you discover a deficiency during quality checks, you MUST fix it before committing, regardless of whether it's in your new code or existing code.**
 
 ## Git Commit Policy
 
