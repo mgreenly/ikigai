@@ -139,8 +139,8 @@ START_TEST(test_render_set_cursor)
 }
 
 END_TEST
-// Test: Blit render context
-START_TEST(test_render_blit)
+// Test: Blit empty render context
+START_TEST(test_render_blit_empty)
 {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
@@ -148,7 +148,76 @@ START_TEST(test_render_blit)
     res_t res = ik_render_create(ctx, 24, 80, &render);
     ck_assert(is_ok(&res));
 
-    // Blit should not crash (even with fake fd)
+    // Blit empty screen (all empty cells)
+    res = ik_render_blit(render, 1);
+    ck_assert(is_ok(&res));
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Test: Blit with text content
+START_TEST(test_render_blit_with_text)
+{
+    void *ctx = talloc_new(NULL);
+    ik_render_ctx_t *render = NULL;
+
+    res_t res = ik_render_create(ctx, 24, 80, &render);
+    ck_assert(is_ok(&res));
+
+    // Write some text to the render context
+    const char *text = "hello world";
+    res = ik_render_write_text(render, text, strlen(text));
+    ck_assert(is_ok(&res));
+
+    // Blit should render the text
+    res = ik_render_blit(render, 1);
+    ck_assert(is_ok(&res));
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Test: Blit with UTF-8 content
+START_TEST(test_render_blit_with_utf8)
+{
+    void *ctx = talloc_new(NULL);
+    ik_render_ctx_t *render = NULL;
+
+    res_t res = ik_render_create(ctx, 24, 80, &render);
+    ck_assert(is_ok(&res));
+
+    // Write UTF-8 text (2-byte, 3-byte, 4-byte sequences)
+    const char *text = "Café ☃ 🎉";
+    res = ik_render_write_text(render, text, strlen(text));
+    ck_assert(is_ok(&res));
+
+    // Blit should handle UTF-8 encoding
+    res = ik_render_blit(render, 1);
+    ck_assert(is_ok(&res));
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Test: Blit with newlines and multiple lines
+START_TEST(test_render_blit_multiline)
+{
+    void *ctx = talloc_new(NULL);
+    ik_render_ctx_t *render = NULL;
+
+    res_t res = ik_render_create(ctx, 24, 80, &render);
+    ck_assert(is_ok(&res));
+
+    // Write multiline text
+    const char *text = "Line 1\nLine 2\nLine 3";
+    res = ik_render_write_text(render, text, strlen(text));
+    ck_assert(is_ok(&res));
+
+    // Blit should handle newlines
     res = ik_render_blit(render, 1);
     ck_assert(is_ok(&res));
 
@@ -243,7 +312,10 @@ static Suite *render_suite(void)
     tcase_add_test(tc_operations, test_render_clear);
     tcase_add_test(tc_operations, test_render_write_text);
     tcase_add_test(tc_operations, test_render_set_cursor);
-    tcase_add_test(tc_operations, test_render_blit);
+    tcase_add_test(tc_operations, test_render_blit_empty);
+    tcase_add_test(tc_operations, test_render_blit_with_text);
+    tcase_add_test(tc_operations, test_render_blit_with_utf8);
+    tcase_add_test(tc_operations, test_render_blit_multiline);
     suite_add_tcase(s, tc_operations);
 
 #ifdef ENABLE_ASSERT_TESTS
