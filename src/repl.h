@@ -24,3 +24,6 @@ void ik_repl_cleanup(ik_repl_ctx_t *repl);
 
 // Run REPL event loop
 res_t ik_repl_run(ik_repl_ctx_t *repl);
+
+// Render current frame (workspace only for now)
+res_t ik_repl_render_frame(ik_repl_ctx_t *repl);

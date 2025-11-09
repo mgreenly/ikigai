@@ -75,3 +75,23 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
     // TODO: Implement event loop
     return OK(NULL);
 }
+
+res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->render != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->workspace != NULL);   /* LCOV_EXCL_BR_LINE */
+
+    // Get workspace text (cannot fail - always returns OK)
+    char *text = NULL;
+    size_t text_len = 0;
+    ik_workspace_get_text(repl->workspace, &text, &text_len);
+
+    // Get cursor byte offset (cannot fail - always returns OK)
+    size_t cursor_byte_offset = 0;
+    size_t cursor_grapheme = 0;
+    ik_workspace_get_cursor_position(repl->workspace, &cursor_byte_offset, &cursor_grapheme);
+
+    // Render workspace with cursor
+    return ik_render_direct_workspace(repl->render, text, text_len, cursor_byte_offset);
+}
