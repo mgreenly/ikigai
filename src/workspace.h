@@ -139,4 +139,26 @@ res_t ik_workspace_cursor_right(ik_workspace_t *workspace);
  */
 res_t ik_workspace_get_cursor_position(ik_workspace_t *workspace, size_t *byte_out, size_t *grapheme_out);
 
+/**
+ * @brief Move cursor up by one line
+ *
+ * Moves the cursor up to the previous line, attempting to preserve column position.
+ * If cursor is on the first line, this is a no-op.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_cursor_up(ik_workspace_t *workspace);
+
+/**
+ * @brief Move cursor down by one line
+ *
+ * Moves the cursor down to the next line, attempting to preserve column position.
+ * If cursor is on the last line, this is a no-op.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_cursor_down(ik_workspace_t *workspace);
+
 #endif /* IKIGAI_WORKSPACE_H */

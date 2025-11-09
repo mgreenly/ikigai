@@ -113,6 +113,10 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
         return ik_workspace_cursor_left(repl->workspace);
     } else if (action->type == IK_INPUT_ARROW_RIGHT) {
         return ik_workspace_cursor_right(repl->workspace);
+    } else if (action->type == IK_INPUT_ARROW_UP) {
+        return ik_workspace_cursor_up(repl->workspace);
+    } else if (action->type == IK_INPUT_ARROW_DOWN) {
+        return ik_workspace_cursor_down(repl->workspace);
     } else if (action->type == IK_INPUT_CTRL_C) {
         repl->quit = true;
     }
