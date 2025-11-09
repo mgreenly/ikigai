@@ -68,4 +68,15 @@ void ik_workspace_clear(ik_workspace_t *workspace);
  */
 res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoint);
 
+/**
+ * @brief Insert a newline at the cursor position
+ *
+ * Inserts a newline character ('\n') at the current cursor position.
+ * Advances the cursor by 1 byte.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_insert_newline(ik_workspace_t *workspace);
+
 #endif /* IKIGAI_WORKSPACE_H */

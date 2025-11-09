@@ -108,3 +108,19 @@ res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoin
 
     return OK(NULL);
 }
+
+res_t ik_workspace_insert_newline(ik_workspace_t *workspace)
+{
+    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+
+    /* Insert newline byte at cursor position */
+    res_t res = ik_byte_array_insert(workspace->text, workspace->cursor_byte_offset, '\n');
+    if (is_err(&res)) {
+        return res;
+    }
+
+    /* Advance cursor by 1 byte */
+    workspace->cursor_byte_offset += 1;
+
+    return OK(NULL);
+}

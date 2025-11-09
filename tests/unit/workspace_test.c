@@ -344,6 +344,74 @@ START_TEST(test_workspace_insert_codepoint_oom)
     talloc_free(ctx);
 }
 END_TEST
+/* Test: Insert newline */
+START_TEST(test_workspace_insert_newline)
+{
+    void *ctx = talloc_new(NULL);
+    ik_workspace_t *workspace = NULL;
+
+    ik_workspace_create(ctx, &workspace);
+
+    /* Insert "hello" */
+    ik_workspace_insert_codepoint(workspace, 'h');
+    ik_workspace_insert_codepoint(workspace, 'e');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'o');
+
+    /* Insert newline */
+    res_t res = ik_workspace_insert_newline(workspace);
+    ck_assert(is_ok(&res));
+
+    /* Insert "world" */
+    ik_workspace_insert_codepoint(workspace, 'w');
+    ik_workspace_insert_codepoint(workspace, 'o');
+    ik_workspace_insert_codepoint(workspace, 'r');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'd');
+
+    /* Verify text is "hello\nworld" */
+    char *text = NULL;
+    size_t len = 0;
+    ik_workspace_get_text(workspace, &text, &len);
+    ck_assert_uint_eq(len, 11);
+    ck_assert_mem_eq(text, "hello\nworld", 11);
+
+    /* Verify cursor at end */
+    ck_assert_uint_eq(workspace->cursor_byte_offset, 11);
+
+    talloc_free(ctx);
+}
+END_TEST
+/* Test: Insert newline - OOM during byte array insert */
+START_TEST(test_workspace_insert_newline_oom)
+{
+    void *ctx = talloc_new(NULL);
+    ik_workspace_t *workspace = NULL;
+
+    ik_workspace_create(ctx, &workspace);
+
+    /* Fill the array to capacity (64 bytes) */
+    for (size_t i = 0; i < 64; i++) {
+        ik_workspace_insert_codepoint(workspace, 'x');
+    }
+
+    /* Now the next insert will trigger a realloc (grow to 128) */
+    /* Fail the realloc */
+    oom_test_fail_next_alloc();
+    res_t res = ik_workspace_insert_newline(workspace);
+    ck_assert(is_err(&res));
+    oom_test_reset();
+
+    /* Verify workspace is still consistent (should have 64 bytes) */
+    char *text = NULL;
+    size_t len = 0;
+    ik_workspace_get_text(workspace, &text, &len);
+    ck_assert_uint_eq(len, 64);
+
+    talloc_free(ctx);
+}
+END_TEST
 
 static Suite *workspace_suite(void)
 {
@@ -360,6 +428,8 @@ static Suite *workspace_suite(void)
     tcase_add_test(tc_core, test_workspace_insert_middle);
     tcase_add_test(tc_core, test_workspace_insert_invalid_codepoint);
     tcase_add_test(tc_core, test_workspace_insert_codepoint_oom);
+    tcase_add_test(tc_core, test_workspace_insert_newline);
+    tcase_add_test(tc_core, test_workspace_insert_newline_oom);
 
     /* Assertion tests */
     tcase_add_test_raise_signal(tc_core, test_workspace_create_null_param, SIGABRT);
