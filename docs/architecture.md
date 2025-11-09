@@ -89,7 +89,7 @@ Establishes:
 
 **Deliverable**: Working REPL where lines move from input to scrollback. Foundation for streaming AI responses.
 
-See [repl-terminal.md](repl-terminal.md) for detailed design.
+See [repl/README.md](repl/README.md) for detailed design.
 
 ### Next: OpenAI Integration
 

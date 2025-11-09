@@ -1,6 +1,6 @@
 # REPL Terminal - Phase 3: OpenAI Integration
 
-[← Back to REPL Terminal Overview](repl-terminal.md)
+[← Back to REPL Terminal Overview](README.md)
 
 **Goal**: Make this a working AI chatbot.
 

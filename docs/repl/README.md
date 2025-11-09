@@ -11,10 +11,9 @@ Build a minimal REPL chatbot with a split-buffer terminal interface that will ev
 - [Notes](#notes)
 
 ### Phase Details (separate files)
-- [Phase 0: Foundation](repl-phase-0.md) - Clean up error handling + build generic array utility
-- [Phase 1: Simple Dynamic Zone](repl-phase-1.md) - Basic terminal, UTF-8, cursor handling
+- [Phase 0: Foundation](repl-phase-0.md) ✅ - Clean up error handling + build generic array utility
+- [Phase 1: Simple Dynamic Zone](repl-phase-1.md) 🔄 - Basic terminal, UTF-8, cursor handling
 - [Phase 2: Add Scrollback and Scrolling](repl-phase-2.md) - Complete terminal UI with continuous buffer model
-  - [Phase 2 Implementation Details](repl-phase-2-details.md) - Detailed specifications
 - [Phase 3: OpenAI Integration](repl-phase-3.md) - Make it a real chatbot
 - [Testing Strategy](repl-testing.md) - TDD approach and manual test plan
 
@@ -30,7 +29,7 @@ This work is split into incremental phases, each building on the previous.
 - **Phase 2**: Add scrollback buffer and scrolling (complete terminal UI)
 - **Phase 3**: OpenAI integration (make it a real chatbot)
 
-**Current focus**: Phase 0, Task 2, Step 2 (generic array implementation)
+**Current focus**: Phase 1, Task 6 (REPL event loop - Steps 4-8 remaining)
 
 Each phase follows strict TDD (Test-Driven Development) with 100% coverage requirement.
 
@@ -39,16 +38,17 @@ Each phase follows strict TDD (Test-Driven Development) with 100% coverage requi
 ### Quick Phase Summary
 
 **Phase 0** - Foundation work before any REPL code:
-- ✅ Task 1: Error handling cleanup (COMPLETE)
-- ← Task 2: Generic array utility (IN PROGRESS)
+- ✅ Task 1: Error handling cleanup
+- ✅ Task 2: Generic array utility with typed wrappers
 
-**Phase 1** - Simple dynamic zone:
-- Terminal setup (raw mode, alternate screen)
-- Single editable zone (no scrollback yet)
-- UTF-8/grapheme handling
-- Cursor tracking and movement
-- Text editing (insert, backspace, delete)
-- Basic vterm rendering
+**Phase 1** - Simple dynamic zone (IN PROGRESS):
+- ✅ Terminal setup (raw mode, alternate screen)
+- ✅ Single editable zone (no scrollback yet)
+- ✅ UTF-8/grapheme handling
+- ✅ Cursor tracking and movement
+- ✅ Text editing (insert, backspace, delete)
+- ✅ Basic vterm rendering
+- 🔄 REPL event loop (Steps 4-8 remaining)
 
 **Phase 2** - Add scrollback:
 - Scrollback buffer

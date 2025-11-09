@@ -1,6 +1,6 @@
 # REPL Terminal - Testing Strategy
 
-[← Back to REPL Terminal Overview](repl-terminal.md)
+[← Back to REPL Terminal Overview](README.md)
 
 **Development approach**: Strict TDD (Test-Driven Development)
 
@@ -12,7 +12,49 @@ All code is developed using TDD red/green cycle:
 
 **Manual testing**: Performed AFTER TDD is complete for each feature to validate full integration.
 
-## Manual Test Plan (Phase 2 - Full UI)
+## Manual Test Plan (Phase 1 - Simple Dynamic Zone)
+
+Once Phase 1 is complete and all TDD tests pass with 100% coverage, validate the complete system manually:
+
+### 1. Launch and basic operation
+- Launch `./ikigai`
+- Verify alternate screen activated
+- Type some text, verify it appears
+- Exit with Ctrl+C, verify terminal restored cleanly
+
+### 2. UTF-8 handling
+- Type emoji: 🎉 👨‍👩‍👧‍👦
+- Verify they display correctly
+- Type combining characters: e + ´ = é
+- Use left/right arrows through multi-byte characters
+- Verify cursor moves by whole grapheme clusters
+
+### 3. Text editing
+- Type "hello world"
+- Move cursor to middle with arrow keys
+- Insert characters in middle
+- Backspace and delete characters
+- Verify editing works correctly
+
+### 4. Multi-line input
+- Type text
+- Press Enter to insert newline
+- Continue typing on next line
+- Verify text wraps correctly
+- Use arrow keys to move around (left/right only, up/down no-op for Phase 1)
+
+### 5. Edge cases
+- Fill entire screen with text
+- Verify wrapping continues to work
+- Try very long lines
+- Try rapid typing
+- Try holding down arrow keys
+
+**Reference**: See tasks.md lines 136-173 for complete Phase 1 manual testing checklist
+
+---
+
+## Manual Test Plan (Phase 2 - Full UI with Scrollback)
 
 Once Phase 2 is complete and all TDD tests pass, validate the complete system manually:
 

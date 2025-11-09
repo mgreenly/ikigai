@@ -34,7 +34,7 @@ A terminal-based assistant that executes tools locally, remembers conversations 
 ## Documentation Files
 
 ### Current Work
-- **[repl-terminal.md](repl-terminal.md)** - REPL terminal interface (current implementation target)
+- **[repl/](repl/)** - REPL terminal interface (current implementation target)
 
 ### Core Documentation
 - **[architecture.md](architecture.md)** - System architecture and design decisions
@@ -52,7 +52,7 @@ A terminal-based assistant that executes tools locally, remembers conversations 
 ## Development Roadmap
 
 ### Immediate: REPL Terminal Foundation
-**Current work target** - See [repl-terminal.md](repl-terminal.md) for details.
+**Current work target** - See [repl/](repl/) for details.
 
 Building a terminal interface with:
 - Split-buffer layout (scrollback + dynamic input)

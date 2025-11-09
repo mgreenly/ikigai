@@ -1,10 +1,120 @@
-# REPL Terminal - Phase 2: Implementation Details
+# REPL Terminal - Phase 2: Add Scrollback and Scrolling
 
-[← Back to Phase 2 Overview](repl-phase-2.md)
+[← Back to REPL Terminal Overview](README.md)
 
-This document contains detailed implementation specifications for Phase 2.
+**Goal**: Implement the full continuous buffer model.
 
-## Input Flow
+Once Phase 1 validates the fundamentals, add the continuous buffer with scrollback.
+
+## New features
+
+1. Scrollback buffer (`ik_line_array_t`)
+2. Separator line
+3. Continuous buffer model (scrollback + separator + dynamic zone)
+4. Viewport scrolling (mouse wheel, Page Up/Down)
+5. Snap-back behavior (typing when scrolled up)
+6. Enter submits line to scrollback
+7. Dynamic zone scrolling (when taller than screen)
+
+## Split-Buffer REPL Terminal Design
+
+**Goal**: A working REPL with scrollback buffer and dynamic input zone.
+
+### Features
+
+1. **Alternate Screen Mode**
+   - App uses alternate screen buffer on launch
+   - Clean terminal on exit (no history pollution)
+
+2. **Split Buffer Layout**
+   ```
+   [scrollback line 1 - oldest]
+   [scrollback line 2]
+   [scrollback line 3]
+   ...
+   [scrollback line N - most recent]
+   ─────────────────────────────────
+   > user input here█
+   ```
+   - **Scrollback zone** (top): Immutable conversation history
+   - **ASCII separator**: Visual boundary (e.g., `─────────`)
+   - **Dynamic zone** (bottom): Editable prompt line
+
+3. **REPL Behavior**
+   - Type text in prompt
+   - Press Enter → text moves to scrollback buffer
+   - New empty prompt appears in dynamic zone
+
+4. **Scrolling**
+   - **Mouse wheel**: Scroll up/down through buffer
+   - **Page Up/Down**: Scroll by larger increments (e.g., screen height)
+   - **Bounds**:
+     - Can't scroll above first/oldest line
+     - Can't scroll past bottom (last line of dynamic zone)
+   - **Dynamic zone behavior**:
+     - As you scroll up, dynamic zone disappears off bottom line-by-line
+     - Can scroll to any position where dynamic zone is partially or fully visible
+     - Separator line scrolls with dynamic zone (not fixed)
+
+5. **Config Integration**
+   - Load config via existing `ik_cfg_load()`
+   - Initial config only needs basic settings (API key path for later)
+
+### Architecture
+
+**Mental Model**: The terminal is a viewport into one continuous buffer:
+
+```
+┌─────────────────────────────────────┐
+│  Terminal Screen (80x24 viewport)   │
+│                                      │
+│  ╔═══════════════════════════════╗  │
+│  ║ Scrollback line 500           ║  │ ← Viewport showing
+│  ║ Scrollback line 501           ║  │   lines 500-523 of
+│  ║ ...                           ║  │   continuous buffer
+│  ║ Scrollback line 520           ║  │
+│  ║ ───────────────────────────── ║  │ ← Separator (part of buffer)
+│  ║ Dynamic zone line 1           ║  │
+│  ║ Dynamic zone line 2           ║  │ ← Multi-line input area
+│  ║ Dynamic zone line 3█          ║  │   (variable height)
+│  ╚═══════════════════════════════╝  │
+└─────────────────────────────────────┘
+
+        Continuous Buffer:
+        [scrollback lines...]
+        [separator line]
+        [dynamic zone lines...]
+```
+
+**Key behaviors**:
+- One continuous buffer: scrollback + separator + dynamic zone
+- Viewport scrolls through this buffer via mouse wheel or Page Up/Down
+- Dynamic zone height varies based on text content (wrapping)
+- As you scroll up, dynamic zone + separator disappear off bottom line-by-line
+- Cursor always positioned within dynamic zone (even when scrolled off-screen)
+- When you type with cursor off-screen, viewport snaps to show cursor at bottom
+
+**Implementation Strategy**: Use libvterm for ALL rendering (one coherent system), but maintain our own scrollback buffer for control.
+
+### What This Validates
+
+- Alternate screen terminal behavior
+- vterm as unified rendering system
+- Continuous buffer model (scrollback + separator + dynamic zone)
+- Viewport scrolling through variable-height content
+- Multi-line dynamic zone with cursor movement
+- Snap-back behavior when typing while scrolled
+- Mouse wheel and Page Up/Down scrolling
+- Scroll bounds with partially visible dynamic zone
+- Memory management patterns for dynamic buffers
+- Single-write blit pattern (no flicker)
+- Foundation for adding streaming AI responses
+
+---
+
+## Implementation Details
+
+### Input Flow
 
 All keyboard and mouse input flows through the terminal emulator (Ghostty/Kitty):
 - Terminal receives OS-level events
@@ -12,7 +122,7 @@ All keyboard and mouse input flows through the terminal emulator (Ghostty/Kitty)
 - Writes to app's stdin
 - App reads in raw mode and processes
 
-## Progressive Input Implementation
+### Progressive Input Implementation
 
 1. **Initial REPL** - Basic reliable keys only:
    - Regular typing (letters, numbers, punctuation)
@@ -36,7 +146,7 @@ All keyboard and mouse input flows through the terminal emulator (Ghostty/Kitty)
    - Distinguishes ESC vs Alt
    - Optional, with graceful fallback
 
-## Cursor Management
+### Cursor Management
 
 Two distinct cursor concepts:
 
@@ -57,14 +167,14 @@ Two distinct cursor concepts:
    - Calculated from scroll position + layout + logical cursor
    - May be off-screen when scrolled up viewing history
 
-## Snap-back behavior
+### Snap-back behavior
 
 - When typing any key (including Enter) while cursor is off-screen
 - Viewport scrolls to position cursor line at bottom of screen
 - Ensures user can see what they're typing
 - Happens before processing the keystroke
 
-## Scrollback Line Format
+### Scrollback Line Format
 
 Variable-length logical lines (NOT fixed-width grid):
 - Each line stores semantic content: "user: hello" or "ai: long response..."
@@ -73,7 +183,7 @@ Variable-length logical lines (NOT fixed-width grid):
 - **Terminal resize**: Just re-render with new dimensions, no buffer modification needed
 - Simpler than fixed-width approach (no reflow logic required)
 
-## Line Processing Pipeline
+### Line Processing Pipeline
 
 When user presses Enter, the line dispatcher examines the input and decides action:
 
@@ -97,7 +207,7 @@ When user presses Enter, the line dispatcher examines the input and decides acti
 - Route to appropriate handler (command processor, buffer append, AI sender)
 - Return action to main loop (continue, exit, etc.)
 
-## Module Organization
+### Module Organization
 
 - **repl module** - Main context, owns all data structures, provides init/cleanup/run
 - **terminal module** - Raw mode, alternate screen, termios state
@@ -106,14 +216,14 @@ When user presses Enter, the line dispatcher examines the input and decides acti
 - **input module** - Process raw byte sequences, dispatch to buffer/render
 - **expandable array utility** - Generic reusable array (for scrollback and future needs)
 
-## Memory Strategy
+### Memory Strategy
 
 - Use talloc for all allocations (consistent with existing codebase)
 - Main context owns everything via talloc hierarchy
 - Cleanup is automatic with talloc_free()
 - Expandable arrays use talloc_realloc() for growth
 
-## Data Structures
+### Data Structures
 
 ```c
 typedef struct {
@@ -142,7 +252,7 @@ typedef struct {
 } ik_term_ctx_t;
 ```
 
-## Rendering Pipeline
+### Rendering Pipeline
 
 **Compose → Blit → Display**
 
@@ -229,7 +339,7 @@ void blit_vterm_to_screen(ik_term_ctx_t *ctx) {
 - ~2-3ms per frame for 80x24 screen
 - Smooth at even 30fps (33ms budget)
 
-## Implementation Components
+### Implementation Components
 
 **New modules/files**:
 - `src/client/terminal.c` - Terminal initialization, raw mode, alternate screen
@@ -292,14 +402,14 @@ while (!quit) {
 }
 ```
 
-## Dependencies
+### Dependencies
 
 - libvterm (terminal emulation and rendering)
 - libutf8proc (UTF-8 text processing and grapheme cluster detection)
 - talloc (memory management)
 - ik_cfg module (config loading)
 
-## UTF-8 and Grapheme Handling
+### UTF-8 and Grapheme Handling
 
 - **Library**: Use **libutf8proc** for UTF-8 text processing and grapheme cluster detection
 - **Rendering**: vterm handles UTF-8 internally (just write UTF-8 bytes to vterm)

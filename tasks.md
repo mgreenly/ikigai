@@ -6,7 +6,7 @@ All Phase 0 tasks completed with 100% test coverage.
 
 # Phase 1 Tasks: Simple Dynamic Zone REPL
 
-See [docs/repl-terminal.md](docs/repl-terminal.md) for complete design.
+See [docs/repl/README.md](docs/repl/README.md) for complete design.
 
 **Goal**: Build minimal interactive terminal with just a workspace (no scrollback buffer). Validate terminal fundamentals: raw mode, UTF-8, cursor handling, vterm rendering.
 

@@ -1,6 +1,6 @@
 # REPL Terminal - Phase 0: Foundation
 
-[← Back to REPL Terminal Overview](repl-terminal.md)
+[← Back to REPL Terminal Overview](README.md)
 
 **Goal**: Clean up existing code and build reusable expandable array before REPL work.
 
@@ -18,7 +18,7 @@ Clean up existing code to properly follow the 3 modes of operation (IO operation
 
 **Impact:** The codebase now properly follows the 3 modes of operation philosophy. All tests pass with proper separation of concerns between IO errors, contract violations, and pure operations.
 
-## Task 2: Generic Array Utility ← CURRENT
+## Task 2: Generic Array Utility ✅ COMPLETE
 
 **See [docs/array.md](array.md) for complete design.**
 
@@ -26,19 +26,17 @@ Build the generic expandable array utility that will be used throughout the REPL
 
 **Status:**
 - Step 1 (TRY macro) ✅ COMPLETE
-- Step 2 (generic array) ← IN PROGRESS
+- Step 2 (generic array) ✅ COMPLETE
 
-**Key components:**
-1. Generic `ik_array_t` implementation (element_size configurable)
-2. Common textbook operations (append, insert, delete, get, set)
-3. Talloc-based memory management
-4. Growth by doubling capacity
-5. Full test coverage via TDD
+**Completed components:**
+1. ✅ Generic `ik_array_t` implementation (element_size configurable) - src/array.h, src/array.c
+2. ✅ Common textbook operations (append, insert, delete, get, set, clear)
+3. ✅ Talloc-based memory management with lazy allocation
+4. ✅ Growth by doubling capacity (after initial increment-sized allocation)
+5. ✅ Full test coverage via TDD
 
-**Typed wrappers to create:**
-- `ik_byte_array_t` - For dynamic zone text (UTF-8 bytes)
-- `ik_line_array_t` - For scrollback buffer (line pointers)
+**Typed wrappers created:**
+- ✅ `ik_byte_array_t` - For dynamic zone text (UTF-8 bytes) - src/byte_array.h, src/byte_array.c
+- ✅ `ik_line_array_t` - For scrollback buffer (line pointers) - src/line_array.h, src/line_array.c
 
-**Development approach**: Strict TDD red/green cycle with 100% coverage.
-
-**Why second?** Both dynamic zone text and scrollback buffer need expandable storage. Building this utility on a clean foundation ensures consistency.
+**Impact:** The generic array utility provides type-safe expandable storage used throughout the REPL implementation. All operations properly follow the 3 modes of operation philosophy with 100% test coverage.
