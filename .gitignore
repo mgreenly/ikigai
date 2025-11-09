@@ -1,7 +1,9 @@
 build/
+build-*/
 bin/
 dist/
 coverage/
+.envrc
 
 **/core.*
 **/vgcore.*

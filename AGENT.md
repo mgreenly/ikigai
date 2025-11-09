@@ -189,6 +189,25 @@ uint64_t size = 1024;
 printf("Count: %" PRId32 ", Size: %" PRIu64 "\n", count, size);
 ```
 
+## Test Execution
+
+**By default, all tests run in parallel** for maximum speed (configured via `.envrc`):
+- `MAKE_JOBS=32` - Runs up to 32 tests concurrently
+- `PARALLEL=1` - Runs all 4 check-dynamic subtargets (sanitize, valgrind, helgrind, tsan) in parallel
+
+**To see clear debug output** (serialize test execution):
+```bash
+MAKE_JOBS=1 PARALLEL=0 make check
+MAKE_JOBS=1 make check-valgrind  # Just one target, sequential tests
+```
+
+**Best practice:** Test individual files directly most of the time, only run full suite before commits.
+
+Example of running a specific test:
+```bash
+make build/tests/unit/array/basic_test && ./build/tests/unit/array/basic_test
+```
+
 ## Naming Conventions
 
 All public symbols (functions, types, globals) follow the pattern: `ik_MODULE_THING`
