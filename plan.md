@@ -1,0 +1,1 @@
+read @AGENT.md and tasks.md and know that if you want to look there project information in the docs/ folder.  After you've processed tasks, stop and let me know what the next task is and get permission before you proceed.  Once I've given permission and you complete the work make sure to update tasks.md with your changes.

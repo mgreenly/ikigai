@@ -668,20 +668,21 @@ Create rendering module using libvterm.
 
 **Dependencies**: libvterm
 
-### Step 1: Render Context Structure
+### Step 1: Render Context Structure ✅ COMPLETE
 
-- [ ] Create `src/render.h` header
-- [ ] Define `ik_render_ctx_t` structure:
-  - `VTerm *vterm` - Virtual terminal
-  - `VTermScreen *vscreen` - Screen interface
-  - `int rows` - Screen height
-  - `int cols` - Screen width
-- [ ] Add function declarations:
-  - `res_t ik_render_create(void *parent, int rows, int cols, ik_render_ctx_t **render_out)`
+- [x] Create `src/render.h` header
+- [x] Define `ik_render_ctx_t` structure:
+  - `void *vterm` - Virtual terminal (opaque)
+  - `void *vscreen` - Screen interface (opaque)
+  - `int32_t rows` - Screen height
+  - `int32_t cols` - Screen width
+- [x] Add function declarations:
+  - `res_t ik_render_create(void *parent, int32_t rows, int32_t cols, ik_render_ctx_t **render_out)`
   - `void ik_render_clear(ik_render_ctx_t *render)`
   - `res_t ik_render_write_text(ik_render_ctx_t *render, const char *text, size_t len)`
-  - `res_t ik_render_set_cursor(ik_render_ctx_t *render, int row, int col)`
-  - `res_t ik_render_blit(ik_render_ctx_t *render, int tty_fd)`
+  - `res_t ik_render_set_cursor(ik_render_ctx_t *render, int32_t row, int32_t col)`
+  - `res_t ik_render_blit(ik_render_ctx_t *render, int32_t tty_fd)`
+- [x] Quality gates: `make check`, `make lint`, `make coverage` - all pass
 
 ### Step 2: Render Context Creation
 
