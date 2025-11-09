@@ -120,7 +120,7 @@ int main(void)
     // Create render context
     ik_render_direct_ctx_t *render = NULL;
     result = ik_render_direct_create(root_ctx, rows, cols,
-                                      term_ctx->tty_fd, &render);
+                                     term_ctx->tty_fd, &render);
     if (is_err(&result)) {
         error_fprintf(stderr, result.err);
         ik_term_cleanup(term_ctx);

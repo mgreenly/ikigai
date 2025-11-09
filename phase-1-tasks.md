@@ -210,7 +210,7 @@
 
 ### Steps
 
-- [ ] Update `src/repl.h`:
+- [x] Update `src/repl.h`:
   ```c
   #include "render_direct.h"  // Add include
 
@@ -222,7 +222,7 @@
       bool quit;
   } ik_repl_ctx_t;
   ```
-- [ ] Update `src/repl.c` in `ik_repl_init()`:
+- [x] Update `src/repl.c` in `ik_repl_init()`:
   ```c
   // Replace old render_create call with:
   result = ik_render_direct_create(repl,
@@ -231,11 +231,11 @@
                                     repl->term->tty_fd,
                                     &repl->render);
   ```
-- [ ] Run `make check` - verify REPL tests still pass
-- [ ] Run `make lint` - verify no issues
-- [ ] Run `make coverage` - verify 100% coverage
+- [x] Run `make check` - verify REPL tests still pass
+- [x] Run `make lint` - verify no issues
+- [x] Run `make coverage` - verify 100% coverage
 
-**Complete When**: REPL uses render_direct, all tests pass.
+**Complete When**: REPL uses render_direct, all tests pass. ✅ **COMPLETE**
 
 ---
 
@@ -265,27 +265,24 @@
 
 ### Manual Testing Checklist
 
-Run `./ikigai-demo` (or whatever the demo binary is called):
+Run `./bin/ikigai`:
 
-- [ ] **Launch**: Terminal switches to alternate screen
-- [ ] **Type text**: Characters appear on screen
-- [ ] **Cursor position**: Cursor appears at correct location after text
-- [ ] **Backspace**: Can delete characters, cursor moves back
-- [ ] **UTF-8 emoji**: Type 🎉 → displays correctly, cursor positioned after it
-- [ ] **UTF-8 CJK**: Type 你好 → displays correctly, cursor accounts for 2-cell width
-- [ ] **Long line wrapping**: Type until line wraps → text continues on next line
-- [ ] **Newline**: Press Enter → cursor moves to next line (if supported in demo)
-- [ ] **Terminal restore**: Press Ctrl+C → terminal restores cleanly, no artifacts
-- [ ] **Multiple launches**: Run demo multiple times → consistent behavior
+- [x] **Launch**: Terminal switches to alternate screen
+- [x] **Type text**: Characters appear on screen
+- [x] **Cursor position**: Cursor appears at correct location after text
+- [x] **Backspace**: Can delete characters, cursor moves back
+- [x] **UTF-8 emoji**: Type 🎉 → displays correctly, cursor positioned after it
+- [x] **UTF-8 CJK**: Type 你好 → displays correctly, cursor accounts for 2-cell width
+- [x] **Long line wrapping**: Type until line wraps → text continues on next line
+- [x] **Newline**: Press Enter → cursor moves to next line (if supported in demo)
+- [x] **Terminal restore**: Press Ctrl+C → terminal restores cleanly, no artifacts
+- [x] **Multiple launches**: Run demo multiple times → consistent behavior
 
 ### Verification Notes
 
-Document any issues found:
-- [ ] Create notes section in this file if issues found
-- [ ] If major issues: fix before proceeding
-- [ ] If minor polish needed: document for later
+All tests passed manual inspection - no issues found.
 
-**Complete When**: All manual tests pass, terminal behavior correct.
+**Complete When**: All manual tests pass, terminal behavior correct. ✅ **COMPLETE**
 
 ---
 

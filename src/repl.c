@@ -23,10 +23,10 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
 
     // Initialize render_direct
     result = ik_render_direct_create(repl,
-                                      repl->term->screen_rows,
-                                      repl->term->screen_cols,
-                                      repl->term->tty_fd,
-                                      &repl->render);
+                                     repl->term->screen_rows,
+                                     repl->term->screen_cols,
+                                     repl->term->tty_fd,
+                                     &repl->render);
     if (is_err(&result)) {
         talloc_free(repl);
         return result;
