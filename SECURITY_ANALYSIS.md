@@ -150,7 +150,7 @@ The following attack vectors were tested and handled correctly:
 
 ## Test Coverage
 
-Created `tests/unit/input_pathological_test.c` with 14 pathological tests:
+Created `tests/integration/input_pathological_integration_test.c` with 14 pathological tests:
 
 1. ✅ State confusion: UTF-8 then escape
 2. ✅ State confusion: escape then UTF-8
@@ -216,4 +216,4 @@ The input parser demonstrates **good robustness** in handling malformed input wi
 
 *Analysis conducted: 2025-11-08*
 *Analyst: Claude (Hacker Mindset Security Review)*
-*Test Suite: `tests/unit/input_pathological_test.c`*
+*Test Suite: `tests/integration/input_pathological_integration_test.c`*

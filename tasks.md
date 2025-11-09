@@ -267,11 +267,11 @@ Create input parser to convert raw byte sequences into semantic actions.
 
 **Status**: All critical UTF-8 security vulnerabilities fixed with 100% test coverage.
 
-**Files**: `src/input.c`, `tests/unit/input_pathological_test.c`
+**Files**: `src/input.c`, `tests/integration/input_pathological_integration_test.c`
 
 **Security Analysis**: See `SECURITY_ANALYSIS.md` for full details.
 
-- [x] Create pathological test suite (`tests/unit/input_pathological_test.c`):
+- [x] Create pathological test suite (`tests/integration/input_pathological_integration_test.c`):
   - [x] 19 tests covering overlong encodings, surrogates, state confusion, boundaries, etc.
   - [x] All tests passing
 - [x] Fix vulnerability #1: UTF-8 overlong encoding acceptance
@@ -300,7 +300,7 @@ Create input parser to convert raw byte sequences into semantic actions.
   - [x] Write test: `test_utf8_max_valid_codepoint` (maximum valid codepoint)
   - [x] Write test: `test_utf8_surrogate_low` (low surrogate boundary)
   - [x] Write test: `test_utf8_overlong_4byte` (4-byte overlong coverage)
-- [x] Makefile automatically includes `input_pathological_test` in `make check` (via wildcard)
+- [x] Makefile automatically includes `input_pathological_integration_test` in `make check` (via wildcard)
 - [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass
 - [x] Verify coverage at 100% (lines, functions, branches)
 - [x] Commit work: "Fix critical UTF-8 security vulnerabilities (overlong, surrogates, range)"
