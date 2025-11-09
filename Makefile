@@ -354,6 +354,14 @@ lint:
 			failed=1; \
 		fi; \
 	done; \
+	for file in docs/*.md docs/*/*.md; do \
+		[ -f "$$file" ] || continue; \
+		lines=$$(wc -l < "$$file"); \
+		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
+			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+			failed=1; \
+		fi; \
+	done; \
 	if [ $$failed -eq 1 ]; then \
 		echo "✗ Some files exceed $(MAX_FILE_LINES) line limit"; \
 		exit 1; \

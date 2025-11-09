@@ -7,8 +7,7 @@
 #include "../../test_utils.h"
 
 // Test: parse arrow up escape sequence byte by byte
-START_TEST(test_input_parse_arrow_up)
-{
+START_TEST(test_input_parse_arrow_up) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};

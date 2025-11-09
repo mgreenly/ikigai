@@ -7,8 +7,7 @@
 #include "../../test_utils.h"
 
 // Test: parse 2-byte UTF-8 character (é = U+00E9 = 0xC3 0xA9)
-START_TEST(test_input_parse_utf8_2byte)
-{
+START_TEST(test_input_parse_utf8_2byte) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};

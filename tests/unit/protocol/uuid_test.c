@@ -10,8 +10,7 @@
 #include "../../test_utils.h"
 
 // Test UUID generation produces 22-character string
-START_TEST(test_protocol_generate_uuid)
-{
+START_TEST(test_protocol_generate_uuid) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

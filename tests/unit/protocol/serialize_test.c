@@ -10,8 +10,7 @@
 #include "../../test_utils.h"
 
 // Test message serialization
-START_TEST(test_protocol_serialize_message)
-{
+START_TEST(test_protocol_serialize_message) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create a message manually for serialization testing

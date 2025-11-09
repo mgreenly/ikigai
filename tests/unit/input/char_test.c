@@ -7,8 +7,7 @@
 #include "../../test_utils.h"
 
 // Test: parse regular ASCII characters
-START_TEST(test_input_parse_regular_char)
-{
+START_TEST(test_input_parse_regular_char) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};

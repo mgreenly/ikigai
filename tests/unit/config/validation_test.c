@@ -8,8 +8,7 @@
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 
-START_TEST(test_config_missing_field_openai_key)
-{
+START_TEST(test_config_missing_field_openai_key) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

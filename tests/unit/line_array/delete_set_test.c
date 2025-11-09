@@ -7,8 +7,7 @@
 #include "../../test_utils.h"
 
 // Test delete from beginning
-START_TEST(test_line_array_delete_from_beginning)
-{
+START_TEST(test_line_array_delete_from_beginning) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_line_array_create(ctx, 10);

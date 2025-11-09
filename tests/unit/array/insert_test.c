@@ -6,8 +6,7 @@
 #include "../../test_utils.h"
 
 // Test insert at beginning
-START_TEST(test_array_insert_at_beginning)
-{
+START_TEST(test_array_insert_at_beginning) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);

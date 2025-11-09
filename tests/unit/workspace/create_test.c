@@ -32,7 +32,6 @@ START_TEST(test_workspace_create) {
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Create workspace - OOM scenarios */
 START_TEST(test_workspace_create_oom)
 {
@@ -59,7 +58,6 @@ START_TEST(test_workspace_create_oom)
 }
 
 END_TEST
-
 /* Test: Get text */
 START_TEST(test_workspace_get_text)
 {
@@ -86,7 +84,6 @@ START_TEST(test_workspace_get_text)
 }
 
 END_TEST
-
 /* Test: Clear workspace */
 START_TEST(test_workspace_clear)
 {
@@ -118,7 +115,6 @@ START_TEST(test_workspace_clear)
 }
 
 END_TEST
-
 /* Test: NULL parameter assertions */
 START_TEST(test_workspace_create_null_workspace_out_asserts)
 {
@@ -130,9 +126,7 @@ START_TEST(test_workspace_create_null_workspace_out_asserts)
     talloc_free(ctx);
 }
 
-END_TEST
-
-START_TEST(test_workspace_get_text_null_workspace_asserts)
+END_TEST START_TEST(test_workspace_get_text_null_workspace_asserts)
 {
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
@@ -147,9 +141,7 @@ START_TEST(test_workspace_get_text_null_workspace_asserts)
     talloc_free(ctx);
 }
 
-END_TEST
-
-START_TEST(test_workspace_get_text_null_text_out_asserts)
+END_TEST START_TEST(test_workspace_get_text_null_text_out_asserts)
 {
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
@@ -163,9 +155,7 @@ START_TEST(test_workspace_get_text_null_text_out_asserts)
     talloc_free(ctx);
 }
 
-END_TEST
-
-START_TEST(test_workspace_get_text_null_len_out_asserts)
+END_TEST START_TEST(test_workspace_get_text_null_len_out_asserts)
 {
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
@@ -179,9 +169,7 @@ START_TEST(test_workspace_get_text_null_len_out_asserts)
     talloc_free(ctx);
 }
 
-END_TEST
-
-START_TEST(test_workspace_clear_null_workspace_asserts)
+END_TEST START_TEST(test_workspace_clear_null_workspace_asserts)
 {
     /* workspace cannot be NULL - should abort */
     ik_workspace_clear(NULL);

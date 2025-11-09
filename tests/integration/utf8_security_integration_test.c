@@ -14,8 +14,7 @@
 // Test: Overlong 2-byte encoding of ASCII 'A' (U+0041)
 // Normal: 0x41
 // Overlong: 0xC1 0x81 (INVALID - security risk)
-START_TEST(test_utf8_overlong_2byte)
-{
+START_TEST(test_utf8_overlong_2byte) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};

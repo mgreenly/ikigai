@@ -6,8 +6,7 @@
 #include "../../test_utils.h"
 
 // Test appending to empty array (first allocation)
-START_TEST(test_byte_array_append_first)
-{
+START_TEST(test_byte_array_append_first) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);

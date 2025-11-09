@@ -10,8 +10,7 @@
 #include "../../test_utils.h"
 
 // Test parsing valid message
-START_TEST(test_protocol_parse_valid_message)
-{
+START_TEST(test_protocol_parse_valid_message) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

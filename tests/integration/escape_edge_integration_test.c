@@ -12,8 +12,7 @@
 // ========================================================================
 
 // Test: ESC [ followed by null byte
-START_TEST(test_escape_sequence_null_byte)
-{
+START_TEST(test_escape_sequence_null_byte) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};

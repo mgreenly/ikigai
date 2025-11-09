@@ -10,8 +10,7 @@
 #include "../../test_utils.h"
 
 /* Test: Backspace ASCII character */
-START_TEST(test_workspace_backspace_ascii)
-{
+START_TEST(test_workspace_backspace_ascii) {
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -40,7 +39,6 @@ START_TEST(test_workspace_backspace_ascii)
 }
 
 END_TEST
-
 /* Test: Backspace UTF-8 character */
 START_TEST(test_workspace_backspace_utf8)
 {
@@ -84,7 +82,6 @@ START_TEST(test_workspace_backspace_utf8)
 }
 
 END_TEST
-
 /* Test: Backspace emoji (4-byte UTF-8) */
 START_TEST(test_workspace_backspace_emoji)
 {
@@ -116,7 +113,6 @@ START_TEST(test_workspace_backspace_emoji)
 }
 
 END_TEST
-
 /* Test: Backspace at start (no-op) */
 START_TEST(test_workspace_backspace_at_start)
 {
@@ -143,7 +139,6 @@ START_TEST(test_workspace_backspace_at_start)
 }
 
 END_TEST
-
 /* Test: Delete ASCII character */
 START_TEST(test_workspace_delete_ascii)
 {
@@ -178,7 +173,6 @@ START_TEST(test_workspace_delete_ascii)
 }
 
 END_TEST
-
 /* Test: Delete UTF-8 character */
 START_TEST(test_workspace_delete_utf8)
 {
@@ -213,7 +207,6 @@ START_TEST(test_workspace_delete_utf8)
 }
 
 END_TEST
-
 /* Test: Delete 3-byte UTF-8 character */
 START_TEST(test_workspace_delete_utf8_3byte)
 {
@@ -248,7 +241,6 @@ START_TEST(test_workspace_delete_utf8_3byte)
 }
 
 END_TEST
-
 /* Test: Delete emoji (4-byte UTF-8) */
 START_TEST(test_workspace_delete_emoji)
 {
@@ -280,7 +272,6 @@ START_TEST(test_workspace_delete_emoji)
 }
 
 END_TEST
-
 /* Test: Delete at end (no-op) */
 START_TEST(test_workspace_delete_at_end)
 {

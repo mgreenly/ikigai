@@ -8,8 +8,7 @@
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 
-START_TEST(test_config_expand_tilde)
-{
+START_TEST(test_config_expand_tilde) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

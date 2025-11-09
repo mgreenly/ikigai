@@ -4,6 +4,8 @@
 
 A generic, type-safe expandable array implementation for ikigai. Provides a reusable foundation for dynamic collections with zero-overhead typed wrappers.
 
+This module is complete and fully tested with 100% coverage (lines, functions, branches).
+
 ## Design Pattern
 
 **Two-layer approach:**
@@ -14,10 +16,9 @@ A generic, type-safe expandable array implementation for ikigai. Provides a reus
    - All logic (growth, reallocation, operations) in one place
    - Uses `void*` for generic element handling
 
-2. **Typed wrappers** (e.g., `ik_byte_array_t`, `ik_line_array_t`)
+2. **Typed wrappers** (`ik_byte_array_t`, `ik_line_array_t`)
    - Type-safe interfaces for specific element types
-   - Inline wrapper functions delegate to generic implementation
-   - Zero overhead when compiled with optimization
+   - Wrapper functions delegate to generic implementation
    - Easy to add new types without duplicating logic
 
 **Inspiration:** Based on generic_queue pattern from space-captain project.
@@ -53,11 +54,9 @@ typedef struct ik_array {
 - `size()`, `capacity()`, `clear()` - Cannot fail with valid pointer
 - Use `assert(array != NULL)` for NULL pointer defense
 
-**Error codes** (added to `src/error.h` via TDD as tests require them):
+**Error codes used:**
 - `ERR_INVALID_ARG` - Invalid parameter at creation (element_size=0, increment=0)
 - `ERR_OOM` - Memory allocation failed
-
-**Note**: Do not add error codes until a test actually needs them. Follow strict TDD.
 
 See `docs/error_handling.md` for complete error handling philosophy.
 
@@ -147,25 +146,19 @@ See `docs/error_handling.md` for complete error handling philosophy.
 
 ## Typed Wrappers
 
-**Phase 0 includes typed wrappers as sequential steps AFTER the generic array.**
+The generic `ik_array_t` is wrapped by typed modules that provide type-safe, ergonomic APIs.
 
-The generic `ik_array_t` will be wrapped by typed modules that provide type-safe, ergonomic APIs.
+**Implemented wrappers:**
+- `ik_byte_array_t` - Stores bytes (uint8_t) for UTF-8 text buffers
+- `ik_line_array_t` - Stores line pointers (char*) for scrollback buffers
 
-**Implementation order within Phase 0:**
-1. Step 1: Add TRY macro to error handling ✅ COMPLETE
-2. Step 2: Implement generic `ik_array_t` ← CURRENT
-3. Step 3: Implement `ik_byte_array_t` wrapper
-4. Step 4: Implement `ik_line_array_t` wrapper
+### Byte Array (ik_byte_array_t)
 
-### Byte Array (ik_byte_array_t) - Phase 0, Step 3
-
-**Purpose**: Stores bytes (for UTF-8 text in dynamic input zone).
+**Purpose**: Stores bytes (uint8_t) for UTF-8 text in dynamic input zone.
 
 **Files**: `src/byte_array.c` + `src/byte_array.h`
 
-**When**: Step 3 of Phase 0, after generic array is complete and tested.
-
-**Pattern**:
+**Design**:
 ```c
 // In src/byte_array.h
 typedef ik_array_t ik_byte_array_t;
@@ -187,25 +180,25 @@ res_t ik_byte_array_append(ik_byte_array_t *array, uint8_t byte) {
 // ... etc
 ```
 
-### Line Array (ik_line_array_t) - Phase 0, Step 4
+### Line Array (ik_line_array_t)
 
-**Purpose**: Stores line pointers (for scrollback buffer).
+**Purpose**: Stores line pointers (char*) for scrollback buffer.
 
 **Files**: `src/line_array.c` + `src/line_array.h`
 
-**When**: Step 4 of Phase 0, after byte array wrapper is complete and tested.
+**Design**: Similar pattern to byte array, wrapping generic array for char* elements.
 
 ## Use Cases in REPL Terminal
 
-1. **Dynamic zone text** - Use `ik_byte_array_t` (Phase 0, Step 3)
-   - Store UTF-8 text being edited
-   - Insert/delete bytes at cursor position
-   - Grow as user types
+1. **Dynamic zone text** - Uses `ik_byte_array_t`
+   - Stores UTF-8 text being edited
+   - Supports insert/delete bytes at cursor position
+   - Grows as user types
 
-2. **Scrollback buffer** - Use `ik_line_array_t` (Phase 0, Step 4)
-   - Store array of line pointers
-   - Append new lines as they're submitted
-   - Random access for rendering
+2. **Scrollback buffer** - Uses `ik_line_array_t`
+   - Stores array of line pointers
+   - Appends new lines as they're submitted
+   - Provides random access for rendering
 
 ## Memory Management
 
@@ -220,119 +213,36 @@ res_t ik_byte_array_append(ik_byte_array_t *array, uint8_t byte) {
 - REPL terminal runs on single thread, no synchronization needed
 - If threading needed in future, add wrapper with locks
 
-## Implementation Guide
+## Implementation Notes
 
-### Phase 0, Task 2 - Implementation Order
+The array module was implemented in four sequential steps, each with full TDD and 100% coverage:
 
-Task 2 is implemented in four sequential steps, each with full TDD and 100% coverage before moving to the next:
+1. **TRY macro** - Added ergonomic error propagation to `src/error.h`
+2. **Generic array** - Implemented `ik_array_t` with full test coverage
+3. **Byte array wrapper** - Created type-safe wrapper for uint8_t elements
+4. **Line array wrapper** - Created type-safe wrapper for char* elements
 
-**Step 1: Add TRY macro to error handling ✅ COMPLETE**
+All error handling follows the three-category strategy from `docs/error_handling.md`.
 
-Before implementing the array, add ergonomic error propagation to `src/error.h`:
+### Files
 
-```c
-#define TRY(expr) \
-    ({ \
-        res_t _res = (expr); \
-        if (is_err(&_res)) { \
-            return _res; \
-        } \
-        _res.value; \
-    })
-```
+**Implementation files:**
+- `src/array.{c,h}` - Generic `ik_array_t` implementation and API
+- `src/byte_array.{c,h}` - `ik_byte_array_t` typed wrapper
+- `src/line_array.{c,h}` - `ik_line_array_t` typed wrapper
+- `src/wrapper.{c,h}` - Includes `ik_talloc_realloc_wrapper` (MOCKABLE pattern)
 
-**Usage:**
-```c
-void *element = TRY(ik_array_get(array, index));  // Propagates error or returns value
-```
-
-**Requirements:**
-- Add macro to `src/error.h` alongside existing `OK`/`ERR` macros
-- Update `tests/unit/error_test.c` to verify TRY macro behavior
-- Test that errors propagate correctly with proper context
-- Test that successful results extract values correctly
-- Ensure 100% coverage of TRY macro paths
-
-**Note:** Uses GNU C statement expressions - supported by GCC/Clang (our target compilers).
-
-**Step 2: Implement generic array**
-
-Once TRY macro is working and tested, proceed with array implementation.
-
-**Step 3: Implement byte array wrapper**
-
-Once generic array has 100% coverage, create typed wrapper for bytes.
-
-**Step 4: Implement line array wrapper**
-
-Once byte array has 100% coverage, create typed wrapper for line pointers.
-
-### Files and Build System
-
-**Phase 0, Task 2 creates these files sequentially:**
-
-Step 1 - Error handling enhancement:
-- `src/error.h` - Add TRY macro
-- `tests/unit/error_test.c` - Add TRY macro tests
-
-Step 2 - Generic array:
-- `src/array.c` - Generic `ik_array_t` implementation
-- `src/array.h` - Generic `ik_array_t` API
+**Test files:**
 - `tests/unit/array_test.c` - Unit tests for generic array
-- `src/wrapper.h` - Add `ik_talloc_realloc_wrapper` declaration (MOCKABLE pattern)
-- `src/wrapper.c` - Add `ik_talloc_realloc_wrapper` implementation
-
-Step 3 - Byte array wrapper:
-- `src/byte_array.c` - `ik_byte_array_t` typed wrapper
-- `src/byte_array.h` - `ik_byte_array_t` API
 - `tests/unit/byte_array_test.c` - Unit tests for byte array
-
-Step 4 - Line array wrapper:
-- `src/line_array.c` - `ik_line_array_t` typed wrapper
-- `src/line_array.h` - `ik_line_array_t` API
 - `tests/unit/line_array_test.c` - Unit tests for line array
-
-**Makefile integration:**
-Add to `Makefile` as each step completes (see existing patterns):
-```make
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c src/array.c src/byte_array.c src/line_array.c
-```
-
-**Dependencies:** Add `ik_talloc_realloc_wrapper` to `src/wrapper.h` and `src/wrapper.c`:
-
-In `src/wrapper.h`, add to talloc wrappers section:
-```c
-#ifdef NDEBUG
-// Release build: inline definitions for zero overhead
-MOCKABLE void *ik_talloc_realloc_wrapper(TALLOC_CTX *ctx, void *ptr, size_t size)
-{
-    return talloc_realloc_size(ctx, ptr, size);
-}
-#else
-// Debug/test build: weak symbol declaration
-MOCKABLE void *ik_talloc_realloc_wrapper(TALLOC_CTX *ctx, void *ptr, size_t size);
-#endif
-```
-
-In `src/wrapper.c`, add to talloc wrappers section (inside `#ifndef NDEBUG` block):
-```c
-MOCKABLE void *ik_talloc_realloc_wrapper(TALLOC_CTX *ctx, void *ptr, size_t size)
-{
-    return talloc_realloc_size(ctx, ptr, size);
-}
-```
 
 ### Testing Strategy
 
-**TDD approach:**
-1. Write failing test first (RED)
-2. Implement minimal code to pass (GREEN)
-3. Run `make check`, `make lint`, `make coverage`
-4. Repeat until 100% coverage
+The module achieves 100% coverage (lines, functions, branches) through comprehensive testing:
 
 **Testing IO operations (res_t):**
-Use `oom_test_*` functions from `tests/test_utils.h` to test allocation failures:
+Uses `oom_test_*` functions from `tests/test_utils.h` to test allocation failures:
 ```c
 // Test allocation failure in ik_array_create
 oom_test_fail_next_alloc();
@@ -349,7 +259,7 @@ oom_test_reset();
 ```
 
 **Testing contract violations (assertions):**
-Use Check's `tcase_add_test_raise_signal()` to test assertions fire correctly:
+Uses Check's `tcase_add_test_raise_signal()` to verify assertions fire correctly:
 ```c
 #ifndef NDEBUG
 START_TEST(test_array_get_null_array_asserts)
@@ -380,19 +290,20 @@ tcase_add_test_raise_signal(tc_core, test_array_get_out_of_bounds_asserts, SIGAB
 #endif
 ```
 
-**Study existing patterns:**
+**Reference implementations:**
 - `tests/unit/error_test.c` - res_t testing patterns
 - `tests/unit/config_test.c` - OOM injection examples
 - `tests/integration/oom_integration_test.c` - Comprehensive OOM testing
-- `docs/error_handling.md` - Complete testing strategy for all three categories
+- See `docs/error_handling.md` for complete testing strategy
 
-### Implementation Notes
+### Design Decisions
 
 - **IO operations** (`create`, `append`, `insert`) return `res_t` for OOM handling
-- **Contract violations** (NULL pointers, out-of-bounds) use `assert()` - fail fast in debug, compiled out in release
+- **Contract violations** (NULL pointers, out-of-bounds) use `assert()` - fail fast in debug, optimized out in release
 - **Pure queries** (`size`, `capacity`) return values directly with `assert()` for NULL defense
-- Uses `memcpy` for element operations (works for any type)
-- Growth by doubling prevents frequent reallocations
+- Uses `memcpy` for element operations - works for any type
+- Growth by doubling prevents frequent reallocations while minimizing memory waste
 - Error context obtained via `talloc_parent(array)` for operations on existing arrays
-- `increment` parameter must be > 0 (validated at creation time with `res_t` error)
-- `capacity` field starts at 0 (lazy allocation - memory allocated on first append/insert)
+- `increment` parameter must be > 0 - validated at creation time
+- Lazy allocation - `capacity` starts at 0, memory allocated on first append/insert
+- No overflow protection - assumes realistic array sizes won't overflow size_t

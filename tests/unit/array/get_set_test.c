@@ -6,8 +6,7 @@
 #include "../../test_utils.h"
 
 // Test set element
-START_TEST(test_array_set)
-{
+START_TEST(test_array_set) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
