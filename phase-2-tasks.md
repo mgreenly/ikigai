@@ -6,12 +6,14 @@
 
 **Current State**:
 - Phase 1 complete: render_direct module implemented and tested (src/render_direct.c)
+- Task 1 complete: ik_repl_render_frame() implemented and tested (src/repl.c)
+- Task 2 complete: ik_repl_process_action() implemented and tested (src/repl.c)
 - REPL init/cleanup implemented (src/repl.c)
 - Event loop stubbed: `ik_repl_run()` returns OK(NULL)
 - Working demo in src/client.c with process_action() and render_frame() helper functions
 - Workspace has: insert_codepoint, insert_newline, backspace, delete, cursor_left, cursor_right
 - Input parser supports: CHAR, NEWLINE, BACKSPACE, DELETE, ARROW_LEFT, ARROW_RIGHT, ARROW_UP, ARROW_DOWN, CTRL_C
-- **Missing**: cursor_up/down, readline shortcuts (Ctrl+A/E/K/U/W), REPL integration
+- **Missing**: cursor_up/down, readline shortcuts (Ctrl+A/E/K/U/W), event loop implementation
 
 ## Key Insights
 

@@ -69,17 +69,17 @@ res_t ik_render_direct_workspace(ik_render_direct_ctx_t *ctx,
 - Exit: Ctrl+C, verify clean terminal restoration
 
 **Verification Checklist**:
-- [ ] Text displays correctly
-- [ ] Cursor appears at correct position
-- [ ] Text wraps at terminal boundary
-- [ ] UTF-8 characters (emoji, CJK) display properly
-- [ ] Terminal restores cleanly on exit
+- [x] Text displays correctly
+- [x] Cursor appears at correct position
+- [x] Text wraps at terminal boundary
+- [x] UTF-8 characters (emoji, CJK) display properly
+- [x] Terminal restores cleanly on exit
 
 **Phase 1 Complete When**:
-- [ ] Old render module deleted
-- [ ] render_direct module implemented with 100% test coverage
-- [ ] client.c demo works and passes manual verification
-- [ ] `make check && make lint && make coverage` all pass
+- [x] Old render module deleted
+- [x] render_direct module implemented with 100% test coverage
+- [x] client.c demo works and passes manual verification
+- [x] `make check && make lint && make coverage` all pass
 
 ---
 
