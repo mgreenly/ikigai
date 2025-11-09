@@ -290,27 +290,30 @@
 - [x] **Note**: File size warnings for workspace.c (575 lines), cursor_movement_test.c (815 lines), repl_action_test.c (580 lines)
 - [x] **Follow-up**: Split cursor_movement_test.c → cursor_left_right_test.c + cursor_up_down_test.c (commit 99f404c)
 
-### 2.5.14: Review and Reduce LCOV Exclusions
-- [ ] Review the 10 non-assert LCOV exclusions added in cursor movement implementation
-- [ ] Defensive NULL checks (4 exclusions):
-  - Line 360: `find_line_start()` - text NULL check (unreachable: cursor 0 returns first)
-  - Lines 383-384: `find_line_end()` - text NULL check (called only with valid text)
-  - Line 405: `count_graphemes()` - text NULL branch (called only with valid pointers)
-  - Line 453: `grapheme_to_byte_offset()` - text NULL branch (called only with valid pointers)
-- [ ] UTF-8 character handling (4 exclusions):
-  - Line 428: `count_graphemes()` - 4-byte UTF-8 else fallback
-  - Line 431: `count_graphemes()` - invalid UTF-8 fallback (unreachable with valid input)
-  - Line 470: `grapheme_to_byte_offset()` - 4-byte UTF-8 else fallback
-  - Line 473: `grapheme_to_byte_offset()` - invalid UTF-8 fallback
-- [ ] Provably unreachable code (2 exclusions):
-  - Line 418: `count_graphemes()` - loop invariant makes condition always true
+### 2.5.14: Review and Reduce LCOV Exclusions ✅ COMPLETE
+- [x] Review the 10 non-assert LCOV exclusions added in cursor movement implementation
+- [x] Defensive NULL checks (4 exclusions):
+  - Line 360: `find_line_start()` - text NULL check → **ELIMINATED** (replaced with assertion)
+  - Lines 383-384: `find_line_end()` - text NULL check → **ELIMINATED** (replaced with assertion)
+  - Line 405: `count_graphemes()` - text NULL branch → **ELIMINATED** (replaced with assertion)
+  - Line 453: `grapheme_to_byte_offset()` - text NULL branch → **ELIMINATED** (replaced with assertion)
+- [x] UTF-8 character handling (4 exclusions):
+  - Line 428: `count_graphemes()` - 4-byte UTF-8 else fallback → **KEPT** (valid code path)
+  - Line 431: `count_graphemes()` - invalid UTF-8 fallback → **KEPT** (defensive safety)
+  - Line 470: `grapheme_to_byte_offset()` - 4-byte UTF-8 else fallback → **KEPT** (valid code path)
+  - Line 473: `grapheme_to_byte_offset()` - invalid UTF-8 fallback → **KEPT** (defensive safety)
+- [x] Provably unreachable code (2 exclusions):
+  - Line 418: `count_graphemes()` - loop invariant makes condition always true → **ELIMINATED** (restructured)
   - Lines 383-384: Already counted above
-- [ ] For each exclusion, determine if it can be eliminated by:
-  - Restructuring code to avoid defensive checks
-  - Adding explicit precondition checks in callers
-  - Using assert() instead of runtime checks for truly impossible conditions
-- [ ] Goal: Reduce exclusions where possible while maintaining code safety
-- [ ] Document decision for each exclusion that remains
+- [x] For each exclusion, determine if it can be eliminated by:
+  - Restructuring code to avoid defensive checks → **DONE** (line 418 restructured)
+  - Adding explicit precondition checks in callers → **N/A** (all callers internal)
+  - Using assert() instead of runtime checks for truly impossible conditions → **DONE** (4 NULL checks)
+- [x] Goal: Reduce exclusions where possible while maintaining code safety → **ACHIEVED**
+- [x] Document decision for each exclusion that remains → **DONE** (see commit 9aea7ca)
+- [x] **Results**: Eliminated 5 logical exclusions (8 markers), maintained 100% coverage
+- [x] **Branch coverage increased**: 407 → 415 branches (8 more branches tested)
+- [x] **Commit**: 9aea7ca "Reduce LCOV exclusions in cursor movement code (Task 2.5.14)"
 
 ### 2.5.15: File Size Corrections
 - [x] **Problem**: File size warnings (MAX_FILE_LINES = 500)
