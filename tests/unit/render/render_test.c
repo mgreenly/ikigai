@@ -11,8 +11,7 @@
 #include "../../test_utils.h"
 
 // Test: Create render context
-START_TEST(test_render_create)
-{
+START_TEST(test_render_create) {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -28,7 +27,6 @@ START_TEST(test_render_create)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: Create render context with different dimensions
 START_TEST(test_render_create_custom_size)
 {
@@ -44,8 +42,8 @@ START_TEST(test_render_create_custom_size)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM scenario - talloc fails
 START_TEST(test_render_create_oom_talloc)
 {
@@ -62,8 +60,8 @@ START_TEST(test_render_create_oom_talloc)
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Destructor properly frees vterm
 START_TEST(test_render_destructor)
 {
@@ -77,8 +75,8 @@ START_TEST(test_render_destructor)
     // This test mainly ensures no crashes occur
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: NULL parameter assertions
 // Test: Clear render context
 START_TEST(test_render_clear)
@@ -94,8 +92,8 @@ START_TEST(test_render_clear)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Write text to render context
 START_TEST(test_render_write_text)
 {
@@ -116,8 +114,8 @@ START_TEST(test_render_write_text)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Set cursor position
 START_TEST(test_render_set_cursor)
 {
@@ -139,8 +137,8 @@ START_TEST(test_render_set_cursor)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Blit render context
 START_TEST(test_render_blit)
 {
@@ -156,6 +154,7 @@ START_TEST(test_render_blit)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 #ifdef ENABLE_ASSERT_TESTS
@@ -164,72 +163,68 @@ START_TEST(test_render_clear_null)
 {
     expect_sigabrt(ik_render_clear(NULL));
 }
-END_TEST
 
+END_TEST
 // Test: Write text with NULL render
 START_TEST(test_render_write_text_null_render)
 {
     const char *text = "hello";
     expect_sigabrt(ik_render_write_text(NULL, text, 5));
 }
-END_TEST
 
+END_TEST
 // Test: Set cursor with NULL render
 START_TEST(test_render_set_cursor_null_render)
 {
     expect_sigabrt(ik_render_set_cursor(NULL, 0, 0));
 }
-END_TEST
 
+END_TEST
 // Test: Blit with NULL render
 START_TEST(test_render_blit_null_render)
 {
     expect_sigabrt(ik_render_blit(NULL, 1));
 }
-END_TEST
 
-START_TEST(test_render_create_null_output)
+END_TEST START_TEST(test_render_create_null_output)
 {
     void *ctx = talloc_new(NULL);
     expect_sigabrt(ik_render_create(ctx, 24, 80, NULL));
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_render_create_invalid_rows)
+END_TEST START_TEST(test_render_create_invalid_rows)
 {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
     expect_sigabrt(ik_render_create(ctx, 0, 80, &render));
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_render_create_invalid_cols)
+END_TEST START_TEST(test_render_create_invalid_cols)
 {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
     expect_sigabrt(ik_render_create(ctx, 24, 0, &render));
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_render_create_negative_rows)
+END_TEST START_TEST(test_render_create_negative_rows)
 {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
     expect_sigabrt(ik_render_create(ctx, -1, 80, &render));
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_render_create_negative_cols)
+END_TEST START_TEST(test_render_create_negative_cols)
 {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
     expect_sigabrt(ik_render_create(ctx, 24, -1, &render));
     talloc_free(ctx);
 }
+
 END_TEST
 #endif
 

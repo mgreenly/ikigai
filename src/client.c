@@ -9,93 +9,69 @@
 #include "terminal.h"
 #include "input.h"
 #include "workspace.h"
+#include "render.h"
 #include "logger.h"
-
-// Helper to escape control characters for display
-static void escape_for_display(const char *text, size_t len, char *buf, size_t buf_size)
-{
-    size_t pos = 0;
-    for (size_t i = 0; i < len && pos < buf_size - 1; i++) {
-        unsigned char ch = (unsigned char)text[i];
-        if (ch == '\n') {
-            if (pos + 2 < buf_size) {
-                buf[pos++] = '\\';
-                buf[pos++] = 'n';
-            }
-        } else if (ch == '\r') {
-            if (pos + 2 < buf_size) {
-                buf[pos++] = '\\';
-                buf[pos++] = 'r';
-            }
-        } else if (ch < 0x20 || ch == 0x7F) {
-            // Other control characters as hex
-            if (pos + 4 < buf_size) {
-                pos += (size_t)snprintf(buf + pos, buf_size - pos, "\\x%02X", ch);
-            }
-        } else {
-            buf[pos++] = (char)ch;
-        }
-    }
-    buf[pos] = '\0';
-}
 
 // Process input action and apply to workspace
 static res_t process_action(ik_workspace_t *workspace,
                             const ik_input_action_t *action,
-                            bool *should_display_out,
                             bool *should_exit_out)
 {
     assert(workspace != NULL);
     assert(action != NULL);
-    assert(should_display_out != NULL);
     assert(should_exit_out != NULL);
 
-    *should_display_out = false;
     *should_exit_out = false;
 
-    res_t result = {0};
-
     if (action->type == IK_INPUT_CHAR) {
-        result = ik_workspace_insert_codepoint(workspace, action->codepoint);
-        if (is_err(&result)) {
-            return result;
-        }
-        *should_display_out = true;
+        return ik_workspace_insert_codepoint(workspace, action->codepoint);
     } else if (action->type == IK_INPUT_NEWLINE) {
-        result = ik_workspace_insert_newline(workspace);
-        if (is_err(&result)) {
-            return result;
-        }
-        *should_display_out = true;
+        return ik_workspace_insert_newline(workspace);
     } else if (action->type == IK_INPUT_BACKSPACE) {
-        result = ik_workspace_backspace(workspace);
-        if (is_err(&result)) {
-            return result;
-        }
-        *should_display_out = true;
+        return ik_workspace_backspace(workspace);
     } else if (action->type == IK_INPUT_DELETE) {
-        result = ik_workspace_delete(workspace);
-        if (is_err(&result)) {
-            return result;
-        }
-        *should_display_out = true;
+        return ik_workspace_delete(workspace);
     } else if (action->type == IK_INPUT_ARROW_LEFT) {
-        result = ik_workspace_cursor_left(workspace);
-        if (is_err(&result)) {
-            return result;
-        }
-        *should_display_out = true;
+        return ik_workspace_cursor_left(workspace);
     } else if (action->type == IK_INPUT_ARROW_RIGHT) {
-        result = ik_workspace_cursor_right(workspace);
-        if (is_err(&result)) {
-            return result;
-        }
-        *should_display_out = true;
+        return ik_workspace_cursor_right(workspace);
     } else if (action->type == IK_INPUT_CTRL_C) {
         *should_exit_out = true;
     }
 
     return OK(NULL);
+}
+
+// Render the current workspace state to the screen
+static res_t render_frame(ik_render_ctx_t *render,
+                          ik_workspace_t *workspace,
+                          int32_t tty_fd)
+{
+    assert(render != NULL);
+    assert(workspace != NULL);
+    assert(tty_fd >= 0);
+
+    // Clear the render context
+    ik_render_clear(render);
+
+    // Get workspace text
+    char *text = NULL;
+    size_t text_len = 0;
+    res_t result = ik_workspace_get_text(workspace, &text, &text_len);
+    if (is_err(&result)) {
+        return result;
+    }
+
+    // Write text to render context (if not empty)
+    if (text_len > 0) {
+        result = ik_render_write_text(render, text, text_len);
+        if (is_err(&result)) {
+            return result;
+        }
+    }
+
+    // Blit to screen
+    return ik_render_blit(render, tty_fd);
 }
 
 int main(void)
@@ -146,19 +122,26 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    // Display header
-    char msg[1024];
-    int len = snprintf(msg, sizeof(msg),
-                       "Cursor Demo with Grapheme Support\r\n"
-                       "Terminal dimensions: %d rows x %d columns\r\n"
-                       "Type text (try emoji like 🎉), use arrow keys to move cursor.\r\n"
-                       "Backspace/Delete to edit. Press Ctrl+C to exit.\r\n\r\n",
-                       rows, cols);
-    if (write(term_ctx->tty_fd, msg, (size_t)len) < 0) {
-        // Ignore write errors in demo
+    // Create render context
+    ik_render_ctx_t *render = NULL;
+    result = ik_render_create(root_ctx, rows, cols, &render);
+    if (is_err(&result)) {
+        error_fprintf(stderr, result.err);
+        ik_term_cleanup(term_ctx);
+        talloc_free(root_ctx);
+        return EXIT_FAILURE;
     }
 
-    // Main loop: read bytes, parse into actions, apply to workspace
+    // Initial render
+    result = render_frame(render, workspace, term_ctx->tty_fd);
+    if (is_err(&result)) {
+        error_fprintf(stderr, result.err);
+        ik_term_cleanup(term_ctx);
+        talloc_free(root_ctx);
+        return EXIT_FAILURE;
+    }
+
+    // Main loop: read bytes, parse into actions, apply to workspace, render
     char byte;
     while (1) {
         ssize_t n = read(term_ctx->tty_fd, &byte, 1);
@@ -175,8 +158,8 @@ int main(void)
         }
 
         // Process action
-        bool should_display, should_exit;
-        result = process_action(workspace, &action, &should_display, &should_exit);
+        bool should_exit;
+        result = process_action(workspace, &action, &should_exit);
         if (is_err(&result)) {
             error_fprintf(stderr, result.err);
             break;
@@ -186,34 +169,12 @@ int main(void)
             break;
         }
 
-        // Display buffer contents and cursor position
-        if (should_display) {
-            char *text;
-            size_t text_len;
-            result = ik_workspace_get_text(workspace, &text, &text_len);
+        // Render frame (only if action was not UNKNOWN)
+        if (action.type != IK_INPUT_UNKNOWN) {
+            result = render_frame(render, workspace, term_ctx->tty_fd);
             if (is_err(&result)) {
                 error_fprintf(stderr, result.err);
                 break;
-            }
-
-            // Escape control characters for display
-            char escaped[512];
-            escape_for_display(text, text_len, escaped, sizeof(escaped));
-
-            // Get cursor position (both byte and grapheme offsets)
-            size_t byte_offset, grapheme_offset;
-            result = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
-            if (is_err(&result)) {
-                error_fprintf(stderr, result.err);
-                break;
-            }
-
-            // Display buffer state with both cursor positions
-            len = snprintf(msg, sizeof(msg),
-                           "Buffer: '%s' | Byte: %zu, Grapheme: %zu\r\n",
-                           escaped, byte_offset, grapheme_offset);
-            if (write(term_ctx->tty_fd, msg, (size_t)len) < 0) {
-                // Ignore write errors in demo
             }
         }
     }
