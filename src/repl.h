@@ -1,13 +1,11 @@
 #pragma once
 
-#include "result.h"
+#include "error.h"
+#include "terminal.h"
+#include "render.h"
+#include "workspace.h"
+#include "input.h"
 #include <stdbool.h>
-
-// Forward declarations
-typedef struct ik_term_ctx_t ik_term_ctx_t;
-typedef struct ik_render_ctx_t ik_render_ctx_t;
-typedef struct ik_workspace_t ik_workspace_t;
-typedef struct ik_input_parser_t ik_input_parser_t;
 
 // REPL context structure
 typedef struct ik_repl_ctx_t {
