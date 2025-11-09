@@ -6,9 +6,9 @@
 
 **CRITICAL**: Do not make architectural changes unless explicitly requested.
 
-- Do NOT change implementation approaches
-- Do NOT refactor existing working code
-- Ask before making structural decisions
+- ASK before refactoring previously completed code.
+- Ask before making structural changes.
+- Ask before making architectural changes.
 
 Acceptable without asking:
 - Formatting with `make fmt`

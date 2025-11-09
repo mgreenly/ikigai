@@ -25,10 +25,10 @@ A terminal-based assistant that executes tools locally, remembers conversations 
 
 ## Codebase Structure
 
-- **Monorepo**: `src/` contains client code
+- **Source**: `src/` contians the source code
 - **Build target**: `bin/ikigai` (desktop client)
 - **Build system**: Make with comprehensive warnings, sanitizers, Valgrind, and coverage support - see [build-system.md](build-system.md)
-- **Testing**: Check framework with unit and integration tests; OOM injection via test seams
+- **Testing**: Check framework with unit and integration tests; OOM injection via test seams, exists in `tests/` folder.
 - **Standard**: C17 with K&R style (120-char width)
 
 ## Documentation Files
