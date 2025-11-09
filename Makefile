@@ -68,6 +68,7 @@ SERVER_STATIC_LIBS ?=
 
 COMPLEXITY_THRESHOLD = 15
 LINE_LENGTH = 120
+MAX_FILE_LINES = 500
 
 # Coverage settings
 COVERAGE_DIR = coverage
@@ -326,6 +327,24 @@ lint:
 	@echo "Checking complexity in tests/integration/*.c..."
 	@[ ! -d tests/integration ] || complexity --threshold=$(COMPLEXITY_THRESHOLD) tests/integration/*.c || [ $$? -eq 5 ]
 	@echo "✓ All complexity checks passed"
+	@echo "Checking file line counts (max: $(MAX_FILE_LINES))..."
+	@failed=0; \
+	for dir in src tests/unit tests/integration; do \
+		[ -d "$$dir" ] || continue; \
+		for file in $$dir/*.c $$dir/*.h; do \
+			[ -f "$$file" ] || continue; \
+			lines=$$(wc -l < "$$file"); \
+			if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
+				echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+				failed=1; \
+			fi; \
+		done; \
+	done; \
+	if [ $$failed -eq 1 ]; then \
+		echo "✗ Some files exceed $(MAX_FILE_LINES) line limit"; \
+		exit 1; \
+	fi
+	@echo "✓ All file line count checks passed"
 
 cloc:
 	@cloc src/ tests/ Makefile
