@@ -4,8 +4,11 @@ FROM archlinux:latest
 RUN echo -e "\n[core-debug]\nInclude = /etc/pacman.d/mirrorlist\n\n[extra-debug]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
 
 # Update system and install base development tools
-RUN pacman -Syu --noconfirm && \
-    pacman -S --noconfirm \
+# Refresh package database first
+RUN pacman -Sy --noconfirm
+
+# Install packages (without full system upgrade to avoid conflicts)
+RUN pacman -S --noconfirm --needed \
     base-devel \
     git \
     sudo \
@@ -16,7 +19,7 @@ RUN pacman -Syu --noconfirm && \
     curl \
     util-linux \
     libb64 \
-    utf8proc \
+    libutf8proc \
     lcov \
     valgrind \
     wget \
@@ -54,7 +57,7 @@ PACKAGES = \
 	curl \
 	util-linux \
 	libb64 \
-	utf8proc \
+	libutf8proc \
 	lcov \
 	valgrind \
 	git \
