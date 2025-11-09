@@ -501,27 +501,29 @@ Create cursor manager for tracking both byte and grapheme offsets.
 
 **Dependencies**: libutf8proc (for grapheme cluster detection)
 
-### Step 1: Cursor Structure and Creation
+### Step 1: Cursor Structure and Creation ✅ COMPLETE
 
-- [ ] Create `src/cursor.h` header
-- [ ] Define `ik_cursor_t` structure:
+- [x] Create `src/cursor.h` header
+- [x] Define `ik_cursor_t` structure:
   - `size_t byte_offset` - Byte position in UTF-8 string
   - `size_t grapheme_offset` - Grapheme cluster count from start
-- [ ] Add function declarations:
+- [x] Add function declarations:
   - `res_t ik_cursor_create(void *parent, ik_cursor_t **cursor_out)`
   - `res_t ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_len, size_t byte_offset)`
   - `res_t ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len)`
   - `res_t ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_len)`
   - `res_t ik_cursor_get_position(ik_cursor_t *cursor, size_t *byte_offset_out, size_t *grapheme_offset_out)`
-- [ ] Create `src/cursor.c` implementation
-- [ ] Implement `ik_cursor_create()`:
-  - Allocate cursor with talloc
+- [x] Create `src/cursor.c` implementation
+- [x] Implement `ik_cursor_create()`:
+  - Allocate cursor with talloc wrapper (for OOM testing)
   - Initialize both offsets to 0
-- [ ] Write test `test_cursor_create()` in `tests/unit/cursor_test.c`:
+- [x] Write test `test_cursor_create()` in `tests/unit/cursor_test.c`:
   - Create cursor, verify offsets are 0
-- [ ] Write test `test_cursor_create_oom()`:
+- [x] Write test `test_cursor_create_oom()`:
   - Test OOM scenario
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Write assertion tests for NULL parameters
+- [x] Update Makefile to include cursor.c
+- [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass with 100%
 
 ### Step 2: Set Cursor Position
 
