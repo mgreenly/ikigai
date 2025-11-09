@@ -461,6 +461,7 @@ PACKAGES ?= \
 	libcurl4-gnutls-dev \
 	uuid-dev \
 	libb64-dev \
+	libutf8proc-dev \
 	lcov \
 	valgrind
 

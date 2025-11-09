@@ -15,6 +15,7 @@ PACKAGES = \
 	libcurl-devel \
 	libuuid-devel \
 	libb64-devel \
+	utf8proc-devel \
 	valgrind \
 	git \
 	sudo \

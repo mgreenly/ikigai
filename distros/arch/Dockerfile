@@ -16,6 +16,7 @@ RUN pacman -Syu --noconfirm && \
     curl \
     util-linux \
     libb64 \
+    utf8proc \
     lcov \
     valgrind \
     wget \
@@ -53,6 +54,7 @@ PACKAGES = \
 	curl \
 	util-linux \
 	libb64 \
+	utf8proc \
 	lcov \
 	valgrind \
 	git \
