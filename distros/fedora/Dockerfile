@@ -16,6 +16,7 @@ PACKAGES = \
 	libuuid-devel \
 	libb64-devel \
 	utf8proc-devel \
+	libvterm-devel \
 	valgrind \
 	git \
 	sudo \

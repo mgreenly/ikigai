@@ -20,6 +20,7 @@ RUN pacman -S --noconfirm --needed \
     util-linux \
     libb64 \
     libutf8proc \
+    libvterm \
     lcov \
     valgrind \
     wget \
@@ -58,6 +59,7 @@ PACKAGES = \
 	util-linux \
 	libb64 \
 	libutf8proc \
+	libvterm \
 	lcov \
 	valgrind \
 	git \

@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     uuid-dev \
     libb64-dev \
     libutf8proc-dev \
+    libvterm-dev \
     lcov \
     valgrind \
     git \

@@ -14,6 +14,8 @@ BuildRequires:  jansson-devel
 BuildRequires:  libcurl-devel
 BuildRequires:  libuuid-devel
 BuildRequires:  libb64-devel
+BuildRequires:  utf8proc-devel
+BuildRequires:  libvterm-devel
 BuildRequires:  check-devel
 
 Requires:       libtalloc
@@ -21,6 +23,8 @@ Requires:       jansson
 Requires:       libcurl
 Requires:       libuuid
 Requires:       libb64
+Requires:       utf8proc
+Requires:       libvterm
 
 %description
 Ikigai provides both a client (ikigai) and server (ikigai-server)
