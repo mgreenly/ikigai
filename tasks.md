@@ -771,11 +771,11 @@ Create rendering module using libvterm.
 
 **Note**: Initial attempt included premature implementation (helper functions written before tests needed them). Reverted to stub following strict TDD principles. Full implementation will be done when client.c actually requires it.
 
-### Step 7: Demo in client.c - NOT STARTED
+### Step 7: Demo in client.c ✅ COMPLETE
 
-**Status**: Awaiting implementation.
+**Status**: Implementation complete with 100% test coverage. Basic rendering works, cursor positioning will be improved in Task 6.
 
-- [ ] Update `src/client.c` to demonstrate vterm rendering:
+- [x] Update `src/client.c` to demonstrate vterm rendering:
   - Add render context creation (use terminal dimensions)
   - On each input action:
     - Apply action to workspace
@@ -783,20 +783,29 @@ Create rendering module using libvterm.
     - Write workspace text to render context
     - Blit to screen
   - This creates a live-updating terminal display!
-- [ ] Implement `ik_render_blit()` fully (only when client.c needs it):
+- [x] Implement `ik_render_blit()` fully (only when client.c needs it):
   - Clear screen and move to home position
   - Read all cells from VTermScreen
   - Write cells to terminal
   - Position cursor from vterm state
-- [ ] Build and manually test:
+  - Added `encode_utf8()` helper function for UTF-8 encoding (1-4 byte sequences)
+  - Enabled UTF-8 mode in vterm with `vterm_set_utf8(vt, 1)`
+- [x] Build and manually test:
   - `make && ./bin/ikigai`
-  - Verify text appears as you type
-  - Verify cursor moves correctly
-  - Verify text wrapping works
-  - Verify UTF-8 and emoji support
-  - Press Ctrl+C to exit
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
-- [ ] Commit work
+  - Verify text appears as you type ✅
+  - Verify cursor moves correctly (basic - full cursor sync in Task 6)
+  - Verify text wrapping works ✅
+  - Verify UTF-8 and emoji support ✅
+  - Press Ctrl+C to exit ✅
+- [x] Run quality gates: `make check`, `make lint`, `make coverage`, `make check-dynamic` - all pass with 100%
+- [x] Commit work
+
+**Known Issues** (to be addressed in Task 6, Step 4):
+- Enter key doesn't move cursor to column 0 (newline behavior)
+- Visible cursor doesn't update with arrow key movements
+- Cursor position not synced between workspace and vterm before rendering
+
+**Solution**: Task 6, Step 4 will implement proper cursor position calculation from workspace cursor and set it in vterm before blitting.
 
 ---
 
