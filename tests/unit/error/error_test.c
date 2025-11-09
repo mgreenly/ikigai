@@ -1,7 +1,7 @@
 #include <check.h>
 #include <talloc.h>
-#include "../../src/error.h"
-#include "../test_utils.h"
+#include "../../../src/error.h"
+#include "../../test_utils.h"
 
 // Helper function that returns success
 static res_t helper_success(TALLOC_CTX *ctx)

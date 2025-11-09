@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-#include "../../src/logger.h"
+#include "../../../src/logger.h"
 
 // Helper: capture stdout to a buffer
 static char stdout_buffer[4096];

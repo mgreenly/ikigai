@@ -6,9 +6,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include "../../src/terminal.h"
-#include "../../src/error.h"
-#include "../test_utils.h"
+#include "../../../src/terminal.h"
+#include "../../../src/error.h"
+#include "../../test_utils.h"
 
 // Mock control state
 static int mock_open_fail = 0;

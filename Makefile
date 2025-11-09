@@ -84,7 +84,7 @@ SERVER_SOURCES = src/server.c src/error.c src/logger.c src/config.c src/wrapper.
 SERVER_OBJ = $(patsubst src/%.c,build/%.o,$(SERVER_SOURCES))
 SERVER_TARGET = bin/ikigai-server
 
-UNIT_TEST_SOURCES = $(wildcard tests/unit/*_test.c)
+UNIT_TEST_SOURCES = $(wildcard tests/unit/*/*_test.c)
 UNIT_TEST_TARGETS = $(patsubst tests/unit/%_test.c,build/tests/unit/%_test,$(UNIT_TEST_SOURCES))
 
 INTEGRATION_TEST_SOURCES = $(wildcard tests/integration/*_test.c)
@@ -118,10 +118,12 @@ $(SERVER_TARGET): $(SERVER_OBJ) | bin
 build/%.o: src/%.c | build
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-build/tests/unit/%_test.o: tests/unit/%_test.c | build/tests/unit
+build/tests/unit/%_test.o: tests/unit/%_test.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-build/tests/unit/%_test: build/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | build/tests/unit
+build/tests/unit/%_test: build/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ)
+	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread
 
 build/tests/integration/%_test.o: tests/integration/%_test.c | build/tests/integration
@@ -152,7 +154,7 @@ build/tests/integration: | build/tests
 # The '-' prefix means don't error if files don't exist yet
 -include $(wildcard build/*.d)
 -include $(wildcard build/tests/*.d)
--include $(wildcard build/tests/unit/*.d)
+-include $(wildcard build/tests/unit/*/*.d)
 -include $(wildcard build/tests/integration/*.d)
 
 clean:
@@ -315,30 +317,42 @@ dist:
 
 fmt:
 	@uncrustify -c .uncrustify.cfg --replace --no-backup src/*.c src/*.h
-	@[ ! -d tests/unit ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/unit/*.c
+	@find tests/unit -name "*.c" -exec uncrustify -c .uncrustify.cfg --replace --no-backup {} \;
 	@[ ! -d tests/integration ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/integration/*.c
 	@[ ! -f tests/test_utils.c ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/test_utils.c tests/test_utils.h
 
 lint:
 	@echo "Checking complexity in src/*.c..."
-	@complexity --threshold=$(COMPLEXITY_THRESHOLD) src/*.c || [ $$? -eq 5 ]
-	@echo "Checking complexity in tests/unit/*.c..."
-	@[ ! -d tests/unit ] || complexity --threshold=$(COMPLEXITY_THRESHOLD) tests/unit/*.c || [ $$? -eq 5 ]
+	@complexity --threshold=$(COMPLEXITY_THRESHOLD) src/*.c 2>&1 | grep -v "^No procedures were scored$$" || [ $$? -eq 1 ]
+	@echo "Checking complexity in tests/unit/*/*.c..."
+	@find tests/unit -name "*.c" -exec complexity --threshold=$(COMPLEXITY_THRESHOLD) {} \; 2>&1 | grep -v "^No procedures were scored$$" || [ $$? -eq 1 ]
 	@echo "Checking complexity in tests/integration/*.c..."
-	@[ ! -d tests/integration ] || complexity --threshold=$(COMPLEXITY_THRESHOLD) tests/integration/*.c || [ $$? -eq 5 ]
+	@[ ! -d tests/integration ] || complexity --threshold=$(COMPLEXITY_THRESHOLD) tests/integration/*.c 2>&1 | grep -v "^No procedures were scored$$" || [ $$? -eq 1 ]
 	@echo "✓ All complexity checks passed"
 	@echo "Checking file line counts (max: $(MAX_FILE_LINES))..."
 	@failed=0; \
-	for dir in src tests/unit tests/integration; do \
-		[ -d "$$dir" ] || continue; \
-		for file in $$dir/*.c $$dir/*.h; do \
-			[ -f "$$file" ] || continue; \
-			lines=$$(wc -l < "$$file"); \
-			if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
-				echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
-				failed=1; \
-			fi; \
-		done; \
+	for file in src/*.c src/*.h; do \
+		[ -f "$$file" ] || continue; \
+		lines=$$(wc -l < "$$file"); \
+		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
+			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+			failed=1; \
+		fi; \
+	done; \
+	for file in $$(find tests/unit -name "*.c"); do \
+		lines=$$(wc -l < "$$file"); \
+		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
+			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+			failed=1; \
+		fi; \
+	done; \
+	for file in tests/integration/*.c; do \
+		[ -f "$$file" ] || continue; \
+		lines=$$(wc -l < "$$file"); \
+		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
+			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+			failed=1; \
+		fi; \
 	done; \
 	if [ $$failed -eq 1 ]; then \
 		echo "✗ Some files exceed $(MAX_FILE_LINES) line limit"; \

@@ -6,8 +6,8 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../src/cursor.h"
-#include "../test_utils.h"
+#include "../../../src/cursor.h"
+#include "../../test_utils.h"
 
 // Test cursor creation
 START_TEST(test_cursor_create) {
