@@ -156,7 +156,6 @@ START_TEST(test_render_blit_empty)
 }
 
 END_TEST
-
 // Test: Blit with text content
 START_TEST(test_render_blit_with_text)
 {
@@ -179,7 +178,6 @@ START_TEST(test_render_blit_with_text)
 }
 
 END_TEST
-
 // Test: Blit with UTF-8 content
 START_TEST(test_render_blit_with_utf8)
 {
@@ -202,7 +200,6 @@ START_TEST(test_render_blit_with_utf8)
 }
 
 END_TEST
-
 // Test: Blit with newlines and multiple lines
 START_TEST(test_render_blit_multiline)
 {
