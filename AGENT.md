@@ -164,7 +164,7 @@ See [docs/naming.md](docs/naming.md) for complete conventions and approved abbre
 - `MAKE_JOBS=32` - up to 32 concurrent tests
 - `PARALLEL=1` - all 4 check-dynamic subtargets in parallel
 
-**For debug output** (serialize execution):
+**When you need clear debug output** (serialize execution):
 ```bash
 MAKE_JOBS=1 PARALLEL=0 make check
 MAKE_JOBS=1 make check-valgrind
@@ -181,7 +181,7 @@ make build/tests/unit/array/basic_test && ./build/tests/unit/array/basic_test
 
 - **Remote**: origin (github.com:mgreenly/ikigai.git)
 - **Primary branch**: main
-- **Upstream**: origin/main
+- **Upstream**: github/main
 
 **Commit Policy:**
 

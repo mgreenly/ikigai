@@ -755,55 +755,48 @@ Create rendering module using libvterm.
 
 ### Step 6: Blit vterm to Screen ✅ COMPLETE
 
-**Status**: Full implementation complete (completed in Step 7).
+**Status**: Stub implementation complete. Full implementation deferred to when actually needed.
 
-- [x] Implement `ik_render_blit()` stub (Step 6):
-  - Returns OK for now (TODO marker for full implementation)
+- [x] Implement `ik_render_blit()` stub:
+  - Returns OK with TODO marker
   - Accepts tty_fd parameter
-- [x] Write test `test_render_blit()`:
-  - Create render context
-  - Call blit with fake fd
-  - Verify no crashes
+- [x] Write tests for blit (multiple scenarios):
+  - Empty screen (all empty cells)
+  - Screen with text content
+  - Screen with UTF-8 content
+  - Screen with multiline text
 - [x] Update Makefile to include render.c in build
 - [x] Link with libvterm (-lvterm)
 - [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass
-- [x] Full blit implementation (completed in Step 7):
-  - Clear screen and move to home position
-  - Read all cells from VTermScreen
-  - Encode codepoints to UTF-8 and write to terminal
-  - Position cursor from vterm state
-  - Refactored into helper functions for maintainability
 
-### Step 7: Demo in client.c ✅ COMPLETE
+**Note**: Initial attempt included premature implementation (helper functions written before tests needed them). Reverted to stub following strict TDD principles. Full implementation will be done when client.c actually requires it.
 
-**Status**: Implementation complete with full vterm rendering integration.
+### Step 7: Demo in client.c - NOT STARTED
 
-- [x] Update `src/client.c` to demonstrate vterm rendering:
-  - Keep all previous components
+**Status**: Awaiting implementation.
+
+- [ ] Update `src/client.c` to demonstrate vterm rendering:
   - Add render context creation (use terminal dimensions)
   - On each input action:
     - Apply action to workspace
     - Clear render context
     - Write workspace text to render context
-    - Blit to screen (vterm handles cursor positioning automatically)
+    - Blit to screen
   - This creates a live-updating terminal display!
-- [x] Complete `ik_render_blit()` implementation:
+- [ ] Implement `ik_render_blit()` fully (only when client.c needs it):
   - Clear screen and move to home position
   - Read all cells from VTermScreen
-  - Encode codepoints to UTF-8
   - Write cells to terminal
   - Position cursor from vterm state
-- [x] Refactored for complexity:
-  - Extracted `encode_codepoint_to_utf8()` helper
-  - Extracted `write_cell()` helper
-  - Extracted `write_screen_cells()` helper
-  - Reduced main blit function complexity from 25 to under threshold
-- [x] Build and quality gates:
-  - `make check` passes (217 checks, 0 failures)
-  - `make lint` passes (all complexity checks pass)
-  - `make coverage` passes with 100% coverage
-  - `bin/ikigai` builds successfully
-- [x] Ready for manual testing with live vterm rendering
+- [ ] Build and manually test:
+  - `make && ./bin/ikigai`
+  - Verify text appears as you type
+  - Verify cursor moves correctly
+  - Verify text wrapping works
+  - Verify UTF-8 and emoji support
+  - Press Ctrl+C to exit
+- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [ ] Commit work
 
 ---
 
