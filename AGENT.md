@@ -21,19 +21,37 @@ When discussing improvements:
 
 ## Development Methodology
 
+**ABSOLUTE RULE: NEVER WRITE CODE BEFORE YOU HAVE A TEST THAT NEEDS IT**
+
 **Strict TDD (Test-Driven Development) Red/Green Cycle:**
 
 1. **Red**: Write a failing test first
    - Test should fail because the feature doesn't exist yet
    - Verify the test actually fails before proceeding
+   - **NO CODE exists until a test demands it**
 
 2. **Green**: Write minimal code to make the test pass
-   - Implement just enough to pass the test
-   - No extra features or premature optimization
+   - Implement **ONLY** what the test requires
+   - **STOP immediately** when the test passes
+   - No extra features, no helper functions, no premature optimization
+   - **DO NOT write code "because you'll need it later"**
+   - **DO NOT write helper functions before they're called by tested code**
+   - **DO NOT refactor for complexity until make lint actually fails**
 
 3. **Verify**: Run quality checks after each change
    - `make check` - All tests must pass
    - `make lint` - Code complexity must be under threshold
+
+**WARNING: Writing code before tests is wasteful:**
+- You burn tokens generating premature code
+- You burn tokens debugging coverage gaps
+- You burn tokens reverting the unnecessary code
+- You waste time and money
+- You violate the core methodology this project was built on
+
+**The test MUST come first. No exceptions. No "I thought I'd need it." No "It seemed like the right abstraction."**
+
+If you find yourself writing a helper function, **STOP** and ask: "Does a passing test call this function right now?" If no, **DELETE IT**.
 
 During the TDD cycle, use `make check` for fast feedback. Before committing, see **Pre-Commit Requirements** below.
 
