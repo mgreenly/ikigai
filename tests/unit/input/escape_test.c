@@ -320,6 +320,35 @@ START_TEST(test_input_parse_unrecognized_csi_sequence)
 }
 
 END_TEST
+// Test: unrecognized CSI sequence with middle range letter
+START_TEST(test_input_parse_unrecognized_csi_middle_letter)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse ESC [ E (complete but unrecognized arrow-like sequence)
+    // This tests a letter in the middle range, not at boundaries
+    res = ik_input_parse_byte(parser, 0x1B, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    res = ik_input_parse_byte(parser, '[', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    res = ik_input_parse_byte(parser, 'E', &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(!parser->in_escape); // Should reset - complete but unrecognized sequence
+
+    talloc_free(ctx);
+}
+
+END_TEST
 // Test: unrecognized single character escape
 START_TEST(test_input_parse_unrecognized_single_char_escape)
 {
@@ -380,6 +409,7 @@ static Suite *input_escape_suite(void)
     tcase_add_test(tc_core, test_input_parse_invalid_delete_like_sequence);
     tcase_add_test(tc_core, test_input_parse_escape_partial_at_boundary);
     tcase_add_test(tc_core, test_input_parse_unrecognized_csi_sequence);
+    tcase_add_test(tc_core, test_input_parse_unrecognized_csi_middle_letter);
     tcase_add_test(tc_core, test_input_parse_unrecognized_single_char_escape);
 
     suite_add_tcase(s, tc_core);
