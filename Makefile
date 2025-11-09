@@ -417,7 +417,8 @@ coverage:
 	@$(MAKE) clean
 	@find . -name "*.gcda" -o -name "*.gcno" -delete 2>/dev/null || true
 	@mkdir -p build/tests/unit build/tests/integration
-	@$(MAKE) check CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)"
+	@find tests/unit -type d | sed 's|tests/unit|build/tests/unit|' | xargs mkdir -p
+	@$(MAKE) -j$(MAKE_JOBS) check CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)"
 	@echo "Generating coverage report..."
 	@mkdir -p $(COVERAGE_DIR)
 	@lcov --capture --directory . --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated --quiet
