@@ -182,10 +182,10 @@
 
 ---
 
-## Task 2.5: Multi-line Cursor Movement
+## Task 2.5: Multi-line Cursor Movement ✅ COMPLETE
 
 ### 2.5.1: Write Test - Cursor Up (Basic)
-- [ ] Write test: `test_workspace_cursor_up_basic()` in `tests/unit/workspace/workspace_test.c`
+- [x] Write test: `test_workspace_cursor_up_basic()` in `tests/unit/workspace/cursor_movement_test.c`
   - Setup: workspace with "line1\nline2\nline3", cursor at start of line2
   - Action: call `ik_workspace_cursor_up(ws)`
   - Assert: cursor now on line1, same column position
@@ -286,6 +286,28 @@
 - [ ] Run: `make lint` (complexity checks pass)
 - [ ] Run: `make coverage` (100% coverage)
 - [ ] Check: no uncovered lines or branches
+
+### 2.5.14: Review and Reduce LCOV Exclusions
+- [ ] Review the 10 non-assert LCOV exclusions added in cursor movement implementation
+- [ ] Defensive NULL checks (4 exclusions):
+  - Line 360: `find_line_start()` - text NULL check (unreachable: cursor 0 returns first)
+  - Lines 383-384: `find_line_end()` - text NULL check (called only with valid text)
+  - Line 405: `count_graphemes()` - text NULL branch (called only with valid pointers)
+  - Line 453: `grapheme_to_byte_offset()` - text NULL branch (called only with valid pointers)
+- [ ] UTF-8 character handling (4 exclusions):
+  - Line 428: `count_graphemes()` - 4-byte UTF-8 else fallback
+  - Line 431: `count_graphemes()` - invalid UTF-8 fallback (unreachable with valid input)
+  - Line 470: `grapheme_to_byte_offset()` - 4-byte UTF-8 else fallback
+  - Line 473: `grapheme_to_byte_offset()` - invalid UTF-8 fallback
+- [ ] Provably unreachable code (2 exclusions):
+  - Line 418: `count_graphemes()` - loop invariant makes condition always true
+  - Lines 383-384: Already counted above
+- [ ] For each exclusion, determine if it can be eliminated by:
+  - Restructuring code to avoid defensive checks
+  - Adding explicit precondition checks in callers
+  - Using assert() instead of runtime checks for truly impossible conditions
+- [ ] Goal: Reduce exclusions where possible while maintaining code safety
+- [ ] Document decision for each exclusion that remains
 
 ---
 
