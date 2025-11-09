@@ -6,6 +6,7 @@
 #include "cursor.h"
 #include "wrapper.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <string.h>
 #include <talloc.h>
 #include <utf8proc.h>
@@ -113,6 +114,59 @@ res_t ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len
     // Move cursor to the last grapheme boundary before current position
     cursor->byte_offset = last_boundary_byte;
     cursor->grapheme_offset = grapheme_count > 0 ? grapheme_count - 1 : 0;  /* LCOV_EXCL_BR_LINE */
+
+    return OK(cursor);
+}
+
+res_t ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_len)
+{
+    assert(cursor != NULL);  /* LCOV_EXCL_BR_LINE */
+    assert(text != NULL);    /* LCOV_EXCL_BR_LINE */
+
+    // If cursor is at end, this is a no-op
+    if (cursor->byte_offset == text_len) {
+        return OK(cursor);
+    }
+
+    // Scan through text starting from current position to find next grapheme boundary
+    size_t pos = cursor->byte_offset;
+    utf8proc_int32_t prev_codepoint = -1;
+    bool found_next_boundary = false;
+    size_t next_boundary_byte = text_len;
+
+    while (pos < text_len) {
+        // Decode one codepoint
+        utf8proc_int32_t codepoint;
+        utf8proc_ssize_t bytes_read = utf8proc_iterate((const utf8proc_uint8_t *)(text + pos),
+                                                       (utf8proc_ssize_t)(text_len - pos),
+                                                       &codepoint);
+
+        if (bytes_read <= 0) {
+            // Invalid UTF-8
+            return ERR(cursor, INVALID_ARG, "Invalid UTF-8 in text");
+        }
+
+        pos += (size_t)bytes_read;
+
+        // Check if this starts a new grapheme cluster
+        if (prev_codepoint != -1 && utf8proc_grapheme_break(prev_codepoint, codepoint)) {
+            // We found the next grapheme boundary
+            next_boundary_byte = pos - (size_t)bytes_read;
+            found_next_boundary = true;
+            break;
+        }
+
+        prev_codepoint = codepoint;
+    }
+
+    // If we didn't find a grapheme break, the next boundary is at the end of text
+    if (!found_next_boundary) {
+        next_boundary_byte = pos;
+    }
+
+    // Move cursor to next grapheme boundary
+    cursor->byte_offset = next_boundary_byte;
+    cursor->grapheme_offset++;
 
     return OK(cursor);
 }
