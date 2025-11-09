@@ -357,7 +357,9 @@ res_t ik_workspace_get_cursor_position(ik_workspace_t *workspace, size_t *byte_o
  */
 static size_t find_line_start(const char *text, size_t cursor_pos)
 {
-    if (cursor_pos == 0 || text == NULL) { /* LCOV_EXCL_BR_LINE */
+    assert(text != NULL); /* LCOV_EXCL_BR_LINE */
+
+    if (cursor_pos == 0) {
         return 0;
     }
 
@@ -380,9 +382,7 @@ static size_t find_line_start(const char *text, size_t cursor_pos)
  */
 static size_t find_line_end(const char *text, size_t text_len, size_t cursor_pos)
 {
-    if (text == NULL) { /* LCOV_EXCL_BR_LINE */
-        return 0; /* LCOV_EXCL_LINE */
-    }
+    assert(text != NULL); /* LCOV_EXCL_BR_LINE */
 
     // Scan forward to find newline or end
     size_t pos = cursor_pos;
@@ -402,7 +402,9 @@ static size_t find_line_end(const char *text, size_t text_len, size_t cursor_pos
  */
 static size_t count_graphemes(const char *text, size_t len)
 {
-    if (text == NULL || len == 0) { /* LCOV_EXCL_BR_LINE */
+    assert(text != NULL); /* LCOV_EXCL_BR_LINE */
+
+    if (len == 0) {
         return 0;
     }
 
@@ -411,30 +413,23 @@ static size_t count_graphemes(const char *text, size_t len)
     size_t byte_pos = 0;
 
     while (byte_pos < len) {
-        // Find next grapheme boundary
-        size_t next_byte = byte_pos;
+        uint8_t first_byte = (uint8_t)text[byte_pos];
+        size_t char_len;
 
-        // Skip to next character
-        if (next_byte < len) { /* LCOV_EXCL_BR_LINE - defensive: next_byte == byte_pos < len by while condition */
-            uint8_t first_byte = (uint8_t)text[next_byte];
-            size_t char_len;
-
-            if ((first_byte & 0x80) == 0) {
-                char_len = 1; // ASCII
-            } else if ((first_byte & 0xE0) == 0xC0) {
-                char_len = 2;
-            } else if ((first_byte & 0xF0) == 0xE0) {
-                char_len = 3;
-            } else if ((first_byte & 0xF8) == 0xF0) { /* LCOV_EXCL_BR_LINE */
-                char_len = 4;
-            } else {
-                char_len = 1; // Invalid, treat as 1 byte /* LCOV_EXCL_LINE */
-            }
-
-            next_byte += char_len;
-            grapheme_count++;
-            byte_pos = next_byte;
+        if ((first_byte & 0x80) == 0) {
+            char_len = 1; // ASCII
+        } else if ((first_byte & 0xE0) == 0xC0) {
+            char_len = 2;
+        } else if ((first_byte & 0xF0) == 0xE0) {
+            char_len = 3;
+        } else if ((first_byte & 0xF8) == 0xF0) { /* LCOV_EXCL_BR_LINE */
+            char_len = 4;
+        } else {
+            char_len = 1; // Invalid, treat as 1 byte /* LCOV_EXCL_LINE */
         }
+
+        byte_pos += char_len;
+        grapheme_count++;
     }
 
     return grapheme_count;
@@ -450,7 +445,9 @@ static size_t count_graphemes(const char *text, size_t len)
  */
 static size_t grapheme_to_byte_offset(const char *text, size_t len, size_t target_grapheme)
 {
-    if (text == NULL || len == 0 || target_grapheme == 0) { /* LCOV_EXCL_BR_LINE */
+    assert(text != NULL); /* LCOV_EXCL_BR_LINE */
+
+    if (len == 0 || target_grapheme == 0) {
         return 0;
     }
 

@@ -312,6 +312,29 @@
 - [ ] Goal: Reduce exclusions where possible while maintaining code safety
 - [ ] Document decision for each exclusion that remains
 
+### 2.5.15: File Size Corrections
+- [x] **Problem**: File size warnings (MAX_FILE_LINES = 500)
+  - workspace.c: 575 lines (75 over)
+  - cursor_movement_test.c: 815 lines (315 over)
+  - cursor_up_down_test.c: 587 lines (87 over)
+  - repl_action_test.c: 580 lines (80 over)
+- [x] **Analysis**: Identified best split points for each file
+  - cursor_up_down_test.c → cursor_up_test.c + cursor_down_test.c (natural boundary at line 280)
+  - repl_action_test.c → text editing tests + navigation tests (by functionality)
+  - workspace.c → workspace.c + workspace_multiline.c (basic editing vs multi-line)
+- [x] **Split 1**: cursor_up_down_test.c (587 lines) → 2 files
+  - cursor_up_test.c: 319 lines (vertical up movement + 1 assertion)
+  - cursor_down_test.c: 306 lines (vertical down movement + 1 assertion)
+- [ ] **Split 2**: repl_action_test.c (580 lines) → 2 files (PLANNED)
+  - repl_text_editing_test.c: ~290 lines (char, newline, backspace, delete + edge cases)
+  - repl_navigation_test.c: ~290 lines (arrows, ctrl_c, unknown + edge cases + assertions)
+- [ ] **Split 3**: workspace.c (575 lines) → 2 files (PLANNED)
+  - workspace.c: ~337 lines (basic editing operations)
+  - workspace_multiline.c: ~238 lines (multi-line navigation helpers)
+- [ ] Update Makefile CLIENT_SOURCES for workspace_multiline.c
+- [ ] Verify tests pass and coverage maintained
+- [ ] **Commit**: File splits to address length warnings
+
 ---
 
 ## Task 2.6: Readline-Style Editing Shortcuts

@@ -1,10 +1,10 @@
 # ikigai Documentation Index
 
-This directory contains documentation primarily for AI agents working on the ikigai project, and secondarily for human developers.
+This documentation is primarily for AI agents and secondarily for humans.
 
 ## Project Overview
 
-**ikigai** is a desktop AI coding agent with persistent memory. Written in C.
+**ikigai** is a Linux focused desktop AI coding agent with persistent memory, written in "C".
 
 A terminal-based assistant that executes tools locally, remembers conversations in a database, and works with multiple LLM providers. Built for experimentation and iteration.
 
