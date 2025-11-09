@@ -79,6 +79,18 @@ static res_t process_action(ik_workspace_t *workspace,
             return result;
         }
         *should_display_out = true;
+    } else if (action->type == IK_INPUT_ARROW_LEFT) {
+        result = ik_workspace_cursor_left(workspace);
+        if (is_err(&result)) {
+            return result;
+        }
+        *should_display_out = true;
+    } else if (action->type == IK_INPUT_ARROW_RIGHT) {
+        result = ik_workspace_cursor_right(workspace);
+        if (is_err(&result)) {
+            return result;
+        }
+        *should_display_out = true;
     } else if (action->type == IK_INPUT_CTRL_C) {
         *should_exit_out = true;
     }
@@ -137,9 +149,10 @@ int main(void)
     // Display header
     char msg[1024];
     int len = snprintf(msg, sizeof(msg),
-                       "Workspace Demo\r\n"
+                       "Cursor Demo with Grapheme Support\r\n"
                        "Terminal dimensions: %d rows x %d columns\r\n"
-                       "Type text, use backspace/delete to edit. Press Ctrl+C to exit.\r\n\r\n",
+                       "Type text (try emoji like 🎉), use arrow keys to move cursor.\r\n"
+                       "Backspace/Delete to edit. Press Ctrl+C to exit.\r\n\r\n",
                        rows, cols);
     if (write(term_ctx->tty_fd, msg, (size_t)len) < 0) {
         // Ignore write errors in demo
@@ -187,13 +200,18 @@ int main(void)
             char escaped[512];
             escape_for_display(text, text_len, escaped, sizeof(escaped));
 
-            // Get cursor position
-            size_t cursor = workspace->cursor_byte_offset;
+            // Get cursor position (both byte and grapheme offsets)
+            size_t byte_offset, grapheme_offset;
+            result = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+            if (is_err(&result)) {
+                error_fprintf(stderr, result.err);
+                break;
+            }
 
-            // Display buffer state
+            // Display buffer state with both cursor positions
             len = snprintf(msg, sizeof(msg),
-                           "Buffer: '%s' | Cursor: %zu\r\n",
-                           escaped, cursor);
+                           "Buffer: '%s' | Byte: %zu, Grapheme: %zu\r\n",
+                           escaped, byte_offset, grapheme_offset);
             if (write(term_ctx->tty_fd, msg, (size_t)len) < 0) {
                 // Ignore write errors in demo
             }

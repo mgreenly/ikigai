@@ -493,13 +493,15 @@ Create text buffer for workspace using `ik_byte_array_t`.
 
 ---
 
-## Task 4: Cursor Management with Grapheme Cluster Support
+## Task 4: Cursor Management with Grapheme Cluster Support ✅ COMPLETE
 
 Create cursor manager for tracking both byte and grapheme offsets.
 
 **Files**: `src/cursor.h`, `src/cursor.c`, `tests/unit/cursor_test.c`
 
 **Dependencies**: libutf8proc (for grapheme cluster detection)
+
+**Status**: All steps complete with 100% test coverage. Cursor module integrated with workspace, demo working in client.c.
 
 ### Step 1: Cursor Structure and Creation ✅ COMPLETE
 
@@ -637,16 +639,16 @@ Create cursor manager for tracking both byte and grapheme offsets.
 - Updated OOM tests to account for cursor allocation
 - Maintained legacy `cursor_byte_offset` field for backward compatibility
 
-### Step 6: Demo in client.c
+### Step 6: Demo in client.c ✅ COMPLETE
 
-- [ ] Update `src/client.c` to demonstrate cursor with grapheme support:
+- [x] Update `src/client.c` to demonstrate cursor with grapheme support:
   - Keep previous components (terminal, input parser, workspace)
   - Add arrow key handling:
     - ARROW_LEFT → move cursor left (by grapheme)
     - ARROW_RIGHT → move cursor right (by grapheme)
   - Display both byte and grapheme positions
   - Example: "Buffer: 'a🎉b' | Byte: 5, Grapheme: 2"
-- [ ] Build and manually test:
+- [x] Build and manually test:
   - `make && ./ikigai`
   - Type text with emoji and UTF-8 characters
   - Use arrow keys to move cursor
@@ -654,7 +656,7 @@ Create cursor manager for tracking both byte and grapheme offsets.
   - Try combining characters (e + ´), verify treated as single unit
   - Insert text in middle, verify correct behavior
   - Press Ctrl+C to exit
-- [ ] Commit work: "Implement cursor management with grapheme cluster support"
+- [x] Commit work: "Demo cursor with grapheme support in client.c"
 
 ---
 
