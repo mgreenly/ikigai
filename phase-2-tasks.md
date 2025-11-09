@@ -189,46 +189,46 @@
   - Setup: workspace with "line1\nline2\nline3", cursor at start of line2
   - Action: call `ik_workspace_cursor_up(ws)`
   - Assert: cursor now on line1, same column position
-- [ ] **Red**: Verify test fails (function doesn't exist)
-- [ ] Run: `make build/tests/unit/workspace/workspace_test && ./build/tests/unit/workspace/workspace_test`
+- [x] **Red**: Verify test fails (function doesn't exist)
+- [x] Run: `make build/tests/unit/workspace/workspace_test && ./build/tests/unit/workspace/workspace_test`
 
 ### 2.5.2: Implement - Minimal Function Signatures
-- [ ] Add to `src/workspace.h`:
+- [x] Add to `src/workspace.h`:
   ```c
   res_t ik_workspace_cursor_up(ik_workspace_t *ws);
   res_t ik_workspace_cursor_down(ik_workspace_t *ws);
   ```
-- [ ] Add to `src/workspace.c`: stub implementations returning OK
-- [ ] **Green**: Verify test passes (but cursor doesn't actually move yet)
+- [x] Add to `src/workspace.c`: stub implementations returning OK
+- [x] **Green**: Verify test passes (but cursor doesn't actually move yet)
 
 ### 2.5.3: Design - Algorithm for Up/Down Movement
-- [ ] Document algorithm (in comments):
+- [x] Document algorithm (in comments):
   - Calculate current (row, col) from byte offset
   - For up: find start of previous line, position at same column (or line end)
   - For down: find start of next line, position at same column (or line end)
   - Track preferred column for vertical movement
-- [ ] Consider: need to add `preferred_column` to workspace or cursor structure?
-- [ ] Decision: check if cursor structure already tracks this
+- [x] Consider: need to add `preferred_column` to workspace or cursor structure?
+- [x] Decision: check if cursor structure already tracks this (decision: not needed, calculate on-demand)
 
 ### 2.5.4: Write Helper Tests - Find Line Boundaries
-- [ ] If needed, write tests for helper: `find_line_start(text, byte_offset)`
-- [ ] If needed, write tests for helper: `find_prev_line_start(text, byte_offset)`
-- [ ] If needed, write tests for helper: `find_next_line_start(text, byte_offset)`
-- [ ] **Red**: Tests fail
-- [ ] Implement helpers as static functions in workspace.c
-- [ ] **Green**: Helper tests pass
+- [x] If needed, write tests for helper: `find_line_start(text, byte_offset)` (via integration tests)
+- [x] If needed, write tests for helper: `find_prev_line_start(text, byte_offset)` (not needed, inline logic)
+- [x] If needed, write tests for helper: `find_next_line_start(text, byte_offset)` (not needed, inline logic)
+- [x] **Red**: Tests fail
+- [x] Implement helpers as static functions in workspace.c
+- [x] **Green**: Helper tests pass
 
 ### 2.5.5: Write Helper Tests - Calculate Row/Col from Offset
-- [ ] If needed, write tests for helper: `calculate_row_col(text, byte_offset, row_out, col_out)`
-- [ ] Test: handles \n correctly
-- [ ] Test: handles wrapped lines (long lines)
-- [ ] Test: handles UTF-8 multi-byte characters
-- [ ] **Red**: Tests fail
-- [ ] Implement helper
-- [ ] **Green**: Tests pass
+- [x] If needed, write tests for helper: `calculate_row_col(text, byte_offset, row_out, col_out)` (via integration tests)
+- [x] Test: handles \n correctly
+- [x] Test: handles wrapped lines (long lines) (deferred - rendering concern)
+- [x] Test: handles UTF-8 multi-byte characters
+- [x] **Red**: Tests fail
+- [x] Implement helper (count_graphemes, grapheme_to_byte_offset)
+- [x] **Green**: Tests pass
 
 ### 2.5.6: Implement - Cursor Up Logic
-- [ ] Implement `ik_workspace_cursor_up()`:
+- [x] Implement `ik_workspace_cursor_up()`:
   - Get current byte offset
   - Find current line start
   - If at first line, return OK (no-op)
@@ -236,56 +236,59 @@
   - Calculate column position on current line
   - Position cursor at same column on previous line (or line end)
   - Update cursor byte offset
-- [ ] **Green**: Verify test from 2.5.1 passes
+- [x] **Green**: Verify test from 2.5.1 passes
 
 ### 2.5.7: Write Tests - Cursor Up Edge Cases
-- [ ] Write test: `test_workspace_cursor_up_from_first_line()` (no-op)
-- [ ] Write test: `test_workspace_cursor_up_column_preservation()`
-- [ ] Write test: `test_workspace_cursor_up_shorter_line()` (cursor to line end)
-- [ ] Write test: `test_workspace_cursor_up_empty_line()`
-- [ ] Write test: `test_workspace_cursor_up_utf8()` (emoji, CJK)
-- [ ] **Green**: All tests pass
+- [x] Write test: `test_workspace_cursor_up_from_first_line()` (no-op)
+- [x] Write test: `test_workspace_cursor_up_column_preservation()`
+- [x] Write test: `test_workspace_cursor_up_shorter_line()` (cursor to line end)
+- [x] Write test: `test_workspace_cursor_up_empty_line()`
+- [x] Write test: `test_workspace_cursor_up_utf8()` (emoji, CJK)
+- [x] **Green**: All tests pass
 
 ### 2.5.8: Write Test - Cursor Down (Basic)
-- [ ] Write test: `test_workspace_cursor_down_basic()`
+- [x] Write test: `test_workspace_cursor_down_basic()`
   - Setup: workspace with "line1\nline2\nline3", cursor at start of line2
   - Action: call `ik_workspace_cursor_down(ws)`
   - Assert: cursor now on line3, same column position
-- [ ] **Red**: Test fails (not implemented yet)
+- [x] **Red**: Test fails (not implemented yet)
 
 ### 2.5.9: Implement - Cursor Down Logic
-- [ ] Implement `ik_workspace_cursor_down()`:
+- [x] Implement `ik_workspace_cursor_down()`:
   - Similar to cursor_up but move to next line
   - Handle last line (no-op)
-- [ ] **Green**: Test passes
+- [x] **Green**: Test passes
 
 ### 2.5.10: Write Tests - Cursor Down Edge Cases
-- [ ] Write test: `test_workspace_cursor_down_from_last_line()` (no-op)
-- [ ] Write test: `test_workspace_cursor_down_column_preservation()`
-- [ ] Write test: `test_workspace_cursor_down_shorter_line()`
-- [ ] Write test: `test_workspace_cursor_down_empty_line()`
-- [ ] Write test: `test_workspace_cursor_down_utf8()`
-- [ ] **Green**: All tests pass
+- [x] Write test: `test_workspace_cursor_down_from_last_line()` (no-op)
+- [x] Write test: `test_workspace_cursor_down_column_preservation()`
+- [x] Write test: `test_workspace_cursor_down_shorter_line()`
+- [x] Write test: `test_workspace_cursor_down_empty_line()`
+- [x] Write test: `test_workspace_cursor_down_utf8()`
+- [x] **Green**: All tests pass
 
 ### 2.5.11: Write Tests - Wrapped Lines (Future Consideration)
-- [ ] Write test: `test_workspace_cursor_up_wrapped_line()`
-- [ ] Write test: `test_workspace_cursor_down_wrapped_line()`
-- [ ] Note: Wrapping is a rendering concern, not workspace concern
-- [ ] Consider: Do we need terminal width in workspace for this?
-- [ ] Decision: Document and defer if complex (Phase 2 is workspace only)
+- [x] Write test: `test_workspace_cursor_up_wrapped_line()` (deferred)
+- [x] Write test: `test_workspace_cursor_down_wrapped_line()` (deferred)
+- [x] Note: Wrapping is a rendering concern, not workspace concern
+- [x] Consider: Do we need terminal width in workspace for this? (no)
+- [x] Decision: Document and defer if complex (Phase 2 is workspace only) - DEFERRED
 
 ### 2.5.12: Integrate - Add to Process Action
-- [ ] Add to `ik_repl_process_action()`:
+- [x] Add to `ik_repl_process_action()`:
   - `IK_INPUT_ARROW_UP` → `ik_workspace_cursor_up()`
   - `IK_INPUT_ARROW_DOWN` → `ik_workspace_cursor_down()`
-- [ ] Write integration test in repl_test.c
-- [ ] **Green**: Test passes
+- [x] Write integration test in repl_test.c (repl_action_test.c)
+- [x] **Green**: Test passes
 
 ### 2.5.13: Verify Task 2.5 Complete
-- [ ] Run: `make check` (all tests pass)
-- [ ] Run: `make lint` (complexity checks pass)
-- [ ] Run: `make coverage` (100% coverage)
-- [ ] Check: no uncovered lines or branches
+- [x] Run: `make check` (all tests pass)
+- [x] Run: `make lint` (complexity checks pass)
+- [x] Run: `make coverage` (100% coverage: 1165/1165 lines, 97/97 functions, 407/407 branches)
+- [x] Check: no uncovered lines or branches
+- [x] **Commit**: 672df9b "Implement REPL multi-line cursor movement (Phase 2 Task 2.5)"
+- [x] **Note**: File size warnings for workspace.c (575 lines), cursor_movement_test.c (815 lines), repl_action_test.c (580 lines)
+- [x] **Follow-up**: Split cursor_movement_test.c → cursor_left_right_test.c + cursor_up_down_test.c (commit 99f404c)
 
 ### 2.5.14: Review and Reduce LCOV Exclusions
 - [ ] Review the 10 non-assert LCOV exclusions added in cursor movement implementation
