@@ -171,3 +171,72 @@ res_t ik_workspace_backspace(ik_workspace_t *workspace)
 
     return OK(NULL);
 }
+
+/**
+ * @brief Find the end of the current UTF-8 character at the cursor
+ *
+ * @param data Text buffer
+ * @param data_len Length of text buffer
+ * @param cursor_pos Current cursor position
+ * @return Position of the end of the current UTF-8 character (one past last byte)
+ */
+static size_t find_next_char_end(const uint8_t *data, size_t data_len, size_t cursor_pos)
+{
+    /* If cursor at end, return same position */
+    if (cursor_pos >= data_len) { /* LCOV_EXCL_BR_LINE */
+        return cursor_pos; /* LCOV_EXCL_LINE - defensive: caller checks cursor < data_len */
+    }
+
+    /* Determine the length of the UTF-8 character at cursor_pos */
+    uint8_t first_byte = data[cursor_pos];
+    size_t char_len;
+
+    if ((first_byte & 0x80) == 0) {
+        /* ASCII: 0xxxxxxx */
+        char_len = 1;
+    } else if ((first_byte & 0xE0) == 0xC0) {
+        /* 2-byte: 110xxxxx */
+        char_len = 2;
+    } else if ((first_byte & 0xF0) == 0xE0) {
+        /* 3-byte: 1110xxxx */
+        char_len = 3;
+    } else if ((first_byte & 0xF8) == 0xF0) { /* LCOV_EXCL_BR_LINE */
+        /* 4-byte: 11110xxx */
+        char_len = 4;
+    } else {
+        /* LCOV_EXCL_START - Invalid UTF-8 lead byte - never occurs with valid input */
+        /* Invalid UTF-8 lead byte - treat as 1 byte */
+        char_len = 1;
+        /* LCOV_EXCL_STOP */
+    }
+
+    /* Return end position (clamped to data_len) */
+    size_t end_pos = cursor_pos + char_len;
+    return (end_pos > data_len) ? data_len : end_pos; /* LCOV_EXCL_BR_LINE - defensive: well-formed UTF-8 won't exceed buffer */
+}
+
+res_t ik_workspace_delete(ik_workspace_t *workspace)
+{
+    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+
+    size_t text_len = ik_byte_array_size(workspace->text);
+
+    /* If cursor is at end, this is a no-op */
+    if (workspace->cursor_byte_offset >= text_len) {
+        return OK(NULL);
+    }
+
+    /* Find the end of the current UTF-8 character */
+    const uint8_t *data = workspace->text->data;
+    size_t next_char_end = find_next_char_end(data, text_len, workspace->cursor_byte_offset);
+
+    /* Delete all bytes from cursor to next_char_end */
+    size_t num_bytes_to_delete = next_char_end - workspace->cursor_byte_offset;
+    for (size_t i = 0; i < num_bytes_to_delete; i++) {
+        ik_byte_array_delete(workspace->text, workspace->cursor_byte_offset);
+    }
+
+    /* Cursor stays at same position (deleted forward, not backward) */
+
+    return OK(NULL);
+}

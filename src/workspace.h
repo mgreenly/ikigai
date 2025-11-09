@@ -91,4 +91,16 @@ res_t ik_workspace_insert_newline(ik_workspace_t *workspace);
  */
 res_t ik_workspace_backspace(ik_workspace_t *workspace);
 
+/**
+ * @brief Delete the character after the cursor (delete key)
+ *
+ * Deletes the UTF-8 character at the cursor position.
+ * The cursor position stays the same.
+ * If cursor is at end of text, this is a no-op.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_delete(ik_workspace_t *workspace);
+
 #endif /* IKIGAI_WORKSPACE_H */
