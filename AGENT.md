@@ -1,14 +1,66 @@
 # Agent Notes
 
-- docs/README.md provides an overview of the project.
+docs/README.md provides an overview of the project.
 
-## Work Style
+## Core Principles
 
-**CRITICAL**: Do not make architectural changes unless explicitly requested.
+**1. Test-Driven Development (TDD)**
 
-- ASK before refactoring previously completed code.
-- Ask before making structural changes.
-- Ask before making architectural changes.
+**ABSOLUTE RULE: NEVER WRITE CODE BEFORE YOU HAVE A TEST THAT NEEDS IT**
+
+Follow strict Red/Green/Verify cycle:
+
+1. **Red**: Write a failing test first
+   - Verify the test actually fails
+   - NO CODE exists until a test demands it
+
+2. **Green**: Write minimal code to make the test pass
+   - Implement ONLY what the test requires
+   - STOP immediately when the test passes
+   - DO NOT write "helper functions" before they're called
+   - DO NOT write code "because you'll need it later"
+   - DO NOT refactor for complexity until `make lint` actually fails
+
+3. **Verify**: Run quality checks
+   - `make check` - All tests must pass
+   - `make lint` - Code complexity under threshold
+
+**WARNING**: Writing code before tests wastes tokens, time, and money by:
+- Generating premature code
+- Debugging unnecessary coverage gaps
+- Reverting unused code
+- Violating the core methodology
+
+**The test MUST come first. No exceptions.**
+
+If writing a helper function, ask: "Does a passing test call this right now?" If no, DELETE IT.
+
+**2. Zero Technical Debt**
+
+When you discover any problem, inconsistency, or standards violation:
+
+1. Fix it immediately - don't defer or document
+2. Fix it completely - address root cause, not symptoms
+3. Fix it systematically - search for similar issues elsewhere
+
+Examples requiring immediate fixes:
+- Missing assertions on function preconditions
+- Inconsistent naming conventions
+- Code violating error handling philosophy
+- Test coverage gaps
+- Code not following established patterns
+
+**When to ask first:**
+- Architectural changes
+- Unclear which solution is correct
+- Breaking changes to public APIs
+- Uncertainty about project conventions
+
+If you discover deficiencies in existing code while working nearby, fix them as part of your current work.
+
+**3. Work Style**
+
+**CRITICAL**: Do not make architectural, structural, or refactoring changes unless explicitly requested.
 
 Acceptable without asking:
 - Formatting with `make fmt`
@@ -19,184 +71,63 @@ When discussing improvements:
 - Present options and trade-offs
 - Wait for explicit approval before implementing
 
-## Development Methodology
+## Quality Standards
 
-**ABSOLUTE RULE: NEVER WRITE CODE BEFORE YOU HAVE A TEST THAT NEEDS IT**
+**Pre-Commit Requirements**
 
-**Strict TDD (Test-Driven Development) Red/Green Cycle:**
+BEFORE creating ANY commit (mandatory, no exceptions):
 
-1. **Red**: Write a failing test first
-   - Test should fail because the feature doesn't exist yet
-   - Verify the test actually fails before proceeding
-   - **NO CODE exists until a test demands it**
+1. `make fmt` - Format code
+2. `make check` - ALL tests pass (100%)
+3. `make lint` - ALL complexity/file size checks pass
+4. `make coverage` - ALL metrics (lines, functions, branches) at 100.0%
+5. `make check-dynamic` - ALL sanitizer checks pass (ASan, UBSan, TSan)
 
-2. **Green**: Write minimal code to make the test pass
-   - Implement **ONLY** what the test requires
-   - **STOP immediately** when the test passes
-   - No extra features, no helper functions, no premature optimization
-   - **DO NOT write code "because you'll need it later"**
-   - **DO NOT write helper functions before they're called by tested code**
-   - **DO NOT refactor for complexity until make lint actually fails**
+If ANY check fails: fix ALL issues, re-run ALL checks, repeat until everything passes.
 
-3. **Verify**: Run quality checks after each change
-   - `make check` - All tests must pass
-   - `make lint` - Code complexity must be under threshold
+**Never commit with ANY known issue - even "pre-existing" or "in another file".**
 
-**WARNING: Writing code before tests is wasteful:**
-- You burn tokens generating premature code
-- You burn tokens debugging coverage gaps
-- You burn tokens reverting the unnecessary code
-- You waste time and money
-- You violate the core methodology this project was built on
+**Coverage Requirements**
 
-**The test MUST come first. No exceptions. No "I thought I'd need it." No "It seemed like the right abstraction."**
+**CRITICAL: 100% coverage of Lines, Functions, and Branches for the ENTIRE codebase.**
 
-If you find yourself writing a helper function, **STOP** and ask: "Does a passing test call this function right now?" If no, **DELETE IT**.
-
-During the TDD cycle, use `make check` for fast feedback. Before committing, see **Pre-Commit Requirements** below.
-
-## Zero Technical Debt
-
-**Philosophy**: Write code to the best of your ability and correct deficiencies as soon as you become aware of them.
-
-This project operates with **zero tolerance for known technical debt**. When you discover a problem, inconsistency, or violation of project standards:
-
-1. **Fix it immediately** - Don't defer, document, or create TODO comments
-2. **Fix it completely** - Address the root cause, not just symptoms
-3. **Fix it systematically** - If the problem exists in one place, search for similar issues elsewhere
-
-**Examples of deficiencies to fix immediately:**
-- Code that violates error handling philosophy (defensive checks vs assertions)
-- Missing assertions on function preconditions
-- Inconsistent naming conventions
-- Functions missing NULL checks or bounds validation
-- Code that doesn't follow established patterns
-- Test coverage gaps discovered during development
-
-**Rationale:**
-- Known problems compound over time
-- Future code copies flawed patterns
-- "Later" rarely comes
-- Clean code is easier to modify
-- Quality erosion is insidious
-
-**When to pause and ask:**
-- Architectural changes (always ask first per Work Style)
-- Unclear which solution is correct
-- Fix requires breaking changes to public APIs
-- Uncertain about project conventions
-
-This applies to both new code and existing code. If you discover a deficiency in existing code while working nearby, fix it as part of your current work.
-
-**Example**: While adding assertions to new code, you notice existing functions lack assertions → add assertions to all functions in that module, not just the new ones.
-
-## Coverage Analysis
-
-**CRITICAL: The ENTIRE codebase must maintain 100% coverage of Lines, Functions, and Branches.**
-
-**NEVER commit unless `make coverage` shows 100.0% for all three metrics.**
-
-There are **NO exceptions** to this rule without first discussing it with the user.
-
-**The coverage requirement is ABSOLUTE:**
-- Not "100% of new code" - it's 100% of ALL code
-- Not "100% of the file you modified" - it's 100% of the ENTIRE codebase
-- Not "you can commit if you didn't break coverage" - ALL gaps must be fixed
+The requirement is ABSOLUTE:
+- 100% of ALL code, not just new code
 - A single uncovered line or branch in ANY file blocks ALL commits
+- Fix ALL gaps before committing
 
-**Before ANY commit:**
-1. Run `make coverage`
-2. Check the summary at the end: `lines.......`, `functions...`, `branches....` must ALL show 100.0%
-3. If ANY metric shows less than 100.0%, you MUST find and fix ALL coverage gaps
-4. Use `grep "^BRDA:" coverage/coverage.info | grep ",0$"` to find uncovered branches
-5. Use `grep "^DA:" coverage/coverage.info | grep ",0$"` to find uncovered lines
-6. Fix every single gap found - no exceptions for "pre-existing" or "other files"
-7. Re-run `make coverage` and verify 100.0% before proceeding
+Finding coverage gaps:
+- `grep "^DA:" coverage/coverage.info | grep ",0$"` - uncovered lines
+- `grep "^BRDA:" coverage/coverage.info | grep ",0$"` - uncovered branches
 
-When analyzing code coverage:
+Coverage files:
+- `coverage/coverage.info` - primary data source (parse with grep)
+- `coverage/summary.txt` - human-readable summary
+- Do NOT generate HTML reports (slow and unnecessary)
 
-- **Use `coverage/coverage.info`** as the primary source of coverage data
-  - Parse this file directly with `grep` to identify uncovered lines and branches
-  - Example: `grep "^DA:" coverage/coverage.info | grep ",0$"` for uncovered lines
-  - Example: `grep "^BRDA:" coverage/coverage.info | grep ",0$"` for uncovered branches
+Coverage exclusions (LCOV markers):
+- `LCOV_EXCL_START` / `LCOV_EXCL_STOP` - exclude blocks
+- `LCOV_EXCL_LINE` - exclude specific lines
+- `LCOV_EXCL_BR_LINE` - exclude branch coverage
 
-- **Use `coverage/summary.txt`** for human-readable summary output
-  - This is generated by `make coverage` and provides overview statistics
+**Never use exclusions without explicit user permission.**
 
-- **Do NOT generate HTML coverage reports** (`genhtml`)
-  - HTML generation is slow and unnecessary for analysis
-  - The lcov info file contains all needed information
-
-Coverage is built at **-O0** (no optimization) to ensure accurate branch coverage without compiler optimization artifacts.
-
-**Acceptable coverage exclusions** (must use LCOV markers):
-- `LCOV_EXCL_START` / `LCOV_EXCL_STOP` - Exclude entire blocks (e.g., weak symbols never called in tests)
-- `LCOV_EXCL_LINE` - Exclude specific lines that cannot be tested
-- `LCOV_EXCL_BR_LINE` - Exclude specific branch coverage (rarely needed at -O0)
-
-Never use exclusions without explicit user permission.
-
-**Coverage Philosophy:**
-
-Coverage gaps are learning opportunities. They show us where our design can improve. Don't silence the messenger—fix the design.
-
-Skipping coverage in our own code is never acceptable. It's only used for external dependencies.
-
-**You cannot commit ANY code - even if your new code has 100% coverage - if the overall codebase coverage is below 100%. Fix all gaps first.**
-
-## Git Configuration
-
-- **Remote**: origin (github.com:mgreenly/ikigai.git)
-- **Primary branch**: main
-- **Upstream**: origin/main
-
-## Pre-Commit Requirements
-
-**BEFORE creating ANY commit** (mandatory, no exceptions):
-
-1. Run `make fmt` first
-2. Run `make check` - ALL tests must pass (100% pass rate)
-3. Run `make lint` - ALL complexity checks must pass, ALL file line count checks must pass
-4. Run `make coverage` - ALL three metrics (lines, functions, branches) must be 100.0%
-5. Run `make check-dynamic` - ALL dynamic analysis checks must pass (AddressSanitizer, UndefinedBehaviorSanitizer, ThreadSanitizer)
-6. If ANY of these fail: fix ALL issues, re-run ALL checks, repeat until everything passes
-7. Only commit after ALL quality gates pass with zero deficiencies
-
-**There can be NO known deficiency of any kind before committing.**
-
-This means:
-- **100% test pass rate** - no failing tests
-- **100% coverage** - lines, functions, AND branches all at 100.0%
-- **Zero complexity violations** - all functions under threshold
-- **Zero file size violations** - all files under 500 lines
-- **Zero lint errors** - all code style checks pass
-- **Zero sanitizer violations** - no memory errors, undefined behavior, or data races
-
-**Never commit code with ANY known issue - even if it's "pre-existing" or "in another file".**
-
-**If you discover a deficiency during quality checks, you MUST fix it before committing, regardless of whether it's in your new code or existing code.**
-
-## Git Commit Policy
-
-Do NOT include attributions in commits:
-- No "Co-Authored-By: Claude <noreply@anthropic.com>"
-- No "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+Coverage philosophy: Gaps are learning opportunities showing where design can improve. Fix the design, don't silence the messenger.
 
 ## Code Style
 
-**Comments**:
-- Use `//` style comments only. Never use `/* ... */` style comments.
-- Use comments sparingly. Don't comment what the code does - comment why it does it or provide context that isn't obvious from the code itself.
+**Comments:**
+- Use `//` style only (never `/* ... */`)
+- Comment why, not what
+- Use sparingly
 
-**Numeric Types**:
-- **Always use `<inttypes.h>`** for all numeric type definitions and format specifiers
-- `<inttypes.h>` includes `<stdint.h>`, so you get both fixed-width types and printf/scanf macros
-- **Never use primitive types** (`int`, `long`, `unsigned`, etc.) - always use explicit sized types:
-  - `int8_t`, `int16_t`, `int32_t`, `int64_t` for signed integers
-  - `uint8_t`, `uint16_t`, `uint32_t`, `uint64_t` for unsigned integers
-  - `size_t` for sizes and counts (from `<stddef.h>`, also included by `<inttypes.h>`)
-- Use `PRId32`, `PRIu64`, etc. macros for printf format specifiers
-- Use `SCNd32`, `SCNu64`, etc. macros for scanf format specifiers
+**Numeric Types:**
+- Always use `<inttypes.h>` for numeric types and format specifiers
+- Never use primitive types (`int`, `long`, etc.)
+- Use explicit sized types: `int8_t`, `int16_t`, `int32_t`, `int64_t`, `uint8_t`, etc.
+- Use `size_t` for sizes and counts
+- Use `PRId32`, `PRIu64`, etc. for printf format specifiers
+- Use `SCNd32`, `SCNu64`, etc. for scanf format specifiers
 
 Example:
 ```c
@@ -207,43 +138,53 @@ uint64_t size = 1024;
 printf("Count: %" PRId32 ", Size: %" PRIu64 "\n", count, size);
 ```
 
+**Naming Conventions:**
+
+All public symbols follow: `ik_MODULE_THING`
+- `ik_` - namespace prefix
+- `MODULE` - single word (config, protocol, openai, handler)
+- `THING` - descriptive name with approved abbreviations
+
+Examples:
+- `ik_cfg_load()` - function
+- `ik_protocol_msg_t` - type
+- `ik_httpd_shutdown` - global variable
+
+Borrowed pointers use `_ref` suffix:
+- `cfg_ref` - caller owns
+- `manager_ref` - libulfius owns
+
+Internal static symbols don't need `ik_` prefix.
+
+See [docs/naming.md](docs/naming.md) for complete conventions and approved abbreviations.
+
 ## Test Execution
 
-**By default, all tests run in parallel** for maximum speed (configured via `.envrc`):
-- `MAKE_JOBS=32` - Runs up to 32 tests concurrently
-- `PARALLEL=1` - Runs all 4 check-dynamic subtargets (sanitize, valgrind, helgrind, tsan) in parallel
+**Default**: Tests run in parallel (configured via `.envrc`):
+- `MAKE_JOBS=32` - up to 32 concurrent tests
+- `PARALLEL=1` - all 4 check-dynamic subtargets in parallel
 
-**To see clear debug output** (serialize test execution):
+**For debug output** (serialize execution):
 ```bash
 MAKE_JOBS=1 PARALLEL=0 make check
-MAKE_JOBS=1 make check-valgrind  # Just one target, sequential tests
+MAKE_JOBS=1 make check-valgrind
 ```
 
-**Best practice:** Test individual files directly most of the time, only run full suite before commits.
+**Best practice**: Test individual files during development, run full suite before commits.
 
-Example of running a specific test:
+Example:
 ```bash
 make build/tests/unit/array/basic_test && ./build/tests/unit/array/basic_test
 ```
 
-## Naming Conventions
+## Git Configuration
 
-All public symbols (functions, types, globals) follow the pattern: `ik_MODULE_THING`
+- **Remote**: origin (github.com:mgreenly/ikigai.git)
+- **Primary branch**: main
+- **Upstream**: origin/main
 
-- `ik_` - Project namespace prefix
-- `MODULE` - Single word identifying the module (config, protocol, openai, handler, httpd)
-- `THING` - Descriptive name using approved abbreviations (load, msg_parse, stream_req)
+**Commit Policy:**
 
-Examples:
-- `ik_cfg_load()` - Function in config module
-- `ik_protocol_msg_t` - Type in protocol module
-- `ik_httpd_shutdown` - Global variable in httpd module
-- `ik_openai_stream_ctx_t` - Type in openai module
-
-Borrowed pointers use `_ref` suffix:
-- `cfg_ref` - Borrowed pointer to config (caller owns)
-- `manager_ref` - Borrowed pointer to manager (libulfius owns)
-
-Internal static symbols don't need the `ik_` prefix.
-
-**See [docs/naming.md](docs/naming.md) for complete naming conventions and approved abbreviations.**
+Do NOT include attributions:
+- No "Co-Authored-By: Claude <noreply@anthropic.com>"
+- No "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
