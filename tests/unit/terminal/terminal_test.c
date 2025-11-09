@@ -413,7 +413,6 @@ START_TEST(test_term_init_tcflush_fails)
 }
 
 END_TEST
-
 // Test: OOM scenarios
 START_TEST(test_term_init_oom)
 {

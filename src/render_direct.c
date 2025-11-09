@@ -1,0 +1,208 @@
+// Direct terminal rendering (no VTerm)
+#include "render_direct.h"
+#include "error.h"
+#include "wrapper.h"
+#include <assert.h>
+#include <inttypes.h>
+#include <talloc.h>
+#include <utf8proc.h>
+
+// Internal structure for cursor screen position
+typedef struct {
+    int32_t screen_row;
+    int32_t screen_col;
+} cursor_screen_pos_t;
+
+// Forward declaration for internal testing function
+res_t calculate_cursor_screen_position(void *ctx,
+                                       const char *text,
+                                       size_t text_len,
+                                       size_t cursor_byte_offset,
+                                       int32_t terminal_width,
+                                       cursor_screen_pos_t *pos_out);
+
+// Create render context
+res_t ik_render_direct_create(void *parent, int32_t rows, int32_t cols,
+                              int32_t tty_fd, ik_render_direct_ctx_t **ctx_out)
+{
+    assert(parent != NULL);  // LCOV_EXCL_BR_LINE
+    assert(ctx_out != NULL); // LCOV_EXCL_BR_LINE
+
+    // Validate dimensions
+    if (rows <= 0 || cols <= 0) {
+        return ERR(parent, INVALID_ARG, "Invalid terminal dimensions: rows=%" PRId32 ", cols=%" PRId32, rows, cols);
+    }
+
+    // Allocate context
+    ik_render_direct_ctx_t *ctx = ik_talloc_zero_wrapper(parent, sizeof(ik_render_direct_ctx_t));
+    if (!ctx) {
+        return ERR(parent, OOM, "Failed to allocate render_direct context");
+    }
+
+    // Initialize fields
+    ctx->rows = rows;
+    ctx->cols = cols;
+    ctx->tty_fd = tty_fd;
+
+    *ctx_out = ctx;
+    return OK(ctx);
+}
+
+// Calculate cursor screen position (row, col) from byte offset
+// Internal function for testing - calculates where cursor should appear on screen
+// accounting for UTF-8 character widths and line wrapping
+res_t calculate_cursor_screen_position(
+    void *ctx,
+    const char *text, size_t text_len,
+    size_t cursor_byte_offset,
+    int32_t terminal_width,
+    cursor_screen_pos_t *pos_out
+    )
+{
+    assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
+    assert(text != NULL);     // LCOV_EXCL_BR_LINE
+    assert(pos_out != NULL);  // LCOV_EXCL_BR_LINE
+
+    int32_t row = 0;
+    int32_t col = 0;
+    size_t pos = 0;
+
+    // Iterate through text up to cursor position
+    while (pos < cursor_byte_offset) {
+        // Handle newlines
+        if (text[pos] == '\n') {
+            row++;
+            col = 0;
+            pos++;
+            continue;
+        }
+
+        // Decode UTF-8 codepoint
+        utf8proc_int32_t cp;
+        utf8proc_ssize_t bytes = utf8proc_iterate(
+            (const utf8proc_uint8_t *)(text + pos),
+            (utf8proc_ssize_t)(text_len - pos),
+            &cp
+            );
+
+        if (bytes <= 0) {
+            return ERR(ctx, INVALID_ARG, "Invalid UTF-8 at byte offset %zu", pos);
+        }
+
+        // Get display width (accounts for wide chars like CJK, combining chars)
+        // Note: utf8proc_charwidth may return negative for control characters,
+        // but in practice this doesn't occur for valid displayable text
+        int32_t width = utf8proc_charwidth(cp);
+
+        // Check for line wrap
+        if (col + width > terminal_width) {
+            row++;
+            col = 0;
+        }
+
+        col += width;
+        pos += (size_t)bytes;
+    }
+
+    // If cursor is exactly at terminal width, wrap to next line
+    if (col == terminal_width) {
+        row++;
+        col = 0;
+    }
+
+    pos_out->screen_row = row;
+    pos_out->screen_col = col;
+    return OK(ctx);
+}
+
+// Render workspace to terminal (text + cursor positioning)
+res_t ik_render_direct_workspace(ik_render_direct_ctx_t *ctx,
+                                 const char *text, size_t text_len,
+                                 size_t cursor_byte_offset)
+{
+    assert(ctx != NULL);                          // LCOV_EXCL_BR_LINE
+    assert(text != NULL || text_len == 0);        // LCOV_EXCL_BR_LINE
+
+    // Calculate cursor screen position
+    cursor_screen_pos_t cursor_pos = {0};
+    res_t result;
+
+    // Handle empty text specially (cursor at home position)
+    if (text == NULL || text_len == 0) {
+        cursor_pos.screen_row = 0;
+        cursor_pos.screen_col = 0;
+    } else {
+        result = calculate_cursor_screen_position(ctx, text, text_len, cursor_byte_offset, ctx->cols, &cursor_pos);
+        if (is_err(&result)) {
+            return result;
+        }
+    }
+
+    // Count newlines to calculate buffer size (each \n becomes \r\n, adding 1 byte per newline)
+    size_t newline_count = 0;
+    for (size_t i = 0; i < text_len; i++) {
+        if (text[i] == '\n') {
+            newline_count++;
+        }
+    }
+
+    // Allocate framebuffer (~64KB should be enough for typical terminal content)
+    // Clear screen (4 bytes) + home escape (3 bytes) + text + newlines + cursor position escape (~15 bytes) + safety margin
+    size_t buffer_size = 7 + text_len + newline_count + 20;
+    char *framebuffer = ik_talloc_array_wrapper(ctx, sizeof(char), buffer_size);
+    if (!framebuffer) {
+        return ERR(ctx, OOM, "Failed to allocate framebuffer");
+    }
+
+    // Build framebuffer
+    size_t offset = 0;
+
+    // Add clear screen escape: \x1b[2J
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = 'J';
+
+    // Add home cursor escape: \x1b[H
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = 'H';
+
+    // Copy text, converting \n to \r\n for proper terminal display
+    if (text_len > 0) {
+        for (size_t i = 0; i < text_len; i++) {
+            if (text[i] == '\n') {
+                framebuffer[offset++] = '\r';
+                framebuffer[offset++] = '\n';
+            } else {
+                framebuffer[offset++] = text[i];
+            }
+        }
+    }
+
+    // Add cursor positioning escape: \x1b[<row+1>;<col+1>H
+    // Terminal coordinates are 1-based, our internal are 0-based
+    char *cursor_escape = ik_talloc_asprintf_wrapper(ctx, "\x1b[%" PRId32 ";%" PRId32 "H",
+                                                     cursor_pos.screen_row + 1,
+                                                     cursor_pos.screen_col + 1);
+    if (!cursor_escape) {
+        talloc_free(framebuffer);
+        return ERR(ctx, OOM, "Failed to allocate cursor escape string");
+    }
+
+    // Append cursor escape to framebuffer
+    for (size_t i = 0; cursor_escape[i] != '\0'; i++) {
+        framebuffer[offset++] = cursor_escape[i];
+    }
+    talloc_free(cursor_escape);
+
+    // Single write to terminal
+    ssize_t bytes_written = ik_write_wrapper(ctx->tty_fd, framebuffer, offset);
+    talloc_free(framebuffer);
+
+    if (bytes_written < 0) {
+        return ERR(ctx, IO, "Failed to write to terminal");
+    }
+
+    return OK(ctx);
+}

@@ -9,7 +9,7 @@
 #include "terminal.h"
 #include "input.h"
 #include "workspace.h"
-#include "render.h"
+#include "render_direct.h"
 #include "logger.h"
 
 // Process input action and apply to workspace
@@ -43,16 +43,11 @@ static res_t process_action(ik_workspace_t *workspace,
 }
 
 // Render the current workspace state to the screen
-static res_t render_frame(ik_render_ctx_t *render,
-                          ik_workspace_t *workspace,
-                          int32_t tty_fd)
+static res_t render_frame(ik_render_direct_ctx_t *render,
+                          ik_workspace_t *workspace)
 {
-    assert(render != NULL);
-    assert(workspace != NULL);
-    assert(tty_fd >= 0);
-
-    // Clear the render context
-    ik_render_clear(render);
+    assert(render != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
 
     // Get workspace text
     char *text = NULL;
@@ -62,16 +57,16 @@ static res_t render_frame(ik_render_ctx_t *render,
         return result;
     }
 
-    // Write text to render context (if not empty)
-    if (text_len > 0) {
-        result = ik_render_write_text(render, text, text_len);
-        if (is_err(&result)) {
-            return result;
-        }
+    // Get cursor byte offset
+    size_t cursor_byte_offset = 0;
+    size_t cursor_grapheme = 0;
+    result = ik_workspace_get_cursor_position(workspace, &cursor_byte_offset, &cursor_grapheme);
+    if (is_err(&result)) {
+        return result;
     }
 
-    // Blit to screen
-    return ik_render_blit(render, tty_fd);
+    // Render workspace with cursor
+    return ik_render_direct_workspace(render, text, text_len, cursor_byte_offset);
 }
 
 int main(void)
@@ -123,8 +118,9 @@ int main(void)
     }
 
     // Create render context
-    ik_render_ctx_t *render = NULL;
-    result = ik_render_create(root_ctx, rows, cols, &render);
+    ik_render_direct_ctx_t *render = NULL;
+    result = ik_render_direct_create(root_ctx, rows, cols,
+                                      term_ctx->tty_fd, &render);
     if (is_err(&result)) {
         error_fprintf(stderr, result.err);
         ik_term_cleanup(term_ctx);
@@ -133,7 +129,7 @@ int main(void)
     }
 
     // Initial render
-    result = render_frame(render, workspace, term_ctx->tty_fd);
+    result = render_frame(render, workspace);
     if (is_err(&result)) {
         error_fprintf(stderr, result.err);
         ik_term_cleanup(term_ctx);
@@ -171,7 +167,7 @@ int main(void)
 
         // Render frame (only if action was not UNKNOWN)
         if (action.type != IK_INPUT_UNKNOWN) {
-            result = render_frame(render, workspace, term_ctx->tty_fd);
+            result = render_frame(render, workspace);
             if (is_err(&result)) {
                 error_fprintf(stderr, result.err);
                 break;

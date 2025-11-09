@@ -1,431 +1,240 @@
-# REPL Terminal - Phase 2: Add Scrollback and Scrolling
+# REPL Terminal - Phase 2: Complete REPL Event Loop
 
 [← Back to REPL Terminal Overview](README.md)
 
-**Goal**: Implement the full continuous buffer model.
+**Goal**: Full interactive REPL with workspace only (no scrollback).
 
-Once Phase 1 validates the fundamentals, add the continuous buffer with scrollback.
+Complete the Phase 1 functionality from the original plan with direct rendering. Build working REPL event loop that validates all the fundamentals before adding scrollback complexity.
 
-## New features
+## Implementation Tasks
 
-1. Scrollback buffer (`ik_line_array_t`)
-2. Separator line
-3. Continuous buffer model (scrollback + separator + dynamic zone)
-4. Viewport scrolling (mouse wheel, Page Up/Down)
-5. Snap-back behavior (typing when scrolled up)
-6. Enter submits line to scrollback
-7. Dynamic zone scrolling (when taller than screen)
+### Task 1: Render Frame Helper
 
-## Split-Buffer REPL Terminal Design
+**Function**: `ik_repl_render_frame(ik_repl_ctx_t *repl)`
 
-**Goal**: A working REPL with scrollback buffer and dynamic input zone.
+**Logic**:
+1. Get workspace text and cursor position
+2. Call `ik_render_direct_workspace()` to render to terminal
+3. Error handling
 
-### Features
+**Test Coverage**:
+- Successful render
+- Render with empty workspace
+- Render with multi-line text
+- Render with cursor at various positions
+- Error handling (write failure)
 
-1. **Alternate Screen Mode**
-   - App uses alternate screen buffer on launch
-   - Clean terminal on exit (no history pollution)
+### Task 2: Process Input Action Helper
 
-2. **Split Buffer Layout**
-   ```
-   [scrollback line 1 - oldest]
-   [scrollback line 2]
-   [scrollback line 3]
-   ...
-   [scrollback line N - most recent]
-   ─────────────────────────────────
-   > user input here█
-   ```
-   - **Scrollback zone** (top): Immutable conversation history
-   - **ASCII separator**: Visual boundary (e.g., `─────────`)
-   - **Dynamic zone** (bottom): Editable prompt line
+**Function**: `ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action)`
 
-3. **REPL Behavior**
-   - Type text in prompt
-   - Press Enter → text moves to scrollback buffer
-   - New empty prompt appears in dynamic zone
+**Action Processing**:
+- `IK_INPUT_CHAR` → `ik_workspace_insert_codepoint()`
+- `IK_INPUT_NEWLINE` → `ik_workspace_insert_newline()`
+- `IK_INPUT_BACKSPACE` → `ik_workspace_backspace()`
+- `IK_INPUT_DELETE` → `ik_workspace_delete()`
+- `IK_INPUT_ARROW_LEFT` → `ik_workspace_cursor_left()`
+- `IK_INPUT_ARROW_RIGHT` → `ik_workspace_cursor_right()`
+- `IK_INPUT_ARROW_UP` → `ik_workspace_cursor_up()` (added in Task 2.5)
+- `IK_INPUT_ARROW_DOWN` → `ik_workspace_cursor_down()` (added in Task 2.5)
+- `IK_INPUT_CTRL_A` → `ik_workspace_cursor_to_line_start()` (added in Task 2.6)
+- `IK_INPUT_CTRL_E` → `ik_workspace_cursor_to_line_end()` (added in Task 2.6)
+- `IK_INPUT_CTRL_K` → `ik_workspace_kill_to_line_end()` (added in Task 2.6)
+- `IK_INPUT_CTRL_U` → `ik_workspace_kill_line()` (added in Task 2.6)
+- `IK_INPUT_CTRL_W` → `ik_workspace_delete_word_backward()` (added in Task 2.6)
+- `IK_INPUT_CTRL_C` → set quit flag
 
-4. **Scrolling**
-   - **Mouse wheel**: Scroll up/down through buffer
-   - **Page Up/Down**: Scroll by larger increments (e.g., screen height)
-   - **Bounds**:
-     - Can't scroll above first/oldest line
-     - Can't scroll past bottom (last line of dynamic zone)
-   - **Dynamic zone behavior**:
-     - As you scroll up, dynamic zone disappears off bottom line-by-line
-     - Can scroll to any position where dynamic zone is partially or fully visible
-     - Separator line scrolls with dynamic zone (not fixed)
+**Test Coverage**:
+- Each action type
+- Edge cases (backspace at start, delete at end, etc.)
+- Quit flag setting
 
-5. **Config Integration**
-   - Load config via existing `ik_cfg_load()`
-   - Initial config only needs basic settings (API key path for later)
+### Task 2.5: Multi-line Cursor Movement
 
-### Architecture
+**Goal**: Enable up/down arrow keys for cursor movement within multi-line workspace.
 
-**Mental Model**: The terminal is a viewport into one continuous buffer:
+**Add to** `src/input.h`:
+- Input actions already exist: `IK_INPUT_ARROW_UP`, `IK_INPUT_ARROW_DOWN`
+- No changes needed to input module
 
-```
-┌─────────────────────────────────────┐
-│  Terminal Screen (80x24 viewport)   │
-│                                      │
-│  ╔═══════════════════════════════╗  │
-│  ║ Scrollback line 500           ║  │ ← Viewport showing
-│  ║ Scrollback line 501           ║  │   lines 500-523 of
-│  ║ ...                           ║  │   continuous buffer
-│  ║ Scrollback line 520           ║  │
-│  ║ ───────────────────────────── ║  │ ← Separator (part of buffer)
-│  ║ Dynamic zone line 1           ║  │
-│  ║ Dynamic zone line 2           ║  │ ← Multi-line input area
-│  ║ Dynamic zone line 3█          ║  │   (variable height)
-│  ╚═══════════════════════════════╝  │
-└─────────────────────────────────────┘
-
-        Continuous Buffer:
-        [scrollback lines...]
-        [separator line]
-        [dynamic zone lines...]
-```
-
-**Key behaviors**:
-- One continuous buffer: scrollback + separator + dynamic zone
-- Viewport scrolls through this buffer via mouse wheel or Page Up/Down
-- Dynamic zone height varies based on text content (wrapping)
-- As you scroll up, dynamic zone + separator disappear off bottom line-by-line
-- Cursor always positioned within dynamic zone (even when scrolled off-screen)
-- When you type with cursor off-screen, viewport snaps to show cursor at bottom
-
-**Implementation Strategy**: Use libvterm for ALL rendering (one coherent system), but maintain our own scrollback buffer for control.
-
-### What This Validates
-
-- Alternate screen terminal behavior
-- vterm as unified rendering system
-- Continuous buffer model (scrollback + separator + dynamic zone)
-- Viewport scrolling through variable-height content
-- Multi-line dynamic zone with cursor movement
-- Snap-back behavior when typing while scrolled
-- Mouse wheel and Page Up/Down scrolling
-- Scroll bounds with partially visible dynamic zone
-- Memory management patterns for dynamic buffers
-- Single-write blit pattern (no flicker)
-- Foundation for adding streaming AI responses
-
----
-
-## Implementation Details
-
-### Input Flow
-
-All keyboard and mouse input flows through the terminal emulator (Ghostty/Kitty):
-- Terminal receives OS-level events
-- Encodes them as byte sequences (regular chars or escape sequences)
-- Writes to app's stdin
-- App reads in raw mode and processes
-
-### Progressive Input Implementation
-
-1. **Initial REPL** - Basic reliable keys only:
-   - Regular typing (letters, numbers, punctuation)
-   - Enter (submit line to scrollback)
-   - Backspace (delete character)
-   - Arrow keys (cursor movement within dynamic zone)
-     - Left/Right: move horizontally within line
-     - Up/Down: move vertically between lines in dynamic zone
-     - Up at top of dynamic zone: no-op
-     - Down at bottom: no-op
-
-2. **Before completing current work** - Add scrolling:
-   - Mouse wheel scrolling:
-     - Enable mouse tracking mode (`\x1b[?1000h` + `\x1b[?1006h`)
-     - Parse mouse wheel events from escape sequences
-     - Adjust scroll position and re-render
-   - Page Up/Down: scroll by larger increments
-
-3. **Future enhancement** - Kitty keyboard protocol:
-   - Unambiguous encoding for all key combos
-   - Distinguishes ESC vs Alt
-   - Optional, with graceful fallback
-
-### Cursor Management
-
-Two distinct cursor concepts:
-
-1. **Logical cursor** - Position in dynamic zone text
-   - Tracked with dual representation for efficiency:
-     - `cursor_byte_offset` - Byte position in UTF-8 string (for text operations)
-     - `cursor_grapheme_offset` - Grapheme cluster count (for movement)
-   - Updated by editing operations (insert, backspace, arrow keys)
-   - Arrow left/right: move by one grapheme cluster
-     - Use libutf8proc to find grapheme boundaries
-     - Update both byte and grapheme offsets
-   - Arrow up/down: move vertically between wrapped lines
-     - Calculate which wrapped line cursor is on
-     - Move to previous/next wrapped line, preserve horizontal position
-
-2. **Screen cursor** - Visual position on terminal
-   - Managed by vterm during rendering
-   - Calculated from scroll position + layout + logical cursor
-   - May be off-screen when scrolled up viewing history
-
-### Snap-back behavior
-
-- When typing any key (including Enter) while cursor is off-screen
-- Viewport scrolls to position cursor line at bottom of screen
-- Ensures user can see what they're typing
-- Happens before processing the keystroke
-
-### Scrollback Line Format
-
-Variable-length logical lines (NOT fixed-width grid):
-- Each line stores semantic content: "user: hello" or "ai: long response..."
-- Lines can be any length (UTF-8 strings)
-- Render module handles wrapping to current terminal width
-- **Terminal resize**: Just re-render with new dimensions, no buffer modification needed
-- Simpler than fixed-width approach (no reflow logic required)
-
-### Line Processing Pipeline
-
-When user presses Enter, the line dispatcher examines the input and decides action:
-
-1. **Very first draft** - Simple flow:
-   - All entered lines → append to scrollback buffer
-   - Ctrl+C → exit program (simplest escape hatch)
-
-2. **Later in current work** - Add command processor:
-   - Lines starting with `/` → dispatch to command handler
-   - `/exit` → cleanup and exit program (doesn't go to scrollback)
-   - Regular lines (not starting with `/`) → append to scrollback buffer
-   - Leaves room for future commands: `/clear`, `/help`, etc.
-
-3. **Future (with AI integration)** - Enhanced dispatcher:
-   - `/ask <question>` → send to AI, wait for response, append to scrollback
-   - Regular lines → context for AI conversation
-   - Commands → special actions
-
-**Dispatcher responsibilities**:
-- Parse line to determine type (command vs regular text)
-- Route to appropriate handler (command processor, buffer append, AI sender)
-- Return action to main loop (continue, exit, etc.)
-
-### Module Organization
-
-- **repl module** - Main context, owns all data structures, provides init/cleanup/run
-- **terminal module** - Raw mode, alternate screen, termios state
-- **buffer module** - Scrollback buffer and input buffer management
-- **render module** - vterm ownership, compose and blit operations
-- **input module** - Process raw byte sequences, dispatch to buffer/render
-- **expandable array utility** - Generic reusable array (for scrollback and future needs)
-
-### Memory Strategy
-
-- Use talloc for all allocations (consistent with existing codebase)
-- Main context owns everything via talloc hierarchy
-- Cleanup is automatic with talloc_free()
-- Expandable arrays use talloc_realloc() for growth
-
-### Data Structures
-
+**Add to** `src/workspace.h`:
 ```c
-typedef struct {
-    // Real terminal state
-    int tty_fd;
-    struct termios orig_termios;
+// Move cursor up one line (within workspace)
+res_t ik_workspace_cursor_up(ik_workspace_t *ws);
 
-    // Scrollback buffer (manual management)
-    char **scrollback;           // talloc array of strings (1000s of lines)
-    size_t scrollback_count;     // Total lines in buffer
-    size_t scroll_line_offset;   // Lines scrolled up from bottom (0 = at bottom)
-
-    // Dynamic zone (current input - multi-line)
-    char *dynamic_text;          // Current text being edited (UTF-8 bytes, may contain newlines)
-    size_t cursor_byte_offset;   // Byte position in dynamic_text (for insertion/deletion)
-    size_t cursor_grapheme_offset; // Grapheme cluster count from start (for arrow key movement)
-    size_t dynamic_scroll_offset; // Internal scroll offset within dynamic zone (if taller than screen)
-
-    // vterm for rendering entire screen
-    VTerm *vterm;                // Full screen size (cols x rows)
-    VTermScreen *vscreen;
-
-    // Screen dimensions
-    int screen_rows;             // e.g., 24
-    int screen_cols;             // e.g., 80
-} ik_term_ctx_t;
+// Move cursor down one line (within workspace)
+res_t ik_workspace_cursor_down(ik_workspace_t *ws);
 ```
 
-### Rendering Pipeline
+**Implementation Logic**:
+- Track cursor as (byte_offset, grapheme_offset) - existing
+- Need to calculate current (row, col) position from cursor
+- Up: Find start of previous line, move cursor to same column (or end if line shorter)
+- Down: Find start of next line, move cursor to same column (or end if line shorter)
+- Handle newlines and wrapped lines correctly
+- Remember preferred column when moving vertically
 
-**Compose → Blit → Display**
+**Test Coverage**:
+- Move up/down in multi-line text
+- Move up from first line (no-op)
+- Move down from last line (no-op)
+- Column preservation when moving through lines of different lengths
+- Movement through wrapped lines
+- Movement through UTF-8 text (emoji, CJK)
+- Edge cases: empty lines, cursor at start/end
 
+### Task 2.6: Readline-Style Editing Shortcuts
+
+**Goal**: Add common readline-style keyboard shortcuts for efficient editing.
+
+**Add to** `src/input.h`:
 ```c
-void render_frame(ik_term_ctx_t *ctx) {
-    // 1. COMPOSE: Build what should be visible in vterm
-    vterm_screen_reset(ctx->vscreen, 1);  // Clear vterm
+typedef enum {
+    // ... existing actions ...
+    IK_INPUT_CTRL_A,      // Move to beginning of line
+    IK_INPUT_CTRL_E,      // Move to end of line
+    IK_INPUT_CTRL_K,      // Kill to end of line
+    IK_INPUT_CTRL_U,      // Kill entire line
+    IK_INPUT_CTRL_W,      // Delete word backward
+} ik_input_action_type_t;
+```
 
-    // Calculate total buffer height (lines that could be rendered)
-    size_t dynamic_lines = count_wrapped_lines(ctx->dynamic_text, ctx->screen_cols);
-    size_t total_buffer_lines = ctx->scrollback_count + 1 + dynamic_lines; // +1 for separator
+**Update** `src/input.c`:
+- Parse Ctrl+A, Ctrl+E, Ctrl+K, Ctrl+U, Ctrl+W
+- Return appropriate action types
 
-    // Determine which line range to show based on scroll_line_offset
-    // When scroll_line_offset == 0, we show the bottom of the buffer
-    size_t view_end = total_buffer_lines - ctx->scroll_line_offset;
-    size_t view_start = (view_end > ctx->screen_rows) ? view_end - ctx->screen_rows : 0;
+**Add to** `src/workspace.h`:
+```c
+// Move cursor to beginning of current line
+res_t ik_workspace_cursor_to_line_start(ik_workspace_t *ws);
 
-    // Render visible portion of continuous buffer
-    size_t current_line = view_start;
-    size_t vterm_row = 0;
+// Move cursor to end of current line
+res_t ik_workspace_cursor_to_line_end(ik_workspace_t *ws);
 
-    // Render scrollback lines (if visible)
-    while (current_line < ctx->scrollback_count && vterm_row < ctx->screen_rows) {
-        if (current_line >= view_start) {
-            vterm_input_write(ctx->vterm, ctx->scrollback[current_line],
-                             strlen(ctx->scrollback[current_line]));
-            vterm_input_write(ctx->vterm, "\n", 1);
-            vterm_row++;
-        }
-        current_line++;
+// Delete from cursor to end of current line
+res_t ik_workspace_kill_to_line_end(ik_workspace_t *ws);
+
+// Delete entire current line
+res_t ik_workspace_kill_line(ik_workspace_t *ws);
+
+// Delete word backward from cursor
+res_t ik_workspace_delete_word_backward(ik_workspace_t *ws);
+```
+
+**Implementation Logic**:
+- Line start/end: Find previous/next newline, position cursor
+- Kill to end: Delete from cursor to next newline (or end of text)
+- Kill line: Delete entire line (from start to newline)
+- Delete word backward: Scan back to find word boundary (whitespace/punctuation), delete
+- All operations must be UTF-8 aware
+
+**Test Coverage**:
+- Each function with various cursor positions
+- Edge cases: cursor at start/end, empty lines
+- Multi-line text handling
+- UTF-8 word boundaries
+- Combination of operations
+
+### Task 3: Main Event Loop
+
+**Function**: `ik_repl_run(ik_repl_ctx_t *repl)`
+
+**Logic**:
+1. Initial render
+2. Main loop:
+   - Read bytes from terminal
+   - Parse bytes into actions
+   - Process each action
+   - Re-render frame
+   - Check quit flag
+3. Return OK or error
+
+**Test Coverage**:
+- Full event loop with mocked TTY input
+- Multiple keystrokes in sequence
+- Exit via Ctrl+C
+- Error handling (read failure, render failure)
+
+### Task 4: Main Entry Point
+
+**Update** `src/main.c`:
+```c
+int main(void) {
+    ik_repl_ctx_t *repl = NULL;
+    res_t result = ik_repl_init(NULL, &repl);
+    if (is_err(&result)) {
+        fprintf(stderr, "Failed to initialize REPL\n");
+        return 1;
     }
 
-    // Render separator line (if visible)
-    if (current_line == ctx->scrollback_count && vterm_row < ctx->screen_rows) {
-        vterm_input_write(ctx->vterm, "─────────────\n", ...);
-        vterm_row++;
-        current_line++;
-    }
+    result = ik_repl_run(repl);
+    ik_repl_cleanup(repl);
 
-    // Render dynamic zone lines (if visible)
-    if (current_line > ctx->scrollback_count && vterm_row < ctx->screen_rows) {
-        size_t dynamic_start_line = current_line - ctx->scrollback_count - 1;
-        render_dynamic_zone_portion(ctx, dynamic_start_line,
-                                   ctx->screen_rows - vterm_row);
-    }
-
-    // 2. BLIT: Copy vterm cells to real terminal (single write)
-    blit_vterm_to_screen(ctx);
-}
-
-void blit_vterm_to_screen(ik_term_ctx_t *ctx) {
-    // Build entire frame in memory buffer
-    char *framebuf = talloc_array(NULL, char, ctx->screen_rows * ctx->screen_cols * 4);
-    size_t pos = 0;
-
-    // Home cursor (NO clear - just overwrite)
-    pos += sprintf(framebuf + pos, "\033[H");
-
-    // Copy all vterm cells
-    for (int row = 0; row < ctx->screen_rows; row++) {
-        for (int col = 0; col < ctx->screen_cols; col++) {
-            VTermScreenCell cell;
-            vterm_screen_get_cell(ctx->vscreen, (VTermPos){row, col}, &cell);
-            pos += encode_utf8(cell.chars[0], framebuf + pos);
-        }
-        framebuf[pos++] = '\n';
-    }
-
-    // Position cursor
-    VTermPos cursorpos;
-    vterm_state_get_cursorpos(vterm_obtain_state(ctx->vterm), &cursorpos);
-    pos += sprintf(framebuf + pos, "\033[%d;%dH", cursorpos.row + 1, cursorpos.col + 1);
-
-    // Single write to terminal (no flicker)
-    write(STDOUT_FILENO, framebuf, pos);
-
-    talloc_free(framebuf);
+    return is_ok(&result) ? 0 : 1;
 }
 ```
 
-**Performance characteristics**:
-- No screen clear needed (just overwrite cells)
-- Single `write()` syscall (no flicker)
-- ~2-3ms per frame for 80x24 screen
-- Smooth at even 30fps (33ms budget)
+**Rename**: `src/client.c` → `src/main.c` (if not already done)
 
-### Implementation Components
+### Task 5: Manual Testing and Polish
 
-**New modules/files**:
-- `src/client/terminal.c` - Terminal initialization, raw mode, alternate screen
-- `src/client/render.c` - Rendering pipeline (compose + blit)
-- `src/client/input.c` - Input handling (keys, mouse, scrolling)
-- `src/client/buffer.c` - Scrollback buffer management
-- `src/client/main.c` - Client entry point and main loop
+**Manual Testing Checklist** (run `./ikigai`):
+- [ ] Launch and basic operation
+- [ ] UTF-8 handling (emoji, combining chars, CJK)
+- [ ] Cursor movement through multi-byte chars
+- [ ] Text wrapping at terminal boundary
+- [ ] Backspace/delete through wrapped text
+- [ ] Insert in middle of wrapped line
+- [ ] Multi-line input with newlines
+- [ ] Arrow up/down cursor movement in multi-line text
+- [ ] Column preservation when moving up/down
+- [ ] Ctrl+A (beginning of line)
+- [ ] Ctrl+E (end of line)
+- [ ] Ctrl+K (kill to end of line)
+- [ ] Ctrl+U (kill entire line)
+- [ ] Ctrl+W (delete word backward)
+- [ ] Ctrl+C exit and clean terminal restoration
 
-**Key functions**:
-- `ik_term_init()` - Enter raw mode, alternate screen, create vterm
-- `ik_term_cleanup()` - Restore terminal state
-- `ik_buffer_append_line()` - Add line to scrollback
-- `scroll_viewport()` - Adjust scroll_line_offset with bounds (mouse wheel, Page Up/Down)
-- `move_cursor()` - Move cursor within dynamic zone (arrow keys)
-- `snap_to_cursor()` - Scroll viewport to show cursor at bottom (if off-screen)
-- `count_wrapped_lines()` - Calculate how many screen lines dynamic zone text uses
-- `render_frame()` - Compose vterm content based on scroll position
-- `blit_vterm_to_screen()` - Copy vterm to real terminal
-- `process_input()` - Handle keys, update state, trigger render
+**Polish**:
+- Run `make fmt`
+- Run all quality checks
+- Fix any issues discovered during manual testing
 
-**Main loop structure**:
-```c
-while (!quit) {
-    // Read input from real terminal (raw mode)
-    char buf[128];
-    ssize_t n = read(tty_fd, buf, sizeof(buf));
+## What We Validate
 
-    // Process input
-    for (ssize_t i = 0; i < n; i++) {
-        InputAction action = process_input_byte(ctx, buf[i]);
+- Complete REPL event loop with direct rendering
+- Terminal raw mode and alternate screen
+- UTF-8/grapheme handling (emoji, combining chars, CJK)
+- Cursor position tracking through text edits
+- Text insertion/deletion at arbitrary positions
+- Multi-line text via newlines and wrapping
+- Arrow key cursor movement (left/right/up/down)
+- Readline-style editing shortcuts (Ctrl+A/E/K/U/W)
+- Line-based navigation and deletion operations
+- Word-aware deletion
+- Clean terminal restoration on exit
 
-        switch (action.type) {
-            case ACTION_TYPING:
-                // Snap viewport to show cursor if off-screen
-                snap_to_cursor(ctx);
-                // Insert character into dynamic zone
-                insert_char(ctx, action.ch);
-                break;
+## What We Defer
 
-            case ACTION_CURSOR_MOVE:
-                // Move cursor within dynamic zone (arrow keys)
-                move_cursor(ctx, action.direction);
-                break;
+- Scrollback buffer (comes in Phase 3)
+- Viewport scrolling (comes in Phase 4)
+- Separator line (comes in Phase 4)
+- Page Up/Down input for scrollback navigation (comes in Phase 4)
+- Line submission to history (comes in Phase 4)
+- Command history with Up/Down navigation (comes in Phase 4)
 
-            case ACTION_SCROLL:
-                // Scroll viewport (mouse wheel, Page Up/Down)
-                scroll_viewport(ctx, action.lines);
-                break;
+## Phase 2 Complete When
 
-            case ACTION_SUBMIT:
-                // Snap back, then submit dynamic zone to scrollback
-                snap_to_cursor(ctx);
-                submit_line(ctx);
-                break;
-        }
-    }
+- [ ] Render frame helper implemented with tests
+- [ ] Process action helper implemented with tests
+- [ ] Multi-line cursor movement implemented with tests (Task 2.5)
+- [ ] Readline-style shortcuts implemented with tests (Task 2.6)
+- [ ] Main event loop implemented with tests
+- [ ] main.c entry point updated
+- [ ] 100% test coverage maintained
+- [ ] Manual testing checklist passes
+- [ ] `make check && make lint && make coverage` all pass
 
-    // Render frame (compose vterm + blit to screen)
-    render_frame(ctx);
-}
-```
+## Development Approach
 
-### Dependencies
-
-- libvterm (terminal emulation and rendering)
-- libutf8proc (UTF-8 text processing and grapheme cluster detection)
-- talloc (memory management)
-- ik_cfg module (config loading)
-
-### UTF-8 and Grapheme Handling
-
-- **Library**: Use **libutf8proc** for UTF-8 text processing and grapheme cluster detection
-- **Rendering**: vterm handles UTF-8 internally (just write UTF-8 bytes to vterm)
-- **Storage**: Scrollback and dynamic zone store UTF-8 strings as-is (byte arrays)
-- **Cursor Position Tracking**: Maintain both in dynamic zone:
-  - `cursor_byte_offset` - Byte position in UTF-8 string (for insertion/deletion)
-  - `cursor_grapheme_offset` - Grapheme cluster count from start (for arrow key movement)
-  - Keep both in sync when text is modified
-- **Arrow Key Movement**:
-  - Left/Right: Move by one grapheme cluster (not byte, not codepoint)
-  - Use libutf8proc to find grapheme boundaries
-  - Convert grapheme offset ↔ byte offset as needed
-- **Text Insertion**:
-  - Convert cursor_grapheme_offset → cursor_byte_offset
-  - Insert new bytes at cursor_byte_offset
-  - Shift remaining bytes forward
-  - Recalculate grapheme count
-- **Why Graphemes**: Handles multi-byte characters (emoji, combining characters like é = e + ´) correctly
-- **Blit**: vterm converts UTF-32 cells back to UTF-8 for terminal output
+Strict TDD with 100% coverage requirement.

@@ -30,7 +30,8 @@ int ik_ioctl_wrapper(int fd, unsigned long request, void *argp);
 int ik_close_wrapper(int fd);
 
 // Mock functions for terminal operations
-int ik_open_wrapper(const char *pathname, int flags) {
+int ik_open_wrapper(const char *pathname, int flags)
+{
     (void)pathname;
     (void)flags;
     if (mock_open_fail) {
@@ -39,7 +40,8 @@ int ik_open_wrapper(const char *pathname, int flags) {
     return mock_tty_fd;
 }
 
-int ik_tcgetattr_wrapper(int fd, struct termios *termios_p) {
+int ik_tcgetattr_wrapper(int fd, struct termios *termios_p)
+{
     (void)fd;
     if (mock_tcgetattr_fail) {
         return -1;
@@ -54,7 +56,8 @@ int ik_tcgetattr_wrapper(int fd, struct termios *termios_p) {
     return 0;
 }
 
-int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p) {
+int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p)
+{
     (void)fd;
     (void)optional_actions;
     (void)termios_p;
@@ -64,7 +67,8 @@ int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *ter
     return 0;
 }
 
-int ik_tcflush_wrapper(int fd, int queue_selector) {
+int ik_tcflush_wrapper(int fd, int queue_selector)
+{
     (void)fd;
     (void)queue_selector;
     if (mock_tcflush_fail) {
@@ -73,7 +77,8 @@ int ik_tcflush_wrapper(int fd, int queue_selector) {
     return 0;
 }
 
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count) {
+ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+{
     (void)fd;
     (void)buf;
     if (mock_write_fail) {
@@ -82,7 +87,8 @@ ssize_t ik_write_wrapper(int fd, const void *buf, size_t count) {
     return (ssize_t)count;
 }
 
-int ik_ioctl_wrapper(int fd, unsigned long request, void *argp) {
+int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
+{
     (void)fd;
     (void)request;
     if (mock_ioctl_fail) {
@@ -94,13 +100,15 @@ int ik_ioctl_wrapper(int fd, unsigned long request, void *argp) {
     return 0;
 }
 
-int ik_close_wrapper(int fd) {
+int ik_close_wrapper(int fd)
+{
     (void)fd;
     return 0;
 }
 
 // Helper to reset mocks
-static void reset_mocks(void) {
+static void reset_mocks(void)
+{
     mock_open_fail = 0;
     mock_tcgetattr_fail = 0;
     mock_tcsetattr_fail = 0;
@@ -132,24 +140,26 @@ START_TEST(test_repl_init) {
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: REPL initialization with NULL parent
-START_TEST(test_repl_init_null_parent) {
+START_TEST(test_repl_init_null_parent)
+{
     ik_repl_ctx_t *repl = NULL;
     (void)ik_repl_init(NULL, &repl);
 }
-END_TEST
 
+END_TEST
 // Test: REPL initialization with NULL out pointer
-START_TEST(test_repl_init_null_out) {
+START_TEST(test_repl_init_null_out)
+{
     void *ctx = talloc_new(NULL);
     (void)ik_repl_init(ctx, NULL);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: REPL initialization OOM scenarios
-START_TEST(test_repl_init_oom) {
+START_TEST(test_repl_init_oom)
+{
     void *ctx = talloc_new(NULL);
 
     // Test OOM during repl context allocation
@@ -163,17 +173,19 @@ START_TEST(test_repl_init_oom) {
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_repl_cleanup with NULL
-START_TEST(test_repl_cleanup_null) {
+START_TEST(test_repl_cleanup_null)
+{
     // Should not crash
     ik_repl_cleanup(NULL);
 }
-END_TEST
 
+END_TEST
 // Test: ik_repl_cleanup with NULL term field
-START_TEST(test_repl_cleanup_null_term) {
+START_TEST(test_repl_cleanup_null_term)
+{
     void *ctx = talloc_new(NULL);
 
     // Create a REPL context with NULL term field
@@ -190,10 +202,11 @@ START_TEST(test_repl_cleanup_null_term) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_repl_run
-START_TEST(test_repl_run) {
+START_TEST(test_repl_run)
+{
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
@@ -208,10 +221,11 @@ START_TEST(test_repl_run) {
     ik_repl_cleanup(repl);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Terminal init fails (ik_term_init)
-START_TEST(test_repl_init_term_fails) {
+START_TEST(test_repl_init_term_fails)
+{
     reset_mocks();
     mock_open_fail = 1;  // Make terminal open fail
 
@@ -224,10 +238,11 @@ START_TEST(test_repl_init_term_fails) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render create fails (OOM during render init)
-START_TEST(test_repl_init_render_fails) {
+START_TEST(test_repl_init_render_fails)
+{
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
@@ -241,10 +256,11 @@ START_TEST(test_repl_init_render_fails) {
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Workspace create fails (OOM during workspace init)
-START_TEST(test_repl_init_workspace_fails) {
+START_TEST(test_repl_init_workspace_fails)
+{
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
@@ -259,10 +275,11 @@ START_TEST(test_repl_init_workspace_fails) {
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Input parser create fails (OOM during input parser init)
-START_TEST(test_repl_init_input_fails) {
+START_TEST(test_repl_init_input_fails)
+{
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
@@ -270,6 +287,7 @@ START_TEST(test_repl_init_input_fails) {
     // Fail the input parser context allocation
     // oom_test_fail_after_n_calls(N) fails when call_count >= N
     // So N=7 fails on 7th call (input_parser)
+    // Allocations: repl(1), term(2), render(3), workspace(4), workspace->text(5), workspace->cursor(6), input_parser(7)
     oom_test_fail_after_n_calls(7);
     res_t result = ik_repl_init(ctx, &repl);
     ck_assert(is_err(&result));
@@ -278,9 +296,11 @@ START_TEST(test_repl_init_input_fails) {
     oom_test_reset();
     talloc_free(ctx);
 }
+
 END_TEST
 
-static Suite *repl_suite(void) {
+static Suite *repl_suite(void)
+{
     Suite *s = suite_create("REPL");
 
     TCase *tc_core = tcase_create("Core");
@@ -303,7 +323,8 @@ static Suite *repl_suite(void) {
     return s;
 }
 
-int32_t main(void) {
+int32_t main(void)
+{
     Suite *s = repl_suite();
     SRunner *sr = srunner_create(s);
 

@@ -1,88 +1,147 @@
-# REPL Terminal - Phase 1: Simple Dynamic Zone
+# REPL Terminal - Phase 1: Direct Rendering
 
 [← Back to REPL Terminal Overview](README.md)
 
-**Status**: 🔄 IN PROGRESS - Core components complete, REPL event loop pending
+**Goal**: Replace vterm with direct terminal rendering for workspace only.
 
-**Goal**: Get basic terminal and UTF-8 handling working without scrollback complexity.
+Remove libvterm dependency and implement direct terminal rendering. Get back to verifiable client.c test immediately with simpler, faster rendering.
 
-Build minimal interactive terminal with just a dynamic zone. No scrollback buffer yet - keep it simple to validate fundamentals.
+## Rationale
 
-## Implementation Status
+See [docs/eliminate_vterm.md](../eliminate_vterm.md) for complete analysis.
 
-### ✅ Complete Components
+**Key insight**: libvterm provides minimal value. We manage our own text buffers, handle UTF-8/grapheme processing ourselves, and already use alternate screen buffering. The only service vterm provides is calculating cursor screen position after text wrapping - approximately 50-100 lines of logic that we're paying for with a full external dependency.
 
-1. **Terminal setup** - src/terminal.h, src/terminal.c
-   - ✅ Raw mode configuration
-   - ✅ Alternate screen buffer
-   - ✅ Terminal size detection
+**Benefits**:
+- **Simpler**: ~100-150 lines of direct rendering vs 654 lines of vterm integration
+- **Faster**: Single write syscall vs 52 writes, 26× fewer bytes processed per frame
+- **Fewer dependencies**: One less library to maintain across distros
+- **Better performance**: Eliminate double-buffering and cell iteration overhead
 
-2. **Text input parsing** - src/input.h, src/input.c
-   - ✅ UTF-8 byte sequence decoding
-   - ✅ Escape sequence parsing
-   - ✅ Action mapping (char, arrows, backspace, delete, newline, Ctrl+C)
+## Implementation Tasks
 
-3. **Cursor tracking** - src/cursor.h, src/cursor.c
-   - ✅ Dual offset tracking (byte + grapheme)
-   - ✅ Grapheme cluster detection via libutf8proc
-   - ✅ Left/right movement by grapheme
+### Task 1: Remove Old Rendering Module
 
-4. **Workspace** - src/workspace.h, src/workspace.c
-   - ✅ UTF-8 text buffer using `ik_byte_array_t`
-   - ✅ Insert codepoint at cursor
-   - ✅ Insert newline
-   - ✅ Backspace/delete operations
-   - ✅ Cursor movement (left/right)
+**Delete**:
+- `src/render.c` (vterm-based implementation, 222 lines)
+- `src/render.h` (vterm API, 86 lines)
+- `tests/unit/render/render_test.c` (vterm tests, 346 lines)
+- **Total removal**: 654 lines
 
-5. **Rendering** - src/render.h, src/render.c
-   - ✅ libvterm integration
-   - ✅ Virtual terminal composition
-   - ✅ Blit to actual terminal
-   - ✅ Cursor positioning
+### Task 2: Implement Direct Rendering Module
 
-### 🔄 In Progress - Task 6: REPL Event Loop (src/repl.h, src/repl.c)
+**Create**: `src/render_direct.h` and `src/render_direct.c`
 
-**Completed (Steps 1-3)**:
-- ✅ Context initialization (term, render, workspace, input parser)
-- ✅ Cleanup and terminal restoration
-- ✅ Comprehensive mocking for testing without TTY
-- ✅ 100% test coverage for init/cleanup
+**Public API**:
+```c
+typedef struct ik_render_direct_ctx_t {
+    int32_t rows;      // Terminal height
+    int32_t cols;      // Terminal width
+    int32_t tty_fd;    // Terminal file descriptor
+} ik_render_direct_ctx_t;
 
-**Remaining work (Steps 4-8)**:
-- ❌ Step 4: Render frame helper (`ik_repl_render_frame()`)
-  - Clear render context, get workspace text, write to render
-  - Calculate cursor screen position (accounting for wrapping)
-  - Set cursor and blit to screen
-- ❌ Step 5: Process input action helper (`ik_repl_process_action()`)
-  - Handle all action types (char, newline, backspace, delete, arrows, Ctrl+C)
-  - Up/down arrows deferred (no-op for Phase 1)
-- ❌ Step 6: Main event loop (`ik_repl_run()` - currently a stub)
-  - Initial render, read loop, parse bytes, process actions, re-render
-- ❌ Step 7: Main entry point
-  - Refactor src/main.c to use REPL context
-- ❌ Step 8: Final demo and polish
-  - Manual testing checklist, cleanup, formatting
+// Create render context
+res_t ik_render_direct_create(void *parent, int32_t rows, int32_t cols,
+                               int32_t tty_fd, ik_render_direct_ctx_t **ctx_out);
 
-**Reference**: See tasks.md lines 49-123 for complete task breakdown
+// Render workspace to terminal (text + cursor positioning)
+res_t ik_render_direct_workspace(ik_render_direct_ctx_t *ctx,
+                                  const char *text, size_t text_len,
+                                  size_t cursor_byte_offset);
+```
 
-## What we validate
+**Core Logic**:
+- `calculate_cursor_screen_position()` - UTF-8 aware wrapping using `utf8proc_charwidth()`
+- Single framebuffer write to terminal (no per-cell iteration)
+- Home cursor + write text + position cursor escape sequence
 
-- Terminal raw mode and alternate screen
-- vterm rendering pipeline
-- UTF-8/grapheme handling is correct (emoji, combining chars)
-- Cursor position tracking (byte offset ↔ grapheme offset)
-- Text insertion/deletion at arbitrary positions
-- Multi-line text via wrapping
+**Implementation Notes**:
+- No caching needed yet (workspace is small, typically < 4KB)
+- Full scan on each render is acceptable for this phase
+- See `docs/eliminate_vterm.md` lines 183-273 for calculation functions
+
+**Estimated size**: ~100-120 lines (vs 222 lines for vterm integration)
+
+### Task 3: Comprehensive Unit Tests
+
+**Test Coverage** (`tests/unit/render_direct/render_direct_test.c`):
+- Cursor position calculation:
+  - Simple ASCII text (no wrapping)
+  - Text with newlines
+  - Text wrapping at terminal boundary
+  - Wide characters (CJK): 2-cell width
+  - Emoji with modifiers
+  - Combining characters: 0-cell width
+  - Mixed content (ASCII + wide + combining)
+  - Cursor at start, middle, end
+  - Edge cases: empty text, terminal width = 1
+- Rendering:
+  - Normal text rendering
+  - Empty text
+  - Text longer than screen
+  - Invalid file descriptor
+  - OOM scenarios (via MOCKABLE wrappers)
+
+**Coverage requirement**: 100% (lines, functions, branches)
+
+**Estimated size**: ~150-200 lines
+
+### Task 4: Update REPL Module
+
+**Modify** `src/repl.h`:
+```c
+typedef struct ik_repl_ctx_t {
+    ik_term_ctx_t *term;
+    ik_render_direct_ctx_t *render;      // Changed from ik_render_ctx_t
+    ik_workspace_t *workspace;
+    ik_input_parser_t *input_parser;
+    bool quit;
+} ik_repl_ctx_t;
+```
+
+**Update** `src/repl.c`:
+- Change render context creation to use `ik_render_direct_create()`
+- Update any render API calls (currently none - event loop is a stub)
+
+### Task 5: Manual Verification via client.c
+
+**Demo**: Simple text editor using render_direct
+- Initialize terminal + render_direct context
+- Simple loop: read char → append to buffer → render
+- Test: typing, cursor positioning, wrapping
+- Exit: Ctrl+C, verify clean terminal restoration
+
+**Verification Checklist**:
+- [ ] Text displays correctly
+- [ ] Cursor appears at correct position
+- [ ] Text wraps at terminal boundary
+- [ ] UTF-8 characters (emoji, CJK) display properly
+- [ ] Terminal restores cleanly on exit
+
+## What We Validate
+
+- Direct terminal rendering without vterm
+- UTF-8 aware cursor position calculation
+- Character display width handling (CJK, emoji, combining chars)
+- Text wrapping at terminal boundary
+- Single-write framebuffer approach (no flicker)
 - Clean terminal restoration on exit
 
-## What we defer
+## What We Defer
 
-- Scrollback buffer (comes in Phase 2)
-- Viewport scrolling (comes in Phase 2)
-- Separator line (comes in Phase 2)
-- Mouse wheel input (comes in Phase 2)
-- Line submission to history (comes in Phase 2)
+- Layout caching (comes in Phase 3 for scrollback)
+- Scrollback rendering (comes in Phase 4)
+- Viewport calculation (comes in Phase 4)
+- Full REPL event loop (comes in Phase 2)
 
-## Development approach
+## Phase 1 Complete When
 
-Strict TDD with 100% coverage.
+- [ ] Old render module deleted
+- [ ] render_direct module implemented with 100% test coverage
+- [ ] REPL module updated to use render_direct
+- [ ] client.c demo works and passes manual verification
+- [ ] `make check && make lint && make coverage` all pass
+
+## Development Approach
+
+Strict TDD with 100% coverage requirement.

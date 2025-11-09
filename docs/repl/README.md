@@ -12,9 +12,11 @@ Build a minimal REPL chatbot with a split-buffer terminal interface that will ev
 
 ### Phase Details (separate files)
 - [Phase 0: Foundation](repl-phase-0.md) ✅ - Clean up error handling + build generic array utility
-- [Phase 1: Simple Dynamic Zone](repl-phase-1.md) 🔄 - Basic terminal, UTF-8, cursor handling
-- [Phase 2: Add Scrollback and Scrolling](repl-phase-2.md) - Complete terminal UI with continuous buffer model
-- [Phase 3: OpenAI Integration](repl-phase-3.md) - Make it a real chatbot
+- [Phase 1: Direct Rendering](repl-phase-1.md) - Replace vterm with direct terminal rendering
+- [Phase 2: REPL Event Loop](repl-phase-2.md) - Complete interactive REPL with workspace
+- [Phase 3: Scrollback Buffer](repl-phase-3.md) - Add scrollback storage with layout caching
+- Phase 4: Viewport and Scrolling - Integrate scrollback with REPL, add scrolling
+- Phase 5: Cleanup - Remove vterm dependency from build system
 - [Testing Strategy](repl-testing.md) - TDD approach and manual test plan
 
 ---
@@ -24,45 +26,51 @@ Build a minimal REPL chatbot with a split-buffer terminal interface that will ev
 This work is split into incremental phases, each building on the previous.
 
 **Current Roadmap:**
-- **Phase 0**: Clean up existing error handling + build generic `ik_array_t` utility
-- **Phase 1**: Simple dynamic zone only (validate terminal, UTF-8, cursor handling)
-- **Phase 2**: Add scrollback buffer and scrolling (complete terminal UI)
-- **Phase 3**: OpenAI integration (make it a real chatbot)
+- **Phase 0** ✅: Clean up existing error handling + build generic `ik_array_t` utility
+- **Phase 1**: Replace vterm immediately with direct terminal rendering (workspace only)
+- **Phase 2**: Complete REPL event loop with full interactivity
+- **Phase 3**: Add scrollback buffer module with layout caching
+- **Phase 4**: Integrate viewport and scrolling
+- **Phase 5**: Cleanup build system and documentation
 
-**Current focus**: Phase 1, Task 6 (REPL event loop - Steps 4-8 remaining)
+**Current focus**: Ready to start Phase 1
 
 Each phase follows strict TDD (Test-Driven Development) with 100% coverage requirement.
 
-**Note**: This roadmap will be re-evaluated after completing each phase. We'll adjust future phases based on what we learn during implementation.
-
 ### Quick Phase Summary
 
-**Phase 0** - Foundation work before any REPL code:
+**Phase 0** - Foundation work ✅ COMPLETE:
 - ✅ Task 1: Error handling cleanup
 - ✅ Task 2: Generic array utility with typed wrappers
 
-**Phase 1** - Simple dynamic zone (IN PROGRESS):
-- ✅ Terminal setup (raw mode, alternate screen)
-- ✅ Single editable zone (no scrollback yet)
-- ✅ UTF-8/grapheme handling
-- ✅ Cursor tracking and movement
-- ✅ Text editing (insert, backspace, delete)
-- ✅ Basic vterm rendering
-- 🔄 REPL event loop (Steps 4-8 remaining)
+**Phase 1** - Direct Rendering (workspace only):
+- Remove old vterm-based render module
+- Implement `render_direct` with UTF-8 aware cursor calculation
+- Single framebuffer write to terminal
+- Manual verification via client.c demo
 
-**Phase 2** - Add scrollback:
-- Scrollback buffer
-- Separator line
-- Continuous buffer model
-- Viewport scrolling (mouse wheel, Page Up/Down)
-- Snap-back behavior
-- Line submission to history
+**Phase 2** - Complete REPL Event Loop:
+- Full interactive REPL with workspace (no scrollback)
+- Event loop, action processing, frame rendering
+- Multi-line input, cursor movement, text editing
+- Main entry point in main.c
 
-**Phase 3** - OpenAI integration:
-- API client library
-- Streaming responses
-- Status indicators
-- Error handling
+**Phase 3** - Scrollback Buffer Module:
+- Scrollback storage with pre-computed display_width
+- Layout caching for O(1) reflow on resize
+- Workspace layout caching
+- Performance: 1000× faster resize via arithmetic reflow
+
+**Phase 4** - Viewport and Scrolling:
+- Integrate scrollback with REPL
+- Viewport calculation and scrolling commands
+- Page Up/Down support
+- Complete terminal UI
+
+**Phase 5** - Cleanup:
+- Remove vterm from build system and packaging
+- Update all documentation
+- Final verification across all distros
 
 ---
 

@@ -3,7 +3,8 @@
 #include <assert.h>
 #include <talloc.h>
 
-res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out) {
+res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
+{
     assert(parent != NULL);     /* LCOV_EXCL_BR_LINE */
     assert(repl_out != NULL);   /* LCOV_EXCL_BR_LINE */
 
@@ -20,8 +21,12 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out) {
         return result;
     }
 
-    // Initialize render context with terminal dimensions
-    result = ik_render_create(repl, repl->term->screen_rows, repl->term->screen_cols, &repl->render);
+    // Initialize render_direct
+    result = ik_render_direct_create(repl,
+                                      repl->term->screen_rows,
+                                      repl->term->screen_cols,
+                                      repl->term->tty_fd,
+                                      &repl->render);
     if (is_err(&result)) {
         talloc_free(repl);
         return result;
@@ -48,7 +53,8 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out) {
     return OK(repl);
 }
 
-void ik_repl_cleanup(ik_repl_ctx_t *repl) {
+void ik_repl_cleanup(ik_repl_ctx_t *repl)
+{
     if (repl == NULL) {
         return;
     }
@@ -62,7 +68,8 @@ void ik_repl_cleanup(ik_repl_ctx_t *repl) {
     talloc_free(repl);
 }
 
-res_t ik_repl_run(ik_repl_ctx_t *repl) {
+res_t ik_repl_run(ik_repl_ctx_t *repl)
+{
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // TODO: Implement event loop

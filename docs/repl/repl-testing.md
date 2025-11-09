@@ -10,11 +10,25 @@ All code is developed using TDD red/green cycle:
 3. **Verify**: Run `make check`, `make lint`, `make coverage`
 4. **Coverage requirement**: 100% line, function, and branch coverage
 
-**Manual testing**: Performed AFTER TDD is complete for each feature to validate full integration.
+**Manual testing**: Performed AFTER TDD is complete for each phase to validate full integration.
 
-## Manual Test Plan (Phase 1 - Simple Dynamic Zone)
+## Manual Test Plan (Phase 1 - Direct Rendering)
 
-Once Phase 1 is complete and all TDD tests pass with 100% coverage, validate the complete system manually:
+Once Phase 1 is complete and all TDD tests pass with 100% coverage, validate via client.c demo:
+
+### Direct Rendering Demo
+- Launch demo with render_direct context
+- Type some text, verify it displays correctly
+- Verify cursor appears at correct position
+- Test text wrapping at terminal boundary
+- Type UTF-8 characters (emoji 🎉, CJK 你好, combining é)
+- Verify terminal restores cleanly on exit (Ctrl+C)
+
+---
+
+## Manual Test Plan (Phase 2 - REPL Event Loop)
+
+Once Phase 2 is complete and all TDD tests pass, validate the complete system manually:
 
 ### 1. Launch and basic operation
 - Launch `./ikigai`
@@ -41,7 +55,7 @@ Once Phase 1 is complete and all TDD tests pass with 100% coverage, validate the
 - Press Enter to insert newline
 - Continue typing on next line
 - Verify text wraps correctly
-- Use arrow keys to move around (left/right only, up/down no-op for Phase 1)
+- Use arrow keys to move around (left/right only)
 
 ### 5. Edge cases
 - Fill entire screen with text
@@ -50,40 +64,45 @@ Once Phase 1 is complete and all TDD tests pass with 100% coverage, validate the
 - Try rapid typing
 - Try holding down arrow keys
 
-**Reference**: See tasks.md lines 136-173 for complete Phase 1 manual testing checklist
+---
+
+## Manual Test Plan (Phase 3 - Scrollback Buffer)
+
+Once Phase 3 is complete and all TDD tests pass, validate via client.c demo:
+
+### Scrollback Buffer Demo
+- Create scrollback buffer with 1000+ lines
+- Add lines with various UTF-8 content (ASCII, CJK, emoji)
+- Add long lines that require wrapping
+- Query total physical lines
+- Simulate terminal resize (change terminal_width parameter)
+- Verify reflow recalculates correctly
+- Measure reflow performance (should be < 5ms for 1000 lines)
+- Verify no memory leaks with talloc
 
 ---
 
-## Manual Test Plan (Phase 2 - Full UI with Scrollback)
+## Manual Test Plan (Phase 4 - Viewport and Scrolling)
 
-Once Phase 2 is complete and all TDD tests pass, validate the complete system manually:
+Once Phase 4 is complete and all TDD tests pass, validate the complete REPL with scrollback:
 
-### 1. Launch and basic operation
-- Launch app, verify alternate screen
-- Type lines, press Enter, verify they move to scrollback
-- Exit app, verify terminal restored cleanly
+### 1. Basic scrollback operation
+- Launch `./ikigai`
+- Enter several lines (press Enter to submit to scrollback)
+- Verify lines appear in scrollback area
+- Verify separator line between scrollback and workspace
+- Exit, verify terminal restored cleanly
 
-### 2. UTF-8 and grapheme handling
-- Type emoji (🎉, 👨‍👩‍👧‍👦), verify they display correctly
-- Type combining characters (e + ´ = é)
-- Use left/right arrows to move through multi-byte characters
-- Verify cursor moves by whole grapheme clusters (not bytes)
-- Insert text in middle of emoji sequence, verify no corruption
-- Backspace over multi-byte characters, verify they delete as units
-
-### 3. Multi-line dynamic zone
-- Type multi-line text, verify wrapping works correctly
-- Use arrow keys to move cursor around in multi-line text
-- Verify up/down arrows move between wrapped lines
-
-### 4. Scrolling behavior
-- Fill screen with lines, use mouse wheel to scroll up through history
-- Verify dynamic zone + separator disappear line-by-line as you scroll up
-- While scrolled up (dynamic zone off-screen), type a character
+### 2. Scrolling behavior
+- Fill scrollback with many lines
+- Use Page Up to scroll up through history
+- Verify workspace + separator disappear as you scroll
+- While scrolled up, type a character
 - Verify viewport snaps back to show cursor at bottom
 - Test scroll bounds: can't scroll above first line or past bottom
 
-### 5. Advanced features
-- Test Page Up/Down scrolling
-- Type very long text in dynamic zone (taller than screen)
-- Verify internal scrolling within dynamic zone works
+### 3. Terminal resize
+- Fill scrollback with content
+- Resize terminal window
+- Verify content reflows correctly
+- Verify no corruption or display issues
