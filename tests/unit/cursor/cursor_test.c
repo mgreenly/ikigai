@@ -188,6 +188,76 @@ START_TEST(test_cursor_set_position_offset_too_large)
 }
 
 END_TEST
+// Test get_position
+START_TEST(test_cursor_get_position)
+{
+    void *ctx = talloc_new(NULL);
+    ik_cursor_t *cursor = NULL;
+    const char *text = "hello";
+    size_t text_len = 5;
+
+    // Create cursor
+    ik_cursor_create(ctx, &cursor);
+
+    // Set position
+    ik_cursor_set_position(cursor, text, text_len, 3);
+
+    // Get position
+    size_t byte_offset = 0;
+    size_t grapheme_offset = 0;
+    res_t result = ik_cursor_get_position(cursor, &byte_offset, &grapheme_offset);
+
+    ck_assert(is_ok(&result));
+    ck_assert_uint_eq(byte_offset, 3);
+    ck_assert_uint_eq(grapheme_offset, 3);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test get_position NULL cursor assertion
+START_TEST(test_cursor_get_position_null_cursor)
+{
+    size_t byte_offset = 0;
+    size_t grapheme_offset = 0;
+
+    /* cursor cannot be NULL - should abort */
+    ik_cursor_get_position(NULL, &byte_offset, &grapheme_offset);
+}
+
+END_TEST
+// Test get_position NULL byte_offset_out assertion
+START_TEST(test_cursor_get_position_null_byte_out)
+{
+    void *ctx = talloc_new(NULL);
+    ik_cursor_t *cursor = NULL;
+    size_t grapheme_offset = 0;
+
+    ik_cursor_create(ctx, &cursor);
+
+    /* byte_offset_out cannot be NULL - should abort */
+    ik_cursor_get_position(cursor, NULL, &grapheme_offset);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test get_position NULL grapheme_offset_out assertion
+START_TEST(test_cursor_get_position_null_grapheme_out)
+{
+    void *ctx = talloc_new(NULL);
+    ik_cursor_t *cursor = NULL;
+    size_t byte_offset = 0;
+
+    ik_cursor_create(ctx, &cursor);
+
+    /* grapheme_offset_out cannot be NULL - should abort */
+    ik_cursor_get_position(cursor, &byte_offset, NULL);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 // Test suite
 static Suite *cursor_suite(void)
@@ -206,12 +276,19 @@ static Suite *cursor_suite(void)
     tcase_add_test(tc_set_position, test_cursor_set_position_invalid_utf8);
     suite_add_tcase(s, tc_set_position);
 
+    TCase *tc_get_position = tcase_create("GetPosition");
+    tcase_add_test(tc_get_position, test_cursor_get_position);
+    suite_add_tcase(s, tc_get_position);
+
     TCase *tc_assertions = tcase_create("Assertions");
     tcase_add_test_raise_signal(tc_assertions, test_cursor_create_null_parent, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_cursor_create_null_out, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_cursor_set_position_null_cursor, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_cursor_set_position_null_text, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_cursor_set_position_offset_too_large, SIGABRT);
+    tcase_add_test_raise_signal(tc_assertions, test_cursor_get_position_null_cursor, SIGABRT);
+    tcase_add_test_raise_signal(tc_assertions, test_cursor_get_position_null_byte_out, SIGABRT);
+    tcase_add_test_raise_signal(tc_assertions, test_cursor_get_position_null_grapheme_out, SIGABRT);
     suite_add_tcase(s, tc_assertions);
 
     return s;

@@ -170,3 +170,15 @@ res_t ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_le
 
     return OK(cursor);
 }
+
+res_t ik_cursor_get_position(ik_cursor_t *cursor, size_t *byte_offset_out, size_t *grapheme_offset_out)
+{
+    assert(cursor != NULL);              /* LCOV_EXCL_BR_LINE */
+    assert(byte_offset_out != NULL);     /* LCOV_EXCL_BR_LINE */
+    assert(grapheme_offset_out != NULL); /* LCOV_EXCL_BR_LINE */
+
+    *byte_offset_out = cursor->byte_offset;
+    *grapheme_offset_out = cursor->grapheme_offset;
+
+    return OK(cursor);
+}

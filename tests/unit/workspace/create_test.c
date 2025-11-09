@@ -54,6 +54,17 @@ START_TEST(test_workspace_create_oom)
     ck_assert_ptr_null(workspace);
     oom_test_reset();
 
+    /* Test OOM during cursor allocation (after workspace and byte array succeed) */
+    //  Call 1: workspace struct allocation (succeeds)
+    //  Call 2: array struct allocation (succeeds)
+    //  Call 3: cursor struct allocation (fails here)
+    //  Note: array uses lazy allocation, so no data allocation until first append/insert
+    oom_test_fail_after_n_calls(3);
+    res = ik_workspace_create(ctx, &workspace);
+    ck_assert(is_err(&res));
+    ck_assert_ptr_null(workspace);
+    oom_test_reset();
+
     talloc_free(ctx);
 }
 

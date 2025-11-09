@@ -612,23 +612,30 @@ Create cursor manager for tracking both byte and grapheme offsets.
 - [x] Link with libutf8proc (already done in previous step)
 - [x] Run quality gates: `make check`, `make lint`, `make coverage`, `make check-dynamic` - all pass with 100% coverage
 
-### Step 5: Integration with Dynamic Zone
+### Step 5: Integration with Dynamic Zone ✅ COMPLETE
 
-- [ ] Update `src/workspace.h` to include `ik_cursor_t *cursor` field
-- [ ] Update `ik_workspace_create()` to create cursor
-- [ ] Update all workspace operations to keep cursor in sync:
+- [x] Update `src/workspace.h` to include `ik_cursor_t *cursor` field
+- [x] Update `ik_workspace_create()` to create cursor
+- [x] Update all workspace operations to keep cursor in sync:
   - `ik_workspace_insert_codepoint()` - update cursor after insert
   - `ik_workspace_insert_newline()` - update cursor after insert
   - `ik_workspace_backspace()` - update cursor after delete
   - `ik_workspace_delete()` - cursor stays same
-- [ ] Add new functions:
+- [x] Add new functions:
   - `res_t ik_workspace_cursor_left(ik_workspace_t *zone)`
   - `res_t ik_workspace_cursor_right(ik_workspace_t *zone)`
   - `res_t ik_workspace_get_cursor_position(ik_workspace_t *zone, size_t *byte_out, size_t *grapheme_out)`
-- [ ] Update tests in `tests/unit/workspace_test.c`:
-  - Verify cursor position after each operation
-  - Test cursor movement with various UTF-8 content
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Added `ik_cursor_get_position()` to cursor module (was missing from implementation)
+- [x] Created comprehensive test suites:
+  - `tests/unit/workspace/cursor_sync_test.c` - cursor synchronization with text operations
+  - `tests/unit/workspace/cursor_movement_test.c` - cursor left/right movement
+- [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass with 100%
+
+**Implementation notes:**
+- Added LCOV exclusions for defensive error checks that cannot be triggered (e.g., get_text never fails, cursor_set_position won't fail on our validated UTF-8)
+- Handled empty text buffer (NULL) case in cursor movement functions
+- Updated OOM tests to account for cursor allocation
+- Maintained legacy `cursor_byte_offset` field for backward compatibility
 
 ### Step 6: Demo in client.c
 

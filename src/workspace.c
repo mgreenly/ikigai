@@ -23,8 +23,14 @@ res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out)
         talloc_free(workspace);
         return res;
     }
-
     workspace->text = res.ok;
+
+    res = ik_cursor_create(workspace, &workspace->cursor);
+    if (is_err(&res)) {
+        talloc_free(workspace);
+        return res;
+    }
+
     workspace->cursor_byte_offset = 0;
     *workspace_out = workspace;
     return OK(workspace);
@@ -47,6 +53,10 @@ void ik_workspace_clear(ik_workspace_t *workspace)
 
     ik_byte_array_clear(workspace->text);
     workspace->cursor_byte_offset = 0;
+
+    /* Reset cursor to position 0 */
+    workspace->cursor->byte_offset = 0;
+    workspace->cursor->grapheme_offset = 0;
 }
 
 /**
@@ -106,6 +116,15 @@ res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoin
     /* Advance cursor by number of bytes inserted */
     workspace->cursor_byte_offset += num_bytes;
 
+    /* Update cursor position */
+    char *text;
+    size_t text_len;
+    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    res_t res = ik_cursor_set_position(workspace->cursor, text, text_len, workspace->cursor_byte_offset);
+    if (is_err(&res)) { /* LCOV_EXCL_BR_LINE - defensive: text is always valid UTF-8 */
+        return res; /* LCOV_EXCL_LINE */
+    }
+
     return OK(NULL);
 }
 
@@ -121,6 +140,15 @@ res_t ik_workspace_insert_newline(ik_workspace_t *workspace)
 
     /* Advance cursor by 1 byte */
     workspace->cursor_byte_offset += 1;
+
+    /* Update cursor position */
+    char *text;
+    size_t text_len;
+    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    res = ik_cursor_set_position(workspace->cursor, text, text_len, workspace->cursor_byte_offset);
+    if (is_err(&res)) { /* LCOV_EXCL_BR_LINE - defensive: text is always valid UTF-8 */
+        return res; /* LCOV_EXCL_LINE */
+    }
 
     return OK(NULL);
 }
@@ -168,6 +196,15 @@ res_t ik_workspace_backspace(ik_workspace_t *workspace)
 
     /* Update cursor to the start of the deleted character */
     workspace->cursor_byte_offset = prev_char_start;
+
+    /* Update cursor position */
+    char *text;
+    size_t text_len;
+    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    res_t res = ik_cursor_set_position(workspace->cursor, text, text_len, workspace->cursor_byte_offset);
+    if (is_err(&res)) { /* LCOV_EXCL_BR_LINE - defensive: text is always valid UTF-8 */
+        return res; /* LCOV_EXCL_LINE */
+    }
 
     return OK(NULL);
 }
@@ -238,5 +275,75 @@ res_t ik_workspace_delete(ik_workspace_t *workspace)
 
     /* Cursor stays at same position (deleted forward, not backward) */
 
+    /* Update cursor position */
+    char *text;
+    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    res_t res = ik_cursor_set_position(workspace->cursor, text, text_len, workspace->cursor_byte_offset);
+    if (is_err(&res)) { /* LCOV_EXCL_BR_LINE - defensive: text is always valid UTF-8 */
+        return res; /* LCOV_EXCL_LINE */
+    }
+
     return OK(NULL);
+}
+
+res_t ik_workspace_cursor_left(ik_workspace_t *workspace)
+{
+    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+
+    /* If already at start, no-op */
+    if (workspace->cursor->byte_offset == 0) {
+        return OK(NULL);
+    }
+
+    char *text;
+    size_t text_len;
+    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+
+    // Defensive check: text can be NULL (lazy allocation), but cursor > 0 implies text exists
+    if (text == NULL) { /* LCOV_EXCL_BR_LINE - defensive: cursor > 0 implies text != NULL */
+        return OK(NULL); /* LCOV_EXCL_LINE */
+    }
+
+    res_t res = ik_cursor_move_left(workspace->cursor, text, text_len);
+    if (is_err(&res)) { /* LCOV_EXCL_BR_LINE - defensive: text is always valid UTF-8 */
+        return res; /* LCOV_EXCL_LINE */
+    }
+
+    /* Update legacy cursor_byte_offset for backward compatibility */
+    workspace->cursor_byte_offset = workspace->cursor->byte_offset;
+
+    return OK(NULL);
+}
+
+res_t ik_workspace_cursor_right(ik_workspace_t *workspace)
+{
+    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+
+    char *text;
+    size_t text_len;
+    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+
+    /* If at end or empty text, no-op */
+    if (text == NULL || workspace->cursor->byte_offset >= text_len) { /* LCOV_EXCL_BR_LINE - defensive: text NULL only when cursor at 0 */
+        return OK(NULL);
+    }
+
+    res_t res = ik_cursor_move_right(workspace->cursor, text, text_len);
+    if (is_err(&res)) { /* LCOV_EXCL_BR_LINE - defensive: text is always valid UTF-8 */
+        return res; /* LCOV_EXCL_LINE */
+    }
+
+    /* Update legacy cursor_byte_offset for backward compatibility */
+    workspace->cursor_byte_offset = workspace->cursor->byte_offset;
+
+    return OK(NULL);
+}
+
+res_t ik_workspace_get_cursor_position(ik_workspace_t *workspace, size_t *byte_out, size_t *grapheme_out)
+{
+    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(byte_out != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(grapheme_out != NULL); /* LCOV_EXCL_BR_LINE */
+
+    return ik_cursor_get_position(workspace->cursor, byte_out, grapheme_out);
 }

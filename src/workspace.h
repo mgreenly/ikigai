@@ -10,6 +10,7 @@
 #define IKIGAI_WORKSPACE_H
 
 #include "byte_array.h"
+#include "cursor.h"
 #include "error.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -18,11 +19,12 @@
  * @brief Workspace context
  *
  * Represents the editable text buffer in the REPL's workspace.
- * Stores UTF-8 text and tracks the cursor position in bytes.
+ * Stores UTF-8 text and tracks the cursor position using grapheme-aware cursor.
  */
 typedef struct ik_workspace_t {
     ik_byte_array_t *text;       /**< UTF-8 text buffer */
-    size_t cursor_byte_offset;   /**< Cursor position (byte offset) */
+    ik_cursor_t *cursor;         /**< Cursor position (byte and grapheme offsets) */
+    size_t cursor_byte_offset;   /**< Legacy byte offset - deprecated, use cursor instead */
 } ik_workspace_t;
 
 /**
@@ -102,5 +104,39 @@ res_t ik_workspace_backspace(ik_workspace_t *workspace);
  * @return RES_OK on success, RES_ERR on failure
  */
 res_t ik_workspace_delete(ik_workspace_t *workspace);
+
+/**
+ * @brief Move cursor left by one grapheme cluster
+ *
+ * Moves the cursor backward by one grapheme cluster.
+ * If cursor is at start, this is a no-op.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_cursor_left(ik_workspace_t *workspace);
+
+/**
+ * @brief Move cursor right by one grapheme cluster
+ *
+ * Moves the cursor forward by one grapheme cluster.
+ * If cursor is at end, this is a no-op.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_cursor_right(ik_workspace_t *workspace);
+
+/**
+ * @brief Get cursor position
+ *
+ * Returns the cursor position in both byte offset and grapheme offset.
+ *
+ * @param workspace Workspace
+ * @param byte_out Pointer to receive byte offset
+ * @param grapheme_out Pointer to receive grapheme offset
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_get_cursor_position(ik_workspace_t *workspace, size_t *byte_out, size_t *grapheme_out);
 
 #endif /* IKIGAI_WORKSPACE_H */
