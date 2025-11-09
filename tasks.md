@@ -580,33 +580,37 @@ Create cursor manager for tracking both byte and grapheme offsets.
   - Verify error returned
 - [x] Run quality gates: `make check`, `make lint`, `make coverage` - all pass with 100% coverage for cursor.c
 
-### Step 4: Move Right by Grapheme Cluster
+### Step 4: Move Right by Grapheme Cluster ✅ COMPLETE
 
-- [ ] Implement `ik_cursor_move_right()`:
+- [x] Implement `ik_cursor_move_right()`:
   - If cursor at end (byte_offset == text_len), return success (no-op)
   - Use libutf8proc to find next grapheme boundary
   - Update both byte_offset and grapheme_offset
-- [ ] Write test `test_cursor_move_right_ascii()`:
+- [x] Write test `test_cursor_move_right_ascii()`:
   - Text "abc", cursor at start
   - Move right, verify byte_offset = 1, grapheme_offset = 1
-- [ ] Write test `test_cursor_move_right_utf8()`:
+- [x] Write test `test_cursor_move_right_utf8()`:
   - Text "aéb", cursor at byte 1
   - Move right, verify byte_offset = 3 (skips both bytes of é)
   - Verify grapheme_offset = 2
-- [ ] Write test `test_cursor_move_right_emoji()`:
+- [x] Write test `test_cursor_move_right_emoji()`:
   - Text "a🎉", cursor at byte 1
   - Move right, verify byte_offset = 5 (skips all 4 bytes)
   - Verify grapheme_offset = 2
-- [ ] Write test `test_cursor_move_right_combining()`:
+- [x] Write test `test_cursor_move_right_combining()`:
   - Text "e\u0301b", cursor at start
   - Move right, verify moves to byte 3 (skips e + combining)
   - Verify grapheme_offset = 1
-- [ ] Write test `test_cursor_move_right_at_end()`:
+- [x] Write test `test_cursor_move_right_at_end()`:
   - Cursor at end, move right
   - Verify no-op, stays at end
-- [ ] Update Makefile to include cursor.c in build
-- [ ] Link with libutf8proc (-lutf8proc)
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Write test `test_cursor_move_right_invalid_utf8()`:
+  - Test error handling for invalid UTF-8
+- [x] Write assertion tests for NULL parameters
+- [x] Split cursor tests into 3 files (cursor_test.c, move_left_test.c, move_right_test.c) to stay under 500-line limit
+- [x] Update Makefile to include cursor.c in build (already done in previous step)
+- [x] Link with libutf8proc (already done in previous step)
+- [x] Run quality gates: `make check`, `make lint`, `make coverage`, `make check-dynamic` - all pass with 100% coverage
 
 ### Step 5: Integration with Dynamic Zone
 
