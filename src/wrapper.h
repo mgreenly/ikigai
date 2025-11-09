@@ -130,6 +130,11 @@ MOCKABLE int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct ter
     return tcsetattr(fd, optional_actions, termios_p);
 }
 
+MOCKABLE int ik_tcflush_wrapper(int fd, int queue_selector)
+{
+    return tcflush(fd, queue_selector);
+}
+
 MOCKABLE int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
 {
     return ioctl(fd, request, argp);
@@ -150,6 +155,7 @@ MOCKABLE int ik_open_wrapper(const char *pathname, int flags);
 MOCKABLE int ik_close_wrapper(int fd);
 MOCKABLE int ik_tcgetattr_wrapper(int fd, struct termios *termios_p);
 MOCKABLE int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p);
+MOCKABLE int ik_tcflush_wrapper(int fd, int queue_selector);
 MOCKABLE int ik_ioctl_wrapper(int fd, unsigned long request, void *argp);
 MOCKABLE ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
 #endif

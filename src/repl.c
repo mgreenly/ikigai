@@ -20,17 +20,8 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out) {
         return result;
     }
 
-    // Get terminal dimensions
-    int32_t rows = 0;
-    int32_t cols = 0;
-    result = ik_term_get_size(repl->term, &rows, &cols);
-    if (is_err(&result)) {
-        talloc_free(repl);
-        return result;
-    }
-
     // Initialize render context with terminal dimensions
-    result = ik_render_create(repl, rows, cols, &repl->render);
+    result = ik_render_create(repl, repl->term->screen_rows, repl->term->screen_cols, &repl->render);
     if (is_err(&result)) {
         talloc_free(repl);
         return result;

@@ -14,17 +14,20 @@
 static int mock_open_fail = 0;
 static int mock_tcgetattr_fail = 0;
 static int mock_tcsetattr_fail = 0;
+static int mock_tcflush_fail = 0;
 static int mock_write_fail = 0;
 static int mock_ioctl_fail = 0;
 static int mock_close_count = 0;
 static int mock_write_count = 0;
 static int mock_tcsetattr_count = 0;
+static int mock_tcflush_count = 0;
 
 // Mock function prototypes
 int ik_open_wrapper(const char *pathname, int flags);
 int ik_close_wrapper(int fd);
 int ik_tcgetattr_wrapper(int fd, struct termios *termios_p);
 int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p);
+int ik_tcflush_wrapper(int fd, int queue_selector);
 int ik_ioctl_wrapper(int fd, unsigned long request, void *argp);
 ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
 
@@ -69,6 +72,17 @@ int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *ter
     return 0;
 }
 
+int ik_tcflush_wrapper(int fd, int queue_selector)
+{
+    (void)fd;
+    (void)queue_selector;
+    mock_tcflush_count++;
+    if (mock_tcflush_fail) {
+        return -1;
+    }
+    return 0;
+}
+
 int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
 {
     (void)fd;
@@ -101,11 +115,13 @@ static void reset_mocks(void)
     mock_open_fail = 0;
     mock_tcgetattr_fail = 0;
     mock_tcsetattr_fail = 0;
+    mock_tcflush_fail = 0;
     mock_write_fail = 0;
     mock_ioctl_fail = 0;
     mock_close_count = 0;
     mock_write_count = 0;
     mock_tcsetattr_count = 0;
+    mock_tcflush_count = 0;
 }
 
 // Test: successful terminal initialization
@@ -132,6 +148,7 @@ START_TEST(test_term_init_success) {
     // Verify cleanup operations
     ck_assert_int_eq(mock_write_count, 2); // exit alternate screen
     ck_assert_int_eq(mock_tcsetattr_count, 2); // restore termios
+    ck_assert_int_eq(mock_tcflush_count, 2); // flush after set raw + cleanup
     ck_assert_int_eq(mock_close_count, 1);
 }
 END_TEST
@@ -218,6 +235,7 @@ START_TEST(test_term_init_write_fails)
 
     // Cleanup should have been called (tcsetattr + close)
     ck_assert_int_eq(mock_tcsetattr_count, 2); // raw mode + restore
+    ck_assert_int_eq(mock_tcflush_count, 1); // flush after set raw
     ck_assert_int_eq(mock_close_count, 1);
 
     talloc_free(ctx);
@@ -242,6 +260,7 @@ START_TEST(test_term_init_ioctl_fails)
     // Full cleanup should have been called
     ck_assert_int_eq(mock_write_count, 2); // enter + exit alternate screen
     ck_assert_int_eq(mock_tcsetattr_count, 2); // raw mode + restore
+    ck_assert_int_eq(mock_tcflush_count, 1); // flush after set raw
     ck_assert_int_eq(mock_close_count, 1);
 
     talloc_free(ctx);
@@ -371,6 +390,30 @@ START_TEST(test_term_get_size_null_cols_asserts)
 END_TEST
 #endif
 
+// Test: tcflush fails
+START_TEST(test_term_init_tcflush_fails)
+{
+    reset_mocks();
+    mock_tcflush_fail = 1;
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_IO);
+    ck_assert_ptr_null(term);
+
+    // Cleanup should have been called (tcsetattr + close)
+    ck_assert_int_eq(mock_tcsetattr_count, 2); // raw mode + restore
+    ck_assert_int_eq(mock_close_count, 1);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 // Test: OOM scenarios
 START_TEST(test_term_init_oom)
 {
@@ -405,6 +448,7 @@ static Suite *terminal_suite(void)
     tcase_add_test(tc_core, test_term_init_open_fails);
     tcase_add_test(tc_core, test_term_init_tcgetattr_fails);
     tcase_add_test(tc_core, test_term_init_tcsetattr_fails);
+    tcase_add_test(tc_core, test_term_init_tcflush_fails);
     tcase_add_test(tc_core, test_term_init_write_fails);
     tcase_add_test(tc_core, test_term_init_ioctl_fails);
     tcase_add_test(tc_core, test_term_cleanup_null_safe);

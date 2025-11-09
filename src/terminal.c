@@ -45,15 +45,23 @@ res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
     raw.c_cc[VMIN] = 1;
     raw.c_cc[VTIME] = 0;
 
-    if (ik_tcsetattr_wrapper(tty_fd, TCSAFLUSH, &raw) < 0) {
+    // Apply raw mode immediately (no blocking)
+    if (ik_tcsetattr_wrapper(tty_fd, TCSANOW, &raw) < 0) {
         ik_close_wrapper(tty_fd);
         return ERR(parent, IO, "Failed to set raw mode");
+    }
+
+    // Flush any stale input that was queued before raw mode
+    if (ik_tcflush_wrapper(tty_fd, TCIFLUSH) < 0) {
+        ik_tcsetattr_wrapper(tty_fd, TCSANOW, &ctx->orig_termios);
+        (void)ik_close_wrapper(tty_fd);  // Explicitly ignore return value
+        return ERR(parent, IO, "Failed to flush input");
     }
 
     // Enter alternate screen buffer
     const char *alt_screen = "\x1b[?1049h";
     if (ik_write_wrapper(tty_fd, alt_screen, 8) < 0) {
-        ik_tcsetattr_wrapper(tty_fd, TCSAFLUSH, &ctx->orig_termios);
+        ik_tcsetattr_wrapper(tty_fd, TCSANOW, &ctx->orig_termios);
         ik_close_wrapper(tty_fd);
         return ERR(parent, IO, "Failed to enter alternate screen");
     }
@@ -64,7 +72,7 @@ res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
         // Restore before returning error
         const char *exit_alt = "\x1b[?1049l";
         (void)ik_write_wrapper(tty_fd, exit_alt, 8);
-        ik_tcsetattr_wrapper(tty_fd, TCSAFLUSH, &ctx->orig_termios);
+        ik_tcsetattr_wrapper(tty_fd, TCSANOW, &ctx->orig_termios);
         ik_close_wrapper(tty_fd);
         return ERR(parent, IO, "Failed to get terminal size");
     }
@@ -87,8 +95,11 @@ void ik_term_cleanup(ik_term_ctx_t *ctx)
     const char *exit_alt = "\x1b[?1049l";
     (void)ik_write_wrapper(ctx->tty_fd, exit_alt, 8);
 
-    // Restore original termios settings
-    ik_tcsetattr_wrapper(ctx->tty_fd, TCSAFLUSH, &ctx->orig_termios);
+    // Restore original termios settings (immediate, no blocking)
+    ik_tcsetattr_wrapper(ctx->tty_fd, TCSANOW, &ctx->orig_termios);
+
+    // Flush any remaining input
+    (void)ik_tcflush_wrapper(ctx->tty_fd, TCIFLUSH);
 
     // Close tty file descriptor
     ik_close_wrapper(ctx->tty_fd);

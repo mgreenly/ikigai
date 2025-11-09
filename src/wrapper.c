@@ -95,6 +95,11 @@ MOCKABLE int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct ter
     return tcsetattr(fd, optional_actions, termios_p);
 }
 
+MOCKABLE int ik_tcflush_wrapper(int fd, int queue_selector)
+{
+    return tcflush(fd, queue_selector);
+}
+
 MOCKABLE int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
 {
     return ioctl(fd, request, argp);

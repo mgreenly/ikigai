@@ -831,7 +831,9 @@ Integrate all modules into main REPL.
 
 ### Step 2: REPL Initialization ✅ COMPLETE
 
-**Status**: Implementation complete. Integration test skipped when no TTY available. Full coverage requires running in terminal environment.
+**Status**: Implementation complete with comprehensive mocking. Terminal operations mocked to avoid TTY blocking issues. Test coverage at 100% for all metrics.
+
+**Solution**: Fixed TTY blocking issue by using mock wrappers for all terminal operations instead of requiring real TTY. Changed terminal code from `TCSAFLUSH` → `TCSANOW` + explicit `tcflush()` for better behavior and added `ik_tcflush_wrapper` to wrapper system.
 
 - [x] Create `src/repl.c` implementation
 - [x] Implement `ik_repl_init()`:
@@ -843,23 +845,48 @@ Integrate all modules into main REPL.
   - Initialize input parser
   - Set quit flag to false
 - [x] Write integration test `test_repl_init()` in `tests/integration/repl_test.c`:
-  - Test skips when no TTY available (as expected)
+  - Mocked all terminal operations (open, tcgetattr, tcsetattr, tcflush, write, ioctl, close)
+  - Tests pass in all environments (with or without TTY)
+  - Added tests for terminal init failure, render init failure, workspace init failure, input parser init failure
+  - Added tests for NULL cleanup and repl_run
+  - Added test for cleanup with NULL term field
   - Assertions and OOM tests pass
-  - Full integration test passes when run with TTY
-- [x] Run quality gates: `make check` ✅, `make lint` ✅
-- [ ] Note: `make coverage` shows 96.8% due to test_repl_init requiring TTY
-  - Coverage will reach 100% when tests run in terminal environment
-  - OR user can approve LCOV exclusions for TTY-dependent integration code
+- [x] Updated terminal module:
+  - Changed `TCSAFLUSH` to `TCSANOW` for non-blocking behavior
+  - Added explicit `tcflush(TCIFLUSH)` after setting raw mode
+  - Added `ik_tcflush_wrapper` to wrapper system
+  - Updated terminal unit tests to include tcflush mock and test tcflush failure path
+- [x] Run quality gates: `make check` ✅, `make lint` ✅, `make coverage` ✅
+- [x] Coverage results:
+  - **terminal.c: 100% coverage** (lines, functions, branches) ✅
+  - **repl.c: 100% coverage** (lines, functions, branches) ✅
+  - **Overall: 100% coverage** (1052/1052 lines, 100% functions, 337/337 branches) ✅
 
-### Step 3: REPL Cleanup
+### Step 2.5: Complete REPL Test Coverage (100%) ✅ COMPLETE
 
-- [ ] Implement `ik_repl_cleanup()`:
-  - Call terminal cleanup
+**Goal**: Achieve 100% line and branch coverage for repl.c by testing all error paths.
+
+**Status**: Complete. Achieved 100% coverage (lines, functions, branches).
+
+**Solution**: Used OOM testing with `oom_test_fail_after_n_calls()` to trigger failures at precise allocation points during initialization. Added test for NULL term field in cleanup path.
+
+**Tests added**:
+- [x] `test_repl_init_render_fails` - OOM on 3rd allocation (render creation)
+- [x] `test_repl_init_workspace_fails` - OOM on 4th allocation (workspace creation)
+- [x] `test_repl_init_input_fails` - OOM on 7th allocation (input parser creation)
+- [x] `test_repl_cleanup_null_term` - cleanup with NULL term field (covers FALSE branch of `repl->term != NULL`)
+- [x] Run quality gates: `make check` ✅, `make lint` ✅, `make coverage` ✅
+- [x] Result: **repl.c: 100% coverage** (lines, functions, branches) ✅
+
+### Step 3: REPL Cleanup ✅ COMPLETE
+
+- [x] Implement `ik_repl_cleanup()`:
+  - Call terminal cleanup if term is non-NULL
   - Note: Other components cleaned up via talloc hierarchy
-- [ ] Write test `test_repl_cleanup()`:
-  - Initialize REPL, then cleanup
-  - Verify terminal restored
-- [ ] Run quality gates: `make check`, `make lint`, `make coverage`
+- [x] Write test `test_repl_cleanup()`:
+  - Test cleanup with valid REPL context
+  - Test cleanup with NULL (no-op)
+- [x] Run quality gates: `make check` ✅, `make lint` ✅, `make coverage` ✅
 
 ### Step 4: Render Frame
 
