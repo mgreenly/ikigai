@@ -95,3 +95,27 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     // Render workspace with cursor
     return ik_render_direct_workspace(repl->render, text, text_len, cursor_byte_offset);
 }
+
+res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action)
+{
+    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(action != NULL);   /* LCOV_EXCL_BR_LINE */
+
+    if (action->type == IK_INPUT_CHAR) {
+        return ik_workspace_insert_codepoint(repl->workspace, action->codepoint);
+    } else if (action->type == IK_INPUT_NEWLINE) {
+        return ik_workspace_insert_newline(repl->workspace);
+    } else if (action->type == IK_INPUT_BACKSPACE) {
+        return ik_workspace_backspace(repl->workspace);
+    } else if (action->type == IK_INPUT_DELETE) {
+        return ik_workspace_delete(repl->workspace);
+    } else if (action->type == IK_INPUT_ARROW_LEFT) {
+        return ik_workspace_cursor_left(repl->workspace);
+    } else if (action->type == IK_INPUT_ARROW_RIGHT) {
+        return ik_workspace_cursor_right(repl->workspace);
+    } else if (action->type == IK_INPUT_CTRL_C) {
+        repl->quit = true;
+    }
+
+    return OK(NULL);
+}

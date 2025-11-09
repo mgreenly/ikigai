@@ -27,3 +27,6 @@ res_t ik_repl_run(ik_repl_ctx_t *repl);
 
 // Render current frame (workspace only for now)
 res_t ik_repl_render_frame(ik_repl_ctx_t *repl);
+
+// Process single input action
+res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action);

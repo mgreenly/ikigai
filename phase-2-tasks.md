@@ -119,57 +119,64 @@
 **Note**: The logic already exists in src/client.c:process_action() (lines 16-43). We need to move this into the REPL module and adjust the API (use repl->quit instead of should_exit_out parameter).
 
 ### 2.1: Write Test - CHAR Action
-- [ ] Write test: `test_repl_process_action_char()` in repl_test.c
+- [x] Write test: `test_repl_process_action_char()` in repl_action_test.c
   - Setup: REPL with empty workspace
   - Action: process `IK_INPUT_CHAR` with codepoint 'a'
   - Assert: workspace contains 'a', cursor moved
-- [ ] **Red**: Verify test fails (function doesn't exist)
-- [ ] Run: `make build/tests/unit/repl/repl_test && ./build/tests/unit/repl/repl_test`
+- [x] **Red**: Verify test fails (function doesn't exist)
+- [x] Run: `make build/tests/unit/repl/repl_action_test && ./build/tests/unit/repl/repl_action_test`
 
 ### 2.2: Implement - Minimal Function Signature
-- [ ] Add to `src/repl.h`: `res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action);`
-- [ ] Add to `src/repl.c`: copy logic from src/client.c:process_action() (lines 16-43)
+- [x] Add to `src/repl.h`: `res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action);`
+- [x] Add to `src/repl.c`: copy logic from src/client.c:process_action() (lines 16-43)
   - Change signature: remove should_exit_out parameter
   - Use `repl->quit = true` for CTRL_C instead of setting out parameter
   - Call workspace functions via `repl->workspace`
-- [ ] **Green**: Verify test passes
-- [ ] Run: `make build/tests/unit/repl/repl_test && ./build/tests/unit/repl/repl_test`
+- [x] **Green**: Verify test passes
+- [x] Run: `make build/tests/unit/repl/repl_action_test && ./build/tests/unit/repl/repl_action_test`
 
 ### 2.3: Write Tests - Basic Actions
-- [ ] Write test: `test_repl_process_action_newline()`
-- [ ] Write test: `test_repl_process_action_backspace()`
-- [ ] Write test: `test_repl_process_action_delete()`
-- [ ] Write test: `test_repl_process_action_arrow_left()`
-- [ ] Write test: `test_repl_process_action_arrow_right()`
-- [ ] **Green**: Verify tests pass (implementation already handles these)
-- [ ] Run tests
+- [x] Write test: `test_repl_process_action_newline()`
+- [x] Write test: `test_repl_process_action_backspace()`
+- [x] Write test: `test_repl_process_action_delete()`
+- [x] Write test: `test_repl_process_action_arrow_left()`
+- [x] Write test: `test_repl_process_action_arrow_right()`
+- [x] **Green**: Verify tests pass (implementation already handles these)
+- [x] Run tests
 
 ### 2.4: Write Test - Ctrl+C Quit Flag
-- [ ] Write test: `test_repl_process_action_ctrl_c()`
+- [x] Write test: `test_repl_process_action_ctrl_c()`
   - Setup: REPL with quit=false
   - Action: process `IK_INPUT_CTRL_C`
   - Assert: repl->quit == true
-- [ ] **Green**: Verify test passes (implementation already handles this)
+- [x] **Green**: Verify test passes (implementation already handles this)
 
 ### 2.5: Write Tests - Edge Cases
-- [ ] Write test: `test_repl_process_action_backspace_at_start()`
-- [ ] Write test: `test_repl_process_action_delete_at_end()`
-- [ ] Write test: `test_repl_process_action_left_at_start()`
-- [ ] Write test: `test_repl_process_action_right_at_end()`
-- [ ] **Green**: Verify tests pass (workspace already handles edge cases)
+- [x] Write test: `test_repl_process_action_backspace_at_start()`
+- [x] Write test: `test_repl_process_action_delete_at_end()`
+- [x] Write test: `test_repl_process_action_left_at_start()`
+- [x] Write test: `test_repl_process_action_right_at_end()`
+- [x] **Green**: Verify tests pass (workspace already handles edge cases)
 
 ### 2.6: Write Test - Unknown Action
-- [ ] Write test: `test_repl_process_action_unknown()`
+- [x] Write test: `test_repl_process_action_unknown()`
   - Setup: REPL with workspace
   - Action: process `IK_INPUT_UNKNOWN`
   - Assert: returns OK, workspace unchanged
-- [ ] **Green**: Verify test passes
+- [x] **Green**: Verify test passes
+
+### 2.7: Fix File Size Lint Error
+- [x] Split repl_test.c (753 lines) into two files:
+  - repl_render_test.c (247 lines) - render_frame tests
+  - repl_action_test.c (489 lines) - process_action tests
+- [x] Update LCOV_EXCL_COVERAGE from 152 to 154 (added 2 assertions)
+- [x] Both files now under 500-line limit
 
 ### 2.8: Verify Task 2 Complete
-- [ ] Run: `make check` (all tests pass)
-- [ ] Run: `make lint` (complexity checks pass)
-- [ ] Run: `make coverage` (100% coverage)
-- [ ] Check: no uncovered lines or branches
+- [x] Run: `make check` (all tests pass)
+- [x] Run: `make lint` (complexity checks pass)
+- [x] Run: `make coverage` (100% coverage: 1074/1074 lines, 91/91 functions, 373/373 branches)
+- [x] Check: no uncovered lines or branches
 
 ---
 

@@ -1,6 +1,6 @@
 /**
- * @file repl_test.c
- * @brief Unit tests for REPL module
+ * @file repl_render_test.c
+ * @brief Unit tests for REPL render_frame function
  */
 
 #include <check.h>
@@ -213,9 +213,9 @@ START_TEST(test_repl_render_frame_null_repl_asserts)
 
 END_TEST
 
-static Suite *repl_suite(void)
+static Suite *repl_render_suite(void)
 {
-    Suite *s = suite_create("REPL");
+    Suite *s = suite_create("REPL_Render");
     TCase *tc_core = tcase_create("Core");
     TCase *tc_assertions = tcase_create("Assertions");
 
@@ -236,7 +236,7 @@ static Suite *repl_suite(void)
 int main(void)
 {
     int32_t number_failed;
-    Suite *s = repl_suite();
+    Suite *s = repl_render_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);
