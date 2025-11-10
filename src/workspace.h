@@ -161,4 +161,15 @@ res_t ik_workspace_cursor_up(ik_workspace_t *workspace);
  */
 res_t ik_workspace_cursor_down(ik_workspace_t *workspace);
 
+/**
+ * @brief Move cursor to the start of the current line (Ctrl+A)
+ *
+ * Moves the cursor to the beginning of the current line.
+ * If cursor is already at the line start, this is a no-op.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace);
+
 #endif /* IKIGAI_WORKSPACE_H */

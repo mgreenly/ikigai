@@ -4,6 +4,9 @@ docs/README.md provides an overview of the project.
 
 ## Core Principles
 
+**0. NEVER**
+1. Never change LCOV_EXCL_COVERAGE"
+
 **1. Test-Driven Development (TDD)**
 
 **ABSOLUTE RULE: NEVER WRITE CODE BEFORE YOU HAVE A TEST THAT NEEDS IT**

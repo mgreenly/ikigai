@@ -373,12 +373,13 @@
 - [x] Write test: `test_workspace_cursor_to_line_start_after_newline()`
 - [x] **Red**: Tests fail
 
-### 2.6.4: Cursor to Line Start - Implementation
-- [ ] Add to `src/workspace.h`: `res_t ik_workspace_cursor_to_line_start(ik_workspace_t *ws);`
-- [ ] Implement in `src/workspace.c`:
+### 2.6.4: Cursor to Line Start - Implementation ✅ COMPLETE
+- [x] Add to `src/workspace.h`: `res_t ik_workspace_cursor_to_line_start(ik_workspace_t *ws);`
+- [x] Implement in `src/workspace_multiline.c`:
   - Find previous \n (or start of text)
   - Position cursor after that \n (or at start)
-- [ ] **Green**: Tests pass
+- [x] **Green**: Tests pass
+- [x] **LCOV Exclusions**: Added 2 markers (170 total) - NULL assertion + assertion branch only
 
 ### 2.6.5: Cursor to Line End - Write Tests
 - [ ] Write test: `test_workspace_cursor_to_line_end_basic()`

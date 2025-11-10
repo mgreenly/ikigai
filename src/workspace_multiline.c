@@ -229,3 +229,29 @@ res_t ik_workspace_cursor_down(ik_workspace_t *workspace)
 
     return OK(NULL);
 }
+
+res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace)
+{
+    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+
+    char *text;
+    size_t text_len;
+    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+
+    size_t cursor_pos = workspace->cursor->byte_offset;
+
+    // Find current line start
+    size_t line_start = find_line_start(text, cursor_pos);
+
+    // If already at line start, no-op
+    if (cursor_pos == line_start) {
+        return OK(NULL);
+    }
+
+    // Update cursor position to line start
+    workspace->cursor_byte_offset = line_start;
+    res_t res = ik_cursor_set_position(workspace->cursor, text, text_len, line_start);
+    assert(is_ok(&res)); /* LCOV_EXCL_BR_LINE - Should never fail: text is valid UTF-8, position is valid */
+
+    return OK(NULL);
+}
