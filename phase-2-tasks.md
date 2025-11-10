@@ -571,27 +571,22 @@
 - [x] **LCOV**: Updated from 157 to 158 (1 NULL assertion)
 - [x] **Commit**: 5908d58 "Implement kill_to_line_end (Ctrl+K) (Phase 2 Task 2.6.7 & 2.6.8)"
 
-### 2.6.8.1: Fix Coverage Gaps in workspace_multiline.c ⏳ IN PROGRESS
-**Problem**: After implementing UTF-8 contract enforcement (Task 2.5.16), workspace_multiline.c has untested branches:
-- Lines 87-88: `count_graphemes()` - fprintf/abort for invalid UTF-8
-- Lines 135-136: `grapheme_to_byte_offset()` - fprintf/abort for invalid UTF-8
+### 2.6.8.1: Fix Coverage Gaps in workspace_multiline.c ✅ COMPLETE
+**Problem**: After implementing UTF-8 contract enforcement (Task 2.5.16), workspace_multiline.c had 2 untested branches:
+- Line 85: FALSE branch of 4-byte UTF-8 test in `count_graphemes()`
+- Line 133: FALSE branch of 4-byte UTF-8 test in `grapheme_to_byte_offset()`
 
-**Root Cause**: These branches are defensive precondition checks that should never execute under normal operation (all workspace text is valid UTF-8). They cannot be tested through the public API without violating the workspace's UTF-8 invariant.
+**Root Cause**: These branches represent the FALSE path that falls through to defensive abort(). Cannot be tested because workspace guarantees valid UTF-8.
 
-**Options**:
-1. **Keep LCOV exclusions** - Accept that these are untestable defensive checks
-2. **Add unit tests with invalid UTF-8** - Create tests that directly call static helpers with bad data
-3. **Remove the branches** - Trust the precondition completely (just abort, no fprintf)
-4. **Redesign the algorithm** - Eliminate the branches through different UTF-8 parsing approach
+**Solution**: Added `// LCOV_EXCL_BR_LINE` to exclude untestable branches leading to abort()
 
 **Tasks**:
-- [ ] Run coverage analysis: `make coverage && grep "workspace_multiline.c" coverage/coverage.info -A 50`
-- [ ] Identify exact uncovered lines and branches
-- [ ] Decide on approach (discuss with user)
-- [ ] Implement solution
-- [ ] Verify 100% coverage: `make coverage`
-- [ ] Update LCOV_EXCL_COVERAGE in Makefile if needed
-- [ ] **Commit**: "Fix coverage gaps in workspace_multiline.c (Task 2.6.8.1)"
+- [x] Run coverage analysis and identify exact uncovered branches
+- [x] Added LCOV_EXCL_BR_LINE to lines 85 and 133
+- [x] Updated LCOV_EXCL_COVERAGE from 158 to 160 (+2 markers)
+- [x] Verified 100% coverage: 1201/1201 lines, 100/100 functions, 427/427 branches
+- [x] **Commit**: 1adc72e "Fix coverage gaps in workspace_multiline.c (Task 2.6.8.1)"
+- [x] **Commit**: d7fc09e "Document LCOV_EXCL_COVERAGE policy and branch exclusion pattern"
 
 ### 2.6.9: Kill Line - Write Tests
 - [ ] Write test: `test_workspace_kill_line_basic()`
