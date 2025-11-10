@@ -40,14 +40,6 @@
   - 2.6.7-2.6.8: kill_to_line_end (Ctrl+K) (5908d58)
   - 2.6.8.1: Coverage gaps fixed (1adc72e, d7fc09e - LCOV +2 → 160 total)
 
-**Phase 2 Remaining**:
-- ⏳ **Task 2.6.9-2.6.10**: kill_line (Ctrl+U) - **NEXT**
-- ⏳ **Task 2.6.11-2.6.12**: delete_word_backward (Ctrl+W)
-- ⏳ **Task 2.6.13**: Integration - add all shortcuts to ik_repl_process_action()
-- ⏳ **Task 3**: Implement event loop (`ik_repl_run()` - currently stubbed)
-- ⏳ **Task 4**: Simplify client.c main() to use REPL module
-- ⏳ **Task 5**: Manual testing and polish
-
 **Current Coverage**: 100% (1201/1201 lines, 100/100 functions, 427/427 branches)
 
 **Working Demo**: `make build/ikigai && ./build/ikigai` - src/client.c has complete REPL with event loop (lines 72-182)
