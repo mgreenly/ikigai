@@ -183,4 +183,16 @@ res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace);
  */
 res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace);
 
+/**
+ * @brief Kill (delete) text from cursor to end of current line (Ctrl+K)
+ *
+ * Deletes all text from the current cursor position to the end of the line.
+ * Does not delete the newline character if present. Cursor position unchanged.
+ * If cursor is already at line end, this is a no-op.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace);
+
 #endif /* IKIGAI_WORKSPACE_H */
