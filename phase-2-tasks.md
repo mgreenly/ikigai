@@ -386,30 +386,30 @@
 
 **Solution**: Refactor cursor as workspace-internal module with void + assertions contract.
 
-#### Step 1: Rename Files (Signal Internal Relationship)
-- [ ] Rename `src/cursor.c` → `src/workspace_cursor.c` using git mv
-- [ ] Rename `src/cursor.h` → `src/workspace_cursor.h` using git mv
-- [ ] Rename `tests/unit/cursor/` → `tests/unit/workspace_cursor/` using git mv
-- [ ] Update all `#include "cursor.h"` → `#include "workspace_cursor.h"` in:
-  - src/workspace.c
-  - src/workspace_multiline.c
+#### Step 1: Rename Files (Signal Internal Relationship) ✅ COMPLETE
+- [x] Rename `src/cursor.c` → `src/workspace_cursor.c` using git mv
+- [x] Rename `src/cursor.h` → `src/workspace_cursor.h` using git mv
+- [x] Rename `tests/unit/cursor/` → `tests/unit/workspace_cursor/` using git mv
+- [x] Update all `#include "cursor.h"` → `#include "workspace_cursor.h"` in:
+  - src/workspace.h
+  - src/workspace_cursor.c
   - tests/unit/workspace_cursor/*.c
-- [ ] Update Makefile: Replace `cursor.c` with `workspace_cursor.c` in sources
-- [ ] Verify: `make build/ikigai` compiles successfully
+- [x] Update Makefile: Replace `cursor.c` with `workspace_cursor.c` in sources
+- [x] Verify: `make bin/ikigai` compiles successfully
 
-#### Step 2: Change Cursor API to Void + Assertions
-- [ ] Change `src/workspace_cursor.h` signatures:
+#### Step 2: Change Cursor API to Void + Assertions ✅ COMPLETE
+- [x] Change `src/workspace_cursor.h` signatures:
   - `res_t ik_cursor_set_position(...)` → `void ik_cursor_set_position(...)`
   - `res_t ik_cursor_move_left(...)` → `void ik_cursor_move_left(...)`
   - `res_t ik_cursor_move_right(...)` → `void ik_cursor_move_right(...)`
   - `res_t ik_cursor_get_position(...)` → `void ik_cursor_get_position(...)`
   - Keep: `res_t ik_cursor_create(...)` (can fail on OOM)
-- [ ] Update `src/workspace_cursor.c` implementations:
+- [x] Update `src/workspace_cursor.c` implementations:
   - Replace `return ERR(cursor, INVALID_ARG, "Invalid UTF-8...")` with:
     `assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by workspace */`
   - Replace `return OK(cursor);` with nothing (void functions)
   - Find all UTF-8 validation error paths and replace with assertions
-- [ ] Document contract in workspace_cursor.h:
+- [x] Document contract in workspace_cursor.h:
   ```c
   /**
    * @file workspace_cursor.h
@@ -421,65 +421,76 @@
    */
   ```
 
-#### Step 3: Fix Workspace Usage (Remove Defensive Error Handling)
-- [ ] Fix `src/workspace.c`:
+#### Step 3: Fix Workspace Usage (Remove Defensive Error Handling) ✅ COMPLETE
+- [x] Fix `src/workspace.c`:
   - `cursor_left()`: Change from `CHECK(ik_cursor_move_left(...))` to `ik_cursor_move_left(...);`
   - `cursor_right()`: Change from `CHECK(ik_cursor_move_right(...))` to `ik_cursor_move_right(...);`
   - `get_cursor_position()`: Change from `CHECK(ik_cursor_get_position(...))` to `ik_cursor_get_position(...);`
   - Remove all defensive error handling for cursor calls
-- [ ] Fix `src/workspace_multiline.c`:
+- [x] Fix `src/workspace_multiline.c`:
   - `cursor_up()`: Remove lines 178-181 defensive error handling
   - `cursor_down()`: Remove lines 225-228 defensive error handling
   - `cursor_to_line_start()`: Remove line 254 assertion, just call void function
   - Change all: `res_t res = ik_cursor_set_position(...); assert(is_ok(&res));`
     to: `ik_cursor_set_position(...);`
 
-#### Step 4: Update Cursor Tests
-- [ ] Review `tests/unit/workspace_cursor/*.c`:
+#### Step 4: Update Cursor Tests ✅ COMPLETE
+- [x] Review `tests/unit/workspace_cursor/*.c`:
   - Tests that verify error handling for invalid UTF-8 - DELETE or convert to assertion tests
   - Tests that verify success cases - UPDATE to expect void (no result checking)
   - Add comment: `/* Note: UTF-8 validation tested at workspace boundary (insert_codepoint) */`
-- [ ] Verify all workspace tests still pass (they validate UTF-8 at insertion)
+- [x] Verify all workspace tests still pass (they validate UTF-8 at insertion)
 
-#### Step 5: Update LCOV Exclusion Count
-- [ ] Count new LCOV exclusions (assertions for UTF-8 validation in workspace_cursor.c)
-- [ ] Remove LCOV exclusions from workspace_multiline.c:
+#### Step 5: Update LCOV Exclusion Count ✅ COMPLETE
+- [x] Count new LCOV exclusions (assertions for UTF-8 validation in workspace_cursor.c)
+- [x] Remove LCOV exclusions from workspace_multiline.c:
   - Line 179-180 (cursor_up defensive handling)
   - Line 226-227 (cursor_down defensive handling)
   - Line 254 (cursor_to_line_start assertion)
-- [ ] Update Makefile LCOV_EXCL_COVERAGE to new count
-- [ ] Document net change in exclusions
+- [x] Update Makefile LCOV_EXCL_COVERAGE to new count
+- [x] Document net change in exclusions
 
-#### Step 6: Verify Quality Checks
-- [ ] Run: `make check` (all tests pass)
-- [ ] Run: `make lint` (complexity checks pass)
-- [ ] Run: `make coverage` (100% coverage: lines, functions, branches)
-- [ ] Verify: No defensive error handling with LCOV exclusions remains
-- [ ] Verify: Only assertion-related LCOV exclusions
+#### Step 6: Verify Quality Checks ✅ COMPLETE
+- [x] Run: `make check` (all tests pass)
+- [x] Run: `make lint` (complexity checks pass)
+- [x] Run: `make coverage` (100% coverage: lines, functions, branches)
+- [x] Verify: No defensive error handling with LCOV exclusions remains
+- [x] Verify: Only assertion-related LCOV exclusions
 
-#### Step 7: Commit
-- [ ] Create commit: "Refactor cursor → workspace_cursor with void + assertions (Task 2.6.4.1)"
-- [ ] Commit message should explain:
+#### Step 7: Commit ✅ COMPLETE
+- [x] Create commit: "Refactor cursor → workspace_cursor with void + assertions (Task 2.6.4.1)"
+- [x] Commit message should explain:
   - Design flaw: cursor returned errors for impossible UTF-8 failures
   - Solution: Make cursor workspace-internal, use assertions for invariants
   - Files renamed to show relationship
   - API changed to void (precondition: caller ensures UTF-8 validity)
   - Removed all defensive error handling in workspace
   - Net LCOV exclusion change
+- [x] **Commit**: 0456140 "Refactor cursor → workspace_cursor with void + assertions (Task 2.6.4.1)"
+- [x] **LCOV Change**: -10 markers (156 total, down from 166)
+- [x] **Coverage**: 100% (1178/1178 lines, 98/98 functions, 421/421 branches)
 
-### 2.6.5: Cursor to Line End - Write Tests
-- [ ] Write test: `test_workspace_cursor_to_line_end_basic()`
-- [ ] Write test: `test_workspace_cursor_to_line_end_last_line()`
-- [ ] Write test: `test_workspace_cursor_to_line_end_already_at_end()`
-- [ ] Write test: `test_workspace_cursor_to_line_end_before_newline()`
-- [ ] **Red**: Tests fail
+### 2.6.5: Cursor to Line End - Write Tests ✅ COMPLETE
+- [x] Write test: `test_workspace_cursor_to_line_end_basic()`
+- [x] Write test: `test_workspace_cursor_to_line_end_last_line()`
+- [x] Write test: `test_workspace_cursor_to_line_end_already_at_end()`
+- [x] Write test: `test_workspace_cursor_to_line_end_before_newline()`
+- [x] Write test: `test_workspace_cursor_to_line_end_null_workspace_asserts()`
+- [x] **Red**: Tests fail (function doesn't exist)
 
-### 2.6.6: Cursor to Line End - Implementation
-- [ ] Add to `src/workspace.h`: `res_t ik_workspace_cursor_to_line_end(ik_workspace_t *ws);`
-- [ ] Implement in `src/workspace.c`:
-  - Find next \n (or end of text)
+### 2.6.6: Cursor to Line End - Implementation ✅ COMPLETE
+- [x] Add to `src/workspace.h`: `res_t ik_workspace_cursor_to_line_end(ik_workspace_t *ws);`
+- [x] Implement in `src/workspace_multiline.c`:
+  - Find next \n (or end of text) using `find_line_end()` helper
   - Position cursor before that \n (or at end)
-- [ ] **Green**: Tests pass
+  - No-op if already at line end
+- [x] **Green**: Tests pass
+- [x] Run: `make check` (all tests pass)
+- [x] Run: `make lint` (complexity checks pass)
+- [x] Run: `make coverage` (100% coverage: 1188/1188 lines, 99/99 functions, 423/423 branches)
+- [x] **Commit**: bcdaf48 "Implement cursor_to_line_end (Ctrl+E) (Phase 2 Task 2.6.5)"
+- [x] **LCOV Change**: +1 marker (157 total, up from 156) - NULL assertion in cursor_to_line_end
+- [x] **Coverage**: 100% (1188/1188 lines, 99/99 functions, 423/423 branches)
 
 ### 2.6.7: Kill to Line End - Write Tests
 - [ ] Write test: `test_workspace_kill_to_line_end_basic()`
