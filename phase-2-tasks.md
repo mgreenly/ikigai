@@ -10,18 +10,20 @@
 - render_direct module: Direct terminal rendering without vterm (src/render_direct.c)
 
 **Phase 2 Completed**:
-- ✅ **Task 1**: ik_repl_render_frame() - REPL rendering helper (99c4490)
-- ✅ **Task 2**: ik_repl_process_action() - Input action processing (coverage: 1074 lines, 91 functions, 373 branches)
-- ✅ **Task 2.5**: Multi-line cursor navigation (cursor_up/down) (672df9b)
-  - 2.5.14: LCOV exclusion reduction (-8 markers)
-  - 2.5.15: File size fixes (workspace.c → workspace.c + workspace_multiline.c)
+- ✅ **Task 1** (1.1-1.7): ik_repl_render_frame() - REPL rendering helper (99c4490)
+- ✅ **Task 2** (2.1-2.8): ik_repl_process_action() - Input action processing (coverage: 1074 lines, 91 functions, 373 branches)
+- ✅ **Task 2.5**: Multi-line cursor navigation (cursor_up/down)
+  - 2.5.1-2.5.13: Implementation (672df9b)
+  - 2.5.14: LCOV exclusion reduction (9aea7ca, -8 markers)
+  - 2.5.15: File size fixes (4511c66 - workspace.c → workspace.c + workspace_multiline.c)
   - 2.5.16: UTF-8 contract enforcement with abort()
-- ✅ **Task 2.6.1-2.6.2**: Input actions for Ctrl+A/E/K/U/W (99a5bf7)
-- ✅ **Task 2.6.3-2.6.4**: cursor_to_line_start (Ctrl+A)
-- ✅ **Task 2.6.4.1**: Cursor module refactor (workspace-internal, void+assertions) (0456140, LCOV -10)
-- ✅ **Task 2.6.5-2.6.6**: cursor_to_line_end (Ctrl+E) (bcdaf48)
-- ✅ **Task 2.6.7-2.6.8**: kill_to_line_end (Ctrl+K) (5908d58)
-- ✅ **Task 2.6.8.1**: Coverage gaps fixed (1adc72e, d7fc09e, LCOV +2 → 160 total)
+- ✅ **Task 2.6**: Readline-style editing shortcuts
+  - 2.6.1-2.6.2: Input actions for Ctrl+A/E/K/U/W (99a5bf7)
+  - 2.6.3-2.6.4: cursor_to_line_start (Ctrl+A)
+  - 2.6.4.1: Cursor module refactor (0456140 - workspace-internal, void+assertions, LCOV -10)
+  - 2.6.5-2.6.6: cursor_to_line_end (Ctrl+E) (bcdaf48)
+  - 2.6.7-2.6.8: kill_to_line_end (Ctrl+K) (5908d58)
+  - 2.6.8.1: Coverage gaps fixed (1adc72e, d7fc09e - LCOV +2 → 160 total)
 
 **Phase 2 Remaining**:
 - ⏳ **Task 2.6.9-2.6.10**: kill_line (Ctrl+U) - **NEXT**
