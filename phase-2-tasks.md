@@ -31,27 +31,29 @@
   - 2.6.5-2.6.6: cursor_to_line_end (Ctrl+E) (bcdaf48)
   - 2.6.7-2.6.8: kill_to_line_end (Ctrl+K) (5908d58)
   - 2.6.8.1: Coverage gaps fixed (1adc72e, d7fc09e - LCOV +2 → 160 total)
+  - 2.6.9-2.6.10: kill_line (Ctrl+U) (df47679 - LCOV +1 → 161 total)
 
 ## Phase 2 - Remaining Tasks
 
 ### 2.6.9: Kill Line - Write Tests
-- [ ] Write test: `test_workspace_kill_line_basic()`
+- [x] Write test: `test_workspace_kill_line_basic()`
   - Setup: "hello\nworld\ntest", cursor in middle of "world"
   - Action: `ik_workspace_kill_line()`
   - Assert: text is "hello\ntest", cursor at start of "test" line
-- [ ] Write test: `test_workspace_kill_line_first_line()`
-- [ ] Write test: `test_workspace_kill_line_last_line()`
-- [ ] Write test: `test_workspace_kill_line_empty_line()`
-- [ ] **Red**: Tests fail
+- [x] Write test: `test_workspace_kill_line_first_line()`
+- [x] Write test: `test_workspace_kill_line_last_line()`
+- [x] Write test: `test_workspace_kill_line_empty_line()`
+- [x] **Red**: Tests fail
 
 ### 2.6.10: Kill Line - Implementation
-- [ ] Add to `src/workspace.h`: `res_t ik_workspace_kill_line(ik_workspace_t *ws);`
-- [ ] Implement in `src/workspace.c`:
+- [x] Add to `src/workspace.h`: `res_t ik_workspace_kill_line(ik_workspace_t *ws);`
+- [x] Implement in `src/workspace_multiline.c`:
   - Find line start (previous \n or start)
   - Find line end (next \n or end)
   - Delete entire line including \n
   - Position cursor at new line start
-- [ ] **Green**: Tests pass
+- [x] **Green**: Tests pass
+- [x] LCOV exclusion: Added 1 marker for assertion (160 → 161 total)
 
 ### 2.6.11: Delete Word Backward - Write Tests
 - [ ] Write test: `test_workspace_delete_word_backward_basic()`
