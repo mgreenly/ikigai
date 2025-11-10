@@ -10,8 +10,7 @@
 #include "../../test_utils.h"
 
 /* Test: Cursor down - basic */
-START_TEST(test_workspace_cursor_down_basic)
-{
+START_TEST(test_workspace_cursor_down_basic) {
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 

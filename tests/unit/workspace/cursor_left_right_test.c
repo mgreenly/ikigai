@@ -216,15 +216,13 @@ START_TEST(test_workspace_cursor_right_at_end)
     talloc_free(ctx);
 }
 
-END_TEST
-START_TEST(test_workspace_cursor_left_null_workspace_asserts)
+END_TEST START_TEST(test_workspace_cursor_left_null_workspace_asserts)
 {
     /* workspace cannot be NULL - should abort */
     ik_workspace_cursor_left(NULL);
 }
 
-END_TEST
-START_TEST(test_workspace_cursor_right_null_workspace_asserts)
+END_TEST START_TEST(test_workspace_cursor_right_null_workspace_asserts)
 {
     /* workspace cannot be NULL - should abort */
     ik_workspace_cursor_right(NULL);

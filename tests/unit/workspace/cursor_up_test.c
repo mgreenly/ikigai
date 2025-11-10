@@ -10,8 +10,7 @@
 #include "../../test_utils.h"
 
 /* Test: Cursor up - basic */
-START_TEST(test_workspace_cursor_up_basic)
-{
+START_TEST(test_workspace_cursor_up_basic) {
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -276,8 +275,7 @@ START_TEST(test_workspace_cursor_up_utf8)
 }
 
 /* Test: Cursor up - NULL workspace asserts */
-START_TEST(test_workspace_cursor_up_null_workspace_asserts)
-{
+START_TEST(test_workspace_cursor_up_null_workspace_asserts) {
     ik_workspace_cursor_up(NULL);
 }
 

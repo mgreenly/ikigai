@@ -82,9 +82,9 @@ COVERAGE_DIR = coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
-LCOV_EXCL_COVERAGE = 170
+LCOV_EXCL_COVERAGE = 168
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/cursor.c src/render_direct.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/workspace_multiline.c src/cursor.c src/render_direct.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
@@ -100,7 +100,7 @@ INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/%_test.c,$(BUILDDIR)/tes
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS)
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/cursor.c src/repl.c src/render_direct.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/protocol.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/workspace_multiline.c src/cursor.c src/repl.c src/render_direct.c
 MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
