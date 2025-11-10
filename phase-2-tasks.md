@@ -10,8 +10,23 @@
 - render_direct module: Direct terminal rendering without vterm (src/render_direct.c)
 
 **Phase 2 Completed**:
-- ✅ **Task 1** (1.1-1.7): ik_repl_render_frame() - REPL rendering helper (99c4490)
-- ✅ **Task 2** (2.1-2.8): ik_repl_process_action() - Input action processing (coverage: 1074 lines, 91 functions, 373 branches)
+- ✅ **Task 1**: ik_repl_render_frame() - REPL rendering helper
+  - 1.1: Write test - successful render (empty workspace)
+  - 1.2: Implement - minimal function signature
+  - 1.3: Implement - actual render logic
+  - 1.4: Write test - render with multi-line text
+  - 1.5: Write test - render with cursor at various positions
+  - 1.6: Write test - error handling / UTF-8
+  - 1.7: Verify task complete (99c4490)
+- ✅ **Task 2**: ik_repl_process_action() - Input action processing
+  - 2.1: Write test - CHAR action
+  - 2.2: Implement - minimal function signature
+  - 2.3: Write tests - basic actions
+  - 2.4: Write test - Ctrl+C quit flag
+  - 2.5: Write tests - edge cases
+  - 2.6: Write test - unknown action
+  - 2.7: Fix file size lint error
+  - 2.8: Verify task complete (coverage: 1074 lines, 91 functions, 373 branches)
 - ✅ **Task 2.5**: Multi-line cursor navigation (cursor_up/down)
   - 2.5.1-2.5.13: Implementation (672df9b)
   - 2.5.14: LCOV exclusion reduction (9aea7ca, -8 markers)
