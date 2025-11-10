@@ -54,9 +54,9 @@ START_TEST(test_workspace_cursor_to_line_start_basic) {
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Cursor to line start - first line */
-START_TEST(test_workspace_cursor_to_line_start_first_line) {
+START_TEST(test_workspace_cursor_to_line_start_first_line)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -93,10 +93,11 @@ START_TEST(test_workspace_cursor_to_line_start_first_line) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Cursor to line start - already at start */
-START_TEST(test_workspace_cursor_to_line_start_already_at_start) {
+START_TEST(test_workspace_cursor_to_line_start_already_at_start)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -142,10 +143,11 @@ START_TEST(test_workspace_cursor_to_line_start_already_at_start) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Cursor to line start - after newline */
-START_TEST(test_workspace_cursor_to_line_start_after_newline) {
+START_TEST(test_workspace_cursor_to_line_start_after_newline)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -209,14 +211,214 @@ START_TEST(test_workspace_cursor_to_line_start_after_newline) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: NULL workspace should assert */
 START_TEST(test_workspace_cursor_to_line_start_null_workspace_asserts)
 {
     /* workspace cannot be NULL - should abort */
     ik_workspace_cursor_to_line_start(NULL);
 }
+
+END_TEST
+/* Test: Cursor to line end - basic */
+START_TEST(test_workspace_cursor_to_line_end_basic)
+{
+    void *ctx = talloc_new(NULL);
+    ik_workspace_t *workspace = NULL;
+
+    ik_workspace_create(ctx, &workspace);
+
+    /* Insert "hello\nworld" */
+    ik_workspace_insert_codepoint(workspace, 'h');
+    ik_workspace_insert_codepoint(workspace, 'e');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'o');
+    ik_workspace_insert_newline(workspace);
+    ik_workspace_insert_codepoint(workspace, 'w');
+    ik_workspace_insert_codepoint(workspace, 'o');
+    ik_workspace_insert_codepoint(workspace, 'r');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'd');
+
+    /* Cursor is at end of "world" (byte 11, after 'd') */
+    /* Move cursor to start of "world" - move left 5 times */
+    ik_workspace_cursor_left(workspace);
+    ik_workspace_cursor_left(workspace);
+    ik_workspace_cursor_left(workspace);
+    ik_workspace_cursor_left(workspace);
+    ik_workspace_cursor_left(workspace);
+
+    /* Cursor should be at byte 6 (start of "world") */
+    size_t byte_offset = 0;
+    size_t grapheme_offset = 0;
+    res_t res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(byte_offset, 6);
+
+    /* Call cursor_to_line_end - should move to end of "world" (byte 11, after 'd') */
+    res = ik_workspace_cursor_to_line_end(workspace);
+    ck_assert(is_ok(&res));
+
+    /* Verify cursor at byte 11 (end of "world") */
+    res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(byte_offset, 11);  /* "hello\nworld" = 11 bytes */
+    ck_assert_uint_eq(grapheme_offset, 11);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: Cursor to line end - last line */
+START_TEST(test_workspace_cursor_to_line_end_last_line)
+{
+    void *ctx = talloc_new(NULL);
+    ik_workspace_t *workspace = NULL;
+
+    ik_workspace_create(ctx, &workspace);
+
+    /* Insert "hello" (single line) */
+    ik_workspace_insert_codepoint(workspace, 'h');
+    ik_workspace_insert_codepoint(workspace, 'e');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'o');
+
+    /* Move to middle - move left twice */
+    ik_workspace_cursor_left(workspace);
+    ik_workspace_cursor_left(workspace);
+
+    /* Cursor should be at byte 3 */
+    size_t byte_offset = 0;
+    size_t grapheme_offset = 0;
+    res_t res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(byte_offset, 3);
+
+    /* Call cursor_to_line_end - should move to byte 5 (end of text) */
+    res = ik_workspace_cursor_to_line_end(workspace);
+    ck_assert(is_ok(&res));
+
+    /* Verify cursor at byte 5 */
+    res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(byte_offset, 5);
+    ck_assert_uint_eq(grapheme_offset, 5);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: Cursor to line end - already at end */
+START_TEST(test_workspace_cursor_to_line_end_already_at_end)
+{
+    void *ctx = talloc_new(NULL);
+    ik_workspace_t *workspace = NULL;
+
+    ik_workspace_create(ctx, &workspace);
+
+    /* Insert "hello\nworld" */
+    ik_workspace_insert_codepoint(workspace, 'h');
+    ik_workspace_insert_codepoint(workspace, 'e');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'o');
+    ik_workspace_insert_newline(workspace);
+    ik_workspace_insert_codepoint(workspace, 'w');
+    ik_workspace_insert_codepoint(workspace, 'o');
+    ik_workspace_insert_codepoint(workspace, 'r');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'd');
+
+    /* Cursor is already at end of "world" (byte 11) */
+    size_t byte_offset = 0;
+    size_t grapheme_offset = 0;
+    res_t res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(byte_offset, 11);
+
+    /* Call cursor_to_line_end - should remain at byte 11 (no-op) */
+    res = ik_workspace_cursor_to_line_end(workspace);
+    ck_assert(is_ok(&res));
+
+    /* Verify cursor still at byte 11 */
+    res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(byte_offset, 11);
+    ck_assert_uint_eq(grapheme_offset, 11);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: Cursor to line end - before newline */
+START_TEST(test_workspace_cursor_to_line_end_before_newline)
+{
+    void *ctx = talloc_new(NULL);
+    ik_workspace_t *workspace = NULL;
+
+    ik_workspace_create(ctx, &workspace);
+
+    /* Insert "hello\nworld\ntest" */
+    ik_workspace_insert_codepoint(workspace, 'h');
+    ik_workspace_insert_codepoint(workspace, 'e');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'o');
+    ik_workspace_insert_newline(workspace);
+    ik_workspace_insert_codepoint(workspace, 'w');
+    ik_workspace_insert_codepoint(workspace, 'o');
+    ik_workspace_insert_codepoint(workspace, 'r');
+    ik_workspace_insert_codepoint(workspace, 'l');
+    ik_workspace_insert_codepoint(workspace, 'd');
+    ik_workspace_insert_newline(workspace);
+    ik_workspace_insert_codepoint(workspace, 't');
+    ik_workspace_insert_codepoint(workspace, 'e');
+    ik_workspace_insert_codepoint(workspace, 's');
+    ik_workspace_insert_codepoint(workspace, 't');
+
+    /* Cursor is at end of "test" (byte 16) */
+    /* Move to first line ("hello") - move left many times */
+    for (int i = 0; i < 10; i++) {
+        ik_workspace_cursor_left(workspace);
+    }
+
+    /* Cursor should be at byte 6 (start of "world") */
+    /* Move left 5 more times to get to start of "hello" */
+    for (int i = 0; i < 6; i++) {
+        ik_workspace_cursor_left(workspace);
+    }
+
+    /* Cursor should be at byte 0 (start of "hello") */
+    size_t byte_offset = 0;
+    size_t grapheme_offset = 0;
+    res_t res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(byte_offset, 0);
+
+    /* Call cursor_to_line_end - should move to byte 5 (before \n) */
+    res = ik_workspace_cursor_to_line_end(workspace);
+    ck_assert(is_ok(&res));
+
+    /* Verify cursor at byte 5 (end of "hello", before \n) */
+    res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(byte_offset, 5);  /* "hello" = 5 bytes, before \n */
+    ck_assert_uint_eq(grapheme_offset, 5);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: NULL workspace should assert */
+START_TEST(test_workspace_cursor_to_line_end_null_workspace_asserts)
+{
+    /* workspace cannot be NULL - should abort */
+    ik_workspace_cursor_to_line_end(NULL);
+}
+
 END_TEST
 
 static Suite *workspace_cursor_line_suite(void)
@@ -225,14 +427,21 @@ static Suite *workspace_cursor_line_suite(void)
     TCase *tc_core = tcase_create("Core");
     TCase *tc_assertions = tcase_create("Assertions");
 
-    /* Normal tests */
+    /* Normal tests - cursor to line start */
     tcase_add_test(tc_core, test_workspace_cursor_to_line_start_basic);
     tcase_add_test(tc_core, test_workspace_cursor_to_line_start_first_line);
     tcase_add_test(tc_core, test_workspace_cursor_to_line_start_already_at_start);
     tcase_add_test(tc_core, test_workspace_cursor_to_line_start_after_newline);
 
+    /* Normal tests - cursor to line end */
+    tcase_add_test(tc_core, test_workspace_cursor_to_line_end_basic);
+    tcase_add_test(tc_core, test_workspace_cursor_to_line_end_last_line);
+    tcase_add_test(tc_core, test_workspace_cursor_to_line_end_already_at_end);
+    tcase_add_test(tc_core, test_workspace_cursor_to_line_end_before_newline);
+
     /* Assertion tests */
     tcase_add_test_raise_signal(tc_assertions, test_workspace_cursor_to_line_start_null_workspace_asserts, SIGABRT);
+    tcase_add_test_raise_signal(tc_assertions, test_workspace_cursor_to_line_end_null_workspace_asserts, SIGABRT);
 
     suite_add_tcase(s, tc_core);
     suite_add_tcase(s, tc_assertions);

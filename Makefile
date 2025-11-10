@@ -82,7 +82,7 @@ COVERAGE_DIR = coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
-LCOV_EXCL_COVERAGE = 156
+LCOV_EXCL_COVERAGE = 157
 
 CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/workspace_multiline.c src/workspace_cursor.c src/render_direct.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))

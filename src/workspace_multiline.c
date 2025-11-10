@@ -248,3 +248,28 @@ res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace)
 
     return OK(NULL);
 }
+
+res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace)
+{
+    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+
+    char *text;
+    size_t text_len;
+    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+
+    size_t cursor_pos = workspace->cursor->byte_offset;
+
+    // Find current line end (position of \n or text_len)
+    size_t line_end = find_line_end(text, text_len, cursor_pos);
+
+    // If already at line end, no-op
+    if (cursor_pos == line_end) {
+        return OK(NULL);
+    }
+
+    // Update cursor position to line end
+    workspace->cursor_byte_offset = line_end;
+    ik_cursor_set_position(workspace->cursor, text, text_len, line_end);
+
+    return OK(NULL);
+}

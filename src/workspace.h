@@ -10,7 +10,7 @@
 #define IKIGAI_WORKSPACE_H
 
 #include "byte_array.h"
-#include "cursor.h"
+#include "workspace_cursor.h"
 #include "error.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -171,5 +171,16 @@ res_t ik_workspace_cursor_down(ik_workspace_t *workspace);
  * @return RES_OK on success, RES_ERR on failure
  */
 res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace);
+
+/**
+ * @brief Move cursor to the end of the current line (Ctrl+E)
+ *
+ * Moves the cursor to the end of the current line (before the newline if present).
+ * If cursor is already at the line end, this is a no-op.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace);
 
 #endif /* IKIGAI_WORKSPACE_H */
