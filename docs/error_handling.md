@@ -7,8 +7,9 @@
 - Memory Management: L114-139
 - Common Patterns: L141-193
 - Assertions: L195-232
-- Testing: L234-288
-- Coverage Requirements for Assertions: L295-367
+- Defensive Aborts: L237-270
+- Testing: L274-328
+- Coverage Requirements for Assertions: L335-407
 
 ---
 
@@ -231,6 +232,50 @@ res_t ik_array_get(const ik_array_t *array, size_t index) {
 **Not for:**
 - External failures (file I/O, network, allocation) - those use `res_t`
 - User input validation - those return `ERR()`
+
+---
+
+## Defensive Aborts: Handling "Impossible" Conditions
+
+**When to use:** Internal invariants that should never be violated if other (tested) code works correctly.
+
+**Pattern:**
+```c
+if (impossible_condition) {
+    fprintf(stderr, "diagnostic message %s:%d\n", __FILE__, __LINE__); // LCOV_EXCL_LINE
+    abort(); // LCOV_EXCL_LINE
+}
+```
+
+**Rationale:**
+- Different from assertions (doesn't compile out with `-DNDEBUG`)
+- Different from `res_t` errors (not recoverable - indicates broken invariants)
+- Provides production diagnostics if the "impossible" ever happens
+- Marked `LCOV_EXCL_LINE` because coverage assumes working preconditions
+
+**Example:** workspace_multiline.c:88-89
+```c
+if ((first_byte & 0x80) == 0) {
+    char_len = 1; // ASCII
+} else if ((first_byte & 0xE0) == 0xC0) {
+    char_len = 2;
+} else if ((first_byte & 0xF0) == 0xE0) {
+    char_len = 3;
+} else if ((first_byte & 0xF8) == 0xF0) {
+    char_len = 4;
+} else {
+    fprintf(stderr, "invalid UTF-8 %s:%d\n", __FILE__, __LINE__); // LCOV_EXCL_LINE
+    abort(); // LCOV_EXCL_LINE
+}
+```
+
+**When invalid UTF-8 is encountered (which should never happen given the precondition), you get a clear diagnostic message to stderr showing exactly which line hit the abort, making debugging easier if this "impossible" case ever occurs.**
+
+**Use this pattern when:**
+- Other code guarantees the invariant (e.g., UTF-8 validation elsewhere)
+- Continuing would leave the program in an unknown state
+- You want diagnostics even in production builds
+- The condition truly should never happen with correct code
 
 ---
 

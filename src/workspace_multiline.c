@@ -1,22 +1,20 @@
-/**
- * @file workspace_multiline.c
- * @brief Workspace multi-line navigation implementation
- */
+// @file workspace_multiline.c
+// @brief Workspace multi-line navigation implementation
 
 #include "workspace.h"
 #include "error.h"
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-/**
- * @brief Find the start of the current line (position after previous newline, or 0)
- *
- * @param text Text buffer
- * @param cursor_pos Current cursor position
- * @return Position of current line start
- */
+// @brief Find the start of the current line (position after previous newline, or 0)
+//
+// @param text Text buffer
+// @param cursor_pos Current cursor position
+// @return Position of current line start
 static size_t find_line_start(const char *text, size_t cursor_pos)
 {
-    assert(text != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(text != NULL); // LCOV_EXCL_BR_LINE
 
     if (cursor_pos == 0) {
         return 0;
@@ -31,17 +29,15 @@ static size_t find_line_start(const char *text, size_t cursor_pos)
     return pos;
 }
 
-/**
- * @brief Find the end of the current line (position of newline, or end of text)
- *
- * @param text Text buffer
- * @param text_len Length of text
- * @param cursor_pos Current cursor position
- * @return Position of current line end (newline position or text_len)
- */
+// @brief Find the end of the current line (position of newline, or end of text)
+//
+// @param text Text buffer
+// @param text_len Length of text
+// @param cursor_pos Current cursor position
+// @return Position of current line end (newline position or text_len)
 static size_t find_line_end(const char *text, size_t text_len, size_t cursor_pos)
 {
-    assert(text != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(text != NULL); // LCOV_EXCL_BR_LINE
 
     // Scan forward to find newline or end
     size_t pos = cursor_pos;
@@ -52,16 +48,21 @@ static size_t find_line_end(const char *text, size_t text_len, size_t cursor_pos
     return pos;
 }
 
-/**
- * @brief Count grapheme clusters in a substring
- *
- * @param text Start of substring
- * @param len Length of substring in bytes
- * @return Number of grapheme clusters
- */
+// @brief Count grapheme clusters in a substring
+//
+// Precondition: text must contain valid UTF-8. This is enforced by
+// ik_workspace_insert_codepoint() and ik_workspace_insert_newline(),
+// which are the only operations that modify workspace text.
+//
+// Note: If invalid UTF-8 is encountered, the program will abort() with
+// a diagnostic message, as this indicates a precondition violation.
+//
+// @param text Start of substring
+// @param len Length of substring in bytes
+// @return Number of grapheme clusters
 static size_t count_graphemes(const char *text, size_t len)
 {
-    assert(text != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(text != NULL); // LCOV_EXCL_BR_LINE
 
     if (len == 0) {
         return 0;
@@ -81,10 +82,11 @@ static size_t count_graphemes(const char *text, size_t len)
             char_len = 2;
         } else if ((first_byte & 0xF0) == 0xE0) {
             char_len = 3;
-        } else if ((first_byte & 0xF8) == 0xF0) { /* LCOV_EXCL_BR_LINE */
+        } else if ((first_byte & 0xF8) == 0xF0) { // LCOV_EXCL_BR_LINE
             char_len = 4;
         } else {
-            char_len = 1; // Invalid, treat as 1 byte /* LCOV_EXCL_LINE */
+            fprintf(stderr, "invalid UTF-8 %s:%d\n", __FILE__, __LINE__); // LCOV_EXCL_LINE
+            abort(); // LCOV_EXCL_LINE
         }
 
         byte_pos += char_len;
@@ -94,17 +96,22 @@ static size_t count_graphemes(const char *text, size_t len)
     return grapheme_count;
 }
 
-/**
- * @brief Find byte position of Nth grapheme within a substring
- *
- * @param text Start of substring
- * @param len Length of substring in bytes
- * @param target_grapheme Target grapheme index (0-based)
- * @return Byte offset of target grapheme (or len if past end)
- */
+// @brief Find byte position of Nth grapheme within a substring
+//
+// Precondition: text must contain valid UTF-8. This is enforced by
+// ik_workspace_insert_codepoint() and ik_workspace_insert_newline(),
+// which are the only operations that modify workspace text.
+//
+// Note: If invalid UTF-8 is encountered, the program will abort() with
+// a diagnostic message, as this indicates a precondition violation.
+//
+// @param text Start of substring
+// @param len Length of substring in bytes
+// @param target_grapheme Target grapheme index (0-based)
+// @return Byte offset of target grapheme (or len if past end)
 static size_t grapheme_to_byte_offset(const char *text, size_t len, size_t target_grapheme)
 {
-    assert(text != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(text != NULL); // LCOV_EXCL_BR_LINE
 
     if (len == 0 || target_grapheme == 0) {
         return 0;
@@ -123,10 +130,11 @@ static size_t grapheme_to_byte_offset(const char *text, size_t len, size_t targe
             char_len = 2;
         } else if ((first_byte & 0xF0) == 0xE0) {
             char_len = 3;
-        } else if ((first_byte & 0xF8) == 0xF0) { /* LCOV_EXCL_BR_LINE */
+        } else if ((first_byte & 0xF8) == 0xF0) { // LCOV_EXCL_BR_LINE
             char_len = 4;
         } else {
-            char_len = 1; // Invalid, treat as 1 byte /* LCOV_EXCL_LINE */
+            fprintf(stderr, "invalid UTF-8 %s:%d\n", __FILE__, __LINE__); // LCOV_EXCL_LINE
+            abort(); // LCOV_EXCL_LINE
         }
 
         byte_pos += char_len;
@@ -138,7 +146,7 @@ static size_t grapheme_to_byte_offset(const char *text, size_t len, size_t targe
 
 res_t ik_workspace_cursor_up(ik_workspace_t *workspace)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
 
     char *text;
     size_t text_len;
@@ -182,7 +190,7 @@ res_t ik_workspace_cursor_up(ik_workspace_t *workspace)
 
 res_t ik_workspace_cursor_down(ik_workspace_t *workspace)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
 
     char *text;
     size_t text_len;
@@ -226,7 +234,7 @@ res_t ik_workspace_cursor_down(ik_workspace_t *workspace)
 
 res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
 
     char *text;
     size_t text_len;
@@ -251,7 +259,7 @@ res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace)
 
 res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
 
     char *text;
     size_t text_len;
@@ -276,7 +284,7 @@ res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace)
 
 res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
 
     char *text;
     size_t text_len;
