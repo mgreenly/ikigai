@@ -381,6 +381,92 @@
 - [x] **Green**: Tests pass
 - [x] **LCOV Exclusions**: Added 2 markers (170 total) - NULL assertion + assertion branch only
 
+### 2.6.4.1: Fix Cursor Module Design Flaw
+**Problem Identified**: Tasks 2.5.12 (cursor_up/down) and 2.6.4 (cursor_to_line_start) use defensive error handling with LCOV exclusions for impossible error paths. Root cause: cursor module returns res_t for UTF-8 validation errors, but workspace guarantees UTF-8 validity. This creates unusable error values.
+
+**Solution**: Refactor cursor as workspace-internal module with void + assertions contract.
+
+#### Step 1: Rename Files (Signal Internal Relationship)
+- [ ] Rename `src/cursor.c` → `src/workspace_cursor.c` using git mv
+- [ ] Rename `src/cursor.h` → `src/workspace_cursor.h` using git mv
+- [ ] Rename `tests/unit/cursor/` → `tests/unit/workspace_cursor/` using git mv
+- [ ] Update all `#include "cursor.h"` → `#include "workspace_cursor.h"` in:
+  - src/workspace.c
+  - src/workspace_multiline.c
+  - tests/unit/workspace_cursor/*.c
+- [ ] Update Makefile: Replace `cursor.c` with `workspace_cursor.c` in sources
+- [ ] Verify: `make build/ikigai` compiles successfully
+
+#### Step 2: Change Cursor API to Void + Assertions
+- [ ] Change `src/workspace_cursor.h` signatures:
+  - `res_t ik_cursor_set_position(...)` → `void ik_cursor_set_position(...)`
+  - `res_t ik_cursor_move_left(...)` → `void ik_cursor_move_left(...)`
+  - `res_t ik_cursor_move_right(...)` → `void ik_cursor_move_right(...)`
+  - `res_t ik_cursor_get_position(...)` → `void ik_cursor_get_position(...)`
+  - Keep: `res_t ik_cursor_create(...)` (can fail on OOM)
+- [ ] Update `src/workspace_cursor.c` implementations:
+  - Replace `return ERR(cursor, INVALID_ARG, "Invalid UTF-8...")` with:
+    `assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by workspace */`
+  - Replace `return OK(cursor);` with nothing (void functions)
+  - Find all UTF-8 validation error paths and replace with assertions
+- [ ] Document contract in workspace_cursor.h:
+  ```c
+  /**
+   * @file workspace_cursor.h
+   * @brief Internal cursor module for workspace
+   *
+   * INTERNAL USE ONLY: This module is workspace-private.
+   * Precondition: All text passed to cursor functions must be valid UTF-8.
+   * This is guaranteed by workspace's insert operations.
+   */
+  ```
+
+#### Step 3: Fix Workspace Usage (Remove Defensive Error Handling)
+- [ ] Fix `src/workspace.c`:
+  - `cursor_left()`: Change from `CHECK(ik_cursor_move_left(...))` to `ik_cursor_move_left(...);`
+  - `cursor_right()`: Change from `CHECK(ik_cursor_move_right(...))` to `ik_cursor_move_right(...);`
+  - `get_cursor_position()`: Change from `CHECK(ik_cursor_get_position(...))` to `ik_cursor_get_position(...);`
+  - Remove all defensive error handling for cursor calls
+- [ ] Fix `src/workspace_multiline.c`:
+  - `cursor_up()`: Remove lines 178-181 defensive error handling
+  - `cursor_down()`: Remove lines 225-228 defensive error handling
+  - `cursor_to_line_start()`: Remove line 254 assertion, just call void function
+  - Change all: `res_t res = ik_cursor_set_position(...); assert(is_ok(&res));`
+    to: `ik_cursor_set_position(...);`
+
+#### Step 4: Update Cursor Tests
+- [ ] Review `tests/unit/workspace_cursor/*.c`:
+  - Tests that verify error handling for invalid UTF-8 - DELETE or convert to assertion tests
+  - Tests that verify success cases - UPDATE to expect void (no result checking)
+  - Add comment: `/* Note: UTF-8 validation tested at workspace boundary (insert_codepoint) */`
+- [ ] Verify all workspace tests still pass (they validate UTF-8 at insertion)
+
+#### Step 5: Update LCOV Exclusion Count
+- [ ] Count new LCOV exclusions (assertions for UTF-8 validation in workspace_cursor.c)
+- [ ] Remove LCOV exclusions from workspace_multiline.c:
+  - Line 179-180 (cursor_up defensive handling)
+  - Line 226-227 (cursor_down defensive handling)
+  - Line 254 (cursor_to_line_start assertion)
+- [ ] Update Makefile LCOV_EXCL_COVERAGE to new count
+- [ ] Document net change in exclusions
+
+#### Step 6: Verify Quality Checks
+- [ ] Run: `make check` (all tests pass)
+- [ ] Run: `make lint` (complexity checks pass)
+- [ ] Run: `make coverage` (100% coverage: lines, functions, branches)
+- [ ] Verify: No defensive error handling with LCOV exclusions remains
+- [ ] Verify: Only assertion-related LCOV exclusions
+
+#### Step 7: Commit
+- [ ] Create commit: "Refactor cursor → workspace_cursor with void + assertions (Task 2.6.4.1)"
+- [ ] Commit message should explain:
+  - Design flaw: cursor returned errors for impossible UTF-8 failures
+  - Solution: Make cursor workspace-internal, use assertions for invariants
+  - Files renamed to show relationship
+  - API changed to void (precondition: caller ensures UTF-8 validity)
+  - Removed all defensive error handling in workspace
+  - Net LCOV exclusion change
+
 ### 2.6.5: Cursor to Line End - Write Tests
 - [ ] Write test: `test_workspace_cursor_to_line_end_basic()`
 - [ ] Write test: `test_workspace_cursor_to_line_end_last_line()`
@@ -741,7 +827,7 @@
 - `src/terminal.{c,h}` - Terminal raw mode, alternate screen (Phase 0)
 - `src/render_direct.{c,h}` - Direct terminal rendering without vterm (Phase 1)
 - `src/workspace.{c,h}` - Text buffer with cursor (Phase 0, needs extensions)
-- `src/cursor.{c,h}` - Grapheme-aware cursor positioning (Phase 0)
+- `src/workspace_cursor.{c,h}` - Grapheme-aware cursor positioning (Phase 0, workspace-internal)
 - `src/input.{c,h}` - Input parser for escape sequences (Phase 0, needs extensions)
 - `src/byte_array.{c,h}` - Dynamic byte array (Phase 0)
 - `src/wrapper.{c,h}` - MOCKABLE wrappers for testability (Phase 0)
@@ -761,8 +847,9 @@
 - `tests/unit/terminal/` - Terminal tests ✅
 - `tests/unit/render_direct/` - Render tests ✅
 - `tests/unit/workspace/` - Workspace tests ✅ (will add more)
+- `tests/unit/workspace_cursor/` - Cursor tests ✅ (workspace-internal module)
 - `tests/unit/input/` - Input parser tests ✅ (will add more)
-- `tests/unit/repl/` - REPL tests ❌ (needs to be created)
+- `tests/unit/repl/` - REPL tests ✅
 
 ### Key Functions to Reference
 
