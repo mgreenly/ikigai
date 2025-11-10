@@ -352,25 +352,26 @@
 - [x] Write test: `test_input_parse_ctrl_w()`
 - [x] **Red**: Tests fail (actions don't exist)
 
-### 2.6.2: Add Input Actions - Implementation
-- [ ] Add to `src/input.h` enum:
+### 2.6.2: Add Input Actions - Implementation ✅ COMPLETE
+- [x] Add to `src/input.h` enum:
   - `IK_INPUT_CTRL_A`
   - `IK_INPUT_CTRL_E`
   - `IK_INPUT_CTRL_K`
   - `IK_INPUT_CTRL_U`
   - `IK_INPUT_CTRL_W`
-- [ ] Update `src/input.c`: parse control characters (0x01, 0x05, 0x0B, 0x15, 0x17)
-- [ ] **Green**: Input tests pass
+- [x] Update `src/input.c`: parse control characters (0x01, 0x05, 0x0B, 0x15, 0x17)
+- [x] **Green**: Input tests pass
+- [x] **Commit**: 99a5bf7 "Add readline control character input actions (Phase 2 Task 2.6.2)"
 
-### 2.6.3: Cursor to Line Start - Write Tests
-- [ ] Write test: `test_workspace_cursor_to_line_start_basic()` in workspace_test.c
+### 2.6.3: Cursor to Line Start - Write Tests ✅ COMPLETE
+- [x] Write test: `test_workspace_cursor_to_line_start_basic()` in cursor_line_test.c
   - Setup: "hello\nworld", cursor in middle of "world"
   - Action: `ik_workspace_cursor_to_line_start()`
   - Assert: cursor at start of "world"
-- [ ] Write test: `test_workspace_cursor_to_line_start_first_line()`
-- [ ] Write test: `test_workspace_cursor_to_line_start_already_at_start()`
-- [ ] Write test: `test_workspace_cursor_to_line_start_after_newline()`
-- [ ] **Red**: Tests fail
+- [x] Write test: `test_workspace_cursor_to_line_start_first_line()`
+- [x] Write test: `test_workspace_cursor_to_line_start_already_at_start()`
+- [x] Write test: `test_workspace_cursor_to_line_start_after_newline()`
+- [x] **Red**: Tests fail
 
 ### 2.6.4: Cursor to Line Start - Implementation
 - [ ] Add to `src/workspace.h`: `res_t ik_workspace_cursor_to_line_start(ik_workspace_t *ws);`
