@@ -277,6 +277,19 @@ if ((first_byte & 0x80) == 0) {
 - You want diagnostics even in production builds
 - The condition truly should never happen with correct code
 
+**Branch Coverage for Defensive Aborts:**
+When the condition leading to abort() creates an untestable branch (the FALSE branch that falls through to the else clause), mark the condition with `// LCOV_EXCL_BR_LINE`. Example:
+```c
+} else if ((first_byte & 0xF8) == 0xF0) { // LCOV_EXCL_BR_LINE
+    char_len = 4;
+} else {
+    fprintf(stderr, "invalid UTF-8 %s:%d\n", __FILE__, __LINE__); // LCOV_EXCL_LINE
+    abort(); // LCOV_EXCL_LINE
+}
+```
+
+**Important:** Adding new exclusions requires updating `LCOV_EXCL_COVERAGE` in the Makefile. This is a tracked metric to prevent coverage erosion. Request permission with clear justification showing why the branch is untestable.
+
 ---
 
 ## Testing Strategy
