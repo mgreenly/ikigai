@@ -70,523 +70,68 @@
 
 ---
 
-## Task 1: Render Frame Helper
+## Task 1: Render Frame Helper ✅ COMPLETE
 
-**Note**: The logic already exists in src/client.c:render_frame() (lines 46-70). We need to move this into the REPL module.
-
-### 1.1: Write Test - Successful Render (Empty Workspace)
-- [x] Create `tests/unit/repl/` directory
-- [x] Create `tests/unit/repl/repl_test.c` with test infrastructure
-- [x] Write test: `test_repl_render_frame_empty_workspace()`
-  - Setup: create REPL context with empty workspace
-  - Action: call `ik_repl_render_frame(repl)`
-  - Assert: returns OK result
-  - Verify: render_direct_workspace called with correct parameters (may need mockable wrapper)
-- [x] **Red**: Verify test fails (function doesn't exist in repl module)
-- [x] Run: `make build/tests/unit/repl/repl_test && ./build/tests/unit/repl/repl_test`
-
-### 1.2: Implement - Minimal Function Signature
-- [x] Add to `src/repl.h`: `res_t ik_repl_render_frame(ik_repl_ctx_t *repl);`
-- [x] Add to `src/repl.c`: stub implementation returning OK
-- [x] Update Makefile if needed for repl_test
-- [x] **Green**: Verify test passes
-- [x] Run: `make build/tests/unit/repl/repl_test && ./build/tests/unit/repl/repl_test`
-
-### 1.3: Implement - Actual Render Logic
-- [x] Implement `ik_repl_render_frame()` in `src/repl.c`:
-  - Copy logic from src/client.c:render_frame() (lines 46-70)
-  - Get workspace text via `ik_workspace_get_text()`
-  - Get cursor position via `ik_workspace_get_cursor_position()`
-  - Call `ik_render_direct_workspace(repl->render, text, len, cursor_byte_offset)`
-  - Return result
-  - **Note**: Removed unreachable error checks (workspace getters always return OK)
-- [x] **Green**: Verify all tests pass
-- [x] Run: `make build/tests/unit/repl/repl_test && ./build/tests/unit/repl/repl_test`
-
-### 1.4: Write Test - Render with Multi-line Text
-- [x] Write test: `test_repl_render_frame_multiline()`
-  - Setup: insert multi-line text into workspace (text with \n)
-  - Action: call `ik_repl_render_frame(repl)`
-  - Assert: returns OK, correct text and cursor passed to render
-- [x] **Green**: Verify test passes (implementation already handles this)
-- [x] Run: `make build/tests/unit/repl/repl_test && ./build/tests/unit/repl/repl_test`
-
-### 1.5: Write Test - Render with Cursor at Various Positions
-- [x] Write test: `test_repl_render_frame_cursor_positions()`
-  - Test cursor at: start, middle, end, after multi-byte char
-  - Assert correct cursor_byte_offset passed to render
-- [x] **Green**: Verify test passes
-- [x] Run: `make build/tests/unit/repl/repl_test && ./build/tests/unit/repl/repl_test`
-
-### 1.6: Write Test - Error Handling (Write Failure)
-- [x] Write test: `test_repl_render_frame_utf8()` (UTF-8 handling instead)
-  - Setup: workspace with UTF-8 emoji
-  - Action: call `ik_repl_render_frame(repl)`
-  - Assert: returns OK, rendering succeeds
-  - **Note**: Error paths not testable (getters always return OK)
-- [x] Write test: `test_repl_render_frame_null_repl_asserts()` (NULL assertion test)
-- [x] **Green**: Verify test passes
-- [x] Run: `make build/tests/unit/repl/repl_test && ./build/tests/unit/repl/repl_test`
-
-### 1.7: Verify Task 1 Complete
-- [x] Run: `make check` (all tests pass)
-- [x] Run: `make lint` (complexity checks pass)
-- [x] Run: `make coverage` (100% coverage: 1056/1056 lines, 90/90 functions, 359/359 branches)
-- [x] Check coverage: `grep "^DA:" coverage/coverage.info | grep ",0$"` (no uncovered lines)
-- [x] Check coverage: `grep "^BRDA:" coverage/coverage.info | grep ",0$"` (no uncovered branches)
-- [x] **Commit**: 99c4490 "Implement REPL render_frame helper function (Phase 2 Task 1)"
+### 1.1-1.7: Implementation Complete
+**Commit**: 99c4490 "Implement REPL render_frame helper function (Phase 2 Task 1)"
 
 ---
 
-## Task 2: Process Input Action Helper
+## Task 2: Process Input Action Helper ✅ COMPLETE
 
-**Note**: The logic already exists in src/client.c:process_action() (lines 16-43). We need to move this into the REPL module and adjust the API (use repl->quit instead of should_exit_out parameter).
-
-### 2.1: Write Test - CHAR Action
-- [x] Write test: `test_repl_process_action_char()` in repl_action_test.c
-  - Setup: REPL with empty workspace
-  - Action: process `IK_INPUT_CHAR` with codepoint 'a'
-  - Assert: workspace contains 'a', cursor moved
-- [x] **Red**: Verify test fails (function doesn't exist)
-- [x] Run: `make build/tests/unit/repl/repl_action_test && ./build/tests/unit/repl/repl_action_test`
-
-### 2.2: Implement - Minimal Function Signature
-- [x] Add to `src/repl.h`: `res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action);`
-- [x] Add to `src/repl.c`: copy logic from src/client.c:process_action() (lines 16-43)
-  - Change signature: remove should_exit_out parameter
-  - Use `repl->quit = true` for CTRL_C instead of setting out parameter
-  - Call workspace functions via `repl->workspace`
-- [x] **Green**: Verify test passes
-- [x] Run: `make build/tests/unit/repl/repl_action_test && ./build/tests/unit/repl/repl_action_test`
-
-### 2.3: Write Tests - Basic Actions
-- [x] Write test: `test_repl_process_action_newline()`
-- [x] Write test: `test_repl_process_action_backspace()`
-- [x] Write test: `test_repl_process_action_delete()`
-- [x] Write test: `test_repl_process_action_arrow_left()`
-- [x] Write test: `test_repl_process_action_arrow_right()`
-- [x] **Green**: Verify tests pass (implementation already handles these)
-- [x] Run tests
-
-### 2.4: Write Test - Ctrl+C Quit Flag
-- [x] Write test: `test_repl_process_action_ctrl_c()`
-  - Setup: REPL with quit=false
-  - Action: process `IK_INPUT_CTRL_C`
-  - Assert: repl->quit == true
-- [x] **Green**: Verify test passes (implementation already handles this)
-
-### 2.5: Write Tests - Edge Cases
-- [x] Write test: `test_repl_process_action_backspace_at_start()`
-- [x] Write test: `test_repl_process_action_delete_at_end()`
-- [x] Write test: `test_repl_process_action_left_at_start()`
-- [x] Write test: `test_repl_process_action_right_at_end()`
-- [x] **Green**: Verify tests pass (workspace already handles edge cases)
-
-### 2.6: Write Test - Unknown Action
-- [x] Write test: `test_repl_process_action_unknown()`
-  - Setup: REPL with workspace
-  - Action: process `IK_INPUT_UNKNOWN`
-  - Assert: returns OK, workspace unchanged
-- [x] **Green**: Verify test passes
-
-### 2.7: Fix File Size Lint Error
-- [x] Split repl_test.c (753 lines) into two files:
-  - repl_render_test.c (247 lines) - render_frame tests
-  - repl_action_test.c (489 lines) - process_action tests
-- [x] Update LCOV_EXCL_COVERAGE from 152 to 154 (added 2 assertions)
-- [x] Both files now under 500-line limit
-
-### 2.8: Verify Task 2 Complete
-- [x] Run: `make check` (all tests pass)
-- [x] Run: `make lint` (complexity checks pass)
-- [x] Run: `make coverage` (100% coverage: 1074/1074 lines, 91/91 functions, 373/373 branches)
-- [x] Check: no uncovered lines or branches
+### 2.1-2.8: Implementation Complete
+**Coverage**: 100% (1074/1074 lines, 91/91 functions, 373/373 branches)
 
 ---
 
 ## Task 2.5: Multi-line Cursor Movement ✅ COMPLETE
 
-### 2.5.1: Write Test - Cursor Up (Basic)
-- [x] Write test: `test_workspace_cursor_up_basic()` in `tests/unit/workspace/cursor_movement_test.c`
-  - Setup: workspace with "line1\nline2\nline3", cursor at start of line2
-  - Action: call `ik_workspace_cursor_up(ws)`
-  - Assert: cursor now on line1, same column position
-- [x] **Red**: Verify test fails (function doesn't exist)
-- [x] Run: `make build/tests/unit/workspace/workspace_test && ./build/tests/unit/workspace/workspace_test`
-
-### 2.5.2: Implement - Minimal Function Signatures
-- [x] Add to `src/workspace.h`:
-  ```c
-  res_t ik_workspace_cursor_up(ik_workspace_t *ws);
-  res_t ik_workspace_cursor_down(ik_workspace_t *ws);
-  ```
-- [x] Add to `src/workspace.c`: stub implementations returning OK
-- [x] **Green**: Verify test passes (but cursor doesn't actually move yet)
-
-### 2.5.3: Design - Algorithm for Up/Down Movement
-- [x] Document algorithm (in comments):
-  - Calculate current (row, col) from byte offset
-  - For up: find start of previous line, position at same column (or line end)
-  - For down: find start of next line, position at same column (or line end)
-  - Track preferred column for vertical movement
-- [x] Consider: need to add `preferred_column` to workspace or cursor structure?
-- [x] Decision: check if cursor structure already tracks this (decision: not needed, calculate on-demand)
-
-### 2.5.4: Write Helper Tests - Find Line Boundaries
-- [x] If needed, write tests for helper: `find_line_start(text, byte_offset)` (via integration tests)
-- [x] If needed, write tests for helper: `find_prev_line_start(text, byte_offset)` (not needed, inline logic)
-- [x] If needed, write tests for helper: `find_next_line_start(text, byte_offset)` (not needed, inline logic)
-- [x] **Red**: Tests fail
-- [x] Implement helpers as static functions in workspace.c
-- [x] **Green**: Helper tests pass
-
-### 2.5.5: Write Helper Tests - Calculate Row/Col from Offset
-- [x] If needed, write tests for helper: `calculate_row_col(text, byte_offset, row_out, col_out)` (via integration tests)
-- [x] Test: handles \n correctly
-- [x] Test: handles wrapped lines (long lines) (deferred - rendering concern)
-- [x] Test: handles UTF-8 multi-byte characters
-- [x] **Red**: Tests fail
-- [x] Implement helper (count_graphemes, grapheme_to_byte_offset)
-- [x] **Green**: Tests pass
-
-### 2.5.6: Implement - Cursor Up Logic
-- [x] Implement `ik_workspace_cursor_up()`:
-  - Get current byte offset
-  - Find current line start
-  - If at first line, return OK (no-op)
-  - Find previous line start
-  - Calculate column position on current line
-  - Position cursor at same column on previous line (or line end)
-  - Update cursor byte offset
-- [x] **Green**: Verify test from 2.5.1 passes
-
-### 2.5.7: Write Tests - Cursor Up Edge Cases
-- [x] Write test: `test_workspace_cursor_up_from_first_line()` (no-op)
-- [x] Write test: `test_workspace_cursor_up_column_preservation()`
-- [x] Write test: `test_workspace_cursor_up_shorter_line()` (cursor to line end)
-- [x] Write test: `test_workspace_cursor_up_empty_line()`
-- [x] Write test: `test_workspace_cursor_up_utf8()` (emoji, CJK)
-- [x] **Green**: All tests pass
-
-### 2.5.8: Write Test - Cursor Down (Basic)
-- [x] Write test: `test_workspace_cursor_down_basic()`
-  - Setup: workspace with "line1\nline2\nline3", cursor at start of line2
-  - Action: call `ik_workspace_cursor_down(ws)`
-  - Assert: cursor now on line3, same column position
-- [x] **Red**: Test fails (not implemented yet)
-
-### 2.5.9: Implement - Cursor Down Logic
-- [x] Implement `ik_workspace_cursor_down()`:
-  - Similar to cursor_up but move to next line
-  - Handle last line (no-op)
-- [x] **Green**: Test passes
-
-### 2.5.10: Write Tests - Cursor Down Edge Cases
-- [x] Write test: `test_workspace_cursor_down_from_last_line()` (no-op)
-- [x] Write test: `test_workspace_cursor_down_column_preservation()`
-- [x] Write test: `test_workspace_cursor_down_shorter_line()`
-- [x] Write test: `test_workspace_cursor_down_empty_line()`
-- [x] Write test: `test_workspace_cursor_down_utf8()`
-- [x] **Green**: All tests pass
-
-### 2.5.11: Write Tests - Wrapped Lines (Future Consideration)
-- [x] Write test: `test_workspace_cursor_up_wrapped_line()` (deferred)
-- [x] Write test: `test_workspace_cursor_down_wrapped_line()` (deferred)
-- [x] Note: Wrapping is a rendering concern, not workspace concern
-- [x] Consider: Do we need terminal width in workspace for this? (no)
-- [x] Decision: Document and defer if complex (Phase 2 is workspace only) - DEFERRED
-
-### 2.5.12: Integrate - Add to Process Action
-- [x] Add to `ik_repl_process_action()`:
-  - `IK_INPUT_ARROW_UP` → `ik_workspace_cursor_up()`
-  - `IK_INPUT_ARROW_DOWN` → `ik_workspace_cursor_down()`
-- [x] Write integration test in repl_test.c (repl_action_test.c)
-- [x] **Green**: Test passes
-
-### 2.5.13: Verify Task 2.5 Complete
-- [x] Run: `make check` (all tests pass)
-- [x] Run: `make lint` (complexity checks pass)
-- [x] Run: `make coverage` (100% coverage: 1165/1165 lines, 97/97 functions, 407/407 branches)
-- [x] Check: no uncovered lines or branches
-- [x] **Commit**: 672df9b "Implement REPL multi-line cursor movement (Phase 2 Task 2.5)"
-- [x] **Note**: File size warnings for workspace.c (575 lines), cursor_movement_test.c (815 lines), repl_action_test.c (580 lines)
-- [x] **Follow-up**: Split cursor_movement_test.c → cursor_left_right_test.c + cursor_up_down_test.c (commit 99f404c)
+### 2.5.1-2.5.13: Implementation Complete
+**Commit**: 672df9b "Implement REPL multi-line cursor movement (Phase 2 Task 2.5)"
+**Coverage**: 100% (1165/1165 lines, 97/97 functions, 407/407 branches)
 
 ### 2.5.14: Review and Reduce LCOV Exclusions ✅ COMPLETE
-- [x] Review the 10 non-assert LCOV exclusions added in cursor movement implementation
-- [x] Defensive NULL checks (4 exclusions):
-  - Line 360: `find_line_start()` - text NULL check → **ELIMINATED** (replaced with assertion)
-  - Lines 383-384: `find_line_end()` - text NULL check → **ELIMINATED** (replaced with assertion)
-  - Line 405: `count_graphemes()` - text NULL branch → **ELIMINATED** (replaced with assertion)
-  - Line 453: `grapheme_to_byte_offset()` - text NULL branch → **ELIMINATED** (replaced with assertion)
-- [x] UTF-8 character handling (4 exclusions):
-  - Line 428: `count_graphemes()` - 4-byte UTF-8 else fallback → **KEPT** (valid code path)
-  - Line 431: `count_graphemes()` - invalid UTF-8 fallback → **KEPT** (defensive safety)
-  - Line 470: `grapheme_to_byte_offset()` - 4-byte UTF-8 else fallback → **KEPT** (valid code path)
-  - Line 473: `grapheme_to_byte_offset()` - invalid UTF-8 fallback → **KEPT** (defensive safety)
-- [x] Provably unreachable code (2 exclusions):
-  - Line 418: `count_graphemes()` - loop invariant makes condition always true → **ELIMINATED** (restructured)
-  - Lines 383-384: Already counted above
-- [x] For each exclusion, determine if it can be eliminated by:
-  - Restructuring code to avoid defensive checks → **DONE** (line 418 restructured)
-  - Adding explicit precondition checks in callers → **N/A** (all callers internal)
-  - Using assert() instead of runtime checks for truly impossible conditions → **DONE** (4 NULL checks)
-- [x] Goal: Reduce exclusions where possible while maintaining code safety → **ACHIEVED**
-- [x] Document decision for each exclusion that remains → **DONE** (see commit 9aea7ca)
-- [x] **Results**: Eliminated 5 logical exclusions (8 markers), maintained 100% coverage
-- [x] **Branch coverage increased**: 407 → 415 branches (8 more branches tested)
-- [x] **Commit**: 9aea7ca "Reduce LCOV exclusions in cursor movement code (Task 2.5.14)"
+**Commit**: 9aea7ca "Reduce LCOV exclusions in cursor movement code (Task 2.5.14)"
+**Results**: Eliminated 5 logical exclusions (8 markers), increased branch coverage 407 → 415
 
 ### 2.5.15: File Size Corrections ✅ COMPLETE
-- [x] **Problem**: File size warnings (MAX_FILE_LINES = 500)
-  - workspace.c: 572 lines (72 over)
-  - cursor_up_down_test.c: 587 lines (87 over)
-  - repl_action_test.c: 580 lines (80 over)
-- [x] **Analysis**: Identified best split points for each file
-  - cursor_up_down_test.c → cursor_up_test.c + cursor_down_test.c (natural boundary at line 280)
-  - repl_action_test.c → text editing tests + navigation tests (by functionality)
-  - workspace.c → workspace.c + workspace_multiline.c (basic editing vs multi-line)
-- [x] **Split 1**: cursor_up_down_test.c (587 lines) → 2 files
-  - cursor_up_test.c: 319 lines (vertical up movement + 1 assertion)
-  - cursor_down_test.c: 306 lines (vertical down movement + 1 assertion)
-- [x] **Split 2**: repl_action_test.c (580 lines) → 2 files
-  - repl_text_editing_test.c: 258 lines (char, newline, backspace, delete + edge cases)
-  - repl_navigation_test.c: 357 lines (arrows, ctrl_c, unknown + edge cases + assertions)
-- [x] **Split 3**: workspace.c (572 lines) → 2 files
-  - workspace.c: 349 lines (basic editing operations)
-  - workspace_multiline.c: 231 lines (multi-line navigation helpers: find_line_start, find_line_end, count_graphemes, grapheme_to_byte_offset, cursor_up, cursor_down)
-- [x] Update Makefile CLIENT_SOURCES and MODULE_SOURCES for workspace_multiline.c
-- [x] Verify tests pass and coverage maintained
-  - make check: All tests pass ✓
-  - make lint: All files under 500-line limit ✓
-  - make coverage: 100% coverage (1165/1165 lines, 97/97 functions, 415/415 branches) ✓
-- [x] **Commit**: 4511c66 "Split oversized files to meet 500-line limit (Task 2.5.15)"
+**Commit**: 4511c66 "Split oversized files to meet 500-line limit (Task 2.5.15)"
+**Files Split**: workspace.c → workspace.c + workspace_multiline.c; cursor tests split; repl tests split
 
 ### 2.5.16: UTF-8 Contract Enforcement in Helper Functions ✅ COMPLETE
-**Context**: After implementing multi-line navigation, coverage analysis revealed untestable branches in `count_graphemes()` and `grapheme_to_byte_offset()` - specifically the invalid UTF-8 fallback paths. These functions operate on workspace text, which is guaranteed to be valid UTF-8 by `ik_workspace_insert_codepoint()` and `ik_workspace_insert_newline()`. The defensive fallback code could never be exercised through normal operation.
-
-**Decision**: Replace defensive programming with explicit contract enforcement via `abort()`.
-
-- [x] **Analysis**: Verify the precondition (all text is valid UTF-8)
-  - Traced data flow: workspace text only modified by `insert_codepoint()` and `insert_newline()`
-  - Confirmed: `encode_utf8()` always produces valid UTF-8 from codepoints
-  - Reviewed: `workspace_cursor.h` documents UTF-8 validity as a precondition
-  - Conclusion: Invalid UTF-8 branches are unreachable by design
-- [x] **Document preconditions**: Add comments to both helper functions
-  - Document: Text must be valid UTF-8 (enforced by workspace insert operations)
-  - Document: Invalid UTF-8 will cause `abort()` (precondition violation)
-  - Convert all comments to `//` style (project standard)
-- [x] **Replace defensive fallback with abort()**: Lines 87-88, 135-136 in workspace_multiline.c
-  - Replace: `char_len = 1; // Invalid, treat as 1 byte`
-  - With: `fprintf(stderr, "invalid UTF-8 %s:%d\n", __FILE__, __LINE__); // LCOV_EXCL_LINE`
-  - And: `abort(); // LCOV_EXCL_LINE`
-  - Rationale: Explicit termination with diagnostic instead of silent fallback
-- [x] **Add includes**: `<stdio.h>` and `<stdlib.h>` for fprintf/abort
-- [x] **Add LCOV exclusions**: Mark both fprintf and abort lines as unreachable
-  - Both lines excluded in each function (4 total markers)
-  - Justification: Precondition violation should never occur
-- [x] **Verify compilation and testing**:
-  - make clean && make: Compiles successfully ✓
-  - make check: All tests pass ✓
-  - make coverage: 100% coverage maintained (1201/1201 lines, 100/100 functions, 427/427 branches) ✓
-- [x] **Results**:
-  - Eliminated untestable defensive branches
-  - Replaced with explicit contract enforcement
-  - Added diagnostic output for impossible cases
-  - Maintained 100% coverage with justified LCOV exclusions
-- [x] **Commit**: (pending) "Enforce UTF-8 precondition with abort() in workspace_multiline.c (Task 2.5.16)"
+**Commit**: (pending) "Enforce UTF-8 precondition with abort() in workspace_multiline.c (Task 2.5.16)"
+**Coverage**: 100% (1201/1201 lines, 100/100 functions, 427/427 branches)
 
 ---
 
 ## Task 2.6: Readline-Style Editing Shortcuts
 
-### 2.6.1: Add Input Actions - Write Tests First
-- [x] Write test: `test_input_parse_ctrl_a()` in `tests/unit/input/char_test.c`
-- [x] Write test: `test_input_parse_ctrl_e()`
-- [x] Write test: `test_input_parse_ctrl_k()`
-- [x] Write test: `test_input_parse_ctrl_u()`
-- [x] Write test: `test_input_parse_ctrl_w()`
-- [x] **Red**: Tests fail (actions don't exist)
+### 2.6.1-2.6.2: Add Input Actions ✅ COMPLETE
+**Commit**: 99a5bf7 "Add readline control character input actions (Phase 2 Task 2.6.2)"
 
-### 2.6.2: Add Input Actions - Implementation ✅ COMPLETE
-- [x] Add to `src/input.h` enum:
-  - `IK_INPUT_CTRL_A`
-  - `IK_INPUT_CTRL_E`
-  - `IK_INPUT_CTRL_K`
-  - `IK_INPUT_CTRL_U`
-  - `IK_INPUT_CTRL_W`
-- [x] Update `src/input.c`: parse control characters (0x01, 0x05, 0x0B, 0x15, 0x17)
-- [x] **Green**: Input tests pass
-- [x] **Commit**: 99a5bf7 "Add readline control character input actions (Phase 2 Task 2.6.2)"
+### 2.6.3-2.6.4: Cursor to Line Start (Ctrl+A) ✅ COMPLETE
+**LCOV Exclusions**: Added 2 markers (170 total)
 
-### 2.6.3: Cursor to Line Start - Write Tests ✅ COMPLETE
-- [x] Write test: `test_workspace_cursor_to_line_start_basic()` in cursor_line_test.c
-  - Setup: "hello\nworld", cursor in middle of "world"
-  - Action: `ik_workspace_cursor_to_line_start()`
-  - Assert: cursor at start of "world"
-- [x] Write test: `test_workspace_cursor_to_line_start_first_line()`
-- [x] Write test: `test_workspace_cursor_to_line_start_already_at_start()`
-- [x] Write test: `test_workspace_cursor_to_line_start_after_newline()`
-- [x] **Red**: Tests fail
+### 2.6.4.1: Fix Cursor Module Design Flaw ✅ COMPLETE
+**Commit**: 0456140 "Refactor cursor → workspace_cursor with void + assertions (Task 2.6.4.1)"
+**LCOV Change**: -10 markers (156 total, down from 166)
+**Coverage**: 100% (1178/1178 lines, 98/98 functions, 421/421 branches)
 
-### 2.6.4: Cursor to Line Start - Implementation ✅ COMPLETE
-- [x] Add to `src/workspace.h`: `res_t ik_workspace_cursor_to_line_start(ik_workspace_t *ws);`
-- [x] Implement in `src/workspace_multiline.c`:
-  - Find previous \n (or start of text)
-  - Position cursor after that \n (or at start)
-- [x] **Green**: Tests pass
-- [x] **LCOV Exclusions**: Added 2 markers (170 total) - NULL assertion + assertion branch only
+### 2.6.5-2.6.6: Cursor to Line End (Ctrl+E) ✅ COMPLETE
+**Commit**: bcdaf48 "Implement cursor_to_line_end (Ctrl+E) (Phase 2 Task 2.6.5)"
+**LCOV Change**: +1 marker (157 total)
+**Coverage**: 100% (1188/1188 lines, 99/99 functions, 423/423 branches)
 
-### 2.6.4.1: Fix Cursor Module Design Flaw
-**Problem Identified**: Tasks 2.5.12 (cursor_up/down) and 2.6.4 (cursor_to_line_start) use defensive error handling with LCOV exclusions for impossible error paths. Root cause: cursor module returns res_t for UTF-8 validation errors, but workspace guarantees UTF-8 validity. This creates unusable error values.
-
-**Solution**: Refactor cursor as workspace-internal module with void + assertions contract.
-
-#### Step 1: Rename Files (Signal Internal Relationship) ✅ COMPLETE
-- [x] Rename `src/cursor.c` → `src/workspace_cursor.c` using git mv
-- [x] Rename `src/cursor.h` → `src/workspace_cursor.h` using git mv
-- [x] Rename `tests/unit/cursor/` → `tests/unit/workspace_cursor/` using git mv
-- [x] Update all `#include "cursor.h"` → `#include "workspace_cursor.h"` in:
-  - src/workspace.h
-  - src/workspace_cursor.c
-  - tests/unit/workspace_cursor/*.c
-- [x] Update Makefile: Replace `cursor.c` with `workspace_cursor.c` in sources
-- [x] Verify: `make bin/ikigai` compiles successfully
-
-#### Step 2: Change Cursor API to Void + Assertions ✅ COMPLETE
-- [x] Change `src/workspace_cursor.h` signatures:
-  - `res_t ik_cursor_set_position(...)` → `void ik_cursor_set_position(...)`
-  - `res_t ik_cursor_move_left(...)` → `void ik_cursor_move_left(...)`
-  - `res_t ik_cursor_move_right(...)` → `void ik_cursor_move_right(...)`
-  - `res_t ik_cursor_get_position(...)` → `void ik_cursor_get_position(...)`
-  - Keep: `res_t ik_cursor_create(...)` (can fail on OOM)
-- [x] Update `src/workspace_cursor.c` implementations:
-  - Replace `return ERR(cursor, INVALID_ARG, "Invalid UTF-8...")` with:
-    `assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by workspace */`
-  - Replace `return OK(cursor);` with nothing (void functions)
-  - Find all UTF-8 validation error paths and replace with assertions
-- [x] Document contract in workspace_cursor.h:
-  ```c
-  /**
-   * @file workspace_cursor.h
-   * @brief Internal cursor module for workspace
-   *
-   * INTERNAL USE ONLY: This module is workspace-private.
-   * Precondition: All text passed to cursor functions must be valid UTF-8.
-   * This is guaranteed by workspace's insert operations.
-   */
-  ```
-
-#### Step 3: Fix Workspace Usage (Remove Defensive Error Handling) ✅ COMPLETE
-- [x] Fix `src/workspace.c`:
-  - `cursor_left()`: Change from `CHECK(ik_cursor_move_left(...))` to `ik_cursor_move_left(...);`
-  - `cursor_right()`: Change from `CHECK(ik_cursor_move_right(...))` to `ik_cursor_move_right(...);`
-  - `get_cursor_position()`: Change from `CHECK(ik_cursor_get_position(...))` to `ik_cursor_get_position(...);`
-  - Remove all defensive error handling for cursor calls
-- [x] Fix `src/workspace_multiline.c`:
-  - `cursor_up()`: Remove lines 178-181 defensive error handling
-  - `cursor_down()`: Remove lines 225-228 defensive error handling
-  - `cursor_to_line_start()`: Remove line 254 assertion, just call void function
-  - Change all: `res_t res = ik_cursor_set_position(...); assert(is_ok(&res));`
-    to: `ik_cursor_set_position(...);`
-
-#### Step 4: Update Cursor Tests ✅ COMPLETE
-- [x] Review `tests/unit/workspace_cursor/*.c`:
-  - Tests that verify error handling for invalid UTF-8 - DELETE or convert to assertion tests
-  - Tests that verify success cases - UPDATE to expect void (no result checking)
-  - Add comment: `/* Note: UTF-8 validation tested at workspace boundary (insert_codepoint) */`
-- [x] Verify all workspace tests still pass (they validate UTF-8 at insertion)
-
-#### Step 5: Update LCOV Exclusion Count ✅ COMPLETE
-- [x] Count new LCOV exclusions (assertions for UTF-8 validation in workspace_cursor.c)
-- [x] Remove LCOV exclusions from workspace_multiline.c:
-  - Line 179-180 (cursor_up defensive handling)
-  - Line 226-227 (cursor_down defensive handling)
-  - Line 254 (cursor_to_line_start assertion)
-- [x] Update Makefile LCOV_EXCL_COVERAGE to new count
-- [x] Document net change in exclusions
-
-#### Step 6: Verify Quality Checks ✅ COMPLETE
-- [x] Run: `make check` (all tests pass)
-- [x] Run: `make lint` (complexity checks pass)
-- [x] Run: `make coverage` (100% coverage: lines, functions, branches)
-- [x] Verify: No defensive error handling with LCOV exclusions remains
-- [x] Verify: Only assertion-related LCOV exclusions
-
-#### Step 7: Commit ✅ COMPLETE
-- [x] Create commit: "Refactor cursor → workspace_cursor with void + assertions (Task 2.6.4.1)"
-- [x] Commit message should explain:
-  - Design flaw: cursor returned errors for impossible UTF-8 failures
-  - Solution: Make cursor workspace-internal, use assertions for invariants
-  - Files renamed to show relationship
-  - API changed to void (precondition: caller ensures UTF-8 validity)
-  - Removed all defensive error handling in workspace
-  - Net LCOV exclusion change
-- [x] **Commit**: 0456140 "Refactor cursor → workspace_cursor with void + assertions (Task 2.6.4.1)"
-- [x] **LCOV Change**: -10 markers (156 total, down from 166)
-- [x] **Coverage**: 100% (1178/1178 lines, 98/98 functions, 421/421 branches)
-
-### 2.6.5: Cursor to Line End - Write Tests ✅ COMPLETE
-- [x] Write test: `test_workspace_cursor_to_line_end_basic()`
-- [x] Write test: `test_workspace_cursor_to_line_end_last_line()`
-- [x] Write test: `test_workspace_cursor_to_line_end_already_at_end()`
-- [x] Write test: `test_workspace_cursor_to_line_end_before_newline()`
-- [x] Write test: `test_workspace_cursor_to_line_end_null_workspace_asserts()`
-- [x] **Red**: Tests fail (function doesn't exist)
-
-### 2.6.6: Cursor to Line End - Implementation ✅ COMPLETE
-- [x] Add to `src/workspace.h`: `res_t ik_workspace_cursor_to_line_end(ik_workspace_t *ws);`
-- [x] Implement in `src/workspace_multiline.c`:
-  - Find next \n (or end of text) using `find_line_end()` helper
-  - Position cursor before that \n (or at end)
-  - No-op if already at line end
-- [x] **Green**: Tests pass
-- [x] Run: `make check` (all tests pass)
-- [x] Run: `make lint` (complexity checks pass)
-- [x] Run: `make coverage` (100% coverage: 1188/1188 lines, 99/99 functions, 423/423 branches)
-- [x] **Commit**: bcdaf48 "Implement cursor_to_line_end (Ctrl+E) (Phase 2 Task 2.6.5)"
-- [x] **LCOV Change**: +1 marker (157 total, up from 156) - NULL assertion in cursor_to_line_end
-- [x] **Coverage**: 100% (1188/1188 lines, 99/99 functions, 423/423 branches)
-
-### 2.6.7: Kill to Line End - Write Tests ✅ COMPLETE
-- [x] Write test: `test_workspace_kill_to_line_end_basic()`
-  - Setup: "hello world", cursor after "hello "
-  - Action: `ik_workspace_kill_to_line_end()`
-  - Assert: text is "hello ", cursor unchanged
-- [x] Write test: `test_workspace_kill_to_line_end_at_newline()`
-- [x] Write test: `test_workspace_kill_to_line_end_already_at_end()`
-- [x] Write test: `test_workspace_kill_to_line_end_multiline()`
-- [x] Write test: `test_workspace_kill_to_line_end_null_workspace_asserts()`
-- [x] **Red**: Tests fail
-
-### 2.6.8: Kill to Line End - Implementation ✅ COMPLETE
-- [x] Add to `src/workspace.h`: `res_t ik_workspace_kill_to_line_end(ik_workspace_t *ws);`
-- [x] Implement in `src/workspace_multiline.c`:
-  - Find next \n (or end of text) using `find_line_end()`
-  - Delete from cursor to that position (not including \n)
-  - Cursor position unchanged
-- [x] **Green**: Tests pass
-- [x] **Quality**: All checks pass (make check, lint, coverage)
-- [x] **Coverage**: 100% (1201/1201 lines, 100/100 functions, 427/427 branches)
-- [x] **LCOV**: Updated from 157 to 158 (1 NULL assertion)
-- [x] **Commit**: 5908d58 "Implement kill_to_line_end (Ctrl+K) (Phase 2 Task 2.6.7 & 2.6.8)"
+### 2.6.7-2.6.8: Kill to Line End (Ctrl+K) ✅ COMPLETE
+**Commit**: 5908d58 "Implement kill_to_line_end (Ctrl+K) (Phase 2 Task 2.6.7 & 2.6.8)"
+**LCOV**: Updated from 157 to 158 (1 NULL assertion)
+**Coverage**: 100% (1201/1201 lines, 100/100 functions, 427/427 branches)
 
 ### 2.6.8.1: Fix Coverage Gaps in workspace_multiline.c ✅ COMPLETE
-**Problem**: After implementing UTF-8 contract enforcement (Task 2.5.16), workspace_multiline.c had 2 untested branches:
-- Line 85: FALSE branch of 4-byte UTF-8 test in `count_graphemes()`
-- Line 133: FALSE branch of 4-byte UTF-8 test in `grapheme_to_byte_offset()`
-
-**Root Cause**: These branches represent the FALSE path that falls through to defensive abort(). Cannot be tested because workspace guarantees valid UTF-8.
-
-**Solution**: Added `// LCOV_EXCL_BR_LINE` to exclude untestable branches leading to abort()
-
-**Tasks**:
-- [x] Run coverage analysis and identify exact uncovered branches
-- [x] Added LCOV_EXCL_BR_LINE to lines 85 and 133
-- [x] Updated LCOV_EXCL_COVERAGE from 158 to 160 (+2 markers)
-- [x] Verified 100% coverage: 1201/1201 lines, 100/100 functions, 427/427 branches
-- [x] **Commit**: 1adc72e "Fix coverage gaps in workspace_multiline.c (Task 2.6.8.1)"
-- [x] **Commit**: d7fc09e "Document LCOV_EXCL_COVERAGE policy and branch exclusion pattern"
+**Commit**: 1adc72e "Fix coverage gaps in workspace_multiline.c (Task 2.6.8.1)"
+**Commit**: d7fc09e "Document LCOV_EXCL_COVERAGE policy and branch exclusion pattern"
+**LCOV**: Updated from 158 to 160 (+2 markers for untestable abort branches)
+**Coverage**: 100% (1201/1201 lines, 100/100 functions, 427/427 branches)
 
 ### 2.6.9: Kill Line - Write Tests
 - [ ] Write test: `test_workspace_kill_line_basic()`
