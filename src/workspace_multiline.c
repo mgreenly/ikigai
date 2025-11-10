@@ -312,3 +312,37 @@ res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace)
 
     return OK(NULL);
 }
+
+res_t ik_workspace_kill_line(ik_workspace_t *workspace)
+{
+    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
+
+    char *text;
+    size_t text_len;
+    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+
+    size_t cursor_pos = workspace->cursor->byte_offset;
+
+    // Find current line boundaries
+    size_t line_start = find_line_start(text, cursor_pos);
+    size_t line_end = find_line_end(text, text_len, cursor_pos);
+
+    // Include the newline in deletion if present
+    // Note: find_line_end() guarantees text[line_end] == '\n' when line_end < text_len
+    size_t delete_end = line_end;
+    if (line_end < text_len) {
+        delete_end = line_end + 1;
+    }
+
+    // Delete entire line from line_start to delete_end
+    size_t num_bytes_to_delete = delete_end - line_start;
+    for (size_t i = 0; i < num_bytes_to_delete; i++) {
+        ik_byte_array_delete(workspace->text, line_start);
+    }
+
+    // Position cursor at line_start (where the deleted line was)
+    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    ik_cursor_set_position(workspace->cursor, text, text_len, line_start);
+
+    return OK(NULL);
+}

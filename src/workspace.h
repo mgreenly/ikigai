@@ -195,4 +195,17 @@ res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace);
  */
 res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace);
 
+/**
+ * @brief Kill (delete) the entire current line (Ctrl+U)
+ *
+ * Deletes the entire current line from start to end, including the newline.
+ * Positions the cursor at the start of the next line (or at the position
+ * where the line was deleted if it was the last line).
+ * If the line is empty (just a newline), deletes the newline.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_kill_line(ik_workspace_t *workspace);
+
 #endif /* IKIGAI_WORKSPACE_H */
