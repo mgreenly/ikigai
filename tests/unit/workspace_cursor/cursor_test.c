@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/cursor.h"
+#include "../../../src/workspace_cursor.h"
 #include "../../test_utils.h"
 
 // Test cursor creation
@@ -76,8 +76,7 @@ START_TEST(test_cursor_set_position_ascii)
     ck_assert(is_ok(&result));
 
     // Set position to byte 3 (after "hel")
-    result = ik_cursor_set_position(cursor, text, text_len, 3);
-    ck_assert(is_ok(&result));
+    ik_cursor_set_position(cursor, text, text_len, 3);
     ck_assert_uint_eq(cursor->byte_offset, 3);
     ck_assert_uint_eq(cursor->grapheme_offset, 3);  // 3 ASCII chars = 3 graphemes
 
@@ -98,8 +97,7 @@ START_TEST(test_cursor_set_position_utf8)
     ck_assert(is_ok(&result));
 
     // Set position to byte 3 (after é)
-    result = ik_cursor_set_position(cursor, text, text_len, 3);
-    ck_assert(is_ok(&result));
+    ik_cursor_set_position(cursor, text, text_len, 3);
     ck_assert_uint_eq(cursor->byte_offset, 3);
     ck_assert_uint_eq(cursor->grapheme_offset, 2);  // a + é = 2 graphemes
 
@@ -120,30 +118,9 @@ START_TEST(test_cursor_set_position_emoji)
     ck_assert(is_ok(&result));
 
     // Set position to byte 5 (after 🎉)
-    result = ik_cursor_set_position(cursor, text, text_len, 5);
-    ck_assert(is_ok(&result));
+    ik_cursor_set_position(cursor, text, text_len, 5);
     ck_assert_uint_eq(cursor->byte_offset, 5);
     ck_assert_uint_eq(cursor->grapheme_offset, 2);  // a + 🎉 = 2 graphemes
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test set position with invalid UTF-8
-START_TEST(test_cursor_set_position_invalid_utf8)
-{
-    void *ctx = talloc_new(NULL);
-    ik_cursor_t *cursor = NULL;
-    const char *text = "a\xFF" "b";  // Invalid UTF-8: 0xFF is not a valid UTF-8 byte
-    size_t text_len = 3;
-
-    // Create cursor
-    res_t result = ik_cursor_create(ctx, &cursor);
-    ck_assert(is_ok(&result));
-
-    // Set position to byte 2 (tries to iterate through invalid UTF-8)
-    result = ik_cursor_set_position(cursor, text, text_len, 2);
-    ck_assert(is_err(&result));
 
     talloc_free(ctx);
 }
@@ -205,9 +182,8 @@ START_TEST(test_cursor_get_position)
     // Get position
     size_t byte_offset = 0;
     size_t grapheme_offset = 0;
-    res_t result = ik_cursor_get_position(cursor, &byte_offset, &grapheme_offset);
+    ik_cursor_get_position(cursor, &byte_offset, &grapheme_offset);
 
-    ck_assert(is_ok(&result));
     ck_assert_uint_eq(byte_offset, 3);
     ck_assert_uint_eq(grapheme_offset, 3);
 
@@ -273,7 +249,6 @@ static Suite *cursor_suite(void)
     tcase_add_test(tc_set_position, test_cursor_set_position_ascii);
     tcase_add_test(tc_set_position, test_cursor_set_position_utf8);
     tcase_add_test(tc_set_position, test_cursor_set_position_emoji);
-    tcase_add_test(tc_set_position, test_cursor_set_position_invalid_utf8);
     suite_add_tcase(s, tc_set_position);
 
     TCase *tc_get_position = tcase_create("GetPosition");

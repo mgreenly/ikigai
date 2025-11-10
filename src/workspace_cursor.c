@@ -1,9 +1,9 @@
 /**
- * @file cursor.c
+ * @file workspace_cursor.c
  * @brief Cursor position tracking implementation
  */
 
-#include "cursor.h"
+#include "workspace_cursor.h"
 #include "wrapper.h"
 #include <assert.h>
 #include <stdbool.h>
@@ -26,7 +26,7 @@ res_t ik_cursor_create(void *parent, ik_cursor_t **cursor_out)
     return OK(cursor);
 }
 
-res_t ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_len, size_t byte_offset)
+void ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_len, size_t byte_offset)
 {
     assert(cursor != NULL);         /* LCOV_EXCL_BR_LINE */
     assert(text != NULL);           /* LCOV_EXCL_BR_LINE */
@@ -46,10 +46,7 @@ res_t ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_
                                                        (utf8proc_ssize_t)(text_len - pos),
                                                        &codepoint);
 
-        if (bytes_read <= 0) {
-            // Invalid UTF-8 or error
-            return ERR(cursor, INVALID_ARG, "Invalid UTF-8 in text");
-        }
+        assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by workspace */
 
         // Check if this is a grapheme break
         // A grapheme break occurs when we transition from one grapheme cluster to another
@@ -62,17 +59,16 @@ res_t ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_
     }
 
     cursor->grapheme_offset = grapheme_count;
-    return OK(cursor);
 }
 
-res_t ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len)
+void ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len)
 {
     assert(cursor != NULL);  /* LCOV_EXCL_BR_LINE */
     assert(text != NULL);    /* LCOV_EXCL_BR_LINE */
 
     // If cursor is at start, this is a no-op
     if (cursor->byte_offset == 0) {
-        return OK(cursor);
+        return;
     }
 
     // Scan through text and find grapheme boundaries
@@ -89,10 +85,7 @@ res_t ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len
                                                        (utf8proc_ssize_t)(text_len - pos),
                                                        &codepoint);
 
-        if (bytes_read <= 0) {
-            // Invalid UTF-8
-            return ERR(cursor, INVALID_ARG, "Invalid UTF-8 in text");
-        }
+        assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by workspace */
 
         // Check if this starts a new grapheme cluster
         if (prev_codepoint == -1 || utf8proc_grapheme_break(prev_codepoint, codepoint)) {
@@ -114,18 +107,16 @@ res_t ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len
     // Move cursor to the last grapheme boundary before current position
     cursor->byte_offset = last_boundary_byte;
     cursor->grapheme_offset = grapheme_count > 0 ? grapheme_count - 1 : 0;  /* LCOV_EXCL_BR_LINE */
-
-    return OK(cursor);
 }
 
-res_t ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_len)
+void ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_len)
 {
     assert(cursor != NULL);  /* LCOV_EXCL_BR_LINE */
     assert(text != NULL);    /* LCOV_EXCL_BR_LINE */
 
     // If cursor is at end, this is a no-op
     if (cursor->byte_offset == text_len) {
-        return OK(cursor);
+        return;
     }
 
     // Scan through text starting from current position to find next grapheme boundary
@@ -141,10 +132,7 @@ res_t ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_le
                                                        (utf8proc_ssize_t)(text_len - pos),
                                                        &codepoint);
 
-        if (bytes_read <= 0) {
-            // Invalid UTF-8
-            return ERR(cursor, INVALID_ARG, "Invalid UTF-8 in text");
-        }
+        assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by workspace */
 
         pos += (size_t)bytes_read;
 
@@ -167,11 +155,9 @@ res_t ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_le
     // Move cursor to next grapheme boundary
     cursor->byte_offset = next_boundary_byte;
     cursor->grapheme_offset++;
-
-    return OK(cursor);
 }
 
-res_t ik_cursor_get_position(ik_cursor_t *cursor, size_t *byte_offset_out, size_t *grapheme_offset_out)
+void ik_cursor_get_position(ik_cursor_t *cursor, size_t *byte_offset_out, size_t *grapheme_offset_out)
 {
     assert(cursor != NULL);              /* LCOV_EXCL_BR_LINE */
     assert(byte_offset_out != NULL);     /* LCOV_EXCL_BR_LINE */
@@ -179,6 +165,4 @@ res_t ik_cursor_get_position(ik_cursor_t *cursor, size_t *byte_offset_out, size_
 
     *byte_offset_out = cursor->byte_offset;
     *grapheme_offset_out = cursor->grapheme_offset;
-
-    return OK(cursor);
 }

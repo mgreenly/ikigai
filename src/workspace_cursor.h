@@ -1,13 +1,17 @@
 /**
- * @file cursor.h
- * @brief Cursor position tracking with grapheme cluster support
+ * @file workspace_cursor.h
+ * @brief Internal cursor module for workspace
+ *
+ * INTERNAL USE ONLY: This module is workspace-private.
+ * Precondition: All text passed to cursor functions must be valid UTF-8.
+ * This is guaranteed by workspace's insert operations.
  *
  * Tracks cursor position in both byte offset and grapheme offset.
  * Uses libutf8proc for proper grapheme cluster detection.
  */
 
-#ifndef IKIGAI_CURSOR_H
-#define IKIGAI_CURSOR_H
+#ifndef IKIGAI_WORKSPACE_CURSOR_H
+#define IKIGAI_WORKSPACE_CURSOR_H
 
 #include "error.h"
 #include <stddef.h>
@@ -39,13 +43,14 @@ res_t ik_cursor_create(void *parent, ik_cursor_t **cursor_out);
  * Sets the cursor to the given byte offset and recalculates the
  * grapheme offset by counting grapheme clusters from the start.
  *
+ * Precondition: text must be valid UTF-8 (guaranteed by workspace)
+ *
  * @param cursor Cursor
  * @param text Text buffer
  * @param text_len Length of text in bytes
  * @param byte_offset Byte position to set cursor to
- * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_len, size_t byte_offset);
+void ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_len, size_t byte_offset);
 
 /**
  * @brief Move cursor left by one grapheme cluster
@@ -54,12 +59,13 @@ res_t ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_
  * Updates both byte_offset and grapheme_offset.
  * If cursor is at start (byte 0), this is a no-op.
  *
+ * Precondition: text must be valid UTF-8 (guaranteed by workspace)
+ *
  * @param cursor Cursor
  * @param text Text buffer
  * @param text_len Length of text in bytes
- * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len);
+void ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len);
 
 /**
  * @brief Move cursor right by one grapheme cluster
@@ -68,12 +74,13 @@ res_t ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len
  * Updates both byte_offset and grapheme_offset.
  * If cursor is at end, this is a no-op.
  *
+ * Precondition: text must be valid UTF-8 (guaranteed by workspace)
+ *
  * @param cursor Cursor
  * @param text Text buffer
  * @param text_len Length of text in bytes
- * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_len);
+void ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_len);
 
 /**
  * @brief Get cursor position
@@ -81,8 +88,7 @@ res_t ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_le
  * @param cursor Cursor
  * @param byte_offset_out Pointer to receive byte offset
  * @param grapheme_offset_out Pointer to receive grapheme offset
- * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_cursor_get_position(ik_cursor_t *cursor, size_t *byte_offset_out, size_t *grapheme_offset_out);
+void ik_cursor_get_position(ik_cursor_t *cursor, size_t *byte_offset_out, size_t *grapheme_offset_out);
 
 #endif /* IKIGAI_CURSOR_H */

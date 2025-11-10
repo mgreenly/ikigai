@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/cursor.h"
+#include "../../../src/workspace_cursor.h"
 #include "../../test_utils.h"
 
 // Test move right with ASCII text
@@ -23,14 +23,12 @@ START_TEST(test_cursor_move_right_ascii) {
     ck_assert_uint_eq(cursor->grapheme_offset, 0);
 
     // Move right once: should move to byte 1, grapheme 1
-    result = ik_cursor_move_right(cursor, text, text_len);
-    ck_assert(is_ok(&result));
+    ik_cursor_move_right(cursor, text, text_len);
     ck_assert_uint_eq(cursor->byte_offset, 1);
     ck_assert_uint_eq(cursor->grapheme_offset, 1);
 
     // Move right again: should move to byte 2, grapheme 2
-    result = ik_cursor_move_right(cursor, text, text_len);
-    ck_assert(is_ok(&result));
+    ik_cursor_move_right(cursor, text, text_len);
     ck_assert_uint_eq(cursor->byte_offset, 2);
     ck_assert_uint_eq(cursor->grapheme_offset, 2);
 
@@ -49,19 +47,16 @@ START_TEST(test_cursor_move_right_utf8)
     // Create cursor and set to byte 1 (after 'a')
     res_t result = ik_cursor_create(ctx, &cursor);
     ck_assert(is_ok(&result));
-    result = ik_cursor_set_position(cursor, text, text_len, 1);
-    ck_assert(is_ok(&result));
+    ik_cursor_set_position(cursor, text, text_len, 1);
     ck_assert_uint_eq(cursor->grapheme_offset, 1);
 
     // Move right once: should skip both bytes of é, move to byte 3, grapheme 2
-    result = ik_cursor_move_right(cursor, text, text_len);
-    ck_assert(is_ok(&result));
+    ik_cursor_move_right(cursor, text, text_len);
     ck_assert_uint_eq(cursor->byte_offset, 3);
     ck_assert_uint_eq(cursor->grapheme_offset, 2);
 
     // Move right again: should move to byte 4, grapheme 3
-    result = ik_cursor_move_right(cursor, text, text_len);
-    ck_assert(is_ok(&result));
+    ik_cursor_move_right(cursor, text, text_len);
     ck_assert_uint_eq(cursor->byte_offset, 4);
     ck_assert_uint_eq(cursor->grapheme_offset, 3);
 
@@ -80,13 +75,11 @@ START_TEST(test_cursor_move_right_emoji)
     // Create cursor and set to byte 1 (after 'a')
     res_t result = ik_cursor_create(ctx, &cursor);
     ck_assert(is_ok(&result));
-    result = ik_cursor_set_position(cursor, text, text_len, 1);
-    ck_assert(is_ok(&result));
+    ik_cursor_set_position(cursor, text, text_len, 1);
     ck_assert_uint_eq(cursor->grapheme_offset, 1);
 
     // Move right once: should skip all 4 bytes of 🎉, move to byte 5, grapheme 2
-    result = ik_cursor_move_right(cursor, text, text_len);
-    ck_assert(is_ok(&result));
+    ik_cursor_move_right(cursor, text, text_len);
     ck_assert_uint_eq(cursor->byte_offset, 5);
     ck_assert_uint_eq(cursor->grapheme_offset, 2);
 
@@ -108,14 +101,12 @@ START_TEST(test_cursor_move_right_combining)
     ck_assert(is_ok(&result));
 
     // Move right once: should skip both e and combining, move to byte 3, grapheme 1
-    result = ik_cursor_move_right(cursor, text, text_len);
-    ck_assert(is_ok(&result));
+    ik_cursor_move_right(cursor, text, text_len);
     ck_assert_uint_eq(cursor->byte_offset, 3);
     ck_assert_uint_eq(cursor->grapheme_offset, 1);
 
     // Move right again: should move to byte 4, grapheme 2
-    result = ik_cursor_move_right(cursor, text, text_len);
-    ck_assert(is_ok(&result));
+    ik_cursor_move_right(cursor, text, text_len);
     ck_assert_uint_eq(cursor->byte_offset, 4);
     ck_assert_uint_eq(cursor->grapheme_offset, 2);
 
@@ -134,34 +125,12 @@ START_TEST(test_cursor_move_right_at_end)
     // Create cursor and set to end
     res_t result = ik_cursor_create(ctx, &cursor);
     ck_assert(is_ok(&result));
-    result = ik_cursor_set_position(cursor, text, text_len, 3);
-    ck_assert(is_ok(&result));
+    ik_cursor_set_position(cursor, text, text_len, 3);
 
     // Move right at end: should be no-op
-    result = ik_cursor_move_right(cursor, text, text_len);
-    ck_assert(is_ok(&result));
+    ik_cursor_move_right(cursor, text, text_len);
     ck_assert_uint_eq(cursor->byte_offset, 3);
     ck_assert_uint_eq(cursor->grapheme_offset, 3);
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test move right with invalid UTF-8
-START_TEST(test_cursor_move_right_invalid_utf8)
-{
-    void *ctx = talloc_new(NULL);
-    ik_cursor_t *cursor = NULL;
-    const char *text = "a\xFF" "b";  // Invalid UTF-8: 0xFF is not a valid UTF-8 byte
-    size_t text_len = 3;
-
-    // Create cursor (starts at position 0)
-    res_t result = ik_cursor_create(ctx, &cursor);
-    ck_assert(is_ok(&result));
-
-    // Move right should fail due to invalid UTF-8
-    result = ik_cursor_move_right(cursor, text, text_len);
-    ck_assert(is_err(&result));
 
     talloc_free(ctx);
 }
@@ -203,7 +172,6 @@ static Suite *cursor_move_right_suite(void)
     tcase_add_test(tc_move_right, test_cursor_move_right_emoji);
     tcase_add_test(tc_move_right, test_cursor_move_right_combining);
     tcase_add_test(tc_move_right, test_cursor_move_right_at_end);
-    tcase_add_test(tc_move_right, test_cursor_move_right_invalid_utf8);
     suite_add_tcase(s, tc_move_right);
 
     TCase *tc_assertions = tcase_create("Assertions");
