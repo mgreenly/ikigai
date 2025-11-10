@@ -4,23 +4,36 @@
 
 **Reference**: docs/repl/repl-phase-2.md
 
-**Current State** (as of current):
-- ✅ Phase 1 complete: render_direct module implemented and tested (src/render_direct.c)
-- ✅ Task 1 complete: ik_repl_render_frame() implemented and tested (src/repl.c)
-- ✅ Task 2 complete: ik_repl_process_action() implemented and tested (src/repl.c)
-- ✅ Task 2.5 complete: cursor_up/down for multi-line navigation
-- ✅ Task 2.5.16 complete: UTF-8 contract enforcement in helper functions
-- ✅ Task 2.6.1-2.6.2 complete: Input actions for Ctrl+A/E/K/U/W
-- ✅ Task 2.6.3-2.6.4 complete: cursor_to_line_start (Ctrl+A)
-- ✅ Task 2.6.4.1 complete: Cursor module refactored (workspace-internal, void+assertions)
-- ✅ Task 2.6.5-2.6.6 complete: cursor_to_line_end (Ctrl+E)
-- ✅ Task 2.6.7-2.6.8 complete: kill_to_line_end (Ctrl+K)
-- ✅ REPL init/cleanup implemented (src/repl.c)
+**Current State** (as of commit 41f2677):
+
+**Phase 1** ✅ COMPLETE
+- render_direct module: Direct terminal rendering without vterm (src/render_direct.c)
+
+**Phase 2 Completed Tasks**:
+- ✅ **Task 1**: ik_repl_render_frame() - REPL rendering helper (99c4490)
+- ✅ **Task 2**: ik_repl_process_action() - Input action processing (coverage: 1074 lines, 91 functions, 373 branches)
+- ✅ **Task 2.5**: Multi-line cursor navigation (cursor_up/down) (672df9b)
+  - 2.5.14: LCOV exclusion reduction (-8 markers)
+  - 2.5.15: File size fixes (workspace.c → workspace.c + workspace_multiline.c)
+  - 2.5.16: UTF-8 contract enforcement with abort()
+- ✅ **Task 2.6.1-2.6.2**: Input actions for Ctrl+A/E/K/U/W (99a5bf7)
+- ✅ **Task 2.6.3-2.6.4**: cursor_to_line_start (Ctrl+A)
+- ✅ **Task 2.6.4.1**: Cursor module refactor (workspace-internal, void+assertions) (0456140, LCOV -10)
+- ✅ **Task 2.6.5-2.6.6**: cursor_to_line_end (Ctrl+E) (bcdaf48)
+- ✅ **Task 2.6.7-2.6.8**: kill_to_line_end (Ctrl+K) (5908d58)
+- ✅ **Task 2.6.8.1**: Coverage gaps fixed (1adc72e, d7fc09e, LCOV +2 → 160 total)
+
+**Current Coverage**: 100% (1201/1201 lines, 100/100 functions, 427/427 branches)
+
+**In Progress**:
+- ⏳ **Task 2.6.9-2.6.10**: kill_line (Ctrl+U) - NEXT
+- ⏳ **Task 2.6.11-2.6.12**: delete_word_backward (Ctrl+W)
+- ⏳ **Task 2.6.13**: Integration - add all shortcuts to ik_repl_process_action()
 - 🔄 Event loop stubbed: `ik_repl_run()` returns OK(NULL)
-- ✅ Working demo in src/client.c with process_action() and render_frame() helper functions
-- ✅ Workspace has: insert_codepoint, insert_newline, backspace, delete, cursor_left, cursor_right, cursor_up, cursor_down, cursor_to_line_start, cursor_to_line_end, kill_to_line_end
-- ✅ Input parser supports: CHAR, NEWLINE, BACKSPACE, DELETE, ARROW_LEFT, ARROW_RIGHT, ARROW_UP, ARROW_DOWN, CTRL_C, CTRL_A, CTRL_E, CTRL_K, CTRL_U, CTRL_W
-- ⏳ **Missing**: kill_line (Ctrl+U), delete_word_backward (Ctrl+W), event loop implementation, main entry point simplification
+
+**Workspace Operations**: insert_codepoint, insert_newline, backspace, delete, cursor_left, cursor_right, cursor_up, cursor_down, cursor_to_line_start, cursor_to_line_end, kill_to_line_end
+
+**Input Actions**: CHAR, NEWLINE, BACKSPACE, DELETE, ARROW_LEFT, ARROW_RIGHT, ARROW_UP, ARROW_DOWN, CTRL_C, CTRL_A, CTRL_E, CTRL_K, CTRL_U, CTRL_W
 
 ## Key Insights
 
