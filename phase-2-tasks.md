@@ -492,22 +492,28 @@
 - [x] **LCOV Change**: +1 marker (157 total, up from 156) - NULL assertion in cursor_to_line_end
 - [x] **Coverage**: 100% (1188/1188 lines, 99/99 functions, 423/423 branches)
 
-### 2.6.7: Kill to Line End - Write Tests
-- [ ] Write test: `test_workspace_kill_to_line_end_basic()`
+### 2.6.7: Kill to Line End - Write Tests ✅ COMPLETE
+- [x] Write test: `test_workspace_kill_to_line_end_basic()`
   - Setup: "hello world", cursor after "hello "
   - Action: `ik_workspace_kill_to_line_end()`
   - Assert: text is "hello ", cursor unchanged
-- [ ] Write test: `test_workspace_kill_to_line_end_at_newline()`
-- [ ] Write test: `test_workspace_kill_to_line_end_already_at_end()`
-- [ ] Write test: `test_workspace_kill_to_line_end_multiline()`
-- [ ] **Red**: Tests fail
+- [x] Write test: `test_workspace_kill_to_line_end_at_newline()`
+- [x] Write test: `test_workspace_kill_to_line_end_already_at_end()`
+- [x] Write test: `test_workspace_kill_to_line_end_multiline()`
+- [x] Write test: `test_workspace_kill_to_line_end_null_workspace_asserts()`
+- [x] **Red**: Tests fail
 
-### 2.6.8: Kill to Line End - Implementation
-- [ ] Add to `src/workspace.h`: `res_t ik_workspace_kill_to_line_end(ik_workspace_t *ws);`
-- [ ] Implement in `src/workspace.c`:
-  - Find next \n (or end of text)
+### 2.6.8: Kill to Line End - Implementation ✅ COMPLETE
+- [x] Add to `src/workspace.h`: `res_t ik_workspace_kill_to_line_end(ik_workspace_t *ws);`
+- [x] Implement in `src/workspace_multiline.c`:
+  - Find next \n (or end of text) using `find_line_end()`
   - Delete from cursor to that position (not including \n)
-- [ ] **Green**: Tests pass
+  - Cursor position unchanged
+- [x] **Green**: Tests pass
+- [x] **Quality**: All checks pass (make check, lint, coverage)
+- [x] **Coverage**: 100% (1201/1201 lines, 100/100 functions, 427/427 branches)
+- [x] **LCOV**: Updated from 157 to 158 (1 NULL assertion)
+- [x] **Commit**: 5908d58 "Implement kill_to_line_end (Ctrl+K) (Phase 2 Task 2.6.7 & 2.6.8)"
 
 ### 2.6.9: Kill Line - Write Tests
 - [ ] Write test: `test_workspace_kill_line_basic()`
