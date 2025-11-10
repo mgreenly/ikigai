@@ -11,8 +11,7 @@
 #include "../../test_utils.h"
 
 /* Test: Process ARROW_LEFT action */
-START_TEST(test_repl_process_action_arrow_left)
-{
+START_TEST(test_repl_process_action_arrow_left) {
     void *ctx = talloc_new(NULL);
 
     ik_workspace_t *workspace = NULL;

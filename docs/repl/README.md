@@ -12,11 +12,11 @@ Build a minimal REPL chatbot with a split-buffer terminal interface that will ev
 
 ### Phase Details (separate files)
 - [Phase 0: Foundation](repl-phase-0.md) ✅ - Clean up error handling + build generic array utility
-- [Phase 1: Direct Rendering](repl-phase-1.md) - Replace vterm with direct terminal rendering
-- [Phase 2: REPL Event Loop](repl-phase-2.md) - Complete interactive REPL with workspace
+- [Phase 1: Direct Rendering](repl-phase-1.md) ✅ - Direct terminal rendering (UTF-8 aware cursor positioning)
+- [Phase 2: REPL Event Loop](repl-phase-2.md) ⏳ - Complete interactive REPL with workspace
 - [Phase 3: Scrollback Buffer](repl-phase-3.md) - Add scrollback storage with layout caching
 - Phase 4: Viewport and Scrolling - Integrate scrollback with REPL, add scrolling
-- Phase 5: Cleanup - Remove vterm dependency from build system
+- Phase 5: Cleanup - Final polish and documentation
 - [Testing Strategy](repl-testing.md) - TDD approach and manual test plan
 
 ---
@@ -27,13 +27,13 @@ This work is split into incremental phases, each building on the previous.
 
 **Current Roadmap:**
 - **Phase 0** ✅: Clean up existing error handling + build generic `ik_array_t` utility
-- **Phase 1**: Replace vterm immediately with direct terminal rendering (workspace only)
-- **Phase 2**: Complete REPL event loop with full interactivity
+- **Phase 1** ✅: Direct terminal rendering with UTF-8 aware cursor positioning
+- **Phase 2** ⏳: Complete REPL event loop with full interactivity
 - **Phase 3**: Add scrollback buffer module with layout caching
 - **Phase 4**: Integrate viewport and scrolling
-- **Phase 5**: Cleanup build system and documentation
+- **Phase 5**: Final polish and documentation
 
-**Current focus**: Ready to start Phase 1
+**Current focus**: Phase 2 - multi-line editing and readline shortcuts
 
 Each phase follows strict TDD (Test-Driven Development) with 100% coverage requirement.
 
@@ -43,11 +43,11 @@ Each phase follows strict TDD (Test-Driven Development) with 100% coverage requi
 - ✅ Task 1: Error handling cleanup
 - ✅ Task 2: Generic array utility with typed wrappers
 
-**Phase 1** - Direct Rendering (workspace only):
-- Remove old vterm-based render module
-- Implement `render_direct` with UTF-8 aware cursor calculation
-- Single framebuffer write to terminal
-- Manual verification via client.c demo
+**Phase 1** - Direct Rendering (workspace only) ✅ COMPLETE:
+- ✅ Removed old vterm-based render module
+- ✅ Implemented `render_direct` with UTF-8 aware cursor calculation
+- ✅ Single framebuffer write to terminal
+- ✅ Manual verification completed
 
 **Phase 2** - Complete REPL Event Loop:
 - Full interactive REPL with workspace (no scrollback)
@@ -68,9 +68,9 @@ Each phase follows strict TDD (Test-Driven Development) with 100% coverage requi
 - Complete terminal UI
 
 **Phase 5** - Cleanup:
-- Remove vterm from build system and packaging
+- Final polish and code review
 - Update all documentation
-- Final verification across all distros
+- Verification across all distros
 
 ---
 

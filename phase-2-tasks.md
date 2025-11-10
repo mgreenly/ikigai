@@ -345,12 +345,12 @@
 ## Task 2.6: Readline-Style Editing Shortcuts
 
 ### 2.6.1: Add Input Actions - Write Tests First
-- [ ] Write test: `test_input_parse_ctrl_a()` in `tests/unit/input/input_test.c`
-- [ ] Write test: `test_input_parse_ctrl_e()`
-- [ ] Write test: `test_input_parse_ctrl_k()`
-- [ ] Write test: `test_input_parse_ctrl_u()`
-- [ ] Write test: `test_input_parse_ctrl_w()`
-- [ ] **Red**: Tests fail (actions don't exist)
+- [x] Write test: `test_input_parse_ctrl_a()` in `tests/unit/input/char_test.c`
+- [x] Write test: `test_input_parse_ctrl_e()`
+- [x] Write test: `test_input_parse_ctrl_k()`
+- [x] Write test: `test_input_parse_ctrl_u()`
+- [x] Write test: `test_input_parse_ctrl_w()`
+- [x] **Red**: Tests fail (actions don't exist)
 
 ### 2.6.2: Add Input Actions - Implementation
 - [ ] Add to `src/input.h` enum:

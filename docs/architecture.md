@@ -11,20 +11,18 @@ Desktop AI coding agent with local tool execution and persistent conversation hi
 ## Dependencies
 
 ### Core Libraries
-- **libvterm** - Terminal emulator for client UI
 - **libjansson** - JSON serialization
 - **libcurl** - HTTP client for LLM APIs
 - **libb64** - Base64 encoding for identifiers
 - **talloc** - Hierarchical pool-based memory allocator
 - **libuuid** - RFC 4122 UUID generation (util-linux)
+- **libutf8proc** - UTF-8 text processing and Unicode normalization
 - **check** - Unit testing framework
 
-### Database (To Be Selected)
-- **libpq** - PostgreSQL C client library (option 1)
-- **libduckdb** - DuckDB embedded database (option 2)
+### Database
+- **libpq** - PostgreSQL C client library
 
 ### Future Libraries
-- **libutf8proc** - UTF-8 text processing and Unicode normalization
 - **libpcre2** - Perl-compatible regex library for text processing
 - **libtree-sitter** - Incremental parsing library for code analysis
 
@@ -40,7 +38,7 @@ Target platform: Debian 13 (Trixie)
 │                                                  │
 │  ┌────────────────┐        ┌─────────────────┐  │
 │  │  Terminal UI   │        │   LLM Clients   │  │
-│  │   (libvterm)   │        │   (streaming)   │  │
+│  │  (direct term) │        │   (streaming)   │  │
 │  │                │        │                 │  │
 │  │ - Split buffer │        │ - OpenAI       │  │
 │  │ - Scrollback   │        │ - Anthropic    │  │
@@ -49,12 +47,12 @@ Target platform: Debian 13 (Trixie)
 │                                                  │
 │  ┌────────────────┐        ┌─────────────────┐  │
 │  │  Local Tools   │        │    Database     │  │
-│  │                │        │   (PostgreSQL   │  │
-│  │ - File ops     │        │    or DuckDB)   │  │
-│  │ - Shell exec   │        │                 │  │
-│  │ - Code analysis│        │ - Conversations │  │
-│  └────────────────┘        │ - Messages      │  │
-│                            │ - Search        │  │
+│  │                │        │  (PostgreSQL)   │  │
+│  │ - File ops     │        │                 │  │
+│  │ - Shell exec   │        │ - Conversations │  │
+│  │ - Code analysis│        │ - Messages      │  │
+│  └────────────────┘        │ - Search        │  │
+│                            │ - RAG memory    │  │
 │  ┌────────────────┐        └─────────────────┘  │
 │  │  Config        │                              │
 │  │  ~/.ikigai/    │                              │
@@ -68,11 +66,11 @@ Target platform: Debian 13 (Trixie)
 
 **Direct API integration**: Client talks directly to OpenAI/Anthropic/Google APIs using libcurl with streaming.
 
-**Persistent memory**: All conversations stored locally in database for search and context.
+**Persistent memory**: All conversations stored locally in PostgreSQL for search, context, and RAG.
 
 **Full trust model**: Tools execute with user's permissions. No sandboxing. User's machine, user's responsibility.
 
-**Single-threaded simplicity**: Main event loop handles terminal input, LLM streaming, and tool execution sequentially. Async complexity deferred to future explorations.
+**Single-threaded simplicity**: Main event loop handles terminal input, LLM streaming, and tool execution sequentially.
 
 ## Implementation Roadmap
 
@@ -103,13 +101,13 @@ Features:
 
 ### Future: Database Persistence
 
-Store conversation history locally.
+Store conversation history locally with PostgreSQL.
 
 Features:
-- Choose database (PostgreSQL or DuckDB)
-- Schema for conversations, messages
+- PostgreSQL schema for conversations and messages
 - Save/load conversation history
-- Search across past conversations
+- Full-text search across past conversations
+- RAG memory access patterns
 
 ### Future: Multi-LLM Support
 
@@ -183,7 +181,6 @@ Client loads configuration from `~/.ikigai/config.json`:
     "google_api_key": "..."
   },
   "database": {
-    "type": "postgresql",
     "connection_string": "postgresql://localhost/ikigai"
   }
 }
@@ -227,23 +224,11 @@ See [error_handling.md](error_handling.md) for patterns.
 - Mocked responses for CI
 - Database tests with test fixtures
 
-## Concurrency Model (Future)
+## Concurrency Model
 
-v1.0 is single-threaded for simplicity. Future explorations may add:
-- Worker threads for long-running tool execution
-- Async I/O for LLM streaming
-- Background database queries
+v1.0 is single-threaded for simplicity:
+- Main event loop handles terminal input sequentially
+- LLM streaming processed as chunks arrive
+- Tool execution blocks until complete
 
-Keep it simple until proven necessary.
-
-## Future: Server Architecture
-
-Post-v1.0 may explore multi-user server. See [roadmap.md](roadmap.md).
-
-Key concepts from earlier design (see `docs/archive/` for details):
-- WebSocket protocol for client-server communication
-- Server proxies LLM requests
-- Centralized conversation storage
-- Tools still execute locally on client machines
-
-Not in scope for v1.0.
+This keeps the implementation straightforward and avoids concurrency complexity. Future versions may explore async patterns if performance requires it.

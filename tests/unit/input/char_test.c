@@ -48,7 +48,8 @@ START_TEST(test_input_parse_nonprintable)
     ck_assert(is_ok(&res));
 
     // Parse non-printable character below 0x20 (except recognized control chars)
-    res = ik_input_parse_byte(parser, 0x01, &action);
+    // Use 0x02 (Ctrl+B) which is not recognized
+    res = ik_input_parse_byte(parser, 0x02, &action);
     ck_assert(is_ok(&res));
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
@@ -137,6 +138,101 @@ START_TEST(test_input_parse_ctrl_c)
 }
 
 END_TEST
+// Test: parse Ctrl+A character (beginning of line)
+START_TEST(test_input_parse_ctrl_a)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse Ctrl+A (0x01)
+    res = ik_input_parse_byte(parser, 0x01, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_A);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse Ctrl+E character (end of line)
+START_TEST(test_input_parse_ctrl_e)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse Ctrl+E (0x05)
+    res = ik_input_parse_byte(parser, 0x05, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_E);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse Ctrl+K character (kill to end of line)
+START_TEST(test_input_parse_ctrl_k)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse Ctrl+K (0x0B)
+    res = ik_input_parse_byte(parser, 0x0B, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_K);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse Ctrl+U character (kill line)
+START_TEST(test_input_parse_ctrl_u)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse Ctrl+U (0x15)
+    res = ik_input_parse_byte(parser, 0x15, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_U);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse Ctrl+W character (delete word backward)
+START_TEST(test_input_parse_ctrl_w)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse Ctrl+W (0x17)
+    res = ik_input_parse_byte(parser, 0x17, &action);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_W);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 // Test suite
 static Suite *input_char_suite(void)
@@ -150,6 +246,11 @@ static Suite *input_char_suite(void)
     tcase_add_test(tc_core, test_input_parse_carriage_return);
     tcase_add_test(tc_core, test_input_parse_backspace);
     tcase_add_test(tc_core, test_input_parse_ctrl_c);
+    tcase_add_test(tc_core, test_input_parse_ctrl_a);
+    tcase_add_test(tc_core, test_input_parse_ctrl_e);
+    tcase_add_test(tc_core, test_input_parse_ctrl_k);
+    tcase_add_test(tc_core, test_input_parse_ctrl_u);
+    tcase_add_test(tc_core, test_input_parse_ctrl_w);
 
     suite_add_tcase(s, tc_core);
     return s;

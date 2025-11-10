@@ -8,9 +8,7 @@ Implement the scrollback buffer module with pre-computed display widths and layo
 
 ## Rationale
 
-See [docs/eliminate_vterm.md](../eliminate_vterm.md) lines 105-363 for complete design.
-
-**Key insight**: Pre-compute display width once when line is created, then reflow becomes pure arithmetic.
+**Key insight**: Pre-compute display width once when line is created, then reflow becomes pure arithmetic. This enables O(1) reflow on terminal resize.
 
 **Performance target**:
 - 1000 lines × 50 chars average = 50,000 chars total
@@ -86,7 +84,7 @@ size_t calculate_physical_lines(size_t display_width, int32_t terminal_width);
 - Reflow on resize is just arithmetic: `display_width / terminal_width`
 - Separated hot/cold data for cache locality during reflow
 - No newline characters stored - implicit in array structure
-- See `docs/eliminate_vterm.md` lines 106-273 for detailed algorithms
+- Each line is immutable once added (workspace is mutable, scrollback is not)
 
 **Estimated size**: ~200-250 lines
 
@@ -154,7 +152,7 @@ size_t ik_workspace_get_physical_lines(const ik_workspace_t *ws);
 - Implement `ik_workspace_ensure_layout()` - full scan (workspace is mutable, may contain \n)
 - Implement `ik_workspace_invalidate_layout()` - mark dirty flag
 - Call `invalidate_layout()` in all text edit functions
-- See `docs/eliminate_vterm.md` lines 365-413 for algorithm
+- Workspace needs full scan on recalculation (unlike scrollback which pre-computes)
 
 **Test Coverage**:
 - Layout calculation with various content

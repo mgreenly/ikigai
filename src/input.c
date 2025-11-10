@@ -248,8 +248,28 @@ res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte,
         action_out->type = IK_INPUT_NEWLINE;
         return OK(parser);
     }
+    if (byte == 0x01) {  // Ctrl+A
+        action_out->type = IK_INPUT_CTRL_A;
+        return OK(parser);
+    }
     if (byte == 0x03) {  // Ctrl+C
         action_out->type = IK_INPUT_CTRL_C;
+        return OK(parser);
+    }
+    if (byte == 0x05) {  // Ctrl+E
+        action_out->type = IK_INPUT_CTRL_E;
+        return OK(parser);
+    }
+    if (byte == 0x0B) {  // Ctrl+K
+        action_out->type = IK_INPUT_CTRL_K;
+        return OK(parser);
+    }
+    if (byte == 0x15) {  // Ctrl+U
+        action_out->type = IK_INPUT_CTRL_U;
+        return OK(parser);
+    }
+    if (byte == 0x17) {  // Ctrl+W
+        action_out->type = IK_INPUT_CTRL_W;
         return OK(parser);
     }
 

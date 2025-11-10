@@ -2,15 +2,15 @@
 
 [← Back to REPL Terminal Overview](README.md)
 
-**Goal**: Replace vterm with direct terminal rendering for workspace only.
+**Goal**: Implement direct terminal rendering for workspace without external terminal emulator library.
 
-Remove libvterm dependency and implement direct terminal rendering. Get back to verifiable client.c test immediately with simpler, faster rendering.
+**Status**: ✅ COMPLETE
 
 ## Rationale
 
-See [docs/eliminate_vterm.md](../eliminate_vterm.md) for complete analysis.
+libvterm provided minimal value - we manage our own text buffers, handle UTF-8/grapheme processing ourselves, and already use alternate screen buffering. The only service vterm provided was calculating cursor screen position after text wrapping - approximately 50-100 lines of logic that we were paying for with a full external dependency.
 
-**Key insight**: libvterm provides minimal value. We manage our own text buffers, handle UTF-8/grapheme processing ourselves, and already use alternate screen buffering. The only service vterm provides is calculating cursor screen position after text wrapping - approximately 50-100 lines of logic that we're paying for with a full external dependency.
+See archived design docs in `docs/archive/eliminate-vterm-*.md` for the complete analysis that led to this decision.
 
 **Benefits**:
 - **Simpler**: ~100-150 lines of direct rendering vs 654 lines of vterm integration
@@ -58,7 +58,7 @@ res_t ik_render_direct_workspace(ik_render_direct_ctx_t *ctx,
 **Implementation Notes**:
 - No caching needed yet (workspace is small, typically < 4KB)
 - Full scan on each render is acceptable for this phase
-- See `docs/eliminate_vterm.md` lines 183-273 for calculation functions
+- UTF-8 aware cursor positioning using `utf8proc_charwidth()`
 
 **Estimated size**: ~100-120 lines (vs 222 lines for vterm integration)
 

@@ -1,42 +1,34 @@
-# ikigai Documentation Index
+# Ikigai Documentation Index
 
 This documentation is primarily for AI agents and secondarily for humans.
 
 ## Project Overview
 
-**ikigai** is a Linux focused desktop AI coding agent with persistent memory, written in "C".
+**Ikigai** is a Linux focused, multi-model, coding agent with RAG accessible permanent memory, written in "C".
 
-A terminal-based assistant that executes tools locally, remembers conversations in a database, and works with multiple LLM providers. Built for experimentation and iteration.
-
-**Current Status**: Early development - Building REPL terminal foundation
+It's in an early stage of development.
 
 ## v1.0 Vision
 
-**Long-term target**: Robust desktop client with:
-- **Database integration**: Persistent conversation history (PostgreSQL/DuckDB)
-- **Multi-LLM support**: OpenAI, Anthropic, Google with unified interface
-- **Local tool execution**: File operations, shell commands, code analysis
-- **Robust CLI**: Terminal UI with streaming responses, scrollback, editor integration
-
-**What v1.0 is NOT**:
-- Not a multi-user server (future exploration)
-- Not a web service (local desktop tool)
-- Not trying to be production infrastructure (experimentation platform)
+**Desktop/terminal client** with:
+- **Terminal UI**: Direct terminal rendering with scrollback, dynamic input, and clean UX
+- **Database integration**: PostgreSQL for persistent conversation history and RAG memory
+- **Multi-LLM support**: Anthropic, OpenAI, Google, X.AI
+- **Local tool execution**: File operations, shell commands, code analysis (full trust model)
+- **RAG-based memory**: Conversation search and context retrieval
 
 ## Codebase Structure
 
-- **Source**: `src/` contians the source code
-- **Build target**: `bin/ikigai` (desktop client)
+- **Source**: `src/` contains the source code
+- **Build target**: `bin/ikigai`
 - **Build system**: Make with comprehensive warnings, sanitizers, Valgrind, and coverage support - see [build-system.md](build-system.md)
 - **Testing**: Check framework with unit and integration tests; OOM injection via test seams, exists in `tests/` folder.
 - **Standard**: C17 with K&R style (120-char width)
 
 ## Documentation Files
 
-### Current Work
-- **[repl/](repl/)** - REPL terminal interface (current implementation target)
-
 ### Core Documentation
+- **[repl/](repl/)** - REPL terminal interface documentation (Phase 2 in progress)
 - **[architecture.md](architecture.md)** - System architecture and design decisions
 - **[decisions/](decisions/)** - Architecture decision records (ADRs) for key design choices
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
@@ -45,29 +37,44 @@ A terminal-based assistant that executes tools locally, remembers conversations 
 - **[build-system.md](build-system.md)** - Build system with quality gates, testing infrastructure, and multi-distro support
 - **[vulnerabilities.md](vulnerabilities.md)** - CVE vulnerability tracking for dependencies
 
+### Historical Reference
+- **[archive/](archive/)** - Earlier design docs (server architecture, vterm elimination design)
+
 ### Future Work
 - **[roadmap.md](roadmap.md)** - Post-v1.0 exploration areas
-- **[archive/](archive/)** - Earlier server-focused design docs (historical reference)
 
 ## Development Roadmap
 
-### Immediate: REPL Terminal Foundation
-**Current work target** - See [repl/](repl/) for details.
+### Current: REPL Terminal Foundation ⏳
+**Phase 2 in progress** - See [repl/](repl/) for details.
 
-Building a terminal interface with:
-- Split-buffer layout (scrollback + dynamic input)
-- Alternate screen mode with clean exit
-- Mouse and keyboard scrolling
-- Config integration
-- Foundation for streaming AI responses
+Building a robust terminal interface with direct rendering:
+- ✅ Phase 0: Foundation (error handling, memory management, generic arrays)
+- ✅ Phase 1: Direct rendering (vterm eliminated, UTF-8 aware cursor positioning)
+- ⏳ Phase 2: Complete REPL event loop (multi-line editing, readline shortcuts)
+- 📋 Phase 3: Scrollback buffer with layout caching
+- 📋 Phase 4: Viewport and scrolling integration
+- 📋 Phase 5: Cleanup and documentation
+
+**Current capabilities:**
+- Direct terminal rendering without external terminal emulator
+- UTF-8 support (emoji, CJK, combining characters)
+- Multi-line input with cursor navigation
+- Text wrapping and clean terminal restoration
+
+### Next: LLM Integration
+- OpenAI API client with streaming
+- Display AI responses in scrollback
+- Basic conversation flow
+- Response streaming to terminal
 
 ### Future: Core v1.0 Features
 
-**Database Integration**
-- Choose storage backend (PostgreSQL or DuckDB)
+**Database Integration (PostgreSQL)**
 - Persistent conversation history
 - Message storage and retrieval
-- Query/search capabilities
+- Full-text search capabilities
+- RAG memory access
 
 **Multi-LLM Provider Support**
 - Abstract provider interface
@@ -83,27 +90,19 @@ Building a terminal interface with:
 - Code analysis tools
 - Full trust model (user's machine)
 
-**Enhanced Terminal Client**
-- Streaming response display
+**Enhanced Terminal UI**
+- Syntax highlighting in code blocks
 - External editor integration ($EDITOR)
-- Command history
-- Session management
+- Command history and session management
 - Rich formatting
-
-### Future Exploration
-See [roadmap.md](roadmap.md) for post-v1.0 directions including:
-- Multi-user server architecture
-- WebSocket protocol for remote access
-- Organizational memory and RAG
-- Collaborative features
 
 ## Development Philosophy
 
-**Build incrementally**. Each phase establishes solid foundations before adding features. Focus on getting core patterns right (memory management, error handling, concurrency) early.
+**Build incrementally**. Each phase establishes solid foundations before adding features. Focus on getting core patterns right (memory management, error handling, terminal UI) early.
 
-**Experiment freely**. This is a platform for trying ideas, not production infrastructure. Make architectural choices that enable rapid iteration.
+**Test-driven development**. 100% test coverage requirement with comprehensive unit tests, OOM injection testing, and multiple quality gates.
 
-**Keep it focused**. v1.0 is about a great desktop experience. Server/multi-user features are future exploration, not current distractions.
+**Keep it focused**. v1.0 is a desktop client for a single user. Local execution, full trust model, direct LLM API integration.
 
 ---
 
