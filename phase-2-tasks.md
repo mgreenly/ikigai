@@ -1,6 +1,6 @@
-# Phase 2 Detailed Task List
+# Phase 2 - Detailed Task List
 
-## Phase 2 Completed Tasks
+## Phase 2 - Completed Tasks
 
 - ✅ **Task 1**: ik_repl_render_frame() - REPL rendering helper
   - 1.1: Write test - successful render (empty workspace)
@@ -32,7 +32,7 @@
   - 2.6.7-2.6.8: kill_to_line_end (Ctrl+K) (5908d58)
   - 2.6.8.1: Coverage gaps fixed (1adc72e, d7fc09e - LCOV +2 → 160 total)
 
-## Phase 2 Remaining Tasks
+## Phase 2 - Remaining Tasks
 
 ### 2.6.9: Kill Line - Write Tests
 - [ ] Write test: `test_workspace_kill_line_basic()`
