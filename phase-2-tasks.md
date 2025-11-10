@@ -9,7 +9,7 @@
 **Phase 1** ✅ COMPLETE
 - render_direct module: Direct terminal rendering without vterm (src/render_direct.c)
 
-**Phase 2 Completed Tasks**:
+**Phase 2 Completed**:
 - ✅ **Task 1**: ik_repl_render_frame() - REPL rendering helper (99c4490)
 - ✅ **Task 2**: ik_repl_process_action() - Input action processing (coverage: 1074 lines, 91 functions, 373 branches)
 - ✅ **Task 2.5**: Multi-line cursor navigation (cursor_up/down) (672df9b)
@@ -23,63 +23,21 @@
 - ✅ **Task 2.6.7-2.6.8**: kill_to_line_end (Ctrl+K) (5908d58)
 - ✅ **Task 2.6.8.1**: Coverage gaps fixed (1adc72e, d7fc09e, LCOV +2 → 160 total)
 
-**Current Coverage**: 100% (1201/1201 lines, 100/100 functions, 427/427 branches)
-
-**In Progress**:
-- ⏳ **Task 2.6.9-2.6.10**: kill_line (Ctrl+U) - NEXT
+**Phase 2 Remaining**:
+- ⏳ **Task 2.6.9-2.6.10**: kill_line (Ctrl+U) - **NEXT**
 - ⏳ **Task 2.6.11-2.6.12**: delete_word_backward (Ctrl+W)
 - ⏳ **Task 2.6.13**: Integration - add all shortcuts to ik_repl_process_action()
-- 🔄 Event loop stubbed: `ik_repl_run()` returns OK(NULL)
+- ⏳ **Task 3**: Implement event loop (`ik_repl_run()` - currently stubbed)
+- ⏳ **Task 4**: Simplify client.c main() to use REPL module
+- ⏳ **Task 5**: Manual testing and polish
+
+**Current Coverage**: 100% (1201/1201 lines, 100/100 functions, 427/427 branches)
+
+**Working Demo**: `make build/ikigai && ./build/ikigai` - src/client.c has complete REPL with event loop (lines 72-182)
 
 **Workspace Operations**: insert_codepoint, insert_newline, backspace, delete, cursor_left, cursor_right, cursor_up, cursor_down, cursor_to_line_start, cursor_to_line_end, kill_to_line_end
 
 **Input Actions**: CHAR, NEWLINE, BACKSPACE, DELETE, ARROW_LEFT, ARROW_RIGHT, ARROW_UP, ARROW_DOWN, CTRL_C, CTRL_A, CTRL_E, CTRL_K, CTRL_U, CTRL_W
-
-## Key Insights
-
-**What's Already Working**:
-- src/client.c (lines 72-182) has a complete, working REPL implementation
-- The event loop (lines 140-176) reads bytes, parses, processes actions, and renders
-- Helper functions process_action() (lines 16-43) and render_frame() (lines 46-70) work correctly
-- The demo can be run: `make build/ikigai && ./build/ikigai`
-
-**What's Been Completed**:
-1. ✅ **REPL module functions extracted**: Helper functions moved to REPL module
-   - ✅ `process_action()` → `ik_repl_process_action()`
-   - ✅ `render_frame()` → `ik_repl_render_frame()`
-   - 🔄 Event loop → `ik_repl_run()` (stubbed, needs implementation)
-
-2. ✅ **Multi-line navigation**: Implemented cursor_up/down for multi-line editing
-   - ✅ Task 2.5: `cursor_up()`, `cursor_down()`
-   - ✅ Task 2.6: Readline shortcuts partially complete (Ctrl+A, Ctrl+E, Ctrl+K done)
-
-3. ✅ **Comprehensive test coverage**: All implemented features tested
-   - ✅ Tests for render_frame helper
-   - ✅ Tests for process_action helper
-   - ✅ Tests for cursor_up/down
-   - ✅ Tests for cursor_to_line_start/end
-   - ✅ Tests for kill_to_line_end
-
-**What We Need to Do**:
-1. **Complete readline shortcuts** (Task 2.6.9-2.6.13):
-   - Task 2.6.9-2.6.10: `kill_line()` (Ctrl+U)
-   - Task 2.6.11-2.6.12: `delete_word_backward()` (Ctrl+W)
-   - Task 2.6.13: Integration - add to `ik_repl_process_action()`
-
-2. **Implement event loop** (Task 3):
-   - Move event loop logic from client.c to `ik_repl_run()`
-
-3. **Simplify client.c** (Task 4):
-   - Update main() to just call ik_repl_init/run/cleanup
-
-4. **Manual testing** (Task 5):
-   - Comprehensive testing checklist
-
-**Testing Strategy Note**:
-- The event loop in `ik_repl_run()` is thin glue code (no complex logic)
-- Full coverage may require mockable wrappers for read() or acceptance that integration testing suffices
-- Component functions (render_frame, process_action) should have 100% unit test coverage
-- The working client.c provides end-to-end integration verification
 
 ---
 
