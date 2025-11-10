@@ -4,16 +4,22 @@
 
 **Reference**: docs/repl/repl-phase-2.md
 
-**Current State**:
-- Phase 1 complete: render_direct module implemented and tested (src/render_direct.c)
-- Task 1 complete: ik_repl_render_frame() implemented and tested (src/repl.c)
-- Task 2 complete: ik_repl_process_action() implemented and tested (src/repl.c)
-- REPL init/cleanup implemented (src/repl.c)
-- Event loop stubbed: `ik_repl_run()` returns OK(NULL)
-- Working demo in src/client.c with process_action() and render_frame() helper functions
-- Workspace has: insert_codepoint, insert_newline, backspace, delete, cursor_left, cursor_right
-- Input parser supports: CHAR, NEWLINE, BACKSPACE, DELETE, ARROW_LEFT, ARROW_RIGHT, ARROW_UP, ARROW_DOWN, CTRL_C
-- **Missing**: cursor_up/down, readline shortcuts (Ctrl+A/E/K/U/W), event loop implementation
+**Current State** (as of commit 5908d58):
+- ✅ Phase 1 complete: render_direct module implemented and tested (src/render_direct.c)
+- ✅ Task 1 complete: ik_repl_render_frame() implemented and tested (src/repl.c)
+- ✅ Task 2 complete: ik_repl_process_action() implemented and tested (src/repl.c)
+- ✅ Task 2.5 complete: cursor_up/down for multi-line navigation
+- ✅ Task 2.6.1-2.6.2 complete: Input actions for Ctrl+A/E/K/U/W
+- ✅ Task 2.6.3-2.6.4 complete: cursor_to_line_start (Ctrl+A)
+- ✅ Task 2.6.4.1 complete: Cursor module refactored (workspace-internal, void+assertions)
+- ✅ Task 2.6.5-2.6.6 complete: cursor_to_line_end (Ctrl+E)
+- ✅ Task 2.6.7-2.6.8 complete: kill_to_line_end (Ctrl+K)
+- ✅ REPL init/cleanup implemented (src/repl.c)
+- 🔄 Event loop stubbed: `ik_repl_run()` returns OK(NULL)
+- ✅ Working demo in src/client.c with process_action() and render_frame() helper functions
+- ✅ Workspace has: insert_codepoint, insert_newline, backspace, delete, cursor_left, cursor_right, cursor_up, cursor_down, cursor_to_line_start, cursor_to_line_end, kill_to_line_end
+- ✅ Input parser supports: CHAR, NEWLINE, BACKSPACE, DELETE, ARROW_LEFT, ARROW_RIGHT, ARROW_UP, ARROW_DOWN, CTRL_C, CTRL_A, CTRL_E, CTRL_K, CTRL_U, CTRL_W
+- ⏳ **Missing**: kill_line (Ctrl+U), delete_word_backward (Ctrl+W), event loop implementation, main entry point simplification
 
 ## Key Insights
 
@@ -23,22 +29,37 @@
 - Helper functions process_action() (lines 16-43) and render_frame() (lines 46-70) work correctly
 - The demo can be run: `make build/ikigai && ./build/ikigai`
 
+**What's Been Completed**:
+1. ✅ **REPL module functions extracted**: Helper functions moved to REPL module
+   - ✅ `process_action()` → `ik_repl_process_action()`
+   - ✅ `render_frame()` → `ik_repl_render_frame()`
+   - 🔄 Event loop → `ik_repl_run()` (stubbed, needs implementation)
+
+2. ✅ **Multi-line navigation**: Implemented cursor_up/down for multi-line editing
+   - ✅ Task 2.5: `cursor_up()`, `cursor_down()`
+   - ✅ Task 2.6: Readline shortcuts partially complete (Ctrl+A, Ctrl+E, Ctrl+K done)
+
+3. ✅ **Comprehensive test coverage**: All implemented features tested
+   - ✅ Tests for render_frame helper
+   - ✅ Tests for process_action helper
+   - ✅ Tests for cursor_up/down
+   - ✅ Tests for cursor_to_line_start/end
+   - ✅ Tests for kill_to_line_end
+
 **What We Need to Do**:
-1. **Move logic from client.c to repl.c**: Extract helper functions into REPL module
-   - `process_action()` → `ik_repl_process_action()`
-   - `render_frame()` → `ik_repl_render_frame()`
-   - Event loop → `ik_repl_run()`
+1. **Complete readline shortcuts** (Task 2.6.9-2.6.13):
+   - Task 2.6.9-2.6.10: `kill_line()` (Ctrl+U)
+   - Task 2.6.11-2.6.12: `delete_word_backward()` (Ctrl+W)
+   - Task 2.6.13: Integration - add to `ik_repl_process_action()`
 
-2. **Add missing workspace functions**: Implement new features not in client.c demo
-   - Task 2.5: `cursor_up()`, `cursor_down()` for multi-line editing
-   - Task 2.6: Readline shortcuts (Ctrl+A/E/K/U/W)
+2. **Implement event loop** (Task 3):
+   - Move event loop logic from client.c to `ik_repl_run()`
 
-3. **Write comprehensive tests**: Add unit tests for REPL module functions
-   - Tests for render_frame helper
-   - Tests for process_action helper
-   - Tests for new workspace functions (up/down, readline shortcuts)
+3. **Simplify client.c** (Task 4):
+   - Update main() to just call ik_repl_init/run/cleanup
 
-4. **Simplify client.c**: Once REPL module is complete, simplify main() to just call ik_repl_init/run/cleanup
+4. **Manual testing** (Task 5):
+   - Comprehensive testing checklist
 
 **Testing Strategy Note**:
 - The event loop in `ik_repl_run()` is thin glue code (no complex logic)
