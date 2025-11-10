@@ -315,10 +315,9 @@
 - [x] **Branch coverage increased**: 407 → 415 branches (8 more branches tested)
 - [x] **Commit**: 9aea7ca "Reduce LCOV exclusions in cursor movement code (Task 2.5.14)"
 
-### 2.5.15: File Size Corrections
+### 2.5.15: File Size Corrections ✅ COMPLETE
 - [x] **Problem**: File size warnings (MAX_FILE_LINES = 500)
-  - workspace.c: 575 lines (75 over)
-  - cursor_movement_test.c: 815 lines (315 over)
+  - workspace.c: 572 lines (72 over)
   - cursor_up_down_test.c: 587 lines (87 over)
   - repl_action_test.c: 580 lines (80 over)
 - [x] **Analysis**: Identified best split points for each file
@@ -328,15 +327,18 @@
 - [x] **Split 1**: cursor_up_down_test.c (587 lines) → 2 files
   - cursor_up_test.c: 319 lines (vertical up movement + 1 assertion)
   - cursor_down_test.c: 306 lines (vertical down movement + 1 assertion)
-- [ ] **Split 2**: repl_action_test.c (580 lines) → 2 files (PLANNED)
-  - repl_text_editing_test.c: ~290 lines (char, newline, backspace, delete + edge cases)
-  - repl_navigation_test.c: ~290 lines (arrows, ctrl_c, unknown + edge cases + assertions)
-- [ ] **Split 3**: workspace.c (575 lines) → 2 files (PLANNED)
-  - workspace.c: ~337 lines (basic editing operations)
-  - workspace_multiline.c: ~238 lines (multi-line navigation helpers)
-- [ ] Update Makefile CLIENT_SOURCES for workspace_multiline.c
-- [ ] Verify tests pass and coverage maintained
-- [ ] **Commit**: File splits to address length warnings
+- [x] **Split 2**: repl_action_test.c (580 lines) → 2 files
+  - repl_text_editing_test.c: 258 lines (char, newline, backspace, delete + edge cases)
+  - repl_navigation_test.c: 357 lines (arrows, ctrl_c, unknown + edge cases + assertions)
+- [x] **Split 3**: workspace.c (572 lines) → 2 files
+  - workspace.c: 349 lines (basic editing operations)
+  - workspace_multiline.c: 231 lines (multi-line navigation helpers: find_line_start, find_line_end, count_graphemes, grapheme_to_byte_offset, cursor_up, cursor_down)
+- [x] Update Makefile CLIENT_SOURCES and MODULE_SOURCES for workspace_multiline.c
+- [x] Verify tests pass and coverage maintained
+  - make check: All tests pass ✓
+  - make lint: All files under 500-line limit ✓
+  - make coverage: 100% coverage (1165/1165 lines, 97/97 functions, 415/415 branches) ✓
+- [x] **Commit**: 4511c66 "Split oversized files to meet 500-line limit (Task 2.5.15)"
 
 ---
 
