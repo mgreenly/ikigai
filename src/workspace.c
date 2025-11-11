@@ -7,6 +7,7 @@
 #include "wrapper.h"
 #include "error.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <talloc.h>
 
 res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out)
@@ -328,5 +329,81 @@ res_t ik_workspace_get_cursor_position(ik_workspace_t *workspace, size_t *byte_o
     assert(grapheme_out != NULL); /* LCOV_EXCL_BR_LINE */
 
     ik_cursor_get_position(workspace->cursor, byte_out, grapheme_out);
+    return OK(NULL);
+}
+
+/**
+ * @brief Check if a byte is a word character (alphanumeric or UTF-8 multi-byte)
+ *
+ * Word characters are: a-z, A-Z, 0-9, and UTF-8 multi-byte characters.
+ * Non-word characters are: space, newline, punctuation, other ASCII.
+ *
+ * @param byte Byte to check
+ * @return true if word character, false otherwise
+ */
+static bool is_word_char(uint8_t byte)
+{
+    /* Alphanumeric: 0-9, A-Z, a-z */
+    if ((byte >= '0' && byte <= '9') || (byte >= 'A' && byte <= 'Z') || (byte >= 'a' && byte <= 'z')) {
+        return true;
+    }
+
+    /* UTF-8 multi-byte characters (start bytes 0xC0-0xF7) */
+    if (byte >= 0xC0) {
+        return true;
+    }
+
+    return false;
+}
+
+res_t ik_workspace_delete_word_backward(ik_workspace_t *workspace)
+{
+    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+
+    /* If cursor is at start, this is a no-op */
+    if (workspace->cursor_byte_offset == 0) {
+        return OK(NULL);
+    }
+
+    const uint8_t *data = workspace->text->data;
+    size_t pos = workspace->cursor_byte_offset;
+
+    /* Step 1: Skip any trailing whitespace/punctuation */
+    while (pos > 0) {
+        size_t prev_pos = find_prev_char_start(data, pos);
+        uint8_t byte = data[prev_pos];
+
+        if (!is_word_char(byte)) {
+            pos = prev_pos;
+        } else {
+            break;
+        }
+    }
+
+    /* Step 2: Find the start of the word (scan backward through word characters) */
+    while (pos > 0) {
+        size_t prev_pos = find_prev_char_start(data, pos);
+        uint8_t byte = data[prev_pos];
+
+        if (is_word_char(byte)) {
+            pos = prev_pos;
+        } else {
+            break;
+        }
+    }
+
+    /* Delete from pos to cursor */
+    size_t num_bytes_to_delete = workspace->cursor_byte_offset - pos;
+    for (size_t i = 0; i < num_bytes_to_delete; i++) {
+        ik_byte_array_delete(workspace->text, pos);
+    }
+
+    /* Update cursor */
+    workspace->cursor_byte_offset = pos;
+    char *text;
+    size_t text_len;
+    ik_workspace_get_text(workspace, &text, &text_len);
+    ik_cursor_set_position(workspace->cursor, text, text_len, workspace->cursor_byte_offset);
+
     return OK(NULL);
 }

@@ -56,26 +56,36 @@
 - [x] LCOV exclusion: Added 1 marker for assertion (160 → 161 total)
 
 ### 2.6.11: Delete Word Backward - Write Tests
-- [ ] Write test: `test_workspace_delete_word_backward_basic()`
+- [x] Write test: `test_workspace_delete_word_backward_basic()`
   - Setup: "hello world test", cursor after "test"
   - Action: `ik_workspace_delete_word_backward()`
   - Assert: text is "hello world ", cursor after "world "
-- [ ] Write test: `test_workspace_delete_word_backward_at_word_boundary()`
-- [ ] Write test: `test_workspace_delete_word_backward_multiple_spaces()`
-- [ ] Write test: `test_workspace_delete_word_backward_punctuation()`
-- [ ] Write test: `test_workspace_delete_word_backward_utf8()`
-- [ ] Write test: `test_workspace_delete_word_backward_at_start()`
-- [ ] **Red**: Tests fail
+- [x] Write test: `test_workspace_delete_word_backward_at_word_boundary()`
+- [x] Write test: `test_workspace_delete_word_backward_multiple_spaces()`
+- [x] Write test: `test_workspace_delete_word_backward_punctuation()`
+- [x] Write test: `test_workspace_delete_word_backward_utf8()`
+- [x] Write test: `test_workspace_delete_word_backward_at_start()`
+- [x] Write test: `test_workspace_delete_word_backward_null_workspace_asserts()`
+- [x] Add function declaration to `src/workspace.h`
+- [x] Add stub implementation to `src/workspace.c` (returns OK, does nothing)
+- [x] **Red**: Tests fail (5 failures: 70% pass rate, stub doesn't delete anything)
 
 ### 2.6.12: Delete Word Backward - Implementation
-- [ ] Add to `src/workspace.h`: `res_t ik_workspace_delete_word_backward(ik_workspace_t *ws);`
-- [ ] Implement in `src/workspace.c`:
+- [x] Implement in `src/workspace.c`:
   - Scan backward from cursor
   - Skip trailing whitespace
   - Find word boundary (whitespace, punctuation, newline)
   - Delete from boundary to cursor
   - Must be UTF-8 aware
-- [ ] **Green**: Tests pass
+  - Added `is_word_char()` helper function
+  - Two-phase algorithm: skip non-word chars, then skip word chars
+- [x] **Green**: Tests pass (all 8 tests pass)
+- [x] Added 2 coverage tests: mixed_case_digits, only_punctuation
+- [x] Split line_editing_test.c into 3 files (exceeded 500 line limit):
+  - kill_to_line_end_test.c (5 tests)
+  - kill_line_test.c (5 tests)
+  - delete_word_backward_test.c (8 tests)
+- [x] LCOV exclusion: Added 1 marker for assertion (161 → 162 total)
 
 ### 2.6.13: Integrate - Add to Process Action
 - [ ] Add to `ik_repl_process_action()`:

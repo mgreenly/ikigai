@@ -208,4 +208,16 @@ res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace);
  */
 res_t ik_workspace_kill_line(ik_workspace_t *workspace);
 
+/**
+ * @brief Delete word backward (Ctrl+W)
+ *
+ * Deletes the word before the cursor, stopping at whitespace, punctuation,
+ * or newline boundaries. Skips trailing whitespace before deleting the word.
+ * If cursor is at start, this is a no-op.
+ *
+ * @param workspace Workspace
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_delete_word_backward(ik_workspace_t *workspace);
+
 #endif /* IKIGAI_WORKSPACE_H */
