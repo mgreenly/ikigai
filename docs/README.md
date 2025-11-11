@@ -36,6 +36,7 @@ It's in an early stage of development.
 - **[error_handling.md](error_handling.md)** - Error handling with talloc-integrated Result types
 - **[generic-types.md](generic-types.md)** - Generic base implementation with type-safe wrapper pattern
 - **[build-system.md](build-system.md)** - Build system with quality gates, testing infrastructure, and multi-distro support
+- **[security-analysis.md](security-analysis.md)** - Security analysis of input parsing, UTF-8 handling, and terminal control
 - **[vulnerabilities.md](vulnerabilities.md)** - CVE vulnerability tracking for dependencies
 
 ### Historical Reference
