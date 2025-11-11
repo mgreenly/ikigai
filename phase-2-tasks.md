@@ -32,76 +32,11 @@
   - 2.6.7-2.6.8: kill_to_line_end (Ctrl+K) (5908d58)
   - 2.6.8.1: Coverage gaps fixed (1adc72e, d7fc09e - LCOV +2 → 160 total)
   - 2.6.9-2.6.10: kill_line (Ctrl+U) (df47679 - LCOV +1 → 161 total)
+  - 2.6.11-2.6.12: delete_word_backward (Ctrl+W) (e9e5404 - LCOV +1 → 162 total)
+  - 2.6.13: REPL integration (326098a - added 5 action handlers + repl_readline_test.c)
+  - 2.6.14: Verified complete (coverage: 1257 lines, 103 functions, 467 branches, 162 LCOV)
 
 ## Phase 2 - Remaining Tasks
-
-### 2.6.9: Kill Line - Write Tests
-- [x] Write test: `test_workspace_kill_line_basic()`
-  - Setup: "hello\nworld\ntest", cursor in middle of "world"
-  - Action: `ik_workspace_kill_line()`
-  - Assert: text is "hello\ntest", cursor at start of "test" line
-- [x] Write test: `test_workspace_kill_line_first_line()`
-- [x] Write test: `test_workspace_kill_line_last_line()`
-- [x] Write test: `test_workspace_kill_line_empty_line()`
-- [x] **Red**: Tests fail
-
-### 2.6.10: Kill Line - Implementation
-- [x] Add to `src/workspace.h`: `res_t ik_workspace_kill_line(ik_workspace_t *ws);`
-- [x] Implement in `src/workspace_multiline.c`:
-  - Find line start (previous \n or start)
-  - Find line end (next \n or end)
-  - Delete entire line including \n
-  - Position cursor at new line start
-- [x] **Green**: Tests pass
-- [x] LCOV exclusion: Added 1 marker for assertion (160 → 161 total)
-
-### 2.6.11: Delete Word Backward - Write Tests
-- [x] Write test: `test_workspace_delete_word_backward_basic()`
-  - Setup: "hello world test", cursor after "test"
-  - Action: `ik_workspace_delete_word_backward()`
-  - Assert: text is "hello world ", cursor after "world "
-- [x] Write test: `test_workspace_delete_word_backward_at_word_boundary()`
-- [x] Write test: `test_workspace_delete_word_backward_multiple_spaces()`
-- [x] Write test: `test_workspace_delete_word_backward_punctuation()`
-- [x] Write test: `test_workspace_delete_word_backward_utf8()`
-- [x] Write test: `test_workspace_delete_word_backward_at_start()`
-- [x] Write test: `test_workspace_delete_word_backward_null_workspace_asserts()`
-- [x] Add function declaration to `src/workspace.h`
-- [x] Add stub implementation to `src/workspace.c` (returns OK, does nothing)
-- [x] **Red**: Tests fail (5 failures: 70% pass rate, stub doesn't delete anything)
-
-### 2.6.12: Delete Word Backward - Implementation
-- [x] Implement in `src/workspace.c`:
-  - Scan backward from cursor
-  - Skip trailing whitespace
-  - Find word boundary (whitespace, punctuation, newline)
-  - Delete from boundary to cursor
-  - Must be UTF-8 aware
-  - Added `is_word_char()` helper function
-  - Two-phase algorithm: skip non-word chars, then skip word chars
-- [x] **Green**: Tests pass (all 8 tests pass)
-- [x] Added 2 coverage tests: mixed_case_digits, only_punctuation
-- [x] Split line_editing_test.c into 3 files (exceeded 500 line limit):
-  - kill_to_line_end_test.c (5 tests)
-  - kill_line_test.c (5 tests)
-  - delete_word_backward_test.c (8 tests)
-- [x] LCOV exclusion: Added 1 marker for assertion (161 → 162 total)
-
-### 2.6.13: Integrate - Add to Process Action
-- [ ] Add to `ik_repl_process_action()`:
-  - `IK_INPUT_CTRL_A` → `ik_workspace_cursor_to_line_start()`
-  - `IK_INPUT_CTRL_E` → `ik_workspace_cursor_to_line_end()`
-  - `IK_INPUT_CTRL_K` → `ik_workspace_kill_to_line_end()`
-  - `IK_INPUT_CTRL_U` → `ik_workspace_kill_line()`
-  - `IK_INPUT_CTRL_W` → `ik_workspace_delete_word_backward()`
-- [ ] Write integration tests in repl_test.c for each action
-- [ ] **Green**: All tests pass
-
-### 2.6.14: Verify Task 2.6 Complete
-- [ ] Run: `make check` (all tests pass)
-- [ ] Run: `make lint` (complexity checks pass)
-- [ ] Run: `make coverage` (100% coverage)
-- [ ] Check: no uncovered lines or branches
 
 ---
 
