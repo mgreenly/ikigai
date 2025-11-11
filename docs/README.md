@@ -22,7 +22,7 @@ It's in an early stage of development.
 - **Source**: `src/` contains the source code
 - **Build target**: `bin/ikigai`
 - **Build system**: Make with comprehensive warnings, sanitizers, Valgrind, and coverage support - see [build-system.md](build-system.md)
-- **Testing**: Check framework with unit and integration tests; OOM injection via test seams, exists in `tests/` folder.
+- **Testing**: [Check framework](https://github.com/libcheck/check) with unit and integration tests; OOM injection via test seams, exists in `tests/` folder.
 - **Standard**: C17 with K&R style (120-char width)
 
 ## Documentation Files
@@ -92,7 +92,7 @@ Building a robust terminal interface with direct rendering:
 - Full trust model (user's machine)
 
 **Enhanced Terminal UI**
-- Syntax highlighting in code blocks
+- Syntax highlighting in code blocks (tree-sitter based)
 - External editor integration ($EDITOR)
 - Command history and session management
 - Rich formatting

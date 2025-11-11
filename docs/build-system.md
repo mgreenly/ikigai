@@ -8,13 +8,13 @@ Multiple layers of checks catch different classes of bugs:
 
 ### Compile-Time: Comprehensive Warnings
 
-19 warning flags enabled by default (always, in all build modes):
+19 warning flags enabled by default (always, in all build modes), with `-Werror` to treat warnings as errors:
 
 ```
 -Wall -Wextra -Wshadow -Wstrict-prototypes -Wmissing-prototypes
 -Wwrite-strings -Wformat=2 -Wconversion -Wcast-qual -Wundef
 -Wdate-time -Winit-self -Wstrict-overflow=2 -Wimplicit-fallthrough
--Walloca -Wvla -Wnull-dereference -Wdouble-promotion
+-Walloca -Wvla -Wnull-dereference -Wdouble-promotion -Werror
 ```
 
 These catch:
@@ -79,9 +79,7 @@ Functions exceeding this threshold must be refactored.
 make release
 ```
 
-Adds `-Werror` to turn all warnings into errors.
-
-Also enables:
+Enables:
 - `-O2` optimization
 - `-D_FORTIFY_SOURCE=2` for runtime buffer overflow detection
 - `-DNDEBUG` to inline all MOCKABLE functions
@@ -134,7 +132,7 @@ Building for multiple Linux distributions is handled via Docker.
 
 ### Supported distributions
 
-Current: **Debian Trixie** and **Fedora** (latest)
+Current: **Arch Linux**, **Debian Trixie**, and **Fedora** (latest)
 
 Each distribution has:
 - `distros/<distro>/Dockerfile` - Build environment
@@ -166,7 +164,7 @@ Some libraries aren't available on all distros, or we want to avoid version conf
 The Makefile supports selective static linking:
 
 ```make
-CLIENT_LIBS ?= -ltalloc -ljansson -luuid -lb64 -lpthread
+CLIENT_LIBS ?= -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc -lvterm
 CLIENT_STATIC_LIBS ?=
 ```
 
@@ -238,10 +236,12 @@ Five build modes for different purposes:
 | Mode | Use Case | Flags |
 |------|----------|-------|
 | `debug` | Default development | `-O0 -g3 -DDEBUG` |
-| `release` | Production | `-O2 -g -DNDEBUG -Werror -D_FORTIFY_SOURCE=2` |
+| `release` | Production | `-O2 -g -DNDEBUG -D_FORTIFY_SOURCE=2` |
 | `sanitize` | ASan + UBSan | `debug + -fsanitize=address,undefined` |
 | `tsan` | ThreadSanitizer | `debug + -fsanitize=thread` |
 | `valgrind` | Valgrind runs | `-O0 -g3 -fno-omit-frame-pointer` |
+
+Note: All modes include `-Werror` (warnings as errors) in the base warning flags.
 
 Use with any target:
 

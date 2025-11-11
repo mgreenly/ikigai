@@ -14,7 +14,7 @@ Desktop AI coding agent with local tool execution and persistent conversation hi
 - **libjansson** - JSON serialization
 - **libcurl** - HTTP client for LLM APIs
 - **libb64** - Base64 encoding for identifiers
-- **talloc** - Hierarchical pool-based memory allocator
+- **talloc** - Hierarchical pool-based memory allocator ([why?](decisions/talloc-memory-management.md))
 - **libuuid** - RFC 4122 UUID generation (util-linux)
 - **libutf8proc** - UTF-8 text processing and Unicode normalization
 - **check** - Unit testing framework
@@ -34,17 +34,17 @@ Target platform: Debian 13 (Trixie)
 
 ```
 ┌─────────────────────────────────────────────────┐
-│              bin/ikigai                          │
-│                                                  │
+│              bin/ikigai                         │
+│                                                 │
 │  ┌────────────────┐        ┌─────────────────┐  │
 │  │  Terminal UI   │        │   LLM Clients   │  │
 │  │  (direct term) │        │   (streaming)   │  │
 │  │                │        │                 │  │
-│  │ - Split buffer │        │ - OpenAI       │  │
-│  │ - Scrollback   │        │ - Anthropic    │  │
-│  │ - Input zone   │        │ - Google       │  │
+│  │ - Split buffer │        │ - OpenAI        │  │
+│  │ - Scrollback   │        │ - Anthropic     │  │
+│  │ - Input zone   │        │ - Google        │  │
 │  └────────────────┘        └─────────────────┘  │
-│                                                  │
+│                                                 │
 │  ┌────────────────┐        ┌─────────────────┐  │
 │  │  Local Tools   │        │    Database     │  │
 │  │                │        │  (PostgreSQL)   │  │
@@ -54,9 +54,9 @@ Target platform: Debian 13 (Trixie)
 │  └────────────────┘        │ - Search        │  │
 │                            │ - RAG memory    │  │
 │  ┌────────────────┐        └─────────────────┘  │
-│  │  Config        │                              │
-│  │  ~/.ikigai/    │                              │
-│  └────────────────┘                              │
+│  │  Config        │                             │
+│  │  ~/.ikigai/    │                             │
+│  └────────────────┘                             │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -66,13 +66,15 @@ Target platform: Debian 13 (Trixie)
 
 **Direct API integration**: Client talks directly to OpenAI/Anthropic/Google APIs using libcurl with streaming.
 
-**Persistent memory**: All conversations stored locally in PostgreSQL for search, context, and RAG.
+**Persistent memory**: All conversations stored locally in PostgreSQL for search, context, and RAG. ([why PostgreSQL?](decisions/postgresql-valkey.md))
 
-**Full trust model**: Tools execute with user's permissions. No sandboxing. User's machine, user's responsibility.
+**Full trust model**: Tools execute with user's permissions. No sandboxing. User's machine, user's responsibility. ([why client-side?](decisions/client-side-tool-execution.md))
 
 **Single-threaded simplicity**: Main event loop handles terminal input, LLM streaming, and tool execution sequentially.
 
 ## Implementation Roadmap
+
+([why phased?](decisions/phased-implementation.md))
 
 ### Current: REPL Terminal Foundation
 
@@ -91,7 +93,7 @@ See [repl/README.md](repl/README.md) for detailed design.
 
 ### Next: OpenAI Integration
 
-Add streaming LLM responses to the REPL.
+Add streaming LLM responses to the REPL. ([why OpenAI format?](decisions/openai-api-format.md))
 
 Features:
 - OpenAI API client (libcurl + streaming)
@@ -101,7 +103,7 @@ Features:
 
 ### Future: Database Persistence
 
-Store conversation history locally with PostgreSQL.
+Store conversation history locally with PostgreSQL. ([why PostgreSQL?](decisions/postgresql-valkey.md))
 
 Features:
 - PostgreSQL schema for conversations and messages
@@ -111,7 +113,7 @@ Features:
 
 ### Future: Multi-LLM Support
 
-Abstract provider interface.
+Abstract provider interface. ([superset approach](decisions/superset-api-approach.md))
 
 Features:
 - Provider abstraction layer (function pointers)
@@ -188,7 +190,7 @@ Client loads configuration from `~/.ikigai/config.json`:
 
 ## Memory Management
 
-All allocations use **talloc** for hierarchical context management:
+All allocations use **talloc** for hierarchical context management ([why talloc?](decisions/talloc-memory-management.md)):
 - Main context owns all subsystems
 - Cleanup is automatic with `talloc_free()`
 - No manual free tracking
