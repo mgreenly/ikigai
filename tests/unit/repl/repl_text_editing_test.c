@@ -227,6 +227,41 @@ START_TEST(test_repl_process_action_delete_at_end)
 }
 
 END_TEST
+/* Test: Process action OOM error */
+START_TEST(test_repl_process_action_char_oom)
+{
+    void *ctx = talloc_new(NULL);
+
+    ik_workspace_t *workspace = NULL;
+    res_t res = ik_workspace_create(ctx, &workspace);
+    ck_assert(is_ok(&res));
+
+    // Fill workspace to capacity (64 bytes)
+    for (int32_t i = 0; i < 64; i++) {
+        res = ik_workspace_insert_codepoint(workspace, 'x');
+        ck_assert(is_ok(&res));
+    }
+
+    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ck_assert_ptr_nonnull(repl);
+    repl->workspace = workspace;
+    repl->quit = false;
+
+    // Trigger OOM on next insert (which will try to grow the array)
+    oom_test_reset();
+    oom_test_fail_next_alloc();
+
+    ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'a'};
+
+    res = ik_repl_process_action(repl, &action);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_OOM);
+
+    oom_test_reset();
+    talloc_free(ctx);
+}
+
+END_TEST
 
 static Suite *repl_text_editing_suite(void)
 {
@@ -239,6 +274,7 @@ static Suite *repl_text_editing_suite(void)
     tcase_add_test(tc_core, test_repl_process_action_delete);
     tcase_add_test(tc_core, test_repl_process_action_backspace_at_start);
     tcase_add_test(tc_core, test_repl_process_action_delete_at_end);
+    tcase_add_test(tc_core, test_repl_process_action_char_oom);
 
     suite_add_tcase(s, tc_core);
     return s;

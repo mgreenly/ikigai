@@ -20,17 +20,14 @@ START_TEST(test_escape_sequence_null_byte) {
     res_t res = ik_input_parser_create(ctx, &parser);
     ck_assert(is_ok(&res));
 
-    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action); // ESC
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
     // Send null byte - what happens?
-    res = ik_input_parse_byte(parser, '\0', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '\0', &action);
     // Should treat as incomplete (waiting for more)
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape); // Still in escape mode
@@ -49,17 +46,14 @@ START_TEST(test_escape_sequence_control_char)
     res_t res = ik_input_parser_create(ctx, &parser);
     ck_assert(is_ok(&res));
 
-    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action); // ESC
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
     // Send Ctrl+C (0x03)
-    res = ik_input_parse_byte(parser, 0x03, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x03, &action);
     // Should treat as incomplete/unknown (not a recognized sequence)
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
@@ -77,17 +71,14 @@ START_TEST(test_escape_sequence_nearly_full_buffer)
     res_t res = ik_input_parser_create(ctx, &parser);
     ck_assert(is_ok(&res));
 
-    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action); // ESC
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
 
     // Send 13 more bytes (total 15 in buffer: '[' + 13 '1's)
     // Buffer is 16 bytes, esc_len will be 14, which is < 15 (sizeof - 1)
     for (int i = 0; i < 13; i++) {
-        res = ik_input_parse_byte(parser, '1', &action);
-        ck_assert(is_ok(&res));
+        ik_input_parse_byte(parser, '1', &action);
         ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     }
 
@@ -96,8 +87,7 @@ START_TEST(test_escape_sequence_nearly_full_buffer)
     ck_assert_uint_eq(parser->esc_len, 14);
 
     // One more byte brings us to esc_len == 15 (sizeof - 1), triggering overflow protection
-    res = ik_input_parse_byte(parser, '1', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '1', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(!parser->in_escape); // Should have reset
 

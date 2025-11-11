@@ -17,13 +17,11 @@ START_TEST(test_input_parse_utf8_2byte) {
 
     // Parse é (0xC3 0xA9) - 2 byte UTF-8
     // First byte (lead byte)
-    res = ik_input_parse_byte(parser, (char)0xC3, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xC3, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete sequence
 
     // Second byte (continuation byte)
-    res = ik_input_parse_byte(parser, (char)0xA9, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xA9, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0x00E9); // U+00E9 (é)
 
@@ -43,18 +41,15 @@ START_TEST(test_input_parse_utf8_3byte)
 
     // Parse ☃ (0xE2 0x98 0x83) - 3 byte UTF-8
     // First byte (lead byte)
-    res = ik_input_parse_byte(parser, (char)0xE2, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xE2, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
 
     // Second byte (continuation)
-    res = ik_input_parse_byte(parser, (char)0x98, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x98, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Still incomplete
 
     // Third byte (continuation)
-    res = ik_input_parse_byte(parser, (char)0x83, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x83, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0x2603); // U+2603 (☃)
 
@@ -74,23 +69,19 @@ START_TEST(test_input_parse_utf8_4byte)
 
     // Parse 🎉 (0xF0 0x9F 0x8E 0x89) - 4 byte UTF-8
     // First byte (lead byte)
-    res = ik_input_parse_byte(parser, (char)0xF0, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xF0, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
 
     // Second byte (continuation)
-    res = ik_input_parse_byte(parser, (char)0x9F, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x9F, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Still incomplete
 
     // Third byte (continuation)
-    res = ik_input_parse_byte(parser, (char)0x8E, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x8E, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Still incomplete
 
     // Fourth byte (continuation)
-    res = ik_input_parse_byte(parser, (char)0x89, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x89, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0x1F389); // U+1F389 (🎉)
 
@@ -109,8 +100,7 @@ START_TEST(test_input_parse_utf8_incomplete_eof)
     ck_assert(is_ok(&res));
 
     // Parse only lead byte of 2-byte sequence
-    res = ik_input_parse_byte(parser, (char)0xC3, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xC3, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
     ck_assert(parser->in_utf8); // Should be in UTF-8 mode
 
@@ -129,21 +119,18 @@ START_TEST(test_input_parse_utf8_invalid_continuation)
     ck_assert(is_ok(&res));
 
     // Start 2-byte sequence
-    res = ik_input_parse_byte(parser, (char)0xC3, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xC3, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_utf8);
 
     // Send invalid continuation byte (not 10xxxxxx pattern)
     // Using 0xFF which is 11111111 (not a valid continuation byte)
-    res = ik_input_parse_byte(parser, (char)0xFF, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xFF, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(!parser->in_utf8); // Should reset
 
     // Verify parser can handle next input correctly
-    res = ik_input_parse_byte(parser, 'a', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'a', &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 'a');
 

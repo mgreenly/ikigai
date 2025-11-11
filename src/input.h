@@ -47,6 +47,6 @@ typedef struct {
 res_t ik_input_parser_create(void *parent, ik_input_parser_t **parser_out);
 
 // Parse single byte into action
-res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte, ik_input_action_t *action_out);
+void ik_input_parse_byte(ik_input_parser_t *parser, char byte, ik_input_action_t *action_out);
 
 #endif // IK_INPUT_H

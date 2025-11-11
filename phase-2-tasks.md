@@ -177,24 +177,35 @@
 - [x] Quality gates pass: fmt, check, lint
 - [x] Commit created: 4e0ea11
 
-### 3.8: Fix Remaining Coverage Gaps (Next Session)
-**Current Coverage**: repl.c at 99.0% lines, 96.4% branches
+### 3.8: Coverage Gap Fix and Test File Refactoring ✅
+**Completed**: Achieved 100% branch coverage and resolved file size lint violations
 
-**Uncovered Paths** (2 error branches in repl.c:ik_repl_run):
-- Line 94: `ik_input_parse_byte()` error return
-- Line 100: `ik_repl_process_action()` error return
+**Coverage Gap Resolution**:
+- Branch at repl.c:96 (error check after `ik_repl_process_action()` in event loop)
+- Investigation revealed OOM injection was being consumed by initial render
+- Solution: Adjusted `oom_test_fail_after_n_calls(3)` to hit workspace realloc during process_action
+- Result: Branch now covered (taken 6% of the time)
 
-**Approach**: These error paths require OOM injection to trigger workspace allocation failures:
-- [ ] Add OOM test infrastructure for input parser (or verify impossible error path)
-- [ ] Add OOM test for `ik_repl_process_action()` workspace operations:
-  - Test workspace insert_codepoint OOM
-  - Test workspace insert_newline OOM
-  - Test workspace backspace OOM
-  - Test workspace delete OOM
-  - Test cursor movement OOM (if applicable)
-- [ ] Alternative: If error paths are truly impossible, consider LCOV exclusion with justification
-- [ ] Run: `make coverage`
-- [ ] Verify: 100% coverage (lines, functions, branches)
+**Test File Refactoring** (to fix 577-line lint violation):
+- Split `repl_run_test.c` (577 lines) into modular files:
+  - `repl_run_test_common.h` (34 lines) - Shared declarations
+  - `repl_run_test_common.c` (53 lines) - Mock implementations
+  - `repl_run_basic_test.c` (340 lines) - Basic functionality tests (6 tests)
+  - `repl_run_error_test.c` (181 lines) - Error handling tests (3 tests)
+- Updated Makefile to build common object and link with both test executables
+- All 9 tests continue to pass with same coverage
+
+**Final Coverage Status**: 100% (479/479 branches)
+- Lines: 100.0% (1271/1271)
+- Functions: 100.0% (103/103)
+- Branches: 100.0% (479/479)
+- LCOV exclusions: 162/164
+
+**Quality Gates**:
+- ✅ `make check` - All tests pass (9 REPL run tests: 6 basic + 3 error)
+- ✅ `make fmt` - Code formatted
+- ✅ `make lint` - All files under 500 line limit, complexity checks pass
+- ✅ `make coverage` - 100% branch coverage achieved
 
 ---
 

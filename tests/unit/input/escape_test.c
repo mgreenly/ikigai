@@ -16,20 +16,17 @@ START_TEST(test_input_parse_arrow_up) {
     ck_assert(is_ok(&res));
 
     // Parse ESC (0x1B) - incomplete sequence
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape); // Should be in escape mode
 
     // Parse '[' - still incomplete
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape);
 
     // Parse 'A' - complete sequence for arrow up
-    res = ik_input_parse_byte(parser, 'A', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'A', &action);
     ck_assert_int_eq(action.type, IK_INPUT_ARROW_UP);
     ck_assert(!parser->in_escape); // Should exit escape mode
 
@@ -48,16 +45,13 @@ START_TEST(test_input_parse_arrow_down)
     ck_assert(is_ok(&res));
 
     // Parse full sequence \x1b[B
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, 'B', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'B', &action);
     ck_assert_int_eq(action.type, IK_INPUT_ARROW_DOWN);
 
     talloc_free(ctx);
@@ -75,16 +69,13 @@ START_TEST(test_input_parse_arrow_left)
     ck_assert(is_ok(&res));
 
     // Parse full sequence \x1b[D
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, 'D', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'D', &action);
     ck_assert_int_eq(action.type, IK_INPUT_ARROW_LEFT);
 
     talloc_free(ctx);
@@ -102,16 +93,13 @@ START_TEST(test_input_parse_arrow_right)
     ck_assert(is_ok(&res));
 
     // Parse full sequence \x1b[C
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, 'C', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'C', &action);
     ck_assert_int_eq(action.type, IK_INPUT_ARROW_RIGHT);
 
     talloc_free(ctx);
@@ -129,20 +117,16 @@ START_TEST(test_input_parse_delete)
     ck_assert(is_ok(&res));
 
     // Parse full sequence \x1b[3~
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '3', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '3', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '~', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '~', &action);
     ck_assert_int_eq(action.type, IK_INPUT_DELETE);
 
     talloc_free(ctx);
@@ -160,20 +144,17 @@ START_TEST(test_input_parse_invalid_escape)
     ck_assert(is_ok(&res));
 
     // Start escape sequence
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape);
 
     // Invalid sequence: ESC followed by 'x' (not '[')
-    res = ik_input_parse_byte(parser, 'x', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'x', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(!parser->in_escape); // Should reset
 
     // Verify parser can handle next input correctly (regular char)
-    res = ik_input_parse_byte(parser, 'a', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'a', &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 'a');
 
@@ -192,21 +173,18 @@ START_TEST(test_input_parse_buffer_overflow)
     ck_assert(is_ok(&res));
 
     // Start escape sequence
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape);
 
     // Send '[' to start a valid-looking sequence
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
     // Now send 13 more bytes to overflow the buffer (16 byte buffer - 1 for '[' - 1 for null = 14 more)
     // Buffer size is 16, we've used 1 byte ('['), so we need 14 more to reach the limit
     for (int32_t i = 0; i < 14; i++) {
-        res = ik_input_parse_byte(parser, '1', &action);
-        ck_assert(is_ok(&res));
+        ik_input_parse_byte(parser, '1', &action);
         if (i < 13) {
             ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
             ck_assert(parser->in_escape);
@@ -218,8 +196,7 @@ START_TEST(test_input_parse_buffer_overflow)
     ck_assert(!parser->in_escape);
 
     // Verify parser can handle next input correctly
-    res = ik_input_parse_byte(parser, 'a', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'a', &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 'a');
 
@@ -238,21 +215,17 @@ START_TEST(test_input_parse_invalid_delete_like_sequence)
     ck_assert(is_ok(&res));
 
     // Parse ESC [ 5 ~ (not a valid delete sequence)
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '5', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '5', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape); // Still in escape mode
 
-    res = ik_input_parse_byte(parser, '~', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '~', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(!parser->in_escape); // Should reset - complete but unrecognized sequence
 
@@ -271,20 +244,16 @@ START_TEST(test_input_parse_escape_partial_at_boundary)
     ck_assert(is_ok(&res));
 
     // Parse ESC [ 3 X where X is not '~'
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '3', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '3', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, 'A', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'A', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape); // Still in escape, waiting for more
 
@@ -303,16 +272,13 @@ START_TEST(test_input_parse_unrecognized_csi_sequence)
     ck_assert(is_ok(&res));
 
     // Parse ESC [ Z (complete but unrecognized arrow-like sequence)
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, 'Z', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'Z', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(!parser->in_escape); // Should reset - complete but unrecognized sequence
 
@@ -332,16 +298,13 @@ START_TEST(test_input_parse_unrecognized_csi_middle_letter)
 
     // Parse ESC [ E (complete but unrecognized arrow-like sequence)
     // This tests a letter in the middle range, not at boundaries
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, 'E', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'E', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(!parser->in_escape); // Should reset - complete but unrecognized sequence
 
@@ -360,31 +323,26 @@ START_TEST(test_input_parse_unrecognized_single_char_escape)
     ck_assert(is_ok(&res));
 
     // Parse Insert key sequence: ESC [ 2 ~
-    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action); // ESC
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape);
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape);
 
-    res = ik_input_parse_byte(parser, '2', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '2', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape);
 
     // When we get '~', the sequence is complete but unrecognized
     // Parser should reset and be ready for next input
-    res = ik_input_parse_byte(parser, '~', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '~', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(!parser->in_escape); // Should have reset
 
     // Verify parser can handle next input correctly
-    res = ik_input_parse_byte(parser, 'a', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'a', &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 'a');
 

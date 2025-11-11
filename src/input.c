@@ -104,8 +104,8 @@ static uint32_t decode_utf8_sequence(const char *buf, size_t len)
 }
 
 // Handle UTF-8 continuation byte
-static res_t parse_utf8_continuation(ik_input_parser_t *parser, char byte,
-                                     ik_input_action_t *action_out)
+static void parse_utf8_continuation(ik_input_parser_t *parser, char byte,
+                                    ik_input_action_t *action_out)
 {
     unsigned char ubyte = (unsigned char)byte;
 
@@ -114,7 +114,7 @@ static res_t parse_utf8_continuation(ik_input_parser_t *parser, char byte,
         // Invalid continuation byte - reset and return unknown
         reset_utf8_state(parser);
         action_out->type = IK_INPUT_UNKNOWN;
-        return OK(parser);
+        return;
     }
 
     // Buffer the continuation byte
@@ -127,17 +127,16 @@ static res_t parse_utf8_continuation(ik_input_parser_t *parser, char byte,
         reset_utf8_state(parser);
         action_out->type = IK_INPUT_CHAR;
         action_out->codepoint = codepoint;
-        return OK(parser);
+        return;
     }
 
     // Still incomplete - need more bytes
     action_out->type = IK_INPUT_UNKNOWN;
-    return OK(parser);
 }
 
 // Handle escape sequence byte
-static res_t parse_escape_sequence(ik_input_parser_t *parser, char byte,
-                                   ik_input_action_t *action_out)
+static void parse_escape_sequence(ik_input_parser_t *parser, char byte,
+                                  ik_input_action_t *action_out)
 {
     // Buffer the byte
     parser->esc_buf[parser->esc_len++] = byte;
@@ -147,14 +146,14 @@ static res_t parse_escape_sequence(ik_input_parser_t *parser, char byte,
     if (parser->esc_len >= sizeof(parser->esc_buf) - 1) {
         reset_escape_state(parser);
         action_out->type = IK_INPUT_UNKNOWN;
-        return OK(parser);
+        return;
     }
 
     // Validate first byte after ESC must be '['
     if (parser->esc_len == 1 && byte != '[') {
         reset_escape_state(parser);
         action_out->type = IK_INPUT_UNKNOWN;
-        return OK(parser);
+        return;
     }
 
     // Check for arrow keys: ESC [ A/B/C/D
@@ -163,22 +162,22 @@ static res_t parse_escape_sequence(ik_input_parser_t *parser, char byte,
         if (byte == 'A') {
             reset_escape_state(parser);
             action_out->type = IK_INPUT_ARROW_UP;
-            return OK(parser);
+            return;
         }
         if (byte == 'B') {
             reset_escape_state(parser);
             action_out->type = IK_INPUT_ARROW_DOWN;
-            return OK(parser);
+            return;
         }
         if (byte == 'C') {
             reset_escape_state(parser);
             action_out->type = IK_INPUT_ARROW_RIGHT;
-            return OK(parser);
+            return;
         }
         if (byte == 'D') {
             reset_escape_state(parser);
             action_out->type = IK_INPUT_ARROW_LEFT;
-            return OK(parser);
+            return;
         }
     }
 
@@ -187,7 +186,7 @@ static res_t parse_escape_sequence(ik_input_parser_t *parser, char byte,
     if (parser->esc_len == 3 && parser->esc_buf[1] == '3' && byte == '~') {
         reset_escape_state(parser);
         action_out->type = IK_INPUT_DELETE;
-        return OK(parser);
+        return;
     }
 
     // Check for other complete sequences we don't recognize
@@ -196,7 +195,7 @@ static res_t parse_escape_sequence(ik_input_parser_t *parser, char byte,
         // Complete but unrecognized sequence - reset parser
         reset_escape_state(parser);
         action_out->type = IK_INPUT_UNKNOWN;
-        return OK(parser);
+        return;
     }
 
     // Check for unrecognized 2-character sequences at esc_len == 2
@@ -209,30 +208,31 @@ static res_t parse_escape_sequence(ik_input_parser_t *parser, char byte,
             // via line coverage and explicit testing with 'E' and 'Z' characters).
             reset_escape_state(parser);
             action_out->type = IK_INPUT_UNKNOWN;
-            return OK(parser);
+            return;
         }
     }
 
     // Incomplete sequence - need more bytes
     action_out->type = IK_INPUT_UNKNOWN;
-    return OK(parser);
 }
 
 // Parse single byte into action
-res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte,
-                          ik_input_action_t *action_out)
+void ik_input_parse_byte(ik_input_parser_t *parser, char byte,
+                         ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
 
     // If we're in UTF-8 mode, handle continuation byte
     if (parser->in_utf8) {
-        return parse_utf8_continuation(parser, byte, action_out);
+        parse_utf8_continuation(parser, byte, action_out);
+        return;
     }
 
     // If we're in escape sequence mode, handle escape byte
     if (parser->in_escape) {
-        return parse_escape_sequence(parser, byte, action_out);
+        parse_escape_sequence(parser, byte, action_out);
+        return;
     }
 
     // Check for ESC to start escape sequence
@@ -240,37 +240,37 @@ res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte,
         parser->in_escape = true;
         parser->esc_len = 0;
         action_out->type = IK_INPUT_UNKNOWN;
-        return OK(parser);
+        return;
     }
 
     // Handle control characters (except DEL)
     if (byte == '\n' || byte == '\r') {  // 0x0A (LF) or 0x0D (CR) - Newline
         action_out->type = IK_INPUT_NEWLINE;
-        return OK(parser);
+        return;
     }
     if (byte == 0x01) {  // Ctrl+A
         action_out->type = IK_INPUT_CTRL_A;
-        return OK(parser);
+        return;
     }
     if (byte == 0x03) {  // Ctrl+C
         action_out->type = IK_INPUT_CTRL_C;
-        return OK(parser);
+        return;
     }
     if (byte == 0x05) {  // Ctrl+E
         action_out->type = IK_INPUT_CTRL_E;
-        return OK(parser);
+        return;
     }
     if (byte == 0x0B) {  // Ctrl+K
         action_out->type = IK_INPUT_CTRL_K;
-        return OK(parser);
+        return;
     }
     if (byte == 0x15) {  // Ctrl+U
         action_out->type = IK_INPUT_CTRL_U;
-        return OK(parser);
+        return;
     }
     if (byte == 0x17) {  // Ctrl+W
         action_out->type = IK_INPUT_CTRL_W;
-        return OK(parser);
+        return;
     }
 
     // Handle printable ASCII and DEL (0x20-0x7F)
@@ -279,12 +279,12 @@ res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte,
         if (byte == 0x7F) {
             // DEL - Backspace
             action_out->type = IK_INPUT_BACKSPACE;
-            return OK(parser);
+            return;
         }
         // Printable ASCII (0x20-0x7E)
         action_out->type = IK_INPUT_CHAR;
         action_out->codepoint = (uint32_t)ubyte;
-        return OK(parser);
+        return;
     }
 
     // Check for UTF-8 multi-byte sequence lead bytes
@@ -295,7 +295,7 @@ res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte,
         parser->utf8_len = 1;
         parser->utf8_expected = 2;
         action_out->type = IK_INPUT_UNKNOWN;  // Incomplete
-        return OK(parser);
+        return;
     }
     if ((ubyte & 0xF0) == 0xE0) {
         // 3-byte sequence: 1110xxxx 10xxxxxx 10xxxxxx
@@ -304,7 +304,7 @@ res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte,
         parser->utf8_len = 1;
         parser->utf8_expected = 3;
         action_out->type = IK_INPUT_UNKNOWN;  // Incomplete
-        return OK(parser);
+        return;
     }
     if ((ubyte & 0xF8) == 0xF0) {
         // 4-byte sequence: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
@@ -313,10 +313,9 @@ res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte,
         parser->utf8_len = 1;
         parser->utf8_expected = 4;
         action_out->type = IK_INPUT_UNKNOWN;  // Incomplete
-        return OK(parser);
+        return;
     }
 
     // Unknown/unhandled byte
     action_out->type = IK_INPUT_UNKNOWN;
-    return OK(parser);
 }

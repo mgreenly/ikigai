@@ -28,10 +28,31 @@
 - Fast in release builds (asserts compile out with `-DNDEBUG`)
 - Examples: passing NULL to function expecting valid pointer, array bounds violations
 
-**3. Pure Operations (Infallible)** → Return value directly
+**3. Pure Operations (Infallible)** → Return value directly or `void`
 - Cannot fail with valid inputs
 - No side effects, no resource allocation
 - Examples: `size()`, `capacity()`, `is_empty()`
+
+**When to Return `void` vs `res_t`:**
+
+A function must return `void` (not `res_t`) if:
+1. It performs no IO operations (no file/network/allocation that can fail)
+2. It returns only information the caller already has (like echoing back a pointer parameter)
+3. All meaningful results are communicated via output parameters
+
+**Rule: Functions that don't perform IO and only return information the caller already has must return `void`.**
+
+**Examples:**
+```c
+// BAD: Returns OK(parser) - just echoing the input pointer
+res_t ik_input_parse_byte(ik_input_parser_t *parser, char byte, ik_input_action_t *action_out);
+
+// GOOD: Returns void - result communicated via action_out parameter
+void ik_input_parse_byte(ik_input_parser_t *parser, char byte, ik_input_action_t *action_out);
+
+// GOOD: Returns res_t - can fail (IO) and returns new information
+res_t ik_array_create(TALLOC_CTX *ctx, size_t element_size, size_t increment);
+```
 
 **Rationale:** Distinguishes conditions that must be handled (external failures) from bugs that must be fixed (contract violations). Reduces noise at call sites while maintaining safety during development.
 

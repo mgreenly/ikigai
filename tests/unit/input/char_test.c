@@ -16,20 +16,17 @@ START_TEST(test_input_parse_regular_char) {
     ck_assert(is_ok(&res));
 
     // Parse 'a'
-    res = ik_input_parse_byte(parser, 'a', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'a', &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 'a');
 
     // Parse 'Z'
-    res = ik_input_parse_byte(parser, 'Z', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'Z', &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 'Z');
 
     // Parse '5'
-    res = ik_input_parse_byte(parser, '5', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '5', &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, '5');
 
@@ -49,13 +46,11 @@ START_TEST(test_input_parse_nonprintable)
 
     // Parse non-printable character below 0x20 (except recognized control chars)
     // Use 0x02 (Ctrl+B) which is not recognized
-    res = ik_input_parse_byte(parser, 0x02, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x02, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
     // Parse non-printable character above 0x7E (high byte)
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x80, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
     talloc_free(ctx);
@@ -73,8 +68,7 @@ START_TEST(test_input_parse_newline)
     ck_assert(is_ok(&res));
 
     // Parse '\n' (0x0A)
-    res = ik_input_parse_byte(parser, '\n', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '\n', &action);
     ck_assert_int_eq(action.type, IK_INPUT_NEWLINE);
 
     talloc_free(ctx);
@@ -92,8 +86,7 @@ START_TEST(test_input_parse_carriage_return)
     ck_assert(is_ok(&res));
 
     // Parse '\r' (0x0D) - Enter key sends this in raw mode
-    res = ik_input_parse_byte(parser, '\r', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '\r', &action);
     ck_assert_int_eq(action.type, IK_INPUT_NEWLINE);
 
     talloc_free(ctx);
@@ -111,8 +104,7 @@ START_TEST(test_input_parse_backspace)
     ck_assert(is_ok(&res));
 
     // Parse DEL (0x7F)
-    res = ik_input_parse_byte(parser, 0x7F, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x7F, &action);
     ck_assert_int_eq(action.type, IK_INPUT_BACKSPACE);
 
     talloc_free(ctx);
@@ -130,8 +122,7 @@ START_TEST(test_input_parse_ctrl_c)
     ck_assert(is_ok(&res));
 
     // Parse Ctrl+C (0x03)
-    res = ik_input_parse_byte(parser, 0x03, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x03, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CTRL_C);
 
     talloc_free(ctx);
@@ -149,8 +140,7 @@ START_TEST(test_input_parse_ctrl_a)
     ck_assert(is_ok(&res));
 
     // Parse Ctrl+A (0x01)
-    res = ik_input_parse_byte(parser, 0x01, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x01, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CTRL_A);
 
     talloc_free(ctx);
@@ -168,8 +158,7 @@ START_TEST(test_input_parse_ctrl_e)
     ck_assert(is_ok(&res));
 
     // Parse Ctrl+E (0x05)
-    res = ik_input_parse_byte(parser, 0x05, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x05, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CTRL_E);
 
     talloc_free(ctx);
@@ -187,8 +176,7 @@ START_TEST(test_input_parse_ctrl_k)
     ck_assert(is_ok(&res));
 
     // Parse Ctrl+K (0x0B)
-    res = ik_input_parse_byte(parser, 0x0B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x0B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CTRL_K);
 
     talloc_free(ctx);
@@ -206,8 +194,7 @@ START_TEST(test_input_parse_ctrl_u)
     ck_assert(is_ok(&res));
 
     // Parse Ctrl+U (0x15)
-    res = ik_input_parse_byte(parser, 0x15, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x15, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CTRL_U);
 
     talloc_free(ctx);
@@ -225,8 +212,7 @@ START_TEST(test_input_parse_ctrl_w)
     ck_assert(is_ok(&res));
 
     // Parse Ctrl+W (0x17)
-    res = ik_input_parse_byte(parser, 0x17, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x17, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CTRL_W);
 
     talloc_free(ctx);

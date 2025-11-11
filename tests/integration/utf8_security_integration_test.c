@@ -24,12 +24,10 @@ START_TEST(test_utf8_overlong_2byte) {
 
     // Send overlong encoding 0xC1 0x81 for 'A'
     // 0xC1 is a valid 2-byte lead byte pattern (110xxxxx)
-    res = ik_input_parse_byte(parser, (char)0xC1, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xC1, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
 
-    res = ik_input_parse_byte(parser, (char)0x81, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x81, &action);
     // Overlong encodings should be rejected and replaced with U+FFFD
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0xFFFD); // Replacement character
@@ -51,16 +49,13 @@ START_TEST(test_utf8_overlong_3byte_slash)
     ck_assert(is_ok(&res));
 
     // Send overlong encoding 0xE0 0x80 0xAF for '/'
-    res = ik_input_parse_byte(parser, (char)0xE0, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xE0, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x80, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, (char)0xAF, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xAF, &action);
     // Overlong encodings should be rejected and replaced with U+FFFD
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0xFFFD); // Replacement character
@@ -82,20 +77,16 @@ START_TEST(test_utf8_overlong_4byte)
     ck_assert(is_ok(&res));
 
     // Send overlong 4-byte encoding 0xF0 0x80 0x80 0x81
-    res = ik_input_parse_byte(parser, (char)0xF0, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xF0, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
 
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x80, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
 
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x80, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
 
-    res = ik_input_parse_byte(parser, (char)0x81, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x81, &action);
     // Overlong encodings should be rejected and replaced with U+FFFD
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0xFFFD); // Replacement character
@@ -119,8 +110,7 @@ START_TEST(test_utf8_invalid_lead_byte_f8)
     ck_assert(is_ok(&res));
 
     // 0xF8 = 11111000 (would be 5-byte sequence, invalid in UTF-8)
-    res = ik_input_parse_byte(parser, (char)0xF8, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xF8, &action);
     // Should return UNKNOWN (not a valid lead byte)
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(!parser->in_utf8); // Should not enter UTF-8 mode
@@ -140,8 +130,7 @@ START_TEST(test_utf8_continuation_without_lead)
     ck_assert(is_ok(&res));
 
     // Send continuation byte 0x80 (10xxxxxx) without lead byte
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x80, &action);
     // Should return UNKNOWN (not a valid character or lead byte)
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
@@ -166,16 +155,13 @@ START_TEST(test_utf8_surrogate_high)
     ck_assert(is_ok(&res));
 
     // Encode U+D800 (high surrogate) - INVALID in UTF-8
-    res = ik_input_parse_byte(parser, (char)0xED, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xED, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, (char)0xA0, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xA0, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x80, &action);
     // Surrogates should be rejected and replaced with U+FFFD
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0xFFFD); // Replacement character
@@ -195,16 +181,13 @@ START_TEST(test_utf8_surrogate_low)
     ck_assert(is_ok(&res));
 
     // U+DFFF (low surrogate) = 0xED 0xBF 0xBF (INVALID)
-    res = ik_input_parse_byte(parser, (char)0xED, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xED, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, (char)0xBF, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xBF, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, (char)0xBF, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xBF, &action);
     // Should be rejected and replaced with U+FFFD
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0xFFFD); // Replacement character
@@ -229,20 +212,16 @@ START_TEST(test_utf8_codepoint_too_large)
     ck_assert(is_ok(&res));
 
     // Encode U+110000 (beyond valid Unicode range)
-    res = ik_input_parse_byte(parser, (char)0xF4, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xF4, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, (char)0x90, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x90, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x80, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x80, &action);
     // Out-of-range codepoints should be rejected and replaced with U+FFFD
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0xFFFD); // Replacement character
@@ -262,12 +241,10 @@ START_TEST(test_utf8_null_codepoint_overlong)
     ck_assert(is_ok(&res));
 
     // Overlong encoding of null: 0xC0 0x80
-    res = ik_input_parse_byte(parser, (char)0xC0, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xC0, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x80, &action);
     // Overlong null encoding should be rejected and replaced with U+FFFD
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0xFFFD); // Replacement character
@@ -291,16 +268,13 @@ START_TEST(test_utf8_replacement_char_U_FFFD)
     ck_assert(is_ok(&res));
 
     // U+FFFD = 0xEF 0xBF 0xBD (valid 3-byte UTF-8)
-    res = ik_input_parse_byte(parser, (char)0xEF, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xEF, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
 
-    res = ik_input_parse_byte(parser, (char)0xBF, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xBF, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
 
-    res = ik_input_parse_byte(parser, (char)0xBD, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xBD, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0xFFFD); // Replacement char
 
@@ -319,32 +293,23 @@ START_TEST(test_utf8_valid_boundary_codepoints)
     ck_assert(is_ok(&res));
 
     // U+0080 (minimum valid 2-byte): 0xC2 0x80
-    res = ik_input_parse_byte(parser, (char)0xC2, &action);
-    ck_assert(is_ok(&res));
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xC2, &action);
+    ik_input_parse_byte(parser, (char)0x80, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0x80);
 
     // U+0800 (minimum valid 3-byte): 0xE0 0xA0 0x80
-    res = ik_input_parse_byte(parser, (char)0xE0, &action);
-    ck_assert(is_ok(&res));
-    res = ik_input_parse_byte(parser, (char)0xA0, &action);
-    ck_assert(is_ok(&res));
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xE0, &action);
+    ik_input_parse_byte(parser, (char)0xA0, &action);
+    ik_input_parse_byte(parser, (char)0x80, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0x800);
 
     // U+10000 (minimum valid 4-byte): 0xF0 0x90 0x80 0x80
-    res = ik_input_parse_byte(parser, (char)0xF0, &action);
-    ck_assert(is_ok(&res));
-    res = ik_input_parse_byte(parser, (char)0x90, &action);
-    ck_assert(is_ok(&res));
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
-    res = ik_input_parse_byte(parser, (char)0x80, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xF0, &action);
+    ik_input_parse_byte(parser, (char)0x90, &action);
+    ik_input_parse_byte(parser, (char)0x80, &action);
+    ik_input_parse_byte(parser, (char)0x80, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0x10000);
 
@@ -363,20 +328,16 @@ START_TEST(test_utf8_max_valid_codepoint)
     ck_assert(is_ok(&res));
 
     // U+10FFFF = 0xF4 0x8F 0xBF 0xBF (maximum valid Unicode)
-    res = ik_input_parse_byte(parser, (char)0xF4, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xF4, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
 
-    res = ik_input_parse_byte(parser, (char)0x8F, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0x8F, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
 
-    res = ik_input_parse_byte(parser, (char)0xBF, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xBF, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN); // Incomplete
 
-    res = ik_input_parse_byte(parser, (char)0xBF, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xBF, &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 0x10FFFF); // Max valid
 

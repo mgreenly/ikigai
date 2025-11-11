@@ -21,21 +21,18 @@ START_TEST(test_state_confusion_utf8_then_escape) {
     ck_assert(is_ok(&res));
 
     // Start 2-byte UTF-8 sequence (é = 0xC3 0xA9)
-    res = ik_input_parse_byte(parser, (char)0xC3, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xC3, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_utf8);
 
     // Now send ESC - what happens?
     // Current implementation: ESC is treated as continuation byte, will fail validation
-    res = ik_input_parse_byte(parser, 0x1B, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action);
     // This should return UNKNOWN and reset UTF-8 state (invalid continuation byte)
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
     // Verify we can parse normally after
-    res = ik_input_parse_byte(parser, 'a', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'a', &action);
     ck_assert_int_eq(action.type, IK_INPUT_CHAR);
     ck_assert_uint_eq(action.codepoint, 'a');
 
@@ -53,14 +50,12 @@ START_TEST(test_state_confusion_escape_then_utf8)
     ck_assert(is_ok(&res));
 
     // Start escape sequence
-    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action); // ESC
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape);
 
     // Send UTF-8 lead byte (0xC3) - not '[', so invalid escape
-    res = ik_input_parse_byte(parser, (char)0xC3, &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xC3, &action);
     // Should reset escape state (first byte after ESC must be '[')
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(!parser->in_escape);
@@ -84,29 +79,22 @@ START_TEST(test_rapid_esc_transitions)
     ck_assert(is_ok(&res));
 
     // Send: ESC, 'x', ESC, 'y', ESC, '[', 'A'
-    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action); // ESC
 
-    res = ik_input_parse_byte(parser, 'x', &action); // Invalid escape
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'x', &action); // Invalid escape
     ck_assert(!parser->in_escape);
 
-    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC again
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action); // ESC again
 
-    res = ik_input_parse_byte(parser, 'y', &action); // Invalid escape
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'y', &action); // Invalid escape
     ck_assert(!parser->in_escape);
 
     // Now send valid arrow up
-    res = ik_input_parse_byte(parser, 0x1B, &action); // ESC
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 0x1B, &action); // ESC
 
-    res = ik_input_parse_byte(parser, '[', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, '[', &action);
 
-    res = ik_input_parse_byte(parser, 'A', &action);
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, 'A', &action);
     ck_assert_int_eq(action.type, IK_INPUT_ARROW_UP); // Should work correctly
 
     talloc_free(ctx);
@@ -124,12 +112,10 @@ START_TEST(test_multiple_incomplete_utf8)
     ck_assert(is_ok(&res));
 
     // Send 3 different UTF-8 lead bytes without completions
-    res = ik_input_parse_byte(parser, (char)0xC3, &action); // 2-byte lead
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xC3, &action); // 2-byte lead
     ck_assert(parser->in_utf8);
 
-    res = ik_input_parse_byte(parser, (char)0xE2, &action); // 3-byte lead (invalid continuation)
-    ck_assert(is_ok(&res));
+    ik_input_parse_byte(parser, (char)0xE2, &action); // 3-byte lead (invalid continuation)
     // Should reset due to invalid continuation byte (0xE2 is not 10xxxxxx)
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(!parser->in_utf8);

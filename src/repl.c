@@ -89,10 +89,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Parse byte into action
         ik_input_action_t action;
-        result = ik_input_parse_byte(repl->input_parser, byte, &action);
-        if (is_err(&result)) {
-            return result;
-        }
+        ik_input_parse_byte(repl->input_parser, byte, &action);
 
         // Process action
         result = ik_repl_process_action(repl, &action);

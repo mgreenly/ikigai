@@ -108,6 +108,7 @@ MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
+REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 
 .PHONY: all release clean install uninstall check check-unit check-integration check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint cloc ci install-deps coverage help distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
@@ -145,6 +146,19 @@ $(BUILDDIR)/tests/integration/%_test: $(BUILDDIR)/tests/integration/%_test.o $(M
 
 $(BUILDDIR)/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | $(BUILDDIR)/tests
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILDDIR)/tests/unit/repl/repl_run_test_common.o: tests/unit/repl/repl_run_test_common.c tests/unit/repl/repl_run_test_common.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+# Special rule for repl_run tests that need the common object
+$(BUILDDIR)/tests/unit/repl/repl_run_basic_test: $(BUILDDIR)/tests/unit/repl/repl_run_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc -lvterm
+
+$(BUILDDIR)/tests/unit/repl/repl_run_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc -lvterm
 
 bin:
 	mkdir -p bin
@@ -355,7 +369,7 @@ dist:
 
 fmt:
 	@uncrustify -c .uncrustify.cfg --replace --no-backup src/*.c src/*.h
-	@find tests/unit -name "*.c" -exec uncrustify -c .uncrustify.cfg --replace --no-backup {} \;
+	@find tests/unit -name "*.c" -o -name "*.h" | xargs uncrustify -c .uncrustify.cfg --replace --no-backup
 	@[ ! -d tests/integration ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/integration/*.c
 	@[ ! -f tests/test_utils.c ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/test_utils.c tests/test_utils.h
 
