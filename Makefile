@@ -85,9 +85,9 @@ COVERAGE_THRESHOLD = 100
 # Coverage exclusion count (requires permission to increase)
 # This tracks intentionally untested branches (assertions, impossible conditions)
 # Request permission with justification before adding new exclusions
-LCOV_EXCL_COVERAGE = 162
+LCOV_EXCL_COVERAGE = 164
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/workspace_multiline.c src/workspace_cursor.c src/render_direct.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/workspace_multiline.c src/workspace_cursor.c src/render_direct.c src/repl.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 

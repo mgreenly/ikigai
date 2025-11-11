@@ -145,6 +145,11 @@ MOCKABLE ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
     return write(fd, buf, count);
 }
 
+MOCKABLE ssize_t ik_read_wrapper(int fd, void *buf, size_t count)
+{
+    return read(fd, buf, count);
+}
+
 #else
 // Debug/test build: weak symbol declarations
 #include <termios.h>
@@ -158,6 +163,7 @@ MOCKABLE int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct ter
 MOCKABLE int ik_tcflush_wrapper(int fd, int queue_selector);
 MOCKABLE int ik_ioctl_wrapper(int fd, unsigned long request, void *argp);
 MOCKABLE ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
+MOCKABLE ssize_t ik_read_wrapper(int fd, void *buf, size_t count);
 #endif
 
 #endif // IK_WRAPPER_H

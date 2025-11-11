@@ -72,7 +72,43 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
 
-    // TODO: Implement event loop
+    // Initial render
+    res_t result = ik_repl_render_frame(repl);
+    if (is_err(&result)) {
+        return result;
+    }
+
+    // Main event loop: read bytes, parse into actions, process, render
+    char byte;
+    while (!repl->quit) {
+        ssize_t n = ik_read_wrapper(repl->term->tty_fd, &byte, 1);
+        if (n <= 0) {
+            // EOF or error - exit loop
+            break;
+        }
+
+        // Parse byte into action
+        ik_input_action_t action;
+        result = ik_input_parse_byte(repl->input_parser, byte, &action);
+        if (is_err(&result)) {
+            return result;
+        }
+
+        // Process action
+        result = ik_repl_process_action(repl, &action);
+        if (is_err(&result)) {
+            return result;
+        }
+
+        // Render frame (only if action was not UNKNOWN)
+        if (action.type != IK_INPUT_UNKNOWN) {
+            result = ik_repl_render_frame(repl);
+            if (is_err(&result)) {
+                return result;
+            }
+        }
+    }
+
     return OK(NULL);
 }
 

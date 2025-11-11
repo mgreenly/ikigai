@@ -36,66 +36,150 @@
   - 2.6.13: REPL integration (326098a - added 5 action handlers + repl_readline_test.c)
   - 2.6.14: Verified complete (coverage: 1257 lines, 103 functions, 467 branches, 162 LCOV)
 
-## Phase 2 - Remaining Tasks
-
 ---
 
 ## Task 3: Main Event Loop
 
-**Note**: The event loop logic already exists in src/client.c:main() (lines 140-176). We need to move this into `ik_repl_run()`.
+**Goal**: Move event loop from client.c into testable `ik_repl_run()` function in repl module.
 
-### 3.1: Design - Event Loop Testing Strategy
-- [ ] Review src/client.c:main() event loop (lines 140-176)
-- [ ] Design: How to test event loop with mocked TTY input?
-  - Option A: Make read() mockable via wrapper
-  - Option B: Accept that event loop is integration-tested via client.c
-  - Option C: Create test helper that injects bytes into input_parser
-- [ ] Decision: Document chosen approach
-- [ ] Note: Current client.c demonstrates the loop works end-to-end
+**Architecture Decision**:
+- client.c should contain ONLY main() with coordination logic (no helpers)
+- All testable logic belongs in repl.c module
+- main() will be excluded from coverage via LCOV_EXCL_START/STOP markers
+- Event loop will be unit tested via mockable read() wrapper (Option A)
 
-### 3.2: Implement - Basic Event Loop
-- [ ] Implement `ik_repl_run()` in `src/repl.c`:
-  - Copy event loop logic from src/client.c:main() (lines 131-176)
-  - Initial render: `ik_repl_render_frame(repl)`
-  - Main loop:
-    - Read byte from terminal: `read(repl->term->tty_fd, &byte, 1)`
-    - Parse byte: `ik_input_parse_byte(repl->input_parser, byte, &action)`
-    - Process action: `ik_repl_process_action(repl, &action)`
-    - Check quit flag
-    - Re-render if action != UNKNOWN: `ik_repl_render_frame(repl)`
-  - Error handling for read, parse, process, render
-  - Return OK on clean exit, ERR on failures
-- [ ] Build: `make build/ikigai`
+**Current State**:
+- Event loop exists in src/client.c:main() (lines 140-176)
+- Two static helpers in client.c duplicate repl.c functions:
+  - `process_action()` → already exists as `ik_repl_process_action()` (tested)
+  - `render_frame()` → already exists as `ik_repl_render_frame()` (tested)
+
+### 3.1: Add ik_read_wrapper() to wrapper.h
+- [ ] Add declaration to `src/wrapper.h`:
+  - `MOCKABLE ssize_t ik_read_wrapper(int fd, void *buf, size_t count);`
+  - Follow existing pattern (see ik_write_wrapper for reference)
+  - Add both NDEBUG inline definition and weak symbol declaration
+- [ ] Add implementation to `src/wrapper.c`:
+  - Non-NDEBUG implementation that calls `read()`
+- [ ] Build: `make clean && make build/ikigai`
 - [ ] **Green**: Compiles successfully
 
-### 3.3: Write Tests - Event Loop Components (if mockable)
-- [ ] **If** using mockable read wrapper:
-  - Write test: `test_repl_run_single_keystroke()`
-  - Write test: `test_repl_run_multiple_keystrokes()`
-  - Write test: `test_repl_run_read_error()`
-  - Write test: `test_repl_run_render_error()`
-- [ ] **Else**: Document that event loop is integration-tested via manual testing
-- [ ] Note: Full coverage of REPL event loop may require wrapper.h additions
+### 3.2: Implement ik_repl_run() - Red Step
+- [ ] Write test first: `tests/unit/repl/repl_run_test.c`
+  - Test: `test_repl_run_simple_char_input()`
+    - Mock read to inject "a\x03" (char 'a' + Ctrl+C)
+    - Verify workspace contains "a" after run
+    - Verify quit flag is true
+  - Create test helper for mocking read:
+    ```c
+    static const char *mock_input = NULL;
+    static size_t mock_input_pos = 0;
+    ssize_t ik_read_wrapper(int fd, void *buf, size_t count) { ... }
+    ```
+- [ ] Build and run test: `make build/tests/unit/repl/repl_run_test && ./build/tests/unit/repl/repl_run_test`
+- [ ] **Red**: Test fails (ik_repl_run still returns stub)
 
-### 3.4: Alternative - Component Testing
-- [ ] If full event loop testing is deferred:
-  - Test `ik_repl_render_frame()` in isolation (Task 1)
-  - Test `ik_repl_process_action()` in isolation (Task 2)
-  - Integration test via manual testing with actual terminal
-- [ ] Document: Event loop is thin glue code over tested components
-- [ ] Verify: No complex logic in event loop (just calls to tested functions)
+### 3.3: Implement ik_repl_run() - Green Step
+- [ ] Implement `ik_repl_run()` in `src/repl.c`:
+  - Initial render: `ik_repl_render_frame(repl)`
+  - Main loop while (!repl->quit):
+    - Read byte: `ik_read_wrapper(repl->term->tty_fd, &byte, 1)`
+    - Check for EOF/error (n <= 0)
+    - Parse: `ik_input_parse_byte(repl->input_parser, byte, &action)`
+    - Process: `ik_repl_process_action(repl, &action)`
+    - Re-render if action != UNKNOWN: `ik_repl_render_frame(repl)`
+  - Error handling: return immediately on any error
+  - Return: OK(NULL) on clean exit
+- [ ] Build and run test
+- [ ] **Green**: Test passes
 
-### 3.7: Verify Task 3 Complete
+### 3.4: Write Additional Tests
+- [ ] Test: `test_repl_run_multiple_chars()`
+  - Input: "abc\x03"
+  - Verify: workspace = "abc", quit = true
+- [ ] Test: `test_repl_run_with_newline()`
+  - Input: "hi\n\x03"
+  - Verify: workspace = "hi\n"
+- [ ] Test: `test_repl_run_with_backspace()`
+  - Input: "ab\x7f\x03" (a, b, backspace, Ctrl+C)
+  - Verify: workspace = "a"
+- [ ] Test: `test_repl_run_read_eof()`
+  - Mock read returns 0 immediately
+  - Verify: returns OK, quit = false (natural EOF)
+- [ ] Test: `test_repl_run_read_error()`
+  - Mock read returns -1
+  - Verify: returns OK, breaks out of loop
+- [ ] Test: `test_repl_run_parse_error()` (if possible)
+  - Inject invalid UTF-8 sequence
+  - Verify: returns ERR from parse
+- [ ] Test: `test_repl_run_unknown_action()`
+  - Input: "\x1b[99~\x03" (unknown escape sequence + Ctrl+C)
+  - Verify: no re-render for UNKNOWN, continues loop
+- [ ] Run: `make check`
+- [ ] **Green**: All tests pass
+
+### 3.5: Simplify client.c to Pure Coordination
+- [ ] Delete static helpers from client.c:
+  - Remove `process_action()` function (lines 16-43)
+  - Remove `render_frame()` function (lines 46-70)
+- [ ] Replace main() body with simple coordination:
+  ```c
+  /* LCOV_EXCL_START */
+  int main(void)
+  {
+      void *root_ctx = talloc_new(NULL);
+      if (!root_ctx) {
+          fprintf(stderr, "Failed to create talloc context\n");
+          return EXIT_FAILURE;
+      }
+
+      ik_repl_ctx_t *repl = NULL;
+      res_t result = ik_repl_init(root_ctx, &repl);
+      if (is_err(&result)) {
+          error_fprintf(stderr, result.err);
+          talloc_free(root_ctx);
+          return EXIT_FAILURE;
+      }
+
+      result = ik_repl_run(repl);
+
+      ik_repl_cleanup(repl);
+      talloc_free(root_ctx);
+
+      return is_ok(&result) ? EXIT_SUCCESS : EXIT_FAILURE;
+  }
+  /* LCOV_EXCL_STOP */
+  ```
+- [ ] Update includes (remove unneeded: terminal.h, input.h, workspace.h, render_direct.h, logger.h)
+- [ ] Build: `make clean && make build/ikigai`
+- [ ] **Green**: Compiles successfully
+- [ ] Smoke test: `./build/ikigai` (type char, Ctrl+C to exit)
+
+### 3.6: Verify Quality Gates
+- [ ] Run: `make fmt` (format code)
 - [ ] Run: `make check` (all tests pass)
 - [ ] Run: `make lint` (complexity checks pass)
 - [ ] Run: `make coverage` (100% coverage)
-- [ ] Check: no uncovered lines or branches
+  - Note: LCOV exclusion count will increase by +2 (START/STOP in main)
+  - Expected: 162 → 164 LCOV exclusions
+- [ ] Check: no uncovered lines or branches in repl.c
+- [ ] Verify: client.c shows 0% coverage (entire main excluded)
+
+### 3.7: Verify Task 3 Complete
+- [ ] All subtasks 3.1-3.6 completed
+- [ ] `ik_read_wrapper()` added to wrapper.h/c
+- [ ] `ik_repl_run()` implemented with event loop
+- [ ] Unit tests cover: happy path, error paths, edge cases
+- [ ] client.c simplified to ~25 lines (just main)
+- [ ] All quality gates pass
+- [ ] Coverage: 100% (lines, functions, branches)
+- [ ] LCOV exclusions: 164 total (+2 from Task 2.6)
 
 ---
 
 ## Task 4: Main Entry Point
 
-**Note**: src/client.c already exists with a working main() function (lines 72-182). After Tasks 1-3 are complete, we'll simplify it to use the REPL module.
+**Note**: Task 4 is completed as part of Task 3.5. The client.c simplification happens during Task 3 implementation.
 
 ### 4.1: Review Current State
 - [x] src/client.c exists with complete working implementation

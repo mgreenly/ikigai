@@ -110,5 +110,10 @@ MOCKABLE ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
     return write(fd, buf, count);
 }
 
+MOCKABLE ssize_t ik_read_wrapper(int fd, void *buf, size_t count)
+{
+    return read(fd, buf, count);
+}
+
 // LCOV_EXCL_STOP
 #endif
