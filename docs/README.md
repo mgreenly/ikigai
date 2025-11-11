@@ -39,8 +39,6 @@ It's in an early stage of development.
 - **[security-analysis.md](security-analysis.md)** - Security analysis of input parsing, UTF-8 handling, and terminal control
 - **[vulnerabilities.md](vulnerabilities.md)** - CVE vulnerability tracking for dependencies
 
-### Historical Reference
-- **[archive/](archive/)** - Earlier design docs (server architecture, vterm elimination design)
 
 ### Future Work
 - **[roadmap.md](roadmap.md)** - Post-v1.0 exploration areas

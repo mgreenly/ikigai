@@ -68,7 +68,7 @@ endif
 # Allow LDFLAGS override if not set by BUILD type
 LDFLAGS ?=
 
-CLIENT_LIBS ?= -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc -lvterm
+CLIENT_LIBS ?= -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
 CLIENT_STATIC_LIBS ?=
 SERVER_LIBS ?= -lulfius -ljansson -lcurl -ltalloc -luuid -lb64 -lpthread
 SERVER_STATIC_LIBS ?=
@@ -136,13 +136,13 @@ $(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
 
 $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc -lvterm
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
 
 $(BUILDDIR)/tests/integration/%_test.o: tests/integration/%_test.c | $(BUILDDIR)/tests/integration
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILDDIR)/tests/integration/%_test: $(BUILDDIR)/tests/integration/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | $(BUILDDIR)/tests/integration
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc -lvterm
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
 
 $(BUILDDIR)/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | $(BUILDDIR)/tests
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -154,11 +154,11 @@ $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o: tests/unit/repl/repl_run_tes
 # Special rule for repl_run tests that need the common object
 $(BUILDDIR)/tests/unit/repl/repl_run_basic_test: $(BUILDDIR)/tests/unit/repl/repl_run_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc -lvterm
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
 
 $(BUILDDIR)/tests/unit/repl/repl_run_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc -lvterm
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
 
 bin:
 	mkdir -p bin

@@ -4,7 +4,7 @@
 
 This plan transitions from the vterm-based rendering approach to direct terminal rendering as outlined in `docs/eliminate_vterm.md`. We'll build incrementally with manual verification at each phase.
 
-**Current Status**: Phase 2 in progress - render_direct complete, workspace editing complete, event loop next.
+**Current Status**: Phase 2 nearly complete - event loop implemented and tested (Tasks 1-4 done). Only manual testing (Task 5) remains before Phase 3.
 
 **Strategy**: Replace vterm immediately (no parallel track), verify with client.c demos at each phase.
 
@@ -14,11 +14,43 @@ This plan transitions from the vterm-based rendering approach to direct terminal
 
 ## Phase 0: Foundation ✅
 
-All foundation modules built: terminal, input, workspace, cursor. REPL init/cleanup implemented.
+**Goal**: Clean up error handling and build reusable infrastructure for REPL implementation.
+
+**Status**: Complete
+
+**Completed**:
+- ✅ Error handling cleanup with talloc-integrated Result types
+- ✅ Generic `ik_array_t` utility with type-safe wrappers (`ik_byte_array_t`, `ik_line_array_t`)
+- ✅ Terminal module (`terminal.c`) - raw mode, ANSI escape sequences
+- ✅ Input parser module (`input.c`) - parse bytes to semantic actions
+- ✅ Workspace module (`workspace.c`) - multi-line text buffer with UTF-8 support
+- ✅ REPL init/cleanup infrastructure
+
+**Key Achievements**:
+- Foundation for TDD workflow with 100% coverage requirement
+- Memory management patterns established with talloc
+- Generic array utility enables code reuse across modules
 
 ## Phase 1: Direct Rendering ✅
 
-Replaced vterm with `render_direct` module for direct terminal rendering. UTF-8 aware cursor positioning, single framebuffer writes, 100% test coverage. Old vterm-based render module deleted.
+**Goal**: Replace libvterm dependency with direct ANSI terminal rendering.
+
+**Status**: Complete
+
+**Completed**:
+- ✅ New `render_direct` module with UTF-8 aware cursor positioning
+- ✅ Single framebuffer write per frame (no VTerm intermediate buffer)
+- ✅ ANSI escape sequences for cursor movement and screen control
+- ✅ Support for multi-byte UTF-8 characters (emoji, CJK, combining chars)
+- ✅ Text wrapping at terminal boundaries
+- ✅ Old vterm-based `render.c`/`render.h` deleted (commit cbcc6f5)
+- ✅ 100% test coverage with comprehensive UTF-8 tests
+- ✅ Manual verification: text entry, wrapping, cursor movement, clean exit
+
+**Key Achievements**:
+- **52× reduction** in syscalls (single write vs. vterm's cell-by-cell updates)
+- **26× reduction** in bytes processed
+- Eliminated libvterm dependency from source code (build system cleanup pending Phase 5)
 
 ---
 
@@ -26,21 +58,44 @@ Replaced vterm with `render_direct` module for direct terminal rendering. UTF-8 
 
 **Goal**: Full interactive REPL with just workspace (no scrollback).
 
+**Status**: 95% complete - all implementation done, manual testing remains
+
 **Completed**:
-- ✅ `ik_repl_render_frame()` - Render current workspace state
-- ✅ `ik_repl_process_action()` - Process all input actions (char, newline, backspace, delete, arrows, readline shortcuts)
-- ✅ Workspace multi-line cursor navigation (cursor_up/down)
-- ✅ Readline-style editing: Ctrl+A (line start), Ctrl+E (line end), Ctrl+K (kill to end), Ctrl+U (kill line), Ctrl+W (delete word backward)
-- ✅ Cursor module refactored (workspace-internal, void+assertions, LCOV -10)
-- Coverage: 1257 lines, 103 functions, 467 branches, 162 LCOV exclusions
+- ✅ Task 1: `ik_repl_render_frame()` - Render current workspace state
+- ✅ Task 2: `ik_repl_process_action()` - Process all input actions (char, newline, backspace, delete, arrows)
+- ✅ Task 2.5: Multi-line cursor navigation (cursor_up/down with column preservation)
+- ✅ Task 2.6: Readline-style editing shortcuts
+  - Ctrl+A (line start), Ctrl+E (line end)
+  - Ctrl+K (kill to end), Ctrl+U (kill line)
+  - Ctrl+W (delete word backward)
+- ✅ Task 3: Main event loop
+  - `ik_repl_run()` - Event loop (read → parse → process → render)
+  - `ik_read_wrapper()` added to wrapper.h for testability
+  - 9 comprehensive tests (basic functionality + error handling)
+- ✅ Task 4: client.c simplified to pure coordination
+  - Reduced from 182 lines → 32 lines
+  - All logic moved to testable `repl` module
+  - LCOV_EXCL markers added to main()
+- ✅ Code refactoring:
+  - Cursor module workspace-internal (void+assertions, -10 LCOV markers)
+  - Workspace split: `workspace.c` + `workspace_multiline.c` (file size lint compliance)
+  - Test files modularized for maintainability
+
+**Current Metrics**:
+- **Coverage**: 1271 lines, 103 functions, 479 branches (all 100%)
+- **LCOV exclusions**: 162/164 (within limit)
+- **Quality gates**: ✅ fmt, ✅ check, ✅ lint, ✅ coverage, ✅ check-dynamic
 
 **Remaining**:
-- [ ] `ik_repl_run()` - Main event loop (read → parse → process → render)
-- [ ] Add `ik_read_wrapper()` to wrapper.h for testable event loop
-- [ ] Simplify client.c to pure coordination (remove static helpers, add LCOV_EXCL markers)
-- [ ] Manual testing checklist (UTF-8, wrapping, multi-line, readline shortcuts, Ctrl+C exit)
+- [ ] Task 5: Manual testing checklist
+  - UTF-8 handling (emoji, CJK, combining chars)
+  - Text wrapping and multi-line editing
+  - Readline shortcuts verification
+  - Terminal restoration on exit (Ctrl+C)
+  - Edge cases and stress testing
+- [ ] Document manual test results
 
-See [phase-2-tasks.md](phase-2-tasks.md) for detailed breakdown.
+See [tasks.md](tasks.md) for detailed breakdown.
 
 ---
 
@@ -48,12 +103,23 @@ See [phase-2-tasks.md](phase-2-tasks.md) for detailed breakdown.
 
 **Goal**: Add scrollback buffer storage with layout caching for historical output.
 
-**Key Features**:
+**Status**: Not started (blocked on Phase 2 manual testing completion)
+
+**Planned Features**:
 - New `scrollback` module with separated hot/cold data for cache locality
 - Pre-computed `display_width` (scan UTF-8 once on line creation)
 - O(1) arithmetic reflow on terminal resize (`physical_lines = display_width / terminal_width`)
 - Workspace module extended with layout caching
 - Performance target: 1000 lines < 5ms reflow time
+
+**Implementation Tasks**:
+- [ ] Design scrollback data structure (hot/cold separation)
+- [ ] Implement line storage with pre-computed display widths
+- [ ] Implement O(1) arithmetic reflow algorithm
+- [ ] Add layout caching to workspace module
+- [ ] Write comprehensive tests (TDD)
+- [ ] Achieve 100% coverage
+- [ ] Performance benchmarks (verify < 5ms for 1000 lines)
 
 See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 105-413 for detailed design.
 
@@ -63,7 +129,9 @@ See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 105-413 for detaile
 
 **Goal**: Integrate scrollback with REPL, add viewport calculation and scrolling commands.
 
-**Key Features**:
+**Status**: Not started (blocked on Phase 3 completion)
+
+**Planned Features**:
 - REPL gains `scrollback` and `scroll_offset` members
 - `ik_repl_submit_line()` - Move workspace content to scrollback history
 - `ik_repl_scroll()` - Adjust viewport position
@@ -71,6 +139,17 @@ See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 105-413 for detaile
 - Add Page Up/Down input actions for scrollback navigation
 - Viewport window calculation: total_physical_lines = scrollback + 1 (separator) + workspace
 - Performance: only copy visible text (not entire scrollback)
+
+**Implementation Tasks**:
+- [ ] Update REPL context with scrollback and scroll_offset
+- [ ] Implement `ik_repl_submit_line()` function
+- [ ] Implement `ik_repl_scroll()` function
+- [ ] Update `ik_render_direct_frame()` for viewport rendering
+- [ ] Add Page Up/Down to input parser
+- [ ] Integrate viewport calculation into event loop
+- [ ] Write comprehensive tests (TDD)
+- [ ] Achieve 100% coverage
+- [ ] Manual testing of scrolling behavior
 
 See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 418-527 for rendering algorithm.
 
@@ -80,32 +159,72 @@ See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 418-527 for renderi
 
 **Goal**: Remove vterm dependency from build system, update all documentation, finalize implementation.
 
-**Tasks**:
-- Remove `-lvterm` from Makefile `CLIENT_LIBS`
-- Update all distro packaging (Debian, Fedora, Arch) to remove libvterm-dev dependency
-- Update docs: architecture.md, repl-phase-1.md, eliminate_vterm.md, README.md
-- Final quality gates: `make check && make lint && make coverage && make check-dynamic && make distro-check`
-- Final manual testing on multiple terminal emulators (xterm, gnome-terminal, alacritty, kitty)
+**Status**: Not started (blocked on Phase 4 completion)
+
+**Current State**:
+- ✅ Source code has NO vterm references (all removed in Phase 1)
+- ✅ `-lvterm` removed from Makefile (CLIENT_LIBS and all test targets)
+- ❌ Distro packaging still lists libvterm-dev dependency
+
+**Cleanup Tasks**:
+- [x] Remove `-lvterm` from Makefile `CLIENT_LIBS` and all test targets
+- [x] Delete obsolete `docs/archive/` folder (vterm docs, old phase-1 server plans)
+- [ ] Update distro packaging files (remove libvterm-dev):
+  - [ ] Debian packaging
+  - [ ] Fedora packaging
+  - [ ] Arch packaging
+- [ ] Run `make distro-check` to verify builds across all distros
+
+**Documentation Tasks**:
+- [ ] Update `docs/architecture.md` (remove libvterm from dependencies)
+- [ ] Update `docs/README.md` (mark REPL complete through Phase 4)
+- [ ] Update `docs/repl/README.md` (final status update)
+- [ ] Review and finalize all phase documentation
+
+**Final Verification**:
+- [ ] Run all quality gates: `make check && make lint && make coverage && make check-dynamic`
+- [ ] Run distro verification: `make distro-check`
+- [ ] Manual testing on multiple terminal emulators:
+  - [ ] xterm
+  - [ ] gnome-terminal
+  - [ ] alacritty
+  - [ ] kitty
+- [ ] Verify clean terminal restoration across all emulators
 
 ---
 
-## Module Dependency Graph (Final State)
+## Module Dependency Graph
 
+**Current State (Phase 2)**:
 ```
-main.c
+client.c (32 lines, main only)
   └─ repl.{c,h}
        ├─ terminal.{c,h}
-       ├─ render_direct.{c,h}    [NEW - replaces render.c]
-       ├─ scrollback.{c,h}        [NEW]
-       ├─ workspace.{c,h}         [MODIFIED - add layout caching]
-       │    ├─ byte_array.{c,h}
-       │    └─ cursor.{c,h}
-       └─ input.{c,h}             [MODIFIED - add Page Up/Down]
+       ├─ render_direct.{c,h}         [Replaces old render.c - Phase 1]
+       ├─ workspace.{c,h}              [Split into 3 files]
+       │    ├─ workspace_cursor.{c,h} [Internal cursor management]
+       │    ├─ workspace_multiline.c  [Multi-line operations]
+       │    └─ byte_array.{c,h}       [Dynamic byte buffer]
+       └─ input.{c,h}
 ```
 
-**Dependencies**:
-- **Removed**: libvterm
-- **Unchanged**: talloc, jansson, uuid, libb64, pthread, libutf8proc
+**Final State (After Phase 4)**:
+```
+client.c (32 lines, main only)
+  └─ repl.{c,h}
+       ├─ terminal.{c,h}
+       ├─ render_direct.{c,h}         [Single framebuffer writes]
+       ├─ scrollback.{c,h}             [Phase 3 - hot/cold data separation]
+       ├─ workspace.{c,h}              [With layout caching - Phase 3]
+       │    ├─ workspace_cursor.{c,h} [Internal cursor management]
+       │    ├─ workspace_multiline.c  [Multi-line operations]
+       │    └─ byte_array.{c,h}       [Dynamic byte buffer]
+       └─ input.{c,h}                  [With Page Up/Down - Phase 4]
+```
+
+**External Dependencies**:
+- **Removed**: libvterm (Phase 1 source, Phase 5 build system)
+- **Current**: talloc, jansson, uuid, libb64, pthread, libutf8proc
 
 ---
 

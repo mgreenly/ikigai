@@ -10,8 +10,6 @@
 
 libvterm provided minimal value - we manage our own text buffers, handle UTF-8/grapheme processing ourselves, and already use alternate screen buffering. The only service vterm provided was calculating cursor screen position after text wrapping - approximately 50-100 lines of logic that we were paying for with a full external dependency.
 
-See archived design docs in `docs/archive/eliminate-vterm-*.md` for the complete analysis that led to this decision.
-
 **Benefits**:
 - **Simpler**: ~100-150 lines of direct rendering vs 654 lines of vterm integration
 - **Faster**: Single write syscall vs 52 writes, 26× fewer bytes processed per frame
