@@ -14,7 +14,11 @@ docs/README.md provides an overview of the project.
 Follow strict Red/Green/Verify cycle:
 
 1. **Red**: Write a failing test first
-   - Verify the test actually fails
+   - Write the test code that calls the new function
+   - Add function declaration to header file
+   - Add stub implementation that compiles but does nothing (e.g., `return OK(NULL);`)
+   - **IMPORTANT**: A compilation error is NOT a failing test - you need a stub that compiles and runs
+   - Verify the test actually fails with assertion failures (e.g., wrong output)
    - NO CODE exists until a test demands it
 
 2. **Green**: Write minimal code to make the test pass
