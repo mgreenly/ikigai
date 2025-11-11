@@ -1,1 +1,15 @@
-Read AGENT.md, docs/README.md and plan.md.  We're currently working through phase-2-tasks.md.  First let me know what step is next and wait for me to instruct you to proceed.  After you complete the work update the phase-2-tasks.md and then provide me with a summary of the work, along with the exact coverage numbers, list of files over length limit, and the number of LCOV_EXCL* lines. I will then review it.
+Read AGENT.md, docs/README.md and plan.md.
+
+## Before
+
+- We're currently working through phase-2-tasks.md.
+- First let me know what step is next, then wait for instuctions.
+- After you complete the work update the phase-2-tasks.md to reflect that.
+
+## After
+
+- Then provide me with a summary of the work.
+- Include the exact number of the completed task in the sumarry.
+- Include exact Line, Function & Branch coverage percentages in the summary.
+- Include what will be next to work on in the summary.
+- Then wait for instuctions.
