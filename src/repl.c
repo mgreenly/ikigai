@@ -117,6 +117,16 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
         return ik_workspace_cursor_up(repl->workspace);
     } else if (action->type == IK_INPUT_ARROW_DOWN) {
         return ik_workspace_cursor_down(repl->workspace);
+    } else if (action->type == IK_INPUT_CTRL_A) {
+        return ik_workspace_cursor_to_line_start(repl->workspace);
+    } else if (action->type == IK_INPUT_CTRL_E) {
+        return ik_workspace_cursor_to_line_end(repl->workspace);
+    } else if (action->type == IK_INPUT_CTRL_K) {
+        return ik_workspace_kill_to_line_end(repl->workspace);
+    } else if (action->type == IK_INPUT_CTRL_U) {
+        return ik_workspace_kill_line(repl->workspace);
+    } else if (action->type == IK_INPUT_CTRL_W) {
+        return ik_workspace_delete_word_backward(repl->workspace);
     } else if (action->type == IK_INPUT_CTRL_C) {
         repl->quit = true;
     }
