@@ -150,7 +150,7 @@
   }
   /* LCOV_EXCL_STOP */
   ```
-- [x] Update includes (remove unneeded: terminal.h, input.h, workspace.h, render_direct.h, logger.h)
+- [x] Update includes (remove unneeded: terminal.h, input.h, workspace.h, render.h, logger.h)
 - [x] Update Makefile: Add src/repl.c to CLIENT_SOURCES
 - [x] Update Makefile: LCOV_EXCL_COVERAGE 162 → 164
 - [x] Build: `make clean && make build/ikigai`

@@ -138,17 +138,17 @@ SGR (Select Graphic Rendition) sequences change text appearance:
 
 **1. Add color configuration to render context**
 
-Modify `src/render_direct.h`:
+Modify `src/render.h`:
 ```c
-typedef struct ik_render_direct_ctx_t {
+typedef struct ik_render_ctx_t {
     // ... existing fields ...
     bool colors_enabled;  // Allow disabling for testing or user preference
-} ik_render_direct_ctx_t;
+} ik_render_ctx_t;
 ```
 
 **2. Create SGR utility functions**
 
-Add to `src/render_direct.c`:
+Add to `src/render.c`:
 ```c
 // SGR color codes
 #define SGR_RESET     "\x1b[0m"
@@ -177,7 +177,7 @@ static void append_colored_text(char *buffer, size_t *offset,
 
 **3. Update workspace rendering**
 
-Modify `ik_render_direct_workspace()`:
+Modify `ik_render_workspace()`:
 - Keep workspace in default colors (user is actively editing)
 - Or optionally add subtle bold for visual weight
 
@@ -185,7 +185,7 @@ Modify `ik_render_direct_workspace()`:
 
 When Phase 4 adds scrollback rendering, create:
 ```c
-res_t ik_render_direct_scrollback_line(ik_render_direct_ctx_t *ctx,
+res_t ik_render_scrollback_line(ik_render_ctx_t *ctx,
                                        const char *text, size_t text_len,
                                        ik_message_type_t msg_type)
 {
@@ -206,10 +206,10 @@ res_t ik_render_direct_scrollback_line(ik_render_direct_ctx_t *ctx,
 
 For accessibility and user preference:
 ```c
-void ik_render_direct_set_colors_enabled(ik_render_direct_ctx_t *ctx, bool enabled);
+void ik_render_set_colors_enabled(ik_render_ctx_t *ctx, bool enabled);
 ```
 
-**Test Coverage** (`tests/unit/render_direct/colors_test.c`):
+**Test Coverage** (`tests/unit/render/colors_test.c`):
 - SGR codes correctly inserted for each message type
 - Color reset applied after each line
 - Colors can be disabled (returns plain text)

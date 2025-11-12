@@ -2,7 +2,7 @@
 
 ## Overview
 
-A terminal-based REPL with split-buffer interface: immutable scrollback history above, editable multi-line workspace below. Direct ANSI rendering eliminates terminal emulation overhead—raw terminal bytes flow through an input parser that produces semantic actions (insert, delete, move cursor), workspace transforms UTF-8 text with grapheme-aware cursor positioning, and render_direct writes a single framebuffer per frame using ANSI escape sequences (CSI cursor positioning, alternate screen buffer). Scrollback uses pre-computed display widths for O(1) arithmetic reflow on terminal resize (1000× faster than re-measuring). Event loop follows a strict cycle: read input → parse to action → update workspace → render frame. Architecture prioritizes testability (100% coverage via TDD), performance (cached layouts, minimal allocations), and simplicity (single-threaded, no VTerm library, talloc memory hierarchy).
+A terminal-based REPL with split-buffer interface: immutable scrollback history above, editable multi-line workspace below. Direct ANSI rendering eliminates terminal emulation overhead—raw terminal bytes flow through an input parser that produces semantic actions (insert, delete, move cursor), workspace transforms UTF-8 text with grapheme-aware cursor positioning, and render writes a single framebuffer per frame using ANSI escape sequences (CSI cursor positioning, alternate screen buffer). Scrollback uses pre-computed display widths for O(1) arithmetic reflow on terminal resize (1000× faster than re-measuring). Event loop follows a strict cycle: read input → parse to action → update workspace → render frame. Architecture prioritizes testability (100% coverage via TDD), performance (cached layouts, minimal allocations), and simplicity (single-threaded, no VTerm library, talloc memory hierarchy).
 
 ## Table of Contents
 
@@ -47,7 +47,7 @@ Each phase follows strict TDD (Test-Driven Development) with 100% coverage requi
 
 **Phase 1** - Direct Rendering (workspace only) ✅ COMPLETE:
 - ✅ Removed old vterm-based render module
-- ✅ Implemented `render_direct` with UTF-8 aware cursor calculation
+- ✅ Implemented `render` with UTF-8 aware cursor calculation
 - ✅ Single framebuffer write to terminal
 - ✅ Manual verification completed
 

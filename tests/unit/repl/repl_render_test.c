@@ -8,7 +8,7 @@
 #include <talloc.h>
 #include <string.h>
 #include "../../../src/repl.h"
-#include "../../../src/render_direct.h"
+#include "../../../src/render.h"
 #include "../../test_utils.h"
 
 // Mock write tracking
@@ -40,8 +40,8 @@ START_TEST(test_repl_render_frame_empty_workspace) {
     res_t res = ik_workspace_create(ctx, &workspace);
     ck_assert(is_ok(&res));
 
-    ik_render_direct_ctx_t *render = NULL;
-    res = ik_render_direct_create(ctx, 24, 80, 1, &render);  // Mock terminal: 24x80, fd=1
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);  // Mock terminal: 24x80, fd=1
     ck_assert(is_ok(&res));
 
     // Create minimal REPL context
@@ -89,8 +89,8 @@ START_TEST(test_repl_render_frame_multiline)
     res = ik_workspace_insert_codepoint(workspace, 'e');
     ck_assert(is_ok(&res));
 
-    ik_render_direct_ctx_t *render = NULL;
-    res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -126,8 +126,8 @@ START_TEST(test_repl_render_frame_cursor_positions)
         ck_assert(is_ok(&res));
     }
 
-    ik_render_direct_ctx_t *render = NULL;
-    res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -186,8 +186,8 @@ START_TEST(test_repl_render_frame_utf8)
     res = ik_workspace_insert_codepoint(workspace, 0x1F600);  // 😀
     ck_assert(is_ok(&res));
 
-    ik_render_direct_ctx_t *render = NULL;
-    res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);

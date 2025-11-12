@@ -1,5 +1,5 @@
 // Direct terminal rendering (no VTerm)
-#include "render_direct.h"
+#include "render.h"
 #include "error.h"
 #include "wrapper.h"
 #include <assert.h>
@@ -22,8 +22,8 @@ res_t calculate_cursor_screen_position(void *ctx,
                                        cursor_screen_pos_t *pos_out);
 
 // Create render context
-res_t ik_render_direct_create(void *parent, int32_t rows, int32_t cols,
-                              int32_t tty_fd, ik_render_direct_ctx_t **ctx_out)
+res_t ik_render_create(void *parent, int32_t rows, int32_t cols,
+                       int32_t tty_fd, ik_render_ctx_t **ctx_out)
 {
     assert(parent != NULL);  // LCOV_EXCL_BR_LINE
     assert(ctx_out != NULL); // LCOV_EXCL_BR_LINE
@@ -34,9 +34,9 @@ res_t ik_render_direct_create(void *parent, int32_t rows, int32_t cols,
     }
 
     // Allocate context
-    ik_render_direct_ctx_t *ctx = ik_talloc_zero_wrapper(parent, sizeof(ik_render_direct_ctx_t));
+    ik_render_ctx_t *ctx = ik_talloc_zero_wrapper(parent, sizeof(ik_render_ctx_t));
     if (!ctx) {
-        return ERR(parent, OOM, "Failed to allocate render_direct context");
+        return ERR(parent, OOM, "Failed to allocate render context");
     }
 
     // Initialize fields
@@ -116,9 +116,9 @@ res_t calculate_cursor_screen_position(
 }
 
 // Render workspace to terminal (text + cursor positioning)
-res_t ik_render_direct_workspace(ik_render_direct_ctx_t *ctx,
-                                 const char *text, size_t text_len,
-                                 size_t cursor_byte_offset)
+res_t ik_render_workspace(ik_render_ctx_t *ctx,
+                          const char *text, size_t text_len,
+                          size_t cursor_byte_offset)
 {
     assert(ctx != NULL);                          // LCOV_EXCL_BR_LINE
     assert(text != NULL || text_len == 0);        // LCOV_EXCL_BR_LINE

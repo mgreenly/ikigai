@@ -28,22 +28,22 @@ libvterm provided minimal value - we manage our own text buffers, handle UTF-8/g
 
 ### Task 2: Implement Direct Rendering Module
 
-**Create**: `src/render_direct.h` and `src/render_direct.c`
+**Create**: `src/render.h` and `src/render.c`
 
 **Public API**:
 ```c
-typedef struct ik_render_direct_ctx_t {
+typedef struct ik_render_ctx_t {
     int32_t rows;      // Terminal height
     int32_t cols;      // Terminal width
     int32_t tty_fd;    // Terminal file descriptor
-} ik_render_direct_ctx_t;
+} ik_render_ctx_t;
 
 // Create render context
-res_t ik_render_direct_create(void *parent, int32_t rows, int32_t cols,
-                               int32_t tty_fd, ik_render_direct_ctx_t **ctx_out);
+res_t ik_render_create(void *parent, int32_t rows, int32_t cols,
+                               int32_t tty_fd, ik_render_ctx_t **ctx_out);
 
 // Render workspace to terminal (text + cursor positioning)
-res_t ik_render_direct_workspace(ik_render_direct_ctx_t *ctx,
+res_t ik_render_workspace(ik_render_ctx_t *ctx,
                                   const char *text, size_t text_len,
                                   size_t cursor_byte_offset);
 ```
@@ -62,7 +62,7 @@ res_t ik_render_direct_workspace(ik_render_direct_ctx_t *ctx,
 
 ### Task 3: Comprehensive Unit Tests
 
-**Test Coverage** (`tests/unit/render_direct/render_direct_test.c`):
+**Test Coverage** (`tests/unit/render/render_test.c`):
 - Cursor position calculation:
   - Simple ASCII text (no wrapping)
   - Text with newlines
@@ -90,7 +90,7 @@ res_t ik_render_direct_workspace(ik_render_direct_ctx_t *ctx,
 ```c
 typedef struct ik_repl_ctx_t {
     ik_term_ctx_t *term;
-    ik_render_direct_ctx_t *render;      // Changed from ik_render_ctx_t
+    ik_render_ctx_t *render;      // Changed from ik_render_ctx_t
     ik_workspace_t *workspace;
     ik_input_parser_t *input_parser;
     bool quit;
@@ -98,13 +98,13 @@ typedef struct ik_repl_ctx_t {
 ```
 
 **Update** `src/repl.c`:
-- Change render context creation to use `ik_render_direct_create()`
+- Change render context creation to use `ik_render_create()`
 - Update any render API calls (currently none - event loop is a stub)
 
 ### Task 5: Manual Verification via client.c
 
-**Demo**: Simple text editor using render_direct
-- Initialize terminal + render_direct context
+**Demo**: Simple text editor using render
+- Initialize terminal + render context
 - Simple loop: read char → append to buffer → render
 - Test: typing, cursor positioning, wrapping
 - Exit: Ctrl+C, verify clean terminal restoration
@@ -135,8 +135,8 @@ typedef struct ik_repl_ctx_t {
 ## Phase 1 Complete When
 
 - [ ] Old render module deleted
-- [ ] render_direct module implemented with 100% test coverage
-- [ ] REPL module updated to use render_direct
+- [ ] render module implemented with 100% test coverage
+- [ ] REPL module updated to use render
 - [ ] client.c demo works and passes manual verification
 - [ ] `make check && make lint && make coverage` all pass
 

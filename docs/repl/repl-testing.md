@@ -17,7 +17,7 @@ All code is developed using TDD red/green cycle:
 Once Phase 1 is complete and all TDD tests pass with 100% coverage, validate via client.c demo:
 
 ### Direct Rendering Demo
-- Launch demo with render_direct context
+- Launch demo with render context
 - Type some text, verify it displays correctly
 - Verify cursor appears at correct position
 - Test text wrapping at terminal boundary

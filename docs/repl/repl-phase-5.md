@@ -40,7 +40,7 @@ This phase is not about new features—it's about quality, consistency, and main
 - `src/workspace.{c,h}`
 - `src/workspace_cursor.{c,h}`
 - `src/workspace_multiline.c`
-- `src/render_direct.{c,h}`
+- `src/render.{c,h}`
 - `src/scrollback.{c,h}` (from Phase 3)
 - `src/input.{c,h}`
 - `src/terminal.{c,h}`

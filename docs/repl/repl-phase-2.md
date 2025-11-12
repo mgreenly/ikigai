@@ -14,7 +14,7 @@ Complete the Phase 1 functionality from the original plan with direct rendering.
 
 **Logic**:
 1. Get workspace text and cursor position
-2. Call `ik_render_direct_workspace()` to render to terminal
+2. Call `ik_render_workspace()` to render to terminal
 3. Error handling
 
 **Test Coverage**:

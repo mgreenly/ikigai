@@ -15,7 +15,7 @@
 #include "../../../src/workspace.h"
 #include "../../../src/input.h"
 #include "../../../src/terminal.h"
-#include "../../../src/render_direct.h"
+#include "../../../src/render.h"
 #include "../../test_utils.h"
 
 // Mock read tracking

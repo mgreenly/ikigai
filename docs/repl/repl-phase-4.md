@@ -22,7 +22,7 @@ This completes the split-buffer terminal interface: scrollback history above, wo
 ```c
 typedef struct ik_repl_ctx_t {
     ik_term_ctx_t *term;
-    ik_render_direct_ctx_t *render;
+    ik_render_ctx_t *render;
     ik_workspace_t *workspace;
     ik_input_parser_t *input_parser;
     ik_scrollback_t *scrollback;      // NEW: Scrollback buffer
@@ -80,10 +80,10 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
 
 **Goal**: Render visible scrollback lines to terminal.
 
-**Add to** `src/render_direct.h`:
+**Add to** `src/render.h`:
 ```c
 // Render scrollback lines to terminal
-res_t ik_render_direct_scrollback(ik_render_direct_ctx_t *ctx,
+res_t ik_render_scrollback(ik_render_ctx_t *ctx,
                                   ik_scrollback_t *scrollback,
                                   size_t start_line,
                                   size_t line_count,
@@ -119,13 +119,13 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 
     // 2. Render scrollback
     int32_t rows_used = 0;
-    ik_render_direct_scrollback(repl->render, repl->scrollback,
+    ik_render_scrollback(repl->render, repl->scrollback,
                                 viewport.scrollback_start_line,
                                 viewport.scrollback_lines_count,
                                 &rows_used);
 
     // 3. Render workspace at correct position
-    ik_render_direct_workspace(repl->render, ...);
+    ik_render_workspace(repl->render, ...);
 
     return OK(repl);
 }

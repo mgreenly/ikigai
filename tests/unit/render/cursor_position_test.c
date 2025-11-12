@@ -2,7 +2,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/render_direct.h"
+#include "../../../src/render.h"
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 

@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 #include <talloc.h>
-#include "../../../src/render_direct.h"
+#include "../../../src/render.h"
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 
@@ -55,14 +55,14 @@ static void mock_write_reset(void)
 // Test: render simple text
 START_TEST(test_render_workspace_simple_text) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
     const char *text = "hello";
-    res = ik_render_direct_workspace(render, text, 5, 5);
+    res = ik_render_workspace(render, text, 5, 5);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -82,14 +82,14 @@ END_TEST
 START_TEST(test_render_workspace_with_cursor)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
     const char *text = "hello world";
-    res = ik_render_direct_workspace(render, text, 11, 5);
+    res = ik_render_workspace(render, text, 11, 5);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -106,13 +106,13 @@ END_TEST
 START_TEST(test_render_workspace_empty_text)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
-    res = ik_render_direct_workspace(render, "", 0, 0);
+    res = ik_render_workspace(render, "", 0, 0);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -131,13 +131,13 @@ END_TEST
 START_TEST(test_render_workspace_null_text)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
-    res = ik_render_direct_workspace(render, NULL, 0, 0);
+    res = ik_render_workspace(render, NULL, 0, 0);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -156,15 +156,15 @@ END_TEST
 START_TEST(test_render_workspace_utf8_text)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
     // "hello 😀" - emoji is 4 bytes, 2 cells width
     const char *text = "hello \xf0\x9f\x98\x80";
-    res = ik_render_direct_workspace(render, text, 10, 10);
+    res = ik_render_workspace(render, text, 10, 10);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -184,15 +184,15 @@ END_TEST
 START_TEST(test_render_workspace_wrapping_text)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 10, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 10, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
     // 15 chars, terminal width 10 -> wraps
     const char *text = "abcdefghijklmno";
-    res = ik_render_direct_workspace(render, text, 15, 15);
+    res = ik_render_workspace(render, text, 15, 15);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -212,14 +212,14 @@ END_TEST
 START_TEST(test_render_workspace_with_newlines)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
     const char *text = "hello\nworld";
-    res = ik_render_direct_workspace(render, text, 11, 8);
+    res = ik_render_workspace(render, text, 11, 8);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -240,15 +240,15 @@ END_TEST
 START_TEST(test_render_workspace_cursor_after_wrap)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 8, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 8, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
     // Exactly 8 chars, cursor at end
     const char *text = "abcdefgh";
-    res = ik_render_direct_workspace(render, text, 8, 8);
+    res = ik_render_workspace(render, text, 8, 8);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -265,16 +265,16 @@ END_TEST
 START_TEST(test_render_workspace_write_failure)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
     mock_write_should_fail = true;
 
     const char *text = "hello";
-    res = ik_render_direct_workspace(render, text, 5, 5);
+    res = ik_render_workspace(render, text, 5, 5);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
@@ -288,15 +288,15 @@ END_TEST
 START_TEST(test_render_workspace_invalid_utf8)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
     // Invalid UTF-8 sequence
     const char *text = "hello\xff\xfe";
-    res = ik_render_direct_workspace(render, text, 7, 7);
+    res = ik_render_workspace(render, text, 7, 7);
 
     // Should return error
     ck_assert(is_err(&res));
@@ -311,9 +311,9 @@ END_TEST
 START_TEST(test_render_workspace_oom_framebuffer)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
@@ -321,7 +321,7 @@ START_TEST(test_render_workspace_oom_framebuffer)
 
     // Fail framebuffer allocation
     oom_test_fail_next_alloc();
-    res = ik_render_direct_workspace(render, text, 5, 5);
+    res = ik_render_workspace(render, text, 5, 5);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_OOM);
@@ -337,9 +337,9 @@ END_TEST
 START_TEST(test_render_workspace_oom_cursor_escape)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     mock_write_reset();
@@ -348,7 +348,7 @@ START_TEST(test_render_workspace_oom_cursor_escape)
     // Fail after framebuffer allocation succeeds but before cursor_escape completes
     // talloc_asprintf internally does multiple allocations
     oom_test_fail_after_n_calls(2);
-    res = ik_render_direct_workspace(render, text, 5, 5);
+    res = ik_render_workspace(render, text, 5, 5);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_OOM);
@@ -365,7 +365,7 @@ END_TEST
 START_TEST(test_render_workspace_null_ctx_asserts)
 {
     const char *text = "hello";
-    ik_render_direct_workspace(NULL, text, 5, 5);
+    ik_render_workspace(NULL, text, 5, 5);
 }
 
 END_TEST
@@ -373,12 +373,12 @@ END_TEST
 START_TEST(test_render_workspace_null_text_asserts)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_direct_ctx_t *render = NULL;
+    ik_render_ctx_t *render = NULL;
 
-    res_t res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
-    ik_render_direct_workspace(render, NULL, 5, 0);
+    ik_render_workspace(render, NULL, 5, 0);
 
     talloc_free(ctx);
 }

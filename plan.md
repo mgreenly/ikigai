@@ -38,7 +38,7 @@ This plan transitions from the vterm-based rendering approach to direct terminal
 **Status**: Complete
 
 **Completed**:
-- ✅ New `render_direct` module with UTF-8 aware cursor positioning
+- ✅ New `render` module with UTF-8 aware cursor positioning
 - ✅ Single framebuffer write per frame (no VTerm intermediate buffer)
 - ✅ ANSI escape sequences for cursor movement and screen control
 - ✅ Support for multi-byte UTF-8 characters (emoji, CJK, combining chars)
@@ -142,7 +142,7 @@ See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 105-413 for detaile
 - REPL gains `scrollback` and `scroll_offset` members
 - `ik_repl_submit_line()` - Move workspace content to scrollback history
 - `ik_repl_scroll()` - Adjust viewport position
-- `ik_render_direct_frame()` - Render scrollback + separator + workspace in single write (only visible lines)
+- `ik_render_frame()` - Render scrollback + separator + workspace in single write (only visible lines)
 - Add Page Up/Down input actions for scrollback navigation
 - Viewport window calculation: total_physical_lines = scrollback + 1 (separator) + workspace
 - Performance: only copy visible text (not entire scrollback)
@@ -151,7 +151,7 @@ See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 105-413 for detaile
 - [ ] Update REPL context with scrollback and scroll_offset
 - [ ] Implement `ik_repl_submit_line()` function
 - [ ] Implement `ik_repl_scroll()` function
-- [ ] Update `ik_render_direct_frame()` for viewport rendering
+- [ ] Update `ik_render_frame()` for viewport rendering
 - [ ] Add Page Up/Down to input parser
 - [ ] Integrate viewport calculation into event loop
 - [ ] Write comprehensive tests (TDD)
@@ -207,7 +207,7 @@ See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 418-527 for renderi
 client.c (32 lines, main only)
   └─ repl.{c,h}
        ├─ terminal.{c,h}
-       ├─ render_direct.{c,h}         [Replaces old render.c - Phase 1]
+       ├─ render.{c,h}         [Replaces old render.c - Phase 1]
        ├─ workspace.{c,h}              [Split into 3 files]
        │    ├─ workspace_cursor.{c,h} [Internal cursor management]
        │    ├─ workspace_multiline.c  [Multi-line operations]
@@ -220,7 +220,7 @@ client.c (32 lines, main only)
 client.c (32 lines, main only)
   └─ repl.{c,h}
        ├─ terminal.{c,h}
-       ├─ render_direct.{c,h}         [Single framebuffer writes]
+       ├─ render.{c,h}         [Single framebuffer writes]
        ├─ scrollback.{c,h}             [Phase 3 - hot/cold data separation]
        ├─ workspace.{c,h}              [With layout caching - Phase 3]
        │    ├─ workspace_cursor.{c,h} [Internal cursor management]

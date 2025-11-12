@@ -21,12 +21,12 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
         return result;
     }
 
-    // Initialize render_direct
-    result = ik_render_direct_create(repl,
-                                     repl->term->screen_rows,
-                                     repl->term->screen_cols,
-                                     repl->term->tty_fd,
-                                     &repl->render);
+    // Initialize render
+    result = ik_render_create(repl,
+                              repl->term->screen_rows,
+                              repl->term->screen_cols,
+                              repl->term->tty_fd,
+                              &repl->render);
     if (is_err(&result)) {
         talloc_free(repl);
         return result;
@@ -126,7 +126,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     ik_workspace_get_cursor_position(repl->workspace, &cursor_byte_offset, &cursor_grapheme);
 
     // Render workspace with cursor
-    return ik_render_direct_workspace(repl->render, text, text_len, cursor_byte_offset);
+    return ik_render_workspace(repl->render, text, text_len, cursor_byte_offset);
 }
 
 res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action)

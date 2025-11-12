@@ -2,18 +2,18 @@
 
 #include "error.h"
 #include "terminal.h"
-#include "render_direct.h"
+#include "render.h"
 #include "workspace.h"
 #include "input.h"
 #include <stdbool.h>
 
 // REPL context structure
 typedef struct ik_repl_ctx_t {
-    ik_term_ctx_t *term;              // Terminal context
-    ik_render_direct_ctx_t *render;   // Direct rendering context
-    ik_workspace_t *workspace;        // Workspace
+    ik_term_ctx_t *term;        // Terminal context
+    ik_render_ctx_t *render;    // Rendering context
+    ik_workspace_t *workspace;  // Workspace
     ik_input_parser_t *input_parser;  // Input parser
-    bool quit;                        // Exit flag
+    bool quit;                  // Exit flag
 } ik_repl_ctx_t;
 
 // Initialize REPL context

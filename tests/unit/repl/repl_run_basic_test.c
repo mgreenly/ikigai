@@ -23,8 +23,8 @@ START_TEST(test_repl_run_simple_char_input) {
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_render_direct_ctx_t *render = NULL;
-    res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -73,8 +73,8 @@ START_TEST(test_repl_run_multiple_chars)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_render_direct_ctx_t *render = NULL;
-    res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -126,8 +126,8 @@ START_TEST(test_repl_run_with_newline)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_render_direct_ctx_t *render = NULL;
-    res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -177,8 +177,8 @@ START_TEST(test_repl_run_with_backspace)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_render_direct_ctx_t *render = NULL;
-    res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -226,8 +226,8 @@ START_TEST(test_repl_run_read_eof)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_render_direct_ctx_t *render = NULL;
-    res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -276,8 +276,8 @@ START_TEST(test_repl_run_unknown_action)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_render_direct_ctx_t *render = NULL;
-    res = ik_render_direct_create(ctx, 24, 80, 1, &render);
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
