@@ -5,13 +5,12 @@ Read AGENT.md, docs/README.md and plan.md.
 **Phase 2 - Task 6: Bug Fixes** - ALL COMPLETE ✅
 - All 3 bugs from manual testing have been fixed
 - 100% test coverage maintained (1315 lines, 105 functions, 525 branches)
-- All quality gates pass
+- All quality gates pass (including make check-dynamic)
 
 **Next Steps**:
-1. Run `make check-dynamic` (ASan, UBSan, TSan)
-2. Final Phase 2 code review for security/memory/style
-3. Create Phase 2 completion commit
-4. Begin Phase 3 planning (history, scripting, or prompt system)
+1. Final Phase 2 code review for security/memory/style
+2. Create Phase 2 completion commit
+3. Begin Phase 3 planning (history, scripting, or prompt system)
 
 ## Before
 
