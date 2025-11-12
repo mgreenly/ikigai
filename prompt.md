@@ -1,27 +1,23 @@
-Read AGENT.md, docs/README.md and plan.md.
+Read and execute the code review task defined in docs/phase-2-code-review-prompt.md.
 
-## Current Status (2025-11-11)
+## Your Task
 
-**Phase 2 - Task 6: Bug Fixes** - ALL COMPLETE ✅
-- All 3 bugs from manual testing have been fixed
-- 100% test coverage maintained (1315 lines, 105 functions, 525 branches)
-- All quality gates pass (including make check-dynamic)
+Perform a comprehensive code review of Phase 2 implementation following the instructions in docs/phase-2-code-review-prompt.md.
 
-**Next Steps**:
-1. Final Phase 2 code review for security/memory/style
-2. Create Phase 2 completion commit
-3. Begin Phase 3 planning (history, scripting, or prompt system)
+**Key Points**:
+- Phase 2 is feature-complete with all bugs fixed
+- All quality gates pass (100% coverage, ASan/UBSan/TSan clean)
+- Focus on: security, memory management, error handling, code quality
+- Review files in priority order (highest risk first)
+- Output format: [SEVERITY] File:Line - Description, Impact, Recommendation
+- Goal: Find CRITICAL/HIGH issues that must be fixed before Phase 2 completion
 
-## Before
+Start by reading docs/phase-2-code-review-prompt.md, then proceed with the review.
 
-- We're currently working through tasks.md.
-- First let me know what step is next, then wait for instructions.
-- After you complete the work update the tasks.md to reflect that.
+## After Review
 
-## After
-
-- Then provide me with a summary of the work.
-- Include the exact number of the completed task in the summary.
-- Include exact Line, Function & Branch coverage percentages in the summary.
-- Include what will be next to work on in the summary.
-- Then wait for instructions.
+Provide summary with:
+- Total issues found by severity (CRITICAL/HIGH/MEDIUM/LOW/INFO)
+- Top 5 most important issues with details
+- Recommendation: APPROVE for Phase 2 completion OR NEEDS FIXES
+- If fixes needed: create tasks.md entries for required fixes
