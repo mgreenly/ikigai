@@ -152,6 +152,11 @@ res_t ik_workspace_cursor_up(ik_workspace_t *workspace)
     size_t text_len;
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
 
+    // Empty workspace - no-op
+    if (text == NULL || text_len == 0) {
+        return OK(NULL);
+    }
+
     size_t cursor_pos = workspace->cursor->byte_offset;
 
     // Find current line start
@@ -195,6 +200,11 @@ res_t ik_workspace_cursor_down(ik_workspace_t *workspace)
     char *text;
     size_t text_len;
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+
+    // Empty workspace - no-op
+    if (text == NULL || text_len == 0) {
+        return OK(NULL);
+    }
 
     size_t cursor_pos = workspace->cursor->byte_offset;
 
@@ -240,6 +250,11 @@ res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace)
     size_t text_len;
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
 
+    // Empty workspace - no-op
+    if (text == NULL || text_len == 0) {
+        return OK(NULL);
+    }
+
     size_t cursor_pos = workspace->cursor->byte_offset;
 
     // Find current line start
@@ -265,6 +280,11 @@ res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace)
     size_t text_len;
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
 
+    // Empty workspace - no-op
+    if (text == NULL || text_len == 0) {
+        return OK(NULL);
+    }
+
     size_t cursor_pos = workspace->cursor->byte_offset;
 
     // Find current line end (position of \n or text_len)
@@ -289,6 +309,11 @@ res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace)
     char *text;
     size_t text_len;
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+
+    // Empty workspace - no-op
+    if (text == NULL || text_len == 0) {
+        return OK(NULL);
+    }
 
     size_t cursor_pos = workspace->cursor->byte_offset;
 
@@ -320,6 +345,11 @@ res_t ik_workspace_kill_line(ik_workspace_t *workspace)
     char *text;
     size_t text_len;
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+
+    // Empty workspace - no-op
+    if (text == NULL || text_len == 0) {
+        return OK(NULL);
+    }
 
     size_t cursor_pos = workspace->cursor->byte_offset;
 
