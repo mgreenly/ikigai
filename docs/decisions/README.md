@@ -28,6 +28,9 @@ These decisions guide future development but are not yet implemented:
 ### Infrastructure & Storage
 - [postgresql-valkey.md](postgresql-valkey.md) - Why PostgreSQL + Valkey
 
+### Data Representation & Serialization
+- [json-yaml-projection.md](json-yaml-projection.md) - Why JSON-Based Projection with Dual Format Output
+
 ### Implementation Strategy
 - [phased-implementation.md](phased-implementation.md) - Why Phased Implementation
 - [client-side-tool-execution.md](client-side-tool-execution.md) - Why Client-Side Tool Execution
