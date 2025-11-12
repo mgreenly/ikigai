@@ -13,7 +13,7 @@ A terminal-based REPL with split-buffer interface: immutable scrollback history 
 ### Phase Details (separate files)
 - [Phase 0: Foundation](repl-phase-0.md) ✅ - Clean up error handling + build generic array utility
 - [Phase 1: Direct Rendering](repl-phase-1.md) ✅ - Direct terminal rendering (UTF-8 aware cursor positioning)
-- [Phase 2: REPL Event Loop](repl-phase-2.md) ⏳ - Complete interactive REPL with workspace
+- [Phase 2: REPL Event Loop](repl-phase-2.md) ✅ - Complete interactive REPL with workspace
 - [Phase 3: Scrollback Buffer](repl-phase-3.md) - Add scrollback storage with layout caching
 - [Phase 4: Viewport and Scrolling](repl-phase-4.md) - Integrate scrollback with REPL, add scrolling
 - [Phase 5: Cleanup](repl-phase-5.md) - Final polish and documentation
@@ -29,13 +29,13 @@ This work is split into incremental phases, each building on the previous.
 **Current Roadmap:**
 - **Phase 0** ✅: Clean up existing error handling + build generic `ik_array_t` utility
 - **Phase 1** ✅: Direct terminal rendering with UTF-8 aware cursor positioning
-- **Phase 2** ⏳: Complete REPL event loop with full interactivity
+- **Phase 2** ✅: Complete REPL event loop with full interactivity
 - **Phase 3**: Add scrollback buffer module with layout caching
 - **Phase 4**: Integrate viewport and scrolling
 - **Phase 5**: Final polish and documentation
 - **Phase 6**: Terminal enhancements (bracketed paste + colors)
 
-**Current focus**: Phase 2 - multi-line editing and readline shortcuts
+**Current focus**: Phase 3 - scrollback buffer module (Phase 2 complete 2025-11-11)
 
 Each phase follows strict TDD (Test-Driven Development) with 100% coverage requirement.
 
@@ -51,11 +51,15 @@ Each phase follows strict TDD (Test-Driven Development) with 100% coverage requi
 - ✅ Single framebuffer write to terminal
 - ✅ Manual verification completed
 
-**Phase 2** - Complete REPL Event Loop:
-- Full interactive REPL with workspace (no scrollback)
-- Event loop, action processing, frame rendering
-- Multi-line input, cursor movement, text editing
-- Main entry point in main.c
+**Phase 2** - Complete REPL Event Loop ✅ COMPLETE (2025-11-11):
+- ✅ Full interactive REPL with workspace (no scrollback)
+- ✅ Event loop, action processing, frame rendering
+- ✅ Multi-line input, cursor movement, text editing
+- ✅ Readline shortcuts (Ctrl+A/E/K/U/W)
+- ✅ Column preservation in vertical navigation
+- ✅ Manual testing (32 tests), bug fixes (3 critical/medium/low)
+- ✅ Code review (Grade: A-, production-ready)
+- ✅ 100% test coverage (1315 lines, 105 functions, 525 branches)
 
 **Phase 3** - Scrollback Buffer Module:
 - Scrollback storage with pre-computed display_width

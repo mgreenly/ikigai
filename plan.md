@@ -4,7 +4,7 @@
 
 This plan transitions from the vterm-based rendering approach to direct terminal rendering as outlined in `docs/eliminate_vterm.md`. We'll build incrementally with manual verification at each phase.
 
-**Current Status**: Phase 2 nearly complete - event loop implemented and tested (Tasks 1-4 done). Only manual testing (Task 5) remains before Phase 3.
+**Current Status**: Phase 2 COMPLETE (2025-11-11) - All tasks done including manual testing, bug fixes, and code review. Ready for Phase 3.
 
 **Strategy**: Replace vterm immediately (no parallel track), verify with client.c demos at each phase.
 
@@ -54,11 +54,11 @@ This plan transitions from the vterm-based rendering approach to direct terminal
 
 ---
 
-## Phase 2: Complete Basic REPL Event Loop ⏳
+## Phase 2: Complete Basic REPL Event Loop ✅
 
 **Goal**: Full interactive REPL with just workspace (no scrollback).
 
-**Status**: 95% complete - all implementation done, manual testing remains
+**Status**: COMPLETE (2025-11-11)
 
 **Completed**:
 - ✅ Task 1: `ik_repl_render_frame()` - Render current workspace state
@@ -67,7 +67,7 @@ This plan transitions from the vterm-based rendering approach to direct terminal
 - ✅ Task 2.6: Readline-style editing shortcuts
   - Ctrl+A (line start), Ctrl+E (line end)
   - Ctrl+K (kill to end), Ctrl+U (kill line)
-  - Ctrl+W (delete word backward)
+  - Ctrl+W (delete word backward with punctuation class support)
 - ✅ Task 3: Main event loop
   - `ik_repl_run()` - Event loop (read → parse → process → render)
   - `ik_read_wrapper()` added to wrapper.h for testability
@@ -76,24 +76,31 @@ This plan transitions from the vterm-based rendering approach to direct terminal
   - Reduced from 182 lines → 32 lines
   - All logic moved to testable `repl` module
   - LCOV_EXCL markers added to main()
+- ✅ Task 5: Manual testing (32 tests - 29 passed, 3 bugs found)
+  - UTF-8 handling verified (emoji, CJK, combining chars)
+  - Text wrapping and multi-line editing verified
+  - Readline shortcuts verified
+  - Terminal restoration verified
+  - Results documented in docs/repl/phase-2-manual-testing-guide.md
+- ✅ Task 6: Bug fixes (all 3 bugs fixed)
+  - Bug 6.1 CRITICAL: Empty workspace crashes (commit 9b32cff)
+  - Bug 6.2 MEDIUM: Column preservation (commit 3c226d3)
+  - Bug 6.3 LOW: Ctrl+W punctuation handling (commits 3c226d3, 4f38c6b)
+- ✅ Code review: Security/memory/error handling analysis (Grade: A-)
+  - 0 CRITICAL, 0 HIGH issues
+  - 2 MEDIUM issues documented (theoretical overflows, commit 025491e)
+  - Excellent security: no unsafe functions, proper UTF-8 validation
 - ✅ Code refactoring:
   - Cursor module workspace-internal (void+assertions, -10 LCOV markers)
   - Workspace split: `workspace.c` + `workspace_multiline.c` (file size lint compliance)
   - Test files modularized for maintainability
 
-**Current Metrics**:
-- **Coverage**: 1271 lines, 103 functions, 479 branches (all 100%)
+**Final Metrics**:
+- **Coverage**: 1315 lines, 105 functions, 525 branches (all 100%)
 - **LCOV exclusions**: 162/164 (within limit)
-- **Quality gates**: ✅ fmt, ✅ check, ✅ lint, ✅ coverage, ✅ check-dynamic
+- **Quality gates**: ✅ fmt, ✅ check, ✅ lint, ✅ coverage, ✅ check-dynamic (ASan/UBSan/TSan)
 
-**Remaining**:
-- [ ] Task 5: Manual testing checklist
-  - UTF-8 handling (emoji, CJK, combining chars)
-  - Text wrapping and multi-line editing
-  - Readline shortcuts verification
-  - Terminal restoration on exit (Ctrl+C)
-  - Edge cases and stress testing
-- [ ] Document manual test results
+**Key Achievement**: Production-ready interactive REPL with full test coverage and security validation
 
 See [tasks.md](tasks.md) for detailed breakdown.
 
@@ -103,7 +110,7 @@ See [tasks.md](tasks.md) for detailed breakdown.
 
 **Goal**: Add scrollback buffer storage with layout caching for historical output.
 
-**Status**: Not started (blocked on Phase 2 manual testing completion)
+**Status**: Not started (Phase 2 complete - ready to begin)
 
 **Planned Features**:
 - New `scrollback` module with separated hot/cold data for cache locality
