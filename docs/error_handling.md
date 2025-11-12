@@ -622,14 +622,36 @@ return ERR(ctx, IO, "File was modified during read");
 
 ### FATAL() vs assert()
 
-**Key question:** *"If this happens in production, is continuing more dangerous than crashing?"*
+**Key distinction:** assert() compiles out in release builds (`-DNDEBUG`), FATAL() is always present.
 
-- **Data corruption risk?** → `FATAL()`
-- **Security boundary violation?** → `FATAL()`
-- **Precondition check?** → `assert()`
-- **Defensive programming?** → `assert()`
+**Use `assert()` for:**
+- **Precondition checks** - Caller's responsibility (NULL pointers, bounds checks)
+- **Contract violations** - Bugs in how functions are called
+- **Development-time verification** - Catching programmer errors during testing
 
-**Rule of thumb:** If you're debating whether to use `FATAL()` or `assert()`, choose `assert()`. Use `FATAL()` only for truly unrecoverable corruption.
+**Use `FATAL()` for:**
+- **Unreachable code** - Switch defaults, impossible states after validation
+- **Data structure corruption** - Invariants violated at runtime
+- **Internal logic errors** - Conditions that should be impossible with correct code
+
+**Critical principle:** If reaching a code location means the program is in an undefined/corrupted state, use `FATAL()`. Never let the program continue in an unknown state - immediate termination in production is safer than undefined behavior.
+
+**Examples:**
+```c
+// assert() - precondition, caller's bug
+void process(int *data) {
+    assert(data != NULL);  // LCOV_EXCL_BR_LINE - caller should never pass NULL
+    // ...
+}
+
+// FATAL() - unreachable code, internal corruption
+switch (validated_enum) {
+    case VALUE_A: /* ... */ break;
+    case VALUE_B: /* ... */ break;
+    default:
+        FATAL("Invalid enum value after validation");  // Should never reach here
+}
+```
 
 ---
 
@@ -729,20 +751,18 @@ User input includes:
 When something goes wrong, use this decision tree:
 
 ### 1. Can this happen with correct code and valid input?
-   - **Yes** → Use `Result` (e.g., file not found, out of memory)
+   - **Yes** → Use `Result` (e.g., file not found, out of memory, network timeout)
    - **No** → Continue to #2
 
-### 2. Is this a precondition / function contract?
-   - **Yes** → Use `assert()` (e.g., NULL check, bounds check)
+### 2. Is this a precondition / function contract violation?
+   - **Yes** → Use `assert()` (e.g., NULL pointer passed by caller, out-of-bounds index)
    - **No** → Continue to #3
 
-### 3. Would continuing cause data corruption or security issues?
-   - **Yes** → Use `FATAL()` (e.g., state machine corruption, invariant violation)
-   - **No** → Use `assert()` (trust testing to catch it)
+### 3. Is this unreachable code or impossible internal state?
+   - **Yes** → Use `FATAL()` (e.g., switch defaults, enum values after validation, corrupted data structures)
+   - **No** → Reconsider - you may have a precondition (step 2) or expected error (step 1)
 
-### 4. Is this "impossible" code path after validation?
-   - **Yes** → Use `FATAL()` (e.g., switch default after enum validation)
-   - **No** → Use `assert()`
+**Key insight:** If you reach code that should be impossible to reach, that's `FATAL()` territory. The program is in an undefined state and must terminate immediately, even in production.
 
 ### Quick Reference
 
