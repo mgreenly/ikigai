@@ -96,9 +96,9 @@ res_t ik_array_create(TALLOC_CTX *ctx, size_t element_size, size_t increment) {
 }
 ```
 
-#### Anomalous Conditions
+#### Impossible Conditions
 
-Assert things that should never happen:
+Use UNREACHABLE() for code paths that should be impossible (see ABORT() section below):
 
 ```c
 switch (state) {
@@ -106,8 +106,7 @@ switch (state) {
     case STATE_READY: /* ... */ break;
     case STATE_DONE: /* ... */ break;
     default:
-        assert(false);  // LCOV_EXCL_BR_LINE - should never reach
-        break;
+        UNREACHABLE();  // Logic error - invalid state
 }
 ```
 
@@ -279,7 +278,7 @@ See [error_handling.md](error_handling.md#coverage-requirements-for-assertions) 
 
 While assertions compile out in release builds, some logic errors indicate such severe corruption that continuing would be more dangerous than crashing. For these rare cases, use `ABORT()`.
 
-### The ABORT() Macro
+### The ABORT() and UNREACHABLE() Macros
 
 **Location:** `src/abort.h`
 
@@ -299,16 +298,21 @@ While assertions compile out in release builds, some logic errors indicate such 
         abort(); \
     } while(0)
 
-// For unreachable code paths (switch defaults, after exhaustive if/else)
+// For unreachable code paths (switch defaults, exhaustive if/else)
 #define UNREACHABLE() \
-    ABORT("Unreachable code executed")
+    do { \
+        fprintf(stderr, "FATAL: Unreachable code executed\n  at %s:%d\n", \
+                __FILE__, __LINE__); \
+        fflush(stderr); \
+        abort(); \
+    } while(0)
 
 #endif
 ```
 
-### When to Use ABORT()
+### When to Use ABORT() and UNREACHABLE()
 
-**Use `ABORT()` sparingly** - approximately 1-2 per 1000 lines of code.
+**Use sparingly** - approximately 1-2 per 1000 lines of code for ABORT(), UNREACHABLE() as needed for switch defaults.
 
 #### ✅ Good Candidates for ABORT():
 
@@ -332,16 +336,24 @@ if (state == STATE_CLOSED && fd >= 0) {
 }
 ```
 
-**3. Switch defaults after validation:**
+**3. Switch defaults (always):**
 ```c
-// Enum value was validated earlier in call stack
+// If all cases are covered, default should never be reached
 switch (action.type) {
     case ACTION_INSERT: /* ... */ break;
     case ACTION_DELETE: /* ... */ break;
     case ACTION_MOVE: /* ... */ break;
     default:
-        // Already validated, so this indicates logic error
-        UNREACHABLE();
+        UNREACHABLE();  // Logic error if reached
+}
+
+// Even for internal state machines - not just validated user input
+switch (state) {
+    case STATE_INIT: /* ... */ break;
+    case STATE_READY: /* ... */ break;
+    case STATE_DONE: /* ... */ break;
+    default:
+        UNREACHABLE();  // Invalid state - program logic error
 }
 ```
 
@@ -560,8 +572,7 @@ When something goes wrong, use this decision tree:
 | Invalid enum after validation | `ABORT()` | Logic error - should be impossible |
 | NULL pointer check | `assert()` | Precondition - development aid |
 | Bounds check | `assert()` | Precondition - development aid |
-| Switch default (unvalidated) | `assert(false)` | Defensive programming |
-| Switch default (validated) | `UNREACHABLE()` | Logic error if reached |
+| Switch default | `UNREACHABLE()` | Should never be reached |
 
 ---
 
