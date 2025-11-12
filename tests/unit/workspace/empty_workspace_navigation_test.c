@@ -239,9 +239,9 @@ START_TEST(test_ctrl_u_empty_workspace)
 }
 
 END_TEST
-
 // Test: Ctrl+A after delete to empty should not crash
-START_TEST(test_ctrl_a_after_delete_to_empty) {
+START_TEST(test_ctrl_a_after_delete_to_empty)
+{
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -261,10 +261,11 @@ START_TEST(test_ctrl_a_after_delete_to_empty) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Ctrl+E after delete to empty should not crash
-START_TEST(test_ctrl_e_after_delete_to_empty) {
+START_TEST(test_ctrl_e_after_delete_to_empty)
+{
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -284,10 +285,11 @@ START_TEST(test_ctrl_e_after_delete_to_empty) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Ctrl+K after delete to empty should not crash
-START_TEST(test_ctrl_k_after_delete_to_empty) {
+START_TEST(test_ctrl_k_after_delete_to_empty)
+{
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -307,10 +309,11 @@ START_TEST(test_ctrl_k_after_delete_to_empty) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Ctrl+U after delete to empty should not crash
-START_TEST(test_ctrl_u_after_delete_to_empty) {
+START_TEST(test_ctrl_u_after_delete_to_empty)
+{
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -330,6 +333,7 @@ START_TEST(test_ctrl_u_after_delete_to_empty) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *empty_workspace_navigation_suite(void)

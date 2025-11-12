@@ -142,7 +142,6 @@ START_TEST(test_column_preservation_resets_on_horizontal_move)
 }
 
 END_TEST
-
 /* Test: Multiple consecutive vertical movements preserve column */
 START_TEST(test_multiple_vertical_movements)
 {
@@ -224,6 +223,7 @@ START_TEST(test_multiple_vertical_movements)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Suite creation */

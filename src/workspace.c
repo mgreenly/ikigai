@@ -376,6 +376,43 @@ static bool is_word_char(uint8_t byte)
     return false;
 }
 
+/**
+ * @brief Check if byte is whitespace
+ *
+ * @param byte Byte to check
+ * @return true if whitespace, false otherwise
+ */
+static bool is_whitespace(uint8_t byte)
+{
+    return (byte == ' ' || byte == '\t' || byte == '\n' || byte == '\r');
+}
+
+/**
+ * @brief Character class for word boundary detection
+ */
+typedef enum {
+    CHAR_CLASS_WORD,        /* Alphanumeric or UTF-8 multibyte */
+    CHAR_CLASS_WHITESPACE,  /* Space, tab, newline, etc. */
+    CHAR_CLASS_PUNCTUATION  /* Everything else */
+} char_class_t;
+
+/**
+ * @brief Get character class for a byte
+ *
+ * @param byte Byte to classify
+ * @return Character class
+ */
+static char_class_t get_char_class(uint8_t byte)
+{
+    if (is_word_char(byte)) {
+        return CHAR_CLASS_WORD;
+    } else if (is_whitespace(byte)) {
+        return CHAR_CLASS_WHITESPACE;
+    } else {
+        return CHAR_CLASS_PUNCTUATION;
+    }
+}
+
 res_t ik_workspace_delete_word_backward(ik_workspace_t *workspace)
 {
     assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
@@ -388,30 +425,40 @@ res_t ik_workspace_delete_word_backward(ik_workspace_t *workspace)
     const uint8_t *data = workspace->text->data;
     size_t pos = workspace->cursor_byte_offset;
 
-    /* Step 1: Skip any trailing whitespace/punctuation */
+    /* Step 1: Skip trailing whitespace (always skip whitespace first) */
     while (pos > 0) {
         size_t prev_pos = find_prev_char_start(data, pos);
         uint8_t byte = data[prev_pos];
 
-        if (!is_word_char(byte)) {
+        if (is_whitespace(byte)) {
             pos = prev_pos;
         } else {
             break;
         }
     }
 
-    /* Step 2: Find the start of the word (scan backward through word characters) */
-    while (pos > 0) {
-        size_t prev_pos = find_prev_char_start(data, pos);
-        uint8_t byte = data[prev_pos];
+    /* If we only had whitespace, we're done */
+    if (pos == 0) {
+        goto delete_range;
+    }
 
-        if (is_word_char(byte)) {
+    /* Step 2: Determine the character class at current position */
+    size_t prev_pos = find_prev_char_start(data, pos);
+    char_class_t target_class = get_char_class(data[prev_pos]);
+
+    /* Step 3: Delete backward through characters of the same class */
+    while (pos > 0) {
+        prev_pos = find_prev_char_start(data, pos);
+        char_class_t current_class = get_char_class(data[prev_pos]);
+
+        if (current_class == target_class) {
             pos = prev_pos;
         } else {
             break;
         }
     }
 
+delete_range:
     /* Delete from pos to cursor */
     size_t num_bytes_to_delete = workspace->cursor_byte_offset - pos;
     for (size_t i = 0; i < num_bytes_to_delete; i++) {
