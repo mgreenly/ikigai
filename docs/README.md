@@ -28,7 +28,7 @@ It's in an early stage of development.
 ## Documentation Files
 
 ### Core Documentation
-- **[repl/](repl/)** - REPL terminal interface documentation (Phase 2 in progress)
+- **[repl/](repl/)** - REPL terminal interface documentation (Phase 2 complete)
 - **[architecture.md](architecture.md)** - System architecture and design decisions
 - **[decisions/](decisions/)** - Architecture decision records (ADRs) for key design choices
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
@@ -46,12 +46,12 @@ It's in an early stage of development.
 ## Development Roadmap
 
 ### Current: REPL Terminal Foundation ⏳
-**Phase 2 in progress** - See [repl/](repl/) for details.
+**Phase 2 complete** - See [repl/](repl/) for details.
 
 Building a robust terminal interface with direct rendering:
 - ✅ Phase 0: Foundation (error handling, memory management, generic arrays)
 - ✅ Phase 1: Direct rendering (vterm eliminated, UTF-8 aware cursor positioning)
-- ⏳ Phase 2: Complete REPL event loop (multi-line editing, readline shortcuts)
+- ✅ Phase 2: Complete REPL event loop (multi-line editing, readline shortcuts)
 - 📋 Phase 3: Scrollback buffer with layout caching
 - 📋 Phase 4: Viewport and scrolling integration
 - 📋 Phase 5: Cleanup and documentation
@@ -60,7 +60,9 @@ Building a robust terminal interface with direct rendering:
 - Direct terminal rendering without external terminal emulator
 - UTF-8 support (emoji, CJK, combining characters)
 - Multi-line input with cursor navigation
+- Readline-style shortcuts (Ctrl+A/E/K/U/W)
 - Text wrapping and clean terminal restoration
+- Full REPL event loop with comprehensive test coverage
 
 ### Next: LLM Integration
 - OpenAI API client with streaming
