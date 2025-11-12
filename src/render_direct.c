@@ -148,6 +148,10 @@ res_t ik_render_direct_workspace(ik_render_direct_ctx_t *ctx,
 
     // Allocate framebuffer (~64KB should be enough for typical terminal content)
     // Clear screen (4 bytes) + home escape (3 bytes) + text + newlines + cursor position escape (~15 bytes) + safety margin
+    // Note: Theoretical integer overflow if text_len + newline_count > SIZE_MAX - 27.
+    // This would require ~18 exabytes of text on 64-bit systems. In practice, the
+    // system OOMs and talloc allocation fails long before overflow can occur. This
+    // edge case is not tested as it cannot be reproduced without exabytes of RAM.
     size_t buffer_size = 7 + text_len + newline_count + 20;
     char *framebuffer = ik_talloc_array_wrapper(ctx, sizeof(char), buffer_size);
     if (!framebuffer) {

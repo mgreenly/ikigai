@@ -35,6 +35,13 @@ res_t ik_array_create(TALLOC_CTX *ctx, size_t element_size, size_t increment)
 }
 
 // Grow array capacity (first allocation or doubling)
+// Note: Two theoretical integer overflow scenarios exist but are not tested:
+// 1. Capacity doubling: array->capacity * 2 could overflow if capacity > SIZE_MAX/2
+//    (~9 exabytes on 64-bit systems)
+// 2. Buffer allocation: element_size * new_capacity could overflow
+// Both scenarios would require gigabytes of allocated memory. In practice, the
+// system OOMs and talloc allocation fails long before overflow can occur. These
+// edge cases are not tested as they cannot be reproduced without exabytes of RAM.
 static res_t grow_array(ik_array_t *array)
 {
     assert(array != NULL); // LCOV_EXCL_BR_LINE
