@@ -33,6 +33,7 @@ res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out)
     }
 
     workspace->cursor_byte_offset = 0;
+    workspace->target_column = 0;
     *workspace_out = workspace;
     return OK(workspace);
 }
@@ -54,6 +55,7 @@ void ik_workspace_clear(ik_workspace_t *workspace)
 
     ik_byte_array_clear(workspace->text);
     workspace->cursor_byte_offset = 0;
+    workspace->target_column = 0;
 
     /* Reset cursor to position 0 */
     workspace->cursor->byte_offset = 0;
@@ -117,6 +119,9 @@ res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoin
     /* Advance cursor by number of bytes inserted */
     workspace->cursor_byte_offset += num_bytes;
 
+    /* Reset target column on text modification */
+    workspace->target_column = 0;
+
     /* Update cursor position */
     char *text;
     size_t text_len;
@@ -138,6 +143,9 @@ res_t ik_workspace_insert_newline(ik_workspace_t *workspace)
 
     /* Advance cursor by 1 byte */
     workspace->cursor_byte_offset += 1;
+
+    /* Reset target column on text modification */
+    workspace->target_column = 0;
 
     /* Update cursor position */
     char *text;
@@ -191,6 +199,9 @@ res_t ik_workspace_backspace(ik_workspace_t *workspace)
 
     /* Update cursor to the start of the deleted character */
     workspace->cursor_byte_offset = prev_char_start;
+
+    /* Reset target column on text modification */
+    workspace->target_column = 0;
 
     /* Update cursor position */
     char *text;
@@ -267,6 +278,9 @@ res_t ik_workspace_delete(ik_workspace_t *workspace)
 
     /* Cursor stays at same position (deleted forward, not backward) */
 
+    /* Reset target column on text modification */
+    workspace->target_column = 0;
+
     /* Update cursor position */
     char *text;
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
@@ -298,6 +312,9 @@ res_t ik_workspace_cursor_left(ik_workspace_t *workspace)
     /* Update legacy cursor_byte_offset for backward compatibility */
     workspace->cursor_byte_offset = workspace->cursor->byte_offset;
 
+    /* Reset target column on horizontal movement */
+    workspace->target_column = 0;
+
     return OK(NULL);
 }
 
@@ -318,6 +335,9 @@ res_t ik_workspace_cursor_right(ik_workspace_t *workspace)
 
     /* Update legacy cursor_byte_offset for backward compatibility */
     workspace->cursor_byte_offset = workspace->cursor->byte_offset;
+
+    /* Reset target column on horizontal movement */
+    workspace->target_column = 0;
 
     return OK(NULL);
 }
@@ -404,6 +424,9 @@ res_t ik_workspace_delete_word_backward(ik_workspace_t *workspace)
     size_t text_len;
     ik_workspace_get_text(workspace, &text, &text_len);
     ik_cursor_set_position(workspace->cursor, text, text_len, workspace->cursor_byte_offset);
+
+    /* Reset target column on text modification */
+    workspace->target_column = 0;
 
     return OK(NULL);
 }

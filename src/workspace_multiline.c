@@ -170,6 +170,11 @@ res_t ik_workspace_cursor_up(ik_workspace_t *workspace)
     // Calculate column position within current line (in graphemes)
     size_t column_graphemes = count_graphemes(text + current_line_start, cursor_pos - current_line_start);
 
+    // Save target column for future vertical movements (if not already set)
+    if (workspace->target_column == 0) {
+        workspace->target_column = column_graphemes;
+    }
+
     // Find previous line start (position after newline before current line)
     // current_line_start - 1 is the newline at end of previous line
     size_t prev_line_start = find_line_start(text, current_line_start - 1);
@@ -180,8 +185,11 @@ res_t ik_workspace_cursor_up(ik_workspace_t *workspace)
     // Calculate previous line length in graphemes
     size_t prev_line_graphemes = count_graphemes(text + prev_line_start, prev_line_end - prev_line_start);
 
-    // Position cursor at same column, or at line end if line is shorter
-    size_t target_column = (column_graphemes <= prev_line_graphemes) ? column_graphemes : prev_line_graphemes;
+    // Use saved target column, or current column if just starting vertical movement
+    size_t desired_column = (workspace->target_column > 0) ? workspace->target_column : column_graphemes;
+
+    // Position cursor at target column, or at line end if line is shorter
+    size_t target_column = (desired_column <= prev_line_graphemes) ? desired_column : prev_line_graphemes;
     size_t new_pos = prev_line_start + grapheme_to_byte_offset(text + prev_line_start,
                                                                prev_line_end - prev_line_start,
                                                                target_column);
@@ -220,6 +228,11 @@ res_t ik_workspace_cursor_down(ik_workspace_t *workspace)
     // Calculate column position within current line (in graphemes)
     size_t column_graphemes = count_graphemes(text + current_line_start, cursor_pos - current_line_start);
 
+    // Save target column for future vertical movements (if not already set)
+    if (workspace->target_column == 0) {
+        workspace->target_column = column_graphemes;
+    }
+
     // Next line starts after the newline
     size_t next_line_start = current_line_end + 1;
 
@@ -229,8 +242,11 @@ res_t ik_workspace_cursor_down(ik_workspace_t *workspace)
     // Calculate next line length in graphemes
     size_t next_line_graphemes = count_graphemes(text + next_line_start, next_line_end - next_line_start);
 
-    // Position cursor at same column, or at line end if line is shorter
-    size_t target_column = (column_graphemes <= next_line_graphemes) ? column_graphemes : next_line_graphemes;
+    // Use saved target column, or current column if just starting vertical movement
+    size_t desired_column = (workspace->target_column > 0) ? workspace->target_column : column_graphemes;
+
+    // Position cursor at target column, or at line end if line is shorter
+    size_t target_column = (desired_column <= next_line_graphemes) ? desired_column : next_line_graphemes;
     size_t new_pos = next_line_start + grapheme_to_byte_offset(text + next_line_start,
                                                                next_line_end - next_line_start,
                                                                target_column);
@@ -269,6 +285,9 @@ res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace)
     workspace->cursor_byte_offset = line_start;
     ik_cursor_set_position(workspace->cursor, text, text_len, line_start);
 
+    // Reset target column on horizontal movement
+    workspace->target_column = 0;
+
     return OK(NULL);
 }
 
@@ -298,6 +317,9 @@ res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace)
     // Update cursor position to line end
     workspace->cursor_byte_offset = line_end;
     ik_cursor_set_position(workspace->cursor, text, text_len, line_end);
+
+    // Reset target column on horizontal movement
+    workspace->target_column = 0;
 
     return OK(NULL);
 }
@@ -334,6 +356,9 @@ res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace)
     // Update cursor (text changed, need to resync cursor object)
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
     ik_cursor_set_position(workspace->cursor, text, text_len, cursor_pos);
+
+    // Reset target column on text modification
+    workspace->target_column = 0;
 
     return OK(NULL);
 }
@@ -373,6 +398,9 @@ res_t ik_workspace_kill_line(ik_workspace_t *workspace)
     // Position cursor at line_start (where the deleted line was)
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
     ik_cursor_set_position(workspace->cursor, text, text_len, line_start);
+
+    // Reset target column on text modification
+    workspace->target_column = 0;
 
     return OK(NULL);
 }

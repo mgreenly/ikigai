@@ -25,6 +25,7 @@ typedef struct ik_workspace_t {
     ik_byte_array_t *text;       /**< UTF-8 text buffer */
     ik_cursor_t *cursor;         /**< Cursor position (byte and grapheme offsets) */
     size_t cursor_byte_offset;   /**< Legacy byte offset - deprecated, use cursor instead */
+    size_t target_column;        /**< Preserved column position for multi-line navigation (0 = use current) */
 } ik_workspace_t;
 
 /**
