@@ -11,6 +11,8 @@
 #include <stdarg.h>
 #include <talloc.h>
 
+#include "fatal.h"
+
 // Error codes - start empty, add as needed during Phase 1
 typedef enum {
     OK = 0,
@@ -147,7 +149,7 @@ static inline err_t *_make_error(TALLOC_CTX *ctx,
 // Error code to string conversion
 static inline const char *error_code_str(err_code_t code)
 {
-    switch (code) {
+    switch (code) { // LCOV_EXCL_BR_LINE
         case OK:
             return "OK";
         case ERR_OOM:
@@ -160,8 +162,8 @@ static inline const char *error_code_str(err_code_t code)
             return "IO error";
         case ERR_PARSE:
             return "Parse error";
-        default:
-            return "Unknown error";
+        default: // LCOV_EXCL_LINE
+            FATAL("Invalid error code"); // LCOV_EXCL_LINE
     }
 }
 

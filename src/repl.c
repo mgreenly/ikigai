@@ -1,4 +1,5 @@
 #include "repl.h"
+#include "fatal.h"
 #include "wrapper.h"
 #include <assert.h>
 #include <talloc.h>
@@ -134,35 +135,40 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(action != NULL);   /* LCOV_EXCL_BR_LINE */
 
-    if (action->type == IK_INPUT_CHAR) {
-        return ik_workspace_insert_codepoint(repl->workspace, action->codepoint);
-    } else if (action->type == IK_INPUT_NEWLINE) {
-        return ik_workspace_insert_newline(repl->workspace);
-    } else if (action->type == IK_INPUT_BACKSPACE) {
-        return ik_workspace_backspace(repl->workspace);
-    } else if (action->type == IK_INPUT_DELETE) {
-        return ik_workspace_delete(repl->workspace);
-    } else if (action->type == IK_INPUT_ARROW_LEFT) {
-        return ik_workspace_cursor_left(repl->workspace);
-    } else if (action->type == IK_INPUT_ARROW_RIGHT) {
-        return ik_workspace_cursor_right(repl->workspace);
-    } else if (action->type == IK_INPUT_ARROW_UP) {
-        return ik_workspace_cursor_up(repl->workspace);
-    } else if (action->type == IK_INPUT_ARROW_DOWN) {
-        return ik_workspace_cursor_down(repl->workspace);
-    } else if (action->type == IK_INPUT_CTRL_A) {
-        return ik_workspace_cursor_to_line_start(repl->workspace);
-    } else if (action->type == IK_INPUT_CTRL_E) {
-        return ik_workspace_cursor_to_line_end(repl->workspace);
-    } else if (action->type == IK_INPUT_CTRL_K) {
-        return ik_workspace_kill_to_line_end(repl->workspace);
-    } else if (action->type == IK_INPUT_CTRL_U) {
-        return ik_workspace_kill_line(repl->workspace);
-    } else if (action->type == IK_INPUT_CTRL_W) {
-        return ik_workspace_delete_word_backward(repl->workspace);
-    } else if (action->type == IK_INPUT_CTRL_C) {
-        repl->quit = true;
+    switch (action->type) { // LCOV_EXCL_BR_LINE
+        case IK_INPUT_CHAR:
+            return ik_workspace_insert_codepoint(repl->workspace, action->codepoint);
+        case IK_INPUT_NEWLINE:
+            return ik_workspace_insert_newline(repl->workspace);
+        case IK_INPUT_BACKSPACE:
+            return ik_workspace_backspace(repl->workspace);
+        case IK_INPUT_DELETE:
+            return ik_workspace_delete(repl->workspace);
+        case IK_INPUT_ARROW_LEFT:
+            return ik_workspace_cursor_left(repl->workspace);
+        case IK_INPUT_ARROW_RIGHT:
+            return ik_workspace_cursor_right(repl->workspace);
+        case IK_INPUT_ARROW_UP:
+            return ik_workspace_cursor_up(repl->workspace);
+        case IK_INPUT_ARROW_DOWN:
+            return ik_workspace_cursor_down(repl->workspace);
+        case IK_INPUT_CTRL_A:
+            return ik_workspace_cursor_to_line_start(repl->workspace);
+        case IK_INPUT_CTRL_E:
+            return ik_workspace_cursor_to_line_end(repl->workspace);
+        case IK_INPUT_CTRL_K:
+            return ik_workspace_kill_to_line_end(repl->workspace);
+        case IK_INPUT_CTRL_U:
+            return ik_workspace_kill_line(repl->workspace);
+        case IK_INPUT_CTRL_W:
+            return ik_workspace_delete_word_backward(repl->workspace);
+        case IK_INPUT_CTRL_C:
+            repl->quit = true;
+            return OK(NULL);
+        case IK_INPUT_UNKNOWN:
+            // Unknown actions are ignored
+            return OK(NULL);
+        default: // LCOV_EXCL_LINE
+            FATAL("Invalid input action type"); // LCOV_EXCL_LINE
     }
-
-    return OK(NULL);
 }

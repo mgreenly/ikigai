@@ -71,6 +71,8 @@ void ik_workspace_clear(ik_workspace_t *workspace)
  */
 static size_t encode_utf8(uint32_t codepoint, uint8_t *out)
 {
+    assert(out != NULL); // LCOV_EXCL_BR_LINE
+
     if (codepoint <= 0x7F) {
         /* 1-byte sequence: 0xxxxxxx */
         out[0] = (uint8_t)codepoint;
@@ -165,6 +167,7 @@ res_t ik_workspace_insert_newline(ik_workspace_t *workspace)
  */
 static size_t find_prev_char_start(const uint8_t *data, size_t cursor_pos)
 {
+    assert(data != NULL); // LCOV_EXCL_BR_LINE
     assert(cursor_pos > 0); /* LCOV_EXCL_BR_LINE */
 
     /* Move back at least one byte */
@@ -222,6 +225,8 @@ res_t ik_workspace_backspace(ik_workspace_t *workspace)
  */
 static size_t find_next_char_end(const uint8_t *data, size_t data_len, size_t cursor_pos)
 {
+    assert(data != NULL); // LCOV_EXCL_BR_LINE
+
     /* If cursor at end, return same position */
     if (cursor_pos >= data_len) { /* LCOV_EXCL_BR_LINE */
         return cursor_pos; /* LCOV_EXCL_LINE - defensive: caller checks cursor < data_len */

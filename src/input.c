@@ -1,6 +1,7 @@
 // Input parser module - Convert raw bytes to semantic actions
 #include <assert.h>
 #include <talloc.h>
+#include "fatal.h"
 #include "input.h"
 #include "wrapper.h"
 
@@ -30,6 +31,8 @@ res_t ik_input_parser_create(void *parent, ik_input_parser_t **parser_out)
 // Helper to reset escape sequence state
 static void reset_escape_state(ik_input_parser_t *parser)
 {
+    assert(parser != NULL);  // LCOV_EXCL_BR_LINE
+
     parser->in_escape = false;
     parser->esc_len = 0;
 }
@@ -37,6 +40,8 @@ static void reset_escape_state(ik_input_parser_t *parser)
 // Helper to reset UTF-8 sequence state
 static void reset_utf8_state(ik_input_parser_t *parser)
 {
+    assert(parser != NULL);  // LCOV_EXCL_BR_LINE
+
     parser->in_utf8 = false;
     parser->utf8_len = 0;
     parser->utf8_expected = 0;
@@ -46,6 +51,7 @@ static void reset_utf8_state(ik_input_parser_t *parser)
 // Returns U+FFFD (replacement character) for invalid sequences
 static uint32_t decode_utf8_sequence(const char *buf, size_t len)
 {
+    assert(buf != NULL);           // LCOV_EXCL_BR_LINE
     assert(len >= 1 && len <= 4);  // LCOV_EXCL_BR_LINE
 
     unsigned char b0 = (unsigned char)buf[0];
@@ -73,8 +79,7 @@ static uint32_t decode_utf8_sequence(const char *buf, size_t len)
                     ((uint32_t)(b2 & 0x3F) << 6) |
                     ((uint32_t)(b3 & 0x3F));
     } else {
-        // Should never reach here due to assertion
-        return 0xFFFD;  // LCOV_EXCL_LINE
+        FATAL("Invalid UTF-8 sequence length");  // LCOV_EXCL_LINE
     }
 
     // Validate codepoint (reject overlong encodings, surrogates, out-of-range)
@@ -107,6 +112,9 @@ static uint32_t decode_utf8_sequence(const char *buf, size_t len)
 static void parse_utf8_continuation(ik_input_parser_t *parser, char byte,
                                     ik_input_action_t *action_out)
 {
+    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
+    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
+
     unsigned char ubyte = (unsigned char)byte;
 
     // Validate continuation byte (must be 10xxxxxx, i.e., 0x80-0xBF)
@@ -138,6 +146,9 @@ static void parse_utf8_continuation(ik_input_parser_t *parser, char byte,
 static void parse_escape_sequence(ik_input_parser_t *parser, char byte,
                                   ik_input_action_t *action_out)
 {
+    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
+    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
+
     // Buffer the byte
     parser->esc_buf[parser->esc_len++] = byte;
     parser->esc_buf[parser->esc_len] = '\0';

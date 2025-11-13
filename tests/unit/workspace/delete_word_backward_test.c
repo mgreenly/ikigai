@@ -368,7 +368,7 @@ START_TEST(test_workspace_delete_word_backward_punctuation_boundaries)
     }
 
     /* Helper to check text after delete */
-    #define CHECK_DELETE(expected_text, expected_len) \
+#define CHECK_DELETE(expected_text, expected_len) \
         do { \
             res_t res = ik_workspace_delete_word_backward(workspace); \
             ck_assert(is_ok(&res)); \
@@ -386,7 +386,7 @@ START_TEST(test_workspace_delete_word_backward_punctuation_boundaries)
     CHECK_DELETE("hello-world_", 12);       /* Delete "test" */
     CHECK_DELETE("hello-world", 11);        /* Delete "_" */
 
-    #undef CHECK_DELETE
+#undef CHECK_DELETE
     talloc_free(ctx);
 }
 

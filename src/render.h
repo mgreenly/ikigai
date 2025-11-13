@@ -12,13 +12,9 @@ typedef struct ik_render_ctx_t {
 } ik_render_ctx_t;
 
 // Create render context
-res_t ik_render_create(void *parent, int32_t rows, int32_t cols, int32_t tty_fd,
-                       ik_render_ctx_t **ctx_out);
+res_t ik_render_create(void *parent, int32_t rows, int32_t cols, int32_t tty_fd, ik_render_ctx_t **ctx_out);
 
 // Render workspace to terminal (text + cursor positioning)
-res_t ik_render_workspace(ik_render_ctx_t *ctx,
-                          const char *text,
-                          size_t text_len,
-                          size_t cursor_byte_offset);
+res_t ik_render_workspace(ik_render_ctx_t *ctx, const char *text, size_t text_len, size_t cursor_byte_offset);
 
 #endif /* IKIGAI_RENDER_H */

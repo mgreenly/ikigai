@@ -33,7 +33,9 @@ It's in an early stage of development.
 - **[decisions/](decisions/)** - Architecture decision records (ADRs) for key design choices
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
 - **[memory.md](memory.md)** - Memory management with talloc, ownership rules, patterns
-- **[error_handling.md](error_handling.md)** - Error handling with Result types, assertions, FATAL(), and user input validation
+- **[error_handling.md](error_handling.md)** - Error handling philosophy: Result types, assertions, FATAL(), and decision framework
+- **[error_patterns.md](error_patterns.md)** - Error handling patterns, best practices, and usage examples
+- **[error_testing.md](error_testing.md)** - Error handling testing strategy and coverage requirements
 - **[generic-types.md](generic-types.md)** - Generic base implementation with type-safe wrapper pattern
 - **[build-system.md](build-system.md)** - Build system with quality gates, testing infrastructure, and multi-distro support
 - **[security-analysis.md](security-analysis.md)** - Security analysis of input parsing, UTF-8 handling, and terminal control

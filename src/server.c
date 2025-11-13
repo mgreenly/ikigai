@@ -9,6 +9,7 @@
 
 #define IK_CONFIG_PATH "~/.ikigai/config.json"
 
+/* LCOV_EXCL_START */
 int main(void)
 {
     ik_log_info("ikigai-server %s starting...", IK_VERSION);
@@ -36,3 +37,5 @@ int main(void)
     talloc_free(ctx);
     return EXIT_SUCCESS;
 }
+
+/* LCOV_EXCL_STOP */

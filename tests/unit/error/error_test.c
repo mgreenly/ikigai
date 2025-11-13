@@ -1,5 +1,6 @@
 #include <check.h>
 #include <talloc.h>
+#include <signal.h>
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 
@@ -258,13 +259,6 @@ START_TEST(test_error_message_empty)
     msg = error_message(res.err);
     ck_assert_str_eq(msg, "Out of range");
 
-    // Manually create an error with an invalid error code to test default case
-    err_t *bad_err = talloc_zero(ctx, err_t);
-    bad_err->code = (err_code_t)999;
-    bad_err->msg[0] = '\0';     // Empty message to trigger error_code_str
-    msg = error_message(bad_err);
-    ck_assert_str_eq(msg, "Unknown error");
-
     talloc_free(ctx);
 }
 
@@ -303,7 +297,15 @@ START_TEST(test_error_code_str)
     ck_assert_str_eq(error_code_str(ERR_OOM), "Out of memory");
     ck_assert_str_eq(error_code_str(ERR_INVALID_ARG), "Invalid argument");
     ck_assert_str_eq(error_code_str(ERR_OUT_OF_RANGE), "Out of range");
-    ck_assert_str_eq(error_code_str(999), "Unknown error");
+    ck_assert_str_eq(error_code_str(ERR_IO), "IO error");
+    ck_assert_str_eq(error_code_str(ERR_PARSE), "Parse error");
+}
+
+END_TEST
+// Test error code to string conversion with invalid code (should FATAL)
+START_TEST(test_error_code_str_invalid)
+{
+    error_code_str((err_code_t)999);  // Invalid code - should FATAL
 }
 
 END_TEST
@@ -429,6 +431,7 @@ static Suite *error_suite(void)
     tcase_add_test(tc_core, test_error_message_empty);
     tcase_add_test(tc_core, test_error_fprintf_null_file);
     tcase_add_test(tc_core, test_error_code_str);
+    tcase_add_test_raise_signal(tc_core, test_error_code_str_invalid, SIGABRT);
     tcase_add_test(tc_core, test_oom_error_is_static);
     tcase_add_test(tc_core, test_oom_on_error_allocation);
     tcase_add_test(tc_core, test_oom_after_multiple_errors);

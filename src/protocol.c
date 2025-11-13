@@ -10,6 +10,7 @@
 // Destructor for ik_protocol_msg_t - decrements JSON payload reference
 static int ik_protocol_msg_destructor(ik_protocol_msg_t *msg)
 {
+    assert(msg != NULL); // LCOV_EXCL_BR_LINE
     if (msg->payload) {
         json_decref(msg->payload);
         msg->payload = NULL;

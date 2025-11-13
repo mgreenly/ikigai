@@ -1,6 +1,7 @@
 // Logger module implementation
 
 #include "logger.h"
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +31,8 @@ static void ik_log_check_timestamp_mode(void)
 
 static void ik_log_print_timestamp(FILE *stream)
 {
+    assert(stream != NULL); // LCOV_EXCL_BR_LINE
+
     if (!ik_log_timestamps_enabled)
         return;
 
@@ -43,6 +46,8 @@ static void ik_log_print_timestamp(FILE *stream)
 
 void ik_log_debug(const char *fmt, ...)
 {
+    assert(fmt != NULL); // LCOV_EXCL_BR_LINE
+
     pthread_mutex_lock(&ik_log_mutex);
     ik_log_check_timestamp_mode();
     ik_log_print_timestamp(stdout);
@@ -58,6 +63,8 @@ void ik_log_debug(const char *fmt, ...)
 
 void ik_log_info(const char *fmt, ...)
 {
+    assert(fmt != NULL); // LCOV_EXCL_BR_LINE
+
     pthread_mutex_lock(&ik_log_mutex);
     ik_log_check_timestamp_mode();
     ik_log_print_timestamp(stdout);
@@ -73,6 +80,8 @@ void ik_log_info(const char *fmt, ...)
 
 void ik_log_warn(const char *fmt, ...)
 {
+    assert(fmt != NULL); // LCOV_EXCL_BR_LINE
+
     pthread_mutex_lock(&ik_log_mutex);
     ik_log_check_timestamp_mode();
     ik_log_print_timestamp(stdout);
@@ -88,6 +97,8 @@ void ik_log_warn(const char *fmt, ...)
 
 void ik_log_error(const char *fmt, ...)
 {
+    assert(fmt != NULL); // LCOV_EXCL_BR_LINE
+
     pthread_mutex_lock(&ik_log_mutex);
     ik_log_check_timestamp_mode();
     ik_log_print_timestamp(stderr);
@@ -104,6 +115,8 @@ void ik_log_error(const char *fmt, ...)
 // LCOV_EXCL_START
 void ik_log_fatal(const char *fmt, ...)
 {
+    assert(fmt != NULL); // LCOV_EXCL_BR_LINE
+
     pthread_mutex_lock(&ik_log_mutex);
     ik_log_check_timestamp_mode();
     ik_log_print_timestamp(stderr);
