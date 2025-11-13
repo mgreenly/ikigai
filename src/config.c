@@ -9,6 +9,11 @@
 #include <libgen.h>
 #include <jansson.h>
 
+// NOTE: jansson is used for config parsing only.
+// After Phase 2.5 (server/protocol removal), config.c is the sole jansson user.
+// Will revisit JSON library during Phase 3 (OpenAI API integration).
+// See docs/jansson_to_yyjson_proposal.md for migration plan.
+
 // Expand tilde (~) to HOME directory
 // Returns error if path starts with ~ but HOME is not set
 res_t expand_tilde(TALLOC_CTX *ctx, const char *path)

@@ -70,8 +70,6 @@ LDFLAGS ?=
 
 CLIENT_LIBS ?= -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
 CLIENT_STATIC_LIBS ?=
-SERVER_LIBS ?= -lulfius -ljansson -lcurl -ltalloc -luuid -lb64 -lpthread
-SERVER_STATIC_LIBS ?=
 
 COMPLEXITY_THRESHOLD = 15
 LINE_LENGTH = 120
@@ -87,10 +85,6 @@ LCOV_EXCL_COVERAGE = 188
 CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/workspace_multiline.c src/workspace_cursor.c src/render.c src/repl.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
-
-SERVER_SOURCES = src/server.c src/error.c src/logger.c src/config.c src/wrapper.c
-SERVER_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SERVER_SOURCES))
-SERVER_TARGET = bin/ikigai-server
 
 UNIT_TEST_SOURCES = $(wildcard tests/unit/*/*_test.c)
 UNIT_TEST_TARGETS = $(patsubst tests/unit/%_test.c,$(BUILDDIR)/tests/unit/%_test,$(UNIT_TEST_SOURCES))
@@ -112,7 +106,7 @@ REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
 
-all: $(CLIENT_TARGET) $(SERVER_TARGET)
+all: $(CLIENT_TARGET)
 
 release:
 	@$(MAKE) clean
@@ -120,9 +114,6 @@ release:
 
 $(CLIENT_TARGET): $(CLIENT_OBJ) | bin
 	$(CC) $(LDFLAGS) -o $@ $^ -Wl,-Bstatic $(CLIENT_STATIC_LIBS) -Wl,-Bdynamic $(CLIENT_LIBS)
-
-$(SERVER_TARGET): $(SERVER_OBJ) | bin
-	$(CC) $(LDFLAGS) -o $@ $^ -Wl,-Bstatic $(SERVER_STATIC_LIBS) -Wl,-Bdynamic $(SERVER_LIBS)
 
 $(BUILDDIR)/%.o: src/%.c | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -188,11 +179,9 @@ clean:
 install: all
 	install -d $(DESTDIR)$(bindir)
 	install -m 755 $(CLIENT_TARGET) $(DESTDIR)$(bindir)/ikigai
-	install -m 755 $(SERVER_TARGET) $(DESTDIR)$(bindir)/ikigai-server
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/ikigai
-	rm -f $(DESTDIR)$(bindir)/ikigai-server
 
 # Individual test run targets (enables parallel execution)
 # Usage: make -j8 check (runs tests in parallel)
@@ -503,10 +492,10 @@ install-deps:
 
 help:
 	@echo "Available targets:"
-	@echo "  all             - Build ikigai and ikigai-server (default: BUILD=debug)"
+	@echo "  all             - Build ikigai (default: BUILD=debug)"
 	@echo "  release         - Build in release mode (shortcut for BUILD=release)"
 	@echo "  clean           - Remove all built files, coverage data, and reports"
-	@echo "  install         - Install both binaries to $(prefix)"
+	@echo "  install         - Install binary to $(prefix)"
 	@echo "  uninstall       - Remove installed files"
 	@echo ""
 	@echo "Testing targets:"
