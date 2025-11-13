@@ -44,7 +44,7 @@ res_t config_load(TALLOC_CTX *ctx, const char *path);
 res_t message_parse(TALLOC_CTX *ctx, const char *json);
 ```
 
-**Operations that return Result:**
+**Operations that should return `res_t`:**
 - Heap allocation
 - File I/O, network operations
 - Parsing user input or external data
