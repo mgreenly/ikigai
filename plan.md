@@ -143,11 +143,45 @@ See [tasks.md](tasks.md) Phase 2.5 for detailed task breakdown.
 
 ---
 
+## Phase 2.75: Pretty-Print (PP) Functionality
+
+**Goal**: Implement debug pretty-printing for internal C data structures and JSON/YAML content.
+
+**Status**: Not started (inserted 2025-11-13 before Phase 3)
+
+**Rationale**:
+Enables debugging and inspection capabilities before full scrollback implementation. PP functions can output to stdout initially, then migrate to scrollback buffer once Phase 3 is complete.
+
+**Scope**:
+- Format buffer module (`format.{c,h}`) - printf-style formatting into byte buffers
+- `ik_pp_<type>()` functions for C data structures (shows pointers, sizes, internal state)
+- Temporary REPL `/pp` command integration (stdout output)
+- Optional: JSON pretty-print utilities (defer if not immediately needed)
+
+**Tasks**:
+1. [ ] Implement format buffer module with 100% test coverage
+2. [ ] Implement `ik_pp_workspace()` as first example
+3. [ ] Add basic `/pp` command to REPL (stdout output)
+4. [ ] Manual verification and testing
+5. [ ] (Optional) Additional `ik_pp_*` functions for other types
+
+**Benefits**:
+- Immediate debugging capability (even without scrollback)
+- Smaller, testable increments
+- Informs scrollback requirements
+- Easy migration to scrollback once Phase 3 completes
+
+**Estimated effort**: 4-8 hours (~1000-1500 lines with tests)
+
+See [docs/pp-tasks.md](docs/pp-tasks.md) for detailed task breakdown.
+
+---
+
 ## Phase 3: Scrollback Buffer Module
 
 **Goal**: Add scrollback buffer storage with layout caching for historical output.
 
-**Status**: Not started (blocked on Phase 2.5 completion)
+**Status**: Not started (blocked on Phase 2.75 completion)
 
 **Planned Features**:
 - New `scrollback` module with separated hot/cold data for cache locality
@@ -252,12 +286,29 @@ client.c (32 lines, main only)
        └─ input.{c,h}
 ```
 
+**After Phase 2.75 (PP Functionality)**:
+```
+client.c (32 lines, main only)
+  └─ repl.{c,h}
+       ├─ terminal.{c,h}
+       ├─ render.{c,h}         [Single framebuffer writes]
+       ├─ format.{c,h}                 [Phase 2.75 - printf-style buffer formatting]
+       │    └─ byte_array.{c,h}       [Reused for text accumulation]
+       ├─ workspace.{c,h}              [With ik_pp_workspace() - Phase 2.75]
+       │    ├─ workspace_cursor.{c,h} [Internal cursor management]
+       │    ├─ workspace_multiline.c  [Multi-line operations]
+       │    └─ byte_array.{c,h}       [Dynamic byte buffer]
+       └─ input.{c,h}
+```
+
 **Final State (After Phase 4)**:
 ```
 client.c (32 lines, main only)
   └─ repl.{c,h}
        ├─ terminal.{c,h}
        ├─ render.{c,h}         [Single framebuffer writes]
+       ├─ format.{c,h}                 [Phase 2.75 - printf-style buffer formatting]
+       │    └─ byte_array.{c,h}       [Reused for text accumulation]
        ├─ scrollback.{c,h}             [Phase 3 - hot/cold data separation]
        ├─ workspace.{c,h}              [With layout caching - Phase 3]
        │    ├─ workspace_cursor.{c,h} [Internal cursor management]

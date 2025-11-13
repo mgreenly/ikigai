@@ -114,8 +114,10 @@ static inline err_t *_make_error(TALLOC_CTX *ctx,
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(err->msg, sizeof(err->msg), fmt, args);
+    int32_t written = vsnprintf(err->msg, sizeof(err->msg), fmt, args);
     va_end(args);
+    if (written < 0) FATAL("vsnprintf failed in error message formatting");  // LCOV_EXCL_LINE
+    if ((size_t)written >= sizeof(err->msg)) FATAL("error message truncated");  // LCOV_EXCL_LINE
 
     return err;
 }

@@ -29,6 +29,7 @@ It's in an early stage of development.
 
 ### Core Documentation
 - **[repl/](repl/)** - REPL terminal interface documentation (Phase 2 complete)
+- **[pp-tasks.md](pp-tasks.md)** - Pretty-print functionality for debugging (Phase 2.75)
 - **[architecture.md](architecture.md)** - System architecture and design decisions
 - **[decisions/](decisions/)** - Architecture decision records (ADRs) for key design choices
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
@@ -55,6 +56,7 @@ Building a robust terminal interface with direct rendering:
 - ✅ Phase 1: Direct rendering (vterm eliminated, UTF-8 aware cursor positioning)
 - ✅ Phase 2: Complete REPL event loop (multi-line editing, readline shortcuts)
 - 📋 Phase 2.5: Remove server/protocol code (cleanup before Phase 3)
+- 📋 Phase 2.75: Pretty-print functionality (debug output for C structures and JSON)
 - 📋 Phase 3: Scrollback buffer with layout caching
 - 📋 Phase 4: Viewport and scrolling integration
 - 📋 Phase 5: Cleanup and documentation
