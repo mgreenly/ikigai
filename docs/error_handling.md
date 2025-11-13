@@ -1,15 +1,33 @@
 # Error Handling and Defensive Programming
 
-**Quick Reference:**
-- Philosophy (3 mechanisms): L10-79
-- Result Types - Core API: L81-124
-- Result Types - Macros: L126-147
-- Result Types - Memory: L149-174
-- Assertions - When to Use: L176-236
-- FATAL() - Unrecoverable Errors: L238-302
-- Decision Framework: L304-355
+## Table of Contents
 
-**Related Documentation:**
+### Core Concepts
+- [Philosophy: Three Mechanisms for Three Problems](#philosophy-three-mechanisms-for-three-problems)
+  - [1. Result Types - Expected Runtime Errors](#1-result-types---expected-runtime-errors)
+  - [2. Assertions - Development-Time Contracts](#2-assertions---development-time-contracts)
+  - [3. FATAL() - Unrecoverable Logic Errors](#3-fatal---unrecoverable-logic-errors)
+
+### Result Types
+- [Result Types - Core API](#result-types---core-api)
+- [Result Types - Macros](#result-types---macros)
+- [Result Types - Memory Management](#result-types---memory-management)
+
+### Error Mechanisms
+- [Assertions: When to Use](#assertions-when-to-use)
+  - [Purpose](#purpose)
+  - [When to Assert](#when-to-assert)
+- [FATAL() - Unrecoverable Logic Errors](#fatal---unrecoverable-logic-errors)
+  - [Purpose](#purpose-1)
+  - [The FATAL() Macro](#the-fatal-macro)
+  - [When to Use FATAL()](#when-to-use-fatal)
+  - [FATAL() vs assert()](#fatal-vs-assert)
+
+### Decision Making
+- [Decision Framework](#decision-framework)
+- [Summary](#summary)
+
+### Related Documentation
 - **[error_patterns.md](error_patterns.md)** - Detailed patterns, best practices, and usage examples
 - **[error_testing.md](error_testing.md)** - Testing strategy and coverage requirements
 
