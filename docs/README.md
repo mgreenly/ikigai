@@ -54,6 +54,7 @@ Building a robust terminal interface with direct rendering:
 - ✅ Phase 0: Foundation (error handling, memory management, generic arrays)
 - ✅ Phase 1: Direct rendering (vterm eliminated, UTF-8 aware cursor positioning)
 - ✅ Phase 2: Complete REPL event loop (multi-line editing, readline shortcuts)
+- 📋 Phase 2.5: Remove server/protocol code (cleanup before Phase 3)
 - 📋 Phase 3: Scrollback buffer with layout caching
 - 📋 Phase 4: Viewport and scrolling integration
 - 📋 Phase 5: Cleanup and documentation
@@ -66,35 +67,45 @@ Building a robust terminal interface with direct rendering:
 - Text wrapping and clean terminal restoration
 - Full REPL event loop with comprehensive test coverage
 
-### Next: LLM Integration
+### Next: Core v1.0 Features
+
+The following features will be implemented **in the order listed**:
+
+**1. LLM Integration**
+
+*JSON Library Migration (yyjson)*
+- Migrate from jansson to yyjson for better talloc integration
+- Custom allocator support eliminates reference counting complexity
+- 3× faster parsing for streaming LLM responses
+- See [jansson_to_yyjson_proposal.md](jansson_to_yyjson_proposal.md) for details
+
+*OpenAI API Integration*
 - OpenAI API client with streaming
 - Display AI responses in scrollback
 - Basic conversation flow
 - Response streaming to terminal
 
-### Future: Core v1.0 Features
-
-**Database Integration (PostgreSQL)**
+**2. Database Integration (PostgreSQL)**
 - Persistent conversation history
 - Message storage and retrieval
 - Full-text search capabilities
 - RAG memory access
 
-**Multi-LLM Provider Support**
+**3. Multi-LLM Provider Support**
 - Abstract provider interface
 - OpenAI integration (streaming)
 - Anthropic integration
 - Google integration
 - Unified conversation format
 
-**Local Tool Execution**
+**4. Local Tool Execution**
 - Tool interface design
 - File operations (read, write, search)
 - Shell command execution
 - Code analysis tools
 - Full trust model (user's machine)
 
-**Enhanced Terminal UI**
+**5. Enhanced Terminal UI**
 - Syntax highlighting in code blocks (tree-sitter based)
 - External editor integration ($EDITOR)
 - Command history and session management

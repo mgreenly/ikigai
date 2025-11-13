@@ -11,7 +11,7 @@ Desktop AI coding agent with local tool execution and persistent conversation hi
 ## Dependencies
 
 ### Core Libraries
-- **libjansson** - JSON serialization
+- **yyjson** - JSON serialization (migrating from jansson for talloc integration)
 - **libcurl** - HTTP client for LLM APIs
 - **libb64** - Base64 encoding for identifiers
 - **talloc** - Hierarchical pool-based memory allocator ([why?](decisions/talloc-memory-management.md))

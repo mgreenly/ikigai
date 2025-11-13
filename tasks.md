@@ -1,573 +1,432 @@
-# Phase 2 - Detailed Task List
+# Phase 2.5 - Remove Server and Protocol Code
 
-## Phase 2 - Completed Tasks
+**Status**: Not started
+**Goal**: Remove all server and protocol-related code before Phase 3. This eliminates maintenance burden and jansson complexity since v1.0 is a desktop client only.
 
-- ✅ **Task 1**: ik_repl_render_frame() - REPL rendering helper
-  - 1.1: Write test - successful render (empty workspace)
-  - 1.2: Implement - minimal function signature
-  - 1.3: Implement - actual render logic
-  - 1.4: Write test - render with multi-line text
-  - 1.5: Write test - render with cursor at various positions
-  - 1.6: Write test - error handling / UTF-8
-  - 1.7: Verify task complete (99c4490)
-- ✅ **Task 2**: ik_repl_process_action() - Input action processing
-  - 2.1: Write test - CHAR action
-  - 2.2: Implement - minimal function signature
-  - 2.3: Write tests - basic actions
-  - 2.4: Write test - Ctrl+C quit flag
-  - 2.5: Write tests - edge cases
-  - 2.6: Write test - unknown action
-  - 2.7: Fix file size lint error
-  - 2.8: Verify task complete (coverage: 1074 lines, 91 functions, 373 branches)
-- ✅ **Task 2.5**: Multi-line cursor navigation (cursor_up/down)
-  - 2.5.1-2.5.13: Implementation (672df9b)
-  - 2.5.14: LCOV exclusion reduction (9aea7ca, -8 markers)
-  - 2.5.15: File size fixes (4511c66 - workspace.c → workspace.c + workspace_multiline.c)
-  - 2.5.16: UTF-8 contract enforcement with abort()
-- ✅ **Task 2.6**: Readline-style editing shortcuts
-  - 2.6.1-2.6.2: Input actions for Ctrl+A/E/K/U/W (99a5bf7)
-  - 2.6.3-2.6.4: cursor_to_line_start (Ctrl+A)
-  - 2.6.4.1: Cursor module refactor (0456140 - workspace-internal, void+assertions, LCOV -10)
-  - 2.6.5-2.6.6: cursor_to_line_end (Ctrl+E) (bcdaf48)
-  - 2.6.7-2.6.8: kill_to_line_end (Ctrl+K) (5908d58)
-  - 2.6.8.1: Coverage gaps fixed (1adc72e, d7fc09e - LCOV +2 → 160 total)
-  - 2.6.9-2.6.10: kill_line (Ctrl+U) (df47679 - LCOV +1 → 161 total)
-  - 2.6.11-2.6.12: delete_word_backward (Ctrl+W) (e9e5404 - LCOV +1 → 162 total)
-  - 2.6.13: REPL integration (326098a - added 5 action handlers + repl_readline_test.c)
-  - 2.6.14: Verified complete (coverage: 1257 lines, 103 functions, 467 branches, 162 LCOV)
+## Rationale
+
+v1.0 is a **desktop client** that connects directly to LLM APIs (OpenAI, Anthropic, etc.). The server/protocol code was from an earlier architecture exploration and is no longer needed.
+
+**Benefits of removal**:
+- Eliminates jansson dependency (reference counting complexity)
+- Removes ~700 lines of unused code (src + tests)
+- Simplifies build system (no ikigai-server target)
+- Reduces maintenance burden before Phase 3+
+- Cleaner architecture documentation
+
+**Scope**:
+- Remove server binary target (`src/server.c`)
+- Remove protocol module (`src/protocol.{c,h}`)
+- Remove protocol tests (unit + integration)
+- Remove jansson from config.c (convert to simpler parser or defer)
+- Update Makefile to remove server targets
+- Update documentation to reflect desktop-only architecture
 
 ---
 
-## Task 3: Main Event Loop
+## Task 1: Remove Protocol Module
 
-**Goal**: Move event loop from client.c into testable `ik_repl_run()` function in repl module.
+### 1.1: Delete Protocol Source Files
+- [ ] Delete: `src/protocol.c` (294 lines)
+- [ ] Delete: `src/protocol.h` (38 lines)
+- [ ] Remove from Makefile: `MODULE_SOURCES` reference to `src/protocol.c`
 
-**Architecture Decision**:
-- client.c should contain ONLY main() with coordination logic (no helpers)
-- All testable logic belongs in repl.c module
-- main() will be excluded from coverage via LCOV_EXCL_START/STOP markers
-- Event loop will be unit tested via mockable read() wrapper (Option A)
+### 1.2: Delete Protocol Tests
+- [ ] Delete: `tests/unit/protocol/` directory (4 test files)
+  - `parse_test.c`
+  - `serialize_test.c`
+  - `create_test.c`
+  - `uuid_test.c`
+- [ ] Delete: `tests/integration/protocol_integration_test.c`
+- [ ] Remove from Makefile: All protocol test targets and build rules
 
-**Current State**:
-- Event loop exists in src/client.c:main() (lines 140-176)
-- Two static helpers in client.c duplicate repl.c functions:
-  - `process_action()` → already exists as `ik_repl_process_action()` (tested)
-  - `render_frame()` → already exists as `ik_repl_render_frame()` (tested)
-
-### 3.1: Add ik_read_wrapper() to wrapper.h
-- [x] Add declaration to `src/wrapper.h`:
-  - `MOCKABLE ssize_t ik_read_wrapper(int fd, void *buf, size_t count);`
-  - Follow existing pattern (see ik_write_wrapper for reference)
-  - Add both NDEBUG inline definition and weak symbol declaration
-- [x] Add implementation to `src/wrapper.c`:
-  - Non-NDEBUG implementation that calls `read()`
-- [x] Build: `make clean && make build/ikigai`
-- [x] **Green**: Compiles successfully
-
-### 3.2: Implement ik_repl_run() - Red Step
-- [x] Write test first: `tests/unit/repl/repl_run_test.c`
-  - Test: `test_repl_run_simple_char_input()`
-    - Mock read to inject "a\x03" (char 'a' + Ctrl+C)
-    - Verify workspace contains "a" after run
-    - Verify quit flag is true
-  - Create test helper for mocking read:
-    ```c
-    static const char *mock_input = NULL;
-    static size_t mock_input_pos = 0;
-    ssize_t ik_read_wrapper(int fd, void *buf, size_t count) { ... }
-    ```
-- [x] Build and run test: `make build/tests/unit/repl/repl_run_test && ./build/tests/unit/repl/repl_run_test`
-- [x] **Red**: Test fails (ik_repl_run still returns stub)
-
-### 3.3: Implement ik_repl_run() - Green Step
-- [x] Implement `ik_repl_run()` in `src/repl.c`:
-  - Initial render: `ik_repl_render_frame(repl)`
-  - Main loop while (!repl->quit):
-    - Read byte: `ik_read_wrapper(repl->term->tty_fd, &byte, 1)`
-    - Check for EOF/error (n <= 0)
-    - Parse: `ik_input_parse_byte(repl->input_parser, byte, &action)`
-    - Process: `ik_repl_process_action(repl, &action)`
-    - Re-render if action != UNKNOWN: `ik_repl_render_frame(repl)`
-  - Error handling: return immediately on any error
-  - Return: OK(NULL) on clean exit
-- [x] Build and run test
-- [x] **Green**: Test passes
-
-### 3.4: Write Additional Tests
-- [x] Test: `test_repl_run_multiple_chars()`
-  - Input: "abc\x03"
-  - Verify: workspace = "abc", quit = true
-- [x] Test: `test_repl_run_with_newline()`
-  - Input: "hi\n\x03"
-  - Verify: workspace = "hi\n"
-- [x] Test: `test_repl_run_with_backspace()`
-  - Input: "ab\x7f\x03" (a, b, backspace, Ctrl+C)
-  - Verify: workspace = "a"
-- [x] Test: `test_repl_run_read_eof()`
-  - Mock read returns 0 immediately
-  - Verify: returns OK, quit = false (natural EOF)
-- [x] Test: `test_repl_run_unknown_action()`
-  - Input: "a\x1b" (incomplete escape sequence at EOF)
-  - Verify: handles incomplete input gracefully
-- [x] Test: `test_repl_run_initial_render_error()`
-  - Mock write failure on initial render
-  - Verify: returns ERR
-- [x] Test: `test_repl_run_render_error_in_loop()`
-  - Mock write succeeds initially, fails on second render
-  - Verify: returns ERR
-- [x] Run: `make check`
-- [x] **Green**: All tests pass (8 tests total)
-
-### 3.5: Simplify client.c to Pure Coordination
-- [x] Delete static helpers from client.c:
-  - Remove `process_action()` function (lines 16-43)
-  - Remove `render_frame()` function (lines 46-70)
-- [x] Replace main() body with simple coordination:
-  ```c
-  /* LCOV_EXCL_START */
-  int main(void)
-  {
-      void *root_ctx = talloc_new(NULL);
-      if (!root_ctx) {
-          fprintf(stderr, "Failed to create talloc context\n");
-          return EXIT_FAILURE;
-      }
-
-      ik_repl_ctx_t *repl = NULL;
-      res_t result = ik_repl_init(root_ctx, &repl);
-      if (is_err(&result)) {
-          error_fprintf(stderr, result.err);
-          talloc_free(root_ctx);
-          return EXIT_FAILURE;
-      }
-
-      result = ik_repl_run(repl);
-
-      ik_repl_cleanup(repl);
-      talloc_free(root_ctx);
-
-      return is_ok(&result) ? EXIT_SUCCESS : EXIT_FAILURE;
-  }
-  /* LCOV_EXCL_STOP */
-  ```
-- [x] Update includes (remove unneeded: terminal.h, input.h, workspace.h, render.h, logger.h)
-- [x] Update Makefile: Add src/repl.c to CLIENT_SOURCES
-- [x] Update Makefile: LCOV_EXCL_COVERAGE 162 → 164
-- [x] Build: `make clean && make build/ikigai`
-- [x] **Green**: Compiles successfully
-- [x] Reduced client.c from 182 lines to 32 lines
-
-### 3.6: Verify Quality Gates
-- [x] Run: `make fmt` (format code)
-- [x] Run: `make check` (all tests pass)
-- [x] Run: `make lint` (complexity checks pass)
-- [~] Run: `make coverage` (incomplete - see 3.8 below)
-  - Note: LCOV exclusion count increased by +2 (START/STOP in main)
-  - Expected: 162 → 164 LCOV exclusions ✓
-  - Current: 99.9% lines, 99.6% branches
-  - repl.c: 99.0% lines, 96.4% branches
-- [x] Verify: client.c shows 0% coverage (entire main excluded)
-
-### 3.7: Create Commit
-- [x] All subtasks 3.1-3.6 completed
-- [x] `ik_read_wrapper()` added to wrapper.h/c
-- [x] `ik_repl_run()` implemented with event loop
-- [x] Unit tests cover: happy path, error paths, edge cases (8 tests)
-- [x] client.c simplified to 32 lines (just main)
-- [x] Quality gates pass: fmt, check, lint
-- [x] Commit created: 4e0ea11
-
-### 3.8: Coverage Gap Fix and Test File Refactoring ✅
-**Completed**: Achieved 100% branch coverage and resolved file size lint violations
-
-**Coverage Gap Resolution**:
-- Branch at repl.c:96 (error check after `ik_repl_process_action()` in event loop)
-- Investigation revealed OOM injection was being consumed by initial render
-- Solution: Adjusted `oom_test_fail_after_n_calls(3)` to hit workspace realloc during process_action
-- Result: Branch now covered (taken 6% of the time)
-
-**Test File Refactoring** (to fix 577-line lint violation):
-- Split `repl_run_test.c` (577 lines) into modular files:
-  - `repl_run_test_common.h` (34 lines) - Shared declarations
-  - `repl_run_test_common.c` (53 lines) - Mock implementations
-  - `repl_run_basic_test.c` (340 lines) - Basic functionality tests (6 tests)
-  - `repl_run_error_test.c` (181 lines) - Error handling tests (3 tests)
-- Updated Makefile to build common object and link with both test executables
-- All 9 tests continue to pass with same coverage
-
-**Final Coverage Status**: 100% (479/479 branches)
-- Lines: 100.0% (1271/1271)
-- Functions: 100.0% (103/103)
-- Branches: 100.0% (479/479)
-- LCOV exclusions: 162/164
-
-**Quality Gates**:
-- ✅ `make check` - All tests pass (9 REPL run tests: 6 basic + 3 error)
-- ✅ `make fmt` - Code formatted
-- ✅ `make lint` - All files under 500 line limit, complexity checks pass
-- ✅ `make coverage` - 100% branch coverage achieved
+### 1.3: Quality Check
+- [ ] Build: `make clean && make build/ikigai`
+- [ ] Verify: Client builds successfully without protocol module
+- [ ] Run: `make check` (all remaining tests pass)
 
 ---
 
-## Task 4: Main Entry Point
+## Task 2: Remove Server Binary
 
-**Note**: Task 4 is completed as part of Task 3.5. The client.c simplification happens during Task 3 implementation.
+### 2.1: Delete Server Source
+- [ ] Delete: `src/server.c` (41 lines)
+- [ ] Remove from Makefile: `SERVER_SOURCES`, `SERVER_TARGET`, server build rules
+- [ ] Remove from Makefile: Install/uninstall rules for ikigai-server
 
-### 4.1: Review Current State
-- [x] src/client.c exists with complete working implementation
-- [ ] Review src/client.c:main() (lines 72-182)
-- [ ] Identify what stays vs what moves to REPL:
-  - **Stays in main.c**: root talloc context creation, error reporting
-  - **Moves to repl module**: terminal init, render init, workspace init, input parser init, event loop
-  - **Already in repl**: ik_repl_init() does terminal/render/workspace/input setup
-  - **Already in repl**: ik_repl_run() will do the event loop
+### 2.2: Update Build System
+- [ ] Update Makefile `all` target: Remove ikigai-server
+- [ ] Update Makefile `clean` target: Remove server artifacts
+- [ ] Update Makefile help text: Remove server references
+- [ ] Verify: `make all` builds only client binary
 
-### 4.2: Simplify main.c to Use REPL Module
-- [ ] Once Tasks 1-3 are complete, simplify `src/client.c` to:
-  ```c
-  #include "repl.h"
-  #include "error.h"
-  #include <stdio.h>
-  #include <stdlib.h>
-  #include <talloc.h>
+### 2.3: Quality Check
+- [ ] Build: `make clean && make all`
+- [ ] Verify: Only `bin/ikigai` is built (no ikigai-server)
+- [ ] Run: `make check && make lint`
 
-  int main(void) {
-      // Create root talloc context
-      void *root_ctx = talloc_new(NULL);
-      if (!root_ctx) {
-          fprintf(stderr, "Failed to create talloc context\n");
-          return EXIT_FAILURE;
-      }
+---
 
-      // Initialize REPL
-      ik_repl_ctx_t *repl = NULL;
-      res_t result = ik_repl_init(root_ctx, &repl);
-      if (is_err(&result)) {
-          error_fprintf(stderr, result.err);
-          talloc_free(root_ctx);
-          return EXIT_FAILURE;
-      }
+## Task 3: Remove or Simplify Config Jansson Usage
 
-      // Run REPL event loop
-      result = ik_repl_run(repl);
+**Decision Required**: Config currently uses jansson for JSON parsing. Options:
 
-      // Cleanup
-      ik_repl_cleanup(repl);
-      talloc_free(root_ctx);
+**Option A: Keep jansson temporarily (minimal change)**
+- Keep jansson in config.c only
+- Keep wrapper.c test seam for `json_is_object()`
+- Document that jansson is config-only until LLM integration
+- Defer JSON library decision to Phase 3 (OpenAI integration)
 
-      return is_ok(&result) ? EXIT_SUCCESS : EXIT_FAILURE;
-  }
-  ```
-- [ ] Note: This removes ~120 lines and delegates to REPL module
+**Option B: Convert config to simpler format (more work)**
+- Replace JSON with key=value format or TOML
+- Remove jansson dependency entirely
+- Update config tests
 
-### 4.3: Optionally Rename to main.c
-- [ ] Decide: Keep as client.c or rename to main.c?
-- [ ] If renaming: `git mv src/client.c src/main.c`
-- [ ] Update Makefile if needed (CLIENT_SRC → MAIN_SRC)
-- [ ] Note: plan.md mentions renaming, but it's not critical
+**Recommendation**: **Option A** (keep jansson in config.c for now)
+- Simpler: Removes protocol/server code (~700 lines) without config rewrite
+- Flexible: Revisit JSON library during Phase 3 when we add OpenAI API
+- Safe: Config is well-tested, no need to change working code
 
-### 4.4: Test Build
+### 3.1: Document Jansson Scope (Option A)
+- [ ] Add comment to `src/config.c`: "Jansson used for config parsing only. Will revisit JSON library during Phase 3 (OpenAI integration)."
+- [ ] Keep `src/wrapper.{c,h}` test seam for `json_is_object()`
+- [ ] Keep jansson in Makefile dependencies
+- [ ] Update `docs/architecture.md`: Document jansson scope (config only)
+
+### 3.2: Verify Config Still Works
+- [ ] Build: `make clean && make build/ikigai`
+- [ ] Run: Config tests pass
+- [ ] Manual: Verify config loading works with test file
+
+---
+
+## Task 4: Update Documentation
+
+### 4.1: Update Architecture Docs
+- [ ] Update `docs/architecture.md`:
+  - Remove server/protocol references from component overview
+  - Remove WebSocket/protocol message flow diagrams
+  - Clarify desktop client-only architecture
+  - Document jansson scope (config only, temporary)
+- [ ] Update `docs/README.md`:
+  - Remove server/protocol from roadmap
+  - Clarify v1.0 is desktop client only
+
+### 4.2: Update Build Documentation
+- [ ] Update `docs/build-system.md`:
+  - Remove server build targets
+  - Remove protocol test references
+  - Update dependency list (jansson scope)
+
+### 4.3: Archive Old Design Docs
+- [ ] Create `docs/archive/` directory if it doesn't exist
+- [ ] Move to `docs/archive/`:
+  - `docs/decisions/websocket-communication.md` (server architecture decision)
+  - `docs/decisions/close-websocket-on-error.md` (server error handling)
+- [ ] Review other docs/decisions/*.md files for server/protocol references
+- [ ] Update `docs/decisions/README.md` if it lists archived decisions
+
+---
+
+## Task 5: Verification and Commit
+
+### 5.1: Final Quality Gates
 - [ ] Run: `make clean`
-- [ ] Run: `make build/ikigai`
-- [ ] Verify: executable built successfully
-- [ ] Run: `./build/ikigai` (quick smoke test: type a char, Ctrl+C to exit)
-
-### 4.5: Verify Task 4 Complete
+- [ ] Run: `make all` (builds only ikigai client)
 - [ ] Run: `make check` (all tests pass)
 - [ ] Run: `make lint` (complexity checks pass)
+- [ ] Run: `make coverage` (100% coverage maintained)
+- [ ] Run: `make check-dynamic` (ASan, UBSan, TSan pass)
+- [ ] Manual: `./bin/ikigai` launches and works
+
+### 5.2: Code Statistics
+- [ ] Count lines removed:
+  - `src/protocol.{c,h}` (~332 lines)
+  - `src/server.c` (~41 lines)
+  - Protocol tests (~400+ lines estimated)
+  - Total: ~773+ lines removed
+- [ ] Verify Makefile cleanup (server targets removed)
+- [ ] Verify documentation updated
+
+### 5.3: Create Commit
+- [ ] Git add deletions and documentation updates
+- [ ] Commit message:
+  ```
+  Remove server and protocol code (Phase 2.5)
+
+  v1.0 is a desktop client that connects directly to LLM APIs.
+  The server/protocol code was from an earlier architecture and
+  is no longer needed. This removes ~773 lines of code and
+  eliminates maintenance burden before Phase 3.
+
+  Removed:
+  - src/protocol.{c,h} (332 lines)
+  - src/server.c (41 lines)
+  - tests/unit/protocol/ (4 test files)
+  - tests/integration/protocol_integration_test.c
+  - Makefile server targets and build rules
+
+  Kept:
+  - jansson in config.c (will revisit in Phase 3)
+  - wrapper.c test seam for json_is_object()
+
+  Updated:
+  - docs/architecture.md (desktop client only)
+  - docs/README.md (removed server references)
+  - docs/build-system.md (removed server targets)
+  ```
+
+### 5.4: Verify Post-Commit
+- [ ] Run: `make clean && make all`
+- [ ] Run: `make check && make lint && make coverage`
+- [ ] Verify: All quality gates pass
+- [ ] Ready for Phase 3
+
+---
+
+## Phase 2.5 Completion Checklist
+
+- [ ] Protocol module removed (src + tests)
+- [ ] Server binary removed (src + Makefile targets)
+- [ ] Jansson scope documented (config only)
+- [ ] Documentation updated (architecture, README, build)
+- [ ] All quality gates pass
+- [ ] Commit created with clear message
+- [ ] ~773+ lines of code removed
+- [ ] Ready to proceed to Phase 3
+
+---
+
+# Phase 3 - Scrollback Buffer Module
+
+**Goal**: Add scrollback buffer storage with layout caching for historical output.
+
+See [docs/repl/repl-phase-3.md](docs/repl/repl-phase-3.md) for detailed implementation plan.
+
+## Task 1: Scrollback Module
+
+**Create**: `src/scrollback.h` and `src/scrollback.c`
+
+### 1.1: Design Data Structures (Red Step)
+- [ ] Write test first: `tests/unit/scrollback/scrollback_create_test.c`
+  - Test: Create scrollback buffer with terminal width
+  - Verify: Initial state (count=0, capacity>0, cached_width set)
+- [ ] Define types in `src/scrollback.h`:
+  ```c
+  typedef struct {
+      size_t display_width;
+      size_t physical_lines;
+  } ik_line_layout_t;
+
+  typedef struct ik_scrollback_t {
+      char *text_buffer;
+      size_t *text_offsets;
+      size_t *text_lengths;
+      ik_line_layout_t *layouts;
+      size_t count;
+      size_t capacity;
+      int32_t cached_width;
+      size_t total_physical_lines;
+      size_t buffer_used;
+      size_t buffer_capacity;
+  } ik_scrollback_t;
+  ```
+- [ ] Declare API:
+  ```c
+  res_t ik_scrollback_create(void *parent, int32_t terminal_width,
+                              ik_scrollback_t **scrollback_out);
+  ```
+- [ ] Build and run test
+- [ ] **Red**: Test fails (function not implemented)
+
+### 1.2: Implement Create (Green Step)
+- [ ] Implement `ik_scrollback_create()` in `src/scrollback.c`:
+  - Allocate scrollback struct on parent context
+  - Initialize all fields (count=0, capacity=16, etc.)
+  - Allocate initial arrays (text_offsets, text_lengths, layouts)
+  - Set cached_width from parameter
+- [ ] Build and run test
+- [ ] **Green**: Test passes
+
+### 1.3: Implement Append Line (TDD)
+- [ ] Write test: `test_scrollback_append_single_line()`
+  - Append "hello world"
+  - Verify: count=1, text retrievable, display_width correct
+- [ ] Write test: `test_scrollback_append_multiple_lines()`
+  - Append 3 lines
+  - Verify: count=3, all text retrievable
+- [ ] Write test: `test_scrollback_append_utf8_content()`
+  - Append lines with emoji, CJK, combining chars
+  - Verify: display_width calculated correctly
+- [ ] Implement `ik_scrollback_append_line()`:
+  - Grow arrays if needed (capacity doubling)
+  - Copy text to text_buffer
+  - Calculate display_width (scan UTF-8, call utf8proc_charwidth)
+  - Calculate physical_lines (display_width / terminal_width)
+  - Update total_physical_lines
+- [ ] All tests pass
+
+### 1.4: Implement Layout Cache (TDD)
+- [ ] Write test: `test_scrollback_ensure_layout_no_change()`
+  - Append lines, ensure_layout with same width
+  - Verify: No recalculation (cached_width unchanged)
+- [ ] Write test: `test_scrollback_ensure_layout_resize()`
+  - Append lines, ensure_layout with different width
+  - Verify: physical_lines recalculated for all lines
+- [ ] Implement `ik_scrollback_ensure_layout()`:
+  - If terminal_width == cached_width, return immediately
+  - Recalculate physical_lines for all lines (O(n) arithmetic)
+  - Update total_physical_lines
+  - Update cached_width
+- [ ] All tests pass
+
+### 1.5: Implement Query Functions (TDD)
+- [ ] Write tests for:
+  - `ik_scrollback_get_line_count()`
+  - `ik_scrollback_get_total_physical_lines()`
+  - `ik_scrollback_get_line_text()`
+  - `ik_scrollback_find_logical_line_at_physical_row()`
+- [ ] Implement all query functions
+- [ ] All tests pass
+
+### 1.6: OOM Injection Tests
+- [ ] Test: `test_scrollback_create_oom()`
+  - Inject malloc failure
+  - Verify: Returns ERR with OOM code
+- [ ] Test: `test_scrollback_append_oom()`
+  - Inject realloc failure during append
+  - Verify: Returns ERR, scrollback state unchanged
+- [ ] All OOM tests pass
+
+### 1.7: Verify Quality Gates
+- [ ] Run: `make check` (all scrollback tests pass)
+- [ ] Run: `make lint` (file size < 500 lines, complexity OK)
 - [ ] Run: `make coverage` (100% coverage)
-- [ ] Build succeeds: `make build/ikigai`
-- [ ] Executable runs and exits cleanly
+- [ ] Update Makefile: `LCOV_EXCL_COVERAGE` if needed
+
+### 1.8: Create Commit
+- [ ] Commit: "Add scrollback module with layout caching (Phase 3 Task 1)"
 
 ---
 
-## Task 5: Manual Testing and Polish
+## Task 2: Workspace Layout Caching
 
-### 5.1: Basic Functionality Testing
-- [ ] Launch: `./build/ikigai`
-- [ ] Test: Type simple text
-- [ ] Test: Press Enter (newline)
-- [ ] Test: Backspace and delete
-- [ ] Test: Left/right arrow keys
-- [ ] Test: Exit with Ctrl+C
-- [ ] Verify: Terminal restores cleanly
+### 2.1: Design Layout Cache (Red Step)
+- [ ] Write test: `tests/unit/workspace/layout_cache_test.c`
+  - Test: `test_workspace_ensure_layout()`
+  - Test: `test_workspace_invalidate_layout()`
+- [ ] Update `src/workspace.h`:
+  - Add fields: `physical_lines`, `cached_width`, `layout_dirty`
+  - Declare: `ik_workspace_ensure_layout()`, `ik_workspace_invalidate_layout()`, `ik_workspace_get_physical_lines()`
+- [ ] Run test
+- [ ] **Red**: Test fails
 
-### 5.2: UTF-8 Testing
-- [ ] Test: Type emoji (😀, 👍, 🎉)
-- [ ] Test: Type combining characters (é, ñ, ü via combining)
-- [ ] Test: Type CJK characters (你好, こんにちは, 한글)
-- [ ] Test: Cursor movement through multi-byte chars (left/right)
-- [ ] Verify: All display correctly, cursor positions correct
+### 2.2: Implement Layout Cache (Green Step)
+- [ ] Implement `ik_workspace_ensure_layout()`:
+  - If !layout_dirty && cached_width == terminal_width, return
+  - Scan workspace text (handle newlines, wrapping)
+  - Calculate total physical_lines
+  - Update cached_width, clear layout_dirty
+- [ ] Implement `ik_workspace_invalidate_layout()`:
+  - Set layout_dirty = true
+- [ ] Update all text edit functions to call `invalidate_layout()`
+- [ ] All tests pass
 
-### 5.3: Text Wrapping Testing
-- [ ] Test: Type long line that wraps at terminal boundary
-- [ ] Test: Insert text in middle of wrapped line
-- [ ] Test: Delete text in wrapped line
-- [ ] Test: Backspace through wrapped text
-- [ ] Test: Cursor left/right through wrapped boundary
-- [ ] Verify: Wrapping behavior correct, cursor positions correct
+### 2.3: Comprehensive Tests
+- [ ] Test: Layout calculation with various content
+- [ ] Test: Cache invalidation on insert/delete/backspace
+- [ ] Test: Terminal resize updates layout
+- [ ] Test: Multi-line text with newlines
+- [ ] All tests pass
 
-### 5.4: Multi-line Testing
-- [ ] Test: Type multiple lines with newlines
-- [ ] Test: Arrow up/down through lines
-- [ ] Test: Arrow up/down preserves column position
-- [ ] Test: Arrow up at first line (no-op)
-- [ ] Test: Arrow down at last line (no-op)
-- [ ] Test: Move through lines of different lengths
-- [ ] Verify: Cursor movement correct, column preservation works
+### 2.4: Verify Quality Gates
+- [ ] Run: `make check`
+- [ ] Run: `make lint`
+- [ ] Run: `make coverage` (100%)
 
-### 5.5: Readline Shortcuts Testing
-- [ ] Test: Ctrl+A (beginning of line) from various positions
-- [ ] Test: Ctrl+E (end of line) from various positions
-- [ ] Test: Ctrl+K (kill to end of line)
-- [ ] Test: Ctrl+U (kill entire line) in multi-line text
-- [ ] Test: Ctrl+W (delete word backward) with multiple words
-- [ ] Test: Ctrl+W with punctuation and spaces
-- [ ] Verify: All shortcuts work as expected
-
-### 5.6: Edge Cases and Stress Testing
-- [ ] Test: Empty workspace operations
-- [ ] Test: Very long lines (> 500 chars)
-- [ ] Test: Many newlines (> 50 lines)
-- [ ] Test: Rapid typing
-- [ ] Test: Rapid cursor movement
-- [ ] Test: Rapid backspace/delete
-- [ ] Verify: No crashes, no visual glitches
-
-### 5.7: Terminal Restoration Testing
-- [ ] Test: Exit with Ctrl+C (normal)
-- [ ] Test: Resize terminal while running
-- [ ] Test: Switch to another terminal and back
-- [ ] Verify: Terminal restores to normal mode cleanly
-
-### 5.8: Document Manual Test Results
-- [x] Create file: `docs/repl/phase-2-manual-testing-guide.md` (comprehensive 32-test guide)
-- [x] USER ACTION: Execute manual tests in `docs/repl/phase-2-manual-testing-guide.md`
-- [x] Document: Fill out test results in guide (29/32 passed, 3 bugs found)
-- [x] Document: Issues found and documented
-- [x] Date: 2025-11-11
-
-### 5.9: Polish - Code Formatting
-- [x] Run: `make fmt` (2025-11-11)
-- [x] Review: No formatting changes needed
-- [x] All code properly formatted
-
-### 5.10: Polish - Final Quality Checks
-- [x] Run: `make check` - All tests pass (100%)
-- [x] Run: `make lint` - All complexity/file size checks pass
-- [x] Run: `make coverage` - 100% coverage (1271 lines, 103 functions, 479 branches)
-- [ ] Run: `make check-dynamic` (ASan, UBSan, TSan) - PENDING: Will run after manual tests complete
-- [x] Build: `make all` - Executable built successfully: bin/ikigai
+### 2.5: Create Commit
+- [ ] Commit: "Add workspace layout caching (Phase 3 Task 2)"
 
 ---
 
-## Task 6: Bug Fixes from Manual Testing ✅
+## Task 3: Performance Verification
 
-**Status**: 3 bugs found during manual testing (2025-11-11) - ALL FIXED
-- ✅ Bug 6.1 CRITICAL - FIXED (commit 9b32cff)
-- ✅ Bug 6.2 MEDIUM - FIXED (commit 3c226d3)
-- ✅ Bug 6.3 LOW - FIXED (commits 3c226d3, 4f38c6b)
+### 3.1: Create Performance Test
+- [ ] Create: `tests/performance/scrollback_reflow_perf.c`
+  - Add 1000 lines to scrollback (50 chars avg)
+  - Measure time for terminal resize (80→120 cols)
+  - Target: < 5ms (ideally < 1ms)
+- [ ] Build and run performance test
+- [ ] Document results
 
-### 6.1: Fix Critical Bug - Empty Workspace Crashes ✅
-
-**Bug**: All navigation and readline shortcuts crash on empty workspace
-**Error**: `Assertion 'text != NULL' failed` in `find_line_start()`/`find_line_end()`
-**Affected**: Arrow Up/Down, Ctrl+A, Ctrl+E, Ctrl+K, Ctrl+U
-**Impact**: CRITICAL - Application crashes on normal user input
-**Status**: FIXED (commit 9b32cff, 2025-11-11)
-
-#### 6.1.1: Red - Write Failing Tests ✅
-- [x] Create test: `tests/unit/workspace/empty_workspace_navigation_test.c`
-- [x] Tests for all 6 functions (12 tests total):
-  - Arrow Up/Down navigation
-  - Ctrl+A (cursor_to_line_start)
-  - Ctrl+E (cursor_to_line_end)
-  - Ctrl+K (kill_to_line_end)
-  - Ctrl+U (kill_line)
-- [x] Tests cover both NULL text and empty text (text_len == 0)
-- [x] Run test: confirmed FAILS with assertion errors (RED step)
-
-#### 6.1.2: Green - Fix Implementation ✅
-- [x] Fix all 6 functions in `src/workspace_multiline.c`:
-  - `cursor_up()`, `cursor_down()`
-  - `cursor_to_line_start()`, `cursor_to_line_end()`
-  - `kill_to_line_end()`, `kill_line()`
-  - All add early return if `text == NULL || text_len == 0`
-- [x] Run test: All 12 tests pass (GREEN step)
-
-#### 6.1.3: Verify Quality Gates ✅
-- [x] Run: `make check` (all tests pass)
-- [x] Run: `make lint` (complexity checks pass)
-- [x] Run: `make coverage` (100% - 1283 lines, 103 functions, 503 branches)
-- [x] Verify: No uncovered lines or branches
-
-#### 6.1.4: Manual Verification ✅
-- [x] Build: `make all` (binary built successfully)
-- [x] Verified: Fix prevents crashes on empty workspace operations
-
-#### 6.1.5: Commit ✅
-- [x] All subtasks 6.1.1-6.1.4 completed
-- [x] Quality gates pass
-- [x] Commit created: 9b32cff "Fix crash on empty workspace with all navigation/readline shortcuts"
+### 3.2: Optional Profiling
+- [ ] If performance target not met, profile with perf/gprof
+- [ ] Identify bottlenecks
+- [ ] Optimize if needed
 
 ---
 
-### 6.2: Fix Medium Bug - Column Preservation ✅
+## Task 4: Manual Verification
 
-**Bug**: Cursor returns to clamped position instead of original column
-**Impact**: MEDIUM - UX issue during multi-line editing
-**Root Cause**: Missing `target_column` field in workspace structure
-**Status**: FIXED (commit 3c226d3, 2025-11-11)
+### 4.1: Update client.c Demo
+- [ ] Create demo in `src/client.c` main():
+  - Create scrollback buffer
+  - Add lines with various content (ASCII, UTF-8, long lines)
+  - Query total physical lines
+  - Simulate resize, print timing
+  - Print some lines back
+- [ ] Build: `make all`
+- [ ] Run: `./bin/ikigai`
 
-#### 6.2.1: Design - Add target_column Field ✅
-- [x] Update `ik_workspace_t` in `src/workspace.h`:
-  - Add field: `size_t target_column` (preserved column for up/down)
-- [x] Update `ik_workspace_create()` in `src/workspace.c`:
-  - Initialize `target_column = 0`
-- [x] Document: Field should be reset on horizontal movement or editing
-
-#### 6.2.2: Red - Write Failing Test ✅
-- [x] Created new test file: `tests/unit/workspace/column_preservation_test.c`
-- [x] Test: `test_cursor_up_down_column_preservation()`
-  - Type 3 lines: "short" / "this is a much longer line" / "tiny"
-  - Navigate to column 10 of long line
-  - Arrow Up (clamps to column 5 on "short")
-  - Arrow Down (should return to column 10, not column 5)
-- [x] Run test
-- [x] **Red**: Test failed as expected (returned to column 5)
-
-#### 6.2.3: Green - Fix Implementation ✅
-- [x] Update `ik_workspace_cursor_up()`:
-  - Set `workspace->target_column = column_graphemes` BEFORE moving
-  - Use `target_column` instead of recalculating on next line
-- [x] Update `ik_workspace_cursor_down()`:
-  - Set `workspace->target_column = column_graphemes` BEFORE moving
-  - Use `target_column` instead of recalculating on next line
-- [x] Update horizontal movement functions (cursor_left, cursor_right, Ctrl+A, Ctrl+E):
-  - Reset `workspace->target_column = 0` after horizontal movement
-- [x] Update editing functions (insert, delete, backspace, Ctrl+K, Ctrl+U, Ctrl+W):
-  - Reset `workspace->target_column = 0` after edits
-- [x] Run test
-- [x] **Green**: All tests pass
-
-#### 6.2.4: Verify Quality Gates ✅
-- [x] Run: `make check` - All tests pass
-- [x] Run: `make lint` - All checks pass
-- [x] Run: `make coverage` - 100% coverage (1302 lines, 103 functions, 511 branches)
-
-#### 6.2.5: Manual Verification ✅
-- [x] Build: `make all`
-- [x] Run manual Test 4.2 again
-- [x] Verify: Column preservation works correctly
-
-#### 6.2.6: Commit ✅
-- [x] All subtasks completed
-- [x] Quality gates pass
-- [x] Created commit: 3c226d3 "Fix column preservation in multi-line navigation"
+### 4.2: Verification Checklist
+- [ ] Lines stored correctly
+- [ ] Display width calculated correctly for UTF-8
+- [ ] Physical line counts correct
+- [ ] Resize updates physical_lines
+- [ ] Performance acceptable (1000 lines < 5ms)
+- [ ] No memory leaks (valgrind)
 
 ---
 
-### 6.3: Fix Low Bug - Ctrl+W Punctuation Handling ✅
+## Phase 3 Completion Checklist
 
-**Bug**: Deletes "test." together instead of treating "." as separate boundary
-**Impact**: LOW - Minor UX inconsistency
-**Status**: FIXED (commits 3c226d3, 4f38c6b, 2025-11-11)
-
-#### 6.3.1: Investigate Word Boundary Logic ✅
-- [x] Read `ik_workspace_delete_word_backward()` in `src/workspace.c` (lines 416-479)
-- [x] Identified: Uses `is_word_char()` only - treats all non-alphanumeric as whitespace
-- [x] Root cause: Missing character class differentiation (word/whitespace/punctuation)
-- [x] Commit: 3c226d3 (original implementation during Task 2.6)
-
-#### 6.3.2: Red - Write Failing Test ✅
-- [x] Updated `tests/unit/workspace/delete_word_backward_test.c`
-- [x] Added test: `test_workspace_delete_word_backward_punctuation_boundaries()`
-  - Type: "hello-world_test.txt"
-  - Ctrl+W → should show "hello-world_test." (delete "txt")
-  - Ctrl+W → should show "hello-world_test" (delete ".")
-  - Also tests: "one,two;three", "foo/bar/baz", "start(middle)end"
-- [x] Run test
-- [x] **Red**: Test failed as expected (deleted "test." together)
-
-#### 6.3.3: Green - Fix Implementation ✅
-- [x] Updated `ik_workspace_delete_word_backward()` in `src/workspace.c`:
-  - Added `is_whitespace()` helper (checks space/tab/newline/CR)
-  - Added `char_class_t` enum (WORD, WHITESPACE, PUNCTUATION)
-  - Added `get_char_class()` helper to classify bytes
-  - Rewrote logic to delete by character class boundaries
-  - Behavior: Skip trailing whitespace → delete same-class characters
-- [x] Run test
-- [x] **Green**: All tests pass (9 Ctrl+W tests)
-
-#### 6.3.4: Verify Quality Gates ✅
-- [x] Initial pass: 99.8% branches (524/525), file size 541 lines
-- [x] Coverage fix: Added newline test case (branch 387:5)
-- [x] File size fix: Reduced from 553→498 lines (removed blank lines)
-- [x] Final: 100% coverage (1315 lines, 105 functions, 525 branches)
-- [x] Run: `make check` - All tests pass
-- [x] Run: `make lint` - All checks pass
-
-#### 6.3.5: Manual Verification ✅
-- [x] Build: `make all`
-- [x] Ran manual Test 5.6 from phase-2-manual-testing-guide.md
-- [x] Verified: Punctuation handling now works correctly
-
-#### 6.3.6: Commit ✅
-- [x] Implementation and tests: commit 3c226d3
-- [x] Coverage and file size fixes: commit 4f38c6b
-- [x] All quality gates pass
-- [x] 100% branch coverage achieved
-- [x] File sizes: workspace.c=479 lines, delete_word_backward_test.c=498 lines
+- [ ] Scrollback module implemented (100% coverage)
+- [ ] Workspace layout caching implemented (100% coverage)
+- [ ] All unit tests pass
+- [ ] Performance target met (1000 lines < 5ms)
+- [ ] Manual verification complete
+- [ ] Quality gates pass: `make check && make lint && make coverage`
+- [ ] Ready for Phase 4
 
 ---
 
-## Phase 2 Completion Checklist
+# Phase 4 - Viewport and Scrolling Integration
 
-### Code Complete
-- [x] All Tasks 1-5 subtasks completed
-- [x] Render frame helper implemented with tests
-- [x] Process action helper implemented with tests
-- [x] Multi-line cursor movement implemented with tests
-- [x] Readline-style shortcuts implemented with tests
-- [x] Main event loop implemented with tests
-- [x] client.c entry point updated (simplified to 32 lines)
+**Goal**: Integrate scrollback with REPL, add viewport calculation and scrolling commands.
 
-### Quality Gates (Post-Bug-Fix 6.3 - All Bugs Fixed) ✅
-- [x] `make fmt` - code formatted
-- [x] `make check` - all tests pass (100%)
-- [x] `make lint` - complexity checks pass, all files ≤500 lines
-- [x] `make coverage` - 100% coverage (1315 lines, 105 functions, 525 branches)
-- [x] `make check-dynamic` - ASan, UBSan, TSan all pass (2025-11-11)
-- [x] No uncovered lines (verified 2025-11-11)
-- [x] No uncovered branches (verified 2025-11-11)
+See [docs/repl/repl-phase-4.md](docs/repl/repl-phase-4.md) for detailed implementation plan.
 
-### Manual Testing
-- [x] All manual tests from Task 5 completed and documented (2025-11-11)
-- [x] Results: 29/32 passed (90.6%)
-- [x] Terminal restoration verified
-- [ ] Bug fixes: 3 bugs found (1 critical, 1 medium, 1 low) - Task 6 created
+## Summary
 
-### Bug Fixes (Task 6) ✅
-- [x] Bug 6.1: CRITICAL - Empty workspace crashes (FIXED - commit 9b32cff)
-- [x] Bug 6.2: MEDIUM - Column preservation (FIXED - commit 3c226d3)
-- [x] Bug 6.3: LOW - Ctrl+W punctuation (FIXED - commits 3c226d3, 4f38c6b)
+- Integrate scrollback buffer into REPL context
+- Implement `ik_repl_submit_line()` - move workspace to scrollback
+- Implement `ik_repl_scroll()` - adjust viewport
+- Update `ik_render_frame()` - render scrollback + workspace
+- Add Page Up/Down input actions
+- 100% test coverage requirement
 
-### Documentation
-- [x] Manual test results documented in phase-2-manual-testing-guide.md
-- [x] Bugs documented in tasks.md Task 6
-- [x] Update plan.md after bug fixes complete (2025-11-11)
-- [x] Update docs/repl/README.md (Phase 2 status) (2025-11-11)
+---
 
-### Ready for Phase 3 ✅
-- [x] All Task 6 bug fixes completed (2025-11-11)
-- [x] All quality checks pass (100% coverage, lint clean)
-- [x] `make check-dynamic` passes (ASan, UBSan, TSan - 2025-11-11)
-- [x] Manual re-test of fixed bugs (Test 5.6 passed)
-- [x] Code review for security/memory/error handling/style (2025-11-11 - Grade: A-)
-  - 0 CRITICAL, 0 HIGH issues
-  - 2 MEDIUM issues documented (theoretical integer overflows, commit 025491e)
-  - 3 LOW issues accepted (abort() usage, manual memory pattern, assertions)
-  - 5 INFO positive findings (UTF-8 validation, no unsafe functions, talloc hierarchy, recent fixes)
-- [x] Final commits for Phase 2 completion (2025-11-11)
+# Phase 5 - Cleanup and Documentation
 
-**Status**: Phase 2 COMPLETE - All quality gates passed, code review complete
+**Goal**: Remove vterm from build system, update all documentation, finalize implementation.
+
+See plan.md for detailed checklist.
+
+## Summary
+
+- Remove vterm from distro packaging files
+- Update architecture documentation
+- Run distro verification builds
+- Manual testing on multiple terminal emulators
+- Final polish and completion

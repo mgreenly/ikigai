@@ -4,7 +4,7 @@
 
 This plan transitions from the vterm-based rendering approach to direct terminal rendering as outlined in `docs/eliminate_vterm.md`. We'll build incrementally with manual verification at each phase.
 
-**Current Status**: Phase 2 COMPLETE (2025-11-11) - All tasks done including manual testing, bug fixes, and code review. Ready for Phase 3.
+**Current Status**: Phase 2 COMPLETE (2025-11-11) - All tasks done including manual testing, bug fixes, and code review. Phase 2.5 (server/protocol removal) inserted before Phase 3.
 
 **Strategy**: Replace vterm immediately (no parallel track), verify with client.c demos at each phase.
 
@@ -106,11 +106,48 @@ See [tasks.md](tasks.md) for detailed breakdown.
 
 ---
 
+## Phase 2.5: Remove Server and Protocol Code
+
+**Goal**: Remove all server and protocol-related code before Phase 3. This eliminates maintenance burden and jansson complexity.
+
+**Status**: Not started (inserted 2025-11-13 before Phase 3)
+
+**Rationale**:
+v1.0 is a **desktop client** that connects directly to LLM APIs (OpenAI, Anthropic, etc.). The server/protocol code was from an earlier architecture exploration and is no longer needed.
+
+**Scope**:
+- Remove server binary target (`src/server.c` - 41 lines)
+- Remove protocol module (`src/protocol.{c,h}` - 332 lines)
+- Remove protocol tests (unit + integration - ~400+ lines)
+- Keep jansson in config.c temporarily (revisit in Phase 3)
+- Update Makefile to remove server targets
+- Archive or remove server/protocol documentation
+- Update architecture docs to clarify desktop-only design
+
+**Tasks**:
+1. [ ] Remove protocol module (src + tests)
+2. [ ] Remove server binary (src + Makefile)
+3. [ ] Document jansson scope (config only, temporary)
+4. [ ] Update/archive documentation
+5. [ ] Verification and commit
+
+**Benefits**:
+- ~773+ lines of code removed
+- Eliminates jansson reference counting complexity (except config)
+- Cleaner architecture for Phase 3+
+- No maintenance burden from unused code
+
+**Estimated effort**: 1-2 hours
+
+See [tasks.md](tasks.md) Phase 2.5 for detailed task breakdown.
+
+---
+
 ## Phase 3: Scrollback Buffer Module
 
 **Goal**: Add scrollback buffer storage with layout caching for historical output.
 
-**Status**: Not started (Phase 2 complete - ready to begin)
+**Status**: Not started (blocked on Phase 2.5 completion)
 
 **Planned Features**:
 - New `scrollback` module with separated hot/cold data for cache locality

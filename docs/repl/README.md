@@ -30,12 +30,13 @@ This work is split into incremental phases, each building on the previous.
 - **Phase 0** ✅: Clean up existing error handling + build generic `ik_array_t` utility
 - **Phase 1** ✅: Direct terminal rendering with UTF-8 aware cursor positioning
 - **Phase 2** ✅: Complete REPL event loop with full interactivity
+- **Phase 2.5**: Remove server and protocol code (cleanup before Phase 3)
 - **Phase 3**: Add scrollback buffer module with layout caching
 - **Phase 4**: Integrate viewport and scrolling
 - **Phase 5**: Final polish and documentation
 - **Phase 6**: Terminal enhancements (bracketed paste + colors)
 
-**Current focus**: Phase 3 - scrollback buffer module (Phase 2 complete 2025-11-11)
+**Current focus**: Phase 2.5 - remove server/protocol code (Phase 2 complete 2025-11-11)
 
 Each phase follows strict TDD (Test-Driven Development) with 100% coverage requirement.
 
@@ -60,6 +61,14 @@ Each phase follows strict TDD (Test-Driven Development) with 100% coverage requi
 - ✅ Manual testing (32 tests), bug fixes (3 critical/medium/low)
 - ✅ Code review (Grade: A-, production-ready)
 - ✅ 100% test coverage (1315 lines, 105 functions, 525 branches)
+
+**Phase 2.5** - Remove Server and Protocol Code:
+- Remove server binary (`src/server.c`)
+- Remove protocol module (`src/protocol.{c,h}`)
+- Remove protocol tests (~773+ lines total)
+- Keep jansson in config.c temporarily
+- Update/archive documentation
+- Clean architecture for Phase 3+
 
 **Phase 3** - Scrollback Buffer Module:
 - Scrollback storage with pre-computed display_width
