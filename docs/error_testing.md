@@ -1,11 +1,31 @@
-# Error Handling Testing and Coverage
+# Error Handling Testing and Coverage:
 
-**Quick Reference:**
-- Testing Strategy: L7-105
-- Coverage Requirements: L107-180
-- Out-of-Memory Handling: L182-197
+## Table of Contents
 
-This document covers testing practices and coverage requirements for error handling. See [error_handling.md](error_handling.md) for the core philosophy and usage patterns.
+### Testing
+- [Testing Strategy](#testing-strategy)
+  - [Organization](#organization)
+  - [Testing Result Types](#testing-result-types)
+  - [Testing Assertions](#testing-assertions)
+  - [Testing FATAL()](#testing-fatal)
+
+### Coverage
+- [Coverage Requirements](#coverage-requirements)
+  - [Policy for Assertions](#policy-for-assertions)
+  - [Policy for FATAL()](#policy-for-fatal)
+
+### Special Cases
+- [Out-of-Memory Handling](#out-of-memory-handling)
+  - [Thread Safety](#thread-safety)
+
+### Summary
+- [Summary](#summary)
+  - [Testing Checklist](#testing-checklist)
+  - [Coverage Rules](#coverage-rules)
+
+### Related Documentation
+- **[error_handling.md](error_handling.md)** - Core philosophy and mechanisms
+- **[error_patterns.md](error_patterns.md)** - Detailed patterns and best practices
 
 ---
 

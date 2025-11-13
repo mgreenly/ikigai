@@ -1,12 +1,39 @@
 # Error Handling Patterns and Best Practices
 
-**Quick Reference:**
-- Assertions Best Practices: L9-105
-- Testing Assertions: L107-198
-- User Input Validation: L200-309
-- Common Patterns: L311-402
+## Table of Contents
 
-This document provides detailed patterns and best practices for error handling. See [error_handling.md](error_handling.md) for core philosophy and [error_testing.md](error_testing.md) for testing strategy.
+### Assertion Patterns
+- [Assertion Best Practices](#assertion-best-practices)
+  - [1. Assert Both Sides](#1-assert-both-sides)
+  - [2. Split Compound Assertions](#2-split-compound-assertions)
+  - [3. Every Public Function Asserts Context](#3-every-public-function-asserts-context)
+  - [4. Array Access Always Bounds-Checked](#4-array-access-always-bounds-checked)
+  - [5. Assert Side-Effect Free](#5-assert-side-effect-free)
+  - [6. Use Implications with If-Statements](#6-use-implications-with-if-statements)
+
+### Testing
+- [Testing Assertions](#testing-assertions)
+  - [Test Both Paths](#test-both-paths)
+  - [Why Test Assertions?](#why-test-assertions)
+
+### Validation
+- [User Input Validation](#user-input-validation)
+  - [The Trust Boundary](#the-trust-boundary)
+  - [User Input Functions Must](#user-input-functions-must)
+  - [Pattern: Trust Boundary](#pattern-trust-boundary)
+  - [What Constitutes "User Input"?](#what-constitutes-user-input)
+  - [Principle](#principle)
+
+### Common Patterns
+- [Common Result Patterns](#common-result-patterns)
+  - [Pattern 1: Simple function with error](#pattern-1-simple-function-with-error)
+  - [Pattern 2: Using TRY for clean extraction](#pattern-2-using-try-for-clean-extraction)
+  - [Pattern 3: Propagating with CHECK](#pattern-3-propagating-with-check)
+  - [Pattern 4: Per-Request Context](#pattern-4-per-request-context)
+
+### Related Documentation
+- **[error_handling.md](error_handling.md)** - Core philosophy and mechanisms
+- **[error_testing.md](error_testing.md)** - Testing strategy and coverage requirements
 
 ---
 
@@ -174,7 +201,7 @@ Functions that accept user input are the **trust boundary**. These functions are
 │  - array_operations()               │  ← Trust caller validated
 ├─────────────────────────────────────┤
 │  Deep Logic                         │  ← FATAL() on impossible states
-│  - state_machine_transition()      │  ← Validated but now impossible?
+│  - state_machine_transition()       │  ← Validated but now impossible?
 │  - switch defaults after enum check │
 └─────────────────────────────────────┘
 ```
