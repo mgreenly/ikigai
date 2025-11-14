@@ -27,3 +27,12 @@ make install PREFIX=$HOME/.local
 ```text
 make uninstall PREFIX=$HOME/.local
 ```
+
+## The Story
+
+Right or wrong Google gives this definition of **Ikigai**
+
+> The intersection of what you love, what you are good at, what the world needs, and what you can be paid for.
+
+This project really is all of that for me.  I'm doing it for myself but it brings together so many things I'm interested in; Linux, C, Agentic Coding, etc...  The Linux eco system wouldn't be hurt by having a good native multi-model coding agent that was natively packaged in distros. I may not get paid directly by anyone for a 'C' based 'Linux' coding agent but the deeper understanding I'll gain of Agents, RAG, MCP is valuable to me from a career perspective.  For me it covers all the bases, it is ikigai.
+
