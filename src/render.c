@@ -210,3 +210,110 @@ res_t ik_render_workspace(ik_render_ctx_t *ctx,
 
     return OK(ctx);
 }
+
+// Render scrollback lines to terminal (Phase 4)
+res_t ik_render_scrollback(ik_render_ctx_t *ctx,
+                           ik_scrollback_t *scrollback,
+                           size_t start_line,
+                           size_t line_count,
+                           int32_t *rows_used_out)
+{
+    assert(ctx != NULL);                    // LCOV_EXCL_BR_LINE
+    assert(scrollback != NULL);             // LCOV_EXCL_BR_LINE
+    assert(rows_used_out != NULL);          // LCOV_EXCL_BR_LINE
+
+    // Handle empty scrollback or no lines to render
+    if (line_count == 0) {
+        *rows_used_out = 0;
+        return OK(ctx);
+    }
+
+    // Ensure scrollback layout is up to date
+    res_t result = ik_scrollback_ensure_layout(scrollback, ctx->cols);
+    if (is_err(&result)) { /* LCOV_EXCL_LINE */
+        return result;      /* LCOV_EXCL_LINE */
+    }
+
+    // Validate range
+    size_t total_lines = ik_scrollback_get_line_count(scrollback);
+    if (start_line >= total_lines) {
+        return ERR(ctx, INVALID_ARG, "start_line (%zu) >= total_lines (%zu)", start_line, total_lines);
+    }
+
+    // Clamp line_count to available lines
+    size_t end_line = start_line + line_count;
+    if (end_line > total_lines) {
+        end_line = total_lines;
+        line_count = end_line - start_line;
+    }
+
+    // Calculate total buffer size needed
+    // For each line: text + \r\n (for newline conversion)
+    size_t total_size = 0;
+    for (size_t i = start_line; i < end_line; i++) {
+        const char *line_text = NULL;
+        size_t line_len = 0;
+        result = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
+        if (is_err(&result)) { /* LCOV_EXCL_LINE */
+            return result;      /* LCOV_EXCL_LINE */
+        }
+
+        // Count newlines in this line
+        size_t newline_count = 0;
+        for (size_t j = 0; j < line_len; j++) {
+            if (line_text[j] == '\n') {
+                newline_count++;
+            }
+        }
+
+        total_size += line_len + newline_count + 2;  // +2 for final \r\n
+    }
+
+    // Allocate framebuffer
+    char *framebuffer = ik_talloc_array_wrapper(ctx, sizeof(char), total_size);
+    if (!framebuffer) { /* LCOV_EXCL_BR_LINE */
+        return ERR(ctx, OOM, "Failed to allocate scrollback framebuffer"); /* LCOV_EXCL_LINE */
+    }
+
+    // Build framebuffer
+    size_t offset = 0;
+    int32_t rows_used = 0;
+
+    for (size_t i = start_line; i < end_line; i++) {
+        const char *line_text = NULL;
+        size_t line_len = 0;
+        result = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
+        if (is_err(&result)) { /* LCOV_EXCL_LINE */
+            talloc_free(framebuffer); /* LCOV_EXCL_LINE */
+            return result;      /* LCOV_EXCL_LINE */
+        }
+
+        // Copy line text, converting \n to \r\n
+        for (size_t j = 0; j < line_len; j++) {
+            if (line_text[j] == '\n') {
+                framebuffer[offset++] = '\r';
+                framebuffer[offset++] = '\n';
+            } else {
+                framebuffer[offset++] = line_text[j];
+            }
+        }
+
+        // Add \r\n at end of each line
+        framebuffer[offset++] = '\r';
+        framebuffer[offset++] = '\n';
+
+        // Count rows used by this line (accounts for wrapping)
+        rows_used += (int32_t)scrollback->layouts[i].physical_lines;
+    }
+
+    // Write framebuffer to terminal (offset always > 0 when line_count > 0)
+    ssize_t bytes_written = ik_write_wrapper(ctx->tty_fd, framebuffer, offset);
+    talloc_free(framebuffer);
+
+    if (bytes_written < 0) { /* LCOV_EXCL_LINE */
+        return ERR(ctx, IO, "Failed to write scrollback to terminal"); /* LCOV_EXCL_LINE */
+    }
+
+    *rows_used_out = rows_used;
+    return OK(ctx);
+}

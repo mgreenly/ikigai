@@ -51,6 +51,16 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
         return result;
     }
 
+    // Initialize scrollback buffer (Phase 4)
+    result = ik_scrollback_create(repl, repl->term->screen_cols, &repl->scrollback);
+    if (is_err(&result)) { /* LCOV_EXCL_BR_LINE */
+        talloc_free(repl); /* LCOV_EXCL_LINE */
+        return result;      /* LCOV_EXCL_LINE */
+    }
+
+    // Initialize viewport offset to 0 (at bottom)
+    repl->viewport_offset = 0;
+
     // Set quit flag to false
     repl->quit = false;
 
@@ -112,6 +122,91 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
     }
 
     return OK(NULL);
+}
+
+res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_out)
+{
+    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(viewport_out != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->term != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->workspace != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
+
+    // Ensure workspace layout is up to date
+    res_t result = ik_workspace_ensure_layout(repl->workspace, repl->term->screen_cols);
+    if (is_err(&result)) { /* LCOV_EXCL_LINE */
+        return result;      /* LCOV_EXCL_LINE */
+    }
+
+    // Ensure scrollback layout is up to date
+    result = ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
+    if (is_err(&result)) { /* LCOV_EXCL_LINE */
+        return result;      /* LCOV_EXCL_LINE */
+    }
+
+    // Get physical rows needed
+    size_t workspace_rows = ik_workspace_get_physical_lines(repl->workspace);
+    size_t total_scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    size_t scrollback_line_count = ik_scrollback_get_line_count(repl->scrollback);
+    int32_t terminal_rows = repl->term->screen_rows;
+
+    // Ensure workspace fits on screen (should never occur - invariant)
+    if (workspace_rows > (size_t)terminal_rows) { /* LCOV_EXCL_BR_LINE */
+        FATAL("Workspace exceeds terminal height"); /* LCOV_EXCL_LINE */
+    }
+
+    // Calculate available rows for scrollback
+    size_t available_for_scrollback = (size_t)terminal_rows - workspace_rows;
+
+    // Calculate which scrollback lines to show
+    if (total_scrollback_rows <= available_for_scrollback) {
+        // All scrollback fits on screen
+        viewport_out->scrollback_start_line = 0;
+        viewport_out->scrollback_lines_count = scrollback_line_count;
+        viewport_out->workspace_start_row = total_scrollback_rows;
+    } else {
+        // Scrollback overflows - need to calculate visible window
+        // viewport_offset tells us how many rows we've scrolled up from bottom
+        size_t visible_scrollback_rows = available_for_scrollback;
+
+        // Calculate the bottom position (when offset = 0)
+        // We want to show the last N rows of scrollback
+        size_t rows_from_bottom = repl->viewport_offset;
+
+        // Clamp viewport_offset to valid range
+        size_t max_offset = total_scrollback_rows - available_for_scrollback;
+        if (rows_from_bottom > max_offset) {
+            rows_from_bottom = max_offset;
+        }
+
+        // Calculate which physical row to start from
+        size_t target_physical_row = total_scrollback_rows - available_for_scrollback - rows_from_bottom;
+
+        // Find the logical line that contains this physical row
+        size_t start_line = 0;
+        size_t row_offset = 0;
+        result = ik_scrollback_find_logical_line_at_physical_row(repl->scrollback,
+                                                                   target_physical_row,
+                                                                   &start_line,
+                                                                   &row_offset);
+        if (is_err(&result)) { /* LCOV_EXCL_BR_LINE */
+            FATAL("Failed to find logical line at physical row"); /* LCOV_EXCL_LINE */
+        }
+
+        // Calculate how many logical lines fit in the visible window
+        size_t lines_to_show = 0;
+        size_t rows_used = 0;
+        for (size_t i = start_line; i < scrollback_line_count && rows_used < visible_scrollback_rows; i++) {
+            rows_used += repl->scrollback->layouts[i].physical_lines;
+            lines_to_show++;
+        }
+
+        viewport_out->scrollback_start_line = start_line;
+        viewport_out->scrollback_lines_count = lines_to_show;
+        viewport_out->workspace_start_row = visible_scrollback_rows;
+    }
+
+    return OK(repl);
 }
 
 res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
