@@ -277,10 +277,10 @@ See [docs/repl/repl-phase-3.md](docs/repl/repl-phase-3.md) for detailed implemen
 **Create**: `src/scrollback.h` and `src/scrollback.c`
 
 ### 1.1: Design Data Structures (Red Step)
-- [ ] Write test first: `tests/unit/scrollback/scrollback_create_test.c`
+- [x] Write test first: `tests/unit/scrollback/scrollback_create_test.c`
   - Test: Create scrollback buffer with terminal width
   - Verify: Initial state (count=0, capacity>0, cached_width set)
-- [ ] Define types in `src/scrollback.h`:
+- [x] Define types in `src/scrollback.h`:
   ```c
   typedef struct {
       size_t display_width;
@@ -300,81 +300,81 @@ See [docs/repl/repl-phase-3.md](docs/repl/repl-phase-3.md) for detailed implemen
       size_t buffer_capacity;
   } ik_scrollback_t;
   ```
-- [ ] Declare API:
+- [x] Declare API:
   ```c
   res_t ik_scrollback_create(void *parent, int32_t terminal_width,
                               ik_scrollback_t **scrollback_out);
   ```
-- [ ] Build and run test
-- [ ] **Red**: Test fails (function not implemented)
+- [x] Build and run test
+- [x] **Red**: Test fails (function not implemented)
 
 ### 1.2: Implement Create (Green Step)
-- [ ] Implement `ik_scrollback_create()` in `src/scrollback.c`:
+- [x] Implement `ik_scrollback_create()` in `src/scrollback.c`:
   - Allocate scrollback struct on parent context
   - Initialize all fields (count=0, capacity=16, etc.)
   - Allocate initial arrays (text_offsets, text_lengths, layouts)
   - Set cached_width from parameter
-- [ ] Build and run test
-- [ ] **Green**: Test passes
+- [x] Build and run test
+- [x] **Green**: Test passes
 
 ### 1.3: Implement Append Line (TDD)
-- [ ] Write test: `test_scrollback_append_single_line()`
+- [x] Write test: `test_scrollback_append_single_line()`
   - Append "hello world"
   - Verify: count=1, text retrievable, display_width correct
-- [ ] Write test: `test_scrollback_append_multiple_lines()`
+- [x] Write test: `test_scrollback_append_multiple_lines()`
   - Append 3 lines
   - Verify: count=3, all text retrievable
-- [ ] Write test: `test_scrollback_append_utf8_content()`
+- [x] Write test: `test_scrollback_append_utf8_content()`
   - Append lines with emoji, CJK, combining chars
   - Verify: display_width calculated correctly
-- [ ] Implement `ik_scrollback_append_line()`:
+- [x] Implement `ik_scrollback_append_line()`:
   - Grow arrays if needed (capacity doubling)
   - Copy text to text_buffer
   - Calculate display_width (scan UTF-8, call utf8proc_charwidth)
   - Calculate physical_lines (display_width / terminal_width)
   - Update total_physical_lines
-- [ ] All tests pass
+- [x] All tests pass
 
 ### 1.4: Implement Layout Cache (TDD)
-- [ ] Write test: `test_scrollback_ensure_layout_no_change()`
+- [x] Write test: `test_scrollback_ensure_layout_no_change()`
   - Append lines, ensure_layout with same width
   - Verify: No recalculation (cached_width unchanged)
-- [ ] Write test: `test_scrollback_ensure_layout_resize()`
+- [x] Write test: `test_scrollback_ensure_layout_resize()`
   - Append lines, ensure_layout with different width
   - Verify: physical_lines recalculated for all lines
-- [ ] Implement `ik_scrollback_ensure_layout()`:
+- [x] Implement `ik_scrollback_ensure_layout()`:
   - If terminal_width == cached_width, return immediately
   - Recalculate physical_lines for all lines (O(n) arithmetic)
   - Update total_physical_lines
   - Update cached_width
-- [ ] All tests pass
+- [x] All tests pass
 
 ### 1.5: Implement Query Functions (TDD)
-- [ ] Write tests for:
+- [x] Write tests for:
   - `ik_scrollback_get_line_count()`
   - `ik_scrollback_get_total_physical_lines()`
   - `ik_scrollback_get_line_text()`
   - `ik_scrollback_find_logical_line_at_physical_row()`
-- [ ] Implement all query functions
-- [ ] All tests pass
+- [x] Implement all query functions
+- [x] All tests pass
 
 ### 1.6: OOM Injection Tests
-- [ ] Test: `test_scrollback_create_oom()`
+- [x] Test: `test_scrollback_create_oom()`
   - Inject malloc failure
   - Verify: Returns ERR with OOM code
-- [ ] Test: `test_scrollback_append_oom()`
+- [x] Test: `test_scrollback_append_oom()`
   - Inject realloc failure during append
   - Verify: Returns ERR, scrollback state unchanged
-- [ ] All OOM tests pass
+- [x] All OOM tests pass
 
 ### 1.7: Verify Quality Gates
-- [ ] Run: `make check` (all scrollback tests pass)
-- [ ] Run: `make lint` (file size < 500 lines, complexity OK)
-- [ ] Run: `make coverage` (100% coverage)
-- [ ] Update Makefile: `LCOV_EXCL_COVERAGE` if needed
+- [x] Run: `make check` (all scrollback tests pass)
+- [x] Run: `make lint` (file size < 500 lines, complexity OK)
+- [x] Run: `make coverage` (100% coverage)
+- [x] Update Makefile: `LCOV_EXCL_COVERAGE` if needed
 
 ### 1.8: Create Commit
-- [ ] Commit: "Add scrollback module with layout caching (Phase 3 Task 1)"
+- [x] Commit: "Add scrollback module with layout caching (Phase 3 Task 1)"
 
 ---
 
