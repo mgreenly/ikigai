@@ -127,4 +127,5 @@ void ik_talloc_abort_handler(const char *reason)
 {
     ik_panic_impl(reason ? reason : "talloc abort", "<talloc>", 0);
 }
+
 // LCOV_EXCL_STOP

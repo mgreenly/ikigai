@@ -63,7 +63,7 @@ cat coverage/summary.txt
 
 ## Category 2: Refactor OOM Checks to Single-Line PANIC
 
-**Status**: [ ] Not Started
+**Status**: [X] Complete
 
 **Pattern**: Convert from 3-line (2 exclusions) to 1-line (1 exclusion):
 ```c
@@ -79,42 +79,42 @@ if (is_err(&res)) PANIC("allocation failed"); // LCOV_EXCL_LINE
 ```
 
 ### Task 2.1: src/array.c (2 locations)
-- [ ] Line 78-79: `is_err(&res)` after `grow_array()` in `ik_array_append`
-- [ ] Line 101-102: `is_err(&res)` after `grow_array()` in `ik_array_insert`
-- [ ] Run tests: `make build/tests/unit/array/basic_test && ./build/tests/unit/array/basic_test`
-- [ ] Verify coverage: `make coverage`
+- [X] Line 78-79: `is_err(&res)` after `grow_array()` in `ik_array_append`
+- [X] Line 101-102: `is_err(&res)` after `grow_array()` in `ik_array_insert`
+- [X] Run tests: `make build/tests/unit/array/basic_test && ./build/tests/unit/array/basic_test`
+- [X] Verify coverage: `make coverage`
 
 ### Task 2.2: src/format.c (5 locations)
-- [ ] Line 26-28: `is_err(&res)` after `ik_byte_array_create` in `ik_format_buffer_create`
-- [ ] Line 65-67: `is_err(&res)` in `ik_format_append` loop
-- [ ] Line 87-88: `is_err(&res)` in `ik_format_append_str` loop
-- [ ] Line 106-107: `is_err(&res)` in `ik_format_append_indent` loop
-- [ ] Line 129-130: `is_err(&res)` in `ik_format_get_string`
-- [ ] Run tests: `make build/tests/unit/format/format_test && ./build/tests/unit/format/format_test`
-- [ ] Verify coverage: `make coverage`
+- [X] Line 26-28: `is_err(&res)` after `ik_byte_array_create` in `ik_format_buffer_create`
+- [X] Line 65-67: `is_err(&res)` in `ik_format_appendf` loop
+- [X] Line 87-88: `is_err(&res)` in `ik_format_append` loop
+- [X] Line 106-107: `is_err(&res)` in `ik_format_indent` loop
+- [X] Line 129-130: `is_err(&res)` in `ik_format_get_string`
+- [X] Run tests: `make build/tests/unit/format/format_basic_test && ./build/tests/unit/format/format_basic_test`
+- [X] Verify coverage: `make coverage`
 
 ### Task 2.3: src/workspace.c (4 locations)
-- [ ] Line 22-24: `is_err(&res)` after `ik_byte_array_create` in `ik_workspace_create`
-- [ ] Line 29-31: `is_err(&res)` after `ik_cursor_create` in `ik_workspace_create`
-- [ ] Line 119-120: `is_err(&res)` in `ik_workspace_insert_codepoint` loop
-- [ ] Line 146-147: `is_err(&res)` in `ik_workspace_insert_newline`
-- [ ] Run tests: `make build/tests/unit/workspace/workspace_test && ./build/tests/unit/workspace/workspace_test`
-- [ ] Verify coverage: `make coverage`
+- [X] Line 22-24: `is_err(&res)` after `ik_byte_array_create` in `ik_workspace_create`
+- [X] Line 29-31: `is_err(&res)` after `ik_cursor_create` in `ik_workspace_create`
+- [X] Line 119-120: `is_err(&res)` in `ik_workspace_insert_codepoint` loop
+- [X] Line 146-147: `is_err(&res)` in `ik_workspace_insert_newline`
+- [X] Run tests: `make build/tests/unit/workspace/insert_test && ./build/tests/unit/workspace/insert_test`
+- [X] Verify coverage: `make coverage`
 
-### Task 2.4: src/repl.c (6 locations)
-- [ ] Line 40-42: `is_err(&result)` after `ik_workspace_create`
-- [ ] Line 47-49: `is_err(&result)` after `ik_input_parser_create`
-- [ ] Line 54-56: `is_err(&result)` after `ik_scrollback_create`
-- [ ] Line 287-288: `is_err(&result)` after `ik_format_buffer_create`
-- [ ] Line 334-335: `is_err(&result)` after `ik_repl_handle_slash_command` (may remove if 287-288 fixes it)
-- [ ] Run tests: `make build/tests/unit/repl/repl_test && ./build/tests/unit/repl/repl_test`
-- [ ] Verify coverage: `make coverage`
+### Task 2.4: src/repl.c (5 locations - note: plan said 6 but only 5 OOM checks found)
+- [X] Line 40-42: `is_err(&result)` after `ik_workspace_create`
+- [X] Line 47-49: `is_err(&result)` after `ik_input_parser_create`
+- [X] Line 54-56: `is_err(&result)` after `ik_scrollback_create`
+- [X] Line 287-288: `is_err(&result)` after `ik_format_buffer_create`
+- [X] Line 334-335: `is_err(&result)` after `ik_repl_handle_slash_command`
+- [X] Run tests: All repl tests pass via `make check`
+- [X] Verify coverage: `make coverage`
 
 **Category 2 Verification**:
-- [ ] All multi-line OOM checks converted to single-line PANIC
-- [ ] All tests pass: `make check`
-- [ ] Coverage remains 100%: `make coverage`
-- [ ] Exclusion count reduced by ~12-15 markers
+- [X] All multi-line OOM checks converted to single-line PANIC
+- [X] All tests pass: `make check`
+- [X] Coverage remains 100%: `make coverage`
+- [X] Exclusion markers reduced: ~20-24 LCOV_EXCL_LINE markers removed
 
 ---
 
@@ -440,10 +440,10 @@ grep -r "LCOV_EXCL" src/ | wc -l
 
 ## Progress Tracking
 
-**Overall Progress**: 1/8 categories complete
+**Overall Progress**: 2/8 categories complete
 
 - [X] Category 1: Remove Dead Code
-- [ ] Category 2: Refactor OOM Checks
+- [X] Category 2: Refactor OOM Checks
 - [ ] Category 3: Add Environmental/IO Tests
 - [ ] Category 4: Verify Invariant Format
 - [ ] Category 5: Verify UTF-8 Validation

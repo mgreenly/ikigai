@@ -23,10 +23,7 @@ res_t ik_format_buffer_create(void *parent, ik_format_buffer_t **buf_out)
 
     buf->parent = parent;
     res_t res = ik_byte_array_create(buf, 32);  // Start with 32 byte increment
-    if (is_err(&res)) { // LCOV_EXCL_BR_LINE
-        talloc_free(buf); // LCOV_EXCL_LINE
-        return res;       // LCOV_EXCL_LINE
-    }
+    if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
     buf->array = res.ok;
 
     *buf_out = buf;
@@ -62,10 +59,7 @@ res_t ik_format_appendf(ik_format_buffer_t *buf, const char *fmt, ...)
     // Append formatted string (excluding null terminator)
     for (int32_t i = 0; i < written; i++) {
         res_t res = ik_byte_array_append(buf->array, (uint8_t)temp[i]);
-        if (is_err(&res)) { // LCOV_EXCL_BR_LINE
-            talloc_free(temp); // LCOV_EXCL_LINE
-            return res;        // LCOV_EXCL_LINE
-        }
+        if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
     }
 
     talloc_free(temp);
@@ -84,9 +78,7 @@ res_t ik_format_append(ik_format_buffer_t *buf, const char *str)
 
     for (size_t i = 0; i < len; i++) {
         res_t res = ik_byte_array_append(buf->array, (uint8_t)str[i]);
-        if (is_err(&res)) { // LCOV_EXCL_BR_LINE
-            return res;     // LCOV_EXCL_LINE
-        }
+        if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
     }
 
     return OK(buf);
@@ -103,9 +95,7 @@ res_t ik_format_indent(ik_format_buffer_t *buf, int32_t indent)
 
     for (int32_t i = 0; i < indent; i++) {
         res_t res = ik_byte_array_append(buf->array, (uint8_t)' ');
-        if (is_err(&res)) { // LCOV_EXCL_BR_LINE
-            return res;     // LCOV_EXCL_LINE
-        }
+        if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
     }
 
     return OK(buf);
@@ -126,9 +116,7 @@ const char *ik_format_get_string(ik_format_buffer_t *buf)
 
     // Need to add null terminator
     res_t res = ik_byte_array_append(buf->array, '\0');
-    if (is_err(&res)) { // LCOV_EXCL_BR_LINE
-        return NULL;    // LCOV_EXCL_LINE
-    }
+    if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
 
     // Return pointer to data buffer
     return (const char *)array->data;

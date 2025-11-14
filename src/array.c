@@ -75,9 +75,7 @@ res_t ik_array_append(ik_array_t *array, const void *element)
     // Grow if needed
     if (array->size >= array->capacity) {
         res_t res = grow_array(array);
-        if (is_err(&res)) { // LCOV_EXCL_BR_LINE
-            return res;     // LCOV_EXCL_LINE
-        }
+        if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
     }
 
     // Copy element to end
@@ -98,9 +96,7 @@ res_t ik_array_insert(ik_array_t *array, size_t index, const void *element)
     // Grow if needed
     if (array->size >= array->capacity) {
         res_t res = grow_array(array);
-        if (is_err(&res)) { // LCOV_EXCL_BR_LINE
-            return res;     // LCOV_EXCL_LINE
-        }
+        if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
     }
 
     // Shift elements right to make room

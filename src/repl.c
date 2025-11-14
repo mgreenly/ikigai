@@ -37,24 +37,15 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
 
     // Initialize workspace
     result = ik_workspace_create(repl, &repl->workspace);
-    if (is_err(&result)) { // LCOV_EXCL_BR_LINE
-        talloc_free(repl); // LCOV_EXCL_LINE
-        return result;     // LCOV_EXCL_LINE
-    }
+    if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
 
     // Initialize input parser
     result = ik_input_parser_create(repl, &repl->input_parser);
-    if (is_err(&result)) { // LCOV_EXCL_BR_LINE
-        talloc_free(repl); // LCOV_EXCL_LINE
-        return result;     // LCOV_EXCL_LINE
-    }
+    if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
 
     // Initialize scrollback buffer (Phase 4)
     result = ik_scrollback_create(repl, repl->term->screen_cols, &repl->scrollback);
-    if (is_err(&result)) { /* LCOV_EXCL_BR_LINE */
-        talloc_free(repl); /* LCOV_EXCL_LINE */
-        return result;      /* LCOV_EXCL_LINE */
-    }
+    if (is_err(&result))PANIC("allocation failed");  /* LCOV_EXCL_BR_LINE */
 
     // Initialize viewport offset to 0 (at bottom)
     repl->viewport_offset = 0;
@@ -284,9 +275,7 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
         // Create format buffer for output
         ik_format_buffer_t *buf = NULL;
         res_t result = ik_format_buffer_create(repl, &buf);
-        if (is_err(&result)) { // LCOV_EXCL_BR_LINE
-            return result;     // LCOV_EXCL_LINE
-        }
+        if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
 
         // Pretty-print the workspace
         ik_pp_workspace(repl->workspace, buf, 0);
@@ -331,9 +320,7 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
                 res_t result = ik_repl_handle_slash_command(repl, command);
                 talloc_free(command);
 
-                if (is_err(&result)) { // LCOV_EXCL_BR_LINE
-                    return result;     // LCOV_EXCL_LINE
-                }
+                if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
 
                 // Clear workspace after executing command
                 ik_workspace_clear(repl->workspace);
