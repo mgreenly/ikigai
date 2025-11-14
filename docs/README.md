@@ -29,7 +29,6 @@ It's in an early stage of development.
 
 ### Core Documentation
 - **[repl/](repl/)** - REPL terminal interface documentation (Phase 2 complete)
-- **[pp-tasks.md](pp-tasks.md)** - Pretty-print functionality for debugging (Phase 2.75)
 - **[architecture.md](architecture.md)** - System architecture and design decisions
 - **[decisions/](decisions/)** - Architecture decision records (ADRs) for key design choices
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
@@ -55,9 +54,9 @@ Building a robust terminal interface with direct rendering:
 - ✅ Phase 0: Foundation (error handling, memory management, generic arrays)
 - ✅ Phase 1: Direct rendering (vterm eliminated, UTF-8 aware cursor positioning)
 - ✅ Phase 2: Complete REPL event loop (multi-line editing, readline shortcuts)
-- 📋 Phase 2.5: Remove server/protocol code (cleanup before Phase 3)
-- 📋 Phase 2.75: Pretty-print functionality (debug output for C structures and JSON)
-- 📋 Phase 3: Scrollback buffer with layout caching
+- ✅ Phase 2.5: Remove server/protocol code (cleanup complete)
+- ⚙️ Phase 2.75: Pretty-print infrastructure (format module, pp_helpers, pp functions - REPL integration deferred)
+- 📋 Phase 3: Scrollback buffer with layout caching (includes `/pp` command integration)
 - 📋 Phase 4: Viewport and scrolling integration
 - 📋 Phase 5: Cleanup and documentation
 
@@ -68,6 +67,7 @@ Building a robust terminal interface with direct rendering:
 - Readline-style shortcuts (Ctrl+A/E/K/U/W)
 - Text wrapping and clean terminal restoration
 - Full REPL event loop with comprehensive test coverage
+- Pretty-print infrastructure ready (awaits scrollback for `/pp` command)
 
 ### Next: Core v1.0 Features
 

@@ -4,19 +4,17 @@
 
 **Goal**: Implement debug pretty-printing functionality for internal C data structures and JSON/YAML content display.
 
-**Status**: Tasks 1-4 COMPLETE with ⚠️ **CRITICAL REFACTORING NEEDED** before Task 5
+**Status**: INFRASTRUCTURE COMPLETE ✅ - REPL Integration DEFERRED to Phase 3
 
-**Current Progress**:
+**Completed Tasks**:
 - ✅ Task 1: Format buffer module (100% coverage)
 - ✅ Task 2: Format module tests (100% coverage)
 - ✅ Task 3: `ik_pp_workspace()` implementation (100% coverage)
 - ✅ Task 4: Comprehensive unit tests (100% coverage)
-- ⚠️ **Task 4.5: REFACTORING NEEDED** - Add generic helpers and recursive nesting (see details below)
-- ⏸️ Task 5: REPL integration (blocked on Task 4.5)
+- ✅ Task 4.5: Generic helpers and recursive nesting (refactoring complete)
+- ⏸️ Task 5: REPL integration with `/pp` command - **DEFERRED to Phase 3**
 
-**Priority**: High - enables debugging and inspection before full scrollback implementation
-
-**⚠️ NEXT SESSION**: Complete Task 4.5 refactoring BEFORE proceeding to Task 5
+**Priority**: High - PP infrastructure ready, REPL integration awaits scrollback buffer
 
 ## Overview
 
@@ -183,11 +181,9 @@ size_t ik_format_get_length(ik_format_buffer_t *buf);
 - Supports indentation for nested structure display
 - Thread-safe read-only inspection (const workspace pointer)
 
-**⚠️ REFACTORING NEEDED - Before Task 5**:
+**✅ REFACTORING COMPLETE**:
 
-The current implementation has design gaps that should be fixed before adding more pp_* functions:
-
-1. **Missing Generic Helpers** - Need reusable formatters in `src/pp_helpers.c`:
+Generic helpers have been implemented in `src/pp_helpers.c` with the following functions:
    ```c
    void ik_pp_header(ik_format_buffer_t *buf, int32_t indent, const char *type, const void *ptr);
    void ik_pp_pointer(ik_format_buffer_t *buf, int32_t indent, const char *name, const void *ptr);
@@ -198,28 +194,14 @@ The current implementation has design gaps that should be fixed before adding mo
    void ik_pp_bool(ik_format_buffer_t *buf, int32_t indent, const char *name, bool value);
    ```
 
-2. **Not Properly Recursive** - Should call `ik_pp_cursor()` for nested cursor structure instead of manually extracting cursor data:
-   ```c
-   // Current (wrong):
-   ik_cursor_get_position(workspace->cursor, &byte_offset, &grapheme_offset);
-   ik_format_appendf(buf, "  cursor byte: %zu\n", byte_offset);
-
-   // Should be:
-   ik_pp_cursor(workspace->cursor, buf, indent + 2);  // Recursive call
-   ```
-
-3. **Hardcoded Indentation** - Uses `"  "` (2 spaces) for nested fields instead of `indent + 2` parameter
-
-**Refactoring Plan**:
-- Create `src/pp_helpers.c` with generic formatters
-- Implement `ik_pp_cursor()` in `src/workspace_cursor_pp.c`
-- Refactor `ik_pp_workspace()` to use helpers and recursive calls
-- Update tests to verify recursive nesting works correctly
-- Ensure 100% coverage maintained
+The refactoring has been completed with:
+- Generic formatters implemented in `src/pp_helpers.c`
+- `ik_pp_cursor()` implemented in `src/workspace_cursor_pp.c`
+- `ik_pp_workspace()` refactored to use helpers and recursive calls
+- Tests updated to verify recursive nesting
+- 100% coverage maintained
 
 This establishes proper foundation for all future pp_* functions with clean recursive nesting.
-
-**Next**: Task 4 - Unit tests (already completed as part of Task 3)
 
 ---
 
@@ -295,56 +277,61 @@ void ik_pp_block(const Block* block, ik_format_buffer_t *buf, int indent) {
 
 **Actual size**: 344 lines (8 comprehensive tests)
 
-### Task 4.5: Refactor for Generic Helpers and Recursive Nesting ⚠️ CRITICAL
+### Task 4.5: Refactor for Generic Helpers and Recursive Nesting ✅ COMPLETE
 
-**Status**: Not started (MUST complete before Task 5)
+**Status**: COMPLETE (2025-11-13)
 
 **Goal**: Establish proper foundation for all pp_* functions with reusable helpers and recursive structure nesting.
 
-**Why Critical**: Current implementation has design gaps that will cause code duplication and maintenance issues as more pp_* functions are added.
+**Completed**:
 
-**Tasks**:
+1. **Created Generic Helper Module** (`src/pp_helpers.c` + `src/pp_helpers.h`):
+   - ✅ `ik_pp_header()` - Print type header with address
+   - ✅ `ik_pp_pointer()` - Print named pointer field
+   - ✅ `ik_pp_size_t()` - Print named size_t field
+   - ✅ `ik_pp_int32()` - Print named int32_t field
+   - ✅ `ik_pp_uint32()` - Print named uint32_t field
+   - ✅ `ik_pp_string()` - Print named string field (with escaping)
+   - ✅ `ik_pp_bool()` - Print named boolean field
+   - ✅ All helpers respect indent parameter for proper nesting
 
-1. **Create Generic Helper Module** (`src/pp_helpers.c` + `src/pp_helpers.h`):
-   - `ik_pp_header()` - Print type header with address
-   - `ik_pp_pointer()` - Print named pointer field
-   - `ik_pp_size_t()` - Print named size_t field
-   - `ik_pp_int32()` - Print named int32_t field
-   - `ik_pp_uint32()` - Print named uint32_t field
-   - `ik_pp_string()` - Print named string field (with escaping)
-   - `ik_pp_bool()` - Print named boolean field
-   - All helpers respect indent parameter for proper nesting
+2. **Implemented ik_pp_cursor()** (`src/workspace_cursor_pp.c`):
+   - ✅ Pretty-print cursor structure recursively
+   - ✅ Shows byte_offset and grapheme_offset
+   - ✅ Uses generic helpers from pp_helpers.c
 
-2. **Implement ik_pp_cursor()** (`src/workspace_cursor_pp.c`):
-   - Pretty-print cursor structure recursively
-   - Shows byte_offset and grapheme_offset
-   - Uses generic helpers from pp_helpers.c
+3. **Refactored ik_pp_workspace()**:
+   - ✅ Uses `ik_pp_header()` for header formatting
+   - ✅ Uses `ik_pp_size_t()` for text_len and target_column
+   - ✅ Calls `ik_pp_cursor(workspace->cursor, buf, indent + 2)` for recursive nesting
+   - ✅ Uses `ik_pp_string()` for text content
+   - ✅ Proper indent handling throughout
 
-3. **Refactor ik_pp_workspace()**:
-   - Use `ik_pp_header()` instead of manual header formatting
-   - Use `ik_pp_size_t()` for text_len and target_column
-   - Call `ik_pp_cursor(workspace->cursor, buf, indent + 2)` for recursive nesting
-   - Use `ik_pp_string()` for text content
-   - Proper indent handling (no hardcoded "  ")
+4. **Updated Tests**:
+   - ✅ Added tests for all generic helper functions
+   - ✅ Added tests for ik_pp_cursor()
+   - ✅ Updated ik_pp_workspace tests to verify recursive nesting
+   - ✅ Maintained 100% coverage
 
-4. **Update Tests**:
-   - Add tests for all generic helper functions
-   - Add tests for ik_pp_cursor()
-   - Update ik_pp_workspace tests to verify recursive nesting
-   - Maintain 100% coverage
-
-5. **Verify Quality**:
-   - `make check && make lint && make coverage` all pass
-   - 100% test coverage maintained
-   - No increase in LCOV exclusions
-
-**Estimated Effort**: 200-300 lines (helpers + tests + refactoring)
+5. **Verified Quality**:
+   - ✅ `make check && make lint && make coverage` all pass
+   - ✅ 100% test coverage maintained
+   - ✅ No increase in LCOV exclusions
 
 **Benefit**: Every future pp_* function can reuse helpers, ensuring consistency and reducing code duplication.
 
-### Task 5: Temporary REPL Integration (stdout)
+### Task 5: REPL Integration ⏸️ DEFERRED
 
-**Goal**: Add `/pp` command to REPL that dumps to stdout
+**Goal**: Add `/pp` command to REPL with visible output
+
+**Status**: DEFERRED to Phase 3 (2025-11-13)
+
+**Reason for Deferral**:
+The current implementation in `repl.c` outputs to stdout, which violates the fundamental design principle:
+
+**CORE PRINCIPLE**: All visible output MUST go through screenbuffer → blit to alternate buffer. **NEVER stdout/stderr**.
+
+Without scrollback buffer (Phase 3), there is no proper way to display PP output that adheres to this principle.
 
 **Modifications**:
 - Add new input action: `IK_INPUT_SLASH_COMMAND` (or similar)
@@ -368,14 +355,24 @@ void ik_pp_block(const Block* block, ik_format_buffer_t *buf, int indent) {
   }
   ```
 
-**Manual testing**:
-- Type `/pp workspace` in REPL
-- Verify output appears on stdout
-- Test with various workspace states (empty, single line, multi-line, UTF-8)
+**Current Implementation (BROKEN - violates design)**:
+```c
+// src/repl.c:162-165 - WRONG: outputs to stdout
+printf("%s", output);  // Violates: all output must go through screenbuffer
+fflush(stdout);
+```
 
-**Note**: This is temporary scaffolding. Once scrollback exists (Phase 3), output will go to scrollback buffer instead.
+**Why Deferred**:
+- stdout output is invisible in alternate screen mode
+- Violates architecture: output must go screenbuffer → blit to alternate buffer
+- Cannot properly implement without scrollback buffer to display output
 
-**Estimated size**: ~100-150 lines
+**Phase 3 Integration Plan**:
+Once scrollback exists, `/pp` output will:
+1. Format output using `ik_format_buffer_t` (already working)
+2. Append formatted output to scrollback buffer
+3. Render scrollback + workspace in next frame
+4. Output is visible and persistent
 
 ### Task 6: JSON Pretty-Print Utilities (Optional - defer if needed)
 
@@ -455,18 +452,18 @@ ik_scrollback_append_line(repl->scrollback,
 - Only `ik_scrollback_append_line()` needs synchronization (mutex)
 - Output ordering handled by scrollback module (timestamps, channels, etc.)
 
-## PP Tasks Complete When
+## PP Infrastructure Complete ✅ - REPL Integration Deferred ⏸️
 
 - [x] Format module implemented with 100% test coverage (Task 1 ✅)
 - [x] `ik_pp_workspace()` implemented and tested (Task 3 ✅)
 - [x] Comprehensive unit tests for pp functions (Task 4 ✅)
-- [x] 100% test coverage maintained (Tasks 1-4 ✅)
-- [x] `make check && make lint && make coverage` all pass (Tasks 1-4 ✅)
-- [ ] **REFACTOR**: Add generic pp_helpers and recursive nesting (⚠️ BEFORE Task 5)
-- [ ] (Optional) Additional `ik_pp_*` functions for other types
-- [ ] Temporary `/pp` command works in REPL (stdout) (Task 5)
-- [ ] Manual verification passes all checks (Task 5)
-- [ ] Documentation updated (this file + README.md)
+- [x] 100% test coverage maintained (Tasks 1-4.5 ✅)
+- [x] `make check && make lint && make coverage` all pass (Tasks 1-4.5 ✅)
+- [x] Generic pp_helpers and recursive nesting (Task 4.5 ✅)
+- [ ] `/pp` command in REPL (Task 5 ⏸️ DEFERRED to Phase 3)
+  - **Reason**: Requires scrollback buffer for proper output display
+  - **Blocker**: Cannot adhere to screenbuffer → blit architecture without scrollback
+- [x] Documentation updated (this file + other docs ✅)
 
 ## Development Approach
 

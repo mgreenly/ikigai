@@ -153,6 +153,115 @@ v1.0 is a **desktop client** that connects directly to LLM APIs (OpenAI, Anthrop
 - [x] All quality gates pass (check, lint, coverage)
 - [x] Commit created: 3169dc3
 - [x] 1,483 net lines removed (1,775 deletions - 292 insertions)
+- [x] Ready to proceed to Phase 2.75 (PP infrastructure)
+
+---
+
+# Phase 2.75 - Pretty-Print (PP) Infrastructure
+
+**Status**: INFRASTRUCTURE COMPLETE - REPL Integration DEFERRED to Phase 3 (2025-11-13)
+**Goal**: Build debug pretty-printing infrastructure for inspecting internal C data structures.
+
+## Rationale
+
+PP infrastructure enables debugging and inspection capabilities. The format module and PP functions are ready, but REPL integration is deferred to Phase 3 because:
+- **Design Principle**: All visible output MUST go through screenbuffer → blit to alternate buffer (NEVER stdout/stderr)
+- Without scrollback buffer, cannot display PP output properly
+
+## Task 1: Format Buffer Module ✅ COMPLETE
+
+**Create**: `src/format.h` and `src/format.c`
+
+### 1.1: Implement Format Buffer
+- [x] Created format.h with public API (6 functions)
+- [x] Created format.c (146 lines) - printf-style formatting into byte buffers
+- [x] Wraps `ik_byte_array_t` for text accumulation
+- [x] `ik_format_appendf()` uses `vsnprintf()` internally
+- [x] Null-terminates buffer automatically
+- [x] All memory managed via talloc hierarchy
+
+### 1.2: Comprehensive Tests
+- [x] Created `tests/unit/format/format_basic_test.c` (362 lines, 15 tests)
+- [x] Created `tests/unit/format/format_oom_test.c` (219 lines, 7 tests)
+- [x] Tests cover: append, appendf, indent, get_string, get_length
+- [x] OOM injection via MOCKABLE wrappers
+- [x] 100% coverage: 72/72 lines, 6/6 functions, 28/28 branches
+
+## Task 2: Generic PP Helpers ✅ COMPLETE
+
+**Create**: `src/pp_helpers.h` and `src/pp_helpers.c`
+
+### 2.1: Implement Generic Formatters
+- [x] Created pp_helpers.h with reusable formatting functions
+- [x] Created pp_helpers.c (3080 lines) with implementations:
+  - `ik_pp_header()` - Print type header with address
+  - `ik_pp_pointer()` - Print named pointer field
+  - `ik_pp_size_t()` - Print named size_t field
+  - `ik_pp_int32()` - Print named int32_t field
+  - `ik_pp_uint32()` - Print named uint32_t field
+  - `ik_pp_string()` - Print named string field (with escaping)
+  - `ik_pp_bool()` - Print named boolean field
+- [x] All helpers respect indent parameter for proper nesting
+
+### 2.2: Tests
+- [x] Comprehensive tests for all generic helper functions
+- [x] 100% coverage maintained
+
+## Task 3: PP Functions for Core Data Structures ✅ COMPLETE
+
+**Create**: `src/workspace_pp.c` and `src/workspace_cursor_pp.c`
+
+### 3.1: Implement ik_pp_workspace()
+- [x] Created `src/workspace_pp.c` (91 lines)
+- [x] Shows workspace address, text length, cursor positions, target_column
+- [x] Uses generic helpers from pp_helpers.c
+- [x] Calls `ik_pp_cursor()` for recursive nesting
+- [x] Escapes special characters (\n, \r, \t, \\, \", control chars, DEL)
+- [x] Thread-safe read-only inspection (const workspace pointer)
+
+### 3.2: Implement ik_pp_cursor()
+- [x] Created `src/workspace_cursor_pp.c`
+- [x] Pretty-prints cursor structure recursively
+- [x] Shows byte_offset and grapheme_offset
+- [x] Uses generic helpers for consistent formatting
+
+### 3.3: Tests
+- [x] Created `tests/unit/workspace/pp_test.c` (344 lines, 8 tests)
+- [x] Test coverage: empty workspace, single-line, multi-line, UTF-8, indentation, cursor positions, special characters
+- [x] 100% coverage: 45/45 lines, 2/2 functions, 16/16 branches
+
+## Task 4: REPL Integration ⏸️ DEFERRED to Phase 3
+
+**Goal**: Add `/pp` command to REPL with visible output
+
+**Why Deferred**:
+Current implementation in `repl.c:162-165` outputs to stdout, which violates the fundamental design principle:
+
+```c
+// WRONG: Violates design principle
+printf("%s", output);
+fflush(stdout);
+```
+
+**Core Principle**: All visible output MUST go through screenbuffer → blit to alternate buffer. **NEVER stdout/stderr**.
+
+**Blocker**: Without scrollback buffer (Phase 3), there is no proper way to display PP output adhering to this principle.
+
+**Phase 3 Integration Plan**:
+Once scrollback exists, `/pp` command will:
+1. Format output using `ik_format_buffer_t` (already working ✅)
+2. Append formatted output to scrollback buffer
+3. Render scrollback + workspace in next frame
+4. Output is visible and persistent
+
+## Phase 2.75 Status Summary
+
+- [x] Format module implemented with 100% test coverage
+- [x] Generic PP helpers for reusable formatting
+- [x] `ik_pp_workspace()` and `ik_pp_cursor()` with recursive nesting
+- [x] 100% test coverage maintained (all tasks 1-3)
+- [x] All quality gates pass: `make check && make lint && make coverage`
+- [ ] `/pp` REPL integration - **DEFERRED to Phase 3** (requires scrollback buffer)
 - [x] Ready to proceed to Phase 3
 
 ---

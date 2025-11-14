@@ -87,8 +87,11 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);
 
 **talloc usage**: Config is allocated on provided context. All strings (`openai_api_key`, `listen_address`) are children. Single `talloc_free(ctx)` frees everything.
 
-### Protocol (`protocol.c/h`)
+### Protocol Module (REMOVED in Phase 2.5)
 
+**Note:** The protocol module was removed in Phase 2.5 (2025-11-13) as part of simplifying to a desktop-only architecture. The patterns below are preserved as examples of talloc usage for future modules.
+
+**Historical pattern:**
 ```c
 // Caller owns returned message
 // Pass parent context to make message a child
@@ -98,10 +101,13 @@ res_t ik_protocol_msg_parse(TALLOC_CTX *ctx, const char *json_str);
 res_t ik_protocol_msg_serialize(TALLOC_CTX *ctx, ik_protocol_msg_t *msg);
 ```
 
-**talloc usage**: WebSocket handler creates per-request context, passes to `ik_protocol_msg_parse()`. All message data are children, freed when request context freed.
+**talloc usage**: Handler creates per-request context, passes to parse function. All message data are children, freed when request context freed.
 
-### Handler Module (`handler.c/h`)
+### Handler Module (REMOVED in Phase 2.5)
 
+**Note:** The handler module (WebSocket connections) was removed in Phase 2.5 (2025-11-13). The patterns below are preserved as examples of talloc usage for event-driven code.
+
+**Historical pattern:**
 ```c
 // Per-connection state
 typedef struct {
@@ -127,24 +133,25 @@ void ik_handler_websocket_message_callback(manager, message, user_data) {
 ```
 
 **talloc usage**:
-- `ctx` - Lives for entire WebSocket connection, freed on disconnect
+- `ctx` - Lives for entire connection, freed on disconnect
 - `msg_ctx` - Created per message as child of `ctx`, freed after response sent
 - `sess_id` - Child of `ctx`, automatically freed with connection
 - `corr_id` - Child of `ctx`, updated per request
 
-### OpenAI Client (`openai.c/h`)
+### LLM Integration (Future - Phase 3+)
 
+**Pattern for future OpenAI/Anthropic integration:**
 ```c
 // Streaming callback receives chunks
-typedef void (*ik_openai_stream_cb_t)(const char *chunk, void *user_data);
+typedef void (*ik_llm_stream_cb_t)(const char *chunk, void *user_data);
 
 // Caller provides context for buffering chunks
-res_t ik_openai_stream_req(TALLOC_CTX *ctx,
-                                     const ik_cfg_t *config,
-                                     json_t *request_payload,
-                                     ik_openai_stream_cb_t callback,
-                                     void *user_data,
-                                     volatile sig_atomic_t *shutdown_flag);
+res_t ik_llm_stream_request(TALLOC_CTX *ctx,
+                             const ik_cfg_t *config,
+                             const char *provider,  // "openai", "anthropic", etc.
+                             json_t *request_payload,
+                             ik_llm_stream_cb_t callback,
+                             void *user_data);
 ```
 
 **talloc usage**: SSE line buffering and JSON parsing allocate under provided context. Caller frees context when stream completes.

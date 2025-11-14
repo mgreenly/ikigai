@@ -106,11 +106,11 @@ See [tasks.md](tasks.md) for detailed breakdown.
 
 ---
 
-## Phase 2.5: Remove Server and Protocol Code
+## Phase 2.5: Remove Server and Protocol Code ✅
 
 **Goal**: Remove all server and protocol-related code before Phase 3. This eliminates maintenance burden and jansson complexity.
 
-**Status**: Not started (inserted 2025-11-13 before Phase 3)
+**Status**: COMPLETE (2025-11-13)
 
 **Rationale**:
 v1.0 is a **desktop client** that connects directly to LLM APIs (OpenAI, Anthropic, etc.). The server/protocol code was from an earlier architecture exploration and is no longer needed.
@@ -125,11 +125,11 @@ v1.0 is a **desktop client** that connects directly to LLM APIs (OpenAI, Anthrop
 - Update architecture docs to clarify desktop-only design
 
 **Tasks**:
-1. [ ] Remove protocol module (src + tests)
-2. [ ] Remove server binary (src + Makefile)
-3. [ ] Document jansson scope (config only, temporary)
-4. [ ] Update/archive documentation
-5. [ ] Verification and commit
+1. [x] Remove protocol module (src + tests)
+2. [x] Remove server binary (src + Makefile)
+3. [x] Document jansson scope (config only, temporary)
+4. [x] Update/archive documentation
+5. [x] Verification and commit
 
 **Benefits**:
 - ~773+ lines of code removed
@@ -147,7 +147,7 @@ See [tasks.md](tasks.md) Phase 2.5 for detailed task breakdown.
 
 **Goal**: Implement debug pretty-printing for internal C data structures and JSON/YAML content.
 
-**Status**: Not started (inserted 2025-11-13 before Phase 3)
+**Status**: Infrastructure COMPLETE, REPL Integration DEFERRED to Phase 3 (2025-11-13)
 
 **Rationale**:
 Enables debugging and inspection capabilities before full scrollback implementation. PP functions can output to stdout initially, then migrate to scrollback buffer once Phase 3 is complete.
@@ -159,21 +159,26 @@ Enables debugging and inspection capabilities before full scrollback implementat
 - Optional: JSON pretty-print utilities (defer if not immediately needed)
 
 **Tasks**:
-1. [ ] Implement format buffer module with 100% test coverage
-2. [ ] Implement `ik_pp_workspace()` as first example
-3. [ ] Add basic `/pp` command to REPL (stdout output)
-4. [ ] Manual verification and testing
-5. [ ] (Optional) Additional `ik_pp_*` functions for other types
+1. [x] Implement format buffer module with 100% test coverage
+2. [x] Implement `ik_pp_workspace()` as first example
+3. [x] Add generic PP helpers (`pp_helpers.c`) for reusable formatting
+4. [x] Implement recursive `ik_pp_cursor()` for proper nesting
+5. [ ] Add `/pp` command to REPL - **DEFERRED to Phase 3**
+   - Current stdout implementation violates design (all output must go screenbuffer → blit)
+   - Requires scrollback buffer for proper visible output
+6. [x] Manual verification and testing (for Tasks 1-4)
 
 **Benefits**:
-- Immediate debugging capability (even without scrollback)
+- PP infrastructure ready for debugging once scrollback exists
 - Smaller, testable increments
 - Informs scrollback requirements
-- Easy migration to scrollback once Phase 3 completes
+- Generic helpers established for all future PP functions
 
-**Estimated effort**: 4-8 hours (~1000-1500 lines with tests)
+**Actual Effort**: ~1000 lines (format module, pp_helpers, pp functions with 100% tests)
 
-See [docs/pp-tasks.md](docs/pp-tasks.md) for detailed task breakdown.
+**REPL Integration Blocker**: Without scrollback buffer, cannot display PP output adhering to core principle: all visible output through screenbuffer → blit to alternate buffer (never stdout/stderr)
+
+See [tasks.md](tasks.md) Phase 2.75 for detailed task breakdown.
 
 ---
 

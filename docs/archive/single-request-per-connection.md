@@ -1,3 +1,11 @@
+# Archived Decision: Single Request Per Connection
+
+**Note:** This decision document has been archived (2025-11-13) because the server/protocol architecture was removed in Phase 2.5. ikigai is now a desktop-only application that connects directly to LLM APIs.
+
+The original decision is preserved below for historical reference.
+
+---
+
 # Why Single-Request-Per-Connection Model?
 
 **Decision**: Each WebSocket connection handles one request at a time. Clients open multiple connections for concurrent operations.

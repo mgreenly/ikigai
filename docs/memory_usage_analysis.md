@@ -1,8 +1,9 @@
 # Memory Management Analysis
 
 **Date:** 2025-11-12
-**Status:** Completed - Findings informed yyjson migration decision
+**Status:** HISTORICAL - Analysis completed, informed yyjson migration decision
 **Overall Assessment:** WORKABLE with refinements needed
+**Note:** This analysis references `protocol.c` which was removed in Phase 2.5 (2025-11-13). Findings remain valid for `config.c` and future JSON usage.
 
 ---
 

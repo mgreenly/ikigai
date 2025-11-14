@@ -1,8 +1,9 @@
 # Decision: Migrate from jansson to yyjson
 
 **Date:** 2025-11-13
-**Status:** APPROVED
+**Status:** APPROVED (deferred to LLM integration phase)
 **Timing:** Before Phase 3 (LLM Integration)
+**Note:** This proposal references `protocol.c` which was removed in Phase 2.5. The migration will apply to `config.c` and future LLM integration code.
 
 ---
 
