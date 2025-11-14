@@ -27,13 +27,14 @@ START_TEST(test_pp_workspace_empty) {
     /* Pretty-print the workspace */
     ik_pp_workspace(workspace, buf, 0);
 
-    /* Verify output contains workspace address */
+    /* Verify output contains workspace address and fields */
     const char *output = ik_format_get_string(buf);
     ck_assert_ptr_nonnull(output);
     ck_assert_ptr_nonnull(strstr(output, "ik_workspace_t @"));
-    ck_assert_ptr_nonnull(strstr(output, "text length: 0"));
-    ck_assert_ptr_nonnull(strstr(output, "cursor byte: 0"));
-    ck_assert_ptr_nonnull(strstr(output, "cursor grapheme: 0"));
+    ck_assert_ptr_nonnull(strstr(output, "text_len: 0"));
+    ck_assert_ptr_nonnull(strstr(output, "ik_cursor_t @"));
+    ck_assert_ptr_nonnull(strstr(output, "byte_offset: 0"));
+    ck_assert_ptr_nonnull(strstr(output, "grapheme_offset: 0"));
     ck_assert_ptr_nonnull(strstr(output, "target_column: 0"));
 
     talloc_free(ctx);
@@ -65,9 +66,9 @@ START_TEST(test_pp_workspace_single_line)
     /* Verify output */
     const char *output = ik_format_get_string(buf);
     ck_assert_ptr_nonnull(output);
-    ck_assert_ptr_nonnull(strstr(output, "text length: 2"));
-    ck_assert_ptr_nonnull(strstr(output, "cursor byte: 2"));
-    ck_assert_ptr_nonnull(strstr(output, "cursor grapheme: 2"));
+    ck_assert_ptr_nonnull(strstr(output, "text_len: 2"));
+    ck_assert_ptr_nonnull(strstr(output, "byte_offset: 2"));
+    ck_assert_ptr_nonnull(strstr(output, "grapheme_offset: 2"));
     ck_assert_ptr_nonnull(strstr(output, "text: \"Hi\""));
 
     talloc_free(ctx);
@@ -106,8 +107,8 @@ START_TEST(test_pp_workspace_multiline)
     /* Verify output */
     const char *output = ik_format_get_string(buf);
     ck_assert_ptr_nonnull(output);
-    ck_assert_ptr_nonnull(strstr(output, "text length: 5"));
-    ck_assert_ptr_nonnull(strstr(output, "cursor byte: 5"));
+    ck_assert_ptr_nonnull(strstr(output, "text_len: 5"));
+    ck_assert_ptr_nonnull(strstr(output, "byte_offset: 5"));
     /* Output should show escaped newline in text */
     ck_assert_ptr_nonnull(strstr(output, "L1\\nL2"));
 
@@ -139,9 +140,9 @@ START_TEST(test_pp_workspace_utf8)
     /* Verify output - emoji is 4 bytes but 1 grapheme */
     const char *output = ik_format_get_string(buf);
     ck_assert_ptr_nonnull(output);
-    ck_assert_ptr_nonnull(strstr(output, "text length: 4"));
-    ck_assert_ptr_nonnull(strstr(output, "cursor byte: 4"));
-    ck_assert_ptr_nonnull(strstr(output, "cursor grapheme: 1"));
+    ck_assert_ptr_nonnull(strstr(output, "text_len: 4"));
+    ck_assert_ptr_nonnull(strstr(output, "byte_offset: 4"));
+    ck_assert_ptr_nonnull(strstr(output, "grapheme_offset: 1"));
 
     talloc_free(ctx);
 }
@@ -224,8 +225,8 @@ START_TEST(test_pp_workspace_cursor_middle)
     /* Verify cursor position */
     const char *output = ik_format_get_string(buf);
     ck_assert_ptr_nonnull(output);
-    ck_assert_ptr_nonnull(strstr(output, "cursor byte: 1"));
-    ck_assert_ptr_nonnull(strstr(output, "cursor grapheme: 1"));
+    ck_assert_ptr_nonnull(strstr(output, "byte_offset: 1"));
+    ck_assert_ptr_nonnull(strstr(output, "grapheme_offset: 1"));
     ck_assert_ptr_nonnull(strstr(output, "text: \"abc\""));
 
     talloc_free(ctx);

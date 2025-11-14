@@ -15,7 +15,7 @@ void ik_pp_cursor(const ik_cursor_t *cursor, struct ik_format_buffer_t *buf, int
     // Print header with type name and address
     ik_pp_header(buf, indent, "ik_cursor_t", cursor);
 
-    // Print fields using generic helpers
-    ik_pp_size_t(buf, indent, "byte_offset", cursor->byte_offset);
-    ik_pp_size_t(buf, indent, "grapheme_offset", cursor->grapheme_offset);
+    // Print fields using generic helpers (indented 2 more than header)
+    ik_pp_size_t(buf, indent + 2, "byte_offset", cursor->byte_offset);
+    ik_pp_size_t(buf, indent + 2, "grapheme_offset", cursor->grapheme_offset);
 }

@@ -89,9 +89,10 @@ START_TEST(test_pp_cursor_with_indent)
     ik_pp_cursor(workspace->cursor, buf, 4);
 
     const char *output = ik_format_get_string(buf);
-    // Check that lines are indented with 4 spaces
+    // Check that header is indented with 4 spaces
     ck_assert(strstr(output, "    ik_cursor_t @ ") != NULL);
-    ck_assert(strstr(output, "    byte_offset: ") != NULL);
+    // Check that fields are indented with 6 spaces (4 + 2)
+    ck_assert(strstr(output, "      byte_offset: ") != NULL);
 
     talloc_free(tmp_ctx);
 }
