@@ -378,43 +378,60 @@ See [docs/repl/repl-phase-3.md](docs/repl/repl-phase-3.md) for detailed implemen
 
 ---
 
-## Task 2: Workspace Layout Caching
+## Task 2: Workspace Layout Caching ✅ COMPLETE
+
+**Status**: Complete (2025-11-14)
 
 ### 2.1: Design Layout Cache (Red Step)
-- [ ] Write test: `tests/unit/workspace/layout_cache_test.c`
+- [x] Write test: `tests/unit/workspace/layout_cache_test.c` (18 tests)
   - Test: `test_workspace_ensure_layout()`
   - Test: `test_workspace_invalidate_layout()`
-- [ ] Update `src/workspace.h`:
+  - Test: Initial state, clean cache, resize, empty/single/multi-line scenarios
+  - Test: UTF-8 content, text modification invalidation
+  - Test: Empty lines and zero-width characters
+- [x] Update `src/workspace.h`:
   - Add fields: `physical_lines`, `cached_width`, `layout_dirty`
   - Declare: `ik_workspace_ensure_layout()`, `ik_workspace_invalidate_layout()`, `ik_workspace_get_physical_lines()`
-- [ ] Run test
-- [ ] **Red**: Test fails
+- [x] Run test
+- [x] **Red**: Test fails (as expected)
 
 ### 2.2: Implement Layout Cache (Green Step)
-- [ ] Implement `ik_workspace_ensure_layout()`:
-  - If !layout_dirty && cached_width == terminal_width, return
+- [x] Create `src/workspace_layout.c` (130 lines)
+- [x] Implement `ik_workspace_ensure_layout()`:
+  - If !layout_dirty && cached_width == terminal_width, return (O(1) cache hit)
   - Scan workspace text (handle newlines, wrapping)
-  - Calculate total physical_lines
+  - Calculate total physical_lines using UTF-8 display width
   - Update cached_width, clear layout_dirty
-- [ ] Implement `ik_workspace_invalidate_layout()`:
-  - Set layout_dirty = true
-- [ ] Update all text edit functions to call `invalidate_layout()`
-- [ ] All tests pass
+- [x] Implement `ik_workspace_invalidate_layout()`:
+  - Set layout_dirty = 1
+- [x] Update all text edit functions to call `invalidate_layout()`:
+  - `workspace.c`: insert_codepoint, insert_newline, backspace, delete, clear, delete_word_backward
+  - `workspace_multiline.c`: kill_to_line_end, kill_line
+- [x] All tests pass (18/18)
 
 ### 2.3: Comprehensive Tests
-- [ ] Test: Layout calculation with various content
-- [ ] Test: Cache invalidation on insert/delete/backspace
-- [ ] Test: Terminal resize updates layout
-- [ ] Test: Multi-line text with newlines
-- [ ] All tests pass
+- [x] Test: Layout calculation with various content (empty, single-line, multi-line, wrapping)
+- [x] Test: Cache invalidation on insert/delete/backspace
+- [x] Test: Terminal resize updates layout (80 → 40 cols)
+- [x] Test: Multi-line text with newlines
+- [x] Test: UTF-8 content (wide characters, emoji)
+- [x] Test: Empty lines (just newlines) and zero-width characters
+- [x] All tests pass
 
 ### 2.4: Verify Quality Gates
-- [ ] Run: `make check`
-- [ ] Run: `make lint`
-- [ ] Run: `make coverage` (100%)
+- [x] Run: `make check` (all 18 tests pass)
+- [x] Run: `make lint` (workspace.c reduced to 493 lines, complexity OK)
+- [x] Run: `make coverage` (100% lines, functions, branches)
+- [x] Update Makefile: `LCOV_EXCL_COVERAGE = 229` (defensive UTF-8/NULL checks)
 
 ### 2.5: Create Commit
-- [ ] Commit: "Add workspace layout caching (Phase 3 Task 2)"
+- [x] Commit: "Add workspace layout caching (Phase 3 Task 2)" (commit 53f3fde)
+
+**Deliverables**:
+- `src/workspace_layout.c` - 130 lines with UTF-8 aware layout calculation
+- `tests/unit/workspace/layout_cache_test.c` - 18 comprehensive tests
+- Updated workspace.h with layout cache fields
+- 100% test coverage maintained
 
 ---
 
