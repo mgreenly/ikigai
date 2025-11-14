@@ -14,6 +14,7 @@
 static int32_t mock_write_calls = 0;
 static char mock_write_buffer[8192];
 static size_t mock_write_buffer_len = 0;
+static bool mock_write_should_fail = false;
 
 // Mock write wrapper declaration
 ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
@@ -23,6 +24,11 @@ ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
 {
     (void)fd;
     mock_write_calls++;
+
+    if (mock_write_should_fail) {
+        return -1;  // Simulate write failure
+    }
+
     if (mock_write_buffer_len + count < sizeof(mock_write_buffer)) {
         memcpy(mock_write_buffer + mock_write_buffer_len, buf, count);
         mock_write_buffer_len += count;
@@ -284,6 +290,38 @@ START_TEST(test_render_with_newlines)
 }
 
 END_TEST
+/* Test: Write failure during scrollback render */
+START_TEST(test_render_write_failure)
+{
+    void *ctx = talloc_new(NULL);
+
+    // Create render context
+    ik_render_ctx_t *render = NULL;
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
+    ck_assert(is_ok(&res));
+
+    // Create scrollback with a line
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "Test line", 9);
+    ck_assert(is_ok(&res));
+
+    // Enable write failure
+    mock_write_should_fail = true;
+
+    // Attempt to render - should fail
+    int32_t rows_used = 0;
+    res = ik_render_scrollback(render, scrollback, 0, 1, &rows_used);
+    ck_assert(is_err(&res));
+
+    // Cleanup mock state
+    mock_write_should_fail = false;
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 /* Create test suite */
 static Suite *render_scrollback_suite(void)
@@ -298,6 +336,7 @@ static Suite *render_scrollback_suite(void)
     tcase_add_test(tc_render, test_render_invalid_start_line);
     tcase_add_test(tc_render, test_render_line_count_clamping);
     tcase_add_test(tc_render, test_render_with_newlines);
+    tcase_add_test(tc_render, test_render_write_failure);
     suite_add_tcase(s, tc_render);
 
     return s;

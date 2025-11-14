@@ -224,9 +224,7 @@ static size_t find_next_char_end(const uint8_t *data, size_t data_len, size_t cu
     assert(data != NULL); // LCOV_EXCL_BR_LINE
 
     /* If cursor at end, return same position */
-    if (cursor_pos >= data_len) { /* LCOV_EXCL_BR_LINE */
-        return cursor_pos; /* LCOV_EXCL_LINE - defensive: caller checks cursor < data_len */
-    }
+    if (cursor_pos >= data_len)return cursor_pos;  // LCOV_EXCL_LINE - defensive: caller checks cursor < data_len
 
     /* Determine the length of the UTF-8 character at cursor_pos */
     uint8_t first_byte = data[cursor_pos];
@@ -244,12 +242,7 @@ static size_t find_next_char_end(const uint8_t *data, size_t data_len, size_t cu
     } else if ((first_byte & 0xF8) == 0xF0) { /* LCOV_EXCL_BR_LINE */
         /* 4-byte: 11110xxx */
         char_len = 4;
-    } else {
-        /* LCOV_EXCL_START - Invalid UTF-8 lead byte - never occurs with valid input */
-        /* Invalid UTF-8 lead byte - treat as 1 byte */
-        char_len = 1;
-        /* LCOV_EXCL_STOP */
-    }
+    } else char_len = 1; /* LCOV_EXCL_LINE - Invalid UTF-8 lead byte - never occurs with valid input */
 
     /* Return end position (clamped to data_len) */
     size_t end_pos = cursor_pos + char_len;
@@ -305,9 +298,7 @@ res_t ik_workspace_cursor_left(ik_workspace_t *workspace)
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
 
     // Defensive check: text can be NULL (lazy allocation), but cursor > 0 implies text exists
-    if (text == NULL) { /* LCOV_EXCL_BR_LINE - defensive: cursor > 0 implies text != NULL */
-        return OK(NULL); /* LCOV_EXCL_LINE */
-    }
+    if (text == NULL)return OK(NULL);  // LCOV_EXCL_LINE - defensive: cursor > 0 implies text != NULL
 
     ik_cursor_move_left(workspace->cursor, text, text_len);
 

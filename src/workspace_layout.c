@@ -18,9 +18,7 @@
  */
 static size_t calculate_display_width(const char *text, size_t len)
 {
-    if (text == NULL || len == 0) { /* LCOV_EXCL_BR_LINE - defensive: text is never NULL when len > 0 */
-        return 0; /* LCOV_EXCL_LINE - defensive: text is never NULL when called from ensure_layout */
-    }
+    if (text == NULL || len == 0)return 0;  // LCOV_EXCL_LINE - defensive: text is never NULL when len > 0
 
     size_t display_width = 0;
     size_t pos = 0;
@@ -31,13 +29,9 @@ static size_t calculate_display_width(const char *text, size_t len)
                                                        (utf8proc_ssize_t)(len - pos),
                                                        &codepoint);
 
-        if (bytes_read <= 0) { /* LCOV_EXCL_BR_LINE - defensive: workspace only contains valid UTF-8 */
-            /* LCOV_EXCL_START - defensive: workspace encoding functions ensure valid UTF-8 */
-            /* Invalid UTF-8 - treat as 1 column */
-            display_width++;
-            pos++;
-            continue;
-            /* LCOV_EXCL_STOP */
+        /* Invalid UTF-8 - treat as 1 column and continue (defensive: workspace only contains valid UTF-8) */
+        if (bytes_read <= 0) { /* LCOV_EXCL_BR_LINE */
+            display_width++; pos++; continue; /* LCOV_EXCL_LINE */
         }
 
         /* Get character width */

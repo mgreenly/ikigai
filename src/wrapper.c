@@ -73,6 +73,7 @@ MOCKABLE int ik_json_is_string_wrapper(const json_t *json)
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 MOCKABLE int ik_open_wrapper(const char *pathname, int flags)
@@ -83,6 +84,16 @@ MOCKABLE int ik_open_wrapper(const char *pathname, int flags)
 MOCKABLE int ik_close_wrapper(int fd)
 {
     return close(fd);
+}
+
+MOCKABLE int ik_stat_wrapper(const char *pathname, struct stat *statbuf)
+{
+    return stat(pathname, statbuf);
+}
+
+MOCKABLE int ik_mkdir_wrapper(const char *pathname, mode_t mode)
+{
+    return mkdir(pathname, mode);
 }
 
 MOCKABLE int ik_tcgetattr_wrapper(int fd, struct termios *termios_p)

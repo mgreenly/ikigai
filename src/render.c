@@ -313,8 +313,8 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     ssize_t bytes_written = ik_write_wrapper(ctx->tty_fd, framebuffer, offset);
     talloc_free(framebuffer);
 
-    if (bytes_written < 0) { /* LCOV_EXCL_LINE */
-        return ERR(ctx, IO, "Failed to write scrollback to terminal"); /* LCOV_EXCL_LINE */
+    if (bytes_written < 0) {
+        return ERR(ctx, IO, "Failed to write scrollback to terminal");
     }
 
     *rows_used_out = rows_used;

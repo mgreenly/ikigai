@@ -50,12 +50,10 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
 
     // Create directory if it doesn't exist
     struct stat st;
-    if (stat(dir, &st) != 0) {  // LCOV_EXCL_BR_LINE - directory exists case difficult to test
-        // LCOV_EXCL_START - mkdir failure requires permission/disk errors
-        if (mkdir(dir, 0755) != 0) { // LCOV_EXCL_BR_LINE
+    if (ik_stat_wrapper(dir, &st) != 0) {
+        if (ik_mkdir_wrapper(dir, 0755) != 0) {
             return ERR(ctx, IO, "Failed to create directory %s: %s", dir, strerror(errno));
         }
-        // LCOV_EXCL_STOP
     }
 
     // Create default JSON config
@@ -89,7 +87,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
 
     // Check if file exists
     struct stat st;
-    if (stat(expanded_path, &st) != 0) {
+    if (ik_stat_wrapper(expanded_path, &st) != 0) {
         // File doesn't exist, create default config
         res_t create_result = create_default_config(ctx, expanded_path);
         // LCOV_EXCL_START - create errors tested above, path covered in other tests

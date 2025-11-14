@@ -19,9 +19,9 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
 
     // Initialize terminal (raw mode + alternate screen)
     res_t result = ik_term_init(repl, &repl->term);
-    if (is_err(&result)) { // LCOV_EXCL_BR_LINE - Environmental failure (no /dev/tty, terminal setup fails)
-        talloc_free(repl); // LCOV_EXCL_LINE
-        return result;     // LCOV_EXCL_LINE
+    if (is_err(&result)) {
+        talloc_free(repl);
+        return result;
     }
 
     // Initialize render
@@ -30,9 +30,9 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
                               repl->term->screen_cols,
                               repl->term->tty_fd,
                               &repl->render);
-    if (is_err(&result)) { // LCOV_EXCL_BR_LINE - Defensive check for corrupted terminal state
-        talloc_free(repl); // LCOV_EXCL_LINE
-        return result;     // LCOV_EXCL_LINE
+    if (is_err(&result)) {
+        talloc_free(repl);
+        return result;
     }
 
     // Initialize workspace
