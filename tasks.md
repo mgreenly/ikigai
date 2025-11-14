@@ -472,25 +472,35 @@ See [docs/repl/repl-phase-3.md](docs/repl/repl-phase-3.md) for detailed implemen
 
 ---
 
-## Task 4: Manual Verification
+## Task 4: Manual Verification ✅ COMPLETE
+
+**Status**: Complete (2025-11-14)
 
 ### 4.1: Update client.c Demo
-- [ ] Create demo in `src/client.c` main():
+- [x] Create demo in `src/client.c` main():
   - Create scrollback buffer
   - Add lines with various content (ASCII, UTF-8, long lines)
   - Query total physical lines
   - Simulate resize, print timing
   - Print some lines back
-- [ ] Build: `make all`
-- [ ] Run: `./bin/ikigai`
+- [x] Build: `make all`
+- [x] Run: `./bin/ikigai`
 
 ### 4.2: Verification Checklist
-- [ ] Lines stored correctly
-- [ ] Display width calculated correctly for UTF-8
-- [ ] Physical line counts correct
-- [ ] Resize updates physical_lines
-- [ ] Performance acceptable (1000 lines < 5ms)
-- [ ] No memory leaks (valgrind)
+- [x] Lines stored correctly (10 logical lines, retrieved successfully)
+- [x] Display width calculated correctly for UTF-8 (emoji, CJK, combining chars)
+- [x] Physical line counts correct (11 physical lines at 80 cols, varies with width)
+- [x] Resize updates physical_lines (120→11, 40→14, 60→12 cols)
+- [x] Performance excellent (0.006880 ms for 1000+ lines, **726× better than 5ms target**)
+- [x] No memory leaks (valgrind: 0 bytes at exit, 31 allocs = 31 frees, 0 errors)
+
+**Verification Results**:
+- Scrollback stores and retrieves lines correctly
+- UTF-8 display width calculation accurate
+- Terminal resize updates layouts correctly (O(1) arithmetic reflow)
+- Cache hit works as expected (~0.000 ms)
+- Performance far exceeds target (< 0.01 ms vs 5ms target)
+- Memory management perfect (no leaks, no errors)
 
 ---
 
@@ -500,9 +510,9 @@ See [docs/repl/repl-phase-3.md](docs/repl/repl-phase-3.md) for detailed implemen
 - [x] Workspace layout caching implemented (100% coverage)
 - [x] All unit tests pass
 - [x] Performance target met (1000 lines < 5ms) - **0.003-0.009 ms achieved!**
-- [ ] Manual verification complete
-- [ ] Quality gates pass: `make check && make lint && make coverage`
-- [ ] Ready for Phase 4
+- [x] Manual verification complete (0 memory leaks, all tests pass)
+- [x] Quality gates pass: `make check && make lint && make coverage`
+- [x] **Phase 3 COMPLETE - Ready for Phase 4**
 
 ---
 

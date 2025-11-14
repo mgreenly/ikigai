@@ -4,7 +4,7 @@
 
 This plan transitions from the vterm-based rendering approach to direct terminal rendering as outlined in `docs/eliminate_vterm.md`. We'll build incrementally with manual verification at each phase.
 
-**Current Status**: Phase 2 COMPLETE (2025-11-11) - All tasks done including manual testing, bug fixes, and code review. Phase 2.5 (server/protocol removal) inserted before Phase 3.
+**Current Status**: Phase 3 COMPLETE (2025-11-14) - Scrollback buffer with layout caching implemented. Performance far exceeds targets (726× better than 5ms goal). Ready for Phase 4.
 
 **Strategy**: Replace vterm immediately (no parallel track), verify with client.c demos at each phase.
 
@@ -182,11 +182,11 @@ See [tasks.md](tasks.md) Phase 2.75 for detailed task breakdown.
 
 ---
 
-## Phase 3: Scrollback Buffer Module
+## Phase 3: Scrollback Buffer Module ✅
 
 **Goal**: Add scrollback buffer storage with layout caching for historical output.
 
-**Status**: Not started (blocked on Phase 2.75 completion)
+**Status**: COMPLETE (2025-11-14)
 
 **Planned Features**:
 - New `scrollback` module with separated hot/cold data for cache locality
@@ -196,13 +196,14 @@ See [tasks.md](tasks.md) Phase 2.75 for detailed task breakdown.
 - Performance target: 1000 lines < 5ms reflow time
 
 **Implementation Tasks**:
-- [ ] Design scrollback data structure (hot/cold separation)
-- [ ] Implement line storage with pre-computed display widths
-- [ ] Implement O(1) arithmetic reflow algorithm
-- [ ] Add layout caching to workspace module
-- [ ] Write comprehensive tests (TDD)
-- [ ] Achieve 100% coverage
-- [ ] Performance benchmarks (verify < 5ms for 1000 lines)
+- [x] Design scrollback data structure (hot/cold separation)
+- [x] Implement line storage with pre-computed display widths
+- [x] Implement O(1) arithmetic reflow algorithm
+- [x] Add layout caching to workspace module
+- [x] Write comprehensive tests (TDD)
+- [x] Achieve 100% coverage (1569 lines, 126 functions, 554 branches)
+- [x] Performance benchmarks (0.003-0.009 ms - **726× better than 5ms target**)
+- [x] Manual verification (0 memory leaks, valgrind clean)
 
 See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 105-413 for detailed design.
 
