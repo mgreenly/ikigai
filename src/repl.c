@@ -1,8 +1,12 @@
 #include "repl.h"
 #include "fatal.h"
 #include "wrapper.h"
+#include "format.h"
+#include "workspace.h"
 #include <assert.h>
 #include <talloc.h>
+#include <stdio.h>
+#include <string.h>
 
 res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
 {
@@ -130,6 +134,46 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     return ik_render_workspace(repl->render, text, text_len, cursor_byte_offset);
 }
 
+/**
+ * @brief Handle slash commands (e.g., /pp workspace)
+ *
+ * @param repl REPL context
+ * @param command Command text (without leading /)
+ * @return res_t Result
+ */
+static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *command)
+{
+    assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(command != NULL); /* LCOV_EXCL_BR_LINE */
+
+    // Parse command (simple whitespace-based parsing for now)
+    // Expected format: "pp workspace" or "pp"
+    if (strncmp(command, "pp", 2) == 0) {
+        // Create format buffer for output
+        ik_format_buffer_t *buf = NULL;
+        res_t result = ik_format_buffer_create(repl, &buf);
+        if (is_err(&result)) {
+            return result;
+        }
+
+        // Pretty-print the workspace
+        ik_pp_workspace(repl->workspace, buf, 0);
+
+        // Output to stdout (temporary until scrollback exists)
+        const char *output = ik_format_get_string(buf);
+        printf("%s", output);
+        fflush(stdout);
+
+        // Clean up format buffer
+        talloc_free(buf);
+
+        return OK(NULL);
+    }
+
+    // Unknown command - just ignore for now
+    return OK(NULL);
+}
+
 res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
@@ -138,8 +182,38 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
     switch (action->type) { // LCOV_EXCL_BR_LINE
         case IK_INPUT_CHAR:
             return ik_workspace_insert_codepoint(repl->workspace, action->codepoint);
-        case IK_INPUT_NEWLINE:
+        case IK_INPUT_NEWLINE: {
+            // Check if workspace contains a slash command
+            const char *text = (const char *)repl->workspace->text->data;
+            size_t text_len = ik_byte_array_size(repl->workspace->text);
+
+            // Check if text starts with '/'
+            if (text_len > 0 && text[0] == '/') {
+                // Extract command (skip the '/' character)
+                // Use ik_talloc_zero_wrapper for testability (OOM injection)
+                char *command = ik_talloc_zero_wrapper(repl, text_len); // Includes space for null terminator
+                if (command == NULL) {
+                    return ERR(repl, OOM, "Failed to allocate command string");
+                }
+                memcpy(command, text + 1, text_len - 1);
+                command[text_len - 1] = '\0';
+
+                // Handle the slash command
+                res_t result = ik_repl_handle_slash_command(repl, command);
+                talloc_free(command);
+
+                if (is_err(&result)) {
+                    return result;
+                }
+
+                // Clear workspace after executing command
+                ik_workspace_clear(repl->workspace);
+                return OK(NULL);
+            }
+
+            // Not a slash command, insert newline as usual
             return ik_workspace_insert_newline(repl->workspace);
+        }
         case IK_INPUT_BACKSPACE:
             return ik_workspace_backspace(repl->workspace);
         case IK_INPUT_DELETE:
