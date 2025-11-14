@@ -21,9 +21,9 @@ START_TEST(test_format_buffer_create_success) {
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: Append empty string
-START_TEST(test_format_append_empty) {
+START_TEST(test_format_append_empty)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -40,10 +40,11 @@ START_TEST(test_format_append_empty) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Append short string
-START_TEST(test_format_append_short) {
+START_TEST(test_format_append_short)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -60,10 +61,11 @@ START_TEST(test_format_append_short) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Append long string (requiring multiple reallocations)
-START_TEST(test_format_append_long) {
+START_TEST(test_format_append_long)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -88,10 +90,11 @@ START_TEST(test_format_append_long) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Multiple appends
-START_TEST(test_format_append_multiple) {
+START_TEST(test_format_append_multiple)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -114,10 +117,11 @@ START_TEST(test_format_append_multiple) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_format_appendf with simple format string
-START_TEST(test_format_appendf_simple) {
+START_TEST(test_format_appendf_simple)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -134,10 +138,11 @@ START_TEST(test_format_appendf_simple) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_format_appendf with multiple format specifiers
-START_TEST(test_format_appendf_multiple) {
+START_TEST(test_format_appendf_multiple)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -153,10 +158,11 @@ START_TEST(test_format_appendf_multiple) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_format_appendf with large output
-START_TEST(test_format_appendf_large) {
+START_TEST(test_format_appendf_large)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -173,10 +179,11 @@ START_TEST(test_format_appendf_large) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_format_appendf with empty format
-START_TEST(test_format_appendf_empty) {
+START_TEST(test_format_appendf_empty)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -193,10 +200,11 @@ START_TEST(test_format_appendf_empty) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_format_indent with zero indent
-START_TEST(test_format_indent_zero) {
+START_TEST(test_format_indent_zero)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -213,10 +221,11 @@ START_TEST(test_format_indent_zero) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_format_indent with small indent
-START_TEST(test_format_indent_small) {
+START_TEST(test_format_indent_small)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -233,10 +242,11 @@ START_TEST(test_format_indent_small) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_format_indent with large indent
-START_TEST(test_format_indent_large) {
+START_TEST(test_format_indent_large)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -257,10 +267,11 @@ START_TEST(test_format_indent_large) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Get string from empty buffer
-START_TEST(test_get_string_empty) {
+START_TEST(test_get_string_empty)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -273,10 +284,11 @@ START_TEST(test_get_string_empty) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Get length before get_string (no null terminator yet)
-START_TEST(test_get_length_before_string) {
+START_TEST(test_get_length_before_string)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -292,10 +304,11 @@ START_TEST(test_get_length_before_string) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Get string twice (tests idempotence of null termination)
-START_TEST(test_get_string_twice) {
+START_TEST(test_get_string_twice)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -316,9 +329,11 @@ START_TEST(test_get_string_twice) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 
-static Suite *format_basic_suite(void) {
+static Suite *format_basic_suite(void)
+{
     Suite *s;
     TCase *tc_core;
 
@@ -345,7 +360,8 @@ static Suite *format_basic_suite(void) {
     return s;
 }
 
-int32_t main(void) {
+int32_t main(void)
+{
     int32_t number_failed;
     Suite *s;
     SRunner *sr;

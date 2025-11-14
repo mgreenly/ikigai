@@ -16,6 +16,9 @@
 #include "error.h"
 #include <stddef.h>
 
+// Forward declaration for pretty-print functions
+struct ik_format_buffer_t;
+
 /**
  * @brief Cursor context
  *
@@ -90,5 +93,14 @@ void ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_len
  * @param grapheme_offset_out Pointer to receive grapheme offset
  */
 void ik_cursor_get_position(ik_cursor_t *cursor, size_t *byte_offset_out, size_t *grapheme_offset_out);
+
+/**
+ * @brief Pretty-print cursor structure
+ *
+ * @param cursor Cursor to pretty-print
+ * @param buf Format buffer to append output to
+ * @param indent Indentation level (number of spaces)
+ */
+void ik_pp_cursor(const ik_cursor_t *cursor, struct ik_format_buffer_t *buf, int32_t indent);
 
 #endif /* IKIGAI_CURSOR_H */

@@ -22,9 +22,9 @@ START_TEST(test_format_buffer_create_oom) {
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: OOM during byte array creation in buffer
-START_TEST(test_format_buffer_create_oom_array) {
+START_TEST(test_format_buffer_create_oom_array)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Fail on second allocation (after buffer struct, during byte_array_create)
@@ -40,10 +40,11 @@ START_TEST(test_format_buffer_create_oom_array) {
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during format_append (during growth)
-START_TEST(test_format_append_oom) {
+START_TEST(test_format_append_oom)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -70,10 +71,11 @@ START_TEST(test_format_append_oom) {
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during format_appendf temp buffer allocation
-START_TEST(test_format_appendf_oom_temp) {
+START_TEST(test_format_appendf_oom_temp)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -90,10 +92,11 @@ START_TEST(test_format_appendf_oom_temp) {
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during format_appendf character-by-character append loop
-START_TEST(test_format_appendf_oom_append) {
+START_TEST(test_format_appendf_oom_append)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -123,10 +126,11 @@ START_TEST(test_format_appendf_oom_append) {
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during format_indent
-START_TEST(test_format_indent_oom) {
+START_TEST(test_format_indent_oom)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -153,10 +157,11 @@ START_TEST(test_format_indent_oom) {
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during get_string null termination
-START_TEST(test_get_string_oom) {
+START_TEST(test_get_string_oom)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_format_buffer_t *buf = NULL;
@@ -182,9 +187,11 @@ START_TEST(test_get_string_oom) {
     oom_test_reset();
     talloc_free(ctx);
 }
+
 END_TEST
 
-static Suite *format_oom_suite(void) {
+static Suite *format_oom_suite(void)
+{
     Suite *s;
     TCase *tc_core;
 
@@ -203,7 +210,8 @@ static Suite *format_oom_suite(void) {
     return s;
 }
 
-int32_t main(void) {
+int32_t main(void)
+{
     int32_t number_failed;
     Suite *s;
     SRunner *sr;

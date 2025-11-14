@@ -12,7 +12,8 @@
 #include "error.h"
 #include "wrapper.h"
 
-res_t ik_format_buffer_create(void *parent, ik_format_buffer_t **buf_out) {
+res_t ik_format_buffer_create(void *parent, ik_format_buffer_t **buf_out)
+{
     assert(parent != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
     assert(buf_out != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
 
@@ -33,7 +34,8 @@ res_t ik_format_buffer_create(void *parent, ik_format_buffer_t **buf_out) {
     return OK(buf);
 }
 
-res_t ik_format_appendf(ik_format_buffer_t *buf, const char *fmt, ...) {
+res_t ik_format_appendf(ik_format_buffer_t *buf, const char *fmt, ...)
+{
     assert(buf != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
     assert(fmt != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
 
@@ -45,7 +47,7 @@ res_t ik_format_appendf(ik_format_buffer_t *buf, const char *fmt, ...) {
     va_copy(args_copy, args);
     int32_t needed = vsnprintf(NULL, 0, fmt, args_copy);
     va_end(args_copy);
-    if (needed < 0) FATAL("vsnprintf size calculation failed");  // LCOV_EXCL_LINE
+    if (needed < 0)FATAL("vsnprintf size calculation failed");   // LCOV_EXCL_LINE
 
     // Allocate temporary buffer
     size_t buf_size = (size_t)needed + 1;  // +1 for null terminator
@@ -58,8 +60,8 @@ res_t ik_format_appendf(ik_format_buffer_t *buf, const char *fmt, ...) {
     // Second pass: format into buffer
     int32_t written = vsnprintf(temp, buf_size, fmt, args);
     va_end(args);
-    if (written < 0) FATAL("vsnprintf formatting failed");  // LCOV_EXCL_LINE
-    if ((size_t)written >= buf_size) FATAL("vsnprintf truncated");  // LCOV_EXCL_LINE
+    if (written < 0)FATAL("vsnprintf formatting failed");   // LCOV_EXCL_LINE
+    if ((size_t)written >= buf_size)FATAL("vsnprintf truncated");   // LCOV_EXCL_LINE
 
     // Append formatted string (excluding null terminator)
     for (int32_t i = 0; i < written; i++) {
@@ -74,7 +76,8 @@ res_t ik_format_appendf(ik_format_buffer_t *buf, const char *fmt, ...) {
     return OK(buf);
 }
 
-res_t ik_format_append(ik_format_buffer_t *buf, const char *str) {
+res_t ik_format_append(ik_format_buffer_t *buf, const char *str)
+{
     assert(buf != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
     assert(str != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
 
@@ -93,7 +96,8 @@ res_t ik_format_append(ik_format_buffer_t *buf, const char *str) {
     return OK(buf);
 }
 
-res_t ik_format_indent(ik_format_buffer_t *buf, int32_t indent) {
+res_t ik_format_indent(ik_format_buffer_t *buf, int32_t indent)
+{
     assert(buf != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
     assert(indent >= 0);  // LCOV_EXCL_BR_LINE - assertion branches untestable
 
@@ -111,7 +115,8 @@ res_t ik_format_indent(ik_format_buffer_t *buf, int32_t indent) {
     return OK(buf);
 }
 
-const char *ik_format_get_string(ik_format_buffer_t *buf) {
+const char *ik_format_get_string(ik_format_buffer_t *buf)
+{
     assert(buf != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
 
     ik_array_t *array = (ik_array_t *)buf->array;
@@ -133,7 +138,8 @@ const char *ik_format_get_string(ik_format_buffer_t *buf) {
     return (const char *)array->data;
 }
 
-size_t ik_format_get_length(ik_format_buffer_t *buf) {
+size_t ik_format_get_length(ik_format_buffer_t *buf)
+{
     assert(buf != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
 
     size_t len = ik_byte_array_size(buf->array);

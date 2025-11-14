@@ -221,4 +221,25 @@ res_t ik_workspace_kill_line(ik_workspace_t *workspace);
  */
 res_t ik_workspace_delete_word_backward(ik_workspace_t *workspace);
 
+// Forward declaration
+typedef struct ik_format_buffer_t ik_format_buffer_t;
+
+/**
+ * @brief Pretty-print workspace internal state
+ *
+ * Outputs workspace debug information including:
+ * - Memory address
+ * - Text buffer length and content
+ * - Cursor position (byte and grapheme offsets)
+ * - Target column for multi-line navigation
+ *
+ * Thread-safety: Workspace is read-only (const).
+ * The format buffer must be thread-local.
+ *
+ * @param workspace Workspace to inspect (read-only)
+ * @param buf Format buffer to append output to
+ * @param indent Indentation level (number of spaces)
+ */
+void ik_pp_workspace(const ik_workspace_t *workspace, ik_format_buffer_t *buf, int32_t indent);
+
 #endif /* IKIGAI_WORKSPACE_H */

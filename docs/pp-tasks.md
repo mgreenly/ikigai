@@ -4,9 +4,19 @@
 
 **Goal**: Implement debug pretty-printing functionality for internal C data structures and JSON/YAML content display.
 
-**Status**: Task 1 COMPLETE - Format Buffer Module with 100% coverage (inserted before Phase 3 - Scrollback Buffer)
+**Status**: Tasks 1-4 COMPLETE with ⚠️ **CRITICAL REFACTORING NEEDED** before Task 5
+
+**Current Progress**:
+- ✅ Task 1: Format buffer module (100% coverage)
+- ✅ Task 2: Format module tests (100% coverage)
+- ✅ Task 3: `ik_pp_workspace()` implementation (100% coverage)
+- ✅ Task 4: Comprehensive unit tests (100% coverage)
+- ⚠️ **Task 4.5: REFACTORING NEEDED** - Add generic helpers and recursive nesting (see details below)
+- ⏸️ Task 5: REPL integration (blocked on Task 4.5)
 
 **Priority**: High - enables debugging and inspection before full scrollback implementation
+
+**⚠️ NEXT SESSION**: Complete Task 4.5 refactoring BEFORE proceeding to Task 5
 
 ## Overview
 
@@ -119,9 +129,11 @@ size_t ik_format_get_length(ik_format_buffer_t *buf);
 
 **Estimated size**: ~150-200 lines
 
-### Task 2: Comprehensive Unit Tests for Format Module
+### Task 2: Comprehensive Unit Tests for Format Module ✅ COMPLETE
 
-**Test Coverage** (`tests/unit/format/format_test.c`):
+**Note**: This task was completed as part of Task 1. All tests implemented in `format_basic_test.c` and `format_oom_test.c`.
+
+**Test Coverage** (`tests/unit/format/format_basic_test.c` and `format_oom_test.c`):
 - Buffer creation and cleanup
 - `ik_format_append()`:
   - Empty string
@@ -145,13 +157,73 @@ size_t ik_format_get_length(ik_format_buffer_t *buf);
   - Populated buffer
 - OOM injection tests (via MOCKABLE wrappers)
 
-**Coverage requirement**: 100% (lines, functions, branches)
+**Coverage requirement**: 100% (lines, functions, branches) ✅
 
-**Estimated size**: ~300-400 lines
+**Actual implementation**:
+- 15 functional tests in `format_basic_test.c` (362 lines)
+- 7 OOM tests in `format_oom_test.c` (219 lines)
+- Total: 22 tests, 581 lines
+- 100% coverage achieved (72/72 lines, 6/6 functions, 28/28 branches)
 
-### Task 3: PP Functions for Core Data Structures
+### Task 3: PP Functions for Core Data Structures ✅ COMPLETE
 
-**Implement `ik_pp_*` functions** for each major data structure:
+**Status**: Complete - `ik_pp_workspace()` implemented with 100% test coverage
+
+**Completed**:
+- ✅ Created `src/workspace_pp.c` for pretty-print functionality (91 lines)
+- ✅ Implemented `ik_pp_workspace()` with full error handling
+- ✅ Added helper function `escape_string_to_buffer()` for special characters
+- ✅ Comprehensive test coverage (8 tests in `tests/unit/workspace/pp_test.c` - 344 lines)
+- ✅ All quality checks passing (check, lint, coverage)
+- ✅ 100% coverage (45/45 executable lines, 2/2 functions, 16/16 branches)
+
+**Implementation**:
+- Shows workspace address, text length, cursor positions (byte and grapheme), target_column
+- Escapes special characters (\n, \r, \t, \\, \", control chars, DEL)
+- Supports indentation for nested structure display
+- Thread-safe read-only inspection (const workspace pointer)
+
+**⚠️ REFACTORING NEEDED - Before Task 5**:
+
+The current implementation has design gaps that should be fixed before adding more pp_* functions:
+
+1. **Missing Generic Helpers** - Need reusable formatters in `src/pp_helpers.c`:
+   ```c
+   void ik_pp_header(ik_format_buffer_t *buf, int32_t indent, const char *type, const void *ptr);
+   void ik_pp_pointer(ik_format_buffer_t *buf, int32_t indent, const char *name, const void *ptr);
+   void ik_pp_size_t(ik_format_buffer_t *buf, int32_t indent, const char *name, size_t value);
+   void ik_pp_int32(ik_format_buffer_t *buf, int32_t indent, const char *name, int32_t value);
+   void ik_pp_uint32(ik_format_buffer_t *buf, int32_t indent, const char *name, uint32_t value);
+   void ik_pp_string(ik_format_buffer_t *buf, int32_t indent, const char *name, const char *str, size_t len);
+   void ik_pp_bool(ik_format_buffer_t *buf, int32_t indent, const char *name, bool value);
+   ```
+
+2. **Not Properly Recursive** - Should call `ik_pp_cursor()` for nested cursor structure instead of manually extracting cursor data:
+   ```c
+   // Current (wrong):
+   ik_cursor_get_position(workspace->cursor, &byte_offset, &grapheme_offset);
+   ik_format_appendf(buf, "  cursor byte: %zu\n", byte_offset);
+
+   // Should be:
+   ik_pp_cursor(workspace->cursor, buf, indent + 2);  // Recursive call
+   ```
+
+3. **Hardcoded Indentation** - Uses `"  "` (2 spaces) for nested fields instead of `indent + 2` parameter
+
+**Refactoring Plan**:
+- Create `src/pp_helpers.c` with generic formatters
+- Implement `ik_pp_cursor()` in `src/workspace_cursor_pp.c`
+- Refactor `ik_pp_workspace()` to use helpers and recursive calls
+- Update tests to verify recursive nesting works correctly
+- Ensure 100% coverage maintained
+
+This establishes proper foundation for all future pp_* functions with clean recursive nesting.
+
+**Next**: Task 4 - Unit tests (already completed as part of Task 3)
+
+---
+
+**Implement `ik_pp_*` functions** for other data structures (when needed):
 
 ```c
 // In block.h/block.c (when it exists)
@@ -202,17 +274,73 @@ void ik_pp_block(const Block* block, ik_format_buffer_t *buf, int indent) {
 
 **Estimated size**: ~50-100 lines per data structure
 
-### Task 4: Unit Tests for PP Functions
+### Task 4: Unit Tests for PP Functions ✅ COMPLETE
 
-**Test Coverage** for each `ik_pp_*` function:
-- Null/empty structures
-- Populated structures with typical data
-- Deeply nested structures (recursion depth)
-- Large structures (many elements)
-- Output format verification (string matching)
-- Indent level correctness
+**Status**: Complete - Comprehensive test coverage for `ik_pp_workspace()`
 
-**Estimated size**: ~200-300 lines per data structure
+**Completed**:
+- ✅ Created `tests/unit/workspace/pp_test.c` (344 lines, 8 tests)
+- ✅ All tests passing with 100% coverage
+- ✅ Tests automatically discovered by Makefile wildcards
+
+**Test Coverage** for `ik_pp_workspace()`:
+1. Empty workspace
+2. Single-line text
+3. Multi-line text with newlines
+4. UTF-8 text (emoji, multi-byte characters)
+5. Indentation verification
+6. Cursor position in middle of text
+7. Target column preservation
+8. Special characters (\\r, \\t, \\\\, \\", control chars, DEL)
+
+**Actual size**: 344 lines (8 comprehensive tests)
+
+### Task 4.5: Refactor for Generic Helpers and Recursive Nesting ⚠️ CRITICAL
+
+**Status**: Not started (MUST complete before Task 5)
+
+**Goal**: Establish proper foundation for all pp_* functions with reusable helpers and recursive structure nesting.
+
+**Why Critical**: Current implementation has design gaps that will cause code duplication and maintenance issues as more pp_* functions are added.
+
+**Tasks**:
+
+1. **Create Generic Helper Module** (`src/pp_helpers.c` + `src/pp_helpers.h`):
+   - `ik_pp_header()` - Print type header with address
+   - `ik_pp_pointer()` - Print named pointer field
+   - `ik_pp_size_t()` - Print named size_t field
+   - `ik_pp_int32()` - Print named int32_t field
+   - `ik_pp_uint32()` - Print named uint32_t field
+   - `ik_pp_string()` - Print named string field (with escaping)
+   - `ik_pp_bool()` - Print named boolean field
+   - All helpers respect indent parameter for proper nesting
+
+2. **Implement ik_pp_cursor()** (`src/workspace_cursor_pp.c`):
+   - Pretty-print cursor structure recursively
+   - Shows byte_offset and grapheme_offset
+   - Uses generic helpers from pp_helpers.c
+
+3. **Refactor ik_pp_workspace()**:
+   - Use `ik_pp_header()` instead of manual header formatting
+   - Use `ik_pp_size_t()` for text_len and target_column
+   - Call `ik_pp_cursor(workspace->cursor, buf, indent + 2)` for recursive nesting
+   - Use `ik_pp_string()` for text content
+   - Proper indent handling (no hardcoded "  ")
+
+4. **Update Tests**:
+   - Add tests for all generic helper functions
+   - Add tests for ik_pp_cursor()
+   - Update ik_pp_workspace tests to verify recursive nesting
+   - Maintain 100% coverage
+
+5. **Verify Quality**:
+   - `make check && make lint && make coverage` all pass
+   - 100% test coverage maintained
+   - No increase in LCOV exclusions
+
+**Estimated Effort**: 200-300 lines (helpers + tests + refactoring)
+
+**Benefit**: Every future pp_* function can reuse helpers, ensuring consistency and reducing code duplication.
 
 ### Task 5: Temporary REPL Integration (stdout)
 
@@ -329,13 +457,15 @@ ik_scrollback_append_line(repl->scrollback,
 
 ## PP Tasks Complete When
 
-- [ ] Format module implemented with 100% test coverage
-- [ ] `ik_pp_workspace()` implemented and tested
+- [x] Format module implemented with 100% test coverage (Task 1 ✅)
+- [x] `ik_pp_workspace()` implemented and tested (Task 3 ✅)
+- [x] Comprehensive unit tests for pp functions (Task 4 ✅)
+- [x] 100% test coverage maintained (Tasks 1-4 ✅)
+- [x] `make check && make lint && make coverage` all pass (Tasks 1-4 ✅)
+- [ ] **REFACTOR**: Add generic pp_helpers and recursive nesting (⚠️ BEFORE Task 5)
 - [ ] (Optional) Additional `ik_pp_*` functions for other types
-- [ ] Temporary `/pp` command works in REPL (stdout)
-- [ ] Manual verification passes all checks
-- [ ] 100% test coverage maintained
-- [ ] `make check && make lint && make coverage` all pass
+- [ ] Temporary `/pp` command works in REPL (stdout) (Task 5)
+- [ ] Manual verification passes all checks (Task 5)
 - [ ] Documentation updated (this file + README.md)
 
 ## Development Approach
