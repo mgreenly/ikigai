@@ -26,6 +26,9 @@ typedef struct ik_workspace_t {
     ik_cursor_t *cursor;         /**< Cursor position (byte and grapheme offsets) */
     size_t cursor_byte_offset;   /**< Legacy byte offset - deprecated, use cursor instead */
     size_t target_column;        /**< Preserved column position for multi-line navigation (0 = use current) */
+    size_t physical_lines;       /**< Cached number of physical lines (accounting for wrapping) */
+    int32_t cached_width;        /**< Terminal width used for last layout calculation */
+    int32_t layout_dirty;        /**< Flag: 1 = layout needs recalculation, 0 = cache valid */
 } ik_workspace_t;
 
 /**
@@ -220,6 +223,40 @@ res_t ik_workspace_kill_line(ik_workspace_t *workspace);
  * @return RES_OK on success, RES_ERR on failure
  */
 res_t ik_workspace_delete_word_backward(ik_workspace_t *workspace);
+
+/**
+ * @brief Ensure workspace layout is calculated for given terminal width
+ *
+ * Calculates the number of physical lines the workspace occupies, accounting
+ * for text wrapping at the terminal width. Uses cached value if terminal
+ * width hasn't changed and layout is not dirty.
+ *
+ * @param workspace Workspace
+ * @param terminal_width Terminal width in columns
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_width);
+
+/**
+ * @brief Invalidate the cached layout
+ *
+ * Marks the layout cache as dirty, forcing recalculation on next ensure_layout call.
+ * Called automatically by text modification functions.
+ *
+ * @param workspace Workspace
+ */
+void ik_workspace_invalidate_layout(ik_workspace_t *workspace);
+
+/**
+ * @brief Get the number of physical lines
+ *
+ * Returns the cached number of physical lines. If layout has not been
+ * calculated yet, returns 0. Call ensure_layout first to get accurate value.
+ *
+ * @param workspace Workspace
+ * @return Number of physical lines (0 if not calculated)
+ */
+size_t ik_workspace_get_physical_lines(ik_workspace_t *workspace);
 
 // Forward declaration
 typedef struct ik_format_buffer_t ik_format_buffer_t;

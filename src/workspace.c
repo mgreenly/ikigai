@@ -34,6 +34,9 @@ res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out)
 
     workspace->cursor_byte_offset = 0;
     workspace->target_column = 0;
+    workspace->physical_lines = 0;
+    workspace->cached_width = 0;
+    workspace->layout_dirty = 1;  /* Layout needs initial calculation */
     *workspace_out = workspace;
     return OK(workspace);
 }
@@ -56,6 +59,7 @@ void ik_workspace_clear(ik_workspace_t *workspace)
     ik_byte_array_clear(workspace->text);
     workspace->cursor_byte_offset = 0;
     workspace->target_column = 0;
+    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
 
     /* Reset cursor to position 0 */
     workspace->cursor->byte_offset = 0;
@@ -123,6 +127,7 @@ res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoin
 
     /* Reset target column on text modification */
     workspace->target_column = 0;
+    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
 
     /* Update cursor position */
     char *text;
@@ -148,6 +153,7 @@ res_t ik_workspace_insert_newline(ik_workspace_t *workspace)
 
     /* Reset target column on text modification */
     workspace->target_column = 0;
+    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
 
     /* Update cursor position */
     char *text;
@@ -205,6 +211,7 @@ res_t ik_workspace_backspace(ik_workspace_t *workspace)
 
     /* Reset target column on text modification */
     workspace->target_column = 0;
+    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
 
     /* Update cursor position */
     char *text;
@@ -285,6 +292,7 @@ res_t ik_workspace_delete(ik_workspace_t *workspace)
 
     /* Reset target column on text modification */
     workspace->target_column = 0;
+    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
 
     /* Update cursor position */
     char *text;
@@ -479,6 +487,7 @@ delete_range:
 
     /* Reset target column on text modification */
     workspace->target_column = 0;
+    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
 
     return OK(NULL);
 }

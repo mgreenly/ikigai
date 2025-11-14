@@ -360,6 +360,9 @@ res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace)
     // Reset target column on text modification
     workspace->target_column = 0;
 
+    // Invalidate layout cache
+    ik_workspace_invalidate_layout(workspace);
+
     return OK(NULL);
 }
 
@@ -401,6 +404,9 @@ res_t ik_workspace_kill_line(ik_workspace_t *workspace)
 
     // Reset target column on text modification
     workspace->target_column = 0;
+
+    // Invalidate layout cache
+    ik_workspace_invalidate_layout(workspace);
 
     return OK(NULL);
 }
