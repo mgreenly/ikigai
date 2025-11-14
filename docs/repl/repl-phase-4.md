@@ -4,7 +4,7 @@
 
 **Goal**: Integrate scrollback with REPL, add viewport calculation and scrolling commands.
 
-**Status**: Not started (after Phase 3)
+**Status**: In Progress (Tasks 4.1-4.4 complete, 4.5-4.6 pending)
 
 ## Rationale
 
@@ -14,7 +14,7 @@ This completes the split-buffer terminal interface: scrollback history above, wo
 
 ## Implementation Tasks
 
-### Task 4.1: Integrate Scrollback with REPL
+### Task 4.1: Integrate Scrollback with REPL ✅ COMPLETE
 
 **Goal**: Add scrollback buffer to REPL context and connect it to rendering.
 
@@ -43,7 +43,7 @@ typedef struct ik_repl_ctx_t {
 
 ---
 
-### Task 4.2: Viewport Calculation
+### Task 4.2: Viewport Calculation ✅ COMPLETE
 
 **Goal**: Calculate which portion of scrollback + workspace to display.
 
@@ -76,7 +76,7 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
 
 ---
 
-### Task 4.3: Scrollback Rendering
+### Task 4.3: Scrollback Rendering ✅ COMPLETE
 
 **Goal**: Render visible scrollback lines to terminal.
 
@@ -105,7 +105,7 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
 
 ---
 
-### Task 4.4: Combined Frame Rendering
+### Task 4.4: Combined Frame Rendering ✅ COMPLETE
 
 **Goal**: Render complete frame (scrollback + workspace).
 

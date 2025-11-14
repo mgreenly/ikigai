@@ -27,12 +27,18 @@ START_TEST(test_repl_run_initial_render_error) {
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->input_parser = parser;
     repl->term = term;
     repl->render = render;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
     repl->quit = false;
 
     mock_write_should_fail = true;
@@ -72,12 +78,18 @@ START_TEST(test_repl_run_render_error_in_loop)
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->input_parser = parser;
     repl->term = term;
     repl->render = render;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
     repl->quit = false;
 
     mock_input = "a";
@@ -120,12 +132,18 @@ START_TEST(test_repl_run_process_action_oom)
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->input_parser = parser;
     repl->term = term;
     repl->render = render;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
     repl->quit = false;
 
     // Fill workspace to capacity (64), so next insert triggers realloc

@@ -27,12 +27,18 @@ START_TEST(test_repl_run_simple_char_input) {
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->input_parser = parser;
     repl->term = term;
     repl->render = render;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
     repl->quit = false;
 
     mock_input = "a\x03";
@@ -77,12 +83,18 @@ START_TEST(test_repl_run_multiple_chars)
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->input_parser = parser;
     repl->term = term;
     repl->render = render;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
     repl->quit = false;
 
     mock_input = "abc\x03";
@@ -130,12 +142,18 @@ START_TEST(test_repl_run_with_newline)
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->input_parser = parser;
     repl->term = term;
     repl->render = render;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
     repl->quit = false;
 
     mock_input = "hi\n\x03";
@@ -181,12 +199,18 @@ START_TEST(test_repl_run_with_backspace)
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->input_parser = parser;
     repl->term = term;
     repl->render = render;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
     repl->quit = false;
 
     mock_input = "ab\x7f\x03";
@@ -230,12 +254,18 @@ START_TEST(test_repl_run_read_eof)
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->input_parser = parser;
     repl->term = term;
     repl->render = render;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
     repl->quit = false;
 
     mock_input = "";
@@ -280,12 +310,18 @@ START_TEST(test_repl_run_unknown_action)
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->input_parser = parser;
     repl->term = term;
     repl->render = render;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
     repl->quit = false;
 
     mock_input = "a\x1b";

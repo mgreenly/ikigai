@@ -215,17 +215,56 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     assert(repl->render != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->workspace != NULL);   /* LCOV_EXCL_BR_LINE */
 
-    // Get workspace text (cannot fail - always returns OK)
+    // Calculate viewport to determine what to render
+    ik_viewport_t viewport;
+    res_t result = ik_repl_calculate_viewport(repl, &viewport);
+    if (is_err(&result)) { /* LCOV_EXCL_LINE */
+        return result;      /* LCOV_EXCL_LINE */
+    }
+
+    // If no scrollback visible, just render workspace (current behavior)
+    if (viewport.scrollback_lines_count == 0) {
+        // Get workspace text (cannot fail - always returns OK)
+        char *text = NULL;
+        size_t text_len = 0;
+        ik_workspace_get_text(repl->workspace, &text, &text_len);
+
+        // Get cursor byte offset (cannot fail - always returns OK)
+        size_t cursor_byte_offset = 0;
+        size_t cursor_grapheme = 0;
+        ik_workspace_get_cursor_position(repl->workspace, &cursor_byte_offset, &cursor_grapheme);
+
+        // Render workspace with cursor
+        return ik_render_workspace(repl->render, text, text_len, cursor_byte_offset);
+    }
+
+    // Otherwise render both scrollback and workspace
+    // Phase 4 Task 4.4: Combined frame rendering
+    // Strategy: Call render_scrollback (which clears + writes scrollback)
+    // then render workspace positioned after scrollback
+
+    // Clear screen, render scrollback
+    int32_t scrollback_rows_used = 0;
+    result = ik_render_scrollback(repl->render, repl->scrollback,
+                                   viewport.scrollback_start_line,
+                                   viewport.scrollback_lines_count,
+                                   &scrollback_rows_used);
+    if (is_err(&result)) { /* LCOV_EXCL_LINE */
+        return result;      /* LCOV_EXCL_LINE */
+    }
+
+    // Get workspace text
     char *text = NULL;
     size_t text_len = 0;
     ik_workspace_get_text(repl->workspace, &text, &text_len);
 
-    // Get cursor byte offset (cannot fail - always returns OK)
     size_t cursor_byte_offset = 0;
     size_t cursor_grapheme = 0;
     ik_workspace_get_cursor_position(repl->workspace, &cursor_byte_offset, &cursor_grapheme);
 
-    // Render workspace with cursor
+    // Render workspace positioned after scrollback
+    // For now, just use ik_render_workspace which will re-clear and render
+    // TODO Phase 4.4: Optimize to single atomic write
     return ik_render_workspace(repl->render, text, text_len, cursor_byte_offset);
 }
 

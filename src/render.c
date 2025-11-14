@@ -248,8 +248,8 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     }
 
     // Calculate total buffer size needed
-    // For each line: text + \r\n (for newline conversion)
-    size_t total_size = 0;
+    // Clear screen (4 bytes) + home (3 bytes) + For each line: text + \r\n (for newline conversion)
+    size_t total_size = 7;  // Clear screen + home cursor escapes
     for (size_t i = start_line; i < end_line; i++) {
         const char *line_text = NULL;
         size_t line_len = 0;
@@ -278,6 +278,17 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     // Build framebuffer
     size_t offset = 0;
     int32_t rows_used = 0;
+
+    // Add clear screen escape: \x1b[2J
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = 'J';
+
+    // Add home cursor escape: \x1b[H
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = 'H';
 
     for (size_t i = start_line; i < end_line; i++) {
         const char *line_text = NULL;

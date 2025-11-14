@@ -44,11 +44,24 @@ START_TEST(test_repl_render_frame_empty_workspace) {
     res = ik_render_create(ctx, 24, 80, 1, &render);  // Mock terminal: 24x80, fd=1
     ck_assert(is_ok(&res));
 
+    // Create term context (required by ik_repl_render_frame)
+    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    term->screen_rows = 24;
+    term->screen_cols = 80;
+
+    // Create scrollback (required by ik_repl_render_frame)
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     // Create minimal REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->render = render;
+    repl->term = term;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
 
     // Reset mock state
     mock_write_calls = 0;
@@ -93,10 +106,21 @@ START_TEST(test_repl_render_frame_multiline)
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    term->screen_rows = 24;
+    term->screen_cols = 80;
+
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->render = render;
+    repl->term = term;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
 
     mock_write_calls = 0;
     mock_write_buffer_len = 0;
@@ -130,10 +154,21 @@ START_TEST(test_repl_render_frame_cursor_positions)
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    term->screen_rows = 24;
+    term->screen_cols = 80;
+
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->render = render;
+    repl->term = term;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
 
     // Test cursor at end
     mock_write_calls = 0;
@@ -190,10 +225,21 @@ START_TEST(test_repl_render_frame_utf8)
     res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
+    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    term->screen_rows = 24;
+    term->screen_cols = 80;
+
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->workspace = workspace;
     repl->render = render;
+    repl->term = term;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
 
     mock_write_calls = 0;
     res = ik_repl_render_frame(repl);
