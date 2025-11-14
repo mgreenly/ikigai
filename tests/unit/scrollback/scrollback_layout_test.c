@@ -8,8 +8,7 @@
 #include "../../test_utils.h"
 
 // Test: ensure_layout does nothing when width matches cached_width
-START_TEST(test_scrollback_ensure_layout_no_change)
-{
+START_TEST(test_scrollback_ensure_layout_no_change) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = NULL;
@@ -40,7 +39,6 @@ START_TEST(test_scrollback_ensure_layout_no_change)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: ensure_layout recalculates when width changes
 START_TEST(test_scrollback_ensure_layout_resize)
 {
@@ -78,8 +76,8 @@ START_TEST(test_scrollback_ensure_layout_resize)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ensure_layout with multiple lines
 START_TEST(test_scrollback_ensure_layout_multiple_lines)
 {
@@ -124,8 +122,8 @@ START_TEST(test_scrollback_ensure_layout_multiple_lines)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ensure_layout with empty scrollback
 START_TEST(test_scrollback_ensure_layout_empty)
 {
@@ -148,8 +146,8 @@ START_TEST(test_scrollback_ensure_layout_empty)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ensure_layout handles empty lines correctly
 START_TEST(test_scrollback_ensure_layout_with_empty_lines)
 {
@@ -177,6 +175,7 @@ START_TEST(test_scrollback_ensure_layout_with_empty_lines)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *scrollback_layout_suite(void)

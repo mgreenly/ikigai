@@ -26,9 +26,9 @@ START_TEST(test_workspace_initial_state) {
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Ensure layout - first time (dirty) */
-START_TEST(test_workspace_ensure_layout_initial) {
+START_TEST(test_workspace_ensure_layout_initial)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
     int32_t terminal_width = 80;
@@ -53,10 +53,11 @@ START_TEST(test_workspace_ensure_layout_initial) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Ensure layout - clean cache (no recalculation) */
-START_TEST(test_workspace_ensure_layout_clean) {
+START_TEST(test_workspace_ensure_layout_clean)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
     int32_t terminal_width = 80;
@@ -80,10 +81,11 @@ START_TEST(test_workspace_ensure_layout_clean) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Ensure layout - terminal resize */
-START_TEST(test_workspace_ensure_layout_resize) {
+START_TEST(test_workspace_ensure_layout_resize)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -109,10 +111,11 @@ START_TEST(test_workspace_ensure_layout_resize) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Invalidate layout */
-START_TEST(test_workspace_invalidate_layout) {
+START_TEST(test_workspace_invalidate_layout)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
     int32_t terminal_width = 80;
@@ -131,10 +134,11 @@ START_TEST(test_workspace_invalidate_layout) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Get physical lines */
-START_TEST(test_workspace_get_physical_lines) {
+START_TEST(test_workspace_get_physical_lines)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
     int32_t terminal_width = 80;
@@ -154,10 +158,11 @@ START_TEST(test_workspace_get_physical_lines) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Layout calculation - empty workspace */
-START_TEST(test_workspace_layout_empty) {
+START_TEST(test_workspace_layout_empty)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -170,10 +175,11 @@ START_TEST(test_workspace_layout_empty) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Layout calculation - single line (no newline) */
-START_TEST(test_workspace_layout_single_line_no_wrap) {
+START_TEST(test_workspace_layout_single_line_no_wrap)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -188,10 +194,11 @@ START_TEST(test_workspace_layout_single_line_no_wrap) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Layout calculation - single line with wrapping */
-START_TEST(test_workspace_layout_single_line_wrap) {
+START_TEST(test_workspace_layout_single_line_wrap)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -208,10 +215,11 @@ START_TEST(test_workspace_layout_single_line_wrap) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Layout calculation - multi-line with newlines */
-START_TEST(test_workspace_layout_multiline) {
+START_TEST(test_workspace_layout_multiline)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -241,10 +249,11 @@ START_TEST(test_workspace_layout_multiline) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Layout calculation - multi-line with wrapping */
-START_TEST(test_workspace_layout_multiline_wrap) {
+START_TEST(test_workspace_layout_multiline_wrap)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -266,10 +275,11 @@ START_TEST(test_workspace_layout_multiline_wrap) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Layout calculation - UTF-8 content */
-START_TEST(test_workspace_layout_utf8) {
+START_TEST(test_workspace_layout_utf8)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -288,10 +298,11 @@ START_TEST(test_workspace_layout_utf8) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Text modifications invalidate layout */
-START_TEST(test_workspace_text_modification_invalidates_layout) {
+START_TEST(test_workspace_text_modification_invalidates_layout)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -326,10 +337,11 @@ START_TEST(test_workspace_text_modification_invalidates_layout) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Layout calculation - empty lines (just newlines) */
-START_TEST(test_workspace_layout_empty_lines) {
+START_TEST(test_workspace_layout_empty_lines)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -345,10 +357,11 @@ START_TEST(test_workspace_layout_empty_lines) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Layout calculation - zero-width characters */
-START_TEST(test_workspace_layout_zero_width) {
+START_TEST(test_workspace_layout_zero_width)
+{
     void *ctx = talloc_new(NULL);
     ik_workspace_t *workspace = NULL;
 
@@ -363,25 +376,27 @@ START_TEST(test_workspace_layout_zero_width) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: NULL parameter assertions */
-START_TEST(test_workspace_ensure_layout_null_asserts) {
+START_TEST(test_workspace_ensure_layout_null_asserts)
+{
     /* workspace cannot be NULL - should abort */
     ik_workspace_ensure_layout(NULL, 80);
 }
-END_TEST
 
-START_TEST(test_workspace_invalidate_layout_null_asserts) {
+END_TEST START_TEST(test_workspace_invalidate_layout_null_asserts)
+{
     /* workspace cannot be NULL - should abort */
     ik_workspace_invalidate_layout(NULL);
 }
-END_TEST
 
-START_TEST(test_workspace_get_physical_lines_null_asserts) {
+END_TEST START_TEST(test_workspace_get_physical_lines_null_asserts)
+{
     /* workspace cannot be NULL - should abort */
     ik_workspace_get_physical_lines(NULL);
 }
+
 END_TEST
 
 static Suite *workspace_layout_cache_suite(void)

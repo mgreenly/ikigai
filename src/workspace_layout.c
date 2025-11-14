@@ -16,7 +16,8 @@
  * @param len Length in bytes
  * @return Display width in columns
  */
-static size_t calculate_display_width(const char *text, size_t len) {
+static size_t calculate_display_width(const char *text, size_t len)
+{
     if (text == NULL || len == 0) { /* LCOV_EXCL_BR_LINE - defensive: text is never NULL when len > 0 */
         return 0; /* LCOV_EXCL_LINE - defensive: text is never NULL when called from ensure_layout */
     }
@@ -51,7 +52,8 @@ static size_t calculate_display_width(const char *text, size_t len) {
     return display_width;
 }
 
-res_t ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_width) {
+res_t ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_width)
+{
     assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
 
     /* If layout is clean and width unchanged, no recalculation needed */
@@ -116,12 +118,14 @@ res_t ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_wid
     return OK(NULL);
 }
 
-void ik_workspace_invalidate_layout(ik_workspace_t *workspace) {
+void ik_workspace_invalidate_layout(ik_workspace_t *workspace)
+{
     assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
     workspace->layout_dirty = 1;
 }
 
-size_t ik_workspace_get_physical_lines(ik_workspace_t *workspace) {
+size_t ik_workspace_get_physical_lines(ik_workspace_t *workspace)
+{
     assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
     return workspace->physical_lines;
 }

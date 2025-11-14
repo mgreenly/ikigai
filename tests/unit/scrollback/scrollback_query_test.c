@@ -20,9 +20,9 @@ START_TEST(test_scrollback_get_line_count_empty) {
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: Get line count with lines
-START_TEST(test_scrollback_get_line_count_with_lines) {
+START_TEST(test_scrollback_get_line_count_with_lines)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = NULL;
@@ -39,10 +39,11 @@ START_TEST(test_scrollback_get_line_count_with_lines) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Get total physical lines from empty scrollback
-START_TEST(test_scrollback_get_total_physical_lines_empty) {
+START_TEST(test_scrollback_get_total_physical_lines_empty)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = NULL;
@@ -53,10 +54,11 @@ START_TEST(test_scrollback_get_total_physical_lines_empty) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Get total physical lines with single-line entries
-START_TEST(test_scrollback_get_total_physical_lines_single) {
+START_TEST(test_scrollback_get_total_physical_lines_single)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = NULL;
@@ -73,10 +75,11 @@ START_TEST(test_scrollback_get_total_physical_lines_single) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Get total physical lines with wrapping
-START_TEST(test_scrollback_get_total_physical_lines_wrapping) {
+START_TEST(test_scrollback_get_total_physical_lines_wrapping)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = NULL;
@@ -94,10 +97,11 @@ START_TEST(test_scrollback_get_total_physical_lines_wrapping) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Get line text - valid index
-START_TEST(test_scrollback_get_line_text_valid) {
+START_TEST(test_scrollback_get_line_text_valid)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = NULL;
@@ -128,10 +132,11 @@ START_TEST(test_scrollback_get_line_text_valid) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Get line text - invalid index
-START_TEST(test_scrollback_get_line_text_invalid) {
+START_TEST(test_scrollback_get_line_text_invalid)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = NULL;
@@ -149,10 +154,11 @@ START_TEST(test_scrollback_get_line_text_invalid) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Find logical line at physical row - single line entries
-START_TEST(test_scrollback_find_line_single) {
+START_TEST(test_scrollback_find_line_single)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = NULL;
@@ -187,10 +193,11 @@ START_TEST(test_scrollback_find_line_single) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Find logical line at physical row - with wrapping
-START_TEST(test_scrollback_find_line_wrapping) {
+START_TEST(test_scrollback_find_line_wrapping)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = NULL;
@@ -241,10 +248,11 @@ START_TEST(test_scrollback_find_line_wrapping) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Find logical line at physical row - out of range
-START_TEST(test_scrollback_find_line_out_of_range) {
+START_TEST(test_scrollback_find_line_out_of_range)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = NULL;
@@ -261,6 +269,7 @@ START_TEST(test_scrollback_find_line_out_of_range) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *scrollback_query_suite(void)

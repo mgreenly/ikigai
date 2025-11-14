@@ -8,8 +8,7 @@
 #include "../../test_utils.h"
 
 // Test: Append a single line to scrollback
-START_TEST(test_scrollback_append_single_line)
-{
+START_TEST(test_scrollback_append_single_line) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = NULL;
@@ -37,7 +36,6 @@ START_TEST(test_scrollback_append_single_line)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: Append multiple lines
 START_TEST(test_scrollback_append_multiple_lines)
 {
@@ -88,8 +86,8 @@ START_TEST(test_scrollback_append_multiple_lines)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Append UTF-8 content with various widths
 START_TEST(test_scrollback_append_utf8_content)
 {
@@ -118,8 +116,8 @@ START_TEST(test_scrollback_append_utf8_content)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Long line that wraps multiple times
 START_TEST(test_scrollback_append_long_line)
 {
@@ -143,8 +141,8 @@ START_TEST(test_scrollback_append_long_line)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Empty line
 START_TEST(test_scrollback_append_empty_line)
 {
@@ -164,8 +162,8 @@ START_TEST(test_scrollback_append_empty_line)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Array growth when capacity is exceeded
 START_TEST(test_scrollback_array_growth)
 {
@@ -196,8 +194,8 @@ START_TEST(test_scrollback_array_growth)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Text buffer growth when capacity is exceeded
 START_TEST(test_scrollback_buffer_growth)
 {
@@ -227,8 +225,8 @@ START_TEST(test_scrollback_buffer_growth)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Buffer growth requiring multiple doublings
 START_TEST(test_scrollback_buffer_multiple_doublings)
 {
@@ -255,8 +253,8 @@ START_TEST(test_scrollback_buffer_multiple_doublings)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Invalid UTF-8 sequence handling
 START_TEST(test_scrollback_append_invalid_utf8)
 {
@@ -279,8 +277,8 @@ START_TEST(test_scrollback_append_invalid_utf8)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Control characters (negative width from utf8proc_charwidth)
 START_TEST(test_scrollback_append_control_chars)
 {
@@ -302,6 +300,7 @@ START_TEST(test_scrollback_append_control_chars)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *scrollback_append_suite(void)

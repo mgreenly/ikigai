@@ -51,9 +51,9 @@ START_TEST(test_pp_command_clears_workspace) {
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: /pp with additional text (e.g., "/pp workspace") */
-START_TEST(test_pp_command_with_args) {
+START_TEST(test_pp_command_with_args)
+{
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -84,10 +84,11 @@ START_TEST(test_pp_command_with_args) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Unknown slash command is ignored */
-START_TEST(test_unknown_slash_command) {
+START_TEST(test_unknown_slash_command)
+{
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -118,10 +119,11 @@ START_TEST(test_unknown_slash_command) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Empty workspace on newline */
-START_TEST(test_empty_workspace_newline) {
+START_TEST(test_empty_workspace_newline)
+{
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -144,10 +146,11 @@ START_TEST(test_empty_workspace_newline) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Regular text starting with / but not a command on newline */
-START_TEST(test_slash_in_middle_not_command) {
+START_TEST(test_slash_in_middle_not_command)
+{
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -178,10 +181,11 @@ START_TEST(test_slash_in_middle_not_command) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: OOM when creating format buffer in slash command handler */
-START_TEST(test_pp_command_oom_format_buffer) {
+START_TEST(test_pp_command_oom_format_buffer)
+{
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -214,10 +218,11 @@ START_TEST(test_pp_command_oom_format_buffer) {
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: OOM when allocating command string */
-START_TEST(test_pp_command_oom_command_string) {
+START_TEST(test_pp_command_oom_command_string)
+{
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -250,6 +255,7 @@ START_TEST(test_pp_command_oom_command_string) {
     oom_test_reset();
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Test Suite */

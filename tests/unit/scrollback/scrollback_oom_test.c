@@ -8,8 +8,7 @@
 #include "../../test_utils.h"
 
 // Test: OOM during scrollback structure allocation
-START_TEST(test_scrollback_create_oom_struct)
-{
+START_TEST(test_scrollback_create_oom_struct) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     oom_test_fail_next_alloc();
@@ -25,7 +24,6 @@ START_TEST(test_scrollback_create_oom_struct)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: OOM during text_offsets allocation
 START_TEST(test_scrollback_create_oom_offsets)
 {
@@ -43,8 +41,8 @@ START_TEST(test_scrollback_create_oom_offsets)
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during text_lengths allocation
 START_TEST(test_scrollback_create_oom_lengths)
 {
@@ -62,8 +60,8 @@ START_TEST(test_scrollback_create_oom_lengths)
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during layouts allocation
 START_TEST(test_scrollback_create_oom_layouts)
 {
@@ -81,8 +79,8 @@ START_TEST(test_scrollback_create_oom_layouts)
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during text_buffer allocation
 START_TEST(test_scrollback_create_oom_buffer)
 {
@@ -100,8 +98,8 @@ START_TEST(test_scrollback_create_oom_buffer)
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during line array growth (text_offsets)
 START_TEST(test_scrollback_append_oom_grow_offsets)
 {
@@ -133,8 +131,8 @@ START_TEST(test_scrollback_append_oom_grow_offsets)
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during line array growth (text_lengths)
 START_TEST(test_scrollback_append_oom_grow_lengths)
 {
@@ -160,8 +158,8 @@ START_TEST(test_scrollback_append_oom_grow_lengths)
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during line array growth (layouts)
 START_TEST(test_scrollback_append_oom_grow_layouts)
 {
@@ -187,8 +185,8 @@ START_TEST(test_scrollback_append_oom_grow_layouts)
     oom_test_reset();
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: OOM during text buffer growth
 START_TEST(test_scrollback_append_oom_grow_buffer)
 {
@@ -224,6 +222,7 @@ START_TEST(test_scrollback_append_oom_grow_buffer)
     oom_test_reset();
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *scrollback_oom_suite(void)
