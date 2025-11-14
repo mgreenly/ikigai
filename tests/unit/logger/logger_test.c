@@ -105,20 +105,6 @@ START_TEST(test_logger_error_stderr)
 }
 
 END_TEST
-// Test: ik_log_fatal outputs to stderr and calls abort
-// Note: We can't easily test the abort behavior without forking,
-// so for now we just ensure it exists and compiles.
-// A more comprehensive test would use fork() or signal handling.
-START_TEST(test_logger_fatal_stderr)
-{
-    // This test verifies that ik_log_fatal exists.
-    // Testing abort() behavior requires fork() which we'll skip for now.
-    // The function signature with __attribute__((noreturn)) provides
-    // compile-time verification.
-    // Intentionally not calling ik_log_fatal since it would abort the test
-}
-
-END_TEST
 // Test: printf-style formatting works correctly
 START_TEST(test_logger_formatting)
 {
@@ -192,7 +178,6 @@ END_TEST static Suite *logger_suite(void)
     tcase_add_test(tc_core, test_logger_debug_stdout);
     tcase_add_test(tc_core, test_logger_warn_stdout);
     tcase_add_test(tc_core, test_logger_error_stderr);
-    tcase_add_test(tc_core, test_logger_fatal_stderr);
     tcase_add_test(tc_core, test_logger_formatting);
     tcase_add_test(tc_core, test_logger_multiple_formats);
 

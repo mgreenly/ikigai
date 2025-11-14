@@ -84,7 +84,6 @@ START_TEST(test_all_log_levels)
     ik_log_info("Info message");
     ik_log_warn("Warning message");
     ik_log_error("Error message");
-    // Note: not calling ik_log_fatal as it would abort
 
     // Restore
     dup2(saved_stdout, STDOUT_FILENO);

@@ -112,27 +112,6 @@ void ik_log_error(const char *fmt, ...)
     pthread_mutex_unlock(&ik_log_mutex);
 }
 
-// LCOV_EXCL_START
-void ik_log_fatal(const char *fmt, ...)
-{
-    assert(fmt != NULL); // LCOV_EXCL_BR_LINE
-
-    pthread_mutex_lock(&ik_log_mutex);
-    ik_log_check_timestamp_mode();
-    ik_log_print_timestamp(stderr);
-    fprintf(stderr, "FATAL: ");
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    fprintf(stderr, "\n");
-    fflush(stderr);
-    pthread_mutex_unlock(&ik_log_mutex);
-    abort();
-}
-
-// LCOV_EXCL_STOP
-
 void ik_log_reset_timestamp_check(void)
 {
     pthread_mutex_lock(&ik_log_mutex);
