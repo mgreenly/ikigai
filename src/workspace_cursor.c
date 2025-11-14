@@ -4,6 +4,7 @@
  */
 
 #include "workspace_cursor.h"
+#include "panic.h"
 #include "wrapper.h"
 #include <assert.h>
 #include <stdbool.h>
@@ -17,9 +18,7 @@ res_t ik_cursor_create(void *parent, ik_cursor_t **cursor_out)
     assert(cursor_out != NULL);  /* LCOV_EXCL_BR_LINE */
 
     ik_cursor_t *cursor = ik_talloc_zero_wrapper(parent, sizeof(ik_cursor_t));
-    if (cursor == NULL) {
-        return ERR(parent, OOM, "Failed to allocate cursor");
-    }
+    if (cursor == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Both offsets initialize to 0 via talloc_zero_wrapper (via memset)
     *cursor_out = cursor;

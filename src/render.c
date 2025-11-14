@@ -1,6 +1,7 @@
 // Direct terminal rendering (no VTerm)
 #include "render.h"
 #include "error.h"
+#include "panic.h"
 #include "wrapper.h"
 #include <assert.h>
 #include <inttypes.h>
@@ -35,9 +36,7 @@ res_t ik_render_create(void *parent, int32_t rows, int32_t cols,
 
     // Allocate context
     ik_render_ctx_t *ctx = ik_talloc_zero_wrapper(parent, sizeof(ik_render_ctx_t));
-    if (!ctx) {
-        return ERR(parent, OOM, "Failed to allocate render context");
-    }
+    if (ctx == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Initialize fields
     ctx->rows = rows;
@@ -154,9 +153,7 @@ res_t ik_render_workspace(ik_render_ctx_t *ctx,
     // edge case is not tested as it cannot be reproduced without exabytes of RAM.
     size_t buffer_size = 7 + text_len + newline_count + 20;
     char *framebuffer = ik_talloc_array_wrapper(ctx, sizeof(char), buffer_size);
-    if (!framebuffer) {
-        return ERR(ctx, OOM, "Failed to allocate framebuffer");
-    }
+    if (framebuffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Build framebuffer
     size_t offset = 0;
@@ -189,10 +186,7 @@ res_t ik_render_workspace(ik_render_ctx_t *ctx,
     char *cursor_escape = ik_talloc_asprintf_wrapper(ctx, "\x1b[%" PRId32 ";%" PRId32 "H",
                                                      cursor_pos.screen_row + 1,
                                                      cursor_pos.screen_col + 1);
-    if (!cursor_escape) {
-        talloc_free(framebuffer);
-        return ERR(ctx, OOM, "Failed to allocate cursor escape string");
-    }
+    if (cursor_escape == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Append cursor escape to framebuffer
     for (size_t i = 0; cursor_escape[i] != '\0'; i++) {
@@ -271,9 +265,7 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
 
     // Allocate framebuffer
     char *framebuffer = ik_talloc_array_wrapper(ctx, sizeof(char), total_size);
-    if (!framebuffer) { /* LCOV_EXCL_BR_LINE */
-        return ERR(ctx, OOM, "Failed to allocate scrollback framebuffer"); /* LCOV_EXCL_LINE */
-    }
+    if (framebuffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Build framebuffer
     size_t offset = 0;

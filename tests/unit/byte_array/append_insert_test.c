@@ -79,59 +79,6 @@ START_TEST(test_byte_array_append_with_growth)
 }
 
 END_TEST
-// Test OOM during first allocation in append
-START_TEST(test_byte_array_append_oom_first_alloc)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    res_t res = ik_byte_array_create(ctx, 10);
-    ck_assert(is_ok(&res));
-    ik_byte_array_t *array = res.ok;
-
-    oom_test_fail_next_alloc();
-    res = ik_byte_array_append(array, 42);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    oom_test_reset();
-
-    ck_assert_uint_eq(ik_byte_array_size(array), 0);
-    ck_assert_uint_eq(ik_byte_array_capacity(array), 0);
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test OOM during growth realloc
-START_TEST(test_byte_array_append_oom_growth)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    res_t res = ik_byte_array_create(ctx, 2);
-    ck_assert(is_ok(&res));
-    ik_byte_array_t *array = res.ok;
-
-    // Fill to capacity
-    for (uint8_t i = 0; i < 2; i++) {
-        res = ik_byte_array_append(array, i);
-        ck_assert(is_ok(&res));
-    }
-
-    // Try to append with OOM during growth
-    oom_test_fail_next_alloc();
-    res = ik_byte_array_append(array, 99);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    oom_test_reset();
-
-    ck_assert_uint_eq(ik_byte_array_size(array), 2);
-    ck_assert_uint_eq(ik_byte_array_capacity(array), 2);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test insert at beginning
 START_TEST(test_byte_array_insert_at_beginning)
 {
@@ -253,37 +200,6 @@ START_TEST(test_byte_array_insert_with_growth)
 }
 
 END_TEST
-// Test OOM during insert
-START_TEST(test_byte_array_insert_oom)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    res_t res = ik_byte_array_create(ctx, 2);
-    ck_assert(is_ok(&res));
-    ik_byte_array_t *array = res.ok;
-
-    // Fill to capacity
-    for (uint8_t i = 0; i < 2; i++) {
-        res = ik_byte_array_append(array, i);
-        ck_assert(is_ok(&res));
-    }
-
-    // Try insert with OOM
-    oom_test_fail_next_alloc();
-    res = ik_byte_array_insert(array, 0, 99);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    oom_test_reset();
-
-    // Array unchanged
-    ck_assert_uint_eq(ik_byte_array_size(array), 2);
-    ck_assert_uint_eq(ik_byte_array_capacity(array), 2);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 
 static Suite *byte_array_append_insert_suite(void)
 {
@@ -297,15 +213,12 @@ static Suite *byte_array_append_insert_suite(void)
     tcase_add_test(tc_core, test_byte_array_append_first);
     tcase_add_test(tc_core, test_byte_array_append_no_growth);
     tcase_add_test(tc_core, test_byte_array_append_with_growth);
-    tcase_add_test(tc_core, test_byte_array_append_oom_first_alloc);
-    tcase_add_test(tc_core, test_byte_array_append_oom_growth);
 
     // Insert tests
     tcase_add_test(tc_core, test_byte_array_insert_at_beginning);
     tcase_add_test(tc_core, test_byte_array_insert_in_middle);
     tcase_add_test(tc_core, test_byte_array_insert_at_end);
     tcase_add_test(tc_core, test_byte_array_insert_with_growth);
-    tcase_add_test(tc_core, test_byte_array_insert_oom);
 
     suite_add_tcase(s, tc_core);
 

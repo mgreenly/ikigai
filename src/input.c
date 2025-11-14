@@ -1,8 +1,8 @@
 // Input parser module - Convert raw bytes to semantic actions
 #include <assert.h>
 #include <talloc.h>
-#include "fatal.h"
 #include "input.h"
+#include "panic.h"
 #include "wrapper.h"
 
 // Create input parser
@@ -13,9 +13,7 @@ res_t ik_input_parser_create(void *parent, ik_input_parser_t **parser_out)
 
     // Allocate parser
     ik_input_parser_t *parser = ik_talloc_zero_wrapper(parent, sizeof(ik_input_parser_t));
-    if (parser == NULL) {
-        return ERR(parent, OOM, "Failed to allocate input parser");
-    }
+    if (parser == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Initialize fields (talloc_zero already set to 0, but be explicit)
     parser->esc_len = 0;
@@ -79,7 +77,7 @@ static uint32_t decode_utf8_sequence(const char *buf, size_t len)
                     ((uint32_t)(b2 & 0x3F) << 6) |
                     ((uint32_t)(b3 & 0x3F));
     } else {
-        FATAL("Invalid UTF-8 sequence length");  // LCOV_EXCL_LINE
+        PANIC("Invalid UTF-8 sequence length");  // LCOV_EXCL_LINE
     }
 
     // Validate codepoint (reject overlong encodings, surrogates, out-of-range)

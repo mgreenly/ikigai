@@ -64,40 +64,6 @@ END_TEST START_TEST(test_config_expand_tilde_home_unset)
     talloc_free(ctx);
 }
 
-END_TEST
-// Test OOM during expand_tilde strdup (non-tilde path)
-START_TEST(test_config_expand_tilde_oom_strdup)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    oom_test_fail_next_alloc();
-    res_t res = expand_tilde(ctx, "/absolute/path");
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    oom_test_reset();
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test OOM during expand_tilde asprintf (tilde path)
-START_TEST(test_config_expand_tilde_oom_asprintf)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    oom_test_fail_next_alloc();
-    res_t res = expand_tilde(ctx, "~/test/path");
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    oom_test_reset();
-
-    talloc_free(ctx);
-}
-
 END_TEST START_TEST(test_config_load_tilde_home_unset)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -134,8 +100,6 @@ END_TEST static Suite *config_tilde_suite(void)
 
     tcase_add_test(tc_core, test_config_expand_tilde);
     tcase_add_test(tc_core, test_config_expand_tilde_home_unset);
-    tcase_add_test(tc_core, test_config_expand_tilde_oom_strdup);
-    tcase_add_test(tc_core, test_config_expand_tilde_oom_asprintf);
     tcase_add_test(tc_core, test_config_load_tilde_home_unset);
 
     suite_add_tcase(s, tc_core);

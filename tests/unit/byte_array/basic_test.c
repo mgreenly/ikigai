@@ -34,22 +34,6 @@ START_TEST(test_byte_array_create_invalid_increment)
 }
 
 END_TEST
-// Test OOM during byte array creation
-START_TEST(test_byte_array_create_oom)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    oom_test_fail_next_alloc();
-    res_t res = ik_byte_array_create(ctx, 10);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    oom_test_reset();
-
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test clear
 START_TEST(test_byte_array_clear)
 {
@@ -130,7 +114,6 @@ static Suite *byte_array_basic_suite(void)
     // Creation tests
     tcase_add_test(tc_core, test_byte_array_create_success);
     tcase_add_test(tc_core, test_byte_array_create_invalid_increment);
-    tcase_add_test(tc_core, test_byte_array_create_oom);
 
     // Clear test
     tcase_add_test(tc_core, test_byte_array_clear);

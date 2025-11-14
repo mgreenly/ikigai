@@ -53,22 +53,6 @@ START_TEST(test_array_create_invalid_increment)
 }
 
 END_TEST
-// Test OOM during array creation
-START_TEST(test_array_create_oom)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    oom_test_fail_next_alloc();
-    res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    oom_test_reset();
-
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test array_size on empty array
 START_TEST(test_array_size_empty)
 {
@@ -196,7 +180,6 @@ static Suite *array_basic_suite(void)
     tcase_add_test(tc_core, test_array_create_success);
     tcase_add_test(tc_core, test_array_create_invalid_element_size);
     tcase_add_test(tc_core, test_array_create_invalid_increment);
-    tcase_add_test(tc_core, test_array_create_oom);
     tcase_add_test(tc_core, test_array_size_empty);
     tcase_add_test(tc_core, test_array_capacity_empty);
     tcase_add_test(tc_core, test_array_clear);

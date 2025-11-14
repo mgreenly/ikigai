@@ -4,6 +4,7 @@
  */
 
 #include "scrollback.h"
+#include "panic.h"
 #include "wrapper.h"
 #include <assert.h>
 #include <string.h>
@@ -20,9 +21,7 @@ res_t ik_scrollback_create(void *parent, int32_t terminal_width,
 
     // Allocate scrollback struct
     ik_scrollback_t *scrollback = ik_talloc_zero_wrapper(parent, sizeof(ik_scrollback_t));
-    if (scrollback == NULL) {
-        return ERR(parent, OOM, "Failed to allocate scrollback");
-    }
+    if (scrollback == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Initialize metadata
     scrollback->count = 0;
@@ -34,31 +33,19 @@ res_t ik_scrollback_create(void *parent, int32_t terminal_width,
 
     // Allocate text_offsets array
     scrollback->text_offsets = ik_talloc_array_wrapper(scrollback, sizeof(size_t), scrollback->capacity);
-    if (scrollback->text_offsets == NULL) {
-        talloc_free(scrollback);
-        return ERR(parent, OOM, "Failed to allocate text_offsets");
-    }
+    if (scrollback->text_offsets == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Allocate text_lengths array
     scrollback->text_lengths = ik_talloc_array_wrapper(scrollback, sizeof(size_t), scrollback->capacity);
-    if (scrollback->text_lengths == NULL) {
-        talloc_free(scrollback);
-        return ERR(parent, OOM, "Failed to allocate text_lengths");
-    }
+    if (scrollback->text_lengths == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Allocate layouts array
     scrollback->layouts = ik_talloc_array_wrapper(scrollback, sizeof(ik_line_layout_t), scrollback->capacity);
-    if (scrollback->layouts == NULL) {
-        talloc_free(scrollback);
-        return ERR(parent, OOM, "Failed to allocate layouts");
-    }
+    if (scrollback->layouts == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Allocate text_buffer
     scrollback->text_buffer = ik_talloc_array_wrapper(scrollback, sizeof(char), scrollback->buffer_capacity);
-    if (scrollback->text_buffer == NULL) {
-        talloc_free(scrollback);
-        return ERR(parent, OOM, "Failed to allocate text_buffer");
-    }
+    if (scrollback->text_buffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     *scrollback_out = scrollback;
     return ok(scrollback);
@@ -77,25 +64,19 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
         // Grow text_offsets
         size_t *new_offsets = ik_talloc_realloc_wrapper(
             scrollback, scrollback->text_offsets, sizeof(size_t) * new_capacity);
-        if (new_offsets == NULL) {
-            return ERR(scrollback, OOM, "Failed to grow text_offsets");
-        }
+        if (new_offsets == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         scrollback->text_offsets = new_offsets;
 
         // Grow text_lengths
         size_t *new_lengths = ik_talloc_realloc_wrapper(
             scrollback, scrollback->text_lengths, sizeof(size_t) * new_capacity);
-        if (new_lengths == NULL) {
-            return ERR(scrollback, OOM, "Failed to grow text_lengths");
-        }
+        if (new_lengths == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         scrollback->text_lengths = new_lengths;
 
         // Grow layouts
         ik_line_layout_t *new_layouts = ik_talloc_realloc_wrapper(
             scrollback, scrollback->layouts, sizeof(ik_line_layout_t) * new_capacity);
-        if (new_layouts == NULL) {
-            return ERR(scrollback, OOM, "Failed to grow layouts");
-        }
+        if (new_layouts == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         scrollback->layouts = new_layouts;
 
         scrollback->capacity = new_capacity;
@@ -111,9 +92,7 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
 
         char *new_buffer = ik_talloc_realloc_wrapper(
             scrollback, scrollback->text_buffer, new_buffer_capacity);
-        if (new_buffer == NULL) {
-            return ERR(scrollback, OOM, "Failed to grow text_buffer");
-        }
+        if (new_buffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         scrollback->text_buffer = new_buffer;
         scrollback->buffer_capacity = new_buffer_capacity;
     }

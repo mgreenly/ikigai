@@ -168,42 +168,6 @@ START_TEST(test_workspace_insert_invalid_codepoint)
 }
 
 END_TEST
-/* Test: Insert codepoint - OOM during byte array insert */
-START_TEST(test_workspace_insert_codepoint_oom)
-{
-    void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
-
-    ik_workspace_create(ctx, &workspace);
-
-    /* Trigger OOM during byte array insert
-     * The byte array starts with capacity 64 (from workspace_create),
-     * so inserting one byte doesn't trigger a grow/realloc.
-     * We need to force the realloc path by filling the array first.
-     */
-
-    /* Fill the array to capacity (64 bytes) */
-    for (size_t i = 0; i < 64; i++) {
-        ik_workspace_insert_codepoint(workspace, 'x');
-    }
-
-    /* Now the next insert will trigger a realloc (grow to 128) */
-    /* Fail the realloc */
-    oom_test_fail_next_alloc();
-    res_t res = ik_workspace_insert_codepoint(workspace, 'a');
-    ck_assert(is_err(&res));
-    oom_test_reset();
-
-    /* Verify workspace is still consistent (should have 64 bytes) */
-    char *text = NULL;
-    size_t len = 0;
-    ik_workspace_get_text(workspace, &text, &len);
-    ck_assert_uint_eq(len, 64);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 /* Test: Insert newline */
 START_TEST(test_workspace_insert_newline)
 {
@@ -244,36 +208,6 @@ START_TEST(test_workspace_insert_newline)
 }
 
 END_TEST
-/* Test: Insert newline - OOM during byte array insert */
-START_TEST(test_workspace_insert_newline_oom)
-{
-    void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
-
-    ik_workspace_create(ctx, &workspace);
-
-    /* Fill the array to capacity (64 bytes) */
-    for (size_t i = 0; i < 64; i++) {
-        ik_workspace_insert_codepoint(workspace, 'x');
-    }
-
-    /* Now the next insert will trigger a realloc (grow to 128) */
-    /* Fail the realloc */
-    oom_test_fail_next_alloc();
-    res_t res = ik_workspace_insert_newline(workspace);
-    ck_assert(is_err(&res));
-    oom_test_reset();
-
-    /* Verify workspace is still consistent (should have 64 bytes) */
-    char *text = NULL;
-    size_t len = 0;
-    ik_workspace_get_text(workspace, &text, &len);
-    ck_assert_uint_eq(len, 64);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 
 static Suite *workspace_insert_suite(void)
 {
@@ -286,9 +220,7 @@ static Suite *workspace_insert_suite(void)
     tcase_add_test(tc_core, test_workspace_insert_utf8_3byte);
     tcase_add_test(tc_core, test_workspace_insert_middle);
     tcase_add_test(tc_core, test_workspace_insert_invalid_codepoint);
-    tcase_add_test(tc_core, test_workspace_insert_codepoint_oom);
     tcase_add_test(tc_core, test_workspace_insert_newline);
-    tcase_add_test(tc_core, test_workspace_insert_newline_oom);
 
     suite_add_tcase(s, tc_core);
     return s;

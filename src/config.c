@@ -1,5 +1,6 @@
 #include "config.h"
 #include "logger.h"
+#include "panic.h"
 #include "wrapper.h"
 #include <stdlib.h>
 #include <string.h>
@@ -22,9 +23,7 @@ res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
     assert(path != NULL); // LCOV_EXCL_BR_LINE
     if (path[0] != '~') {
         char *result = ik_talloc_strdup_wrapper(ctx, path);
-        if (!result) {
-            return ERR(ctx, OOM, "Failed to allocate path");
-        }
+        if (result == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         return OK(result);
     }
 
@@ -34,9 +33,7 @@ res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
     }
 
     char *result = ik_talloc_asprintf_wrapper(ctx, "%s%s", home, path + 1);
-    if (!result) {
-        return ERR(ctx, OOM, "Failed to allocate expanded path");
-    }
+    if (result == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     return OK(result);
 }
 
@@ -47,11 +44,7 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
     assert(path != NULL); // LCOV_EXCL_BR_LINE
     // Extract directory from path
     char *path_copy = talloc_strdup(ctx, path);
-    // LCOV_EXCL_START - OOM will be tested via injectable allocator in Task 8
-    if (!path_copy) {
-        return ERR(ctx, OOM, "Failed to allocate path copy");
-    }
-    // LCOV_EXCL_STOP
+    if (path_copy == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     char *dir = dirname(path_copy);
 
@@ -67,11 +60,7 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
 
     // Create default JSON config
     json_t *root = json_object();
-    // LCOV_EXCL_START - json_object OOM extremely rare, handled by jansson
-    if (!root) {
-        return ERR(ctx, OOM, "Failed to create JSON object");
-    }
-    // LCOV_EXCL_STOP
+    if (root == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     json_object_set_new(root, "openai_api_key", json_string("YOUR_API_KEY_HERE"));
     json_object_set_new(root, "listen_address", json_string("127.0.0.1"));
@@ -119,12 +108,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
 
     // Allocate config structure
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    // LCOV_EXCL_START - OOM will be tested via injectable allocator in Task 8
-    if (!cfg) {
-        json_decref(root);
-        return ERR(ctx, OOM, "Failed to allocate config");
-    }
-    // LCOV_EXCL_STOP
+    if (cfg == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Extract fields (validation will be in later tasks)
     json_t *api_key = json_object_get(root, "openai_api_key");

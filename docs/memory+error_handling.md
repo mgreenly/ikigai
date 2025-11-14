@@ -4,6 +4,8 @@
 
 Our `res_t` error system and talloc hierarchical memory work together to solve a critical problem: **errors must outlive the context that failed**.
 
+**Note:** Out of memory conditions no longer return errors - they call `PANIC("Out of memory")` which immediately terminates the process. This document describes the interaction for non-OOM errors.
+
 ## Why This Matters
 
 ```c
@@ -33,10 +35,14 @@ res_t create_thing(TALLOC_CTX *parent) {
 
 ```c
 // ✅ CORRECT: Error allocated on caller's context
-return ERR(parent_ctx, OOM, "Failed to allocate");
+return ERR(parent_ctx, IO, "Failed to open file");
 
 // ❌ WRONG: Error allocated on temporary context (would be freed!)
-return ERR(tmp_ctx, OOM, "Failed to allocate");
+return ERR(tmp_ctx, IO, "Failed to open file");
+
+// ✅ OOM: Use PANIC instead of ERR
+void *ptr = ik_talloc_zero_wrapper(ctx, size);
+if (!ptr) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 ```
 
 ## How It Works in Practice
@@ -51,8 +57,8 @@ static res_t grow_array(ik_array_t *array)
     // Try to reallocate
     void *new_data = ik_talloc_realloc_wrapper(ctx, array->data, ...);
     if (!new_data) {
-        // Allocate error on PARENT context (ctx)
-        return ERR(ctx, OOM, "Failed to grow array capacity");
+        // OOM: PANIC immediately - cannot continue
+        PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     }
 
     array->data = new_data;
@@ -60,19 +66,19 @@ static res_t grow_array(ik_array_t *array)
 }
 ```
 
-**Why this works:**
-1. Caller owns `array`, allocated on some context
-2. Function gets parent via `talloc_parent(array)`
-3. Error allocated on **that parent context**
-4. Even if `array` gets freed on error path, error survives
-5. Caller can examine error, log it, propagate it
+**Why PANIC for OOM:**
+1. Memory allocation failure is unrecoverable
+2. Cannot allocate error structure to return
+3. Process cannot continue without memory
+4. PANIC provides immediate termination with diagnostic output
 
 ### Example from `src/workspace.c:13-38`
 
 ```c
 res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out)
 {
-    workspace_t *workspace = ik_talloc_zero_wrapper(parent, ...);
+    workspace_t *workspace = ik_talloc_zero_wrapper(parent, sizeof(workspace_t));
+    if (!workspace) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     res_t res = ik_byte_array_create(workspace, 64);
     if (is_err(&res)) {
@@ -89,6 +95,8 @@ res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out)
     return OK(workspace);
 }
 ```
+
+**Note:** The `ik_byte_array_create()` and `ik_cursor_create()` functions handle their own OOM conditions internally via PANIC. Only non-OOM errors (like invalid arguments) are returned as `res_t`.
 
 ## The Advantage Over Simple Pools
 
@@ -108,8 +116,11 @@ if (!init(thing)) {
 **Talloc hierarchy (granular cleanup):**
 ```c
 TALLOC_CTX *ctx = talloc_new(NULL);
+if (!ctx) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-thing_t *thing = talloc(ctx, thing_t);
+thing_t *thing = ik_talloc_wrapper(ctx, sizeof(thing_t));
+if (!thing) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
 if (!init(thing)) {
     talloc_free(thing);  // Free just this allocation
     // Error is on ctx, survives the free
@@ -119,10 +130,11 @@ if (!init(thing)) {
 
 ## Key Insights
 
-1. **Errors outlive failures** - Allocated on parent, survive child cleanup
+1. **Errors outlive failures** - Allocated on parent, survive child cleanup (for non-OOM errors)
 2. **Granular lifetime control** - Free at any level of hierarchy
 3. **No manual tracking** - Parent-child relationships handle cleanup
 4. **Uniform memory model** - Errors and data use same allocator
+5. **OOM is unrecoverable** - Memory allocation failures cause PANIC (abort), not error returns
 
 ## See Also
 

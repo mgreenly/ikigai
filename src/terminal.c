@@ -6,6 +6,7 @@
 #include <talloc.h>
 #include <termios.h>
 #include <unistd.h>
+#include "panic.h"
 #include "terminal.h"
 #include "wrapper.h"
 
@@ -23,10 +24,7 @@ res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
 
     // Allocate context
     ik_term_ctx_t *ctx = ik_talloc_zero_wrapper(parent, sizeof(ik_term_ctx_t));
-    if (ctx == NULL) {
-        ik_close_wrapper(tty_fd);
-        return ERR(parent, OOM, "Failed to allocate terminal context");
-    }
+    if (ctx == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     ctx->tty_fd = tty_fd;
 

@@ -47,13 +47,15 @@ This creates a clear taxonomy of failure modes with appropriate responses for ea
 
 ### 1. Result Types - Expected Runtime Errors
 
-**Use for:** IO operations, resource allocation, parsing - any external failure
+**Use for:** IO operations, parsing, external failures (but NOT memory allocation)
 
 **Characteristics:**
-- Failures are unpredictable (OOM, disk full, network down, malformed input)
+- Failures are unpredictable (disk full, network down, malformed input)
 - Must be handled gracefully by caller
 - Caller decides how to recover or propagate
 - Always present in both debug and release builds
+
+**Note:** Out of memory conditions are NOT handled via Result types - they cause PANIC (abort).
 
 **Examples:**
 ```c
@@ -63,10 +65,12 @@ res_t message_parse(TALLOC_CTX *ctx, const char *json);
 ```
 
 **Operations that should return `res_t`:**
-- Heap allocation
 - File I/O, network operations
 - Parsing user input or external data
-- Resource acquisition
+- Resource acquisition (non-memory)
+
+**Operations that should use PANIC:**
+- Memory allocation failures (OOM)
 
 ---
 
@@ -98,32 +102,39 @@ void ik_array_delete(ik_array_t *array, size_t index) {
 
 ---
 
-### 3. FATAL() - Unrecoverable Logic Errors
+### 3. PANIC() - Unrecoverable Errors
 
-**Use for:** Data corruption, impossible states that should never occur
+**Use for:** Out of memory, data corruption, impossible states
 
 **Characteristics:**
-- Failures indicate severe logic errors or corruption
+- Failures indicate severe errors that cannot be recovered from
 - Present in both debug and release builds
 - Continuing would be more dangerous than crashing
-- Should be extremely rare (~1-2 per 1000 lines of code)
+- Used for OOM and logic errors (~1-2 per 1000 lines of code excluding OOM checks)
 
 **Examples:**
 ```c
+// Out of memory - always PANIC
+void *ptr = ik_talloc_zero_wrapper(ctx, size);
+if (ptr == NULL) PANIC("Out of memory");
+
+// Data corruption detected
 if (array->size > array->capacity) {
-    FATAL("Array corruption: size > capacity");
+    PANIC("Array corruption: size > capacity");
 }
 
+// Impossible state
 switch (state) {
     case STATE_INIT: /* ... */ break;
     case STATE_READY: /* ... */ break;
     case STATE_DONE: /* ... */ break;
     default:
-        FATAL("Invalid state in state machine");
+        PANIC("Invalid state in state machine");
 }
 ```
 
-**When to use FATAL():**
+**When to use PANIC():**
+- Memory allocation failures (OOM) - most common case
 - Data structure invariant violations detected at runtime
 - Impossible state combinations
 - Switch defaults that should never be reached
@@ -155,10 +166,12 @@ typedef struct err {
 ```c
 typedef enum {
     OK = 0,
-    ERR_OOM, ERR_INVALID_ARG, ERR_OUT_OF_RANGE,
+    ERR_INVALID_ARG, ERR_OUT_OF_RANGE,
     ERR_IO, ERR_PARSE
 } err_code_t;
 ```
+
+**Note:** ERR_OOM has been removed - memory allocation failures now cause PANIC instead.
 
 **Inspection Functions:**
 ```c
@@ -286,8 +299,8 @@ res_t ik_array_create(TALLOC_CTX *ctx, size_t element_size, size_t increment) {
     assert(ctx != NULL);                // LCOV_EXCL_BR_LINE
     assert(element_size > 0);           // LCOV_EXCL_BR_LINE
 
-    ik_array_t *array = /* ... allocate ... */;
-    if (!array) return ERR(ctx, OOM, "Failed to allocate array");
+    ik_array_t *array = ik_talloc_zero_wrapper(ctx, sizeof(ik_array_t));
+    if (!array) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     array->size = 0;
     array->capacity = increment;
@@ -303,63 +316,69 @@ res_t ik_array_create(TALLOC_CTX *ctx, size_t element_size, size_t increment) {
 
 ---
 
-## FATAL() - Unrecoverable Logic Errors
+## PANIC() - Unrecoverable Errors
 
 ### Purpose
 
-While assertions compile out in release builds, some logic errors indicate such severe corruption that continuing would be more dangerous than crashing. For these rare cases, use `FATAL()`.
+Some errors are so severe that continuing would be more dangerous than crashing. Out of memory is the most common case, but data corruption and impossible states also require immediate termination. For these cases, use `PANIC()`.
 
-### The FATAL() Macro
+### The PANIC() Macro
 
-**Location:** `src/fatal.h`
+**Location:** `src/panic.h`
 
 ```c
-#define FATAL(msg) \
-    do { \
-        fprintf(stderr, "FATAL: %s\n  at %s:%d\n", \
-                (msg), __FILE__, __LINE__); \
-        fflush(stderr); \
-        abort(); \
-    } while(0)
+#define PANIC(msg) ik_panic_impl((msg), __FILE__, __LINE__)
 ```
 
-### When to Use FATAL()
+The implementation handles terminal restoration and provides async-signal-safe error reporting before calling `abort()`.
 
-**Use sparingly** - approximately 1-2 per 1000 lines of code.
+### When to Use PANIC()
+
+**Most common:** Out of memory conditions - every memory allocation checks for NULL and calls PANIC.
+
+**Rare:** Logic errors indicating corruption (~1-2 per 1000 lines of code, excluding OOM checks).
 
 #### ✅ Good Candidates:
 
-**1. Data structure corruption detected:**
+**1. Out of memory (most common):**
+```c
+void *ptr = ik_talloc_zero_wrapper(ctx, size);
+if (ptr == NULL) {
+    PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+}
+```
+
+**2. Data structure corruption detected:**
 ```c
 if (array->size > array->capacity) {
-    FATAL("Array corruption: size > capacity");  // LCOV_EXCL_LINE
+    PANIC("Array corruption: size > capacity");  // LCOV_EXCL_LINE
 }
 ```
 
-**2. Impossible state combinations:**
+**3. Impossible state combinations:**
 ```c
 if (state == STATE_CLOSED && fd >= 0) {
-    FATAL("Inconsistent state: closed but fd valid");  // LCOV_EXCL_LINE
+    PANIC("Inconsistent state: closed but fd valid");  // LCOV_EXCL_LINE
 }
 ```
 
-**3. Switch defaults (always):**
+**4. Switch defaults (always):**
 ```c
 switch (action.type) {
     case ACTION_INSERT: /* ... */ break;
     case ACTION_DELETE: /* ... */ break;
     case ACTION_MOVE: /* ... */ break;
     default:
-        FATAL("Invalid action type in switch");  // LCOV_EXCL_LINE
+        PANIC("Invalid action type in switch");  // LCOV_EXCL_LINE
 }
 ```
 
-#### ❌ Don't Use FATAL() For:
+#### ❌ Don't Use PANIC() For:
 
 **1. Precondition checks** - Use `assert()`:
 ```c
 // Bad
-if (ptr == NULL) FATAL("NULL pointer");
+if (ptr == NULL) PANIC("NULL pointer");
 
 // Good
 assert(ptr != NULL);  // LCOV_EXCL_BR_LINE
@@ -368,27 +387,28 @@ assert(ptr != NULL);  // LCOV_EXCL_BR_LINE
 **2. Expected errors** - Use `Result`:
 ```c
 // Bad
-if (file_open_failed) FATAL("Can't open file");
+if (file_open_failed) PANIC("Can't open file");
 
 // Good
 return ERR(ctx, IO, "Cannot open file: %s", path);
 ```
 
-### FATAL() vs assert()
+### PANIC() vs assert()
 
-**Key distinction:** assert() compiles out in release builds (`-DNDEBUG`), FATAL() is always present.
+**Key distinction:** assert() compiles out in release builds (`-DNDEBUG`), PANIC() is always present.
 
 **Use `assert()` for:**
 - Precondition checks - Caller's responsibility
 - Contract violations - Bugs in how functions are called
 - Development-time verification
 
-**Use `FATAL()` for:**
+**Use `PANIC()` for:**
+- Out of memory - Cannot continue without memory
 - Unreachable code - Switch defaults, impossible states
 - Data structure corruption - Invariants violated at runtime
 - Internal logic errors - Conditions that should be impossible
 
-**Critical principle:** If reaching a code location means the program is in an undefined/corrupted state, use `FATAL()`. Never let the program continue in an unknown state.
+**Critical principle:** If reaching a code location means the program is in an undefined/corrupted state, use `PANIC()`. Never let the program continue in an unknown state.
 
 ---
 
@@ -396,19 +416,23 @@ return ERR(ctx, IO, "Cannot open file: %s", path);
 
 When something goes wrong, use this decision tree:
 
-### 1. Can this happen with correct code and valid input?
-   - **Yes** → Use `Result` (e.g., file not found, out of memory, network timeout)
+### 1. Is this an out of memory condition?
+   - **Yes** → Use `PANIC()` - memory allocation failures cannot be recovered from
    - **No** → Continue to #2
 
-### 2. Is this a precondition / function contract violation?
-   - **Yes** → Use `assert()` (e.g., NULL pointer passed by caller, out-of-bounds index)
+### 2. Can this happen with correct code and valid input?
+   - **Yes** → Use `Result` (e.g., file not found, network timeout, parse error)
    - **No** → Continue to #3
 
-### 3. Is this unreachable code or impossible internal state?
-   - **Yes** → Use `FATAL()` (e.g., switch defaults, enum values after validation, corrupted data structures)
-   - **No** → Reconsider - you may have a precondition (step 2) or expected error (step 1)
+### 3. Is this a precondition / function contract violation?
+   - **Yes** → Use `assert()` (e.g., NULL pointer passed by caller, out-of-bounds index)
+   - **No** → Continue to #4
 
-**Key insight:** If you reach code that should be impossible to reach, that's `FATAL()` territory. The program is in an undefined state and must terminate immediately, even in production.
+### 4. Is this unreachable code or impossible internal state?
+   - **Yes** → Use `PANIC()` (e.g., switch defaults, enum values after validation, corrupted data structures)
+   - **No** → Reconsider - you may have a precondition (step 3) or expected error (step 2)
+
+**Key insight:** Memory allocation failures always cause PANIC. If you reach code that should be impossible to reach, that's also `PANIC()` territory. The program is in an undefined state and must terminate immediately, even in production.
 
 ### Quick Reference
 
@@ -417,12 +441,12 @@ When something goes wrong, use this decision tree:
 | User passed NULL | `Result` | Expected error - validate at boundary |
 | Internal function received NULL | `assert()` | Contract violation - caller's bug |
 | File not found | `Result` | Expected runtime error |
-| Out of memory | `Result` | Expected runtime error |
-| Array size > capacity | `FATAL()` | Data corruption - unrecoverable |
-| Invalid enum after validation | `FATAL()` | Logic error - should be impossible |
+| Out of memory | `PANIC()` | Cannot continue without memory - abort immediately |
+| Array size > capacity | `PANIC()` | Data corruption - unrecoverable |
+| Invalid enum after validation | `PANIC()` | Logic error - should be impossible |
 | NULL pointer check | `assert()` | Precondition - development aid |
 | Bounds check | `assert()` | Precondition - development aid |
-| Switch default | `FATAL()` | Should never be reached |
+| Switch default | `PANIC()` | Should never be reached |
 
 ---
 
@@ -440,9 +464,9 @@ When something goes wrong, use this decision tree:
    - Fast feedback during development
    - Use liberally - zero cost
 
-3. **`FATAL()`** - Unrecoverable logic errors
-   - Production crashes for corruption
-   - Use sparingly (~1-2 per 1000 LOC)
+3. **`PANIC()`** - Unrecoverable errors
+   - Production crashes for OOM and corruption
+   - OOM checks throughout codebase, plus rare logic errors (~1-2 per 1000 LOC)
    - When continuing is more dangerous than crashing
 
 ### Key Principles

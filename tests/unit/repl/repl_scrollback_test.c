@@ -10,8 +10,7 @@
 #include "../../test_utils.h"
 
 /* Test: REPL context can hold scrollback buffer */
-START_TEST(test_repl_context_with_scrollback)
-{
+START_TEST(test_repl_context_with_scrollback) {
     void *ctx = talloc_new(NULL);
 
     // Manually construct REPL context (like other tests do)
@@ -40,7 +39,6 @@ START_TEST(test_repl_context_with_scrollback)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: REPL scrollback integration with terminal width */
 START_TEST(test_repl_scrollback_terminal_width)
 {
@@ -71,6 +69,7 @@ START_TEST(test_repl_scrollback_terminal_width)
     // Cleanup
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Create test suite */

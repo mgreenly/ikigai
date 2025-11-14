@@ -307,58 +307,6 @@ START_TEST(test_render_workspace_invalid_utf8)
 }
 
 END_TEST
-// Test: OOM when allocating framebuffer
-START_TEST(test_render_workspace_oom_framebuffer)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_ctx_t *render = NULL;
-
-    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
-    ck_assert(is_ok(&res));
-
-    mock_write_reset();
-    const char *text = "hello";
-
-    // Fail framebuffer allocation
-    oom_test_fail_next_alloc();
-    res = ik_render_workspace(render, text, 5, 5);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-
-    oom_test_reset();
-    mock_write_reset();
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test: OOM when allocating cursor escape
-// Note: talloc_asprintf does 2 internal allocations, so we fail after 2 successful calls
-START_TEST(test_render_workspace_oom_cursor_escape)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_ctx_t *render = NULL;
-
-    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
-    ck_assert(is_ok(&res));
-
-    mock_write_reset();
-    const char *text = "hello";
-
-    // Fail after framebuffer allocation succeeds but before cursor_escape completes
-    // talloc_asprintf internally does multiple allocations
-    oom_test_fail_after_n_calls(2);
-    res = ik_render_workspace(render, text, 5, 5);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-
-    oom_test_reset();
-    mock_write_reset();
-    talloc_free(ctx);
-}
-
-END_TEST
 
 #ifndef NDEBUG
 // Test: NULL ctx asserts
@@ -402,8 +350,6 @@ static Suite *workspace_suite(void)
     tcase_add_test(tc_core, test_render_workspace_cursor_after_wrap);
     tcase_add_test(tc_core, test_render_workspace_write_failure);
     tcase_add_test(tc_core, test_render_workspace_invalid_utf8);
-    tcase_add_test(tc_core, test_render_workspace_oom_framebuffer);
-    tcase_add_test(tc_core, test_render_workspace_oom_cursor_escape);
 
 #ifndef NDEBUG
     tcase_add_test_raise_signal(tc_core, test_render_workspace_null_ctx_asserts, SIGABRT);

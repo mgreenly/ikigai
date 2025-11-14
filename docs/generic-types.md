@@ -56,7 +56,8 @@ typedef struct ik_array {
 
 **Error codes used:**
 - `ERR_INVALID_ARG` - Invalid parameter at creation (element_size=0, increment=0)
-- `ERR_OOM` - Memory allocation failed
+
+**OOM handling:** Memory allocation failures call `PANIC("Out of memory")` which immediately terminates the process. OOM is not a recoverable error.
 
 See `docs/error_handling.md` for complete error handling philosophy.
 
@@ -68,7 +69,8 @@ See `docs/error_handling.md` for complete error handling philosophy.
   - `element_size` must be > 0 (returns `ERR(ctx, INVALID_ARG, "element_size must be > 0")` if 0)
   - `increment` must be > 0 (returns `ERR(ctx, INVALID_ARG, "increment must be > 0")` if 0)
   - **No memory allocated for data buffer** - allocation deferred until first append/insert
-  - Returns `OK(array)` or `ERR(ctx, OOM, ...)` or `ERR(ctx, INVALID_ARG, ...)`
+  - Returns `OK(array)` or `ERR(ctx, INVALID_ARG, ...)`
+  - Allocation failures cause `PANIC("Out of memory")` - not returned as errors
   - Array structure is owned by talloc context (freed when context is freed)
 
 **Modification (IO - Returns res_t):**
@@ -76,14 +78,16 @@ See `docs/error_handling.md` for complete error handling philosophy.
   - Appends element to end of array
   - Grows array if needed (doubles capacity)
   - Validates: `assert(array != NULL)`, `assert(element != NULL)`
-  - Returns `OK(NULL)` or `ERR(talloc_parent(array), ERR_OOM, ...)`
+  - Returns `OK(NULL)` on success
+  - Allocation failures cause `PANIC("Out of memory")` - not returned as errors
 
 - `res_t ik_array_insert(ik_array_t *array, size_t index, const void *element)`
   - Inserts element at specified index
   - Shifts existing elements right
   - Validates: `assert(array != NULL)`, `assert(element != NULL)`, `assert(index <= array->size)`
   - Grows array if needed
-  - Returns `OK(NULL)` or `ERR(talloc_parent(array), ERR_OOM, ...)`
+  - Returns `OK(NULL)` on success
+  - Allocation failures cause `PANIC("Out of memory")` - not returned as errors
 
 **Modification (No IO - Direct return with asserts):**
 - `void ik_array_delete(ik_array_t *array, size_t index)`
@@ -242,21 +246,19 @@ All error handling follows the three-category strategy from `docs/error_handling
 The module achieves 100% coverage (lines, functions, branches) through comprehensive testing:
 
 **Testing IO operations (res_t):**
-Uses `oom_test_*` functions from `tests/test_utils.h` to test allocation failures:
+OOM testing has been removed since allocation failures now cause PANIC (abort). Only validation errors (like invalid arguments) can be tested:
 ```c
-// Test allocation failure in ik_array_create
-oom_test_fail_next_alloc();
-res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
+// Test invalid argument detection
+res_t res = ik_array_create(ctx, 0, 10);  // element_size=0
 ck_assert(is_err(&res));
-ck_assert_int_eq(error_code(res.err), ERR_OOM);
-oom_test_reset();
+ck_assert_int_eq(error_code(res.err), ERR_INVALID_ARG);
 
-// Test allocation failure in ik_array_append
-oom_test_fail_next_alloc();
-res = ik_array_append(array, &value);
+res = ik_array_create(ctx, sizeof(int32_t), 0);  // increment=0
 ck_assert(is_err(&res));
-oom_test_reset();
+ck_assert_int_eq(error_code(res.err), ERR_INVALID_ARG);
 ```
+
+OOM branches are excluded from coverage using `// LCOV_EXCL_BR_LINE` markers.
 
 **Testing contract violations (assertions):**
 Uses Check's `tcase_add_test_raise_signal()` to verify assertions fire correctly:
@@ -292,13 +294,14 @@ tcase_add_test_raise_signal(tc_core, test_array_get_out_of_bounds_asserts, SIGAB
 
 **Reference implementations:**
 - `tests/unit/error_test.c` - res_t testing patterns
-- `tests/unit/config_test.c` - OOM injection examples
-- `tests/integration/oom_integration_test.c` - Comprehensive OOM testing
 - See `docs/error_handling.md` for complete testing strategy
+
+**Note:** OOM injection testing infrastructure has been removed since allocation failures now cause PANIC.
 
 ### Design Decisions
 
-- **IO operations** (`create`, `append`, `insert`) return `res_t` for OOM handling
+- **IO operations** (`create`, `append`, `insert`) return `res_t` for validation errors
+- **OOM handling** - Memory allocation failures call `PANIC("Out of memory")` instead of returning errors
 - **Contract violations** (NULL pointers, out-of-bounds) use `assert()` - fail fast in debug, optimized out in release
 - **Pure queries** (`size`, `capacity`) return values directly with `assert()` for NULL defense
 - Uses `memcpy` for element operations - works for any type

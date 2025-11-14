@@ -45,8 +45,7 @@ static void mock_write_reset(void)
 }
 
 /* Test: Render frame with empty scrollback (workspace only) */
-START_TEST(test_render_frame_empty_scrollback)
-{
+START_TEST(test_render_frame_empty_scrollback) {
     mock_write_reset();
     void *ctx = talloc_new(NULL);
 
@@ -83,7 +82,6 @@ START_TEST(test_render_frame_empty_scrollback)
     mock_write_reset();
 }
 END_TEST
-
 /* Test: Render frame with scrollback content */
 START_TEST(test_render_frame_with_scrollback)
 {
@@ -133,6 +131,7 @@ START_TEST(test_render_frame_with_scrollback)
     talloc_free(ctx);
     mock_write_reset();
 }
+
 END_TEST
 
 /* Create test suite */

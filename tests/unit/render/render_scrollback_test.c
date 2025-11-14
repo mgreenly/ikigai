@@ -31,8 +31,7 @@ ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
 }
 
 /* Test: Render empty scrollback */
-START_TEST(test_render_empty_scrollback)
-{
+START_TEST(test_render_empty_scrollback) {
     void *ctx = talloc_new(NULL);
 
     // Create render context
@@ -61,7 +60,6 @@ START_TEST(test_render_empty_scrollback)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Render single line of scrollback */
 START_TEST(test_render_single_line)
 {
@@ -97,8 +95,8 @@ START_TEST(test_render_single_line)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Render multiple lines */
 START_TEST(test_render_multiple_lines)
 {
@@ -137,8 +135,8 @@ START_TEST(test_render_multiple_lines)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Render partial scrollback (subset of lines) */
 START_TEST(test_render_partial_scrollback)
 {
@@ -179,8 +177,8 @@ START_TEST(test_render_partial_scrollback)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Invalid start_line (beyond scrollback) */
 START_TEST(test_render_invalid_start_line)
 {
@@ -209,8 +207,8 @@ START_TEST(test_render_invalid_start_line)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Line count clamping (request more lines than available) */
 START_TEST(test_render_line_count_clamping)
 {
@@ -248,8 +246,8 @@ START_TEST(test_render_line_count_clamping)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Render text with embedded newlines */
 START_TEST(test_render_with_newlines)
 {
@@ -284,6 +282,7 @@ START_TEST(test_render_with_newlines)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Create test suite */

@@ -85,64 +85,6 @@ START_TEST(test_array_append_with_growth)
 }
 
 END_TEST
-// Test OOM during first allocation in append
-START_TEST(test_array_append_oom_first_alloc)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
-    ck_assert(is_ok(&res));
-    ik_array_t *array = res.ok;
-
-    int32_t value = 42;
-    oom_test_fail_next_alloc();
-    res = ik_array_append(array, &value);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    oom_test_reset();
-
-    // Array should be unchanged
-    ck_assert_uint_eq(array->size, 0);
-    ck_assert_uint_eq(array->capacity, 0);
-    ck_assert_ptr_null(array->data);
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test OOM during growth realloc
-START_TEST(test_array_append_oom_growth)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    res_t res = ik_array_create(ctx, sizeof(int32_t), 2);
-    ck_assert(is_ok(&res));
-    ik_array_t *array = res.ok;
-
-    // Fill to capacity
-    for (int32_t i = 0; i < 2; i++) {
-        res = ik_array_append(array, &i);
-        ck_assert(is_ok(&res));
-    }
-
-    // Now try to append with OOM during growth
-    int32_t value = 99;
-    oom_test_fail_next_alloc();
-    res = ik_array_append(array, &value);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    oom_test_reset();
-
-    // Array should retain old values
-    ck_assert_uint_eq(array->size, 2);
-    ck_assert_uint_eq(array->capacity, 2);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 
 #ifndef NDEBUG
 // Test assertion: append with NULL array
@@ -180,8 +122,6 @@ static Suite *array_append_suite(void)
     tcase_add_test(tc_core, test_array_append_first);
     tcase_add_test(tc_core, test_array_append_no_growth);
     tcase_add_test(tc_core, test_array_append_with_growth);
-    tcase_add_test(tc_core, test_array_append_oom_first_alloc);
-    tcase_add_test(tc_core, test_array_append_oom_growth);
 
 #ifndef NDEBUG
     // Assertion tests - only in debug builds

@@ -413,29 +413,6 @@ START_TEST(test_term_init_tcflush_fails)
 }
 
 END_TEST
-// Test: OOM scenarios
-START_TEST(test_term_init_oom)
-{
-    reset_mocks();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_term_ctx_t *term = NULL;
-
-    // Fail on first allocation
-    oom_test_fail_next_alloc();
-    res_t res = ik_term_init(ctx, &term);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    ck_assert_ptr_null(term);
-
-    // Close should have been called
-    ck_assert_int_eq(mock_close_count, 1);
-
-    oom_test_reset();
-    talloc_free(ctx);
-}
-
-END_TEST
 
 // Test suite
 static Suite *terminal_suite(void)
@@ -453,7 +430,6 @@ static Suite *terminal_suite(void)
     tcase_add_test(tc_core, test_term_cleanup_null_safe);
     tcase_add_test(tc_core, test_term_get_size_success);
     tcase_add_test(tc_core, test_term_get_size_fails);
-    tcase_add_test(tc_core, test_term_init_oom);
 
 #ifndef NDEBUG
     tcase_add_test_raise_signal(tc_core, test_term_init_null_parent_asserts, SIGABRT);

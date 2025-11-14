@@ -1,6 +1,7 @@
 // Generic expandable array implementation
 
 #include "array.h"
+#include "panic.h"
 #include "wrapper.h"
 #include <assert.h>
 #include <string.h>
@@ -20,9 +21,7 @@ res_t ik_array_create(TALLOC_CTX *ctx, size_t element_size, size_t increment)
 
     // Allocate array structure
     ik_array_t *array = ik_talloc_zero_wrapper(ctx, sizeof(ik_array_t));
-    if (!array) {
-        return ERR(ctx, OOM, "Failed to allocate array structure");
-    }
+    if (array == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Initialize fields
     array->data = NULL;              // Lazy allocation - defer until first append/insert
@@ -59,9 +58,7 @@ static res_t grow_array(ik_array_t *array)
 
     // Reallocate data buffer
     void *new_data = ik_talloc_realloc_wrapper(ctx, array->data, array->element_size * new_capacity);
-    if (!new_data) {
-        return ERR(ctx, OOM, "Failed to grow array capacity");
-    }
+    if (new_data == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     array->data = new_data;
     array->capacity = new_capacity;
@@ -78,8 +75,8 @@ res_t ik_array_append(ik_array_t *array, const void *element)
     // Grow if needed
     if (array->size >= array->capacity) {
         res_t res = grow_array(array);
-        if (is_err(&res)) {
-            return res;
+        if (is_err(&res)) { // LCOV_EXCL_BR_LINE
+            return res;     // LCOV_EXCL_LINE
         }
     }
 
@@ -101,8 +98,8 @@ res_t ik_array_insert(ik_array_t *array, size_t index, const void *element)
     // Grow if needed
     if (array->size >= array->capacity) {
         res_t res = grow_array(array);
-        if (is_err(&res)) {
-            return res;
+        if (is_err(&res)) { // LCOV_EXCL_BR_LINE
+            return res;     // LCOV_EXCL_LINE
         }
     }
 

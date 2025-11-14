@@ -21,25 +21,6 @@ START_TEST(test_input_parser_create) {
     talloc_free(ctx);
 }
 END_TEST
-// Test: OOM scenario
-START_TEST(test_input_parser_create_oom)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
-
-    // Fail on first allocation
-    oom_test_fail_next_alloc();
-    res_t res = ik_input_parser_create(ctx, &parser);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    ck_assert_ptr_null(parser);
-
-    oom_test_reset();
-    talloc_free(ctx);
-}
-
-END_TEST
 
 #ifndef NDEBUG
 // Test: ik_input_parser_create with NULL parent asserts
@@ -88,7 +69,6 @@ static Suite *input_create_suite(void)
     TCase *tc_assertions = tcase_create("Assertions");
 
     tcase_add_test(tc_core, test_input_parser_create);
-    tcase_add_test(tc_core, test_input_parser_create_oom);
 
 #ifndef NDEBUG
     tcase_add_test_raise_signal(tc_assertions, test_input_parser_create_null_parent_asserts, SIGABRT);

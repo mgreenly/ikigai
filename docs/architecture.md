@@ -200,13 +200,17 @@ See [memory.md](memory.md) for detailed patterns.
 
 ## Error Handling
 
-**Result types** with talloc integration:
-- Functions return `Result` wrappers (Ok/Err)
-- `CHECK()` macro propagates errors up call stack
+**Three-tier error handling** with talloc integration:
+- **Result types** for expected runtime errors (IO, parsing, validation)
+- **Assertions** for development-time contract violations (compile out in release)
+- **PANIC()** for unrecoverable errors (OOM, data corruption, impossible states)
+- `CHECK()` and `TRY()` macros propagate errors up call stack
 - Errors carry context strings for debugging
 - Systematic error flow throughout codebase
 
-See [error_handling.md](error_handling.md) for patterns.
+**OOM handling:** Out of memory conditions call `PANIC("Out of memory")` which immediately terminates the process. Memory allocation failures are not recoverable.
+
+See [error_handling.md](error_handling.md) for patterns and [panic.h](../src/panic.h) for PANIC implementation.
 
 ## Testing Strategy
 

@@ -11,12 +11,9 @@
 #include <stdarg.h>
 #include <talloc.h>
 
-#include "fatal.h"
-
 // Error codes - start empty, add as needed during Phase 1
 typedef enum {
     OK = 0,
-    ERR_OOM,                 // Out of memory
     ERR_INVALID_ARG,
     ERR_OUT_OF_RANGE,
     ERR_IO,                  // File operations, config loading
@@ -76,22 +73,10 @@ static inline bool is_err(const res_t *result)
 // Weak symbol - tests can override to inject allocation failures
 void *talloc_zero_for_error(TALLOC_CTX *ctx, size_t size);
 
-// Global static error for OOM situations
-// WARNING: This is read-only! Never modify this structure.
-// No race conditions possible, cannot be freed with talloc_free()
-static err_t oom_error = {
-    .code = ERR_OOM,
-    .file = "<oom>",
-    .line = 0,
-    .msg = "Out of memory"
-};
-
-// Check if an error is the static OOM error (cannot be freed)
-static inline bool error_is_static(const err_t *err)
-{
-    assert(err != NULL); // LCOV_EXCL_BR_LINE
-    return err == &oom_error;
-}
+// Forward declaration of PANIC (defined in panic.h)
+// Source files using error.h should include panic.h to get the implementation
+#define PANIC(msg) ik_panic_impl((msg), __FILE__, __LINE__)
+void ik_panic_impl(const char *msg, const char *file, int line) __attribute__((noreturn));
 
 // Error creation - allocates on talloc context
 static inline err_t *_make_error(TALLOC_CTX *ctx,
@@ -104,9 +89,7 @@ static inline err_t *_make_error(TALLOC_CTX *ctx,
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(fmt != NULL); // LCOV_EXCL_BR_LINE
     err_t *err = talloc_zero_for_error(ctx, sizeof(err_t));
-    if (!err) {
-        return &oom_error;
-    }
+    if (err == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     err->code = code;
     err->file = file;
@@ -116,8 +99,8 @@ static inline err_t *_make_error(TALLOC_CTX *ctx,
     va_start(args, fmt);
     int32_t written = vsnprintf(err->msg, sizeof(err->msg), fmt, args);
     va_end(args);
-    if (written < 0)FATAL("vsnprintf failed in error message formatting");   // LCOV_EXCL_LINE
-    if ((size_t)written >= sizeof(err->msg))FATAL("error message truncated");   // LCOV_EXCL_LINE
+    if (written < 0)PANIC("vsnprintf failed in error message formatting");    // LCOV_EXCL_LINE
+    if ((size_t)written >= sizeof(err->msg))PANIC("error message truncated");    // LCOV_EXCL_LINE
 
     return err;
 }
@@ -154,8 +137,6 @@ static inline const char *error_code_str(err_code_t code)
     switch (code) { // LCOV_EXCL_BR_LINE
         case OK:
             return "OK";
-        case ERR_OOM:
-            return "Out of memory";
         case ERR_INVALID_ARG:
             return "Invalid argument";
         case ERR_OUT_OF_RANGE:
@@ -165,7 +146,7 @@ static inline const char *error_code_str(err_code_t code)
         case ERR_PARSE:
             return "Parse error";
         default: // LCOV_EXCL_LINE
-            FATAL("Invalid error code"); // LCOV_EXCL_LINE
+            PANIC("Invalid error code"); // LCOV_EXCL_LINE
     }
 }
 

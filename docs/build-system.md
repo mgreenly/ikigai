@@ -61,7 +61,7 @@ Generates line and branch coverage report, enforced at 100%.
 
 Uses `lcov` for text-based reports. Shows per-file coverage and summary.
 
-With MOCKABLE seams (see below), every allocation failure and error path can be tested, making 100% coverage achievable.
+With MOCKABLE seams (see below), most error paths can be tested. OOM branches are excluded from coverage (`LCOV_EXCL_BR_LINE`) since memory allocation failures now cause PANIC (abort) and cannot be tested via injection.
 
 ### Code Quality: Complexity Gating
 
@@ -88,7 +88,7 @@ The `make ci` target runs: lint → coverage → dynamic analysis → release bu
 
 ## Test Infrastructure: MOCKABLE Seams
 
-All external library calls are wrapped to enable failure injection in tests.
+All external library calls are wrapped to enable testing in debug builds.
 
 ### What are link seams?
 
@@ -105,26 +105,18 @@ All external library calls (talloc, jansson, uuid, b64) are wrapped in functions
 MOCKABLE void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size);
 ```
 
-In **debug builds**, these are weak symbols—tests can override them:
-
-```c
-// In test file
-void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size) {
-    return NULL;  // Inject allocation failure
-}
-```
+In **debug builds**, these are weak symbols—tests can override them for non-OOM testing.
 
 In **release builds** (`-DNDEBUG`), the wrappers are `static inline` and defined in the header. The compiler inlines them completely—zero runtime overhead, no symbols in the binary.
 
 Benefits:
-- Tests can inject any error condition (OOM, parse failures, etc.)
 - Release builds have zero overhead (wrappers inlined away)
 - Industry standard pattern (known as "link seams")
 - Single codebase for tests and production
 
-See `docs/decisions/link-seams-mocking.md` for full details and `src/wrapper.h` for implementation.
+**Note on OOM testing:** Memory allocation failures now cause `PANIC("Out of memory")` which immediately terminates the process. OOM injection testing has been removed since allocation failures are no longer recoverable errors. OOM branches are excluded from coverage metrics (`LCOV_EXCL_BR_LINE`).
 
-Example: `tests/integration/oom_integration_test.c` verifies OOM error handling.
+See `docs/decisions/link-seams-mocking.md` for full details and `src/wrapper.h` for implementation.
 
 ## Multi-Distribution Support
 

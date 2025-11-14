@@ -4,6 +4,7 @@
  */
 
 #include "workspace.h"
+#include "panic.h"
 #include "wrapper.h"
 #include "error.h"
 #include <assert.h>
@@ -15,21 +16,19 @@ res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out)
     assert(workspace_out != NULL); /* LCOV_EXCL_BR_LINE */
 
     ik_workspace_t *workspace = ik_talloc_zero_wrapper(parent, sizeof(ik_workspace_t));
-    if (workspace == NULL) {
-        return ERR(parent, OOM, "Failed to allocate workspace");
-    }
+    if (workspace == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     res_t res = ik_byte_array_create(workspace, 64);
-    if (is_err(&res)) {
-        talloc_free(workspace);
-        return res;
+    if (is_err(&res)) { // LCOV_EXCL_BR_LINE
+        talloc_free(workspace); // LCOV_EXCL_LINE
+        return res;             // LCOV_EXCL_LINE
     }
     workspace->text = res.ok;
 
     res = ik_cursor_create(workspace, &workspace->cursor);
-    if (is_err(&res)) {
-        talloc_free(workspace);
-        return res;
+    if (is_err(&res)) { // LCOV_EXCL_BR_LINE
+        talloc_free(workspace); // LCOV_EXCL_LINE
+        return res;             // LCOV_EXCL_LINE
     }
 
     workspace->cursor_byte_offset = 0;
@@ -117,8 +116,8 @@ res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoin
     /* Insert bytes at cursor position */
     for (size_t i = 0; i < num_bytes; i++) {
         res_t res = ik_byte_array_insert(workspace->text, workspace->cursor_byte_offset + i, utf8_bytes[i]);
-        if (is_err(&res)) {
-            return res;
+        if (is_err(&res)) { // LCOV_EXCL_BR_LINE
+            return res;     // LCOV_EXCL_LINE
         }
     }
 
@@ -144,8 +143,8 @@ res_t ik_workspace_insert_newline(ik_workspace_t *workspace)
 
     /* Insert newline byte at cursor position */
     res_t res = ik_byte_array_insert(workspace->text, workspace->cursor_byte_offset, '\n');
-    if (is_err(&res)) {
-        return res;
+    if (is_err(&res)) { // LCOV_EXCL_BR_LINE
+        return res;     // LCOV_EXCL_LINE
     }
 
     /* Advance cursor by 1 byte */

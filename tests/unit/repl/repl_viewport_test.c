@@ -10,8 +10,7 @@
 #include "../../test_utils.h"
 
 /* Test: Viewport with empty scrollback (workspace fills screen) */
-START_TEST(test_viewport_empty_scrollback)
-{
+START_TEST(test_viewport_empty_scrollback) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with mocked terminal (24 rows)
@@ -59,7 +58,6 @@ START_TEST(test_viewport_empty_scrollback)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Viewport with small scrollback (both visible) */
 START_TEST(test_viewport_small_scrollback)
 {
@@ -116,8 +114,8 @@ START_TEST(test_viewport_small_scrollback)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Viewport with large scrollback (scrollback overflows) */
 START_TEST(test_viewport_large_scrollback)
 {
@@ -178,8 +176,8 @@ START_TEST(test_viewport_large_scrollback)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Viewport offset clamping (don't scroll past top) */
 START_TEST(test_viewport_offset_clamping)
 {
@@ -232,6 +230,7 @@ START_TEST(test_viewport_offset_clamping)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Create test suite */

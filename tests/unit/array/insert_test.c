@@ -128,38 +128,6 @@ START_TEST(test_array_insert_with_growth)
 }
 
 END_TEST
-// Test insert OOM
-START_TEST(test_array_insert_oom)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    res_t res = ik_array_create(ctx, sizeof(int32_t), 2);
-    ck_assert(is_ok(&res));
-    ik_array_t *array = res.ok;
-
-    // Fill to capacity
-    for (int32_t i = 0; i < 2; i++) {
-        res = ik_array_append(array, &i);
-        ck_assert(is_ok(&res));
-    }
-
-    // Trigger OOM during growth
-    int32_t value = 99;
-    oom_test_fail_next_alloc();
-    res = ik_array_insert(array, 0, &value);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    oom_test_reset();
-
-    // Array should be unchanged
-    ck_assert_uint_eq(array->size, 2);
-    ck_assert_uint_eq(array->capacity, 2);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 
 #ifndef NDEBUG
 // Test assertion: insert with invalid index
@@ -192,7 +160,6 @@ static Suite *array_insert_suite(void)
     tcase_add_test(tc_core, test_array_insert_in_middle);
     tcase_add_test(tc_core, test_array_insert_at_end);
     tcase_add_test(tc_core, test_array_insert_with_growth);
-    tcase_add_test(tc_core, test_array_insert_oom);
 
 #ifndef NDEBUG
     // Assertion tests - only in debug builds

@@ -32,43 +32,6 @@ START_TEST(test_workspace_create) {
     talloc_free(ctx);
 }
 END_TEST
-/* Test: Create workspace - OOM scenarios */
-START_TEST(test_workspace_create_oom)
-{
-    void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
-
-    /* Test OOM during workspace allocation */
-    oom_test_fail_next_alloc();
-    res_t res = ik_workspace_create(ctx, &workspace);
-    ck_assert(is_err(&res));
-    ck_assert_ptr_null(workspace);
-    oom_test_reset();
-
-    /* Test OOM during byte array allocation (after workspace alloc succeeds) */
-    //  Call 1: workspace struct allocation (succeeds)
-    //  Call 2: array struct allocation (fails here)
-    oom_test_fail_after_n_calls(2);
-    res = ik_workspace_create(ctx, &workspace);
-    ck_assert(is_err(&res));
-    ck_assert_ptr_null(workspace);
-    oom_test_reset();
-
-    /* Test OOM during cursor allocation (after workspace and byte array succeed) */
-    //  Call 1: workspace struct allocation (succeeds)
-    //  Call 2: array struct allocation (succeeds)
-    //  Call 3: cursor struct allocation (fails here)
-    //  Note: array uses lazy allocation, so no data allocation until first append/insert
-    oom_test_fail_after_n_calls(3);
-    res = ik_workspace_create(ctx, &workspace);
-    ck_assert(is_err(&res));
-    ck_assert_ptr_null(workspace);
-    oom_test_reset();
-
-    talloc_free(ctx);
-}
-
-END_TEST
 /* Test: Get text */
 START_TEST(test_workspace_get_text)
 {
@@ -196,7 +159,6 @@ static Suite *workspace_create_suite(void)
 
     /* Normal tests */
     tcase_add_test(tc_core, test_workspace_create);
-    tcase_add_test(tc_core, test_workspace_create_oom);
     tcase_add_test(tc_core, test_workspace_get_text);
     tcase_add_test(tc_core, test_workspace_clear);
 

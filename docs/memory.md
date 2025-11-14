@@ -87,6 +87,8 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);
 
 **talloc usage**: Config is allocated on provided context. All strings (`openai_api_key`, `listen_address`) are children. Single `talloc_free(ctx)` frees everything.
 
+**OOM handling**: Memory allocation failures cause PANIC (abort), not recoverable errors.
+
 ### Protocol Module (REMOVED in Phase 2.5)
 
 **Note:** The protocol module was removed in Phase 2.5 (2025-11-13) as part of simplifying to a desktop-only architecture. The patterns below are preserved as examples of talloc usage for future modules.
@@ -163,6 +165,7 @@ Our `res_t` system works with talloc:
 ```c
 res_t load_config_example(void) {
     TALLOC_CTX *ctx = talloc_new(NULL);
+    if (!ctx) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     res_t res = ik_cfg_load(ctx, "~/.ikigai/config.json");
     if (is_err(&res)) {
@@ -178,6 +181,8 @@ res_t load_config_example(void) {
     return OK(NULL);
 }
 ```
+
+**Note:** Out of memory conditions call `PANIC("Out of memory")` which immediately terminates the process. Memory allocation failures are not recoverable errors.
 
 ## When NOT to Use talloc
 
@@ -211,14 +216,16 @@ void handle_request(const char *input) {
 ```c
 res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path) {
     // Allocate config on caller's context
-    ik_cfg_t *config = talloc_zero(ctx, ik_cfg_t);
-    if (!config) {
-        return ERR(ctx, OOM, "Failed to allocate config");
-    }
+    ik_cfg_t *config = ik_talloc_zero_wrapper(ctx, sizeof(ik_cfg_t));
+    if (!config) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // All strings are children of config
     config->openai_api_key = talloc_strdup(config, key_from_file);
+    if (!config->openai_api_key) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
     config->listen_address = talloc_strdup(config, addr_from_file);
+    if (!config->listen_address) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
     config->listen_port = port_from_file;
 
     return OK(config);

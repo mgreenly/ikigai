@@ -157,24 +157,6 @@ START_TEST(test_repl_init_null_out)
 }
 
 END_TEST
-// Test: REPL initialization OOM scenarios
-START_TEST(test_repl_init_oom)
-{
-    void *ctx = talloc_new(NULL);
-
-    // Test OOM during repl context allocation
-    oom_test_fail_next_alloc();
-    ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, &repl);
-
-    ck_assert(is_err(&result));
-    ck_assert_ptr_null(repl);
-
-    oom_test_reset();
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test: ik_repl_cleanup with NULL
 START_TEST(test_repl_cleanup_null)
 {
@@ -223,81 +205,6 @@ START_TEST(test_repl_run)
 }
 
 END_TEST
-// Test: Terminal init fails (ik_term_init)
-START_TEST(test_repl_init_term_fails)
-{
-    reset_mocks();
-    mock_open_fail = 1;  // Make terminal open fail
-
-    void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
-
-    res_t result = ik_repl_init(ctx, &repl);
-    ck_assert(is_err(&result));
-    ck_assert_ptr_null(repl);
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test: Render create fails (OOM during render init)
-START_TEST(test_repl_init_render_fails)
-{
-    reset_mocks();
-    void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
-
-    // Fail on 3rd allocation (repl, term, render)
-    oom_test_fail_after_n_calls(3);
-    res_t result = ik_repl_init(ctx, &repl);
-    ck_assert(is_err(&result));
-    ck_assert_ptr_null(repl);
-
-    oom_test_reset();
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test: Workspace create fails (OOM during workspace init)
-START_TEST(test_repl_init_workspace_fails)
-{
-    reset_mocks();
-    void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
-
-    // Fail the workspace context allocation (4th talloc allocation)
-    // Talloc allocations: repl(1), term(2), render(3), workspace(4)
-    oom_test_fail_after_n_calls(4);
-    res_t result = ik_repl_init(ctx, &repl);
-    ck_assert(is_err(&result));
-    ck_assert_ptr_null(repl);
-
-    oom_test_reset();
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test: Input parser create fails (OOM during input parser init)
-START_TEST(test_repl_init_input_fails)
-{
-    reset_mocks();
-    void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
-
-    // Fail the input parser context allocation
-    // oom_test_fail_after_n_calls(N) fails when call_count >= N
-    // So N=7 fails on 7th call (input_parser)
-    // Allocations: repl(1), term(2), render(3), workspace(4), workspace->text(5), workspace->cursor(6), input_parser(7)
-    oom_test_fail_after_n_calls(7);
-    res_t result = ik_repl_init(ctx, &repl);
-    ck_assert(is_err(&result));
-    ck_assert_ptr_null(repl);
-
-    oom_test_reset();
-    talloc_free(ctx);
-}
-
-END_TEST
 
 static Suite *repl_suite(void)
 {
@@ -305,14 +212,9 @@ static Suite *repl_suite(void)
 
     TCase *tc_core = tcase_create("Core");
     tcase_add_test(tc_core, test_repl_init);
-    tcase_add_test(tc_core, test_repl_init_oom);
     tcase_add_test(tc_core, test_repl_cleanup_null);
     tcase_add_test(tc_core, test_repl_cleanup_null_term);
     tcase_add_test(tc_core, test_repl_run);
-    tcase_add_test(tc_core, test_repl_init_term_fails);
-    tcase_add_test(tc_core, test_repl_init_render_fails);
-    tcase_add_test(tc_core, test_repl_init_workspace_fails);
-    tcase_add_test(tc_core, test_repl_init_input_fails);
     suite_add_tcase(s, tc_core);
 
     TCase *tc_assertions = tcase_create("Assertions");

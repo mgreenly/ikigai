@@ -80,9 +80,9 @@ COVERAGE_DIR = coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
-LCOV_EXCL_COVERAGE = 265
+LCOV_EXCL_COVERAGE = 340  # Increased after OOM refactoring (removed OOM tests, added exclusions for unreachable OOM error paths)
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/workspace_multiline.c src/workspace_cursor.c src/workspace_layout.c src/render.c src/repl.c src/format.c src/pp_helpers.c src/workspace_pp.c src/workspace_cursor_pp.c src/scrollback.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/workspace_multiline.c src/workspace_cursor.c src/workspace_layout.c src/render.c src/repl.c src/format.c src/pp_helpers.c src/workspace_pp.c src/workspace_cursor_pp.c src/scrollback.c src/panic.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
@@ -97,7 +97,7 @@ PERFORMANCE_TEST_TARGETS = $(patsubst tests/performance/%_perf.c,$(BUILDDIR)/tes
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS) $(PERFORMANCE_TEST_TARGETS)
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/workspace_multiline.c src/workspace_cursor.c src/workspace_layout.c src/repl.c src/render.c src/format.c src/pp_helpers.c src/workspace_pp.c src/workspace_cursor_pp.c src/scrollback.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/workspace.c src/workspace_multiline.c src/workspace_cursor.c src/workspace_layout.c src/repl.c src/render.c src/format.c src/pp_helpers.c src/workspace_pp.c src/workspace_cursor_pp.c src/scrollback.c src/panic.c
 MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)

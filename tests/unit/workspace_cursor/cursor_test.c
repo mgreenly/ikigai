@@ -24,23 +24,6 @@ START_TEST(test_cursor_create) {
     talloc_free(ctx);
 }
 END_TEST
-// Test cursor creation OOM
-START_TEST(test_cursor_create_oom)
-{
-    void *ctx = talloc_new(NULL);
-    ik_cursor_t *cursor = NULL;
-
-    /* Test OOM during cursor allocation */
-    oom_test_fail_next_alloc();
-    res_t result = ik_cursor_create(ctx, &cursor);
-    ck_assert(is_err(&result));
-    ck_assert_ptr_null(cursor);
-    oom_test_reset();
-
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test NULL parent parameter assertion
 START_TEST(test_cursor_create_null_parent)
 {
@@ -242,7 +225,6 @@ static Suite *cursor_suite(void)
 
     TCase *tc_create = tcase_create("Create");
     tcase_add_test(tc_create, test_cursor_create);
-    tcase_add_test(tc_create, test_cursor_create_oom);
     suite_add_tcase(s, tc_create);
 
     TCase *tc_set_position = tcase_create("SetPosition");

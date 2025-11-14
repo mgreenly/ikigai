@@ -31,66 +31,6 @@ START_TEST(test_scrollback_create) {
     talloc_free(ctx);
 }
 END_TEST
-/* Test: Create scrollback - OOM scenarios */
-START_TEST(test_scrollback_create_oom)
-{
-    void *ctx = talloc_new(NULL);
-    ik_scrollback_t *scrollback = NULL;
-    int32_t terminal_width = 80;
-
-    /* Test OOM during scrollback allocation */
-    oom_test_fail_next_alloc();
-    res_t res = ik_scrollback_create(ctx, terminal_width, &scrollback);
-    ck_assert(is_err(&res));
-    ck_assert_ptr_null(scrollback);
-    oom_test_reset();
-
-    /* Test OOM during text_offsets allocation (after scrollback alloc succeeds) */
-    // Call 1: scrollback struct allocation (succeeds)
-    // Call 2: text_offsets array allocation (fails here)
-    oom_test_fail_after_n_calls(2);
-    res = ik_scrollback_create(ctx, terminal_width, &scrollback);
-    ck_assert(is_err(&res));
-    ck_assert_ptr_null(scrollback);
-    oom_test_reset();
-
-    /* Test OOM during text_lengths allocation */
-    // Call 1: scrollback struct allocation (succeeds)
-    // Call 2: text_offsets array allocation (succeeds)
-    // Call 3: text_lengths array allocation (fails here)
-    oom_test_fail_after_n_calls(3);
-    res = ik_scrollback_create(ctx, terminal_width, &scrollback);
-    ck_assert(is_err(&res));
-    ck_assert_ptr_null(scrollback);
-    oom_test_reset();
-
-    /* Test OOM during layouts allocation */
-    // Call 1: scrollback struct allocation (succeeds)
-    // Call 2: text_offsets array allocation (succeeds)
-    // Call 3: text_lengths array allocation (succeeds)
-    // Call 4: layouts array allocation (fails here)
-    oom_test_fail_after_n_calls(4);
-    res = ik_scrollback_create(ctx, terminal_width, &scrollback);
-    ck_assert(is_err(&res));
-    ck_assert_ptr_null(scrollback);
-    oom_test_reset();
-
-    /* Test OOM during text_buffer allocation */
-    // Call 1: scrollback struct allocation (succeeds)
-    // Call 2: text_offsets array allocation (succeeds)
-    // Call 3: text_lengths array allocation (succeeds)
-    // Call 4: layouts array allocation (succeeds)
-    // Call 5: text_buffer allocation (fails here)
-    oom_test_fail_after_n_calls(5);
-    res = ik_scrollback_create(ctx, terminal_width, &scrollback);
-    ck_assert(is_err(&res));
-    ck_assert_ptr_null(scrollback);
-    oom_test_reset();
-
-    talloc_free(ctx);
-}
-
-END_TEST
 /* Test: NULL parameter assertions */
 START_TEST(test_scrollback_create_null_scrollback_out_asserts)
 {
@@ -124,7 +64,6 @@ static Suite *scrollback_create_suite(void)
 
     /* Normal tests */
     tcase_add_test(tc_core, test_scrollback_create);
-    tcase_add_test(tc_core, test_scrollback_create_oom);
 
     /* Assertion tests */
     tcase_add_test_raise_signal(tc_assertions, test_scrollback_create_null_scrollback_out_asserts, SIGABRT);

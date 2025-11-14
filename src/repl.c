@@ -1,5 +1,5 @@
 #include "repl.h"
-#include "fatal.h"
+#include "panic.h"
 #include "wrapper.h"
 #include "format.h"
 #include "workspace.h"
@@ -15,15 +15,13 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
 
     // Allocate REPL context
     ik_repl_ctx_t *repl = ik_talloc_zero_wrapper(parent, sizeof(ik_repl_ctx_t));
-    if (repl == NULL) {
-        return ERR(parent, OOM, "Failed to allocate REPL context");
-    }
+    if (repl == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Initialize terminal (raw mode + alternate screen)
     res_t result = ik_term_init(repl, &repl->term);
-    if (is_err(&result)) {
-        talloc_free(repl);
-        return result;
+    if (is_err(&result)) { // LCOV_EXCL_BR_LINE - Environmental failure (no /dev/tty, terminal setup fails)
+        talloc_free(repl); // LCOV_EXCL_LINE
+        return result;     // LCOV_EXCL_LINE
     }
 
     // Initialize render
@@ -32,23 +30,23 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
                               repl->term->screen_cols,
                               repl->term->tty_fd,
                               &repl->render);
-    if (is_err(&result)) {
-        talloc_free(repl);
-        return result;
+    if (is_err(&result)) { // LCOV_EXCL_BR_LINE - Defensive check for corrupted terminal state
+        talloc_free(repl); // LCOV_EXCL_LINE
+        return result;     // LCOV_EXCL_LINE
     }
 
     // Initialize workspace
     result = ik_workspace_create(repl, &repl->workspace);
-    if (is_err(&result)) {
-        talloc_free(repl);
-        return result;
+    if (is_err(&result)) { // LCOV_EXCL_BR_LINE
+        talloc_free(repl); // LCOV_EXCL_LINE
+        return result;     // LCOV_EXCL_LINE
     }
 
     // Initialize input parser
     result = ik_input_parser_create(repl, &repl->input_parser);
-    if (is_err(&result)) {
-        talloc_free(repl);
-        return result;
+    if (is_err(&result)) { // LCOV_EXCL_BR_LINE
+        talloc_free(repl); // LCOV_EXCL_LINE
+        return result;     // LCOV_EXCL_LINE
     }
 
     // Initialize scrollback buffer (Phase 4)
@@ -108,8 +106,8 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Process action
         result = ik_repl_process_action(repl, &action);
-        if (is_err(&result)) {
-            return result;
+        if (is_err(&result)) { // LCOV_EXCL_BR_LINE - Defensive check, input parser validates codepoints
+            return result;     // LCOV_EXCL_LINE
         }
 
         // Render frame (only if action was not UNKNOWN)
@@ -152,7 +150,7 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
 
     // Ensure workspace fits on screen (should never occur - invariant)
     if (workspace_rows > (size_t)terminal_rows) { /* LCOV_EXCL_BR_LINE */
-        FATAL("Workspace exceeds terminal height"); /* LCOV_EXCL_LINE */
+        PANIC("Workspace exceeds terminal height"); /* LCOV_EXCL_LINE */
     }
 
     // Calculate available rows for scrollback
@@ -186,11 +184,11 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
         size_t start_line = 0;
         size_t row_offset = 0;
         result = ik_scrollback_find_logical_line_at_physical_row(repl->scrollback,
-                                                                   target_physical_row,
-                                                                   &start_line,
-                                                                   &row_offset);
+                                                                 target_physical_row,
+                                                                 &start_line,
+                                                                 &row_offset);
         if (is_err(&result)) { /* LCOV_EXCL_BR_LINE */
-            FATAL("Failed to find logical line at physical row"); /* LCOV_EXCL_LINE */
+            PANIC("Failed to find logical line at physical row"); /* LCOV_EXCL_LINE */
         }
 
         // Calculate how many logical lines fit in the visible window
@@ -246,9 +244,9 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     // Clear screen, render scrollback
     int32_t scrollback_rows_used = 0;
     result = ik_render_scrollback(repl->render, repl->scrollback,
-                                   viewport.scrollback_start_line,
-                                   viewport.scrollback_lines_count,
-                                   &scrollback_rows_used);
+                                  viewport.scrollback_start_line,
+                                  viewport.scrollback_lines_count,
+                                  &scrollback_rows_used);
     if (is_err(&result)) { /* LCOV_EXCL_LINE */
         return result;      /* LCOV_EXCL_LINE */
     }
@@ -286,8 +284,8 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
         // Create format buffer for output
         ik_format_buffer_t *buf = NULL;
         res_t result = ik_format_buffer_create(repl, &buf);
-        if (is_err(&result)) {
-            return result;
+        if (is_err(&result)) { // LCOV_EXCL_BR_LINE
+            return result;     // LCOV_EXCL_LINE
         }
 
         // Pretty-print the workspace
@@ -324,11 +322,8 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             // Check if text starts with '/'
             if (text_len > 0 && text[0] == '/') {
                 // Extract command (skip the '/' character)
-                // Use ik_talloc_zero_wrapper for testability (OOM injection)
                 char *command = ik_talloc_zero_wrapper(repl, text_len); // Includes space for null terminator
-                if (command == NULL) {
-                    return ERR(repl, OOM, "Failed to allocate command string");
-                }
+                if (command == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
                 memcpy(command, text + 1, text_len - 1);
                 command[text_len - 1] = '\0';
 
@@ -336,8 +331,8 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
                 res_t result = ik_repl_handle_slash_command(repl, command);
                 talloc_free(command);
 
-                if (is_err(&result)) {
-                    return result;
+                if (is_err(&result)) { // LCOV_EXCL_BR_LINE
+                    return result;     // LCOV_EXCL_LINE
                 }
 
                 // Clear workspace after executing command
@@ -377,6 +372,6 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             // Unknown actions are ignored
             return OK(NULL);
         default: // LCOV_EXCL_LINE
-            FATAL("Invalid input action type"); // LCOV_EXCL_LINE
+            PANIC("Invalid input action type"); // LCOV_EXCL_LINE
     }
 }

@@ -249,11 +249,6 @@ START_TEST(test_error_message_empty)
     const char *msg = error_message(res.err);
     ck_assert_str_eq(msg, "Invalid argument");
 
-    // Test with OOM error code too
-    res = ERR(ctx, OOM, "");
-    msg = error_message(res.err);
-    ck_assert_str_eq(msg, "Out of memory");
-
     // Test with OUT_OF_RANGE
     res = ERR(ctx, OUT_OF_RANGE, "");
     msg = error_message(res.err);
@@ -294,7 +289,6 @@ END_TEST
 START_TEST(test_error_code_str)
 {
     ck_assert_str_eq(error_code_str(OK), "OK");
-    ck_assert_str_eq(error_code_str(ERR_OOM), "Out of memory");
     ck_assert_str_eq(error_code_str(ERR_INVALID_ARG), "Invalid argument");
     ck_assert_str_eq(error_code_str(ERR_OUT_OF_RANGE), "Out of range");
     ck_assert_str_eq(error_code_str(ERR_IO), "IO error");
@@ -302,112 +296,14 @@ START_TEST(test_error_code_str)
 }
 
 END_TEST
-// Test error code to string conversion with invalid code (should FATAL)
+// Test error code to string conversion with invalid code (should PANIC)
 START_TEST(test_error_code_str_invalid)
 {
-    error_code_str((err_code_t)999);  // Invalid code - should FATAL
+    error_code_str((err_code_t)999);  // Invalid code - should PANIC
 }
 
 END_TEST
-// Test static OOM error detection
-START_TEST(test_oom_error_is_static)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
 
-    // Create a normal error
-    res_t res = ERR(ctx, INVALID_ARG, "Normal error");
-    ck_assert(!error_is_static(res.err));
-
-    // The OOM error is static (we can't easily trigger real OOM in a test,
-    // but we can verify the detection function works)
-    ck_assert(error_is_static(&oom_error));
-    ck_assert_int_eq(oom_error.code, ERR_OOM);
-    ck_assert_str_eq(oom_error.msg, "Out of memory");
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test actual OOM behavior by injecting allocation failure
-START_TEST(test_oom_on_error_allocation)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    // Tell test allocator to fail the next allocation
-    oom_test_fail_next_alloc();
-
-    // Try to create an error - should get static OOM error
-    res_t res = ERR(ctx, INVALID_ARG, "This should trigger OOM");
-
-    ck_assert(is_err(&res));
-    ck_assert(error_is_static(res.err));
-    ck_assert_int_eq(res.err->code, ERR_OOM);
-    ck_assert_str_eq(res.err->msg, "Out of memory");
-
-    // Reset allocator state
-    oom_test_reset();
-
-    // Next allocation should work normally
-    res = ERR(ctx, INVALID_ARG, "This should work");
-    ck_assert(is_err(&res));
-    ck_assert(!error_is_static(res.err));
-    ck_assert_str_eq(res.err->msg, "This should work");
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test OOM after multiple successful allocations
-START_TEST(test_oom_after_multiple_errors)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    // Configure allocator to fail after 2 successful allocations (fail on 3rd)
-    oom_test_fail_after_n_calls(3);
-
-    res_t res;
-
-    // First two should succeed
-    res = ERR(ctx, INVALID_ARG, "Error 1");
-    ck_assert(!error_is_static(res.err));
-
-    res = ERR(ctx, INVALID_ARG, "Error 2");
-    ck_assert(!error_is_static(res.err));
-
-    // Third and subsequent should fail (OOM)
-    res = ERR(ctx, INVALID_ARG, "Error 3");
-    ck_assert(error_is_static(res.err));
-    ck_assert_int_eq(res.err->code, ERR_OOM);
-
-    res = ERR(ctx, INVALID_ARG, "Error 4");
-    ck_assert(error_is_static(res.err));
-
-    // Reset for other tests
-    oom_test_reset();
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test that call count tracking works
-START_TEST(test_oom_call_count)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    oom_test_reset();
-    int initial_count = oom_test_get_call_count();
-
-    ERR(ctx, INVALID_ARG, "Error 1");
-    ERR(ctx, INVALID_ARG, "Error 2");
-    ERR(ctx, INVALID_ARG, "Error 3");
-
-    int final_count = oom_test_get_call_count();
-    ck_assert_int_eq(final_count - initial_count, 3);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test suite setup
 static Suite *error_suite(void)
 {
@@ -432,10 +328,6 @@ static Suite *error_suite(void)
     tcase_add_test(tc_core, test_error_fprintf_null_file);
     tcase_add_test(tc_core, test_error_code_str);
     tcase_add_test_raise_signal(tc_core, test_error_code_str_invalid, SIGABRT);
-    tcase_add_test(tc_core, test_oom_error_is_static);
-    tcase_add_test(tc_core, test_oom_on_error_allocation);
-    tcase_add_test(tc_core, test_oom_after_multiple_errors);
-    tcase_add_test(tc_core, test_oom_call_count);
 
     suite_add_tcase(s, tc_core);
     return s;

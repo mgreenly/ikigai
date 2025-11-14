@@ -70,25 +70,6 @@ START_TEST(test_render_create_negative_rows)
 }
 
 END_TEST
-// Test: OOM scenario
-START_TEST(test_render_create_oom)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_render_ctx_t *render = NULL;
-
-    // Fail on first allocation
-    oom_test_fail_next_alloc();
-    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_OOM);
-    ck_assert_ptr_null(render);
-
-    oom_test_reset();
-    talloc_free(ctx);
-}
-
-END_TEST
 
 #ifndef NDEBUG
 // Test: ik_render_create with NULL parent asserts
@@ -120,7 +101,6 @@ static Suite *create_suite(void)
     tcase_add_test(tc_core, test_render_create_invalid_rows);
     tcase_add_test(tc_core, test_render_create_invalid_cols);
     tcase_add_test(tc_core, test_render_create_negative_rows);
-    tcase_add_test(tc_core, test_render_create_oom);
 
 #ifndef NDEBUG
     tcase_add_test_raise_signal(tc_core, test_render_create_null_parent_asserts, SIGABRT);

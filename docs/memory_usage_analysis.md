@@ -5,6 +5,8 @@
 **Overall Assessment:** WORKABLE with refinements needed
 **Note:** This analysis references `protocol.c` which was removed in Phase 2.5 (2025-11-13). Findings remain valid for `config.c` and future JSON usage.
 
+**OOM Handling Update (2025-11-14):** After this analysis was completed, the project changed OOM handling from recoverable errors to PANIC (abort). References to ERR_OOM in this document are historical.
+
 ---
 
 ## Executive Summary
@@ -27,15 +29,14 @@ The memory management strategy is **fundamentally sound** but mixing jansson's r
 
 ### 2. Strong Error/Memory Integration ✅
 - `res_t` errors allocated on caller's context
-- Static `oom_error` fallback prevents OOM-during-OOM
+- OOM causes PANIC (abort) instead of returning error (updated 2025-11-14)
 - `TRY` and `CHECK` macros properly propagate errors
 - Error paths correctly free resources
 
 ### 3. Comprehensive Testing ✅
-- Injectable allocation failures via weak symbols
-- Per-call OOM simulation (`oom_test_fail_after_n_calls`)
+- OOM injection infrastructure removed (2025-11-14) - OOM now causes PANIC
 - Assertion testing with `SIGABRT` validation
-- Good coverage of error paths
+- Good coverage of error paths (non-OOM)
 
 ---
 
@@ -218,13 +219,13 @@ res_t func(TALLOC_CTX *ctx) {
 }
 ```
 
-### Correct Pattern: OOM Handling
+### Correct Pattern: OOM Handling (Updated 2025-11-14)
 ```c
-void *ptr = talloc_size(ctx, size);
-if (!ptr) {
-    return ERR(ctx, OOM, "Failed to allocate %zu bytes", size);
-}
+void *ptr = ik_talloc_size_wrapper(ctx, size);
+if (!ptr) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 ```
+
+**Historical note:** This pattern previously returned `ERR(ctx, OOM, ...)` but now uses PANIC for immediate termination.
 
 ### Correct Pattern: Child Contexts
 ```c
