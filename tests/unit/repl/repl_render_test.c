@@ -31,13 +31,13 @@ ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
     return (ssize_t)count;
 }
 
-/* Test: Render frame with empty workspace */
-START_TEST(test_repl_render_frame_empty_workspace) {
+/* Test: Render frame with empty input buffer */
+START_TEST(test_repl_render_frame_empty_input_buffer) {
     void *ctx = talloc_new(NULL);
 
     // Manually construct REPL context components
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     ik_render_ctx_t *render = NULL;
@@ -57,7 +57,7 @@ START_TEST(test_repl_render_frame_empty_workspace) {
     // Create minimal REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->render = render;
     repl->term = term;
     repl->scrollback = scrollback;
@@ -67,7 +67,7 @@ START_TEST(test_repl_render_frame_empty_workspace) {
     mock_write_calls = 0;
     mock_write_buffer_len = 0;
 
-    /* Call render_frame - this should succeed with empty workspace */
+    /* Call render_frame - this should succeed with empty input buffer */
     res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
 
@@ -84,22 +84,22 @@ START_TEST(test_repl_render_frame_multiline)
     void *ctx = talloc_new(NULL);
 
     // Manually construct REPL context components
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     // Insert multi-line text
-    res = ik_workspace_insert_codepoint(workspace, 'h');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'h');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'i');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'i');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_newline(workspace);
+    res = ik_input_buffer_insert_newline(input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'b');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'b');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'y');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'y');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'e');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'e');
     ck_assert(is_ok(&res));
 
     ik_render_ctx_t *render = NULL;
@@ -116,7 +116,7 @@ START_TEST(test_repl_render_frame_multiline)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->render = render;
     repl->term = term;
     repl->scrollback = scrollback;
@@ -139,14 +139,14 @@ START_TEST(test_repl_render_frame_cursor_positions)
 {
     void *ctx = talloc_new(NULL);
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     // Insert text: "hello"
     const char *text = "hello";
     for (size_t i = 0; i < 5; i++) {
-        res = ik_workspace_insert_codepoint(workspace, (uint32_t)text[i]);
+        res = ik_input_buffer_insert_codepoint(input_buf, (uint32_t)text[i]);
         ck_assert(is_ok(&res));
     }
 
@@ -164,7 +164,7 @@ START_TEST(test_repl_render_frame_cursor_positions)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->render = render;
     repl->term = term;
     repl->scrollback = scrollback;
@@ -177,15 +177,15 @@ START_TEST(test_repl_render_frame_cursor_positions)
     ck_assert_int_gt(mock_write_calls, 0);
 
     // Move cursor to start and test again
-    res = ik_workspace_cursor_left(workspace);
+    res = ik_input_buffer_cursor_left(input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_cursor_left(workspace);
+    res = ik_input_buffer_cursor_left(input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_cursor_left(workspace);
+    res = ik_input_buffer_cursor_left(input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_cursor_left(workspace);
+    res = ik_input_buffer_cursor_left(input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_cursor_left(workspace);
+    res = ik_input_buffer_cursor_left(input_buf);
     ck_assert(is_ok(&res));
 
     mock_write_calls = 0;
@@ -194,9 +194,9 @@ START_TEST(test_repl_render_frame_cursor_positions)
     ck_assert_int_gt(mock_write_calls, 0);
 
     // Move cursor to middle
-    res = ik_workspace_cursor_right(workspace);
+    res = ik_input_buffer_cursor_right(input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_cursor_right(workspace);
+    res = ik_input_buffer_cursor_right(input_buf);
     ck_assert(is_ok(&res));
 
     mock_write_calls = 0;
@@ -213,12 +213,12 @@ START_TEST(test_repl_render_frame_utf8)
 {
     void *ctx = talloc_new(NULL);
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     // Insert UTF-8 emoji
-    res = ik_workspace_insert_codepoint(workspace, 0x1F600);  // 😀
+    res = ik_input_buffer_insert_codepoint(input_buf, 0x1F600);  // 😀
     ck_assert(is_ok(&res));
 
     ik_render_ctx_t *render = NULL;
@@ -235,7 +235,7 @@ START_TEST(test_repl_render_frame_utf8)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->render = render;
     repl->term = term;
     repl->scrollback = scrollback;
@@ -266,7 +266,7 @@ static Suite *repl_render_suite(void)
     TCase *tc_assertions = tcase_create("Assertions");
 
     /* Normal tests */
-    tcase_add_test(tc_core, test_repl_render_frame_empty_workspace);
+    tcase_add_test(tc_core, test_repl_render_frame_empty_input_buffer);
     tcase_add_test(tc_core, test_repl_render_frame_multiline);
     tcase_add_test(tc_core, test_repl_render_frame_cursor_positions);
     tcase_add_test(tc_core, test_repl_render_frame_utf8);

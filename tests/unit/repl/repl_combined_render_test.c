@@ -1,6 +1,6 @@
 /**
  * @file repl_combined_render_test.c
- * @brief Unit tests for combined scrollback + workspace rendering (Phase 4 Task 4.4)
+ * @brief Unit tests for combined scrollback + input buffer rendering (Phase 4 Task 4.4)
  */
 
 #include <check.h>
@@ -46,7 +46,7 @@ static void mock_write_reset(void)
     mock_write_size = 0;
 }
 
-/* Test: Render frame with empty scrollback (workspace only) */
+/* Test: Render frame with empty scrollback (input buffer only) */
 START_TEST(test_render_frame_empty_scrollback) {
     mock_write_reset();
     void *ctx = talloc_new(NULL);
@@ -61,8 +61,8 @@ START_TEST(test_render_frame_empty_scrollback) {
     res_t res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
     ck_assert(is_ok(&res));
 
-    ik_workspace_t *workspace = NULL;
-    res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = NULL;
@@ -72,7 +72,7 @@ START_TEST(test_render_frame_empty_scrollback) {
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
     repl->render = render;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
 
@@ -128,14 +128,14 @@ START_TEST(test_render_frame_with_scrollback)
     res_t res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
     ck_assert(is_ok(&res));
 
-    ik_workspace_t *workspace = NULL;
-    res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
-    // Add some content to workspace
-    res = ik_workspace_insert_codepoint(workspace, 'h');
+    // Add some content to input buffer
+    res = ik_input_buffer_insert_codepoint(input_buf, 'h');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'i');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'i');
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = NULL;
@@ -151,18 +151,18 @@ START_TEST(test_render_frame_with_scrollback)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
     repl->render = render;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
 
-    // Render frame - should render both scrollback and workspace
+    // Render frame - should render both scrollback and input buffer
     res = ik_repl_render_frame(repl);
     if (is_err(&res)) {
         error_fprintf(stderr, res.err);
     }
     ck_assert(is_ok(&res));
 
-    // CRITICAL: Verify output contains BOTH scrollback and workspace content
+    // CRITICAL: Verify output contains BOTH scrollback and input buffer content
     ck_assert_msg(mock_write_buffer != NULL, "Expected render output");
 
     // Output should contain scrollback lines
@@ -171,15 +171,15 @@ START_TEST(test_render_frame_with_scrollback)
     ck_assert_msg(strstr(mock_write_buffer, "line 2") != NULL,
                   "Expected 'line 2' in output");
 
-    // Output should contain workspace content
+    // Output should contain input buffer content
     ck_assert_msg(strstr(mock_write_buffer, "hi") != NULL,
                   "Expected 'hi' in output");
 
-    // Verify scrollback appears before workspace
+    // Verify scrollback appears before input buffer
     char *line1_pos = strstr(mock_write_buffer, "line 1");
     char *hi_pos = strstr(mock_write_buffer, "hi");
     ck_assert_msg(line1_pos < hi_pos,
-                  "Scrollback should appear before workspace");
+                  "Scrollback should appear before input buffer");
 
     // Verify only ONE screen clear (should be "\x1b[2J" only once)
     const char *clear_seq = "\x1b[2J";

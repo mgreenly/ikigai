@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/workspace_cursor.h"
+#include "../../../src/input_buffer_cursor.h"
 #include "../../test_utils.h"
 
 // Test cursor creation

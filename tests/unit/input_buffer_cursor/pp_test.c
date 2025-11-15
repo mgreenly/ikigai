@@ -1,14 +1,14 @@
 #include <check.h>
 #include <talloc.h>
-#include "../../../src/workspace_cursor.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer_cursor.h"
+#include "../../../src/input_buffer.h"
 #include "../../../src/format.h"
 
 // Helper: Insert text character by character (ASCII only)
-static void insert_text(ik_workspace_t *workspace, const char *text)
+static void insert_text(ik_input_buffer_t *input_buffer, const char *text)
 {
     for (size_t i = 0; text[i] != '\0'; i++) {
-        res_t res = ik_workspace_insert_codepoint(workspace, (uint32_t)(unsigned char)text[i]);
+        res_t res = ik_input_buffer_insert_codepoint(input_buffer, (uint32_t)(unsigned char)text[i]);
         ck_assert(is_ok(&res));
     }
 }
@@ -16,21 +16,21 @@ static void insert_text(ik_workspace_t *workspace, const char *text)
 // Test: ik_pp_cursor with cursor at start
 START_TEST(test_pp_cursor_at_start) {
     void *tmp_ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(tmp_ctx, &workspace);
+    ik_input_buffer_t *input_buffer = NULL;
+    res_t res = ik_input_buffer_create(tmp_ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
-    insert_text(workspace, "Hello World");
+    insert_text(input_buffer, "Hello World");
 
     // Move cursor to start
-    res = ik_workspace_cursor_to_line_start(workspace);
+    res = ik_input_buffer_cursor_to_line_start(input_buffer);
     ck_assert(is_ok(&res));
 
     ik_format_buffer_t *buf = NULL;
     res = ik_format_buffer_create(tmp_ctx, &buf);
     ck_assert(is_ok(&res));
 
-    ik_pp_cursor(workspace->cursor, buf, 0);
+    ik_pp_cursor(input_buffer->cursor, buf, 0);
 
     const char *output = ik_format_get_string(buf);
     ck_assert(strstr(output, "ik_cursor_t @ ") != NULL);
@@ -44,17 +44,17 @@ END_TEST
 START_TEST(test_pp_cursor_in_middle)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(tmp_ctx, &workspace);
+    ik_input_buffer_t *input_buffer = NULL;
+    res_t res = ik_input_buffer_create(tmp_ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
-    insert_text(workspace, "Hello World");
+    insert_text(input_buffer, "Hello World");
 
     // Move cursor to start, then right 5 times (after "Hello")
-    res = ik_workspace_cursor_to_line_start(workspace);
+    res = ik_input_buffer_cursor_to_line_start(input_buffer);
     ck_assert(is_ok(&res));
     for (int32_t i = 0; i < 5; i++) {
-        res = ik_workspace_cursor_right(workspace);
+        res = ik_input_buffer_cursor_right(input_buffer);
         ck_assert(is_ok(&res));
     }
 
@@ -62,7 +62,7 @@ START_TEST(test_pp_cursor_in_middle)
     res = ik_format_buffer_create(tmp_ctx, &buf);
     ck_assert(is_ok(&res));
 
-    ik_pp_cursor(workspace->cursor, buf, 0);
+    ik_pp_cursor(input_buffer->cursor, buf, 0);
 
     const char *output = ik_format_get_string(buf);
     ck_assert(strstr(output, "byte_offset: 5\n") != NULL);
@@ -76,17 +76,17 @@ END_TEST
 START_TEST(test_pp_cursor_with_indent)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(tmp_ctx, &workspace);
+    ik_input_buffer_t *input_buffer = NULL;
+    res_t res = ik_input_buffer_create(tmp_ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
-    insert_text(workspace, "Test");
+    insert_text(input_buffer, "Test");
 
     ik_format_buffer_t *buf = NULL;
     res = ik_format_buffer_create(tmp_ctx, &buf);
     ck_assert(is_ok(&res));
 
-    ik_pp_cursor(workspace->cursor, buf, 4);
+    ik_pp_cursor(input_buffer->cursor, buf, 4);
 
     const char *output = ik_format_get_string(buf);
     // Check that header is indented with 4 spaces
@@ -102,21 +102,21 @@ END_TEST
 START_TEST(test_pp_cursor_utf8)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(tmp_ctx, &workspace);
+    ik_input_buffer_t *input_buffer = NULL;
+    res_t res = ik_input_buffer_create(tmp_ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
     // Insert emoji (4 bytes, 1 grapheme)
-    insert_text(workspace, "Hello ");
-    res = ik_workspace_insert_codepoint(workspace, 0x1F600); // 😀
+    insert_text(input_buffer, "Hello ");
+    res = ik_input_buffer_insert_codepoint(input_buffer, 0x1F600); // 😀
     ck_assert(is_ok(&res));
-    insert_text(workspace, " World");
+    insert_text(input_buffer, " World");
 
     // Move to after emoji: byte_offset=10, grapheme_offset=7
-    res = ik_workspace_cursor_to_line_start(workspace);
+    res = ik_input_buffer_cursor_to_line_start(input_buffer);
     ck_assert(is_ok(&res));
     for (int32_t i = 0; i < 7; i++) {
-        res = ik_workspace_cursor_right(workspace);
+        res = ik_input_buffer_cursor_right(input_buffer);
         ck_assert(is_ok(&res));
     }
 
@@ -124,7 +124,7 @@ START_TEST(test_pp_cursor_utf8)
     res = ik_format_buffer_create(tmp_ctx, &buf);
     ck_assert(is_ok(&res));
 
-    ik_pp_cursor(workspace->cursor, buf, 0);
+    ik_pp_cursor(input_buffer->cursor, buf, 0);
 
     const char *output = ik_format_get_string(buf);
     ck_assert(strstr(output, "byte_offset: 10\n") != NULL);
@@ -138,7 +138,7 @@ END_TEST
 // Test suite setup
 static Suite *pp_cursor_suite(void)
 {
-    Suite *s = suite_create("workspace_cursor_pp");
+    Suite *s = suite_create("input_buffer_cursor_pp");
 
     TCase *tc_basic = tcase_create("basic");
     tcase_add_test(tc_basic, test_pp_cursor_at_start);

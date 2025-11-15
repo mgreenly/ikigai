@@ -72,27 +72,27 @@ static res_t grow_array(ik_array_t *array)
 3. Process cannot continue without memory
 4. PANIC provides immediate termination with diagnostic output
 
-### Example from `src/workspace.c:13-38`
+### Example from `src/input_buffer.c:13-38`
 
 ```c
-res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out)
+res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out)
 {
-    workspace_t *workspace = ik_talloc_zero_wrapper(parent, sizeof(workspace_t));
-    if (!workspace) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    input_buffer_t *input_buffer = ik_talloc_zero_wrapper(parent, sizeof(input_buffer_t));
+    if (!input_buffer) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_byte_array_create(workspace, 64);
+    res_t res = ik_byte_array_create(input_buffer, 64);
     if (is_err(&res)) {
-        talloc_free(workspace);  // Frees workspace and children
+        talloc_free(input_buffer);  // Frees input buffer and children
         return res;              // Error still alive on parent!
     }
 
-    res = ik_cursor_create(workspace, &workspace->cursor);
+    res = ik_cursor_create(input_buffer, &input_buffer->cursor);
     if (is_err(&res)) {
-        talloc_free(workspace);  // Frees workspace, byte_array, and children
+        talloc_free(input_buffer);  // Frees input buffer, byte_array, and children
         return res;              // Error still alive on parent!
     }
 
-    return OK(workspace);
+    return OK(input_buffer);
 }
 ```
 

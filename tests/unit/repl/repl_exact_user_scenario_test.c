@@ -10,7 +10,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../test_utils.h"
 
 /**
@@ -18,8 +18,8 @@
  *
  * Terminal: 5 rows
  * Initial scrollback: A, B, C, D (4 lines)
- * At bottom: shows B, C, D, separator, workspace
- * After Page Up: should show A, B, C, D, separator (workspace off-screen)
+ * At bottom: shows B, C, D, separator, input buffer
+ * After Page Up: should show A, B, C, D, separator (input buffer off-screen)
  */
 START_TEST(test_exact_user_scenario) {
     void *ctx = talloc_new(NULL);
@@ -29,11 +29,11 @@ START_TEST(test_exact_user_scenario) {
     term->screen_rows = 5;
     term->screen_cols = 80;
 
-    // Create empty workspace
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create empty input buffer
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with A, B, C, D
     ik_scrollback_t *scrollback = NULL;
@@ -56,13 +56,13 @@ START_TEST(test_exact_user_scenario) {
     // Create REPL at bottom (offset=0)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
     repl->viewport_offset = 0;
 
-    // Document: 4 scrollback + 1 separator + 1 workspace = 6 rows
-    // (workspace always occupies 1 row even when empty, for cursor visibility)
+    // Document: 4 scrollback + 1 separator + 1 input buffer = 6 rows
+    // (input buffer always occupies 1 row even when empty, for cursor visibility)
     // Terminal: 5 rows
     // At bottom (offset=0), showing rows 1-5:
     //   Row 0: A (off-screen)
@@ -70,7 +70,7 @@ START_TEST(test_exact_user_scenario) {
     //   Row 2: C
     //   Row 3: D
     //   Row 4: separator
-    //   Row 5: workspace
+    //   Row 5: input buffer
 
     fprintf(stderr, "\n=== User Scenario: At Bottom ===\n");
 
@@ -97,7 +97,7 @@ START_TEST(test_exact_user_scenario) {
     fprintf(stderr, "Contains B: %s\n", strstr(output1, "B") ? "YES" : "NO");
     fprintf(stderr, "Contains A: %s\n", strstr(output1, "A") ? "YES" : "NO");
 
-    // At bottom: should see B, C, D, separator, workspace (A is off-screen top)
+    // At bottom: should see B, C, D, separator, input buffer (A is off-screen top)
     ck_assert_ptr_ne(strstr(output1, "B"), NULL);
     ck_assert_ptr_ne(strstr(output1, "C"), NULL);
     ck_assert_ptr_ne(strstr(output1, "D"), NULL);
@@ -132,7 +132,7 @@ START_TEST(test_exact_user_scenario) {
     fprintf(stderr, "Contains D: %s\n", strstr(output2, "D") ? "YES" : "NO");
 
     // After Page Up, should show A, B, C, D, separator (rows 0-4)
-    // Workspace is off-screen (row 5)
+    // Input buffer is off-screen (row 5)
     ck_assert_ptr_ne(strstr(output2, "A"), NULL);
     ck_assert_ptr_ne(strstr(output2, "B"), NULL);
     ck_assert_ptr_ne(strstr(output2, "C"), NULL);

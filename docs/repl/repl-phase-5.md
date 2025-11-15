@@ -37,9 +37,9 @@ This phase is not about new features—it's about quality, consistency, and main
 
 **Files to review**:
 - `src/repl.{c,h}`
-- `src/workspace.{c,h}`
-- `src/workspace_cursor.{c,h}`
-- `src/workspace_multiline.c`
+- `src/input_buffer.{c,h}`
+- `src/input_buffer_cursor.{c,h}`
+- `src/input_buffer_multiline.c`
 - `src/render.{c,h}`
 - `src/scrollback.{c,h}` (from Phase 3)
 - `src/input.{c,h}`
@@ -173,7 +173,7 @@ make valgrind
 
 # Frame render time
 # - Measure time from input action to terminal write
-# - Target: < 16ms (60fps) for typical workspace size
+# - Target: < 16ms (60fps) for typical input buffer size
 # - Target: < 100ms worst case with full scrollback
 
 # Memory usage

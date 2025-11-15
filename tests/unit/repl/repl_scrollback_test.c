@@ -308,14 +308,14 @@ START_TEST(test_page_up_clamping)
     }
 
     // With unified document model:
-    // document_height = scrollback (30) + separator (1) + MAX(workspace, 1) = 32 rows
-    // Workspace always occupies at least 1 row (for cursor visibility when empty)
+    // document_height = scrollback (30) + separator (1) + MAX(input buffer, 1) = 32 rows
+    // input buffer always occupies at least 1 row (for cursor visibility when empty)
     // max_offset = 32 - 24 = 8
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
-    ik_workspace_ensure_layout(repl->workspace, repl->term->screen_cols);
-    size_t workspace_rows = ik_workspace_get_physical_lines(repl->workspace);
-    size_t workspace_display_rows = (workspace_rows == 0) ? 1 : workspace_rows;
-    size_t document_height = scrollback_rows + 1 + workspace_display_rows;
+    ik_input_buffer_ensure_layout(repl->input_buffer, repl->term->screen_cols);
+    size_t input_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
+    size_t input_display_rows = (input_rows == 0) ? 1 : input_rows;
+    size_t document_height = scrollback_rows + 1 + input_display_rows;
     size_t expected_max = document_height - (size_t)repl->term->screen_rows;
 
     // Start near top
@@ -334,7 +334,7 @@ START_TEST(test_page_up_clamping)
 }
 
 END_TEST
-/* Test: Submit line adds to scrollback and clears workspace */
+/* Test: Submit line adds to scrollback and clears input buffer */
 START_TEST(test_submit_line_to_scrollback)
 {
     void *ctx = talloc_new(NULL);
@@ -344,7 +344,7 @@ START_TEST(test_submit_line_to_scrollback)
     res_t res = ik_repl_init(ctx, &repl);
     ck_assert(is_ok(&res));
 
-    // Add some text to workspace
+    // Add some text to input buffer
     const char *test_text = "Hello, world!";
     for (size_t i = 0; test_text[i] != '\0'; i++) {
         ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = (uint32_t)test_text[i]};
@@ -352,8 +352,8 @@ START_TEST(test_submit_line_to_scrollback)
         ck_assert(is_ok(&res));
     }
 
-    // Verify workspace has content
-    size_t ws_len = ik_byte_array_size(repl->workspace->text);
+    // Verify input buffer has content
+    size_t ws_len = ik_byte_array_size(repl->input_buffer->text);
     ck_assert_uint_gt(ws_len, 0);
 
     // Submit line
@@ -363,8 +363,8 @@ START_TEST(test_submit_line_to_scrollback)
     // Verify scrollback has one line
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
 
-    // Verify workspace is cleared
-    ck_assert_uint_eq(ik_byte_array_size(repl->workspace->text), 0);
+    // Verify input buffer is cleared
+    ck_assert_uint_eq(ik_byte_array_size(repl->input_buffer->text), 0);
 
     // Cleanup
     talloc_free(ctx);
@@ -384,7 +384,7 @@ START_TEST(test_submit_line_auto_scroll)
     // Scroll up (viewport_offset > 0)
     repl->viewport_offset = 100;
 
-    // Add text to workspace
+    // Add text to input buffer
     const char *test_text = "Test line";
     for (size_t i = 0; test_text[i] != '\0'; i++) {
         ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = (uint32_t)test_text[i]};
@@ -404,7 +404,7 @@ START_TEST(test_submit_line_auto_scroll)
 }
 
 END_TEST
-/* Test: Submit empty workspace does not add to scrollback */
+/* Test: Submit empty input buffer does not add to scrollback */
 START_TEST(test_submit_empty_line)
 {
     void *ctx = talloc_new(NULL);
@@ -414,8 +414,8 @@ START_TEST(test_submit_empty_line)
     res_t res = ik_repl_init(ctx, &repl);
     ck_assert(is_ok(&res));
 
-    // Verify workspace is empty
-    ck_assert_uint_eq(ik_byte_array_size(repl->workspace->text), 0);
+    // Verify input buffer is empty
+    ck_assert_uint_eq(ik_byte_array_size(repl->input_buffer->text), 0);
 
     // Submit empty line
     res = ik_repl_submit_line(repl);

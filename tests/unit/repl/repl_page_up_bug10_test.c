@@ -4,7 +4,7 @@
  *
  * User scenario:
  * 1. Type a, b, c, d (each followed by Enter to submit to scrollback)
- * 2. Type e (in workspace)
+ * 2. Type e (in input buffer)
  * 3. Press Page Up
  *
  * Expected: Should show a, b, c, d, e (all 5 lines)
@@ -19,7 +19,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../../src/terminal.h"
 #include "../../../src/input.h"
 #include "../../test_utils.h"
@@ -27,8 +27,7 @@
 /**
  * Test exact user scenario from Bug #10
  */
-START_TEST(test_page_up_shows_earliest_line)
-{
+START_TEST(test_page_up_shows_earliest_line) {
     void *ctx = talloc_new(NULL);
 
     // Terminal: 5 rows x 80 cols (small to reproduce the issue)
@@ -37,9 +36,9 @@ START_TEST(test_page_up_shows_earliest_line)
     term->screen_cols = 80;
     term->tty_fd = 1;  // stdout
 
-    // Create workspace
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create input buffer
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     // Create scrollback
@@ -55,47 +54,47 @@ START_TEST(test_page_up_shows_earliest_line)
     // Create REPL
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render;
     repl->viewport_offset = 0;
 
     // Simulate: type a, Enter
-    res = ik_workspace_insert_codepoint(workspace, 'a');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'a');
     ck_assert(is_ok(&res));
     res = ik_repl_submit_line(repl);  // Moves 'a' to scrollback
     ck_assert(is_ok(&res));
 
     // Simulate: type b, Enter
-    res = ik_workspace_insert_codepoint(workspace, 'b');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'b');
     ck_assert(is_ok(&res));
     res = ik_repl_submit_line(repl);
     ck_assert(is_ok(&res));
 
     // Simulate: type c, Enter
-    res = ik_workspace_insert_codepoint(workspace, 'c');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'c');
     ck_assert(is_ok(&res));
     res = ik_repl_submit_line(repl);
     ck_assert(is_ok(&res));
 
     // Simulate: type d, Enter
-    res = ik_workspace_insert_codepoint(workspace, 'd');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'd');
     ck_assert(is_ok(&res));
     res = ik_repl_submit_line(repl);
     ck_assert(is_ok(&res));
 
-    // Simulate: type e (DON'T submit - stays in workspace)
-    res = ik_workspace_insert_codepoint(workspace, 'e');
+    // Simulate: type e (DON'T submit - stays in input buffer)
+    res = ik_input_buffer_insert_codepoint(input_buf, 'e');
     ck_assert(is_ok(&res));
 
     // Ensure layouts are calculated
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
     ik_scrollback_ensure_layout(scrollback, 80);
 
     // At this point:
     // - Scrollback: a, b, c, d (4 lines, 4 physical rows)
     // - Separator: 1 row
-    // - Workspace: e (1 line, 1 physical row)
+    // - Input buffer: e (1 line, 1 physical row)
     // - Document: 6 rows total
     // - Terminal: 5 rows
     // - At bottom (offset=0): Shows rows 1-5 (b, c, d, separator, e)
@@ -103,9 +102,9 @@ START_TEST(test_page_up_shows_earliest_line)
 
     // Verify document structure
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(scrollback);
-    size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
+    size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
     ck_assert_uint_eq(scrollback_rows, 4);
-    ck_assert_uint_eq(workspace_rows, 1);
+    ck_assert_uint_eq(input_buf_rows, 1);
 
     // Calculate viewport at bottom
     ik_viewport_t viewport_bottom;
@@ -132,22 +131,22 @@ START_TEST(test_page_up_shows_earliest_line)
     // After Page Up, should show rows 0-4 (a, b, c, d, separator)
     // First scrollback line should be line 0 (a)
     ck_assert_msg(viewport_up.scrollback_start_line == 0,
-                 "Expected first scrollback line to be 0 (a), got %zu",
-                 viewport_up.scrollback_start_line);
+                  "Expected first scrollback line to be 0 (a), got %zu",
+                  viewport_up.scrollback_start_line);
 
     // Should see 4 scrollback lines (a, b, c, d)
     ck_assert_msg(viewport_up.scrollback_lines_count == 4,
-                 "Expected 4 scrollback lines visible, got %zu",
-                 viewport_up.scrollback_lines_count);
+                  "Expected 4 scrollback lines visible, got %zu",
+                  viewport_up.scrollback_lines_count);
 
     // Separator should be visible at row 4
     ck_assert_msg(viewport_up.separator_visible,
-                 "Expected separator to be visible");
+                  "Expected separator to be visible");
 
-    // Workspace should be off-screen
-    ck_assert_msg(viewport_up.workspace_start_row == 5,
-                 "Expected workspace off-screen (start_row=5), got %zu",
-                 viewport_up.workspace_start_row);
+    // input buffer should be off-screen
+    ck_assert_msg(viewport_up.input_buffer_start_row == 5,
+                  "Expected input buffer off-screen (start_row=5), got %zu",
+                  viewport_up.input_buffer_start_row);
 
     talloc_free(ctx);
 }

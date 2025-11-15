@@ -8,11 +8,11 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../test_utils.h"
 
-/* Test: /pp command clears workspace after execution */
-START_TEST(test_pp_command_clears_workspace) {
+/* Test: /pp command clears input buffer after execution */
+START_TEST(test_pp_command_clears_input_buffer) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -20,8 +20,8 @@ START_TEST(test_pp_command_clears_workspace) {
     repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
-    /* Create workspace */
-    res_t res = ik_workspace_create(repl, &repl->workspace);
+    /* Create input buffer */
+    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
     ck_assert(is_ok(&res));
 
     /* Create scrollback (needed for submit_line) */
@@ -40,8 +40,8 @@ START_TEST(test_pp_command_clears_workspace) {
     res = ik_repl_process_action(repl, &action); // Second 'p'
     ck_assert(is_ok(&res));
 
-    /* Verify workspace has "/pp" */
-    size_t text_len = ik_byte_array_size(repl->workspace->text);
+    /* Verify input buffer has "/pp" */
+    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
     ck_assert_uint_eq(text_len, 3);
 
     /* Send NEWLINE to execute command */
@@ -49,14 +49,14 @@ START_TEST(test_pp_command_clears_workspace) {
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    /* Verify workspace was cleared */
-    text_len = ik_byte_array_size(repl->workspace->text);
+    /* Verify input buffer was cleared */
+    text_len = ik_byte_array_size(repl->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     talloc_free(ctx);
 }
 END_TEST
-/* Test: /pp with additional text (e.g., "/pp workspace") */
+/* Test: /pp with additional text (e.g., "/pp input buffer") */
 START_TEST(test_pp_command_with_args)
 {
     void *ctx = talloc_new(NULL);
@@ -66,16 +66,16 @@ START_TEST(test_pp_command_with_args)
     repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
-    /* Create workspace */
-    res_t res = ik_workspace_create(repl, &repl->workspace);
+    /* Create input buffer */
+    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
     ck_assert(is_ok(&res));
 
     /* Create scrollback (needed for submit_line) */
     res = ik_scrollback_create(repl, 80, &repl->scrollback);
     ck_assert(is_ok(&res));
 
-    /* Insert "/pp workspace" command */
-    const char *cmd = "/pp workspace";
+    /* Insert "/pp input buffer" command */
+    const char *cmd = "/pp input_buffer";
     for (size_t i = 0; cmd[i] != '\0'; i++) {
         ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = (uint32_t)cmd[i]};
         res = ik_repl_process_action(repl, &action);
@@ -87,8 +87,8 @@ START_TEST(test_pp_command_with_args)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    /* Verify workspace was cleared */
-    size_t text_len = ik_byte_array_size(repl->workspace->text);
+    /* Verify input buffer was cleared */
+    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     talloc_free(ctx);
@@ -105,8 +105,8 @@ START_TEST(test_unknown_slash_command)
     repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
-    /* Create workspace */
-    res_t res = ik_workspace_create(repl, &repl->workspace);
+    /* Create input buffer */
+    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
     ck_assert(is_ok(&res));
 
     /* Insert "/unknown" command */
@@ -122,16 +122,16 @@ START_TEST(test_unknown_slash_command)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    /* Unknown command should still clear the workspace */
-    size_t text_len = ik_byte_array_size(repl->workspace->text);
+    /* Unknown command should still clear the input buffer */
+    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     talloc_free(ctx);
 }
 
 END_TEST
-/* Test: Empty workspace on newline - Phase 4: Enter always submits and clears */
-START_TEST(test_empty_workspace_newline)
+/* Test: Empty input buffer on newline - Phase 4: Enter always submits and clears */
+START_TEST(test_empty_input_buffer_newline)
 {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
@@ -140,21 +140,21 @@ START_TEST(test_empty_workspace_newline)
     repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
-    /* Create workspace */
-    res_t res = ik_workspace_create(repl, &repl->workspace);
+    /* Create input buffer */
+    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
     ck_assert(is_ok(&res));
 
     /* Create scrollback (needed for submit_line) */
     res = ik_scrollback_create(repl, 80, &repl->scrollback);
     ck_assert(is_ok(&res));
 
-    /* Workspace is empty, press NEWLINE */
+    /* input buffer is empty, press NEWLINE */
     ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    /* Phase 4 behavior: Enter submits and clears workspace (even if empty) */
-    size_t text_len = ik_byte_array_size(repl->workspace->text);
+    /* Phase 4 behavior: Enter submits and clears input buffer (even if empty) */
+    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     talloc_free(ctx);
@@ -171,8 +171,8 @@ START_TEST(test_slash_in_middle_not_command)
     repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
-    /* Create workspace */
-    res_t res = ik_workspace_create(repl, &repl->workspace);
+    /* Create input buffer */
+    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
     ck_assert(is_ok(&res));
 
     /* Create scrollback (needed for submit_line) */
@@ -187,13 +187,13 @@ START_TEST(test_slash_in_middle_not_command)
         ck_assert(is_ok(&res));
     }
 
-    /* Send NEWLINE - Phase 4: should submit to scrollback and clear workspace */
+    /* Send NEWLINE - Phase 4: should submit to scrollback and clear input buffer */
     ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    /* Phase 4 behavior: Enter submits and clears workspace */
-    size_t text_len = ik_byte_array_size(repl->workspace->text);
+    /* Phase 4 behavior: Enter submits and clears input buffer */
+    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     /* Verify "hello" was added to scrollback */
@@ -214,8 +214,8 @@ START_TEST(test_pp_command_order_in_scrollback)
     repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
-    /* Create workspace */
-    res_t res = ik_workspace_create(repl, &repl->workspace);
+    /* Create input buffer */
+    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
     ck_assert(is_ok(&res));
 
     /* Create scrollback */
@@ -247,7 +247,7 @@ START_TEST(test_pp_command_order_in_scrollback)
     ck_assert_msg(line_len == 3 && strncmp(line_text, "/pp", 3) == 0,
                   "Expected first line to be '/pp', got '%.*s'", (int)line_len, line_text);
 
-    /* Get second line - should contain workspace debug info (contains "Workspace" text) */
+    /* Get second line - should contain input buffer debug info (contains "input buffer" text) */
     res = ik_scrollback_get_line_text(repl->scrollback, 1, &line_text, &line_len);
     ck_assert(is_ok(&res));
     ck_assert_msg(line_len > 0, "Expected PP output in second line");
@@ -266,8 +266,8 @@ START_TEST(test_pp_output_trailing_newline)
     repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
-    /* Create workspace */
-    res_t res = ik_workspace_create(repl, &repl->workspace);
+    /* Create input buffer */
+    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
     ck_assert(is_ok(&res));
 
     /* Create scrollback */
@@ -319,10 +319,10 @@ static Suite *repl_slash_command_suite(void)
     Suite *s = suite_create("REPL Slash Commands");
 
     TCase *tc_basic = tcase_create("Basic");
-    tcase_add_test(tc_basic, test_pp_command_clears_workspace);
+    tcase_add_test(tc_basic, test_pp_command_clears_input_buffer);
     tcase_add_test(tc_basic, test_pp_command_with_args);
     tcase_add_test(tc_basic, test_unknown_slash_command);
-    tcase_add_test(tc_basic, test_empty_workspace_newline);
+    tcase_add_test(tc_basic, test_empty_input_buffer_newline);
     tcase_add_test(tc_basic, test_slash_in_middle_not_command);
     tcase_add_test(tc_basic, test_pp_command_order_in_scrollback);
     tcase_add_test(tc_basic, test_pp_output_trailing_newline);

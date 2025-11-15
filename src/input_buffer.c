@@ -1,9 +1,9 @@
 /**
- * @file workspace.c
- * @brief Workspace text buffer implementation
+ * @file input_buffer.c
+ * @brief Input buffer text storage implementation
  */
 
-#include "workspace.h"
+#include "input_buffer.h"
 #include "panic.h"
 #include "wrapper.h"
 #include "error.h"
@@ -11,52 +11,52 @@
 #include <stdbool.h>
 #include <talloc.h>
 
-res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out)
+res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out)
 {
-    assert(workspace_out != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer_out != NULL); /* LCOV_EXCL_BR_LINE */
 
-    ik_workspace_t *workspace = ik_talloc_zero_wrapper(parent, sizeof(ik_workspace_t));
-    if (workspace == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    ik_input_buffer_t *input_buffer = ik_talloc_zero_wrapper(parent, sizeof(ik_input_buffer_t));
+    if (input_buffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_byte_array_create(workspace, 64);
+    res_t res = ik_byte_array_create(input_buffer, 64);
     if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
-    workspace->text = res.ok;
+    input_buffer->text = res.ok;
 
-    res = ik_cursor_create(workspace, &workspace->cursor);
+    res = ik_cursor_create(input_buffer, &input_buffer->cursor);
     if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
 
-    workspace->cursor_byte_offset = 0;
-    workspace->target_column = 0;
-    workspace->physical_lines = 0;
-    workspace->cached_width = 0;
-    workspace->layout_dirty = 1;  /* Layout needs initial calculation */
-    *workspace_out = workspace;
-    return OK(workspace);
+    input_buffer->cursor_byte_offset = 0;
+    input_buffer->target_column = 0;
+    input_buffer->physical_lines = 0;
+    input_buffer->cached_width = 0;
+    input_buffer->layout_dirty = 1;  /* Layout needs initial calculation */
+    *input_buffer_out = input_buffer;
+    return OK(input_buffer);
 }
 
-res_t ik_workspace_get_text(ik_workspace_t *workspace, char **text_out, size_t *len_out)
+res_t ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, char **text_out, size_t *len_out)
 {
-    assert(workspace != NULL);     /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer != NULL);     /* LCOV_EXCL_BR_LINE */
     assert(text_out != NULL); /* LCOV_EXCL_BR_LINE */
     assert(len_out != NULL);  /* LCOV_EXCL_BR_LINE */
 
-    *text_out = (char *)workspace->text->data;
-    *len_out = ik_byte_array_size(workspace->text);
+    *text_out = (char *)input_buffer->text->data;
+    *len_out = ik_byte_array_size(input_buffer->text);
     return OK(NULL);
 }
 
-void ik_workspace_clear(ik_workspace_t *workspace)
+void ik_input_buffer_clear(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
-    ik_byte_array_clear(workspace->text);
-    workspace->cursor_byte_offset = 0;
-    workspace->target_column = 0;
-    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
+    ik_byte_array_clear(input_buffer->text);
+    input_buffer->cursor_byte_offset = 0;
+    input_buffer->target_column = 0;
+    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
 
     /* Reset cursor to position 0 */
-    workspace->cursor->byte_offset = 0;
-    workspace->cursor->grapheme_offset = 0;
+    input_buffer->cursor->byte_offset = 0;
+    input_buffer->cursor->grapheme_offset = 0;
 }
 
 /**
@@ -96,59 +96,59 @@ static size_t encode_utf8(uint32_t codepoint, uint8_t *out)
     return 0; /* Invalid codepoint */
 }
 
-res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoint)
+res_t ik_input_buffer_insert_codepoint(ik_input_buffer_t *input_buffer, uint32_t codepoint)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     /* Encode codepoint to UTF-8 */
     uint8_t utf8_bytes[4];
     size_t num_bytes = encode_utf8(codepoint, utf8_bytes);
     if (num_bytes == 0) {
-        return ERR(workspace, INVALID_ARG, "Invalid Unicode codepoint");
+        return ERR(input_buffer, INVALID_ARG, "Invalid Unicode codepoint");
     }
 
     /* Insert bytes at cursor position */
     for (size_t i = 0; i < num_bytes; i++) {
-        res_t res = ik_byte_array_insert(workspace->text, workspace->cursor_byte_offset + i, utf8_bytes[i]);
+        res_t res = ik_byte_array_insert(input_buffer->text, input_buffer->cursor_byte_offset + i, utf8_bytes[i]);
         if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
     }
 
     /* Advance cursor by number of bytes inserted */
-    workspace->cursor_byte_offset += num_bytes;
+    input_buffer->cursor_byte_offset += num_bytes;
 
     /* Reset target column on text modification */
-    workspace->target_column = 0;
-    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
+    input_buffer->target_column = 0;
+    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
 
     /* Update cursor position */
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
-    ik_cursor_set_position(workspace->cursor, text, text_len, workspace->cursor_byte_offset);
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    ik_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
 
     return OK(NULL);
 }
 
-res_t ik_workspace_insert_newline(ik_workspace_t *workspace)
+res_t ik_input_buffer_insert_newline(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     /* Insert newline byte at cursor position */
-    res_t res = ik_byte_array_insert(workspace->text, workspace->cursor_byte_offset, '\n');
+    res_t res = ik_byte_array_insert(input_buffer->text, input_buffer->cursor_byte_offset, '\n');
     if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
 
     /* Advance cursor by 1 byte */
-    workspace->cursor_byte_offset += 1;
+    input_buffer->cursor_byte_offset += 1;
 
     /* Reset target column on text modification */
-    workspace->target_column = 0;
-    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
+    input_buffer->target_column = 0;
+    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
 
     /* Update cursor position */
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
-    ik_cursor_set_position(workspace->cursor, text, text_len, workspace->cursor_byte_offset);
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    ik_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
 
     return OK(NULL);
 }
@@ -176,37 +176,37 @@ static size_t find_prev_char_start(const uint8_t *data, size_t cursor_pos)
     return pos;
 }
 
-res_t ik_workspace_backspace(ik_workspace_t *workspace)
+res_t ik_input_buffer_backspace(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     /* If cursor is at start, this is a no-op */
-    if (workspace->cursor_byte_offset == 0) {
+    if (input_buffer->cursor_byte_offset == 0) {
         return OK(NULL);
     }
 
     /* Find the start of the previous UTF-8 character */
-    const uint8_t *data = workspace->text->data;
-    size_t prev_char_start = find_prev_char_start(data, workspace->cursor_byte_offset);
+    const uint8_t *data = input_buffer->text->data;
+    size_t prev_char_start = find_prev_char_start(data, input_buffer->cursor_byte_offset);
 
     /* Delete all bytes from prev_char_start to cursor */
-    size_t num_bytes_to_delete = workspace->cursor_byte_offset - prev_char_start;
+    size_t num_bytes_to_delete = input_buffer->cursor_byte_offset - prev_char_start;
     for (size_t i = 0; i < num_bytes_to_delete; i++) {
-        ik_byte_array_delete(workspace->text, prev_char_start);
+        ik_byte_array_delete(input_buffer->text, prev_char_start);
     }
 
     /* Update cursor to the start of the deleted character */
-    workspace->cursor_byte_offset = prev_char_start;
+    input_buffer->cursor_byte_offset = prev_char_start;
 
     /* Reset target column on text modification */
-    workspace->target_column = 0;
-    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
+    input_buffer->target_column = 0;
+    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
 
     /* Update cursor position */
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
-    ik_cursor_set_position(workspace->cursor, text, text_len, workspace->cursor_byte_offset);
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    ik_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
 
     return OK(NULL);
 }
@@ -249,99 +249,99 @@ static size_t find_next_char_end(const uint8_t *data, size_t data_len, size_t cu
     return (end_pos > data_len) ? data_len : end_pos; /* LCOV_EXCL_BR_LINE - defensive: well-formed UTF-8 won't exceed buffer */
 }
 
-res_t ik_workspace_delete(ik_workspace_t *workspace)
+res_t ik_input_buffer_delete(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
-    size_t text_len = ik_byte_array_size(workspace->text);
+    size_t text_len = ik_byte_array_size(input_buffer->text);
 
     /* If cursor is at end, this is a no-op */
-    if (workspace->cursor_byte_offset >= text_len) {
+    if (input_buffer->cursor_byte_offset >= text_len) {
         return OK(NULL);
     }
 
     /* Find the end of the current UTF-8 character */
-    const uint8_t *data = workspace->text->data;
-    size_t next_char_end = find_next_char_end(data, text_len, workspace->cursor_byte_offset);
+    const uint8_t *data = input_buffer->text->data;
+    size_t next_char_end = find_next_char_end(data, text_len, input_buffer->cursor_byte_offset);
 
     /* Delete all bytes from cursor to next_char_end */
-    size_t num_bytes_to_delete = next_char_end - workspace->cursor_byte_offset;
+    size_t num_bytes_to_delete = next_char_end - input_buffer->cursor_byte_offset;
     for (size_t i = 0; i < num_bytes_to_delete; i++) {
-        ik_byte_array_delete(workspace->text, workspace->cursor_byte_offset);
+        ik_byte_array_delete(input_buffer->text, input_buffer->cursor_byte_offset);
     }
 
     /* Cursor stays at same position (deleted forward, not backward) */
 
     /* Reset target column on text modification */
-    workspace->target_column = 0;
-    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
+    input_buffer->target_column = 0;
+    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
 
     /* Update cursor position */
     char *text;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
-    ik_cursor_set_position(workspace->cursor, text, text_len, workspace->cursor_byte_offset);
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    ik_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
 
     return OK(NULL);
 }
 
-res_t ik_workspace_cursor_left(ik_workspace_t *workspace)
+res_t ik_input_buffer_cursor_left(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     /* If already at start, no-op */
-    if (workspace->cursor->byte_offset == 0) {
+    if (input_buffer->cursor->byte_offset == 0) {
         return OK(NULL);
     }
 
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
 
     // Defensive check: text can be NULL (lazy allocation), but cursor > 0 implies text exists
     if (text == NULL)return OK(NULL);  // LCOV_EXCL_LINE - defensive: cursor > 0 implies text != NULL
 
-    ik_cursor_move_left(workspace->cursor, text, text_len);
+    ik_cursor_move_left(input_buffer->cursor, text, text_len);
 
     /* Update legacy cursor_byte_offset for backward compatibility */
-    workspace->cursor_byte_offset = workspace->cursor->byte_offset;
+    input_buffer->cursor_byte_offset = input_buffer->cursor->byte_offset;
 
     /* Reset target column on horizontal movement */
-    workspace->target_column = 0;
+    input_buffer->target_column = 0;
 
     return OK(NULL);
 }
 
-res_t ik_workspace_cursor_right(ik_workspace_t *workspace)
+res_t ik_input_buffer_cursor_right(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
 
     /* If at end or empty text, no-op */
-    if (text == NULL || workspace->cursor->byte_offset >= text_len) { /* LCOV_EXCL_BR_LINE - defensive: text NULL only when cursor at 0 */
+    if (text == NULL || input_buffer->cursor->byte_offset >= text_len) { /* LCOV_EXCL_BR_LINE - defensive: text NULL only when cursor at 0 */
         return OK(NULL);
     }
 
-    ik_cursor_move_right(workspace->cursor, text, text_len);
+    ik_cursor_move_right(input_buffer->cursor, text, text_len);
 
     /* Update legacy cursor_byte_offset for backward compatibility */
-    workspace->cursor_byte_offset = workspace->cursor->byte_offset;
+    input_buffer->cursor_byte_offset = input_buffer->cursor->byte_offset;
 
     /* Reset target column on horizontal movement */
-    workspace->target_column = 0;
+    input_buffer->target_column = 0;
 
     return OK(NULL);
 }
 
-res_t ik_workspace_get_cursor_position(ik_workspace_t *workspace, size_t *byte_out, size_t *grapheme_out)
+res_t ik_input_buffer_get_cursor_position(ik_input_buffer_t *input_buffer, size_t *byte_out, size_t *grapheme_out)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
     assert(byte_out != NULL); /* LCOV_EXCL_BR_LINE */
     assert(grapheme_out != NULL); /* LCOV_EXCL_BR_LINE */
 
-    ik_cursor_get_position(workspace->cursor, byte_out, grapheme_out);
+    ik_cursor_get_position(input_buffer->cursor, byte_out, grapheme_out);
     return OK(NULL);
 }
 
@@ -406,17 +406,17 @@ static char_class_t get_char_class(uint8_t byte)
     }
 }
 
-res_t ik_workspace_delete_word_backward(ik_workspace_t *workspace)
+res_t ik_input_buffer_delete_word_backward(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     /* If cursor is at start, this is a no-op */
-    if (workspace->cursor_byte_offset == 0) {
+    if (input_buffer->cursor_byte_offset == 0) {
         return OK(NULL);
     }
 
-    const uint8_t *data = workspace->text->data;
-    size_t pos = workspace->cursor_byte_offset;
+    const uint8_t *data = input_buffer->text->data;
+    size_t pos = input_buffer->cursor_byte_offset;
 
     /* Step 1: Skip trailing whitespace (always skip whitespace first) */
     while (pos > 0) {
@@ -453,21 +453,21 @@ res_t ik_workspace_delete_word_backward(ik_workspace_t *workspace)
 
 delete_range:
     /* Delete from pos to cursor */
-    size_t num_bytes_to_delete = workspace->cursor_byte_offset - pos;
+    size_t num_bytes_to_delete = input_buffer->cursor_byte_offset - pos;
     for (size_t i = 0; i < num_bytes_to_delete; i++) {
-        ik_byte_array_delete(workspace->text, pos);
+        ik_byte_array_delete(input_buffer->text, pos);
     }
 
     /* Update cursor */
-    workspace->cursor_byte_offset = pos;
+    input_buffer->cursor_byte_offset = pos;
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len);
-    ik_cursor_set_position(workspace->cursor, text, text_len, workspace->cursor_byte_offset);
+    ik_input_buffer_get_text(input_buffer, &text, &text_len);
+    ik_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
 
     /* Reset target column on text modification */
-    workspace->target_column = 0;
-    ik_workspace_invalidate_layout(workspace);  /* Invalidate layout cache */
+    input_buffer->target_column = 0;
+    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
 
     return OK(NULL);
 }

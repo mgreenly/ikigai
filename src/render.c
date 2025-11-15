@@ -1,5 +1,6 @@
 // Direct ANSI terminal rendering
 #include "render.h"
+#include "render_cursor.h"
 #include "error.h"
 #include "panic.h"
 #include "wrapper.h"
@@ -8,20 +9,6 @@
 #include <stdbool.h>
 #include <talloc.h>
 #include <utf8proc.h>
-
-// Internal structure for cursor screen position
-typedef struct {
-    int32_t screen_row;
-    int32_t screen_col;
-} cursor_screen_pos_t;
-
-// Forward declaration for internal testing function
-res_t calculate_cursor_screen_position(void *ctx,
-                                       const char *text,
-                                       size_t text_len,
-                                       size_t cursor_byte_offset,
-                                       int32_t terminal_width,
-                                       cursor_screen_pos_t *pos_out);
 
 // Create render context
 res_t ik_render_create(void *parent, int32_t rows, int32_t cols,
@@ -48,77 +35,10 @@ res_t ik_render_create(void *parent, int32_t rows, int32_t cols,
     return OK(ctx);
 }
 
-// Calculate cursor screen position (row, col) from byte offset
-// Internal function for testing - calculates where cursor should appear on screen
-// accounting for UTF-8 character widths and line wrapping
-res_t calculate_cursor_screen_position(
-    void *ctx,
-    const char *text, size_t text_len,
-    size_t cursor_byte_offset,
-    int32_t terminal_width,
-    cursor_screen_pos_t *pos_out
-    )
-{
-    assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
-    assert(text != NULL);     // LCOV_EXCL_BR_LINE
-    assert(pos_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    int32_t row = 0;
-    int32_t col = 0;
-    size_t pos = 0;
-
-    // Iterate through text up to cursor position
-    while (pos < cursor_byte_offset) {
-        // Handle newlines
-        if (text[pos] == '\n') {
-            row++;
-            col = 0;
-            pos++;
-            continue;
-        }
-
-        // Decode UTF-8 codepoint
-        utf8proc_int32_t cp;
-        utf8proc_ssize_t bytes = utf8proc_iterate(
-            (const utf8proc_uint8_t *)(text + pos),
-            (utf8proc_ssize_t)(text_len - pos),
-            &cp
-            );
-
-        if (bytes <= 0) {
-            return ERR(ctx, INVALID_ARG, "Invalid UTF-8 at byte offset %zu", pos);
-        }
-
-        // Get display width (accounts for wide chars like CJK, combining chars)
-        // Note: utf8proc_charwidth may return negative for control characters,
-        // but in practice this doesn't occur for valid displayable text
-        int32_t width = utf8proc_charwidth(cp);
-
-        // Check for line wrap
-        if (col + width > terminal_width) {
-            row++;
-            col = 0;
-        }
-
-        col += width;
-        pos += (size_t)bytes;
-    }
-
-    // If cursor is exactly at terminal width, wrap to next line
-    if (col == terminal_width) {
-        row++;
-        col = 0;
-    }
-
-    pos_out->screen_row = row;
-    pos_out->screen_col = col;
-    return OK(ctx);
-}
-
-// Render workspace to terminal (text + cursor positioning)
-res_t ik_render_workspace(ik_render_ctx_t *ctx,
-                          const char *text, size_t text_len,
-                          size_t cursor_byte_offset)
+// Render input buffer to terminal (text + cursor positioning)
+res_t ik_render_input_buffer(ik_render_ctx_t *ctx,
+                             const char *text, size_t text_len,
+                             size_t cursor_byte_offset)
 {
     assert(ctx != NULL);                          // LCOV_EXCL_BR_LINE
     assert(text != NULL || text_len == 0);        // LCOV_EXCL_BR_LINE
@@ -316,21 +236,21 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     return OK(ctx);
 }
 
-// Render combined scrollback + workspace in single atomic write (Phase 4 Task 4.4)
-// render_separator and render_workspace control visibility (unified document model)
+// Render combined scrollback + input buffer in single atomic write (Phase 4 Task 4.4)
+// render_separator and render_input_buffer control visibility (unified document model)
 res_t ik_render_combined(ik_render_ctx_t *ctx,
                          ik_scrollback_t *scrollback,
                          size_t scrollback_start_line,
                          size_t scrollback_line_count,
-                         const char *workspace_text,
-                         size_t workspace_text_len,
-                         size_t workspace_cursor_offset,
+                         const char *input_text,
+                         size_t input_text_len,
+                         size_t input_cursor_offset,
                          bool render_separator,
-                         bool render_workspace)
+                         bool render_input_buffer)
 {
     assert(ctx != NULL);                    // LCOV_EXCL_BR_LINE
     assert(scrollback != NULL);             // LCOV_EXCL_BR_LINE
-    assert(workspace_text != NULL || workspace_text_len == 0);  // LCOV_EXCL_BR_LINE
+    assert(input_text != NULL || input_text_len == 0);  // LCOV_EXCL_BR_LINE
 
     // Ensure scrollback layout is up to date
     ik_scrollback_ensure_layout(scrollback, ctx->cols);
@@ -355,23 +275,23 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         scrollback_rows_used += (int32_t)scrollback->layouts[i].physical_lines;
     }
 
-    // Calculate cursor screen position for workspace
-    cursor_screen_pos_t workspace_cursor_pos = {0};
-    if (workspace_text_len > 0) {
-        res_t result = calculate_cursor_screen_position(ctx, workspace_text, workspace_text_len,
-                                                        workspace_cursor_offset, ctx->cols,
-                                                        &workspace_cursor_pos);
+    // Calculate cursor screen position for input buffer
+    cursor_screen_pos_t input_cursor_pos = {0};
+    if (input_text_len > 0) {
+        res_t result = calculate_cursor_screen_position(ctx, input_text, input_text_len,
+                                                        input_cursor_offset, ctx->cols,
+                                                        &input_cursor_pos);
         if (is_err(&result)) {
             return result;
         }
     }
 
-    // Offset workspace cursor by scrollback rows
-    int32_t final_cursor_row = scrollback_rows_used + workspace_cursor_pos.screen_row;
-    int32_t final_cursor_col = workspace_cursor_pos.screen_col;
+    // Offset input buffer cursor by scrollback rows
+    int32_t final_cursor_row = scrollback_rows_used + input_cursor_pos.screen_row;
+    int32_t final_cursor_col = input_cursor_pos.screen_col;
 
     // Calculate buffer size needed
-    // Clear (4) + Home (3) + scrollback content + separator (cols+2) + workspace content + cursor visibility (6) + cursor position (~20)
+    // Clear (4) + Home (3) + scrollback content + separator (cols+2) + input buffer content + cursor visibility (6) + cursor position (~20)
     size_t buffer_size = 7 + 6 + 20;  // Base escapes + cursor visibility
 
     // Add separator line if visible
@@ -395,13 +315,13 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         buffer_size += line_len + newline_count + 2;  // +2 for final \r\n
     }
 
-    // Add workspace size if visible
-    if (render_workspace && workspace_text_len > 0) {
-        size_t ws_newline_count = 0;
-        for (size_t i = 0; i < workspace_text_len; i++) {
-            if (workspace_text[i] == '\n')ws_newline_count++;
+    // Add input buffer size if visible
+    if (render_input_buffer && input_text_len > 0) {
+        size_t ib_newline_count = 0;
+        for (size_t i = 0; i < input_text_len; i++) {
+            if (input_text[i] == '\n')ib_newline_count++;
         }
-        buffer_size += workspace_text_len + ws_newline_count;
+        buffer_size += input_text_len + ib_newline_count;
     }
 
     // Allocate framebuffer
@@ -439,25 +359,25 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         }
 
         // Add \r\n at end of each scrollback line
-        // UNLESS it's the last line AND separator/workspace are both off-screen
+        // UNLESS it's the last line AND separator/input_buffer are both off-screen
         // (Bug #10 fix - prevents terminal scroll when last line is on last terminal row)
         bool is_last_scrollback_line = (i == scrollback_end_line - 1);
-        bool nothing_after = !render_separator && !render_workspace;
+        bool nothing_after = !render_separator && !render_input_buffer;
         if (!is_last_scrollback_line || !nothing_after) {
             framebuffer[offset++] = '\r';
             framebuffer[offset++] = '\n';
         }
     }
 
-    // Add separator line between scrollback and workspace (if visible)
+    // Add separator line between scrollback and input buffer (if visible)
     if (render_separator) {
         for (int32_t i = 0; i < ctx->cols; i++) {
             framebuffer[offset++] = '-';
         }
 
-        // Only add \r\n after separator if workspace is being rendered
+        // Only add \r\n after separator if input buffer is being rendered
         // Otherwise, the terminal scrolls up when separator is on last line
-        if (render_workspace) {
+        if (render_input_buffer) {
             framebuffer[offset++] = '\r';
             framebuffer[offset++] = '\n';
         }
@@ -466,28 +386,28 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         final_cursor_row++;
     }
 
-    // Write workspace text (if visible)
-    if (render_workspace && workspace_text_len > 0) {
-        for (size_t i = 0; i < workspace_text_len; i++) {
-            if (workspace_text[i] == '\n') {
+    // Write input buffer text (if visible)
+    if (render_input_buffer && input_text_len > 0) {
+        for (size_t i = 0; i < input_text_len; i++) {
+            if (input_text[i] == '\n') {
                 framebuffer[offset++] = '\r';
                 framebuffer[offset++] = '\n';
             } else {
-                framebuffer[offset++] = workspace_text[i];
+                framebuffer[offset++] = input_text[i];
             }
         }
     }
 
-    // Cursor visibility: show (\x1b[?25h) when workspace visible, hide (\x1b[?25l) when off-screen
+    // Cursor visibility: show (\x1b[?25h) when input buffer visible, hide (\x1b[?25l) when off-screen
     framebuffer[offset++] = '\x1b';
     framebuffer[offset++] = '[';
     framebuffer[offset++] = '?';
     framebuffer[offset++] = '2';
     framebuffer[offset++] = '5';
-    framebuffer[offset++] = render_workspace ? 'h' : 'l';
+    framebuffer[offset++] = render_input_buffer ? 'h' : 'l';
 
-    // Position cursor when workspace visible
-    if (render_workspace) {
+    // Position cursor when input buffer visible
+    if (render_input_buffer) {
         char *cursor_escape = ik_talloc_asprintf_wrapper(ctx, "\x1b[%" PRId32 ";%" PRId32 "H",
                                                          final_cursor_row + 1, final_cursor_col + 1);
         if (cursor_escape == NULL)PANIC("Out of memory");   // LCOV_EXCL_BR_LINE

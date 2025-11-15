@@ -4,7 +4,7 @@
 #include "panic.h"
 #include "wrapper.h"
 #include "format.h"
-#include "workspace.h"
+#include "input_buffer.h"
 #include <assert.h>
 #include <talloc.h>
 #include <string.h>
@@ -22,7 +22,7 @@ static res_t append_multiline_to_scrollback(ik_scrollback_t *scrollback, const c
     assert(scrollback != NULL);  /* LCOV_EXCL_BR_LINE */
     assert(output != NULL);  /* LCOV_EXCL_BR_LINE */
 
-    if (output_len == 0) {  // LCOV_EXCL_BR_LINE - pp_workspace always produces output
+    if (output_len == 0) {  // LCOV_EXCL_BR_LINE - pp_input_buffer always produces output
         return OK(NULL);  // LCOV_EXCL_LINE
     }
 
@@ -43,7 +43,7 @@ static res_t append_multiline_to_scrollback(ik_scrollback_t *scrollback, const c
 }
 
 /**
- * @brief Handle slash commands (e.g., /pp workspace)
+ * @brief Handle slash commands (e.g., /pp input_buffer)
  *
  * @param repl REPL context
  * @param command Command text (without leading /)
@@ -55,15 +55,15 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
     assert(command != NULL); /* LCOV_EXCL_BR_LINE */
 
     // Parse command (simple whitespace-based parsing for now)
-    // Expected format: "pp workspace" or "pp"
+    // Expected format: "pp input_buffer" or "pp"
     if (strncmp(command, "pp", 2) == 0) {
         // Create format buffer for output
         ik_format_buffer_t *buf = NULL;
         res_t result = ik_format_buffer_create(repl, &buf);
         if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
 
-        // Pretty-print the workspace
-        ik_pp_workspace(repl->workspace, buf, 0);
+        // Pretty-print the input buffer
+        ik_pp_input_buffer(repl->input_buffer, buf, 0);
 
         // Append output to scrollback buffer (split by newlines)
         const char *output = ik_format_get_string(buf);
@@ -88,20 +88,20 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
 
     switch (action->type) { // LCOV_EXCL_BR_LINE
         case IK_INPUT_CHAR:
-            // Auto-scroll to bottom on workspace modification (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer modification (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_insert_codepoint(repl->workspace, action->codepoint);
+            return ik_input_buffer_insert_codepoint(repl->input_buffer, action->codepoint);
         case IK_INPUT_INSERT_NEWLINE:
             // Ctrl+J inserts newline without submitting (multi-line editing)
-            // Auto-scroll to bottom on workspace modification (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer modification (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_insert_newline(repl->workspace);
+            return ik_input_buffer_insert_newline(repl->input_buffer);
         case IK_INPUT_NEWLINE: {
-            // Check if workspace contains a slash command
-            const char *text = (const char *)repl->workspace->text->data;
-            size_t text_len = ik_byte_array_size(repl->workspace->text);
+            // Check if input buffer contains a slash command
+            const char *text = (const char *)repl->input_buffer->text->data;
+            size_t text_len = ik_byte_array_size(repl->input_buffer->text);
 
-            // Check if text starts with '/' and extract command BEFORE submit clears workspace
+            // Check if text starts with '/' and extract command BEFORE submit clears input buffer
             bool is_slash_command = (text_len > 0 && text[0] == '/');
             char *command = NULL;
             if (is_slash_command) {
@@ -116,7 +116,7 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             res_t result = ik_repl_submit_line(repl);
             if (is_err(&result))return result;  // LCOV_EXCL_LINE
 
-            // If it was a slash command, handle it now (after workspace text is in scrollback)
+            // If it was a slash command, handle it now (after input buffer text is in scrollback)
             if (is_slash_command) {
                 // Handle the slash command (appends output to scrollback)
                 result = ik_repl_handle_slash_command(repl, command);
@@ -128,42 +128,42 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             return OK(NULL);
         }
         case IK_INPUT_BACKSPACE:
-            // Auto-scroll to bottom on workspace modification (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer modification (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_backspace(repl->workspace);
+            return ik_input_buffer_backspace(repl->input_buffer);
         case IK_INPUT_DELETE:
-            // Auto-scroll to bottom on workspace modification (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer modification (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_delete(repl->workspace);
+            return ik_input_buffer_delete(repl->input_buffer);
         case IK_INPUT_ARROW_LEFT:
-            // Auto-scroll to bottom on workspace navigation (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_cursor_left(repl->workspace);
+            return ik_input_buffer_cursor_left(repl->input_buffer);
         case IK_INPUT_ARROW_RIGHT:
-            // Auto-scroll to bottom on workspace navigation (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_cursor_right(repl->workspace);
+            return ik_input_buffer_cursor_right(repl->input_buffer);
         case IK_INPUT_ARROW_UP:
-            // Auto-scroll to bottom on workspace navigation (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_cursor_up(repl->workspace);
+            return ik_input_buffer_cursor_up(repl->input_buffer);
         case IK_INPUT_ARROW_DOWN:
-            // Auto-scroll to bottom on workspace navigation (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_cursor_down(repl->workspace);
+            return ik_input_buffer_cursor_down(repl->input_buffer);
         case IK_INPUT_PAGE_UP: {
             // Scroll up by terminal height (increase offset)
             // First ensure layouts are current
             ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
-            ik_workspace_ensure_layout(repl->workspace, repl->term->screen_cols);
+            ik_input_buffer_ensure_layout(repl->input_buffer, repl->term->screen_cols);
 
             // Calculate maximum offset using unified document model
-            // Document = scrollback + separator (1) + MAX(workspace, 1)
+            // Document = scrollback + separator (1) + MAX(input_buffer, 1)
             // Workspace always occupies at least 1 row (for cursor visibility when empty)
             size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
-            size_t workspace_rows = ik_workspace_get_physical_lines(repl->workspace);
-            size_t workspace_display_rows = (workspace_rows == 0) ? 1 : workspace_rows;
-            size_t document_height = scrollback_rows + 1 + workspace_display_rows;
+            size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
+            size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
+            size_t document_height = scrollback_rows + 1 + input_buffer_display_rows;
 
             // Max offset = document_height - terminal_rows (can't scroll past top)
             size_t max_offset = 0;
@@ -190,25 +190,25 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             return OK(NULL);
         }
         case IK_INPUT_CTRL_A:
-            // Auto-scroll to bottom on workspace navigation (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_cursor_to_line_start(repl->workspace);
+            return ik_input_buffer_cursor_to_line_start(repl->input_buffer);
         case IK_INPUT_CTRL_E:
-            // Auto-scroll to bottom on workspace navigation (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_cursor_to_line_end(repl->workspace);
+            return ik_input_buffer_cursor_to_line_end(repl->input_buffer);
         case IK_INPUT_CTRL_K:
-            // Auto-scroll to bottom on workspace modification (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer modification (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_kill_to_line_end(repl->workspace);
+            return ik_input_buffer_kill_to_line_end(repl->input_buffer);
         case IK_INPUT_CTRL_U:
-            // Auto-scroll to bottom on workspace modification (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer modification (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_kill_line(repl->workspace);
+            return ik_input_buffer_kill_line(repl->input_buffer);
         case IK_INPUT_CTRL_W:
-            // Auto-scroll to bottom on workspace modification (Bug #6 fix)
+            // Auto-scroll to bottom on input buffer modification (Bug #6 fix)
             repl->viewport_offset = 0;
-            return ik_workspace_delete_word_backward(repl->workspace);
+            return ik_input_buffer_delete_word_backward(repl->input_buffer);
         case IK_INPUT_CTRL_C:
             repl->quit = true;
             return OK(NULL);

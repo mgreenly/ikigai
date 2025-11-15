@@ -15,18 +15,18 @@
 START_TEST(test_repl_process_action_arrow_left) {
     void *ctx = talloc_new(NULL);
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
-    res = ik_workspace_insert_codepoint(workspace, 'a');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'a');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'b');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'b');
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->quit = false;
 
     ik_input_action_t action = {.type = IK_INPUT_ARROW_LEFT};
@@ -36,7 +36,7 @@ START_TEST(test_repl_process_action_arrow_left) {
 
     size_t byte_offset = 0;
     size_t grapheme_offset = 0;
-    res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    res = ik_input_buffer_get_cursor_position(input_buf, &byte_offset, &grapheme_offset);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(byte_offset, 1);
     ck_assert_uint_eq(grapheme_offset, 1);
@@ -50,23 +50,23 @@ START_TEST(test_repl_process_action_arrow_right)
 {
     void *ctx = talloc_new(NULL);
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
-    res = ik_workspace_insert_codepoint(workspace, 'a');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'a');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'b');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'b');
     ck_assert(is_ok(&res));
 
-    res = ik_workspace_cursor_left(workspace);
+    res = ik_input_buffer_cursor_left(input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_cursor_left(workspace);
+    res = ik_input_buffer_cursor_left(input_buf);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->quit = false;
 
     ik_input_action_t action = {.type = IK_INPUT_ARROW_RIGHT};
@@ -76,7 +76,7 @@ START_TEST(test_repl_process_action_arrow_right)
 
     size_t byte_offset = 0;
     size_t grapheme_offset = 0;
-    res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    res = ik_input_buffer_get_cursor_position(input_buf, &byte_offset, &grapheme_offset);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(byte_offset, 1);
     ck_assert_uint_eq(grapheme_offset, 1);
@@ -90,13 +90,13 @@ START_TEST(test_repl_process_action_ctrl_c)
 {
     void *ctx = talloc_new(NULL);
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->quit = false;
 
     ik_input_action_t action = {.type = IK_INPUT_CTRL_C};
@@ -115,13 +115,13 @@ START_TEST(test_repl_process_action_left_at_start)
 {
     void *ctx = talloc_new(NULL);
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
 
     ik_input_action_t action = {.type = IK_INPUT_ARROW_LEFT};
 
@@ -130,7 +130,7 @@ START_TEST(test_repl_process_action_left_at_start)
 
     size_t byte_offset = 0;
     size_t grapheme_offset = 0;
-    res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    res = ik_input_buffer_get_cursor_position(input_buf, &byte_offset, &grapheme_offset);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(byte_offset, 0);
     ck_assert_uint_eq(grapheme_offset, 0);
@@ -144,18 +144,18 @@ START_TEST(test_repl_process_action_right_at_end)
 {
     void *ctx = talloc_new(NULL);
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
-    res = ik_workspace_insert_codepoint(workspace, 'a');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'a');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'b');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'b');
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
 
     ik_input_action_t action = {.type = IK_INPUT_ARROW_RIGHT};
 
@@ -164,7 +164,7 @@ START_TEST(test_repl_process_action_right_at_end)
 
     size_t byte_offset = 0;
     size_t grapheme_offset = 0;
-    res = ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    res = ik_input_buffer_get_cursor_position(input_buf, &byte_offset, &grapheme_offset);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(byte_offset, 2);
     ck_assert_uint_eq(grapheme_offset, 2);
@@ -178,18 +178,18 @@ START_TEST(test_repl_process_action_unknown)
 {
     void *ctx = talloc_new(NULL);
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
-    res = ik_workspace_insert_codepoint(workspace, 'a');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'a');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'b');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'b');
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
 
     ik_input_action_t action = {.type = IK_INPUT_UNKNOWN};
 
@@ -198,7 +198,7 @@ START_TEST(test_repl_process_action_unknown)
 
     char *text = NULL;
     size_t len = 0;
-    res = ik_workspace_get_text(workspace, &text, &len);
+    res = ik_input_buffer_get_text(input_buf, &text, &len);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(len, 2);
     ck_assert_int_eq(text[0], 'a');
@@ -220,10 +220,10 @@ END_TEST
 START_TEST(test_repl_process_action_null_action_asserts)
 {
     void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
-    ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    ik_input_buffer_create(ctx, &input_buf);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     ik_repl_process_action(repl, NULL);
     talloc_free(ctx);
 }
@@ -234,13 +234,13 @@ START_TEST(test_repl_process_action_arrow_up)
 {
     void *ctx = talloc_new(NULL);
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->quit = false;
 
     // Insert "a\nb" (line1\nline2)
@@ -255,7 +255,7 @@ START_TEST(test_repl_process_action_arrow_up)
     // Cursor is at byte 3 (after "a\nb"), grapheme 3
     size_t byte_offset = 999;
     size_t grapheme_offset = 999;
-    ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    ik_input_buffer_get_cursor_position(input_buf, &byte_offset, &grapheme_offset);
     ck_assert_uint_eq(byte_offset, 3);
     ck_assert_uint_eq(grapheme_offset, 3);
 
@@ -265,7 +265,7 @@ START_TEST(test_repl_process_action_arrow_up)
     ck_assert(is_ok(&res));
 
     // Cursor should be at byte 1 (after "a"), grapheme 1
-    ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    ik_input_buffer_get_cursor_position(input_buf, &byte_offset, &grapheme_offset);
     ck_assert_uint_eq(byte_offset, 1);
     ck_assert_uint_eq(grapheme_offset, 1);
 
@@ -278,13 +278,13 @@ START_TEST(test_repl_process_action_arrow_down)
 {
     void *ctx = talloc_new(NULL);
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->quit = false;
 
     // Insert "a\nb" (line1\nline2)
@@ -297,11 +297,11 @@ START_TEST(test_repl_process_action_arrow_down)
     ik_repl_process_action(repl, &action);
 
     // Move cursor to start (byte 0)
-    workspace->cursor_byte_offset = 0;
+    input_buf->cursor_byte_offset = 0;
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len);
-    ik_cursor_set_position(workspace->cursor, text, text_len, 0);
+    ik_input_buffer_get_text(input_buf, &text, &text_len);
+    ik_cursor_set_position(input_buf->cursor, text, text_len, 0);
 
     // Move down
     action.type = IK_INPUT_ARROW_DOWN;
@@ -311,7 +311,7 @@ START_TEST(test_repl_process_action_arrow_down)
     // Cursor should be at byte 2 (after "\n", start of line2), grapheme 2
     size_t byte_offset = 999;
     size_t grapheme_offset = 999;
-    ik_workspace_get_cursor_position(workspace, &byte_offset, &grapheme_offset);
+    ik_input_buffer_get_cursor_position(input_buf, &byte_offset, &grapheme_offset);
     ck_assert_uint_eq(byte_offset, 2);
     ck_assert_uint_eq(grapheme_offset, 2);
 

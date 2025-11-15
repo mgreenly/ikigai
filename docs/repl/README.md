@@ -2,7 +2,7 @@
 
 ## Overview
 
-A terminal-based REPL with split-buffer interface: immutable scrollback history above, editable multi-line workspace below. Direct ANSI rendering eliminates terminal emulation overhead—raw terminal bytes flow through an input parser that produces semantic actions (insert, delete, move cursor), workspace transforms UTF-8 text with grapheme-aware cursor positioning, and render writes a single framebuffer per frame using ANSI escape sequences (CSI cursor positioning, alternate screen buffer). Scrollback uses pre-computed display widths for O(1) arithmetic reflow on terminal resize (1000× faster than re-measuring). Event loop follows a strict cycle: read input → parse to action → update workspace → render frame. Architecture prioritizes testability (100% coverage via TDD), performance (cached layouts, minimal allocations), and simplicity (single-threaded, direct ANSI escape sequences, talloc memory hierarchy).
+A terminal-based REPL with split-buffer interface: immutable scrollback history above, editable multi-line input buffer below. Direct ANSI rendering eliminates terminal emulation overhead—raw terminal bytes flow through an input parser that produces semantic actions (insert, delete, move cursor), input buffer transforms UTF-8 text with grapheme-aware cursor positioning, and render writes a single framebuffer per frame using ANSI escape sequences (CSI cursor positioning, alternate screen buffer). Scrollback uses pre-computed display widths for O(1) arithmetic reflow on terminal resize (1000× faster than re-measuring). Event loop follows a strict cycle: read input → parse to action → update input buffer → render frame. Architecture prioritizes testability (100% coverage via TDD), performance (cached layouts, minimal allocations), and simplicity (single-threaded, direct ANSI escape sequences, talloc memory hierarchy).
 
 ## Table of Contents
 
@@ -13,7 +13,7 @@ A terminal-based REPL with split-buffer interface: immutable scrollback history 
 ### Phase Details (separate files)
 - [Phase 0: Foundation](repl-phase-0.md) ✅ - Clean up error handling + build generic array utility
 - [Phase 1: Direct Rendering](repl-phase-1.md) ✅ - Direct terminal rendering (UTF-8 aware cursor positioning)
-- [Phase 2: REPL Event Loop](repl-phase-2.md) ✅ - Complete interactive REPL with workspace
+- [Phase 2: REPL Event Loop](repl-phase-2.md) ✅ - Complete interactive REPL with input buffer
 - [Phase 3: Scrollback Buffer](repl-phase-3.md) - Add scrollback storage with layout caching
 - [Phase 4: Viewport and Scrolling](repl-phase-4.md) - Integrate scrollback with REPL, add scrolling
 - [Phase 5: Cleanup](repl-phase-5.md) - Final polish and documentation
@@ -47,13 +47,13 @@ Each phase follows strict TDD (Test-Driven Development) with 100% coverage requi
 - ✅ Task 1: Error handling cleanup
 - ✅ Task 2: Generic array utility with typed wrappers
 
-**Phase 1** - Direct Rendering (workspace only) ✅ COMPLETE:
+**Phase 1** - Direct Rendering (input buffer only) ✅ COMPLETE:
 - ✅ Direct ANSI terminal rendering with UTF-8 aware cursor calculation
 - ✅ Single framebuffer write to terminal
 - ✅ Manual verification completed
 
 **Phase 2** - Complete REPL Event Loop ✅ COMPLETE (2025-11-11):
-- ✅ Full interactive REPL with workspace (no scrollback)
+- ✅ Full interactive REPL with input buffer (no scrollback)
 - ✅ Event loop, action processing, frame rendering
 - ✅ Multi-line input, cursor movement, text editing
 - ✅ Readline shortcuts (Ctrl+A/E/K/U/W)
@@ -73,7 +73,7 @@ Each phase follows strict TDD (Test-Driven Development) with 100% coverage requi
 **Phase 2.75** - Pretty-Print Infrastructure ⚙️ PARTIAL:
 - ✅ Format buffer module with 100% test coverage
 - ✅ Generic PP helpers for reusable formatting (`pp_helpers.c`)
-- ✅ `ik_pp_workspace()` and `ik_pp_cursor()` for recursive structure inspection
+- ✅ `ik_pp_input_buffer()` and `ik_pp_cursor()` for recursive structure inspection
 - ⏸️ `/pp` command in REPL - **DEFERRED to Phase 3**
   - Current stdout implementation violates design principle
   - All output must go: screenbuffer → blit to alternate buffer (never stdout/stderr)
@@ -82,7 +82,7 @@ Each phase follows strict TDD (Test-Driven Development) with 100% coverage requi
 **Phase 3** - Scrollback Buffer Module:
 - Scrollback storage with pre-computed display_width
 - Layout caching for O(1) reflow on resize
-- Workspace layout caching
+- Input buffer layout caching
 - Performance: 1000× faster resize via arithmetic reflow
 
 **Phase 4** - Viewport and Scrolling:

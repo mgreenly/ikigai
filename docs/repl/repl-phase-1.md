@@ -2,7 +2,7 @@
 
 [← Back to REPL Terminal Overview](README.md)
 
-**Goal**: Implement direct terminal rendering for workspace without external terminal emulator library.
+**Goal**: Implement direct terminal rendering for input buffer without external terminal emulator library.
 
 **Status**: ✅ COMPLETE
 
@@ -34,8 +34,8 @@ typedef struct ik_render_ctx_t {
 res_t ik_render_create(void *parent, int32_t rows, int32_t cols,
                                int32_t tty_fd, ik_render_ctx_t **ctx_out);
 
-// Render workspace to terminal (text + cursor positioning)
-res_t ik_render_workspace(ik_render_ctx_t *ctx,
+// Render input buffer to terminal (text + cursor positioning)
+res_t ik_render_input_buffer(ik_render_ctx_t *ctx,
                                   const char *text, size_t text_len,
                                   size_t cursor_byte_offset);
 ```
@@ -46,7 +46,7 @@ res_t ik_render_workspace(ik_render_ctx_t *ctx,
 - Home cursor + write text + position cursor escape sequence
 
 **Implementation Notes**:
-- No caching needed yet (workspace is small, typically < 4KB)
+- No caching needed yet (input buffer is small, typically < 4KB)
 - Full scan on each render is acceptable for this phase
 - UTF-8 aware cursor positioning using `utf8proc_charwidth()`
 
@@ -83,7 +83,7 @@ res_t ik_render_workspace(ik_render_ctx_t *ctx,
 typedef struct ik_repl_ctx_t {
     ik_term_ctx_t *term;
     ik_render_ctx_t *render;      // Changed from ik_render_ctx_t
-    ik_workspace_t *workspace;
+    ik_input_buffer_t *input_buffer;
     ik_input_parser_t *input_parser;
     bool quit;
 } ik_repl_ctx_t;

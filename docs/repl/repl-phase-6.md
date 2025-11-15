@@ -8,7 +8,7 @@
 
 ## Rationale
 
-After Phase 5, the REPL will have full functionality (input, workspace, scrollback, scrolling). These enhancements add polish for real-world usage without changing core architecture:
+After Phase 5, the REPL will have full functionality (input, input buffer, scrollback, scrolling). These enhancements add polish for real-world usage without changing core architecture:
 
 **Bracketed paste mode** solves the classic "paste destroys formatting" problem - when users paste multi-line code, the REPL can't distinguish it from typed input, causing auto-indent and newline processing to mangle the content.
 
@@ -92,10 +92,10 @@ case IK_INPUT_PASTE_END:
 case IK_INPUT_NEWLINE:
     if (repl->in_paste_mode) {
         // Insert literal newline, don't trigger submit logic
-        return ik_workspace_insert_newline(repl->workspace);
+        return ik_input_buffer_insert_newline(repl->input_buffer);
     } else {
         // Normal newline handling (might trigger submit in future)
-        return ik_workspace_insert_newline(repl->workspace);
+        return ik_input_buffer_insert_newline(repl->input_buffer);
     }
 ```
 
@@ -127,7 +127,7 @@ SGR (Select Graphic Rendition) sequences change text appearance:
 #### Color Scheme Design
 
 **Minimal, readable scheme**:
-- **User input workspace**: Default terminal colors (no modification)
+- **User input buffer**: Default terminal colors (no modification)
 - **Scrollback - User messages**: Cyan (`\x1b[36m`) - visually distinct but not harsh
 - **Scrollback - AI responses**: Default (or subtle green `\x1b[32m` for affirmative tone)
 - **Scrollback - System messages** (errors, status): Yellow (`\x1b[33m`)
@@ -175,10 +175,10 @@ static void append_colored_text(char *buffer, size_t *offset,
 }
 ```
 
-**3. Update workspace rendering**
+**3. Update input buffer rendering**
 
-Modify `ik_render_workspace()`:
-- Keep workspace in default colors (user is actively editing)
+Modify `ik_render_input_buffer()`:
+- Keep input buffer in default colors (user is actively editing)
 - Or optionally add subtle bold for visual weight
 
 **4. Add scrollback line rendering with colors**
@@ -213,7 +213,7 @@ void ik_render_set_colors_enabled(ik_render_ctx_t *ctx, bool enabled);
 - SGR codes correctly inserted for each message type
 - Color reset applied after each line
 - Colors can be disabled (returns plain text)
-- No color codes in workspace rendering
+- No color codes in input buffer rendering
 - Buffer size calculations account for color overhead
 - Wide character + color rendering (ensure no corruption)
 
@@ -239,7 +239,7 @@ void ik_render_set_colors_enabled(ik_render_ctx_t *ctx, bool enabled);
 # Test bracketed paste
 1. Run ikigai REPL
 2. Copy multi-line Python code with indentation
-3. Paste into workspace
+3. Paste into input buffer
 4. Verify formatting preserved exactly
 
 # Test colors

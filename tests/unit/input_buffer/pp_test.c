@@ -1,36 +1,36 @@
 /**
  * @file pp_test.c
- * @brief Unit tests for workspace pretty-print functionality
+ * @brief Unit tests for input_buffer pretty-print functionality
  */
 
 #include <check.h>
 #include <string.h>
 #include <talloc.h>
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../../src/format.h"
 #include "../../test_utils.h"
 
-/* Test: Pretty-print empty workspace */
-START_TEST(test_pp_workspace_empty) {
+/* Test: Pretty-print empty input_buffer */
+START_TEST(test_pp_input_buffer_empty) {
     void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
+    ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
 
-    /* Create empty workspace */
-    res_t res = ik_workspace_create(ctx, &workspace);
+    /* Create empty input_buffer */
+    res_t res = ik_input_buffer_create(ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
     res = ik_format_buffer_create(ctx, &buf);
     ck_assert(is_ok(&res));
 
-    /* Pretty-print the workspace */
-    ik_pp_workspace(workspace, buf, 0);
+    /* Pretty-print the input_buffer */
+    ik_pp_input_buffer(input_buffer, buf, 0);
 
-    /* Verify output contains workspace address and fields */
+    /* Verify output contains input_buffer address and fields */
     const char *output = ik_format_get_string(buf);
     ck_assert_ptr_nonnull(output);
-    ck_assert_ptr_nonnull(strstr(output, "ik_workspace_t @"));
+    ck_assert_ptr_nonnull(strstr(output, "ik_input_buffer_t @"));
     ck_assert_ptr_nonnull(strstr(output, "text_len: 0"));
     ck_assert_ptr_nonnull(strstr(output, "ik_cursor_t @"));
     ck_assert_ptr_nonnull(strstr(output, "byte_offset: 0"));
@@ -40,28 +40,28 @@ START_TEST(test_pp_workspace_empty) {
     talloc_free(ctx);
 }
 END_TEST
-/* Test: Pretty-print workspace with single-line text */
-START_TEST(test_pp_workspace_single_line)
+/* Test: Pretty-print input_buffer with single-line text */
+START_TEST(test_pp_input_buffer_single_line)
 {
     void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
+    ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
 
-    /* Create workspace and add text */
-    res_t res = ik_workspace_create(ctx, &workspace);
+    /* Create input_buffer and add text */
+    res_t res = ik_input_buffer_create(ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
-    res = ik_workspace_insert_codepoint(workspace, 'H');
+    res = ik_input_buffer_insert_codepoint(input_buffer, 'H');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'i');
+    res = ik_input_buffer_insert_codepoint(input_buffer, 'i');
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
     res = ik_format_buffer_create(ctx, &buf);
     ck_assert(is_ok(&res));
 
-    /* Pretty-print the workspace */
-    ik_pp_workspace(workspace, buf, 0);
+    /* Pretty-print the input_buffer */
+    ik_pp_input_buffer(input_buffer, buf, 0);
 
     /* Verify output */
     const char *output = ik_format_get_string(buf);
@@ -75,34 +75,34 @@ START_TEST(test_pp_workspace_single_line)
 }
 
 END_TEST
-/* Test: Pretty-print workspace with multi-line text */
-START_TEST(test_pp_workspace_multiline)
+/* Test: Pretty-print input_buffer with multi-line text */
+START_TEST(test_pp_input_buffer_multiline)
 {
     void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
+    ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
 
-    /* Create workspace with multi-line text */
-    res_t res = ik_workspace_create(ctx, &workspace);
+    /* Create input_buffer with multi-line text */
+    res_t res = ik_input_buffer_create(ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
-    res = ik_workspace_insert_codepoint(workspace, 'L');
+    res = ik_input_buffer_insert_codepoint(input_buffer, 'L');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, '1');
+    res = ik_input_buffer_insert_codepoint(input_buffer, '1');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_newline(workspace);
+    res = ik_input_buffer_insert_newline(input_buffer);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'L');
+    res = ik_input_buffer_insert_codepoint(input_buffer, 'L');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, '2');
+    res = ik_input_buffer_insert_codepoint(input_buffer, '2');
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
     res = ik_format_buffer_create(ctx, &buf);
     ck_assert(is_ok(&res));
 
-    /* Pretty-print the workspace */
-    ik_pp_workspace(workspace, buf, 0);
+    /* Pretty-print the input_buffer */
+    ik_pp_input_buffer(input_buffer, buf, 0);
 
     /* Verify output */
     const char *output = ik_format_get_string(buf);
@@ -116,26 +116,26 @@ START_TEST(test_pp_workspace_multiline)
 }
 
 END_TEST
-/* Test: Pretty-print workspace with UTF-8 text */
-START_TEST(test_pp_workspace_utf8)
+/* Test: Pretty-print input_buffer with UTF-8 text */
+START_TEST(test_pp_input_buffer_utf8)
 {
     void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
+    ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
 
-    /* Create workspace with UTF-8 emoji */
-    res_t res = ik_workspace_create(ctx, &workspace);
+    /* Create input_buffer with UTF-8 emoji */
+    res_t res = ik_input_buffer_create(ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
-    res = ik_workspace_insert_codepoint(workspace, 0x1F600); // 😀
+    res = ik_input_buffer_insert_codepoint(input_buffer, 0x1F600); // 😀
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
     res = ik_format_buffer_create(ctx, &buf);
     ck_assert(is_ok(&res));
 
-    /* Pretty-print the workspace */
-    ik_pp_workspace(workspace, buf, 0);
+    /* Pretty-print the input_buffer */
+    ik_pp_input_buffer(input_buffer, buf, 0);
 
     /* Verify output - emoji is 4 bytes but 1 grapheme */
     const char *output = ik_format_get_string(buf);
@@ -148,15 +148,15 @@ START_TEST(test_pp_workspace_utf8)
 }
 
 END_TEST
-/* Test: Pretty-print workspace with indentation */
-START_TEST(test_pp_workspace_indented)
+/* Test: Pretty-print input_buffer with indentation */
+START_TEST(test_pp_input_buffer_indented)
 {
     void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
+    ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
 
-    /* Create workspace */
-    res_t res = ik_workspace_create(ctx, &workspace);
+    /* Create input_buffer */
+    res_t res = ik_input_buffer_create(ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
@@ -164,7 +164,7 @@ START_TEST(test_pp_workspace_indented)
     ck_assert(is_ok(&res));
 
     /* Pretty-print with 4-space indent */
-    ik_pp_workspace(workspace, buf, 4);
+    ik_pp_input_buffer(input_buffer, buf, 4);
 
     /* Verify output has proper indentation */
     const char *output = ik_format_get_string(buf);
@@ -191,36 +191,36 @@ START_TEST(test_pp_workspace_indented)
 }
 
 END_TEST
-/* Test: Pretty-print workspace with cursor in middle */
-START_TEST(test_pp_workspace_cursor_middle)
+/* Test: Pretty-print input_buffer with cursor in middle */
+START_TEST(test_pp_input_buffer_cursor_middle)
 {
     void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
+    ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
 
-    /* Create workspace with text and cursor in middle */
-    res_t res = ik_workspace_create(ctx, &workspace);
+    /* Create input_buffer with text and cursor in middle */
+    res_t res = ik_input_buffer_create(ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
-    res = ik_workspace_insert_codepoint(workspace, 'a');
+    res = ik_input_buffer_insert_codepoint(input_buffer, 'a');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'b');
+    res = ik_input_buffer_insert_codepoint(input_buffer, 'b');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'c');
+    res = ik_input_buffer_insert_codepoint(input_buffer, 'c');
     ck_assert(is_ok(&res));
 
     /* Move cursor back to middle (after 'a') */
-    res = ik_workspace_cursor_left(workspace);
+    res = ik_input_buffer_cursor_left(input_buffer);
     ck_assert(is_ok(&res));
-    res = ik_workspace_cursor_left(workspace);
+    res = ik_input_buffer_cursor_left(input_buffer);
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
     res = ik_format_buffer_create(ctx, &buf);
     ck_assert(is_ok(&res));
 
-    /* Pretty-print the workspace */
-    ik_pp_workspace(workspace, buf, 0);
+    /* Pretty-print the input_buffer */
+    ik_pp_input_buffer(input_buffer, buf, 0);
 
     /* Verify cursor position */
     const char *output = ik_format_get_string(buf);
@@ -233,26 +233,26 @@ START_TEST(test_pp_workspace_cursor_middle)
 }
 
 END_TEST
-/* Test: Pretty-print workspace with target_column set */
-START_TEST(test_pp_workspace_target_column)
+/* Test: Pretty-print input_buffer with target_column set */
+START_TEST(test_pp_input_buffer_target_column)
 {
     void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
+    ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
 
-    /* Create workspace */
-    res_t res = ik_workspace_create(ctx, &workspace);
+    /* Create input_buffer */
+    res_t res = ik_input_buffer_create(ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
     /* Set target_column manually (simulating multi-line navigation) */
-    workspace->target_column = 5;
+    input_buffer->target_column = 5;
 
     /* Create format buffer */
     res = ik_format_buffer_create(ctx, &buf);
     ck_assert(is_ok(&res));
 
-    /* Pretty-print the workspace */
-    ik_pp_workspace(workspace, buf, 0);
+    /* Pretty-print the input_buffer */
+    ik_pp_input_buffer(input_buffer, buf, 0);
 
     /* Verify target_column is shown */
     const char *output = ik_format_get_string(buf);
@@ -263,48 +263,48 @@ START_TEST(test_pp_workspace_target_column)
 }
 
 END_TEST
-/* Test: Pretty-print workspace with special characters */
-START_TEST(test_pp_workspace_special_chars)
+/* Test: Pretty-print input_buffer with special characters */
+START_TEST(test_pp_input_buffer_special_chars)
 {
     void *ctx = talloc_new(NULL);
-    ik_workspace_t *workspace = NULL;
+    ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
 
-    /* Create workspace */
-    res_t res = ik_workspace_create(ctx, &workspace);
+    /* Create input_buffer */
+    res_t res = ik_input_buffer_create(ctx, &input_buffer);
     ck_assert(is_ok(&res));
 
     /* Manually insert text with special characters (bypassing validation) */
     /* Test: \r (carriage return) */
-    res = ik_byte_array_insert(workspace->text, 0, '\r');
+    res = ik_byte_array_insert(input_buffer->text, 0, '\r');
     ck_assert(is_ok(&res));
 
     /* Test: \t (tab) */
-    res = ik_byte_array_insert(workspace->text, 1, '\t');
+    res = ik_byte_array_insert(input_buffer->text, 1, '\t');
     ck_assert(is_ok(&res));
 
     /* Test: \\ (backslash) */
-    res = ik_byte_array_insert(workspace->text, 2, '\\');
+    res = ik_byte_array_insert(input_buffer->text, 2, '\\');
     ck_assert(is_ok(&res));
 
     /* Test: \" (quote) */
-    res = ik_byte_array_insert(workspace->text, 3, '"');
+    res = ik_byte_array_insert(input_buffer->text, 3, '"');
     ck_assert(is_ok(&res));
 
     /* Test: control character (0x01) */
-    res = ik_byte_array_insert(workspace->text, 4, 0x01);
+    res = ik_byte_array_insert(input_buffer->text, 4, 0x01);
     ck_assert(is_ok(&res));
 
     /* Test: DEL (127) */
-    res = ik_byte_array_insert(workspace->text, 5, 127);
+    res = ik_byte_array_insert(input_buffer->text, 5, 127);
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
     res = ik_format_buffer_create(ctx, &buf);
     ck_assert(is_ok(&res));
 
-    /* Pretty-print the workspace */
-    ik_pp_workspace(workspace, buf, 0);
+    /* Pretty-print the input_buffer */
+    ik_pp_input_buffer(input_buffer, buf, 0);
 
     /* Verify escaping */
     const char *output = ik_format_get_string(buf);
@@ -322,19 +322,19 @@ START_TEST(test_pp_workspace_special_chars)
 END_TEST
 
 /* Test Suite */
-static Suite *pp_workspace_suite(void)
+static Suite *pp_input_buffer_suite(void)
 {
-    Suite *s = suite_create("Workspace Pretty-Print");
+    Suite *s = suite_create("Input Buffer Pretty-Print");
 
     TCase *tc_basic = tcase_create("Basic");
-    tcase_add_test(tc_basic, test_pp_workspace_empty);
-    tcase_add_test(tc_basic, test_pp_workspace_single_line);
-    tcase_add_test(tc_basic, test_pp_workspace_multiline);
-    tcase_add_test(tc_basic, test_pp_workspace_utf8);
-    tcase_add_test(tc_basic, test_pp_workspace_indented);
-    tcase_add_test(tc_basic, test_pp_workspace_cursor_middle);
-    tcase_add_test(tc_basic, test_pp_workspace_target_column);
-    tcase_add_test(tc_basic, test_pp_workspace_special_chars);
+    tcase_add_test(tc_basic, test_pp_input_buffer_empty);
+    tcase_add_test(tc_basic, test_pp_input_buffer_single_line);
+    tcase_add_test(tc_basic, test_pp_input_buffer_multiline);
+    tcase_add_test(tc_basic, test_pp_input_buffer_utf8);
+    tcase_add_test(tc_basic, test_pp_input_buffer_indented);
+    tcase_add_test(tc_basic, test_pp_input_buffer_cursor_middle);
+    tcase_add_test(tc_basic, test_pp_input_buffer_target_column);
+    tcase_add_test(tc_basic, test_pp_input_buffer_special_chars);
     suite_add_tcase(s, tc_basic);
 
     return s;
@@ -343,7 +343,7 @@ static Suite *pp_workspace_suite(void)
 int32_t main(void)
 {
     int32_t number_failed;
-    Suite *s = pp_workspace_suite();
+    Suite *s = pp_input_buffer_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);

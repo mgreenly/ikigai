@@ -12,7 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "../../../src/repl.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../../src/input.h"
 #include "../../../src/terminal.h"
 #include "../../../src/render.h"

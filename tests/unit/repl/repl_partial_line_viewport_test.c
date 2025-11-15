@@ -15,7 +15,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../test_utils.h"
 
 /**
@@ -28,7 +28,7 @@
  *   - Line 3: 3 physical rows (document rows 9-11)
  *   - Line 4: 3 physical rows (document rows 12-14)
  *   - Separator: row 15
- *   - Workspace: row 16
+ *   - input buffer: row 16
  *
  *   Viewport shows rows 1-10 (10 rows):
  *     - Row 1-2: end of line 0 (2 rows, partial)
@@ -47,13 +47,13 @@ START_TEST(test_separator_partial_first_line) {
     term->screen_rows = 10;
     term->screen_cols = 80;
 
-    // Create workspace
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create input buffer
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'w');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'w');
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with long lines that wrap to exactly 3 physical rows
     ik_scrollback_t *scrollback = NULL;
@@ -91,7 +91,7 @@ START_TEST(test_separator_partial_first_line) {
     // Create REPL and scroll to show rows 1-10 (starts mid-line)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
 
@@ -109,9 +109,9 @@ START_TEST(test_separator_partial_first_line) {
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    printf("Viewport: start_line=%zu, lines_count=%zu, workspace_start_row=%zu\n",
+    printf("Viewport: start_line=%zu, lines_count=%zu, input_buffer_start_row=%zu\n",
            viewport.scrollback_start_line, viewport.scrollback_lines_count,
-           viewport.workspace_start_row);
+           viewport.input_buffer_start_row);
 
     // Row 1 is in the middle of line 0 (row_offset = 1)
     // Lines 0-3 should be visible:
@@ -146,13 +146,13 @@ START_TEST(test_separator_row_offset_impact)
     term->screen_rows = 5;
     term->screen_cols = 80;
 
-    // Create workspace
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create input buffer
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'w');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'w');
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 2-row lines
     ik_scrollback_t *scrollback = NULL;
@@ -185,7 +185,7 @@ START_TEST(test_separator_row_offset_impact)
     // Create REPL
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
 

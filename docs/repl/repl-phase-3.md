@@ -84,13 +84,13 @@ size_t calculate_physical_lines(size_t display_width, int32_t terminal_width);
 - Reflow on resize is just arithmetic: `display_width / terminal_width`
 - Separated hot/cold data for cache locality during reflow
 - No newline characters stored - implicit in array structure
-- Each line is immutable once added (workspace is mutable, scrollback is not)
+- Each line is immutable once added (input buffer is mutable, scrollback is not)
 
 **Estimated size**: ~200-250 lines
 
 ### Task 2: Comprehensive Unit Tests
 
-**Test Coverage** (`tests/unit/scrollback/scrollback_test.c`):
+**Test Coverage** (`tests/unit/input_buffer/scrollback_test.c`):
 - Line append:
   - Single line
   - Multiple lines
@@ -123,36 +123,36 @@ size_t calculate_physical_lines(size_t display_width, int32_t terminal_width);
 
 **Estimated size**: ~300-400 lines
 
-### Task 3: Workspace Layout Caching
+### Task 3: Input Buffer Layout Caching
 
-**Update** `src/workspace.h`:
+**Update** `src/input_buffer.h`:
 ```c
-typedef struct ik_workspace_t {
+typedef struct ik_input_buffer_t {
     ik_byte_array_t *text;
     ik_cursor_t *cursor;
 
-    // Layout cache (NEW - for workspace wrapping)
+    // Layout cache (NEW - for input buffer wrapping)
     size_t physical_lines;     // Cached: total wrapped lines
     int32_t cached_width;      // Width this is valid for
     bool layout_dirty;         // Need to recalculate
-} ik_workspace_t;
+} ik_input_buffer_t;
 
-// Ensure workspace layout cache is valid
-void ik_workspace_ensure_layout(ik_workspace_t *ws, int32_t terminal_width);
+// Ensure input buffer layout cache is valid
+void ik_input_buffer_ensure_layout(ik_input_buffer_t *ws, int32_t terminal_width);
 
 // Invalidate layout cache (call on text edits)
-void ik_workspace_invalidate_layout(ik_workspace_t *ws);
+void ik_input_buffer_invalidate_layout(ik_input_buffer_t *ws);
 
 // Query cached physical line count
-size_t ik_workspace_get_physical_lines(const ik_workspace_t *ws);
+size_t ik_input_buffer_get_physical_lines(const ik_input_buffer_t *ws);
 ```
 
-**Update** `src/workspace.c`:
+**Update** `src/input_buffer.c`:
 - Add layout cache fields to struct
-- Implement `ik_workspace_ensure_layout()` - full scan (workspace is mutable, may contain \n)
-- Implement `ik_workspace_invalidate_layout()` - mark dirty flag
+- Implement `ik_input_buffer_ensure_layout()` - full scan (input buffer is mutable, may contain \n)
+- Implement `ik_input_buffer_invalidate_layout()` - mark dirty flag
 - Call `invalidate_layout()` in all text edit functions
-- Workspace needs full scan on recalculation (unlike scrollback which pre-computes)
+- Input buffer needs full scan on recalculation (unlike scrollback which pre-computes)
 
 **Test Coverage**:
 - Layout calculation with various content
@@ -184,7 +184,7 @@ size_t ik_workspace_get_physical_lines(const ik_workspace_t *ws);
 - Scrollback storage with contiguous text buffer
 - Pre-computed display width for immutable lines
 - O(1) reflow via arithmetic (no UTF-8 re-scanning on resize)
-- Layout caching for both scrollback and workspace
+- Layout caching for both scrollback and input buffer
 - Separated hot/cold data for cache locality
 - Lazy recalculation (only when needed)
 
@@ -198,7 +198,7 @@ size_t ik_workspace_get_physical_lines(const ik_workspace_t *ws);
 ## Phase 3 Complete When
 
 - [ ] scrollback module implemented with 100% test coverage
-- [ ] workspace module extended with layout caching
+- [ ] input buffer module extended with layout caching
 - [ ] Unit tests verify all calculation correctness
 - [ ] client.c demo works and passes manual verification
 - [ ] Performance target met (1000 lines reflow < 5ms)
@@ -227,7 +227,7 @@ for each logical line:
 
 **Typical REPL scenario**:
 - 1000 scrollback lines, 50 chars average = 50,000 chars
-- 256 bytes workspace text (typical), up to 4K max
+- 256 bytes input buffer text (typical), up to 4K max
 - 24 rows × 80 cols terminal
 
 **Resize performance:**

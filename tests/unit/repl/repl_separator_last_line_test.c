@@ -14,7 +14,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../test_utils.h"
 
 /**
@@ -24,12 +24,12 @@
  *   - Terminal: 10 rows
  *   - Scrollback: 5 lines (rows 0-4)
  *   - Separator: row 5
- *   - Workspace: row 6
+ *   - Input buffer: row 6
  *
  *   Scroll to show rows 0-9:
  *     - Rows 0-4: scrollback lines 0-4
  *     - Row 5: separator (LAST visible row)
- *     - Rows 6-9: would be workspace, but only 1 row, so rows 7-9 are blank
+ *     - Rows 6-9: would be input buffer, but only 1 row, so rows 7-9 are blank
  *
  */
 START_TEST(test_separator_as_last_visible_line) {
@@ -40,13 +40,13 @@ START_TEST(test_separator_as_last_visible_line) {
     term->screen_rows = 10;
     term->screen_cols = 80;
 
-    // Create workspace (1 line)
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create input buffer (1 line)
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'w');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'w');
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 5 short lines
     ik_scrollback_t *scrollback = NULL;
@@ -59,7 +59,7 @@ START_TEST(test_separator_as_last_visible_line) {
         ck_assert(is_ok(&res));
     }
 
-    // Document: 5 scrollback rows (0-4) + separator (5) + workspace (6) = 7 rows
+    // Document: 5 scrollback rows (0-4) + separator (5) + input buffer (6) = 7 rows
     // Terminal: 10 rows
     // Entire document fits, no scrolling needed
 
@@ -71,7 +71,7 @@ START_TEST(test_separator_as_last_visible_line) {
     // Create REPL at bottom (offset=0)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
     repl->viewport_offset = 0;  // Show entire document
@@ -81,17 +81,17 @@ START_TEST(test_separator_as_last_visible_line) {
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Should see all 5 scrollback lines and workspace at row 6
+    // Should see all 5 scrollback lines and input buffer at row 6
     ck_assert_uint_eq(viewport.scrollback_start_line, 0);
     ck_assert_uint_eq(viewport.scrollback_lines_count, 5);
-    ck_assert_uint_eq(viewport.workspace_start_row, 6);  // Separator at row 5, workspace at row 6
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 6);  // Separator at row 5, input buffer at row 6
 
     // Determine separator visibility according to the fix
-    // separator_visible when workspace_start_row in [1, terminal_rows]
-    // workspace_start_row = 6, terminal_rows = 10
+    // separator_visible when input_buffer_start_row in [1, terminal_rows]
+    // input_buffer_start_row = 6, terminal_rows = 10
     // 6 in [1, 10]? Yes, separator should be visible
-    bool separator_should_be_visible = viewport.workspace_start_row >= 1 &&
-                                       viewport.workspace_start_row <= (size_t)term->screen_rows;
+    bool separator_should_be_visible = viewport.input_buffer_start_row >= 1 &&
+                                       viewport.input_buffer_start_row <= (size_t)term->screen_rows;
     ck_assert(separator_should_be_visible);
 
     // Capture rendered output
@@ -135,13 +135,13 @@ START_TEST(test_separator_as_last_visible_line) {
 }
 END_TEST
 /**
- * Test: Separator exactly at last row when workspace off-screen
+ * Test: Separator exactly at last row when input buffer off-screen
  *
  * This is the specific Separator visibility case:
  *   - Separator should be at the last visible row (terminal_rows - 1)
- *   - Workspace is off-screen (workspace_start_row == terminal_rows)
+ *   - Input buffer is off-screen (input_buffer_start_row == terminal_rows)
  */
-START_TEST(test_separator_last_row_workspace_offscreen)
+START_TEST(test_separator_last_row_input_buffer_offscreen)
 {
     void *ctx = talloc_new(NULL);
 
@@ -150,13 +150,13 @@ START_TEST(test_separator_last_row_workspace_offscreen)
     term->screen_rows = 10;
     term->screen_cols = 80;
 
-    // Create workspace
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create input buffer
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'w');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'w');
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 19 lines
     ik_scrollback_t *scrollback = NULL;
@@ -169,11 +169,11 @@ START_TEST(test_separator_last_row_workspace_offscreen)
         ck_assert(is_ok(&res));
     }
 
-    // Document: 19 scrollback (rows 0-18) + 1 separator (row 19) + 1 workspace (row 20) = 21 rows
+    // Document: 19 scrollback (rows 0-18) + 1 separator (row 19) + 1 input buffer (row 20) = 21 rows
     // We want to view rows 10-19 (10 rows):
     //   Rows 10-18: scrollback lines 10-18 (9 rows)
     //   Row 19: separator (LAST visible row - this is Separator visibility!)
-    //   Row 20: workspace (off-screen)
+    //   Row 20: input buffer (off-screen)
     //
     // last_visible = 19, first_visible = 10
     // offset = 21 - 1 - 19 = 1
@@ -186,7 +186,7 @@ START_TEST(test_separator_last_row_workspace_offscreen)
     // Create REPL
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
     repl->viewport_offset = 1;
@@ -196,13 +196,13 @@ START_TEST(test_separator_last_row_workspace_offscreen)
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // workspace_start_row should be exactly terminal_rows (workspace off-screen)
+    // input_buffer_start_row should be exactly terminal_rows (input buffer off-screen)
     // This means separator is at screen row terminal_rows - 1 (last visible row)
-    ck_assert_uint_eq(viewport.workspace_start_row, 10);  // == terminal_rows
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 10);  // == terminal_rows
 
     // Separator should be visible!
-    bool separator_visible = viewport.workspace_start_row >= 1 &&
-                             viewport.workspace_start_row <= (size_t)term->screen_rows;
+    bool separator_visible = viewport.input_buffer_start_row >= 1 &&
+                             viewport.input_buffer_start_row <= (size_t)term->screen_rows;
     ck_assert(separator_visible);  // This is the Separator visibility fix!
 
     // Capture output
@@ -241,7 +241,7 @@ START_TEST(test_separator_last_row_workspace_offscreen)
     // Separator should be visible (last line)
     ck_assert_int_ge(max_dashes, 10);
 
-    // Workspace should NOT be visible
+    // Input buffer should NOT be visible
     ck_assert_ptr_eq(strstr(output, "w"), NULL);
 
     talloc_free(ctx);
@@ -256,7 +256,7 @@ static Suite *separator_separator_suite(void)
 
     TCase *tc_sep = tcase_create("Separator");
     tcase_add_test(tc_sep, test_separator_as_last_visible_line);
-    tcase_add_test(tc_sep, test_separator_last_row_workspace_offscreen);
+    tcase_add_test(tc_sep, test_separator_last_row_input_buffer_offscreen);
     suite_add_tcase(s, tc_sep);
 
     return s;

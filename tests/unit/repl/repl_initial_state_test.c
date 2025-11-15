@@ -2,7 +2,7 @@
  * @file repl_initial_state_test.c
  * @brief Test REPL initial state at startup (Bug #10 regression test)
  *
- * Ensures cursor is visible at startup with empty workspace.
+ * Ensures cursor is visible at startup with empty input buffer.
  * This test would have caught the Bug #10 cursor visibility regression.
  */
 
@@ -13,18 +13,18 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../test_utils.h"
 
 /**
- * Test: Initial state - cursor visible at startup with empty workspace
+ * Test: Initial state - cursor visible at startup with empty input buffer
  *
  * Scenario:
- * - Fresh REPL, no scrollback, empty workspace
+ * - Fresh REPL, no scrollback, empty input buffer
  * - viewport_offset = 0 (at bottom)
- * - Expected: Workspace visible, cursor visible at row 1 (after separator)
+ * - Expected: input buffer visible, cursor visible at row 1 (after separator)
  *
- * This test catches the Bug #10 regression where empty workspace (0 physical lines)
+ * This test catches the Bug #10 regression where empty input buffer (0 physical lines)
  * was incorrectly marked as off-screen, hiding the cursor.
  */
 START_TEST(test_initial_state_cursor_visible) {
@@ -35,14 +35,14 @@ START_TEST(test_initial_state_cursor_visible) {
     term->screen_rows = 5;
     term->screen_cols = 80;
 
-    // Create empty workspace
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create empty input buffer
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
-    // Verify workspace has 0 physical lines
-    size_t physical_lines = ik_workspace_get_physical_lines(workspace);
+    // Verify input buffer has 0 physical lines
+    size_t physical_lines = ik_input_buffer_get_physical_lines(input_buf);
     ck_assert_uint_eq(physical_lines, 0);
 
     // Create empty scrollback
@@ -58,7 +58,7 @@ START_TEST(test_initial_state_cursor_visible) {
     // Create REPL at bottom (offset=0)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
     repl->viewport_offset = 0;  // At bottom (initial state)
@@ -68,18 +68,18 @@ START_TEST(test_initial_state_cursor_visible) {
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    fprintf(stderr, "\n=== Initial State (empty workspace) ===\n");
+    fprintf(stderr, "\n=== Initial State (empty input buffer) ===\n");
     fprintf(stderr, "viewport_offset: %zu\n", repl->viewport_offset);
-    fprintf(stderr, "workspace_start_row: %zu\n", viewport.workspace_start_row);
+    fprintf(stderr, "input_buffer_start_row: %zu\n", viewport.input_buffer_start_row);
     fprintf(stderr, "separator_visible: %d\n", viewport.separator_visible);
     fprintf(stderr, "terminal_rows: %d\n", term->screen_rows);
 
-    // CRITICAL: Workspace must be visible (not off-screen)
-    // workspace_start_row < terminal_rows means visible
-    ck_assert_uint_lt(viewport.workspace_start_row, (size_t)term->screen_rows);
+    // CRITICAL: input buffer must be visible (not off-screen)
+    // input_buffer_start_row < terminal_rows means visible
+    ck_assert_uint_lt(viewport.input_buffer_start_row, (size_t)term->screen_rows);
 
-    // Workspace should be at row 1 (after separator at row 0)
-    ck_assert_uint_eq(viewport.workspace_start_row, 1);
+    // Input buffer should be at row 1 (after separator at row 0)
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 1);
 
     // Separator should be visible at row 0
     ck_assert(viewport.separator_visible);
@@ -115,11 +115,11 @@ START_TEST(test_initial_state_cursor_visible) {
     talloc_free(ctx);
 }
 END_TEST
-
 /**
  * Test: Initial state with some scrollback - cursor still visible
  */
-START_TEST(test_initial_state_with_scrollback_cursor_visible) {
+START_TEST(test_initial_state_with_scrollback_cursor_visible)
+{
     void *ctx = talloc_new(NULL);
 
     // Terminal: 5 rows x 80 cols
@@ -127,11 +127,11 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible) {
     term->screen_rows = 5;
     term->screen_cols = 80;
 
-    // Create empty workspace
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create empty input buffer
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 2 lines
     ik_scrollback_t *scrollback = NULL;
@@ -150,7 +150,7 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible) {
     // Create REPL at bottom (offset=0)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
     repl->viewport_offset = 0;
@@ -160,11 +160,11 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible) {
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Workspace must be visible
-    ck_assert_uint_lt(viewport.workspace_start_row, (size_t)term->screen_rows);
+    // Input buffer must be visible
+    ck_assert_uint_lt(viewport.input_buffer_start_row, (size_t)term->screen_rows);
 
-    // Workspace should be at row 3 (after 2 scrollback lines + separator)
-    ck_assert_uint_eq(viewport.workspace_start_row, 3);
+    // Input buffer should be at row 3 (after 2 scrollback lines + separator)
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 3);
 
     // Render and verify cursor positioning
     int pipefd[2];
@@ -191,12 +191,13 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /**
  * Test: After scrolling up, cursor hidden (verify Bug #8 fix still works)
  */
-START_TEST(test_scrolled_up_cursor_hidden) {
+START_TEST(test_scrolled_up_cursor_hidden)
+{
     void *ctx = talloc_new(NULL);
 
     // Terminal: 5 rows x 80 cols
@@ -204,11 +205,11 @@ START_TEST(test_scrolled_up_cursor_hidden) {
     term->screen_rows = 5;
     term->screen_cols = 80;
 
-    // Create empty workspace
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create empty input buffer
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with many lines
     ik_scrollback_t *scrollback = NULL;
@@ -229,7 +230,7 @@ START_TEST(test_scrolled_up_cursor_hidden) {
     // Create REPL scrolled up (offset=5)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
     repl->viewport_offset = 5;  // Scrolled up
@@ -239,8 +240,8 @@ START_TEST(test_scrolled_up_cursor_hidden) {
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Workspace must be OFF-screen when scrolled up
-    ck_assert_uint_eq(viewport.workspace_start_row, (size_t)term->screen_rows);
+    // Input buffer must be OFF-screen when scrolled up
+    ck_assert_uint_eq(viewport.input_buffer_start_row, (size_t)term->screen_rows);
 
     // Render and verify cursor is HIDDEN
     int pipefd[2];
@@ -269,7 +270,7 @@ START_TEST(test_scrolled_up_cursor_hidden) {
     bool found_cursor_pos = false;
     size_t output_len = (size_t)bytes_read;
     for (size_t i = 0; i < output_len - 3; i++) {
-        if (output[i] == '\x1b' && output[i+1] == '[') {
+        if (output[i] == '\x1b' && output[i + 1] == '[') {
             // Check if this is a cursor positioning escape
             size_t j = i + 2;
             bool has_digit = false;
@@ -293,6 +294,7 @@ START_TEST(test_scrolled_up_cursor_hidden) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Create test suite */

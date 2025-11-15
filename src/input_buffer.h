@@ -1,27 +1,27 @@
 /**
- * @file workspace.h
- * @brief Workspace text buffer for REPL input area
+ * @file input_buffer.h
+ * @brief Input buffer text storage for REPL input area
  *
- * Provides a text buffer for the workspace (input area) of the REPL.
+ * Provides a text buffer for the input buffer (input area) of the REPL.
  * Uses ik_byte_array_t for UTF-8 text storage and tracks cursor position.
  */
 
-#ifndef IKIGAI_WORKSPACE_H
-#define IKIGAI_WORKSPACE_H
+#ifndef IKIGAI_INPUT_BUFFER_H
+#define IKIGAI_INPUT_BUFFER_H
 
 #include "byte_array.h"
-#include "workspace_cursor.h"
+#include "input_buffer_cursor.h"
 #include "error.h"
 #include <stddef.h>
 #include <stdint.h>
 
 /**
- * @brief Workspace context
+ * @brief Input buffer context
  *
- * Represents the editable text buffer in the REPL's workspace.
+ * Represents the editable text buffer in the REPL's input buffer.
  * Stores UTF-8 text and tracks the cursor position using grapheme-aware cursor.
  */
-typedef struct ik_workspace_t {
+typedef struct ik_input_buffer_t {
     ik_byte_array_t *text;       /**< UTF-8 text buffer */
     ik_cursor_t *cursor;         /**< Cursor position (byte and grapheme offsets) */
     size_t cursor_byte_offset;   /**< Legacy byte offset - deprecated, use cursor instead */
@@ -29,16 +29,16 @@ typedef struct ik_workspace_t {
     size_t physical_lines;       /**< Cached number of physical lines (accounting for wrapping) */
     int32_t cached_width;        /**< Terminal width used for last layout calculation */
     int32_t layout_dirty;        /**< Flag: 1 = layout needs recalculation, 0 = cache valid */
-} ik_workspace_t;
+} ik_input_buffer_t;
 
 /**
- * @brief Create a new workspace
+ * @brief Create a new input buffer
  *
  * @param parent Talloc parent context
- * @param workspace_out Pointer to receive allocated workspace
+ * @param input_buffer_out Pointer to receive allocated input buffer
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out);
+res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out);
 
 /**
  * @brief Get the text buffer contents
@@ -46,21 +46,21 @@ res_t ik_workspace_create(void *parent, ik_workspace_t **workspace_out);
  * Returns a pointer to the internal text buffer and its length.
  * The returned pointer is valid until the next modification.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @param text_out Pointer to receive text buffer
  * @param len_out Pointer to receive text length in bytes
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_get_text(ik_workspace_t *workspace, char **text_out, size_t *len_out);
+res_t ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, char **text_out, size_t *len_out);
 
 /**
- * @brief Clear the workspace
+ * @brief Clear the input buffer
  *
  * Removes all text and resets cursor to position 0.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  */
-void ik_workspace_clear(ik_workspace_t *workspace);
+void ik_input_buffer_clear(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Insert a Unicode codepoint at the cursor position
@@ -68,11 +68,11 @@ void ik_workspace_clear(ik_workspace_t *workspace);
  * Encodes the codepoint to UTF-8 and inserts it at the current cursor position.
  * Advances the cursor by the number of bytes inserted.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @param codepoint Unicode codepoint to insert (U+0000 to U+10FFFF)
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoint);
+res_t ik_input_buffer_insert_codepoint(ik_input_buffer_t *input_buffer, uint32_t codepoint);
 
 /**
  * @brief Insert a newline at the cursor position
@@ -80,10 +80,10 @@ res_t ik_workspace_insert_codepoint(ik_workspace_t *workspace, uint32_t codepoin
  * Inserts a newline character ('\n') at the current cursor position.
  * Advances the cursor by 1 byte.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_insert_newline(ik_workspace_t *workspace);
+res_t ik_input_buffer_insert_newline(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Delete the character before the cursor (backspace)
@@ -92,10 +92,10 @@ res_t ik_workspace_insert_newline(ik_workspace_t *workspace);
  * Moves the cursor backward by the number of bytes deleted.
  * If cursor is at position 0, this is a no-op.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_backspace(ik_workspace_t *workspace);
+res_t ik_input_buffer_backspace(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Delete the character after the cursor (delete key)
@@ -104,10 +104,10 @@ res_t ik_workspace_backspace(ik_workspace_t *workspace);
  * The cursor position stays the same.
  * If cursor is at end of text, this is a no-op.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_delete(ik_workspace_t *workspace);
+res_t ik_input_buffer_delete(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Move cursor left by one grapheme cluster
@@ -115,10 +115,10 @@ res_t ik_workspace_delete(ik_workspace_t *workspace);
  * Moves the cursor backward by one grapheme cluster.
  * If cursor is at start, this is a no-op.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_cursor_left(ik_workspace_t *workspace);
+res_t ik_input_buffer_cursor_left(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Move cursor right by one grapheme cluster
@@ -126,22 +126,22 @@ res_t ik_workspace_cursor_left(ik_workspace_t *workspace);
  * Moves the cursor forward by one grapheme cluster.
  * If cursor is at end, this is a no-op.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_cursor_right(ik_workspace_t *workspace);
+res_t ik_input_buffer_cursor_right(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Get cursor position
  *
  * Returns the cursor position in both byte offset and grapheme offset.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @param byte_out Pointer to receive byte offset
  * @param grapheme_out Pointer to receive grapheme offset
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_get_cursor_position(ik_workspace_t *workspace, size_t *byte_out, size_t *grapheme_out);
+res_t ik_input_buffer_get_cursor_position(ik_input_buffer_t *input_buffer, size_t *byte_out, size_t *grapheme_out);
 
 /**
  * @brief Move cursor up by one line
@@ -149,10 +149,10 @@ res_t ik_workspace_get_cursor_position(ik_workspace_t *workspace, size_t *byte_o
  * Moves the cursor up to the previous line, attempting to preserve column position.
  * If cursor is on the first line, this is a no-op.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_cursor_up(ik_workspace_t *workspace);
+res_t ik_input_buffer_cursor_up(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Move cursor down by one line
@@ -160,10 +160,10 @@ res_t ik_workspace_cursor_up(ik_workspace_t *workspace);
  * Moves the cursor down to the next line, attempting to preserve column position.
  * If cursor is on the last line, this is a no-op.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_cursor_down(ik_workspace_t *workspace);
+res_t ik_input_buffer_cursor_down(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Move cursor to the start of the current line (Ctrl+A)
@@ -171,10 +171,10 @@ res_t ik_workspace_cursor_down(ik_workspace_t *workspace);
  * Moves the cursor to the beginning of the current line.
  * If cursor is already at the line start, this is a no-op.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace);
+res_t ik_input_buffer_cursor_to_line_start(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Move cursor to the end of the current line (Ctrl+E)
@@ -182,10 +182,10 @@ res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace);
  * Moves the cursor to the end of the current line (before the newline if present).
  * If cursor is already at the line end, this is a no-op.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace);
+res_t ik_input_buffer_cursor_to_line_end(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Kill (delete) text from cursor to end of current line (Ctrl+K)
@@ -194,10 +194,10 @@ res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace);
  * Does not delete the newline character if present. Cursor position unchanged.
  * If cursor is already at line end, this is a no-op.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace);
+res_t ik_input_buffer_kill_to_line_end(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Kill (delete) the entire current line (Ctrl+U)
@@ -207,10 +207,10 @@ res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace);
  * where the line was deleted if it was the last line).
  * If the line is empty (just a newline), deletes the newline.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_kill_line(ik_workspace_t *workspace);
+res_t ik_input_buffer_kill_line(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Delete word backward (Ctrl+W)
@@ -219,22 +219,22 @@ res_t ik_workspace_kill_line(ik_workspace_t *workspace);
  * or newline boundaries. Skips trailing whitespace before deleting the word.
  * If cursor is at start, this is a no-op.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_delete_word_backward(ik_workspace_t *workspace);
+res_t ik_input_buffer_delete_word_backward(ik_input_buffer_t *input_buffer);
 
 /**
- * @brief Ensure workspace layout is calculated for given terminal width
+ * @brief Ensure input buffer layout is calculated for given terminal width
  *
- * Calculates the number of physical lines the workspace occupies, accounting
+ * Calculates the number of physical lines the input buffer occupies, accounting
  * for text wrapping at the terminal width. Uses cached value if terminal
  * width hasn't changed and layout is not dirty.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @param terminal_width Terminal width in columns
  */
-void ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_width);
+void ik_input_buffer_ensure_layout(ik_input_buffer_t *input_buffer, int32_t terminal_width);
 
 /**
  * @brief Invalidate the cached layout
@@ -242,9 +242,9 @@ void ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_widt
  * Marks the layout cache as dirty, forcing recalculation on next ensure_layout call.
  * Called automatically by text modification functions.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  */
-void ik_workspace_invalidate_layout(ik_workspace_t *workspace);
+void ik_input_buffer_invalidate_layout(ik_input_buffer_t *input_buffer);
 
 /**
  * @brief Get the number of physical lines
@@ -252,30 +252,30 @@ void ik_workspace_invalidate_layout(ik_workspace_t *workspace);
  * Returns the cached number of physical lines. If layout has not been
  * calculated yet, returns 0. Call ensure_layout first to get accurate value.
  *
- * @param workspace Workspace
+ * @param input_bufferWorkspace
  * @return Number of physical lines (0 if not calculated)
  */
-size_t ik_workspace_get_physical_lines(ik_workspace_t *workspace);
+size_t ik_input_buffer_get_physical_lines(ik_input_buffer_t *input_buffer);
 
 // Forward declaration
 typedef struct ik_format_buffer_t ik_format_buffer_t;
 
 /**
- * @brief Pretty-print workspace internal state
+ * @brief Pretty-print input buffer internal state
  *
- * Outputs workspace debug information including:
+ * Outputs input buffer debug information including:
  * - Memory address
  * - Text buffer length and content
  * - Cursor position (byte and grapheme offsets)
  * - Target column for multi-line navigation
  *
- * Thread-safety: Workspace is read-only (const).
+ * Thread-safety: Input buffer is read-only (const).
  * The format buffer must be thread-local.
  *
- * @param workspace Workspace to inspect (read-only)
+ * @param input_buffer Input buffer to inspect (read-only)
  * @param buf Format buffer to append output to
  * @param indent Indentation level (number of spaces)
  */
-void ik_pp_workspace(const ik_workspace_t *workspace, ik_format_buffer_t *buf, int32_t indent);
+void ik_pp_input_buffer(const ik_input_buffer_t *input_buffer, ik_format_buffer_t *buf, int32_t indent);
 
-#endif /* IKIGAI_WORKSPACE_H */
+#endif /* IKIGAI_INPUT_BUFFER_H */

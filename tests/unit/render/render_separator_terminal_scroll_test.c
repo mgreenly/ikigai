@@ -22,10 +22,10 @@
  *   - Terminal: 10 rows
  *   - Scrollback fills rows 0-8 (9 physical rows)
  *   - Separator on row 9 (last visible row)
- *   - Workspace off-screen (render_workspace = false)
+ *   - Input buffer off-screen (render_input_buffer = false)
  *
  * Bug: Adding \r\n after separator causes terminal to scroll
- * Fix: Don't add \r\n after separator when render_workspace is false
+ * Fix: Don't add \r\n after separator when render_input_buffer is false
  */
 START_TEST(test_separator_no_trailing_newline_when_last_line) {
     void *ctx = talloc_new(NULL);
@@ -49,7 +49,7 @@ START_TEST(test_separator_no_trailing_newline_when_last_line) {
     // Ensure layout
     ik_scrollback_ensure_layout(scrollback, 80);
 
-    // Render: separator visible, workspace off-screen
+    // Render: separator visible, input buffer off-screen
     int pipefd[2];
     ck_assert_int_eq(pipe(pipefd), 0);
     int saved_stdout = dup(1);
@@ -59,11 +59,11 @@ START_TEST(test_separator_no_trailing_newline_when_last_line) {
                              scrollback,
                              0,                 // scrollback_start_line
                              9,                 // scrollback_line_count (all 9 lines)
-                             "",                // workspace_text (empty)
-                             0,                 // workspace_text_len
-                             0,                 // workspace_cursor_offset
+                             "",                // input_text (empty)
+                             0,                 // input_text_len
+                             0,                 // input_cursor_offset
                              true,              // render_separator (visible)
-                             false);            // render_workspace (off-screen)
+                             false);            // render_input_buffer (off-screen)
     ck_assert(is_ok(&res));
 
     fflush(stdout);
@@ -100,7 +100,7 @@ START_TEST(test_separator_no_trailing_newline_when_last_line) {
     const char *after_separator = separator_start + 80;
 
     // BUG: If there's \r\n after separator, terminal scrolls and separator disappears
-    // FIX: When render_workspace is false, separator should be the LAST thing written
+    // FIX: When render_input_buffer is false, separator should be the LAST thing written
     //      (except for cursor visibility escape)
     //      So after the 80 dashes, we should see cursor visibility escape \x1b[?25l
     //      NOT \r\n
@@ -121,11 +121,11 @@ START_TEST(test_separator_no_trailing_newline_when_last_line) {
 }
 END_TEST
 /**
- * Test: Separator with workspace visible SHOULD have trailing \r\n
+ * Test: Separator with input buffer visible SHOULD have trailing \r\n
  *
- * When workspace is visible after separator, we need \r\n to advance to next line
+ * When input buffer is visible after separator, we need \r\n to advance to next line
  */
-START_TEST(test_separator_has_trailing_newline_when_workspace_visible)
+START_TEST(test_separator_has_trailing_newline_when_input_buffer_visible)
 {
     void *ctx = talloc_new(NULL);
 
@@ -147,7 +147,7 @@ START_TEST(test_separator_has_trailing_newline_when_workspace_visible)
 
     ik_scrollback_ensure_layout(scrollback, 80);
 
-    // Render: separator and workspace both visible
+    // Render: separator and input buffer both visible
     int pipefd[2];
     ck_assert_int_eq(pipe(pipefd), 0);
     int saved_stdout = dup(1);
@@ -157,11 +157,11 @@ START_TEST(test_separator_has_trailing_newline_when_workspace_visible)
                              scrollback,
                              0,                 // scrollback_start_line
                              5,                 // scrollback_line_count
-                             "workspace",       // workspace_text
-                             9,                 // workspace_text_len
-                             0,                 // workspace_cursor_offset
+                             "input_buf",       // input_text
+                             9,                 // input_text_len
+                             0,                 // input_cursor_offset
                              true,              // render_separator
-                             true);             // render_workspace
+                             true);             // render_input_buffer
     ck_assert(is_ok(&res));
 
     fflush(stdout);
@@ -194,13 +194,95 @@ START_TEST(test_separator_has_trailing_newline_when_workspace_visible)
 
     ck_assert_msg(separator_start != NULL, "Separator not found");
 
-    // When workspace is visible, separator SHOULD have \r\n after it
+    // When input buffer is visible, separator SHOULD have \r\n after it
     const char *after_separator = separator_start + 80;
     ck_assert_msg(after_separator[0] == '\r', "Expected \\r after separator");
     ck_assert_msg(after_separator[1] == '\n', "Expected \\n after separator");
 
-    // Then workspace text should follow
-    ck_assert_msg(after_separator[2] == 'w', "Expected workspace text after separator");
+    // Then input buffer text should follow
+    ck_assert_msg(after_separator[2] == 'i', "Expected input buffer text after separator");
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/**
+ * Test: Input buffer visible without separator
+ *
+ * When input buffer is visible but separator is not rendered,
+ * scrollback should have \r\n after last line to advance to input buffer
+ */
+START_TEST(test_input_buffer_without_separator)
+{
+    void *ctx = talloc_new(NULL);
+
+    // Create render context
+    ik_render_ctx_t *render = NULL;
+    res_t res = ik_render_create(ctx, 10, 80, 1, &render);
+    ck_assert(is_ok(&res));
+
+    // Create scrollback with 3 lines
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+    for (int32_t i = 0; i < 3; i++) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "line%" PRId32, i);
+        res = ik_scrollback_append_line(scrollback, buf, strlen(buf));
+        ck_assert(is_ok(&res));
+    }
+
+    ik_scrollback_ensure_layout(scrollback, 80);
+
+    // Render: no separator, but input buffer visible
+    int pipefd[2];
+    ck_assert_int_eq(pipe(pipefd), 0);
+    int saved_stdout = dup(1);
+    dup2(pipefd[1], 1);
+
+    res = ik_render_combined(render,
+                             scrollback,
+                             0,                 // scrollback_start_line
+                             3,                 // scrollback_line_count
+                             "input",           // input_text
+                             5,                 // input_text_len
+                             0,                 // input_cursor_offset
+                             false,             // render_separator (NOT visible)
+                             true);             // render_input_buffer (visible)
+    ck_assert(is_ok(&res));
+
+    fflush(stdout);
+    dup2(saved_stdout, 1);
+    close(pipefd[1]);
+
+    char output[8192] = {0};
+    ssize_t bytes_read = read(pipefd[0], output, sizeof(output) - 1);
+    ck_assert(bytes_read > 0);
+    close(pipefd[0]);
+    close(saved_stdout);
+
+    // Should contain both scrollback and input buffer
+    ck_assert_msg(strstr(output, "line2") != NULL, "Expected scrollback content");
+    ck_assert_msg(strstr(output, "input") != NULL, "Expected input buffer content");
+
+    // Should NOT contain separator (80 consecutive dashes)
+    bool found_separator = false;
+    for (ssize_t i = 0; i < bytes_read - 80; i++) {
+        if (output[i] == '-') {
+            bool all_dashes = true;
+            for (int32_t j = 1; j < 80; j++) {
+                if (output[i + j] != '-') {
+                    all_dashes = false;
+                    break;
+                }
+            }
+            if (all_dashes) {
+                found_separator = true;
+                break;
+            }
+        }
+    }
+    ck_assert_msg(!found_separator, "Should NOT have separator when render_separator=false");
 
     talloc_free(ctx);
 }
@@ -214,7 +296,8 @@ static Suite *separator_scroll_suite(void)
 
     TCase *tc_sep = tcase_create("Separator");
     tcase_add_test(tc_sep, test_separator_no_trailing_newline_when_last_line);
-    tcase_add_test(tc_sep, test_separator_has_trailing_newline_when_workspace_visible);
+    tcase_add_test(tc_sep, test_separator_has_trailing_newline_when_input_buffer_visible);
+    tcase_add_test(tc_sep, test_input_buffer_without_separator);
     suite_add_tcase(s, tc_sep);
 
     return s;

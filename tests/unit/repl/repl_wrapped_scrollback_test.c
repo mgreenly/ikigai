@@ -13,7 +13,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../test_utils.h"
 
 /**
@@ -30,13 +30,13 @@ START_TEST(test_separator_with_wrapped_lines) {
     term->screen_rows = 10;
     term->screen_cols = 80;
 
-    // Create workspace
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create input buffer
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'w');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'w');
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with lines that wrap (each line is 81+ chars to force wrapping)
     ik_scrollback_t *scrollback = NULL;
@@ -72,7 +72,7 @@ START_TEST(test_separator_with_wrapped_lines) {
     // Create REPL and scroll to show middle of scrollback
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
 

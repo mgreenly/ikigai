@@ -9,8 +9,8 @@
 START_TEST(test_repl_run_initial_render_error) {
     void *ctx = talloc_new(NULL);
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     ik_input_parser_t *parser = NULL;
@@ -33,7 +33,7 @@ START_TEST(test_repl_run_initial_render_error) {
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->input_parser = parser;
     repl->term = term;
     repl->render = render;
@@ -60,8 +60,8 @@ START_TEST(test_repl_run_render_error_in_loop)
     mock_write_fail_after = 1;
     mock_write_count = 0;
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     ik_input_parser_t *parser = NULL;
@@ -84,7 +84,7 @@ START_TEST(test_repl_run_render_error_in_loop)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->input_parser = parser;
     repl->term = term;
     repl->render = render;

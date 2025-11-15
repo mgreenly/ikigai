@@ -16,8 +16,8 @@ typedef struct ik_render_ctx_t {
 // Create render context
 res_t ik_render_create(void *parent, int32_t rows, int32_t cols, int32_t tty_fd, ik_render_ctx_t **ctx_out);
 
-// Render workspace to terminal (text + cursor positioning)
-res_t ik_render_workspace(ik_render_ctx_t *ctx, const char *text, size_t text_len, size_t cursor_byte_offset);
+// Render input buffer to terminal (text + cursor positioning)
+res_t ik_render_input_buffer(ik_render_ctx_t *ctx, const char *text, size_t text_len, size_t cursor_byte_offset);
 
 // Render scrollback lines to terminal (Phase 4)
 res_t ik_render_scrollback(ik_render_ctx_t *ctx,
@@ -26,16 +26,16 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
                            size_t line_count,
                            int32_t *rows_used_out);
 
-// Render combined scrollback + workspace in single atomic write (Phase 4 Task 4.4)
-// render_separator and render_workspace control visibility (unified document model)
+// Render combined scrollback + input buffer in single atomic write (Phase 4 Task 4.4)
+// render_separator and render_input_buffer control visibility (unified document model)
 res_t ik_render_combined(ik_render_ctx_t *ctx,
                          ik_scrollback_t *scrollback,
                          size_t scrollback_start_line,
                          size_t scrollback_line_count,
-                         const char *workspace_text,
-                         size_t workspace_text_len,
-                         size_t workspace_cursor_offset,
+                         const char *input_text,
+                         size_t input_text_len,
+                         size_t input_cursor_offset,
                          bool render_separator,
-                         bool render_workspace);
+                         bool render_input_buffer);
 
 #endif /* IKIGAI_RENDER_H */

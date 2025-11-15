@@ -117,7 +117,7 @@ Every exclusion must have a comment explaining why:
 // Environmental failure (no /dev/tty)
 if (is_err(&result)) return result; // LCOV_EXCL_LINE
 
-// Defensive: workspace always has text when len > 0
+// Defensive: input buffer always has text when len > 0
 if (text == NULL) PANIC("invariant violation"); // LCOV_EXCL_LINE
 ```
 

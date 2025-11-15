@@ -9,7 +9,7 @@
 **Completed Tasks**:
 - ✅ Task 1: Format buffer module (100% coverage)
 - ✅ Task 2: Format module tests (100% coverage)
-- ✅ Task 3: `ik_pp_workspace()` implementation (100% coverage)
+- ✅ Task 3: `ik_pp_input_buffer()` implementation (100% coverage)
 - ✅ Task 4: Comprehensive unit tests (100% coverage)
 - ✅ Task 4.5: Generic helpers and recursive nesting (refactoring complete)
 - ⏸️ Task 5: REPL integration with `/pp` command - **DEFERRED to Phase 3**
@@ -165,21 +165,21 @@ size_t ik_format_get_length(ik_format_buffer_t *buf);
 
 ### Task 3: PP Functions for Core Data Structures ✅ COMPLETE
 
-**Status**: Complete - `ik_pp_workspace()` implemented with 100% test coverage
+**Status**: Complete - `ik_pp_input_buffer()` implemented with 100% test coverage
 
 **Completed**:
-- ✅ Created `src/workspace_pp.c` for pretty-print functionality (91 lines)
-- ✅ Implemented `ik_pp_workspace()` with full error handling
+- ✅ Created `src/input_buffer_pp.c` for pretty-print functionality (91 lines)
+- ✅ Implemented `ik_pp_input_buffer()` with full error handling
 - ✅ Added helper function `escape_string_to_buffer()` for special characters
-- ✅ Comprehensive test coverage (8 tests in `tests/unit/workspace/pp_test.c` - 344 lines)
+- ✅ Comprehensive test coverage (8 tests in `tests/unit/input_buffer/pp_test.c` - 344 lines)
 - ✅ All quality checks passing (check, lint, coverage)
 - ✅ 100% coverage (45/45 executable lines, 2/2 functions, 16/16 branches)
 
 **Implementation**:
-- Shows workspace address, text length, cursor positions (byte and grapheme), target_column
+- Shows input buffer address, text length, cursor positions (byte and grapheme), target_column
 - Escapes special characters (\n, \r, \t, \\, \", control chars, DEL)
 - Supports indentation for nested structure display
-- Thread-safe read-only inspection (const workspace pointer)
+- Thread-safe read-only inspection (const input buffer pointer)
 
 **✅ REFACTORING COMPLETE**:
 
@@ -196,8 +196,8 @@ Generic helpers have been implemented in `src/pp_helpers.c` with the following f
 
 The refactoring has been completed with:
 - Generic formatters implemented in `src/pp_helpers.c`
-- `ik_pp_cursor()` implemented in `src/workspace_cursor_pp.c`
-- `ik_pp_workspace()` refactored to use helpers and recursive calls
+- `ik_pp_cursor()` implemented in `src/input_buffer_cursor_pp.c`
+- `ik_pp_input_buffer()` refactored to use helpers and recursive calls
 - Tests updated to verify recursive nesting
 - 100% coverage maintained
 
@@ -217,8 +217,8 @@ void ik_pp_memory(const Memory* mem, ik_format_buffer_t *buf, int indent);
 // In value.h/value.c (when it exists)
 void ik_pp_value(const Value* val, ik_format_buffer_t *buf, int indent);
 
-// Example for existing workspace structure
-void ik_pp_workspace(const ik_workspace_t *ws, ik_format_buffer_t *buf, int indent);
+// Example for existing input buffer structure
+void ik_pp_input_buffer(const ik_input_buffer_t *ws, ik_format_buffer_t *buf, int indent);
 ```
 
 **Function signature pattern**:
@@ -252,21 +252,21 @@ void ik_pp_block(const Block* block, ik_format_buffer_t *buf, int indent) {
 }
 ```
 
-**Start with**: `ik_pp_workspace()` since workspace already exists
+**Start with**: `ik_pp_input_buffer()` since input buffer already exists
 
 **Estimated size**: ~50-100 lines per data structure
 
 ### Task 4: Unit Tests for PP Functions ✅ COMPLETE
 
-**Status**: Complete - Comprehensive test coverage for `ik_pp_workspace()`
+**Status**: Complete - Comprehensive test coverage for `ik_pp_input_buffer()`
 
 **Completed**:
-- ✅ Created `tests/unit/workspace/pp_test.c` (344 lines, 8 tests)
+- ✅ Created `tests/unit/input_buffer/pp_test.c` (344 lines, 8 tests)
 - ✅ All tests passing with 100% coverage
 - ✅ Tests automatically discovered by Makefile wildcards
 
-**Test Coverage** for `ik_pp_workspace()`:
-1. Empty workspace
+**Test Coverage** for `ik_pp_input_buffer()`:
+1. Empty input buffer
 2. Single-line text
 3. Multi-line text with newlines
 4. UTF-8 text (emoji, multi-byte characters)
@@ -295,22 +295,22 @@ void ik_pp_block(const Block* block, ik_format_buffer_t *buf, int indent) {
    - ✅ `ik_pp_bool()` - Print named boolean field
    - ✅ All helpers respect indent parameter for proper nesting
 
-2. **Implemented ik_pp_cursor()** (`src/workspace_cursor_pp.c`):
+2. **Implemented ik_pp_cursor()** (`src/input_buffer_cursor_pp.c`):
    - ✅ Pretty-print cursor structure recursively
    - ✅ Shows byte_offset and grapheme_offset
    - ✅ Uses generic helpers from pp_helpers.c
 
-3. **Refactored ik_pp_workspace()**:
+3. **Refactored ik_pp_input_buffer()**:
    - ✅ Uses `ik_pp_header()` for header formatting
    - ✅ Uses `ik_pp_size_t()` for text_len and target_column
-   - ✅ Calls `ik_pp_cursor(workspace->cursor, buf, indent + 2)` for recursive nesting
+   - ✅ Calls `ik_pp_cursor(input_buffer->cursor, buf, indent + 2)` for recursive nesting
    - ✅ Uses `ik_pp_string()` for text content
    - ✅ Proper indent handling throughout
 
 4. **Updated Tests**:
    - ✅ Added tests for all generic helper functions
    - ✅ Added tests for ik_pp_cursor()
-   - ✅ Updated ik_pp_workspace tests to verify recursive nesting
+   - ✅ Updated ik_pp_input_buffer tests to verify recursive nesting
    - ✅ Maintained 100% coverage
 
 5. **Verified Quality**:
@@ -335,7 +335,7 @@ Without scrollback buffer (Phase 3), there is no proper way to display PP output
 
 **Modifications**:
 - Add new input action: `IK_INPUT_SLASH_COMMAND` (or similar)
-- Parse slash commands in workspace (detect `/pp` prefix)
+- Parse slash commands in input buffer (detect `/pp` prefix)
 - Implement command handler:
   ```c
   // In repl.c (or new commands.c module)
@@ -343,8 +343,8 @@ Without scrollback buffer (Phase 3), there is no proper way to display PP output
       ik_format_buffer_t *buf;
       ik_format_buffer_create(repl, &buf);
 
-      // For now, just pretty-print the workspace itself
-      ik_pp_workspace(repl->workspace, buf, 0);
+      // For now, just pretty-print the input buffer itself
+      ik_pp_input_buffer(repl->input_buffer, buf, 0);
 
       // Temporary: dump to stdout
       printf("%s", ik_format_get_string(buf));
@@ -371,7 +371,7 @@ fflush(stdout);
 Once scrollback exists, `/pp` output will:
 1. Format output using `ik_format_buffer_t` (already working)
 2. Append formatted output to scrollback buffer
-3. Render scrollback + workspace in next frame
+3. Render scrollback + input buffer in next frame
 4. Output is visible and persistent
 
 ### Task 6: JSON Pretty-Print Utilities (Optional - defer if needed)
@@ -398,7 +398,7 @@ void ik_json_to_yaml(duckdb_json_value* root, ik_format_buffer_t *buf, int inden
 ## Manual Verification
 
 **Demo via client.c or test harness**:
-- Create various data structures (workspace, future: blocks, memory, etc.)
+- Create various data structures (input buffer, future: blocks, memory, etc.)
 - Call `ik_pp_*` functions with format buffer
 - Verify output formatting:
   - Correct indentation
@@ -455,7 +455,7 @@ ik_scrollback_append_line(repl->scrollback,
 ## PP Infrastructure Complete ✅ - REPL Integration Deferred ⏸️
 
 - [x] Format module implemented with 100% test coverage (Task 1 ✅)
-- [x] `ik_pp_workspace()` implemented and tested (Task 3 ✅)
+- [x] `ik_pp_input_buffer()` implemented and tested (Task 3 ✅)
 - [x] Comprehensive unit tests for pp functions (Task 4 ✅)
 - [x] 100% test coverage maintained (Tasks 1-4.5 ✅)
 - [x] `make check && make lint && make coverage` all pass (Tasks 1-4.5 ✅)

@@ -1,7 +1,7 @@
-// @file workspace_multiline.c
-// @brief Workspace multi-line navigation implementation
+// @file input_buffer_multiline.c
+// @brief Input buffer multi-line navigation implementation
 
-#include "workspace.h"
+#include "input_buffer.h"
 #include "error.h"
 #include "panic.h"
 #include <assert.h>
@@ -50,8 +50,8 @@ static size_t find_line_end(const char *text, size_t text_len, size_t cursor_pos
 // @brief Count grapheme clusters in a substring
 //
 // Precondition: text must contain valid UTF-8. This is enforced by
-// ik_workspace_insert_codepoint() and ik_workspace_insert_newline(),
-// which are the only operations that modify workspace text.
+// ik_input_buffer_insert_codepoint() and ik_input_buffer_insert_newline(),
+// which are the only operations that modify input buffer text.
 //
 // Note: If invalid UTF-8 is encountered, the program will abort() with
 // a diagnostic message, as this indicates a precondition violation.
@@ -84,7 +84,7 @@ static size_t count_graphemes(const char *text, size_t len)
         } else if ((first_byte & 0xF8) == 0xF0) { // LCOV_EXCL_BR_LINE
             char_len = 4;
         } else {
-            PANIC("invalid UTF-8 in workspace text");  // LCOV_EXCL_LINE
+            PANIC("invalid UTF-8 in input buffer text");  // LCOV_EXCL_LINE
         }
 
         byte_pos += char_len;
@@ -97,8 +97,8 @@ static size_t count_graphemes(const char *text, size_t len)
 // @brief Find byte position of Nth grapheme within a substring
 //
 // Precondition: text must contain valid UTF-8. This is enforced by
-// ik_workspace_insert_codepoint() and ik_workspace_insert_newline(),
-// which are the only operations that modify workspace text.
+// ik_input_buffer_insert_codepoint() and ik_input_buffer_insert_newline(),
+// which are the only operations that modify input buffer text.
 //
 // Note: If invalid UTF-8 is encountered, the program will abort() with
 // a diagnostic message, as this indicates a precondition violation.
@@ -131,7 +131,7 @@ static size_t grapheme_to_byte_offset(const char *text, size_t len, size_t targe
         } else if ((first_byte & 0xF8) == 0xF0) { // LCOV_EXCL_BR_LINE
             char_len = 4;
         } else {
-            PANIC("invalid UTF-8 in workspace text");  // LCOV_EXCL_LINE
+            PANIC("invalid UTF-8 in input buffer text");  // LCOV_EXCL_LINE
         }
 
         byte_pos += char_len;
@@ -141,20 +141,20 @@ static size_t grapheme_to_byte_offset(const char *text, size_t len, size_t targe
     return byte_pos;
 }
 
-res_t ik_workspace_cursor_up(ik_workspace_t *workspace)
+res_t ik_input_buffer_cursor_up(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
 
-    // Empty workspace - no-op
+    // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
         return OK(NULL);
     }
 
-    size_t cursor_pos = workspace->cursor->byte_offset;
+    size_t cursor_pos = input_buffer->cursor->byte_offset;
 
     // Find current line start
     size_t current_line_start = find_line_start(text, cursor_pos);
@@ -168,8 +168,8 @@ res_t ik_workspace_cursor_up(ik_workspace_t *workspace)
     size_t column_graphemes = count_graphemes(text + current_line_start, cursor_pos - current_line_start);
 
     // Save target column for future vertical movements (if not already set)
-    if (workspace->target_column == 0) {
-        workspace->target_column = column_graphemes;
+    if (input_buffer->target_column == 0) {
+        input_buffer->target_column = column_graphemes;
     }
 
     // Find previous line start (position after newline before current line)
@@ -183,7 +183,7 @@ res_t ik_workspace_cursor_up(ik_workspace_t *workspace)
     size_t prev_line_graphemes = count_graphemes(text + prev_line_start, prev_line_end - prev_line_start);
 
     // Use saved target column, or current column if just starting vertical movement
-    size_t desired_column = (workspace->target_column > 0) ? workspace->target_column : column_graphemes;
+    size_t desired_column = (input_buffer->target_column > 0) ? input_buffer->target_column : column_graphemes;
 
     // Position cursor at target column, or at line end if line is shorter
     size_t target_column = (desired_column <= prev_line_graphemes) ? desired_column : prev_line_graphemes;
@@ -192,26 +192,26 @@ res_t ik_workspace_cursor_up(ik_workspace_t *workspace)
                                                                target_column);
 
     // Update cursor position
-    workspace->cursor_byte_offset = new_pos;
-    ik_cursor_set_position(workspace->cursor, text, text_len, new_pos);
+    input_buffer->cursor_byte_offset = new_pos;
+    ik_cursor_set_position(input_buffer->cursor, text, text_len, new_pos);
 
     return OK(NULL);
 }
 
-res_t ik_workspace_cursor_down(ik_workspace_t *workspace)
+res_t ik_input_buffer_cursor_down(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
 
-    // Empty workspace - no-op
+    // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
         return OK(NULL);
     }
 
-    size_t cursor_pos = workspace->cursor->byte_offset;
+    size_t cursor_pos = input_buffer->cursor->byte_offset;
 
     // Find current line start and end
     size_t current_line_start = find_line_start(text, cursor_pos);
@@ -226,8 +226,8 @@ res_t ik_workspace_cursor_down(ik_workspace_t *workspace)
     size_t column_graphemes = count_graphemes(text + current_line_start, cursor_pos - current_line_start);
 
     // Save target column for future vertical movements (if not already set)
-    if (workspace->target_column == 0) {
-        workspace->target_column = column_graphemes;
+    if (input_buffer->target_column == 0) {
+        input_buffer->target_column = column_graphemes;
     }
 
     // Next line starts after the newline
@@ -240,7 +240,7 @@ res_t ik_workspace_cursor_down(ik_workspace_t *workspace)
     size_t next_line_graphemes = count_graphemes(text + next_line_start, next_line_end - next_line_start);
 
     // Use saved target column, or current column if just starting vertical movement
-    size_t desired_column = (workspace->target_column > 0) ? workspace->target_column : column_graphemes;
+    size_t desired_column = (input_buffer->target_column > 0) ? input_buffer->target_column : column_graphemes;
 
     // Position cursor at target column, or at line end if line is shorter
     size_t target_column = (desired_column <= next_line_graphemes) ? desired_column : next_line_graphemes;
@@ -249,26 +249,26 @@ res_t ik_workspace_cursor_down(ik_workspace_t *workspace)
                                                                target_column);
 
     // Update cursor position
-    workspace->cursor_byte_offset = new_pos;
-    ik_cursor_set_position(workspace->cursor, text, text_len, new_pos);
+    input_buffer->cursor_byte_offset = new_pos;
+    ik_cursor_set_position(input_buffer->cursor, text, text_len, new_pos);
 
     return OK(NULL);
 }
 
-res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace)
+res_t ik_input_buffer_cursor_to_line_start(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
 
-    // Empty workspace - no-op
+    // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
         return OK(NULL);
     }
 
-    size_t cursor_pos = workspace->cursor->byte_offset;
+    size_t cursor_pos = input_buffer->cursor->byte_offset;
 
     // Find current line start
     size_t line_start = find_line_start(text, cursor_pos);
@@ -279,29 +279,29 @@ res_t ik_workspace_cursor_to_line_start(ik_workspace_t *workspace)
     }
 
     // Update cursor position to line start
-    workspace->cursor_byte_offset = line_start;
-    ik_cursor_set_position(workspace->cursor, text, text_len, line_start);
+    input_buffer->cursor_byte_offset = line_start;
+    ik_cursor_set_position(input_buffer->cursor, text, text_len, line_start);
 
     // Reset target column on horizontal movement
-    workspace->target_column = 0;
+    input_buffer->target_column = 0;
 
     return OK(NULL);
 }
 
-res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace)
+res_t ik_input_buffer_cursor_to_line_end(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
 
-    // Empty workspace - no-op
+    // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
         return OK(NULL);
     }
 
-    size_t cursor_pos = workspace->cursor->byte_offset;
+    size_t cursor_pos = input_buffer->cursor->byte_offset;
 
     // Find current line end (position of \n or text_len)
     size_t line_end = find_line_end(text, text_len, cursor_pos);
@@ -312,29 +312,29 @@ res_t ik_workspace_cursor_to_line_end(ik_workspace_t *workspace)
     }
 
     // Update cursor position to line end
-    workspace->cursor_byte_offset = line_end;
-    ik_cursor_set_position(workspace->cursor, text, text_len, line_end);
+    input_buffer->cursor_byte_offset = line_end;
+    ik_cursor_set_position(input_buffer->cursor, text, text_len, line_end);
 
     // Reset target column on horizontal movement
-    workspace->target_column = 0;
+    input_buffer->target_column = 0;
 
     return OK(NULL);
 }
 
-res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace)
+res_t ik_input_buffer_kill_to_line_end(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
 
-    // Empty workspace - no-op
+    // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
         return OK(NULL);
     }
 
-    size_t cursor_pos = workspace->cursor->byte_offset;
+    size_t cursor_pos = input_buffer->cursor->byte_offset;
 
     // Find current line end (position of \n or text_len)
     size_t line_end = find_line_end(text, text_len, cursor_pos);
@@ -347,37 +347,37 @@ res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace)
     // Delete bytes from cursor to line end
     size_t num_bytes_to_delete = line_end - cursor_pos;
     for (size_t i = 0; i < num_bytes_to_delete; i++) {
-        ik_byte_array_delete(workspace->text, cursor_pos);
+        ik_byte_array_delete(input_buffer->text, cursor_pos);
     }
 
     // Update cursor (text changed, need to resync cursor object)
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
-    workspace->cursor_byte_offset = cursor_pos;
-    ik_cursor_set_position(workspace->cursor, text, text_len, cursor_pos);
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    input_buffer->cursor_byte_offset = cursor_pos;
+    ik_cursor_set_position(input_buffer->cursor, text, text_len, cursor_pos);
 
     // Reset target column on text modification
-    workspace->target_column = 0;
+    input_buffer->target_column = 0;
 
     // Invalidate layout cache
-    ik_workspace_invalidate_layout(workspace);
+    ik_input_buffer_invalidate_layout(input_buffer);
 
     return OK(NULL);
 }
 
-res_t ik_workspace_kill_line(ik_workspace_t *workspace)
+res_t ik_input_buffer_kill_line(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
 
-    // Empty workspace - no-op
+    // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
         return OK(NULL);
     }
 
-    size_t cursor_pos = workspace->cursor->byte_offset;
+    size_t cursor_pos = input_buffer->cursor->byte_offset;
 
     // Find current line boundaries
     size_t line_start = find_line_start(text, cursor_pos);
@@ -393,22 +393,22 @@ res_t ik_workspace_kill_line(ik_workspace_t *workspace)
     // Delete entire line from line_start to delete_end
     size_t num_bytes_to_delete = delete_end - line_start;
     for (size_t i = 0; i < num_bytes_to_delete; i++) {
-        ik_byte_array_delete(workspace->text, line_start);
+        ik_byte_array_delete(input_buffer->text, line_start);
     }
 
     // Position cursor at line_start (where the deleted line was)
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
 
     // Ensure cursor position doesn't exceed new text length
     size_t new_cursor_pos = (line_start <= text_len) ? line_start : text_len;
-    workspace->cursor_byte_offset = new_cursor_pos;
-    ik_cursor_set_position(workspace->cursor, text, text_len, new_cursor_pos);
+    input_buffer->cursor_byte_offset = new_cursor_pos;
+    ik_cursor_set_position(input_buffer->cursor, text, text_len, new_cursor_pos);
 
     // Reset target column on text modification
-    workspace->target_column = 0;
+    input_buffer->target_column = 0;
 
     // Invalidate layout cache
-    ik_workspace_invalidate_layout(workspace);
+    ik_input_buffer_invalidate_layout(input_buffer);
 
     return OK(NULL);
 }

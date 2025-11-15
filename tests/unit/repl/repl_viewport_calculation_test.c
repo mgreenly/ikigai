@@ -12,13 +12,13 @@
 #include <inttypes.h>
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../test_utils.h"
 
 /**
  * Test: Simple case with short lines, scrolled to show only scrollback
  *
- * This should fill the entire terminal with scrollback (no separator, no workspace)
+ * This should fill the entire terminal with scrollback (no separator, no input buffer)
  */
 START_TEST(test_separator_debug_simple_case) {
     void *ctx = talloc_new(NULL);
@@ -28,14 +28,14 @@ START_TEST(test_separator_debug_simple_case) {
     term->screen_rows = 10;
     term->screen_cols = 80;
 
-    // Create workspace (1 line)
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create input buffer (1 line)
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'w');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'w');
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
-    size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
+    ik_input_buffer_ensure_layout(input_buf, 80);
+    size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
 
     // Create scrollback with 50 short lines (no wrapping)
     ik_scrollback_t *scrollback = NULL;
@@ -53,14 +53,14 @@ START_TEST(test_separator_debug_simple_case) {
 
     // Document structure
     size_t separator_row = scrollback_rows;
-    size_t workspace_start_doc_row = scrollback_rows + 1;
-    size_t document_height = scrollback_rows + 1 + workspace_rows;
+    size_t input_start_doc_row = scrollback_rows + 1;
+    size_t document_height = scrollback_rows + 1 + input_buf_rows;
 
     printf("\n=== Document Structure ===\n");
     printf("Scrollback: %zu lines, %zu physical rows (rows 0-%zu)\n",
            scrollback_line_count, scrollback_rows, scrollback_rows - 1);
     printf("Separator: row %zu\n", separator_row);
-    printf("Workspace: row %zu, %zu physical rows\n", workspace_start_doc_row, workspace_rows);
+    printf("Input Buffer: row %zu, %zu physical rows\n", input_start_doc_row, input_buf_rows);
     printf("Document height: %zu rows\n", document_height);
     printf("Terminal height: %d rows\n\n", term->screen_rows);
 
@@ -68,7 +68,7 @@ START_TEST(test_separator_debug_simple_case) {
     // We want to view scrollback lines 20-29 (10 lines)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
 
     // Desired view: document rows 20-29
@@ -97,7 +97,7 @@ START_TEST(test_separator_debug_simple_case) {
     printf("=== Actual Viewport ===\n");
     printf("scrollback_start_line: %zu\n", viewport.scrollback_start_line);
     printf("scrollback_lines_count: %zu\n", viewport.scrollback_lines_count);
-    printf("workspace_start_row: %zu\n\n", viewport.workspace_start_row);
+    printf("input_buffer_start_row: %zu\n\n", viewport.input_buffer_start_row);
 
     // Expected: start_line=20, lines_count=10
     // (lines 20-29, each 1 physical row, filling rows 20-29)

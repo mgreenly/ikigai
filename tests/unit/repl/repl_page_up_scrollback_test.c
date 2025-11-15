@@ -3,7 +3,7 @@
  * @brief Test Page Up scrolling to earlier scrollback content
  *
  * Tests that Page Up actually scrolls to show earlier scrollback lines,
- * not just hides the workspace.
+ * not just hides the input buffer.
  */
 
 #include <check.h>
@@ -14,7 +14,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../test_utils.h"
 
 /**
@@ -23,7 +23,7 @@
  * Scenario from user report:
  * - Terminal: 5 rows
  * - Scrollback has 9 lines (5 initial + A + B + C + D)
- * - Initially showing B, C, D, separator, workspace
+ * - Initially showing B, C, D, separator, input buffer
  * - After Page Up: should show lines from earlier in scrollback
  */
 START_TEST(test_page_up_shows_earlier_scrollback) {
@@ -34,11 +34,11 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     term->screen_rows = 5;
     term->screen_cols = 80;
 
-    // Create workspace
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create input buffer
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 9 lines (5 initial + A, B, C, D)
     ik_scrollback_t *scrollback = NULL;
@@ -71,20 +71,20 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     // Create REPL at bottom (offset=0)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
     repl->viewport_offset = 0;
 
-    // Document: 9 scrollback + 1 separator + 1 workspace = 11 rows
-    // (workspace always occupies 1 row even when empty, for cursor visibility)
+    // Document: 9 scrollback + 1 separator + 1 input buffer = 11 rows
+    // (input buffer always occupies 1 row even when empty, for cursor visibility)
     // Terminal: 5 rows
     // At bottom (offset=0), showing rows 6-10:
     //   Row 6: B (scrollback line 6)
     //   Row 7: C (scrollback line 7)
     //   Row 8: D (scrollback line 8)
     //   Row 9: separator
-    //   Row 10: workspace
+    //   Row 10: input buffer
 
     // Calculate viewport at bottom
     ik_viewport_t viewport_bottom;
@@ -95,13 +95,13 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     fprintf(stderr, "scrollback_start_line: %zu\n", viewport_bottom.scrollback_start_line);
     fprintf(stderr, "scrollback_lines_count: %zu\n", viewport_bottom.scrollback_lines_count);
     fprintf(stderr, "separator_visible: %d\n", viewport_bottom.separator_visible);
-    fprintf(stderr, "workspace_start_row: %zu\n", viewport_bottom.workspace_start_row);
+    fprintf(stderr, "input_buffer_start_row: %zu\n", viewport_bottom.input_buffer_start_row);
 
     // Should show scrollback lines 6, 7, 8 (B, C, D)
     ck_assert_uint_eq(viewport_bottom.scrollback_start_line, 6);
     ck_assert_uint_eq(viewport_bottom.scrollback_lines_count, 3);
     ck_assert(viewport_bottom.separator_visible);
-    ck_assert_uint_eq(viewport_bottom.workspace_start_row, 4);  // Workspace visible at row 4
+    ck_assert_uint_eq(viewport_bottom.input_buffer_start_row, 4);  // Input buffer visible at row 4
 
     // Now press Page Up (scroll to max offset to see earliest lines)
     // Document height = 11, terminal = 5, max offset = 6
@@ -122,7 +122,7 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     fprintf(stderr, "scrollback_start_line: %zu\n", viewport_scrolled.scrollback_start_line);
     fprintf(stderr, "scrollback_lines_count: %zu\n", viewport_scrolled.scrollback_lines_count);
     fprintf(stderr, "separator_visible: %d\n", viewport_scrolled.separator_visible);
-    fprintf(stderr, "workspace_start_row: %zu\n", viewport_scrolled.workspace_start_row);
+    fprintf(stderr, "input_buffer_start_row: %zu\n", viewport_scrolled.input_buffer_start_row);
 
     // Should show scrollback lines 0-4
     fprintf(stderr, "Expected: start_line=0, lines_count=5\n");
@@ -133,7 +133,7 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     ck_assert_uint_eq(viewport_scrolled.scrollback_start_line, 0);
     ck_assert_uint_eq(viewport_scrolled.scrollback_lines_count, 5);
     ck_assert(!viewport_scrolled.separator_visible);  // Separator off-screen
-    ck_assert_uint_eq(viewport_scrolled.workspace_start_row, 5);  // Off-screen
+    ck_assert_uint_eq(viewport_scrolled.input_buffer_start_row, 5);  // Off-screen
 
     // Render and verify actual output changes
     int pipefd[2];

@@ -1,10 +1,10 @@
 /**
  * @file repl_autoscroll_test.c
- * @brief Unit tests for auto-scroll to bottom on workspace actions (Bug #6 fix)
+ * @brief Unit tests for auto-scroll to bottom on input buffer actions (Bug #6 fix)
  *
- * When the user scrolls up to view scrollback and then performs any workspace
+ * When the user scrolls up to view scrollback and then performs any input buffer
  * editing action (typing, deleting, navigation), the viewport should auto-scroll
- * to the bottom to show the cursor and workspace.
+ * to the bottom to show the cursor and input buffer.
  */
 
 #include <check.h>

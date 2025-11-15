@@ -4,7 +4,7 @@
 #include "panic.h"
 #include "wrapper.h"
 #include "format.h"
-#include "workspace.h"
+#include "input_buffer.h"
 #include <assert.h>
 #include <talloc.h>
 #include <stdio.h>
@@ -38,8 +38,8 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
         return result;
     }
 
-    // Initialize workspace
-    result = ik_workspace_create(repl, &repl->workspace);
+    // Initialize input buffer
+    result = ik_input_buffer_create(repl, &repl->input_buffer);
     if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
 
     // Initialize input parser
@@ -147,28 +147,28 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(viewport_out != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->term != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->workspace != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
 
-    // Ensure workspace layout is up to date
-    ik_workspace_ensure_layout(repl->workspace, repl->term->screen_cols);
+    // Ensure input buffer layout is up to date
+    ik_input_buffer_ensure_layout(repl->input_buffer, repl->term->screen_cols);
 
     // Ensure scrollback layout is up to date
     ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
 
     // Get component sizes
-    size_t workspace_rows = ik_workspace_get_physical_lines(repl->workspace);
+    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
     size_t scrollback_line_count = ik_scrollback_get_line_count(repl->scrollback);
     int32_t terminal_rows = repl->term->screen_rows;
 
     // Unified document model:
-    // Document = scrollback_rows + 1 (separator) + MAX(workspace_rows, 1)
-    // Workspace always occupies at least 1 row (for cursor visibility when empty)
-    size_t workspace_display_rows = (workspace_rows == 0) ? 1 : workspace_rows;
+    // Document = scrollback_rows + 1 (separator) + MAX(input_buffer_rows, 1)
+    // Input buffer always occupies at least 1 row (for cursor visibility when empty)
+    size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
     size_t separator_row = scrollback_rows;  // Separator is at this document row (0-indexed)
-    size_t workspace_start_doc_row = scrollback_rows + 1;  // Workspace starts here
-    size_t document_height = scrollback_rows + 1 + workspace_display_rows;
+    size_t input_buffer_start_doc_row = scrollback_rows + 1;  // Input buffer starts here
+    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows;
 
     // Calculate visible document range
     // viewport_offset = how many rows scrolled UP from bottom
@@ -229,20 +229,20 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
         viewport_out->scrollback_lines_count = lines_count;
     }
 
-    // Calculate where workspace appears in viewport
-    // Workspace always occupies at least 1 row in document (even when empty)
-    if (workspace_start_doc_row <= last_visible_row) {
-        // Workspace is at least partially visible
-        if (workspace_start_doc_row >= first_visible_row) {  /* LCOV_EXCL_BR_LINE */
-            // Workspace starts within viewport
-            viewport_out->workspace_start_row = workspace_start_doc_row - first_visible_row;
+    // Calculate where input buffer appears in viewport
+    // Input buffer always occupies at least 1 row in document (even when empty)
+    if (input_buffer_start_doc_row <= last_visible_row) {
+        // Input buffer is at least partially visible
+        if (input_buffer_start_doc_row >= first_visible_row) {  /* LCOV_EXCL_BR_LINE */
+            // Input buffer starts within viewport
+            viewport_out->input_buffer_start_row = input_buffer_start_doc_row - first_visible_row;
         } else {  /* LCOV_EXCL_BR_LINE */
-            // Workspace starts before viewport (shouldn't happen)  /* LCOV_EXCL_LINE */
-            viewport_out->workspace_start_row = 0;  /* LCOV_EXCL_LINE */
+            // Input buffer starts before viewport (shouldn't happen)  /* LCOV_EXCL_LINE */
+            viewport_out->input_buffer_start_row = 0;  /* LCOV_EXCL_LINE */
         }  /* LCOV_EXCL_LINE */
     } else {
-        // Workspace is completely off-screen
-        viewport_out->workspace_start_row = (size_t)terminal_rows;
+        // Input buffer is completely off-screen
+        viewport_out->input_buffer_start_row = (size_t)terminal_rows;
     }
 
     // Calculate separator visibility
@@ -258,30 +258,30 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->render != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->workspace != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Calculate viewport to determine what to render
     ik_viewport_t viewport;
     res_t result = ik_repl_calculate_viewport(repl, &viewport);
     if (is_err(&result))return result;  /* LCOV_EXCL_LINE */
 
-    // Get workspace text
+    // Get input buffer text
     char *text = NULL;
     size_t text_len = 0;
-    ik_workspace_get_text(repl->workspace, &text, &text_len);
+    ik_input_buffer_get_text(repl->input_buffer, &text, &text_len);
 
     // Get cursor byte offset
     size_t cursor_byte_offset = 0;
     size_t cursor_grapheme = 0;
-    ik_workspace_get_cursor_position(repl->workspace, &cursor_byte_offset, &cursor_grapheme);
+    ik_input_buffer_get_cursor_position(repl->input_buffer, &cursor_byte_offset, &cursor_grapheme);
 
-    // Determine visibility of separator and workspace (unified document model)
+    // Determine visibility of separator and input buffer (unified document model)
     // Separator visibility is calculated in ik_repl_calculate_viewport()
-    // Workspace visible when workspace_start_row in [0, terminal_rows-1]
+    // Input buffer visible when input_buffer_start_row in [0, terminal_rows-1]
     bool separator_visible = viewport.separator_visible;
-    bool workspace_visible = viewport.workspace_start_row < (size_t)repl->term->screen_rows;
+    bool input_buffer_visible = viewport.input_buffer_start_row < (size_t)repl->term->screen_rows;
 
-    // Render combined view with conditional separator/workspace
+    // Render combined view with conditional separator/input_buffer
     return ik_render_combined(repl->render,
                               repl->scrollback,
                               viewport.scrollback_start_line,
@@ -290,16 +290,16 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
                               text_len,
                               cursor_byte_offset,
                               separator_visible,
-                              workspace_visible);
+                              input_buffer_visible);
 }
 
 res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
 
-    // Get current workspace text
-    const char *text = (const char *)repl->workspace->text->data;
-    size_t text_len = ik_byte_array_size(repl->workspace->text);
+    // Get current input buffer text
+    const char *text = (const char *)repl->input_buffer->text->data;
+    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
 
     // Append to scrollback (only if there's content and scrollback exists)
     if (text_len > 0 && repl->scrollback != NULL) {
@@ -307,8 +307,8 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
         if (is_err(&result))return result;  // LCOV_EXCL_LINE - Defensive, allocation failures are rare
     }
 
-    // Clear workspace
-    ik_workspace_clear(repl->workspace);
+    // Clear input buffer
+    ik_input_buffer_clear(repl->input_buffer);
 
     // Auto-scroll to bottom (reset viewport offset)
     repl->viewport_offset = 0;
@@ -321,7 +321,7 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->term != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->workspace != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->render != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Update terminal dimensions
@@ -337,7 +337,7 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
 
     // Invalidate layout caches (will recalculate on next ensure_layout call)
     ik_scrollback_ensure_layout(repl->scrollback, cols);
-    ik_workspace_ensure_layout(repl->workspace, cols);
+    ik_input_buffer_ensure_layout(repl->input_buffer, cols);
 
     // Trigger immediate redraw with new dimensions
     return ik_repl_render_frame(repl);

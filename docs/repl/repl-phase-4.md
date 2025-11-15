@@ -10,7 +10,7 @@
 
 Phase 3 provides the scrollback buffer module with layout caching. Phase 4 integrates it into the REPL event loop, adding the ability to view historical output and scroll through it.
 
-This completes the split-buffer terminal interface: scrollback history above, workspace below, with user control over viewport position.
+This completes the split-buffer terminal interface: scrollback history above, input buffer below, with user control over viewport position.
 
 ## Implementation Tasks
 
@@ -23,7 +23,7 @@ This completes the split-buffer terminal interface: scrollback history above, wo
 typedef struct ik_repl_ctx_t {
     ik_term_ctx_t *term;
     ik_render_ctx_t *render;
-    ik_workspace_t *workspace;
+    ik_input_buffer_t *input_buffer;
     ik_input_parser_t *input_parser;
     ik_scrollback_t *scrollback;      // NEW: Scrollback buffer
     size_t viewport_offset;           // NEW: Physical row offset for scrolling
@@ -45,7 +45,7 @@ typedef struct ik_repl_ctx_t {
 
 ### Task 4.2: Viewport Calculation ✅ COMPLETE
 
-**Goal**: Calculate which portion of scrollback + workspace to display.
+**Goal**: Calculate which portion of scrollback + input buffer to display.
 
 **Add to** `src/repl.c`:
 ```c
@@ -53,7 +53,7 @@ typedef struct ik_repl_ctx_t {
 typedef struct {
     size_t scrollback_start_line;   // First scrollback line to render
     size_t scrollback_lines_count;  // How many scrollback lines visible
-    size_t workspace_start_row;     // Terminal row where workspace begins
+    size_t input_buffer_start_row;     // Terminal row where input buffer begins
 } ik_viewport_t;
 
 res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_out);
@@ -61,15 +61,15 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
 
 **Logic**:
 - Terminal has N rows total
-- Workspace needs M physical rows (may wrap)
+- Input buffer needs M physical rows (may wrap)
 - Scrollback gets remaining N-M rows
 - Account for viewport_offset when scrolling up
-- When scrollback fits entirely, workspace at bottom
+- When scrollback fits entirely, input buffer at bottom
 - When scrollback overflows, enable scrolling
 
 **Test Coverage**:
-- Viewport with empty scrollback (workspace fills screen)
-- Viewport with small scrollback (scrollback + workspace both visible)
+- Viewport with empty scrollback (input buffer fills screen)
+- Viewport with small scrollback (scrollback + input buffer both visible)
 - Viewport with large scrollback (scrollback overflows, scrolling needed)
 - Viewport calculation after terminal resize
 - Viewport offset clamping (don't scroll past top/bottom)
@@ -94,7 +94,7 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
 - Iterate through visible scrollback lines
 - Write each line with proper line wrapping
 - Track how many terminal rows consumed
-- Return rows used for workspace positioning
+- Return rows used for input buffer positioning
 
 **Test Coverage**:
 - Render empty scrollback
@@ -107,7 +107,7 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
 
 ### Task 4.4: Combined Frame Rendering ✅ COMPLETE
 
-**Goal**: Render complete frame (scrollback + workspace).
+**Goal**: Render complete frame (scrollback + input buffer).
 
 **Modify** `ik_repl_render_frame()`:
 ```c
@@ -124,8 +124,8 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
                                 viewport.scrollback_lines_count,
                                 &rows_used);
 
-    // 3. Render workspace at correct position
-    ik_render_workspace(repl->render, ...);
+    // 3. Render input buffer at correct position
+    ik_render_input_buffer(repl->render, ...);
 
     return OK(repl);
 }
@@ -133,7 +133,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 
 **Test Coverage**:
 - Render frame with empty scrollback
-- Render frame with scrollback + workspace
+- Render frame with scrollback + input buffer
 - Render frame after scrolling
 - Frame rendering after terminal resize
 
@@ -209,7 +209,7 @@ case IK_INPUT_PAGE_DOWN:
 - Viewport offset clamping
 
 ### Integration Tests
-- Full frame rendering with scrollback + workspace
+- Full frame rendering with scrollback + input buffer
 - Scrolling through large scrollback
 - Terminal resize with scrollback visible
 - Auto-scroll behavior

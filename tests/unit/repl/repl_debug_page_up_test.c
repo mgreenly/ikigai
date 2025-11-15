@@ -10,7 +10,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
 #include "../../test_utils.h"
@@ -24,9 +24,9 @@ START_TEST(test_page_up_with_4_lines) {
     term->screen_cols = 80;
     term->tty_fd = 1;
 
-    // Create empty workspace (1 empty line)
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create empty input buffer (1 empty line)
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     // Create scrollback with A, B, C, D
@@ -50,7 +50,7 @@ START_TEST(test_page_up_with_4_lines) {
     // Create REPL at bottom
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
     repl->viewport_offset = 0;
@@ -60,21 +60,21 @@ START_TEST(test_page_up_with_4_lines) {
 
     fprintf(stderr, "\n=== Initial State ===\n");
     fprintf(stderr, "Scrollback lines: 4 (A, B, C, D)\n");
-    fprintf(stderr, "Workspace lines: 1 (empty)\n");
+    fprintf(stderr, "Input buffer lines: 1 (empty)\n");
     fprintf(stderr, "Document height: 4 + 1 + 1 = 6 rows\n");
     fprintf(stderr, "Terminal rows: 5\n");
     fprintf(stderr, "viewport_offset: %zu\n", repl->viewport_offset);
 
     // Ensure layouts
     ik_scrollback_ensure_layout(scrollback, 80);
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(scrollback);
-    size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
-    size_t document_height = scrollback_rows + 1 + workspace_rows;
+    size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
+    size_t document_height = scrollback_rows + 1 + input_buf_rows;
 
-    fprintf(stderr, "Calculated: scrollback_rows=%zu, workspace_rows=%zu, document_height=%zu\n",
-            scrollback_rows, workspace_rows, document_height);
+    fprintf(stderr, "Calculated: scrollback_rows=%zu, input_buf_rows=%zu, document_height=%zu\n",
+            scrollback_rows, input_buf_rows, document_height);
 
     // Render at bottom
     int pipefd1[2];
@@ -95,7 +95,7 @@ START_TEST(test_page_up_with_4_lines) {
     close(pipefd1[0]);
     close(saved_stdout1);
 
-    fprintf(stderr, "\nAt bottom, should see B, C, D, separator, workspace:\n");
+    fprintf(stderr, "\nAt bottom, should see B, C, D, separator, input buffer:\n");
     fprintf(stderr, "Output: %s\n", output1);
 
     // Now simulate Page Up

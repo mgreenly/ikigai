@@ -1,4 +1,4 @@
-// workspace rendering unit tests
+// input_buffer rendering unit tests
 #include <check.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -53,7 +53,7 @@ static void mock_write_reset(void)
 }
 
 // Test: render simple text
-START_TEST(test_render_workspace_simple_text) {
+START_TEST(test_render_input_buffer_simple_text) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -62,7 +62,7 @@ START_TEST(test_render_workspace_simple_text) {
 
     mock_write_reset();
     const char *text = "hello";
-    res = ik_render_workspace(render, text, 5, 5);
+    res = ik_render_input_buffer(render, text, 5, 5);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -79,7 +79,7 @@ START_TEST(test_render_workspace_simple_text) {
 }
 END_TEST
 // Test: render with cursor in middle
-START_TEST(test_render_workspace_with_cursor)
+START_TEST(test_render_input_buffer_with_cursor)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
@@ -89,7 +89,7 @@ START_TEST(test_render_workspace_with_cursor)
 
     mock_write_reset();
     const char *text = "hello world";
-    res = ik_render_workspace(render, text, 11, 5);
+    res = ik_render_input_buffer(render, text, 11, 5);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -103,7 +103,7 @@ START_TEST(test_render_workspace_with_cursor)
 
 END_TEST
 // Test: render empty text
-START_TEST(test_render_workspace_empty_text)
+START_TEST(test_render_input_buffer_empty_text)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
@@ -112,7 +112,7 @@ START_TEST(test_render_workspace_empty_text)
     ck_assert(is_ok(&res));
 
     mock_write_reset();
-    res = ik_render_workspace(render, "", 0, 0);
+    res = ik_render_input_buffer(render, "", 0, 0);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -128,7 +128,7 @@ START_TEST(test_render_workspace_empty_text)
 
 END_TEST
 // Test: render NULL text with length 0
-START_TEST(test_render_workspace_null_text)
+START_TEST(test_render_input_buffer_null_text)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
@@ -137,7 +137,7 @@ START_TEST(test_render_workspace_null_text)
     ck_assert(is_ok(&res));
 
     mock_write_reset();
-    res = ik_render_workspace(render, NULL, 0, 0);
+    res = ik_render_input_buffer(render, NULL, 0, 0);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -153,7 +153,7 @@ START_TEST(test_render_workspace_null_text)
 
 END_TEST
 // Test: render UTF-8 text with emoji
-START_TEST(test_render_workspace_utf8_text)
+START_TEST(test_render_input_buffer_utf8_text)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
@@ -164,7 +164,7 @@ START_TEST(test_render_workspace_utf8_text)
     mock_write_reset();
     // "hello 😀" - emoji is 4 bytes, 2 cells width
     const char *text = "hello \xf0\x9f\x98\x80";
-    res = ik_render_workspace(render, text, 10, 10);
+    res = ik_render_input_buffer(render, text, 10, 10);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -181,7 +181,7 @@ START_TEST(test_render_workspace_utf8_text)
 
 END_TEST
 // Test: render wrapping text
-START_TEST(test_render_workspace_wrapping_text)
+START_TEST(test_render_input_buffer_wrapping_text)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
@@ -192,7 +192,7 @@ START_TEST(test_render_workspace_wrapping_text)
     mock_write_reset();
     // 15 chars, terminal width 10 -> wraps
     const char *text = "abcdefghijklmno";
-    res = ik_render_workspace(render, text, 15, 15);
+    res = ik_render_input_buffer(render, text, 15, 15);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -209,7 +209,7 @@ START_TEST(test_render_workspace_wrapping_text)
 
 END_TEST
 // Test: render text with newlines
-START_TEST(test_render_workspace_with_newlines)
+START_TEST(test_render_input_buffer_with_newlines)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
@@ -219,7 +219,7 @@ START_TEST(test_render_workspace_with_newlines)
 
     mock_write_reset();
     const char *text = "hello\nworld";
-    res = ik_render_workspace(render, text, 11, 8);
+    res = ik_render_input_buffer(render, text, 11, 8);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -237,7 +237,7 @@ START_TEST(test_render_workspace_with_newlines)
 
 END_TEST
 // Test: render cursor after wrap boundary
-START_TEST(test_render_workspace_cursor_after_wrap)
+START_TEST(test_render_input_buffer_cursor_after_wrap)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
@@ -248,7 +248,7 @@ START_TEST(test_render_workspace_cursor_after_wrap)
     mock_write_reset();
     // Exactly 8 chars, cursor at end
     const char *text = "abcdefgh";
-    res = ik_render_workspace(render, text, 8, 8);
+    res = ik_render_input_buffer(render, text, 8, 8);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(mock_write_buffer);
@@ -262,7 +262,7 @@ START_TEST(test_render_workspace_cursor_after_wrap)
 
 END_TEST
 // Test: write failure
-START_TEST(test_render_workspace_write_failure)
+START_TEST(test_render_input_buffer_write_failure)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
@@ -274,7 +274,7 @@ START_TEST(test_render_workspace_write_failure)
     mock_write_should_fail = true;
 
     const char *text = "hello";
-    res = ik_render_workspace(render, text, 5, 5);
+    res = ik_render_input_buffer(render, text, 5, 5);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
@@ -285,7 +285,7 @@ START_TEST(test_render_workspace_write_failure)
 
 END_TEST
 // Test: invalid UTF-8 handling
-START_TEST(test_render_workspace_invalid_utf8)
+START_TEST(test_render_input_buffer_invalid_utf8)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
@@ -296,7 +296,7 @@ START_TEST(test_render_workspace_invalid_utf8)
     mock_write_reset();
     // Invalid UTF-8 sequence
     const char *text = "hello\xff\xfe";
-    res = ik_render_workspace(render, text, 7, 7);
+    res = ik_render_input_buffer(render, text, 7, 7);
 
     // Should return error
     ck_assert(is_err(&res));
@@ -310,15 +310,15 @@ END_TEST
 
 #ifndef NDEBUG
 // Test: NULL ctx asserts
-START_TEST(test_render_workspace_null_ctx_asserts)
+START_TEST(test_render_input_buffer_null_ctx_asserts)
 {
     const char *text = "hello";
-    ik_render_workspace(NULL, text, 5, 5);
+    ik_render_input_buffer(NULL, text, 5, 5);
 }
 
 END_TEST
 // Test: NULL text with non-zero length asserts
-START_TEST(test_render_workspace_null_text_asserts)
+START_TEST(test_render_input_buffer_null_text_asserts)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
@@ -326,7 +326,7 @@ START_TEST(test_render_workspace_null_text_asserts)
     res_t res = ik_render_create(ctx, 24, 80, 1, &render);
     ck_assert(is_ok(&res));
 
-    ik_render_workspace(render, NULL, 5, 0);
+    ik_render_input_buffer(render, NULL, 5, 0);
 
     talloc_free(ctx);
 }
@@ -335,25 +335,25 @@ END_TEST
 #endif
 
 // Test suite
-static Suite *workspace_suite(void)
+static Suite *input_buffer_suite(void)
 {
-    Suite *s = suite_create("RenderDirect_Workspace");
+    Suite *s = suite_create("RenderDirect_InputBuffer");
     TCase *tc_core = tcase_create("Core");
 
-    tcase_add_test(tc_core, test_render_workspace_simple_text);
-    tcase_add_test(tc_core, test_render_workspace_with_cursor);
-    tcase_add_test(tc_core, test_render_workspace_empty_text);
-    tcase_add_test(tc_core, test_render_workspace_null_text);
-    tcase_add_test(tc_core, test_render_workspace_utf8_text);
-    tcase_add_test(tc_core, test_render_workspace_wrapping_text);
-    tcase_add_test(tc_core, test_render_workspace_with_newlines);
-    tcase_add_test(tc_core, test_render_workspace_cursor_after_wrap);
-    tcase_add_test(tc_core, test_render_workspace_write_failure);
-    tcase_add_test(tc_core, test_render_workspace_invalid_utf8);
+    tcase_add_test(tc_core, test_render_input_buffer_simple_text);
+    tcase_add_test(tc_core, test_render_input_buffer_with_cursor);
+    tcase_add_test(tc_core, test_render_input_buffer_empty_text);
+    tcase_add_test(tc_core, test_render_input_buffer_null_text);
+    tcase_add_test(tc_core, test_render_input_buffer_utf8_text);
+    tcase_add_test(tc_core, test_render_input_buffer_wrapping_text);
+    tcase_add_test(tc_core, test_render_input_buffer_with_newlines);
+    tcase_add_test(tc_core, test_render_input_buffer_cursor_after_wrap);
+    tcase_add_test(tc_core, test_render_input_buffer_write_failure);
+    tcase_add_test(tc_core, test_render_input_buffer_invalid_utf8);
 
 #ifndef NDEBUG
-    tcase_add_test_raise_signal(tc_core, test_render_workspace_null_ctx_asserts, SIGABRT);
-    tcase_add_test_raise_signal(tc_core, test_render_workspace_null_text_asserts, SIGABRT);
+    tcase_add_test_raise_signal(tc_core, test_render_input_buffer_null_ctx_asserts, SIGABRT);
+    tcase_add_test_raise_signal(tc_core, test_render_input_buffer_null_text_asserts, SIGABRT);
 #endif
 
     suite_add_tcase(s, tc_core);
@@ -362,7 +362,7 @@ static Suite *workspace_suite(void)
 
 int main(void)
 {
-    Suite *s = workspace_suite();
+    Suite *s = input_buffer_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);

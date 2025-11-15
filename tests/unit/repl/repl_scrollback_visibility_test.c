@@ -4,7 +4,7 @@
  *
  * Tests that when scrolled up to view scrollback, all viewport rows
  * display scrollback content. Verifies that no lines are missing when
- * the workspace is scrolled off-screen.
+ * the input buffer is scrolled off-screen.
  */
 
 #include <check.h>
@@ -15,7 +15,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/workspace.h"
+#include "../../../src/input_buffer.h"
 #include "../../test_utils.h"
 
 /**
@@ -24,7 +24,7 @@
  * Setup:
  *   - Terminal: 10 rows x 80 cols
  *   - Scrollback: 50 simple lines ("line 0", "line 1", ..., "line 49")
- *   - Workspace: 1 line ("workspace")
+ *   - Workspace: 1 line ("input buffer")
  *   - Scroll to show lines 10-19 (middle of scrollback)
  *
  * Expected: All 10 terminal rows should contain scrollback text
@@ -37,16 +37,16 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
     term->screen_rows = 10;
     term->screen_cols = 80;
 
-    // Create workspace with simple content
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create input buffer with simple content
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    const char *ws_text = "workspace";
+    const char *ws_text = "input buffer";
     for (size_t i = 0; i < strlen(ws_text); i++) {
-        res = ik_workspace_insert_codepoint(workspace, (uint32_t)(unsigned char)ws_text[i]);
+        res = ik_input_buffer_insert_codepoint(input_buf, (uint32_t)(unsigned char)ws_text[i]);
         ck_assert(is_ok(&res));
     }
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 50 simple lines (no wrapping)
     ik_scrollback_t *scrollback = NULL;
@@ -67,14 +67,14 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
 
     // Document structure:
     //   Lines 0-49: scrollback (50 lines)
     //   Line 50: separator
-    //   Line 51: workspace
+    //   Line 51: input buffer
     // Total: 52 lines
     //
     // Set viewport_offset to show lines 10-19 of scrollback
@@ -135,8 +135,8 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
     // Verify all 10 lines are visible (no missing lines)
     ck_assert_int_eq(lines_found, 10);
 
-    // Also verify that workspace content is NOT visible (it's scrolled off)
-    ck_assert_ptr_eq(strstr(output, "workspace"), NULL);
+    // Also verify that input buffer content is NOT visible (it's scrolled off)
+    ck_assert_ptr_eq(strstr(output, "input_buf"), NULL);
 
     talloc_free(ctx);
 }
@@ -155,13 +155,13 @@ START_TEST(test_scrollback_visible_when_scrolled_to_top)
     term->screen_rows = 10;
     term->screen_cols = 80;
 
-    // Create workspace
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    // Create input buffer
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'w');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'w');
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
+    ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 50 lines
     ik_scrollback_t *scrollback = NULL;
@@ -182,11 +182,11 @@ START_TEST(test_scrollback_visible_when_scrolled_to_top)
     // Create REPL and scroll to top (maximum offset)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->render = render_ctx;
 
-    // Document: 50 scrollback + 1 sep + 1 workspace = 52 lines
+    // Document: 50 scrollback + 1 sep + 1 input buffer = 52 lines
     // Max offset = 52 - 10 = 42, shows lines 0-9
     repl->viewport_offset = 100;  // Will be clamped to 42
 

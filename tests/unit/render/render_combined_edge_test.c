@@ -106,8 +106,8 @@ START_TEST(test_render_combined_scrollback_with_newlines)
 }
 
 END_TEST
-/* Test: Invalid UTF-8 in workspace text causes cursor position calculation to fail */
-START_TEST(test_render_combined_invalid_utf8_in_workspace)
+/* Test: Invalid UTF-8 in input buffer text causes cursor position calculation to fail */
+START_TEST(test_render_combined_invalid_utf8_in_input_buffer)
 {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render_ctx = NULL;
@@ -121,7 +121,7 @@ START_TEST(test_render_combined_invalid_utf8_in_workspace)
     res = ik_scrollback_create(ctx, 80, &scrollback);
     ck_assert(is_ok(&res));
 
-    /* Create workspace text with invalid UTF-8 sequence
+    /* Create input buffer text with invalid UTF-8 sequence
      * 0xFF is never valid in UTF-8 (it's a continuation byte pattern that can't start a sequence)
      * Position cursor after some valid text so calculate_cursor_screen_position is called */
     const char invalid_utf8[] = "valid\xFFtext";
@@ -147,7 +147,7 @@ static Suite *render_combined_edge_suite(void)
     tcase_add_test(tc_edge, test_render_combined_invalid_scrollback_start);
     tcase_add_test(tc_edge, test_render_combined_scrollback_count_clamping);
     tcase_add_test(tc_edge, test_render_combined_scrollback_with_newlines);
-    tcase_add_test(tc_edge, test_render_combined_invalid_utf8_in_workspace);
+    tcase_add_test(tc_edge, test_render_combined_invalid_utf8_in_input_buffer);
     suite_add_tcase(s, tc_edge);
 
     return s;

@@ -131,7 +131,7 @@ START_TEST(test_repl_init) {
     ck_assert_ptr_nonnull(repl);
     ck_assert_ptr_nonnull(repl->term);
     ck_assert_ptr_nonnull(repl->render);
-    ck_assert_ptr_nonnull(repl->workspace);
+    ck_assert_ptr_nonnull(repl->input_buffer);
     ck_assert_ptr_nonnull(repl->input_parser);
     ck_assert(!repl->quit);
 

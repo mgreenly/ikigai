@@ -1,9 +1,9 @@
 /**
- * @file workspace_cursor.c
+ * @file input_buffer_cursor.c
  * @brief Cursor position tracking implementation
  */
 
-#include "workspace_cursor.h"
+#include "input_buffer_cursor.h"
 #include "panic.h"
 #include "wrapper.h"
 #include <assert.h>
@@ -45,7 +45,7 @@ void ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_l
                                                        (utf8proc_ssize_t)(text_len - pos),
                                                        &codepoint);
 
-        assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by workspace */
+        assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by input buffer */
 
         // Check if this is a grapheme break
         // A grapheme break occurs when we transition from one grapheme cluster to another
@@ -84,7 +84,7 @@ void ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len)
                                                        (utf8proc_ssize_t)(text_len - pos),
                                                        &codepoint);
 
-        assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by workspace */
+        assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by input buffer */
 
         // Check if this starts a new grapheme cluster
         if (prev_codepoint == -1 || utf8proc_grapheme_break(prev_codepoint, codepoint)) {
@@ -131,7 +131,7 @@ void ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_len
                                                        (utf8proc_ssize_t)(text_len - pos),
                                                        &codepoint);
 
-        assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by workspace */
+        assert(bytes_read > 0); /* LCOV_EXCL_BR_LINE - UTF-8 validity guaranteed by input buffer */
 
         pos += (size_t)bytes_read;
 

@@ -9,7 +9,7 @@
 #include "../../../src/scrollback.h"
 #include "../../test_utils.h"
 
-/* Test: Viewport with empty scrollback (workspace fills screen) */
+/* Test: Viewport with empty scrollback (input buffer fills screen) */
 START_TEST(test_viewport_empty_scrollback) {
     void *ctx = talloc_new(NULL);
 
@@ -18,20 +18,20 @@ START_TEST(test_viewport_empty_scrollback) {
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
-    // Add a few lines to workspace
-    res = ik_workspace_insert_codepoint(workspace, 'h');
+    // Add a few lines to input buffer
+    res = ik_input_buffer_insert_codepoint(input_buf, 'h');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'i');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'i');
     ck_assert(is_ok(&res));
 
-    // Ensure workspace layout
-    ik_workspace_ensure_layout(workspace, 80);
-    size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
-    ck_assert_uint_eq(workspace_rows, 1);  // "hi" is 1 line
+    // Ensure input buffer layout
+    ik_input_buffer_ensure_layout(input_buf, 80);
+    size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
+    ck_assert_uint_eq(input_buf_rows, 1);  // "hi" is 1 line
 
     ik_scrollback_t *scrollback = NULL;
     res = ik_scrollback_create(ctx, 80, &scrollback);
@@ -39,7 +39,7 @@ START_TEST(test_viewport_empty_scrollback) {
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
 
@@ -48,11 +48,11 @@ START_TEST(test_viewport_empty_scrollback) {
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // With empty scrollback, all rows go to workspace
+    // With empty scrollback, all rows go to input buffer
     ck_assert_uint_eq(viewport.scrollback_start_line, 0);
     ck_assert_uint_eq(viewport.scrollback_lines_count, 0);
-    // Workspace starts at row 1 (after separator at row 0)
-    ck_assert_uint_eq(viewport.workspace_start_row, 1);
+    // Input buffer starts at row 1 (after separator at row 0)
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 1);
 
     talloc_free(ctx);
 }
@@ -67,16 +67,16 @@ START_TEST(test_viewport_small_scrollback)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
-    // Add single line to workspace
-    res = ik_workspace_insert_codepoint(workspace, 'h');
+    // Add single line to input buffer
+    res = ik_input_buffer_insert_codepoint(input_buf, 'h');
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
-    size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
-    ck_assert_uint_eq(workspace_rows, 1);
+    ik_input_buffer_ensure_layout(input_buf, 80);
+    size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
+    ck_assert_uint_eq(input_buf_rows, 1);
 
     // Create scrollback with 3 lines
     ik_scrollback_t *scrollback = NULL;
@@ -94,7 +94,7 @@ START_TEST(test_viewport_small_scrollback)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;  // At bottom
 
@@ -103,12 +103,12 @@ START_TEST(test_viewport_small_scrollback)
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Total: 3 scrollback rows + 1 separator + 1 workspace row = 5 rows (fits in 24)
+    // Total: 3 scrollback rows + 1 separator + 1 input buffer row = 5 rows (fits in 24)
     // All scrollback lines should be visible
     ck_assert_uint_eq(viewport.scrollback_start_line, 0);
     ck_assert_uint_eq(viewport.scrollback_lines_count, 3);
-    // Workspace starts at row 4 (3 scrollback + 1 separator)
-    ck_assert_uint_eq(viewport.workspace_start_row, 4);
+    // Input buffer starts at row 4 (3 scrollback + 1 separator)
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 4);
 
     talloc_free(ctx);
 }
@@ -124,20 +124,20 @@ START_TEST(test_viewport_large_scrollback)
     term->screen_rows = 10;
     term->screen_cols = 80;
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
-    // Add 2 lines to workspace
-    res = ik_workspace_insert_codepoint(workspace, 'h');
+    // Add 2 lines to input buffer
+    res = ik_input_buffer_insert_codepoint(input_buf, 'h');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_newline(workspace);
+    res = ik_input_buffer_insert_newline(input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'i');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'i');
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
-    size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
-    ck_assert_uint_eq(workspace_rows, 2);
+    ik_input_buffer_ensure_layout(input_buf, 80);
+    size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
+    ck_assert_uint_eq(input_buf_rows, 2);
 
     // Create scrollback with 20 lines (more than terminal)
     ik_scrollback_t *scrollback = NULL;
@@ -155,7 +155,7 @@ START_TEST(test_viewport_large_scrollback)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;  // At bottom
 
@@ -164,13 +164,13 @@ START_TEST(test_viewport_large_scrollback)
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Terminal: 10 rows, workspace: 2 rows, separator: 1 row
-    // Document: 20 scrollback + 1 separator + 2 workspace = 23 rows
-    // Viewport shows last 10 rows: scrollback 13-19 (7 rows) + separator (1) + workspace (2)
+    // Terminal: 10 rows, input buffer: 2 rows, separator: 1 row
+    // Document: 20 scrollback + 1 separator + 2 input buffer = 23 rows
+    // Viewport shows last 10 rows: scrollback 13-19 (7 rows) + separator (1) + input buffer (2)
     ck_assert_uint_eq(viewport.scrollback_start_line, 13);
     ck_assert_uint_eq(viewport.scrollback_lines_count, 7);
-    // Workspace starts at row 8 (7 scrollback + 1 separator)
-    ck_assert_uint_eq(viewport.workspace_start_row, 8);
+    // Input buffer starts at row 8 (7 scrollback + 1 separator)
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 8);
 
     talloc_free(ctx);
 }
@@ -186,16 +186,16 @@ START_TEST(test_viewport_offset_clamping)
     term->screen_rows = 10;
     term->screen_cols = 80;
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
-    // Add 1 line to workspace
-    res = ik_workspace_insert_codepoint(workspace, 'h');
+    // Add 1 line to input buffer
+    res = ik_input_buffer_insert_codepoint(input_buf, 'h');
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
-    size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
-    ck_assert_uint_eq(workspace_rows, 1);
+    ik_input_buffer_ensure_layout(input_buf, 80);
+    size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
+    ck_assert_uint_eq(input_buf_rows, 1);
 
     // Create scrollback with 20 lines (more than available space)
     ik_scrollback_t *scrollback = NULL;
@@ -210,7 +210,7 @@ START_TEST(test_viewport_offset_clamping)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 100;  // Try to scroll way past top
 
@@ -219,7 +219,7 @@ START_TEST(test_viewport_offset_clamping)
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Document: 20 scrollback + 1 separator + 1 workspace = 22 rows
+    // Document: 20 scrollback + 1 separator + 1 input buffer = 22 rows
     // Viewport shows 10 rows, max offset = 22 - 10 = 12
     // offset=100 clamped to 12, showing rows 0-9 of document (first 10 scrollback lines)
     ck_assert_uint_eq(viewport.scrollback_start_line, 0);
@@ -229,34 +229,34 @@ START_TEST(test_viewport_offset_clamping)
 }
 
 END_TEST
-/* Test: Viewport when terminal height equals workspace height (no room for scrollback) */
+/* Test: Viewport when terminal height equals input buffer height (no room for scrollback) */
 START_TEST(test_viewport_no_scrollback_room)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create REPL context with terminal that exactly matches workspace height
+    // Create REPL context with terminal that exactly matches input buffer height
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
     term->screen_rows = 3;  // Exactly 3 rows
     term->screen_cols = 80;
 
-    ik_workspace_t *workspace = NULL;
-    res_t res = ik_workspace_create(ctx, &workspace);
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
     // Add content that results in 3 physical lines (equals terminal height)
-    res = ik_workspace_insert_codepoint(workspace, 'a');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'a');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_newline(workspace);
+    res = ik_input_buffer_insert_newline(input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'b');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'b');
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_newline(workspace);
+    res = ik_input_buffer_insert_newline(input_buf);
     ck_assert(is_ok(&res));
-    res = ik_workspace_insert_codepoint(workspace, 'c');
+    res = ik_input_buffer_insert_codepoint(input_buf, 'c');
     ck_assert(is_ok(&res));
-    ik_workspace_ensure_layout(workspace, 80);
-    size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
-    ck_assert_uint_eq(workspace_rows, 3);  // 3 lines exactly
+    ik_input_buffer_ensure_layout(input_buf, 80);
+    size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
+    ck_assert_uint_eq(input_buf_rows, 3);  // 3 lines exactly
 
     // Create scrollback with some lines (but there's no room to show them)
     ik_scrollback_t *scrollback = NULL;
@@ -269,7 +269,7 @@ START_TEST(test_viewport_no_scrollback_room)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;
-    repl->workspace = workspace;
+    repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
 
@@ -278,13 +278,13 @@ START_TEST(test_viewport_no_scrollback_room)
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Terminal has 3 rows, workspace needs 3 rows
+    // Terminal has 3 rows, input buffer needs 3 rows
     // available_for_scrollback = 3 - 3 = 0
     // The false branch of "if (available_for_scrollback > 0)" executes
     // No scrollback should be shown (no room for separator or scrollback)
     ck_assert_uint_eq(viewport.scrollback_start_line, 0);
     ck_assert_uint_eq(viewport.scrollback_lines_count, 0);
-    ck_assert_uint_eq(viewport.workspace_start_row, 0);
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 0);
 
     talloc_free(ctx);
 }

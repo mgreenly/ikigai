@@ -1,9 +1,9 @@
 /**
- * @file workspace_cursor_pp.c
+ * @file input_buffer_cursor_pp.c
  * @brief Cursor pretty-print implementation
  */
 
-#include "workspace_cursor.h"
+#include "input_buffer_cursor.h"
 #include "pp_helpers.h"
 #include <assert.h>
 

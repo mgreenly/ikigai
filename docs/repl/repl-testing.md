@@ -55,7 +55,7 @@ Once Phase 2 is complete and all TDD tests pass, validate the complete system ma
 - Press Enter to insert newline
 - Continue typing on next line
 - Verify text wraps correctly
-- Use arrow keys to move around (left/right only)
+- Use arrow keys to move around (left/right/up/down)
 
 ### 5. Edge cases
 - Fill entire screen with text
@@ -90,13 +90,13 @@ Once Phase 4 is complete and all TDD tests pass, validate the complete REPL with
 - Launch `./ikigai`
 - Enter several lines (press Enter to submit to scrollback)
 - Verify lines appear in scrollback area
-- Verify separator line between scrollback and workspace
+- Verify separator line between scrollback and input buffer
 - Exit, verify terminal restored cleanly
 
 ### 2. Scrolling behavior
 - Fill scrollback with many lines
 - Use Page Up to scroll up through history
-- Verify workspace + separator disappear as you scroll
+- Verify input buffer + separator disappear as you scroll
 - While scrolled up, type a character
 - Verify viewport snaps back to show cursor at bottom
 - Test scroll bounds: can't scroll above first line or past bottom

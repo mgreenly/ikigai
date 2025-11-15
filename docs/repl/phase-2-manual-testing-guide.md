@@ -167,7 +167,7 @@
 
 ## Section 6: Edge Cases (6 tests)
 
-### 6.1 Empty Workspace
+### 6.1 Empty Input Buffer
 - Launch, without typing try: arrows, backspace, delete, Ctrl+A/E/K/U/W
 - Verify no crashes, all no-ops work
 - [ ] Result: _____ Notes: _____
@@ -231,14 +231,14 @@
 **Pass Rate**: 100%
 
 **All Issues Fixed** (2025-11-11):
-1. **Test 6.1 - FIXED**: Empty workspace crashes (commit 9b32cff)
-   - Error: `Assertion 'text != NULL' failed` in `src/workspace_multiline.c:17`
+1. **Test 6.1 - FIXED**: Empty input buffer crashes (commit 9b32cff)
+   - Error: `Assertion 'text != NULL' failed` in `src/input_buffer_multiline.c:17`
    - Fix: Added NULL/empty checks to all 6 navigation/readline functions
    - Status: ✅ FIXED
 
 2. **Test 4.2 - FIXED**: Column preservation in multi-line navigation (commit 3c226d3)
    - Issue: Cursor returned to clamped position instead of original column
-   - Fix: Added `target_column` field to workspace structure
+   - Fix: Added `target_column` field to input buffer structure
    - Status: ✅ FIXED
 
 3. **Test 5.6 - FIXED**: Ctrl+W punctuation handling (commits 3c226d3, 4f38c6b)

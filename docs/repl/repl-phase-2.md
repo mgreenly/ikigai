@@ -2,7 +2,7 @@
 
 [← Back to REPL Terminal Overview](README.md)
 
-**Goal**: Full interactive REPL with workspace only (no scrollback).
+**Goal**: Full interactive REPL with input buffer only (no scrollback).
 
 Complete the Phase 1 functionality from the original plan with direct rendering. Build working REPL event loop that validates all the fundamentals before adding scrollback complexity.
 
@@ -13,13 +13,13 @@ Complete the Phase 1 functionality from the original plan with direct rendering.
 **Function**: `ik_repl_render_frame(ik_repl_ctx_t *repl)`
 
 **Logic**:
-1. Get workspace text and cursor position
-2. Call `ik_render_workspace()` to render to terminal
+1. Get input buffer text and cursor position
+2. Call `ik_render_input_buffer()` to render to terminal
 3. Error handling
 
 **Test Coverage**:
 - Successful render
-- Render with empty workspace
+- Render with empty input buffer
 - Render with multi-line text
 - Render with cursor at various positions
 - Error handling (write failure)
@@ -29,19 +29,19 @@ Complete the Phase 1 functionality from the original plan with direct rendering.
 **Function**: `ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action)`
 
 **Action Processing**:
-- `IK_INPUT_CHAR` → `ik_workspace_insert_codepoint()`
-- `IK_INPUT_NEWLINE` → `ik_workspace_insert_newline()`
-- `IK_INPUT_BACKSPACE` → `ik_workspace_backspace()`
-- `IK_INPUT_DELETE` → `ik_workspace_delete()`
-- `IK_INPUT_ARROW_LEFT` → `ik_workspace_cursor_left()`
-- `IK_INPUT_ARROW_RIGHT` → `ik_workspace_cursor_right()`
-- `IK_INPUT_ARROW_UP` → `ik_workspace_cursor_up()` (added in Task 2.5)
-- `IK_INPUT_ARROW_DOWN` → `ik_workspace_cursor_down()` (added in Task 2.5)
-- `IK_INPUT_CTRL_A` → `ik_workspace_cursor_to_line_start()` (added in Task 2.6)
-- `IK_INPUT_CTRL_E` → `ik_workspace_cursor_to_line_end()` (added in Task 2.6)
-- `IK_INPUT_CTRL_K` → `ik_workspace_kill_to_line_end()` (added in Task 2.6)
-- `IK_INPUT_CTRL_U` → `ik_workspace_kill_line()` (added in Task 2.6)
-- `IK_INPUT_CTRL_W` → `ik_workspace_delete_word_backward()` (added in Task 2.6)
+- `IK_INPUT_CHAR` → `ik_input_buffer_insert_codepoint()`
+- `IK_INPUT_NEWLINE` → `ik_input_buffer_insert_newline()`
+- `IK_INPUT_BACKSPACE` → `ik_input_buffer_backspace()`
+- `IK_INPUT_DELETE` → `ik_input_buffer_delete()`
+- `IK_INPUT_ARROW_LEFT` → `ik_input_buffer_cursor_left()`
+- `IK_INPUT_ARROW_RIGHT` → `ik_input_buffer_cursor_right()`
+- `IK_INPUT_ARROW_UP` → `ik_input_buffer_cursor_up()` (added in Task 2.5)
+- `IK_INPUT_ARROW_DOWN` → `ik_input_buffer_cursor_down()` (added in Task 2.5)
+- `IK_INPUT_CTRL_A` → `ik_input_buffer_cursor_to_line_start()` (added in Task 2.6)
+- `IK_INPUT_CTRL_E` → `ik_input_buffer_cursor_to_line_end()` (added in Task 2.6)
+- `IK_INPUT_CTRL_K` → `ik_input_buffer_kill_to_line_end()` (added in Task 2.6)
+- `IK_INPUT_CTRL_U` → `ik_input_buffer_kill_line()` (added in Task 2.6)
+- `IK_INPUT_CTRL_W` → `ik_input_buffer_delete_word_backward()` (added in Task 2.6)
 - `IK_INPUT_CTRL_C` → set quit flag
 
 **Test Coverage**:
@@ -51,19 +51,19 @@ Complete the Phase 1 functionality from the original plan with direct rendering.
 
 ### Task 2.5: Multi-line Cursor Movement
 
-**Goal**: Enable up/down arrow keys for cursor movement within multi-line workspace.
+**Goal**: Enable up/down arrow keys for cursor movement within multi-line input buffer.
 
 **Add to** `src/input.h`:
 - Input actions already exist: `IK_INPUT_ARROW_UP`, `IK_INPUT_ARROW_DOWN`
 - No changes needed to input module
 
-**Add to** `src/workspace.h`:
+**Add to** `src/input_buffer.h`:
 ```c
-// Move cursor up one line (within workspace)
-res_t ik_workspace_cursor_up(ik_workspace_t *ws);
+// Move cursor up one line (within input buffer)
+res_t ik_input_buffer_cursor_up(ik_input_buffer_t *ws);
 
-// Move cursor down one line (within workspace)
-res_t ik_workspace_cursor_down(ik_workspace_t *ws);
+// Move cursor down one line (within input buffer)
+res_t ik_input_buffer_cursor_down(ik_input_buffer_t *ws);
 ```
 
 **Implementation Logic**:
@@ -103,22 +103,22 @@ typedef enum {
 - Parse Ctrl+A, Ctrl+E, Ctrl+K, Ctrl+U, Ctrl+W
 - Return appropriate action types
 
-**Add to** `src/workspace.h`:
+**Add to** `src/input_buffer.h`:
 ```c
 // Move cursor to beginning of current line
-res_t ik_workspace_cursor_to_line_start(ik_workspace_t *ws);
+res_t ik_input_buffer_cursor_to_line_start(ik_input_buffer_t *ws);
 
 // Move cursor to end of current line
-res_t ik_workspace_cursor_to_line_end(ik_workspace_t *ws);
+res_t ik_input_buffer_cursor_to_line_end(ik_input_buffer_t *ws);
 
 // Delete from cursor to end of current line
-res_t ik_workspace_kill_to_line_end(ik_workspace_t *ws);
+res_t ik_input_buffer_kill_to_line_end(ik_input_buffer_t *ws);
 
 // Delete entire current line
-res_t ik_workspace_kill_line(ik_workspace_t *ws);
+res_t ik_input_buffer_kill_line(ik_input_buffer_t *ws);
 
 // Delete word backward from cursor
-res_t ik_workspace_delete_word_backward(ik_workspace_t *ws);
+res_t ik_input_buffer_delete_word_backward(ik_input_buffer_t *ws);
 ```
 
 **Implementation Logic**:

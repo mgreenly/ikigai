@@ -1,9 +1,9 @@
 /**
- * @file workspace_layout.c
- * @brief Workspace layout caching implementation
+ * @file input_buffer_layout.c
+ * @brief Input buffer layout caching implementation
  */
 
-#include "workspace.h"
+#include "input_buffer.h"
 #include "error.h"
 #include <assert.h>
 #include <inttypes.h>
@@ -29,7 +29,7 @@ static size_t calculate_display_width(const char *text, size_t len)
                                                        (utf8proc_ssize_t)(len - pos),
                                                        &codepoint);
 
-        /* Invalid UTF-8 - treat as 1 column and continue (defensive: workspace only contains valid UTF-8) */
+        /* Invalid UTF-8 - treat as 1 column and continue (defensive: input buffer only contains valid UTF-8) */
         if (bytes_read <= 0) { /* LCOV_EXCL_BR_LINE */
             display_width++; pos++; continue; /* LCOV_EXCL_LINE */
         }
@@ -46,25 +46,25 @@ static size_t calculate_display_width(const char *text, size_t len)
     return display_width;
 }
 
-void ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_width)
+void ik_input_buffer_ensure_layout(ik_input_buffer_t *input_buffer, int32_t terminal_width)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     /* If layout is clean and width unchanged, no recalculation needed */
-    if (workspace->layout_dirty == 0 && workspace->cached_width == terminal_width) {
+    if (input_buffer->layout_dirty == 0 && input_buffer->cached_width == terminal_width) {
         return;
     }
 
-    /* Get workspace text */
+    /* Get input buffer text */
     char *text;
     size_t text_len;
-    ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
 
-    /* Empty workspace: 0 physical lines (Bug #10 fix) */
+    /* Empty input buffer: 0 physical lines (Bug #10 fix) */
     if (text == NULL || text_len == 0) { /* LCOV_EXCL_BR_LINE - defensive: text is NULL only when text_len is 0 */
-        workspace->physical_lines = 0;
-        workspace->cached_width = terminal_width;
-        workspace->layout_dirty = 0;
+        input_buffer->physical_lines = 0;
+        input_buffer->cached_width = terminal_width;
+        input_buffer->layout_dirty = 0;
         return;
     }
 
@@ -105,19 +105,19 @@ void ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_widt
     /* If text ends with newline, we counted it above */
 
     /* Update cached values */
-    workspace->physical_lines = physical_lines;
-    workspace->cached_width = terminal_width;
-    workspace->layout_dirty = 0;
+    input_buffer->physical_lines = physical_lines;
+    input_buffer->cached_width = terminal_width;
+    input_buffer->layout_dirty = 0;
 }
 
-void ik_workspace_invalidate_layout(ik_workspace_t *workspace)
+void ik_input_buffer_invalidate_layout(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
-    workspace->layout_dirty = 1;
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
+    input_buffer->layout_dirty = 1;
 }
 
-size_t ik_workspace_get_physical_lines(ik_workspace_t *workspace)
+size_t ik_input_buffer_get_physical_lines(ik_input_buffer_t *input_buffer)
 {
-    assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
-    return workspace->physical_lines;
+    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
+    return input_buffer->physical_lines;
 }

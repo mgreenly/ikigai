@@ -21,7 +21,7 @@ This plan implements a REPL with direct terminal rendering. We'll build incremen
 - ✅ Generic `ik_array_t` utility with type-safe wrappers (`ik_byte_array_t`, `ik_line_array_t`)
 - ✅ Terminal module (`terminal.c`) - raw mode, ANSI escape sequences
 - ✅ Input parser module (`input.c`) - parse bytes to semantic actions
-- ✅ Workspace module (`workspace.c`) - multi-line text buffer with UTF-8 support
+- ✅ input buffer module (`input_buffer.c`) - multi-line text buffer with UTF-8 support
 - ✅ REPL init/cleanup infrastructure
 
 **Key Achievements**:
@@ -37,12 +37,12 @@ This plan implements a REPL with direct terminal rendering. We'll build incremen
 
 ## Phase 2: Complete Basic REPL Event Loop ✅
 
-**Goal**: Full interactive REPL with just workspace (no scrollback).
+**Goal**: Full interactive REPL with just input buffer (no scrollback).
 
 **Status**: COMPLETE (2025-11-11)
 
 **Completed**:
-- ✅ Task 1: `ik_repl_render_frame()` - Render current workspace state
+- ✅ Task 1: `ik_repl_render_frame()` - Render current input buffer state
 - ✅ Task 2: `ik_repl_process_action()` - Process all input actions (char, newline, backspace, delete, arrows)
 - ✅ Task 2.5: Multi-line cursor navigation (cursor_up/down with column preservation)
 - ✅ Task 2.6: Readline-style editing shortcuts
@@ -64,7 +64,7 @@ This plan implements a REPL with direct terminal rendering. We'll build incremen
   - Terminal restoration verified
   - Results documented in docs/repl/phase-2-manual-testing-guide.md
 - ✅ Task 6: Bug fixes (all 3 bugs fixed)
-  - Bug 6.1 CRITICAL: Empty workspace crashes (commit 9b32cff)
+  - Bug 6.1 CRITICAL: Empty input buffer crashes (commit 9b32cff)
   - Bug 6.2 MEDIUM: Column preservation (commit 3c226d3)
   - Bug 6.3 LOW: Ctrl+W punctuation handling (commits 3c226d3, 4f38c6b)
 - ✅ Code review: Security/memory/error handling analysis (Grade: A-)
@@ -72,8 +72,8 @@ This plan implements a REPL with direct terminal rendering. We'll build incremen
   - 2 MEDIUM issues documented (theoretical overflows, commit 025491e)
   - Excellent security: no unsafe functions, proper UTF-8 validation
 - ✅ Code refactoring:
-  - Cursor module workspace-internal (void+assertions, -10 LCOV markers)
-  - Workspace split: `workspace.c` + `workspace_multiline.c` (file size lint compliance)
+  - Cursor module input buffer-internal (void+assertions, -10 LCOV markers)
+  - input buffer split: `input_buffer.c` + `input_buffer_multiline.c` (file size lint compliance)
   - Test files modularized for maintainability
 
 **Final Metrics**:
@@ -146,9 +146,9 @@ client.c (32 lines, main only)
   └─ repl.{c,h}
        ├─ terminal.{c,h}
        ├─ render.{c,h}         [Replaces old render.c - Phase 1]
-       ├─ workspace.{c,h}              [Split into 3 files]
-       │    ├─ workspace_cursor.{c,h} [Internal cursor management]
-       │    ├─ workspace_multiline.c  [Multi-line operations]
+       ├─ input buffer.{c,h}              [Split into 3 files]
+       │    ├─ input_buffer_cursor.{c,h} [Internal cursor management]
+       │    ├─ input_buffer_multiline.c  [Multi-line operations]
        │    └─ byte_array.{c,h}       [Dynamic byte buffer]
        └─ input.{c,h}
 ```
@@ -161,9 +161,9 @@ client.c (32 lines, main only)
        ├─ render.{c,h}         [Single framebuffer writes]
        ├─ format.{c,h}                 [Phase 2.75 - printf-style buffer formatting]
        │    └─ byte_array.{c,h}       [Reused for text accumulation]
-       ├─ workspace.{c,h}              [With ik_pp_workspace() - Phase 2.75]
-       │    ├─ workspace_cursor.{c,h} [Internal cursor management]
-       │    ├─ workspace_multiline.c  [Multi-line operations]
+       ├─ input buffer.{c,h}              [With ik_pp_input_buffer() - Phase 2.75]
+       │    ├─ input_buffer_cursor.{c,h} [Internal cursor management]
+       │    ├─ input_buffer_multiline.c  [Multi-line operations]
        │    └─ byte_array.{c,h}       [Dynamic byte buffer]
        └─ input.{c,h}
 ```
@@ -177,9 +177,9 @@ client.c (32 lines, main only)
        ├─ format.{c,h}                 [Phase 2.75 - printf-style buffer formatting]
        │    └─ byte_array.{c,h}       [Reused for text accumulation]
        ├─ scrollback.{c,h}             [Phase 3 - hot/cold data separation]
-       ├─ workspace.{c,h}              [With layout caching - Phase 3]
-       │    ├─ workspace_cursor.{c,h} [Internal cursor management]
-       │    ├─ workspace_multiline.c  [Multi-line operations]
+       ├─ input buffer.{c,h}              [With layout caching - Phase 3]
+       │    ├─ input_buffer_cursor.{c,h} [Internal cursor management]
+       │    ├─ input_buffer_multiline.c  [Multi-line operations]
        │    └─ byte_array.{c,h}       [Dynamic byte buffer]
        └─ input.{c,h}                  [With Page Up/Down - Phase 4]
 ```
