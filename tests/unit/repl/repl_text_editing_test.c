@@ -65,7 +65,7 @@ START_TEST(test_repl_process_action_newline)
     repl->workspace = workspace;
     repl->quit = false;
 
-    ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
+    ik_input_action_t action = {.type = IK_INPUT_INSERT_NEWLINE};
 
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));

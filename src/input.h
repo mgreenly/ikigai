@@ -10,7 +10,8 @@
 // Input action types representing semantic input events
 typedef enum {
     IK_INPUT_CHAR,        // Regular character
-    IK_INPUT_NEWLINE,     // Enter key
+    IK_INPUT_NEWLINE,     // Enter key (submit)
+    IK_INPUT_INSERT_NEWLINE, // Ctrl+J (insert newline without submitting)
     IK_INPUT_BACKSPACE,   // Backspace key
     IK_INPUT_DELETE,      // Delete key
     IK_INPUT_ARROW_LEFT,  // Left arrow

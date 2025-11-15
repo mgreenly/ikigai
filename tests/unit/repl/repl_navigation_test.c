@@ -245,7 +245,7 @@ START_TEST(test_repl_process_action_arrow_up)
     // Insert "a\nb" (line1\nline2)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'a'};
     ik_repl_process_action(repl, &action);
-    action.type = IK_INPUT_NEWLINE;
+    action.type = IK_INPUT_INSERT_NEWLINE;
     ik_repl_process_action(repl, &action);
     action.type = IK_INPUT_CHAR;
     action.codepoint = 'b';
@@ -289,7 +289,7 @@ START_TEST(test_repl_process_action_arrow_down)
     // Insert "a\nb" (line1\nline2)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'a'};
     ik_repl_process_action(repl, &action);
-    action.type = IK_INPUT_NEWLINE;
+    action.type = IK_INPUT_INSERT_NEWLINE;
     ik_repl_process_action(repl, &action);
     action.type = IK_INPUT_CHAR;
     action.codepoint = 'b';

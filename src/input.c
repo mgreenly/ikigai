@@ -273,8 +273,12 @@ void ik_input_parse_byte(ik_input_parser_t *parser, char byte,
     }
 
     // Handle control characters (except DEL)
-    if (byte == '\n' || byte == '\r') {  // 0x0A (LF) or 0x0D (CR) - Newline
+    if (byte == '\r') {  // 0x0D (CR) - Enter key submits
         action_out->type = IK_INPUT_NEWLINE;
+        return;
+    }
+    if (byte == '\n') {  // 0x0A (LF) - Ctrl+J inserts newline without submitting
+        action_out->type = IK_INPUT_INSERT_NEWLINE;
         return;
     }
     if (byte == 0x01) {  // Ctrl+A

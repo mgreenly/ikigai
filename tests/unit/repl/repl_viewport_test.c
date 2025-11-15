@@ -164,12 +164,12 @@ START_TEST(test_viewport_large_scrollback)
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Terminal: 10 rows, workspace: 2 rows, available for scrollback: 8 rows
-    // Should show last 8 lines of scrollback (lines 12-19)
-    ck_assert_uint_eq(viewport.scrollback_start_line, 12);
-    ck_assert_uint_eq(viewport.scrollback_lines_count, 8);
-    // Workspace starts at row 8 (after scrollback)
-    ck_assert_uint_eq(viewport.workspace_start_row, 8);
+    // Terminal: 10 rows, separator: 1 row, workspace: 2 rows, available for scrollback: 7 rows
+    // Should show last 7 lines of scrollback (lines 13-19)
+    ck_assert_uint_eq(viewport.scrollback_start_line, 13);
+    ck_assert_uint_eq(viewport.scrollback_lines_count, 7);
+    // Workspace starts at row 7 (after 7 rows of scrollback)
+    ck_assert_uint_eq(viewport.workspace_start_row, 7);
 
     talloc_free(ctx);
 }
@@ -218,11 +218,72 @@ START_TEST(test_viewport_offset_clamping)
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Available space: 10 rows - 1 workspace = 9 rows for scrollback
+    // Available space: 10 rows - 1 separator - 1 workspace = 8 rows for scrollback
     // Scrollback has 20 lines, so it overflows
     // With viewport_offset clamped, should show first lines
     ck_assert_uint_eq(viewport.scrollback_start_line, 0);
-    ck_assert_uint_eq(viewport.scrollback_lines_count, 9);
+    ck_assert_uint_eq(viewport.scrollback_lines_count, 8);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: Viewport when terminal height equals workspace height (no room for scrollback) */
+START_TEST(test_viewport_no_scrollback_room)
+{
+    void *ctx = talloc_new(NULL);
+
+    // Create REPL context with terminal that exactly matches workspace height
+    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    term->screen_rows = 3;  // Exactly 3 rows
+    term->screen_cols = 80;
+
+    ik_workspace_t *workspace = NULL;
+    res_t res = ik_workspace_create(ctx, &workspace);
+    ck_assert(is_ok(&res));
+
+    // Add content that results in 3 physical lines (equals terminal height)
+    res = ik_workspace_insert_codepoint(workspace, 'a');
+    ck_assert(is_ok(&res));
+    res = ik_workspace_insert_newline(workspace);
+    ck_assert(is_ok(&res));
+    res = ik_workspace_insert_codepoint(workspace, 'b');
+    ck_assert(is_ok(&res));
+    res = ik_workspace_insert_newline(workspace);
+    ck_assert(is_ok(&res));
+    res = ik_workspace_insert_codepoint(workspace, 'c');
+    ck_assert(is_ok(&res));
+    ik_workspace_ensure_layout(workspace, 80);
+    size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
+    ck_assert_uint_eq(workspace_rows, 3);  // 3 lines exactly
+
+    // Create scrollback with some lines (but there's no room to show them)
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "scrollback line 1", 17);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "scrollback line 2", 17);
+    ck_assert(is_ok(&res));
+
+    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->term = term;
+    repl->workspace = workspace;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
+
+    // Calculate viewport
+    ik_viewport_t viewport;
+    res = ik_repl_calculate_viewport(repl, &viewport);
+    ck_assert(is_ok(&res));
+
+    // Terminal has 3 rows, workspace needs 3 rows
+    // available_for_scrollback = 3 - 3 = 0
+    // The false branch of "if (available_for_scrollback > 0)" executes
+    // No scrollback should be shown (no room for separator or scrollback)
+    ck_assert_uint_eq(viewport.scrollback_start_line, 0);
+    ck_assert_uint_eq(viewport.scrollback_lines_count, 0);
+    ck_assert_uint_eq(viewport.workspace_start_row, 0);
 
     talloc_free(ctx);
 }
@@ -239,6 +300,7 @@ static Suite *repl_viewport_suite(void)
     tcase_add_test(tc_viewport, test_viewport_small_scrollback);
     tcase_add_test(tc_viewport, test_viewport_large_scrollback);
     tcase_add_test(tc_viewport, test_viewport_offset_clamping);
+    tcase_add_test(tc_viewport, test_viewport_no_scrollback_room);
     suite_add_tcase(s, tc_viewport);
 
     return s;

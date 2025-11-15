@@ -228,6 +228,65 @@ START_TEST(test_workspace_kill_line_empty_line)
 }
 
 END_TEST
+/* Test: kill_line followed by insert (reproduces crash bug) */
+START_TEST(test_workspace_kill_line_then_insert)
+{
+    void *ctx = talloc_new(NULL);
+    ik_workspace_t *workspace = NULL;
+
+    ik_workspace_create(ctx, &workspace);
+
+    /* Insert "test" */
+    ik_workspace_insert_codepoint(workspace, 't');
+    ik_workspace_insert_codepoint(workspace, 'e');
+    ik_workspace_insert_codepoint(workspace, 's');
+    ik_workspace_insert_codepoint(workspace, 't');
+
+    /* Verify cursor at position 4 */
+    size_t cursor_before = 0;
+    size_t grapheme_before = 0;
+    res_t res = ik_workspace_get_cursor_position(workspace, &cursor_before, &grapheme_before);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(cursor_before, 4); /* After "test" */
+
+    /* Action: kill line (should delete entire "test" line) */
+    res = ik_workspace_kill_line(workspace);
+    ck_assert(is_ok(&res));
+
+    /* Assert: text is empty */
+    char *result_text = NULL;
+    size_t result_len = 0;
+    res = ik_workspace_get_text(workspace, &result_text, &result_len);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(result_len, 0);
+
+    /* Verify cursor at position 0 */
+    size_t cursor_after = 0;
+    size_t grapheme_after = 0;
+    res = ik_workspace_get_cursor_position(workspace, &cursor_after, &grapheme_after);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(cursor_after, 0); /* At start of empty workspace */
+
+    /* BUG REPRODUCTION: Insert character after kill_line (this would crash before fix) */
+    res = ik_workspace_insert_codepoint(workspace, 'a');
+    ck_assert(is_ok(&res));
+
+    /* Assert: text is "a", cursor at position 1 */
+    res = ik_workspace_get_text(workspace, &result_text, &result_len);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(result_len, 1);
+    ck_assert_mem_eq(result_text, "a", 1);
+
+    size_t cursor_final = 0;
+    size_t grapheme_final = 0;
+    res = ik_workspace_get_cursor_position(workspace, &cursor_final, &grapheme_final);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(cursor_final, 1);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 /* Test: NULL workspace should assert */
 START_TEST(test_workspace_kill_line_null_workspace_asserts)
 {
@@ -248,6 +307,7 @@ static Suite *workspace_kill_line_suite(void)
     tcase_add_test(tc_core, test_workspace_kill_line_first_line);
     tcase_add_test(tc_core, test_workspace_kill_line_last_line);
     tcase_add_test(tc_core, test_workspace_kill_line_empty_line);
+    tcase_add_test(tc_core, test_workspace_kill_line_then_insert);
 
     /* Assertion tests */
     tcase_add_test_raise_signal(tc_assertions, test_workspace_kill_line_null_workspace_asserts, SIGABRT);

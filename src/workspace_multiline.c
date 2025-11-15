@@ -352,6 +352,7 @@ res_t ik_workspace_kill_to_line_end(ik_workspace_t *workspace)
 
     // Update cursor (text changed, need to resync cursor object)
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
+    workspace->cursor_byte_offset = cursor_pos;
     ik_cursor_set_position(workspace->cursor, text, text_len, cursor_pos);
 
     // Reset target column on text modification
@@ -397,7 +398,11 @@ res_t ik_workspace_kill_line(ik_workspace_t *workspace)
 
     // Position cursor at line_start (where the deleted line was)
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
-    ik_cursor_set_position(workspace->cursor, text, text_len, line_start);
+
+    // Ensure cursor position doesn't exceed new text length
+    size_t new_cursor_pos = (line_start <= text_len) ? line_start : text_len;
+    workspace->cursor_byte_offset = new_cursor_pos;
+    ik_cursor_set_position(workspace->cursor, text, text_len, new_cursor_pos);
 
     // Reset target column on text modification
     workspace->target_column = 0;

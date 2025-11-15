@@ -7,7 +7,9 @@
 #include <talloc.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "../../../src/repl.h"
+#include "../../../src/error.h"
 #include "../../test_utils.h"
 
 // Mock write() implementation to avoid actual terminal writes
@@ -76,7 +78,36 @@ START_TEST(test_render_frame_empty_scrollback) {
 
     // Render frame - should succeed even with empty scrollback
     res = ik_repl_render_frame(repl);
+    if (is_err(&res)) {
+        error_fprintf(stderr, res.err);
+    }
     ck_assert(is_ok(&res));
+
+    // CRITICAL: Verify separator line appears even with empty scrollback
+    ck_assert_msg(mock_write_buffer != NULL, "Expected render output");
+
+    // Look for separator line (a line of dashes)
+    // The separator should be a full line of dashes (80 chars in this test)
+    int found_separator = 0;
+    char *pos = mock_write_buffer;
+    while (*pos != '\0') {
+        // Look for a sequence of dashes
+        if (*pos == '-') {
+            int dash_count = 0;
+            while (*pos == '-') {
+                dash_count++;
+                pos++;
+            }
+            // If we found at least 10 consecutive dashes, it's likely the separator
+            if (dash_count >= 10) {
+                found_separator = 1;
+                break;
+            }
+        } else {
+            pos++;
+        }
+    }
+    ck_assert_msg(found_separator, "Expected separator line (dashes) even with empty scrollback");
 
     talloc_free(ctx);
     mock_write_reset();
@@ -126,7 +157,37 @@ START_TEST(test_render_frame_with_scrollback)
 
     // Render frame - should render both scrollback and workspace
     res = ik_repl_render_frame(repl);
+    if (is_err(&res)) {
+        error_fprintf(stderr, res.err);
+    }
     ck_assert(is_ok(&res));
+
+    // CRITICAL: Verify output contains BOTH scrollback and workspace content
+    ck_assert_msg(mock_write_buffer != NULL, "Expected render output");
+
+    // Output should contain scrollback lines
+    ck_assert_msg(strstr(mock_write_buffer, "line 1") != NULL,
+                  "Expected 'line 1' in output");
+    ck_assert_msg(strstr(mock_write_buffer, "line 2") != NULL,
+                  "Expected 'line 2' in output");
+
+    // Output should contain workspace content
+    ck_assert_msg(strstr(mock_write_buffer, "hi") != NULL,
+                  "Expected 'hi' in output");
+
+    // Verify scrollback appears before workspace
+    char *line1_pos = strstr(mock_write_buffer, "line 1");
+    char *hi_pos = strstr(mock_write_buffer, "hi");
+    ck_assert_msg(line1_pos < hi_pos,
+                  "Scrollback should appear before workspace");
+
+    // Verify only ONE screen clear (should be "\x1b[2J" only once)
+    const char *clear_seq = "\x1b[2J";
+    char *first_clear = strstr(mock_write_buffer, clear_seq);
+    ck_assert_msg(first_clear != NULL, "Expected screen clear");
+    char *second_clear = strstr(first_clear + strlen(clear_seq), clear_seq);
+    ck_assert_msg(second_clear == NULL,
+                  "Should only have ONE screen clear, not two");
 
     talloc_free(ctx);
     mock_write_reset();

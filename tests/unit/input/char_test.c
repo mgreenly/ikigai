@@ -57,7 +57,7 @@ START_TEST(test_input_parse_nonprintable)
 }
 
 END_TEST
-// Test: parse newline character
+// Test: parse Ctrl+J (insert newline without submitting)
 START_TEST(test_input_parse_newline)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -67,9 +67,9 @@ START_TEST(test_input_parse_newline)
     res_t res = ik_input_parser_create(ctx, &parser);
     ck_assert(is_ok(&res));
 
-    // Parse '\n' (0x0A)
+    // Parse '\n' (0x0A) - Ctrl+J inserts newline without submitting
     ik_input_parse_byte(parser, '\n', &action);
-    ck_assert_int_eq(action.type, IK_INPUT_NEWLINE);
+    ck_assert_int_eq(action.type, IK_INPUT_INSERT_NEWLINE);
 
     talloc_free(ctx);
 }

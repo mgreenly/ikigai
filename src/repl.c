@@ -137,10 +137,19 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     }
 
     // Calculate available rows for scrollback
+    // Always reserve 1 row for separator line (shown even with empty scrollback)
     size_t available_for_scrollback = (size_t)terminal_rows - workspace_rows;
+    if (available_for_scrollback > 0) {
+        available_for_scrollback -= 1;  // Reserve row for separator
+    }
 
     // Calculate which scrollback lines to show
-    if (total_scrollback_rows <= available_for_scrollback) {
+    if (available_for_scrollback == 0) {
+        // No room for scrollback - workspace fills entire terminal
+        viewport_out->scrollback_start_line = 0;
+        viewport_out->scrollback_lines_count = 0;
+        viewport_out->workspace_start_row = 0;
+    } else if (total_scrollback_rows <= available_for_scrollback) {
         // All scrollback fits on screen
         viewport_out->scrollback_start_line = 0;
         viewport_out->scrollback_lines_count = scrollback_line_count;
@@ -201,48 +210,24 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     res_t result = ik_repl_calculate_viewport(repl, &viewport);
     if (is_err(&result))return result;  /* LCOV_EXCL_LINE */
 
-    // If no scrollback visible, just render workspace (current behavior)
-    if (viewport.scrollback_lines_count == 0) {
-        // Get workspace text (cannot fail - always returns OK)
-        char *text = NULL;
-        size_t text_len = 0;
-        ik_workspace_get_text(repl->workspace, &text, &text_len);
-
-        // Get cursor byte offset (cannot fail - always returns OK)
-        size_t cursor_byte_offset = 0;
-        size_t cursor_grapheme = 0;
-        ik_workspace_get_cursor_position(repl->workspace, &cursor_byte_offset, &cursor_grapheme);
-
-        // Render workspace with cursor
-        return ik_render_workspace(repl->render, text, text_len, cursor_byte_offset);
-    }
-
-    // Otherwise render both scrollback and workspace
-    // Phase 4 Task 4.4: Combined frame rendering
-    // Strategy: Call render_scrollback (which clears + writes scrollback)
-    // then render workspace positioned after scrollback
-
-    // Clear screen, render scrollback
-    int32_t scrollback_rows_used = 0;
-    result = ik_render_scrollback(repl->render, repl->scrollback,
-                                  viewport.scrollback_start_line,
-                                  viewport.scrollback_lines_count,
-                                  &scrollback_rows_used);
-    if (is_err(&result))return result;  /* LCOV_EXCL_LINE */
-
     // Get workspace text
     char *text = NULL;
     size_t text_len = 0;
     ik_workspace_get_text(repl->workspace, &text, &text_len);
 
+    // Get cursor byte offset
     size_t cursor_byte_offset = 0;
     size_t cursor_grapheme = 0;
     ik_workspace_get_cursor_position(repl->workspace, &cursor_byte_offset, &cursor_grapheme);
 
-    // Render workspace positioned after scrollback
-    // For now, just use ik_render_workspace which will re-clear and render
-    // TODO Phase 4.4: Optimize to single atomic write
-    return ik_render_workspace(repl->render, text, text_len, cursor_byte_offset);
+    // Always render combined (includes separator even with empty scrollback)
+    return ik_render_combined(repl->render,
+                              repl->scrollback,
+                              viewport.scrollback_start_line,
+                              viewport.scrollback_lines_count,
+                              text,
+                              text_len,
+                              cursor_byte_offset);
 }
 
 /**
@@ -268,10 +253,24 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
         // Pretty-print the workspace
         ik_pp_workspace(repl->workspace, buf, 0);
 
-        // Output to stdout (temporary until scrollback exists)
+        // Append output to scrollback buffer (split by newlines)
         const char *output = ik_format_get_string(buf);
-        printf("%s", output);
-        fflush(stdout);
+        size_t output_len = strlen(output);
+        if (output_len > 0) {  // LCOV_EXCL_BR_LINE - pp_workspace always produces header output
+            // Split output by newlines and append each line separately
+            size_t line_start = 0;
+            for (size_t i = 0; i <= output_len; i++) {
+                if (i == output_len || output[i] == '\n') {
+                    // Found end of line or end of string
+                    size_t line_len = i - line_start;
+                    if (line_len > 0 || i < output_len) {  // LCOV_EXCL_BR_LINE - trailing newline skip tested but not instrumented
+                        result = ik_scrollback_append_line(repl->scrollback, output + line_start, line_len);
+                        if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
+                    }
+                    line_start = i + 1;  // Start of next line (skip the \n)
+                }
+            }
+        }
 
         // Clean up format buffer
         talloc_free(buf);
@@ -314,31 +313,39 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
     switch (action->type) { // LCOV_EXCL_BR_LINE
         case IK_INPUT_CHAR:
             return ik_workspace_insert_codepoint(repl->workspace, action->codepoint);
+        case IK_INPUT_INSERT_NEWLINE:
+            // Ctrl+J inserts newline without submitting (multi-line editing)
+            return ik_workspace_insert_newline(repl->workspace);
         case IK_INPUT_NEWLINE: {
             // Check if workspace contains a slash command
             const char *text = (const char *)repl->workspace->text->data;
             size_t text_len = ik_byte_array_size(repl->workspace->text);
 
-            // Check if text starts with '/'
-            if (text_len > 0 && text[0] == '/') {
+            // Check if text starts with '/' and extract command BEFORE submit clears workspace
+            bool is_slash_command = (text_len > 0 && text[0] == '/');
+            char *command = NULL;
+            if (is_slash_command) {
                 // Extract command (skip the '/' character)
-                char *command = ik_talloc_zero_wrapper(repl, text_len); // Includes space for null terminator
+                command = ik_talloc_zero_wrapper(repl, text_len); // Includes space for null terminator
                 if (command == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
                 memcpy(command, text + 1, text_len - 1);
                 command[text_len - 1] = '\0';
+            }
 
-                // Handle the slash command
-                res_t result = ik_repl_handle_slash_command(repl, command);
+            // Always submit line to scrollback first (so command appears before output)
+            res_t result = ik_repl_submit_line(repl);
+            if (is_err(&result))return result;  // LCOV_EXCL_LINE
+
+            // If it was a slash command, handle it now (after workspace text is in scrollback)
+            if (is_slash_command) {
+                // Handle the slash command (appends output to scrollback)
+                result = ik_repl_handle_slash_command(repl, command);
                 talloc_free(command);
 
                 if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
-
-                // Submit line to scrollback (clears workspace and auto-scrolls)
-                return ik_repl_submit_line(repl);
             }
 
-            // Not a slash command, insert newline as usual
-            return ik_workspace_insert_newline(repl->workspace);
+            return OK(NULL);
         }
         case IK_INPUT_BACKSPACE:
             return ik_workspace_backspace(repl->workspace);

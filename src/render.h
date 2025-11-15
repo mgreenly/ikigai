@@ -25,4 +25,13 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
                            size_t line_count,
                            int32_t *rows_used_out);
 
+// Render combined scrollback + workspace in single atomic write (Phase 4 Task 4.4)
+res_t ik_render_combined(ik_render_ctx_t *ctx,
+                         ik_scrollback_t *scrollback,
+                         size_t scrollback_start_line,
+                         size_t scrollback_line_count,
+                         const char *workspace_text,
+                         size_t workspace_text_len,
+                         size_t workspace_cursor_offset);
+
 #endif /* IKIGAI_RENDER_H */

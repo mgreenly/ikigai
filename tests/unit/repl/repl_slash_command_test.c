@@ -23,6 +23,10 @@ START_TEST(test_pp_command_clears_workspace) {
     res_t res = ik_workspace_create(repl, &repl->workspace);
     ck_assert(is_ok(&res));
 
+    /* Create scrollback (needed for submit_line) */
+    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    ck_assert(is_ok(&res));
+
     /* Insert "/pp" command */
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
     res = ik_repl_process_action(repl, &action);
@@ -63,6 +67,10 @@ START_TEST(test_pp_command_with_args)
 
     /* Create workspace */
     res_t res = ik_workspace_create(repl, &repl->workspace);
+    ck_assert(is_ok(&res));
+
+    /* Create scrollback (needed for submit_line) */
+    res = ik_scrollback_create(repl, 80, &repl->scrollback);
     ck_assert(is_ok(&res));
 
     /* Insert "/pp workspace" command */
@@ -121,7 +129,7 @@ START_TEST(test_unknown_slash_command)
 }
 
 END_TEST
-/* Test: Empty workspace on newline */
+/* Test: Empty workspace on newline - Phase 4: Enter always submits and clears */
 START_TEST(test_empty_workspace_newline)
 {
     void *ctx = talloc_new(NULL);
@@ -135,20 +143,24 @@ START_TEST(test_empty_workspace_newline)
     res_t res = ik_workspace_create(repl, &repl->workspace);
     ck_assert(is_ok(&res));
 
+    /* Create scrollback (needed for submit_line) */
+    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    ck_assert(is_ok(&res));
+
     /* Workspace is empty, press NEWLINE */
     ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    /* Workspace should now have "\n" */
+    /* Phase 4 behavior: Enter submits and clears workspace (even if empty) */
     size_t text_len = ik_byte_array_size(repl->workspace->text);
-    ck_assert_uint_eq(text_len, 1);
+    ck_assert_uint_eq(text_len, 0);
 
     talloc_free(ctx);
 }
 
 END_TEST
-/* Test: Regular text starting with / but not a command on newline */
+/* Test: Regular text (not slash command) on newline - Phase 4: Enter submits and clears */
 START_TEST(test_slash_in_middle_not_command)
 {
     void *ctx = talloc_new(NULL);
@@ -162,6 +174,10 @@ START_TEST(test_slash_in_middle_not_command)
     res_t res = ik_workspace_create(repl, &repl->workspace);
     ck_assert(is_ok(&res));
 
+    /* Create scrollback (needed for submit_line) */
+    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    ck_assert(is_ok(&res));
+
     /* Insert "hello" */
     const char *text = "hello";
     for (size_t i = 0; text[i] != '\0'; i++) {
@@ -170,14 +186,126 @@ START_TEST(test_slash_in_middle_not_command)
         ck_assert(is_ok(&res));
     }
 
-    /* Send NEWLINE - should insert newline, not execute command */
+    /* Send NEWLINE - Phase 4: should submit to scrollback and clear workspace */
     ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    /* Workspace should now have "hello\n" */
+    /* Phase 4 behavior: Enter submits and clears workspace */
     size_t text_len = ik_byte_array_size(repl->workspace->text);
-    ck_assert_uint_eq(text_len, 6);
+    ck_assert_uint_eq(text_len, 0);
+
+    /* Verify "hello" was added to scrollback */
+    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    ck_assert_uint_eq(line_count, 1);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: /pp command appears in scrollback BEFORE its output */
+START_TEST(test_pp_command_order_in_scrollback)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    /* Create minimal REPL context */
+    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    ck_assert_ptr_nonnull(repl);
+
+    /* Create workspace */
+    res_t res = ik_workspace_create(repl, &repl->workspace);
+    ck_assert(is_ok(&res));
+
+    /* Create scrollback */
+    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    ck_assert(is_ok(&res));
+
+    /* Insert "/pp" command */
+    const char *cmd = "/pp";
+    for (size_t i = 0; cmd[i] != '\0'; i++) {
+        ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = (uint32_t)cmd[i]};
+        res = ik_repl_process_action(repl, &action);
+        ck_assert(is_ok(&res));
+    }
+
+    /* Send NEWLINE to execute command */
+    ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
+    res = ik_repl_process_action(repl, &action);
+    ck_assert(is_ok(&res));
+
+    /* Check scrollback contents */
+    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    ck_assert_msg(line_count >= 2, "Expected at least 2 lines in scrollback (command + output)");
+
+    /* Get first line - should be "/pp" */
+    const char *line_text = NULL;
+    size_t line_len = 0;
+    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line_text, &line_len);
+    ck_assert(is_ok(&res));
+    ck_assert_msg(line_len == 3 && strncmp(line_text, "/pp", 3) == 0,
+                  "Expected first line to be '/pp', got '%.*s'", (int)line_len, line_text);
+
+    /* Get second line - should contain workspace debug info (contains "Workspace" text) */
+    res = ik_scrollback_get_line_text(repl->scrollback, 1, &line_text, &line_len);
+    ck_assert(is_ok(&res));
+    ck_assert_msg(line_len > 0, "Expected PP output in second line");
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: /pp output newline handling - verify trailing newline is handled correctly */
+START_TEST(test_pp_output_trailing_newline)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    /* Create minimal REPL context */
+    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    ck_assert_ptr_nonnull(repl);
+
+    /* Create workspace */
+    res_t res = ik_workspace_create(repl, &repl->workspace);
+    ck_assert(is_ok(&res));
+
+    /* Create scrollback */
+    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    ck_assert(is_ok(&res));
+
+    /* Insert "/pp" command */
+    const char *cmd = "/pp";
+    for (size_t i = 0; cmd[i] != '\0'; i++) {
+        ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = (uint32_t)cmd[i]};
+        res = ik_repl_process_action(repl, &action);
+        ck_assert(is_ok(&res));
+    }
+
+    /* Send NEWLINE to execute command */
+    ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
+    res = ik_repl_process_action(repl, &action);
+    ck_assert(is_ok(&res));
+
+    /* Verify scrollback has multiple lines (command + pp output lines) */
+    /* PP output ends with \n, which creates a trailing empty line that should be skipped */
+    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    ck_assert_msg(line_count >= 2, "Expected at least 2 lines, got %zu", line_count);
+
+    /* Verify first line is the command */
+    const char *line_text = NULL;
+    size_t line_len = 0;
+    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line_text, &line_len);
+    ck_assert(is_ok(&res));
+    ck_assert_msg(line_len == 3 && strncmp(line_text, "/pp", 3) == 0,
+                  "Expected '/pp', got '%.*s'", (int)line_len, line_text);
+
+    /* Verify subsequent lines are pp output (not empty from trailing newline) */
+    for (size_t i = 1; i < line_count; i++) {
+        res = ik_scrollback_get_line_text(repl->scrollback, i, &line_text, &line_len);
+        ck_assert(is_ok(&res));
+        /* Each line should have content (trailing empty line should be skipped) */
+        ck_assert_msg(line_len > 0, "Line %zu should not be empty", i);
+    }
 
     talloc_free(ctx);
 }
@@ -195,6 +323,8 @@ static Suite *repl_slash_command_suite(void)
     tcase_add_test(tc_basic, test_unknown_slash_command);
     tcase_add_test(tc_basic, test_empty_workspace_newline);
     tcase_add_test(tc_basic, test_slash_in_middle_not_command);
+    tcase_add_test(tc_basic, test_pp_command_order_in_scrollback);
+    tcase_add_test(tc_basic, test_pp_output_trailing_newline);
     suite_add_tcase(s, tc_basic);
 
     return s;

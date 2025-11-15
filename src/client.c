@@ -1,15 +1,16 @@
-#include "repl.h"
-#include "error.h"
-#include "panic.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <talloc.h>
+
+#include "repl.h"
+#include "error.h"
+#include "panic.h"
 
 /* LCOV_EXCL_START */
 int main(void)
 {
     void *root_ctx = talloc_new(NULL);
-    if (root_ctx == NULL)PANIC("Failed to create root talloc context");  // LCOV_EXCL_BR_LINE
+    if (root_ctx == NULL)PANIC("Failed to create root talloc context");
 
     ik_repl_ctx_t *repl = NULL;
     res_t result = ik_repl_init(root_ctx, &repl);
