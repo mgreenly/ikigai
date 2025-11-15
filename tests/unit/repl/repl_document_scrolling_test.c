@@ -29,8 +29,7 @@
  * With terminal height of 10 rows and viewport_offset scrolled to show
  * lines 0-9 of scrollback, the separator should be scrolled off-screen.
  */
-START_TEST(test_separator_scrolls_offscreen)
-{
+START_TEST(test_separator_scrolls_offscreen) {
     void *ctx = talloc_new(NULL);
 
     // Create terminal context (10 rows)
@@ -120,7 +119,6 @@ START_TEST(test_separator_scrolls_offscreen)
     talloc_free(ctx);
 }
 END_TEST
-
 /**
  * Test: When scrolled up, workspace should NOT appear in output
  *
@@ -198,8 +196,8 @@ START_TEST(test_workspace_scrolls_offscreen)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /**
  * Test: When scrolled to bottom, last scrollback line appears directly above separator
  *
@@ -308,6 +306,7 @@ START_TEST(test_scrollback_adjacent_to_separator)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Create test suite */

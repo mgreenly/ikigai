@@ -11,6 +11,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "../../../src/repl.h"
+#include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../test_utils.h"
 
@@ -307,12 +308,14 @@ START_TEST(test_page_up_clamping)
     }
 
     // With unified document model:
-    // document_height = scrollback (30) + separator (1) + workspace (~1) = ~32 rows
+    // document_height = scrollback (30) + separator (1) + MAX(workspace, 1) = 32 rows
+    // Workspace always occupies at least 1 row (for cursor visibility when empty)
     // max_offset = 32 - 24 = 8
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
     ik_workspace_ensure_layout(repl->workspace, repl->term->screen_cols);
     size_t workspace_rows = ik_workspace_get_physical_lines(repl->workspace);
-    size_t document_height = scrollback_rows + 1 + workspace_rows;
+    size_t workspace_display_rows = (workspace_rows == 0) ? 1 : workspace_rows;
+    size_t document_height = scrollback_rows + 1 + workspace_display_rows;
     size_t expected_max = document_height - (size_t)repl->term->screen_rows;
 
     // Start near top

@@ -60,9 +60,9 @@ void ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_widt
     size_t text_len;
     ik_workspace_get_text(workspace, &text, &text_len); // Never fails
 
-    /* Empty workspace: 1 physical line */
+    /* Empty workspace: 0 physical lines (Bug #10 fix) */
     if (text == NULL || text_len == 0) { /* LCOV_EXCL_BR_LINE - defensive: text is NULL only when text_len is 0 */
-        workspace->physical_lines = 1;
+        workspace->physical_lines = 0;
         workspace->cached_width = terminal_width;
         workspace->layout_dirty = 0;
         return;

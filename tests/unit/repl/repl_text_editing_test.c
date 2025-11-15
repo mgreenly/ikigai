@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <talloc.h>
 #include "../../../src/repl.h"
+#include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
 #include "../../test_utils.h"
 

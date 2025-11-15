@@ -371,8 +371,8 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
     int32_t final_cursor_col = workspace_cursor_pos.screen_col;
 
     // Calculate buffer size needed
-    // Clear (4) + Home (3) + scrollback content + separator (cols+2) + workspace content + cursor escape (~20)
-    size_t buffer_size = 7 + 20;  // Base escapes
+    // Clear (4) + Home (3) + scrollback content + separator (cols+2) + workspace content + cursor visibility (6) + cursor position (~20)
+    size_t buffer_size = 7 + 6 + 20;  // Base escapes + cursor visibility
 
     // Add separator line if visible
     if (render_separator) {
@@ -439,8 +439,14 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         }
 
         // Add \r\n at end of each scrollback line
-        framebuffer[offset++] = '\r';
-        framebuffer[offset++] = '\n';
+        // UNLESS it's the last line AND separator/workspace are both off-screen
+        // (Bug #10 fix - prevents terminal scroll when last line is on last terminal row)
+        bool is_last_scrollback_line = (i == scrollback_end_line - 1);
+        bool nothing_after = !render_separator && !render_workspace;
+        if (!is_last_scrollback_line || !nothing_after) {
+            framebuffer[offset++] = '\r';
+            framebuffer[offset++] = '\n';
+        }
     }
 
     // Add separator line between scrollback and workspace (if visible)
@@ -448,8 +454,13 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         for (int32_t i = 0; i < ctx->cols; i++) {
             framebuffer[offset++] = '-';
         }
-        framebuffer[offset++] = '\r';
-        framebuffer[offset++] = '\n';
+
+        // Only add \r\n after separator if workspace is being rendered
+        // Otherwise, the terminal scrolls up when separator is on last line
+        if (render_workspace) {
+            framebuffer[offset++] = '\r';
+            framebuffer[offset++] = '\n';
+        }
 
         // Account for separator in cursor position
         final_cursor_row++;
@@ -467,17 +478,24 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         }
     }
 
-    // Position cursor: \x1b[<row+1>;<col+1>H
-    char *cursor_escape = ik_talloc_asprintf_wrapper(ctx, "\x1b[%" PRId32 ";%" PRId32 "H",
-                                                     final_cursor_row + 1,
-                                                     final_cursor_col + 1);
-    if (cursor_escape == NULL)PANIC("Out of memory");   // LCOV_EXCL_BR_LINE
+    // Cursor visibility: show (\x1b[?25h) when workspace visible, hide (\x1b[?25l) when off-screen
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '?';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = '5';
+    framebuffer[offset++] = render_workspace ? 'h' : 'l';
 
-    // Append cursor escape
-    for (size_t i = 0; cursor_escape[i] != '\0'; i++) {
-        framebuffer[offset++] = cursor_escape[i];
+    // Position cursor when workspace visible
+    if (render_workspace) {
+        char *cursor_escape = ik_talloc_asprintf_wrapper(ctx, "\x1b[%" PRId32 ";%" PRId32 "H",
+                                                         final_cursor_row + 1, final_cursor_col + 1);
+        if (cursor_escape == NULL)PANIC("Out of memory");   // LCOV_EXCL_BR_LINE
+        for (size_t i = 0; cursor_escape[i] != '\0'; i++) {
+            framebuffer[offset++] = cursor_escape[i];
+        }
+        talloc_free(cursor_escape);
     }
-    talloc_free(cursor_escape);
 
     // Single atomic write
     ssize_t bytes_written = ik_write_wrapper(ctx->tty_fd, framebuffer, offset);

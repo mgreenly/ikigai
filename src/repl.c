@@ -1,4 +1,6 @@
 #include "repl.h"
+#include "repl_actions.h"
+#include "signal_handler.h"
 #include "panic.h"
 #include "wrapper.h"
 #include "format.h"
@@ -7,6 +9,7 @@
 #include <talloc.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
 {
@@ -53,6 +56,13 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
     // Set quit flag to false
     repl->quit = false;
 
+    // Set up signal handlers (SIGWINCH for terminal resize)
+    result = ik_signal_handler_init(parent);
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - Signal handler setup failure is rare (invalid signal number)
+        talloc_free(repl);  // LCOV_EXCL_LINE
+        return result;  // LCOV_EXCL_LINE
+    }
+
     *repl_out = repl;
     return OK(repl);
 }
@@ -85,9 +95,30 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
     // Main event loop: read bytes, parse into actions, process, render
     char byte;
     while (!repl->quit) {
+        // Check for pending resize before reading
+        result = ik_signal_check_resize(repl);
+        if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - Signal handler errors require actual signal delivery
+            return result;
+        }
+
         ssize_t n = ik_read_wrapper(repl->term->tty_fd, &byte, 1);
-        if (n <= 0) {
-            // EOF or error - exit loop
+        if (n < 0) {
+            // LCOV_EXCL_START - Signal interruption requires actual signal delivery
+            // Check if interrupted by signal
+            if (errno == EINTR) {
+                // Signal interrupted read - check for resize and continue
+                result = ik_signal_check_resize(repl);
+                if (is_err(&result)) {
+                    return result;
+                }
+                continue;  // Retry read
+            }
+            // LCOV_EXCL_STOP
+            // Other error - exit loop
+            break;
+        }
+        if (n == 0) {
+            // EOF - exit loop
             break;
         }
 
@@ -132,10 +163,12 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     int32_t terminal_rows = repl->term->screen_rows;
 
     // Unified document model:
-    // Document = scrollback_rows + 1 (separator) + workspace_rows
+    // Document = scrollback_rows + 1 (separator) + MAX(workspace_rows, 1)
+    // Workspace always occupies at least 1 row (for cursor visibility when empty)
+    size_t workspace_display_rows = (workspace_rows == 0) ? 1 : workspace_rows;
     size_t separator_row = scrollback_rows;  // Separator is at this document row (0-indexed)
     size_t workspace_start_doc_row = scrollback_rows + 1;  // Workspace starts here
-    size_t document_height = scrollback_rows + 1 + workspace_rows;
+    size_t document_height = scrollback_rows + 1 + workspace_display_rows;
 
     // Calculate visible document range
     // viewport_offset = how many rows scrolled UP from bottom
@@ -177,7 +210,7 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
                 first_visible_row,
                 &start_line,
                 &row_offset
-            );
+                );
             if (is_err(&result)) { /* LCOV_EXCL_BR_LINE */
                 PANIC("Failed to find logical line at physical row"); /* LCOV_EXCL_LINE */
             }
@@ -189,27 +222,34 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
         for (size_t i = start_line; i < scrollback_line_count && current_row < separator_row; i++) {  /* LCOV_EXCL_BR_LINE */
             current_row += repl->scrollback->layouts[i].physical_lines;
             lines_count++;
-            if (current_row > last_visible_row) break;
+            if (current_row > last_visible_row)break;
         }
 
         viewport_out->scrollback_start_line = start_line;
         viewport_out->scrollback_lines_count = lines_count;
     }
 
-    // Calculate where workspace appears in viewport (applies to both branches)
+    // Calculate where workspace appears in viewport
+    // Workspace always occupies at least 1 row in document (even when empty)
     if (workspace_start_doc_row <= last_visible_row) {
         // Workspace is at least partially visible
         if (workspace_start_doc_row >= first_visible_row) {  /* LCOV_EXCL_BR_LINE */
             // Workspace starts within viewport
             viewport_out->workspace_start_row = workspace_start_doc_row - first_visible_row;
         } else {  /* LCOV_EXCL_BR_LINE */
-            // Workspace starts before viewport (shouldn't happen in current design)  /* LCOV_EXCL_LINE */
+            // Workspace starts before viewport (shouldn't happen)  /* LCOV_EXCL_LINE */
             viewport_out->workspace_start_row = 0;  /* LCOV_EXCL_LINE */
         }  /* LCOV_EXCL_LINE */
     } else {
         // Workspace is completely off-screen
-        viewport_out->workspace_start_row = (size_t)terminal_rows;  // Mark as off-screen
+        viewport_out->workspace_start_row = (size_t)terminal_rows;
     }
+
+    // Calculate separator visibility
+    // Separator is at document row separator_row
+    // It's visible if it's in the range [first_visible_row, last_visible_row]
+    viewport_out->separator_visible = separator_row >= first_visible_row &&
+                                      separator_row <= last_visible_row;
 
     return OK(repl);
 }
@@ -236,8 +276,9 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     ik_workspace_get_cursor_position(repl->workspace, &cursor_byte_offset, &cursor_grapheme);
 
     // Determine visibility of separator and workspace (unified document model)
-    // If workspace_start_row >= terminal_rows, they're scrolled off-screen
-    bool separator_visible = viewport.workspace_start_row < (size_t)repl->term->screen_rows;
+    // Separator visibility is calculated in ik_repl_calculate_viewport()
+    // Workspace visible when workspace_start_row in [0, terminal_rows-1]
+    bool separator_visible = viewport.separator_visible;
     bool workspace_visible = viewport.workspace_start_row < (size_t)repl->term->screen_rows;
 
     // Render combined view with conditional separator/workspace
@@ -250,58 +291,6 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
                               cursor_byte_offset,
                               separator_visible,
                               workspace_visible);
-}
-
-/**
- * @brief Handle slash commands (e.g., /pp workspace)
- *
- * @param repl REPL context
- * @param command Command text (without leading /)
- * @return res_t Result
- */
-static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *command)
-{
-    assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
-    assert(command != NULL); /* LCOV_EXCL_BR_LINE */
-
-    // Parse command (simple whitespace-based parsing for now)
-    // Expected format: "pp workspace" or "pp"
-    if (strncmp(command, "pp", 2) == 0) {
-        // Create format buffer for output
-        ik_format_buffer_t *buf = NULL;
-        res_t result = ik_format_buffer_create(repl, &buf);
-        if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
-
-        // Pretty-print the workspace
-        ik_pp_workspace(repl->workspace, buf, 0);
-
-        // Append output to scrollback buffer (split by newlines)
-        const char *output = ik_format_get_string(buf);
-        size_t output_len = strlen(output);
-        if (output_len > 0) {  // LCOV_EXCL_BR_LINE - pp_workspace always produces header output
-            // Split output by newlines and append each line separately
-            size_t line_start = 0;
-            for (size_t i = 0; i <= output_len; i++) {
-                if (i == output_len || output[i] == '\n') {
-                    // Found end of line or end of string
-                    size_t line_len = i - line_start;
-                    if (line_len > 0 || i < output_len) {  // LCOV_EXCL_BR_LINE - trailing newline skip tested but not instrumented
-                        result = ik_scrollback_append_line(repl->scrollback, output + line_start, line_len);
-                        if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
-                    }
-                    line_start = i + 1;  // Start of next line (skip the \n)
-                }
-            }
-        }
-
-        // Clean up format buffer
-        talloc_free(buf);
-
-        return OK(NULL);
-    }
-
-    // Unknown command - just ignore for now
-    return OK(NULL);
 }
 
 res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
@@ -327,113 +316,29 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
     return OK(NULL);
 }
 
-res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action)
+res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(action != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->term != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->workspace != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->render != NULL);   /* LCOV_EXCL_BR_LINE */
 
-    switch (action->type) { // LCOV_EXCL_BR_LINE
-        case IK_INPUT_CHAR:
-            return ik_workspace_insert_codepoint(repl->workspace, action->codepoint);
-        case IK_INPUT_INSERT_NEWLINE:
-            // Ctrl+J inserts newline without submitting (multi-line editing)
-            return ik_workspace_insert_newline(repl->workspace);
-        case IK_INPUT_NEWLINE: {
-            // Check if workspace contains a slash command
-            const char *text = (const char *)repl->workspace->text->data;
-            size_t text_len = ik_byte_array_size(repl->workspace->text);
-
-            // Check if text starts with '/' and extract command BEFORE submit clears workspace
-            bool is_slash_command = (text_len > 0 && text[0] == '/');
-            char *command = NULL;
-            if (is_slash_command) {
-                // Extract command (skip the '/' character)
-                command = ik_talloc_zero_wrapper(repl, text_len); // Includes space for null terminator
-                if (command == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-                memcpy(command, text + 1, text_len - 1);
-                command[text_len - 1] = '\0';
-            }
-
-            // Always submit line to scrollback first (so command appears before output)
-            res_t result = ik_repl_submit_line(repl);
-            if (is_err(&result))return result;  // LCOV_EXCL_LINE
-
-            // If it was a slash command, handle it now (after workspace text is in scrollback)
-            if (is_slash_command) {
-                // Handle the slash command (appends output to scrollback)
-                result = ik_repl_handle_slash_command(repl, command);
-                talloc_free(command);
-
-                if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
-            }
-
-            return OK(NULL);
-        }
-        case IK_INPUT_BACKSPACE:
-            return ik_workspace_backspace(repl->workspace);
-        case IK_INPUT_DELETE:
-            return ik_workspace_delete(repl->workspace);
-        case IK_INPUT_ARROW_LEFT:
-            return ik_workspace_cursor_left(repl->workspace);
-        case IK_INPUT_ARROW_RIGHT:
-            return ik_workspace_cursor_right(repl->workspace);
-        case IK_INPUT_ARROW_UP:
-            return ik_workspace_cursor_up(repl->workspace);
-        case IK_INPUT_ARROW_DOWN:
-            return ik_workspace_cursor_down(repl->workspace);
-        case IK_INPUT_PAGE_UP: {
-            // Scroll up by terminal height (increase offset)
-            // First ensure layouts are current
-            ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
-            ik_workspace_ensure_layout(repl->workspace, repl->term->screen_cols);
-
-            // Calculate maximum offset using unified document model
-            // Document = scrollback + separator (1) + workspace
-            size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
-            size_t workspace_rows = ik_workspace_get_physical_lines(repl->workspace);
-            size_t document_height = scrollback_rows + 1 + workspace_rows;
-
-            // Max offset = document_height - terminal_rows (can't scroll past top)
-            size_t max_offset = 0;
-            if (document_height > (size_t)repl->term->screen_rows) {
-                max_offset = document_height - (size_t)repl->term->screen_rows;
-            }
-
-            // Scroll up by one page
-            size_t new_offset = repl->viewport_offset + (size_t)repl->term->screen_rows;
-            if (new_offset > max_offset) {
-                repl->viewport_offset = max_offset;
-            } else {
-                repl->viewport_offset = new_offset;
-            }
-            return OK(NULL);
-        }
-        case IK_INPUT_PAGE_DOWN: {
-            // Scroll down by terminal height (decrease offset)
-            if (repl->viewport_offset >= (size_t)repl->term->screen_rows) {
-                repl->viewport_offset -= (size_t)repl->term->screen_rows;
-            } else {
-                repl->viewport_offset = 0;  // At bottom
-            }
-            return OK(NULL);
-        }
-        case IK_INPUT_CTRL_A:
-            return ik_workspace_cursor_to_line_start(repl->workspace);
-        case IK_INPUT_CTRL_E:
-            return ik_workspace_cursor_to_line_end(repl->workspace);
-        case IK_INPUT_CTRL_K:
-            return ik_workspace_kill_to_line_end(repl->workspace);
-        case IK_INPUT_CTRL_U:
-            return ik_workspace_kill_line(repl->workspace);
-        case IK_INPUT_CTRL_W:
-            return ik_workspace_delete_word_backward(repl->workspace);
-        case IK_INPUT_CTRL_C:
-            repl->quit = true;
-            return OK(NULL);
-        case IK_INPUT_UNKNOWN:
-            // Unknown actions are ignored
-            return OK(NULL);
-        default: // LCOV_EXCL_LINE
-            PANIC("Invalid input action type"); // LCOV_EXCL_LINE
+    // Update terminal dimensions
+    int rows, cols;
+    res_t result = ik_term_get_size(repl->term, &rows, &cols);
+    if (is_err(&result)) {
+        return result;
     }
+
+    // Update render context dimensions
+    repl->render->rows = rows;
+    repl->render->cols = cols;
+
+    // Invalidate layout caches (will recalculate on next ensure_layout call)
+    ik_scrollback_ensure_layout(repl->scrollback, cols);
+    ik_workspace_ensure_layout(repl->workspace, cols);
+
+    // Trigger immediate redraw with new dimensions
+    return ik_repl_render_frame(repl);
 }

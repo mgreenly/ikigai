@@ -168,7 +168,7 @@ START_TEST(test_workspace_layout_empty)
 
     /* Ensure layout for empty workspace */
     ik_workspace_ensure_layout(workspace, 80);
-    ck_assert_uint_eq(workspace->physical_lines, 1);  /* Empty workspace still occupies 1 line */
+    ck_assert_uint_eq(workspace->physical_lines, 0);  /* Empty workspace = 0 physical lines (Bug #10 fix) */
 
     talloc_free(ctx);
 }

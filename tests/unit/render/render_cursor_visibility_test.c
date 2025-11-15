@@ -1,0 +1,375 @@
+/**
+ * @file render_cursor_visibility_test.c
+ * @brief Tests for cursor visibility when workspace is scrolled off-screen (Bug #7)
+ */
+
+#include <check.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <sys/types.h>
+#include <talloc.h>
+#include "../../../src/render.h"
+#include "../../../src/scrollback.h"
+#include "../../../src/error.h"
+#include "../../test_utils.h"
+
+// Mock write() implementation
+static char *mock_write_buffer = NULL;
+static size_t mock_write_size = 0;
+static ssize_t mock_write_return = 0;
+static bool mock_write_should_fail = false;
+
+// Mock wrapper declaration
+ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
+
+ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+{
+    (void)fd; // Unused in mock
+
+    if (mock_write_should_fail) {
+        return -1;
+    }
+
+    // Capture the write
+    if (mock_write_buffer != NULL) {
+        free(mock_write_buffer);
+    }
+    mock_write_buffer = malloc(count + 1);
+    if (mock_write_buffer != NULL) {
+        memcpy(mock_write_buffer, buf, count);
+        mock_write_buffer[count] = '\0';
+        mock_write_size = count;
+    }
+
+    return (mock_write_return > 0) ? mock_write_return : (ssize_t)count;
+}
+
+static void mock_write_reset(void)
+{
+    if (mock_write_buffer != NULL) {
+        free(mock_write_buffer);
+        mock_write_buffer = NULL;
+    }
+    mock_write_size = 0;
+    mock_write_return = 0;
+    mock_write_should_fail = false;
+}
+
+/**
+ * Test: Cursor hidden when workspace scrolled off-screen (Bug #7)
+ *
+ * When render_workspace = false (workspace is off-screen), no cursor positioning
+ * escape sequence should be written to the output.
+ */
+START_TEST(test_cursor_hidden_when_workspace_off_screen) {
+    void *ctx = talloc_new(NULL);
+    ik_render_ctx_t *render_ctx = NULL;
+
+    // Create render context
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render_ctx);
+    ck_assert(is_ok(&res));
+
+    // Create scrollback with some lines
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "scrollback line 1", 17);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "scrollback line 2", 17);
+    ck_assert(is_ok(&res));
+
+    // Create workspace text
+    const char *workspace_text = "workspace text";
+    size_t workspace_len = strlen(workspace_text);
+
+    // Render with workspace OFF-SCREEN (render_workspace = false)
+    mock_write_reset();
+    res = ik_render_combined(render_ctx, scrollback, 0, 2, workspace_text, workspace_len, 0, true, false);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(mock_write_buffer);
+
+    // Should contain scrollback content
+    ck_assert(strstr(mock_write_buffer, "scrollback line 1") != NULL);
+    ck_assert(strstr(mock_write_buffer, "scrollback line 2") != NULL);
+
+    // Should NOT contain workspace text
+    ck_assert(strstr(mock_write_buffer, "workspace text") == NULL);
+
+    // Should NOT contain cursor positioning escape (critical - Bug #7 fix)
+    // Cursor escape format: \x1b[<row>;<col>H where row/col are numbers
+    // We check for the pattern \x1b[ followed by digits and semicolon
+    bool found_cursor_escape = false;
+    for (size_t i = 0; i < mock_write_size - 4; i++) {
+        if (mock_write_buffer[i] == '\x1b' && mock_write_buffer[i + 1] == '[') {
+            // Look ahead for pattern like "3;1H" (row;colH)
+            size_t j = i + 2;
+            bool has_digit_before_semicolon = false;
+            while (j < mock_write_size && mock_write_buffer[j] >= '0' && mock_write_buffer[j] <= '9') {
+                has_digit_before_semicolon = true;
+                j++;
+            }
+            if (has_digit_before_semicolon && j < mock_write_size && mock_write_buffer[j] == ';') {
+                j++;
+                bool has_digit_after_semicolon = false;
+                while (j < mock_write_size && mock_write_buffer[j] >= '0' && mock_write_buffer[j] <= '9') {
+                    has_digit_after_semicolon = true;
+                    j++;
+                }
+                if (has_digit_after_semicolon && j < mock_write_size && mock_write_buffer[j] == 'H') {
+                    found_cursor_escape = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    // CRITICAL: Cursor escape should NOT be present when workspace is off-screen
+    ck_assert_msg(!found_cursor_escape, "Cursor escape found when workspace is off-screen (Bug #7)");
+
+    mock_write_reset();
+    talloc_free(ctx);
+}
+END_TEST
+/**
+ * Test: Cursor visible when workspace is on-screen
+ *
+ * When render_workspace = true, cursor positioning escape SHOULD be present.
+ */
+START_TEST(test_cursor_visible_when_workspace_on_screen)
+{
+    void *ctx = talloc_new(NULL);
+    ik_render_ctx_t *render_ctx = NULL;
+
+    // Create render context
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render_ctx);
+    ck_assert(is_ok(&res));
+
+    // Create scrollback with some lines
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "scrollback line 1", 17);
+    ck_assert(is_ok(&res));
+
+    // Create workspace text
+    const char *workspace_text = "workspace text";
+    size_t workspace_len = strlen(workspace_text);
+
+    // Render with workspace ON-SCREEN (render_workspace = true)
+    mock_write_reset();
+    res = ik_render_combined(render_ctx, scrollback, 0, 1, workspace_text, workspace_len, 5, true, true);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(mock_write_buffer);
+
+    // Should contain workspace text
+    ck_assert(strstr(mock_write_buffer, "workspace text") != NULL);
+
+    // SHOULD contain cursor positioning escape
+    bool found_cursor_escape = false;
+    for (size_t i = 0; i < mock_write_size - 4; i++) {
+        if (mock_write_buffer[i] == '\x1b' && mock_write_buffer[i + 1] == '[') {
+            size_t j = i + 2;
+            bool has_digit_before_semicolon = false;
+            while (j < mock_write_size && mock_write_buffer[j] >= '0' && mock_write_buffer[j] <= '9') {
+                has_digit_before_semicolon = true;
+                j++;
+            }
+            if (has_digit_before_semicolon && j < mock_write_size && mock_write_buffer[j] == ';') {
+                j++;
+                bool has_digit_after_semicolon = false;
+                while (j < mock_write_size && mock_write_buffer[j] >= '0' && mock_write_buffer[j] <= '9') {
+                    has_digit_after_semicolon = true;
+                    j++;
+                }
+                if (has_digit_after_semicolon && j < mock_write_size && mock_write_buffer[j] == 'H') {
+                    found_cursor_escape = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    ck_assert_msg(found_cursor_escape, "Cursor escape should be present when workspace is on-screen");
+
+    mock_write_reset();
+    talloc_free(ctx);
+}
+
+END_TEST
+/**
+ * Test: Last scrollback line fully visible when scrolled up
+ *
+ * When workspace is off-screen, the last visible scrollback line should not
+ * be overwritten by a blank cursor line.
+ */
+START_TEST(test_last_scrollback_line_visible_when_scrolled_up)
+{
+    void *ctx = talloc_new(NULL);
+    ik_render_ctx_t *render_ctx = NULL;
+
+    // Create render context
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render_ctx);
+    ck_assert(is_ok(&res));
+
+    // Create scrollback with multiple lines
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "line 1", 6);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "line 2", 6);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "THIS IS THE LAST LINE", 21);
+    ck_assert(is_ok(&res));
+
+    // Render all scrollback lines with workspace OFF-SCREEN
+    mock_write_reset();
+    res = ik_render_combined(render_ctx, scrollback, 0, 3, "workspace", 9, 0, true, false);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(mock_write_buffer);
+
+    // Should contain the last scrollback line
+    ck_assert(strstr(mock_write_buffer, "THIS IS THE LAST LINE") != NULL);
+
+    // Should NOT contain workspace
+    ck_assert(strstr(mock_write_buffer, "workspace") == NULL);
+
+    mock_write_reset();
+    talloc_free(ctx);
+}
+
+END_TEST
+/**
+ * Test: Cursor visibility escape - hide cursor when workspace off-screen (Bug #8)
+ *
+ * When render_workspace = false, output should contain \x1b[?25l (hide cursor).
+ */
+START_TEST(test_cursor_visibility_escape_hide_when_off_screen)
+{
+    void *ctx = talloc_new(NULL);
+    ik_render_ctx_t *render_ctx = NULL;
+
+    // Create render context
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render_ctx);
+    ck_assert(is_ok(&res));
+
+    // Create scrollback with some lines
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "scrollback line 1", 17);
+    ck_assert(is_ok(&res));
+
+    // Create workspace text
+    const char *workspace_text = "workspace text";
+    size_t workspace_len = strlen(workspace_text);
+
+    // Render with workspace OFF-SCREEN (render_workspace = false)
+    mock_write_reset();
+    res = ik_render_combined(render_ctx, scrollback, 0, 1, workspace_text, workspace_len, 0, true, false);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(mock_write_buffer);
+
+    // Should contain hide cursor escape: \x1b[?25l
+    bool found_hide_cursor = false;
+    for (size_t i = 0; i < mock_write_size - 5; i++) {
+        if (mock_write_buffer[i] == '\x1b' &&
+            mock_write_buffer[i + 1] == '[' &&
+            mock_write_buffer[i + 2] == '?' &&
+            mock_write_buffer[i + 3] == '2' &&
+            mock_write_buffer[i + 4] == '5' &&
+            mock_write_buffer[i + 5] == 'l') {
+            found_hide_cursor = true;
+            break;
+        }
+    }
+
+    ck_assert_msg(found_hide_cursor, "Hide cursor escape (\\x1b[?25l) not found when workspace is off-screen");
+
+    mock_write_reset();
+    talloc_free(ctx);
+}
+
+END_TEST
+/**
+ * Test: Cursor visibility escape - show cursor when workspace on-screen (Bug #8)
+ *
+ * When render_workspace = true, output should contain \x1b[?25h (show cursor).
+ */
+START_TEST(test_cursor_visibility_escape_show_when_on_screen)
+{
+    void *ctx = talloc_new(NULL);
+    ik_render_ctx_t *render_ctx = NULL;
+
+    // Create render context
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render_ctx);
+    ck_assert(is_ok(&res));
+
+    // Create scrollback with some lines
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "scrollback line 1", 17);
+    ck_assert(is_ok(&res));
+
+    // Create workspace text
+    const char *workspace_text = "workspace text";
+    size_t workspace_len = strlen(workspace_text);
+
+    // Render with workspace ON-SCREEN (render_workspace = true)
+    mock_write_reset();
+    res = ik_render_combined(render_ctx, scrollback, 0, 1, workspace_text, workspace_len, 5, true, true);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(mock_write_buffer);
+
+    // Should contain show cursor escape: \x1b[?25h
+    bool found_show_cursor = false;
+    for (size_t i = 0; i < mock_write_size - 5; i++) {
+        if (mock_write_buffer[i] == '\x1b' &&
+            mock_write_buffer[i + 1] == '[' &&
+            mock_write_buffer[i + 2] == '?' &&
+            mock_write_buffer[i + 3] == '2' &&
+            mock_write_buffer[i + 4] == '5' &&
+            mock_write_buffer[i + 5] == 'h') {
+            found_show_cursor = true;
+            break;
+        }
+    }
+
+    ck_assert_msg(found_show_cursor, "Show cursor escape (\\x1b[?25h) not found when workspace is on-screen");
+
+    mock_write_reset();
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Test Suite
+static Suite *cursor_visibility_suite(void)
+{
+    Suite *s = suite_create("Render Cursor Visibility");
+
+    TCase *tc_cursor = tcase_create("Cursor");
+    tcase_add_test(tc_cursor, test_cursor_hidden_when_workspace_off_screen);
+    tcase_add_test(tc_cursor, test_cursor_visible_when_workspace_on_screen);
+    tcase_add_test(tc_cursor, test_last_scrollback_line_visible_when_scrolled_up);
+    tcase_add_test(tc_cursor, test_cursor_visibility_escape_hide_when_off_screen);
+    tcase_add_test(tc_cursor, test_cursor_visibility_escape_show_when_on_screen);
+    suite_add_tcase(s, tc_cursor);
+
+    return s;
+}
+
+int main(void)
+{
+    Suite *s = cursor_visibility_suite();
+    SRunner *sr = srunner_create(s);
+
+    srunner_run_all(sr, CK_NORMAL);
+    int number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (number_failed == 0) ? 0 : 1;
+}

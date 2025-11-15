@@ -5,13 +5,38 @@
 All public symbols (functions, types, globals) follow: `ik_MODULE_THING`
 
 - `ik_` - Project namespace prefix
-- `MODULE` - Module identifier (config, protocol, openai, handler, httpd)
+- `MODULE` - Module identifier (config, protocol, openai, handler, httpd, input_buffer)
 - `THING` - Descriptive name using approved abbreviations
 
 Examples:
 - `ik_cfg_load()` - Function in config module
 - `ik_protocol_msg_t` - Type in protocol module
 - `ik_handler_ws_conn_t` - Type in handler module
+- `ik_input_buffer_create()` - Function in input_buffer module
+- `ik_input_buffer_cursor_move_left()` - Function in input_buffer module (cursor subcomponent)
+
+### Module Organization
+
+**Principle: One subdirectory = One module**
+
+When a module is organized into a subdirectory (e.g., `src/input_buffer/`), ALL public symbols from that module use the same module prefix, regardless of which file they're defined in.
+
+**Example: input_buffer module**
+```
+src/input_buffer/
+  ├── core.c          → ik_input_buffer_create(), ik_input_buffer_insert()
+  ├── cursor.c        → ik_input_buffer_cursor_move_left()
+  ├── layout.c        → ik_input_buffer_ensure_layout()
+  └── multiline.c     → ik_input_buffer_cursor_up()
+```
+
+All symbols use `ik_input_buffer_*` prefix even though they're in separate files. The subdirectory provides code organization, while the symbol prefix provides namespace in C's global symbol table.
+
+**Rationale:**
+- Clear module ownership in C's flat namespace
+- Consistent with module boundaries (header files)
+- Prevents naming conflicts
+- Self-documenting: symbol name tells you which module it belongs to
 
 ## Approved Abbreviations
 

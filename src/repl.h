@@ -14,6 +14,7 @@ typedef struct {
     size_t scrollback_start_line;   // First scrollback line to render
     size_t scrollback_lines_count;  // How many scrollback lines visible
     size_t workspace_start_row;     // Terminal row where workspace begins
+    bool separator_visible;         // Whether separator is in visible range
 } ik_viewport_t;
 
 // REPL context structure
@@ -45,5 +46,5 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
 // Submit current workspace line to scrollback (Phase 4 Task 4.6)
 res_t ik_repl_submit_line(ik_repl_ctx_t *repl);
 
-// Process single input action
-res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action);
+// Handle terminal resize (Bug #5)
+res_t ik_repl_handle_resize(ik_repl_ctx_t *repl);
