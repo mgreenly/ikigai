@@ -65,6 +65,16 @@ static int32_t int_to_str(int32_t n, char *buf, size_t size)
 }
 
 /**
+ * Helper to write data and explicitly ignore the result.
+ * Required for _FORTIFY_SOURCE=2 where (void) cast doesn't suppress warnings.
+ */
+static inline void write_ignore(int fd, const void *buf, size_t count)
+{
+    ssize_t result = write(fd, buf, count);
+    (void)result;  // Explicitly ignore - we're in a panic handler
+}
+
+/**
  * Async-signal-safe panic implementation.
  *
  * This function:
@@ -87,7 +97,7 @@ void ik_panic_impl(const char *msg, const char *file, int32_t line)
     if (g_term_ctx_for_panic != NULL) {
         // Exit alternate screen buffer
         const char exit_alt[] = "\x1b[?1049l";
-        write(g_term_ctx_for_panic->tty_fd, exit_alt, 8);
+        write_ignore(g_term_ctx_for_panic->tty_fd, exit_alt, 8);
 
         // Restore original termios
         // NOTE: tcsetattr() is not async-signal-safe per POSIX,
@@ -101,17 +111,18 @@ void ik_panic_impl(const char *msg, const char *file, int32_t line)
     int32_t line_len = int_to_str(line, line_buf, sizeof(line_buf));
 
     // Write error message to stderr using only async-signal-safe write()
-    write(STDERR_FILENO, "FATAL: ", 7);
+    // Note: Using write_ignore() helper to satisfy _FORTIFY_SOURCE=2
+    write_ignore(STDERR_FILENO, "FATAL: ", 7);
     if (msg) {
-        write(STDERR_FILENO, msg, safe_strlen(msg));
+        write_ignore(STDERR_FILENO, msg, safe_strlen(msg));
     }
-    write(STDERR_FILENO, "\n  at ", 6);
+    write_ignore(STDERR_FILENO, "\n  at ", 6);
     if (file) {
-        write(STDERR_FILENO, file, safe_strlen(file));
+        write_ignore(STDERR_FILENO, file, safe_strlen(file));
     }
-    write(STDERR_FILENO, ":", 1);
-    write(STDERR_FILENO, line_buf, (size_t)line_len);
-    write(STDERR_FILENO, "\n", 1);
+    write_ignore(STDERR_FILENO, ":", 1);
+    write_ignore(STDERR_FILENO, line_buf, (size_t)line_len);
+    write_ignore(STDERR_FILENO, "\n", 1);
 
     // Abort process
     abort();
