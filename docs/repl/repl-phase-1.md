@@ -6,27 +6,19 @@
 
 **Status**: ✅ COMPLETE
 
-## Rationale
+## Approach
 
-libvterm provided minimal value - we manage our own text buffers, handle UTF-8/grapheme processing ourselves, and already use alternate screen buffering. The only service vterm provided was calculating cursor screen position after text wrapping - approximately 50-100 lines of logic that we were paying for with a full external dependency.
+Direct ANSI terminal rendering with single-write framebuffer approach.
 
 **Benefits**:
-- **Simpler**: ~100-150 lines of direct rendering vs 654 lines of vterm integration
-- **Faster**: Single write syscall vs 52 writes, 26× fewer bytes processed per frame
-- **Fewer dependencies**: One less library to maintain across distros
-- **Better performance**: Eliminate double-buffering and cell iteration overhead
+- **Simpler**: ~100-150 lines of direct rendering
+- **Faster**: Single write syscall, minimal bytes per frame
+- **No external dependencies**: Direct ANSI escape sequences
+- **Better performance**: No double-buffering overhead
 
 ## Implementation Tasks
 
-### Task 1: Remove Old Rendering Module
-
-**Delete**:
-- `src/render.c` (vterm-based implementation, 222 lines)
-- `src/render.h` (vterm API, 86 lines)
-- `tests/unit/render/render_test.c` (vterm tests, 346 lines)
-- **Total removal**: 654 lines
-
-### Task 2: Implement Direct Rendering Module
+### Task 1: Implement Direct Rendering Module
 
 **Create**: `src/render.h` and `src/render.c`
 
@@ -58,9 +50,9 @@ res_t ik_render_workspace(ik_render_ctx_t *ctx,
 - Full scan on each render is acceptable for this phase
 - UTF-8 aware cursor positioning using `utf8proc_charwidth()`
 
-**Estimated size**: ~100-120 lines (vs 222 lines for vterm integration)
+**Estimated size**: ~100-120 lines
 
-### Task 3: Comprehensive Unit Tests
+### Task 2: Comprehensive Unit Tests
 
 **Test Coverage** (`tests/unit/render/render_test.c`):
 - Cursor position calculation:
@@ -118,7 +110,7 @@ typedef struct ik_repl_ctx_t {
 
 ## What We Validate
 
-- Direct terminal rendering without vterm
+- Direct terminal rendering with ANSI escape sequences
 - UTF-8 aware cursor position calculation
 - Character display width handling (CJK, emoji, combining chars)
 - Text wrapping at terminal boundary

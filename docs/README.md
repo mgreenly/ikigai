@@ -48,27 +48,28 @@ It's in an early stage of development.
 ## Development Roadmap
 
 ### Current: REPL Terminal Foundation ⏳
-**Phase 3 complete** - See [repl/](repl/) for details.
+**Phase 4 complete** - See [repl/](repl/) for details.
 
 Building a robust terminal interface with direct rendering:
 - ✅ Phase 0: Foundation (error handling, memory management, generic arrays)
-- ✅ Phase 1: Direct rendering (vterm eliminated, UTF-8 aware cursor positioning)
+- ✅ Phase 1: Direct rendering (UTF-8 aware cursor positioning)
 - ✅ Phase 2: Complete REPL event loop (multi-line editing, readline shortcuts)
 - ✅ Phase 2.5: Remove server/protocol code (cleanup complete)
-- ✅ Phase 2.75: Pretty-print infrastructure (format module, pp_helpers, pp functions - REPL integration deferred)
+- ✅ Phase 2.75: Pretty-print infrastructure (format module, pp_helpers, pp functions)
 - ✅ Phase 3: Scrollback buffer with layout caching (O(1) reflow, 726× faster than target)
-- ⚙️ Phase 4: Viewport and scrolling integration
-- 📋 Phase 5: Cleanup and documentation
+- ✅ Phase 4: Viewport and scrolling integration (100% test coverage)
+- ⏳ Phase 5: Manual testing and final cleanup
 
 **Current capabilities:**
-- Direct terminal rendering without external terminal emulator
+- Direct terminal rendering (single write per frame)
 - UTF-8 support (emoji, CJK, combining characters)
 - Multi-line input with cursor navigation
 - Readline-style shortcuts (Ctrl+A/E/K/U/W)
 - Text wrapping and clean terminal restoration
 - Full REPL event loop with comprehensive test coverage
-- Pretty-print infrastructure ready (awaits scrollback for `/pp` command)
 - Scrollback buffer with O(1) arithmetic reflow (0.003-0.009 ms for 1000 lines)
+- Viewport scrolling (Page Up/Down, auto-scroll on submit)
+- Pretty-print infrastructure ready (integration deferred to Phase 5)
 
 ### Next: Core v1.0 Features
 

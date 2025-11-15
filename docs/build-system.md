@@ -156,7 +156,7 @@ Some libraries aren't available on all distros, or we want to avoid version conf
 The Makefile supports selective static linking:
 
 ```make
-CLIENT_LIBS ?= -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc -lvterm
+CLIENT_LIBS ?= -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
 CLIENT_STATIC_LIBS ?=
 ```
 

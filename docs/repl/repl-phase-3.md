@@ -13,7 +13,7 @@ Implement the scrollback buffer module with pre-computed display widths and layo
 **Performance target**:
 - 1000 lines × 50 chars average = 50,000 chars total
 - Resize time: ~2μs (vs 2.5ms naive approach = 1000× faster)
-- Memory overhead: ~32 KB for 1000 lines (vs ~96 KB for VTerm grid)
+- Memory overhead: ~32 KB metadata for 1000 lines (plus text content)
 
 ## Implementation Tasks
 

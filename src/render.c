@@ -1,4 +1,4 @@
-// Direct terminal rendering (no VTerm)
+// Direct ANSI terminal rendering
 #include "render.h"
 #include "error.h"
 #include "panic.h"

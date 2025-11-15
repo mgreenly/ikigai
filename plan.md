@@ -2,11 +2,9 @@
 
 ## Overview
 
-This plan transitions from the vterm-based rendering approach to direct terminal rendering as outlined in `docs/eliminate_vterm.md`. We'll build incrementally with manual verification at each phase.
+This plan implements a REPL with direct terminal rendering. We'll build incrementally with manual verification at each phase.
 
-**Current Status**: Phase 3 COMPLETE (2025-11-14) - Scrollback buffer with layout caching implemented. Performance far exceeds targets (726× better than 5ms goal). Ready for Phase 4.
-
-**Strategy**: Replace vterm immediately (no parallel track), verify with client.c demos at each phase.
+**Current Status**: Phase 4 COMPLETE (2025-11-14) - Viewport and scrolling fully implemented with 100% test coverage. Phase 5 (manual testing and final cleanup) remains.
 
 **Goal**: Complete REPL with direct rendering, scrollback buffer, and viewport scrolling.
 
@@ -33,24 +31,7 @@ This plan transitions from the vterm-based rendering approach to direct terminal
 
 ## Phase 1: Direct Rendering ✅
 
-**Goal**: Replace libvterm dependency with direct ANSI terminal rendering.
-
-**Status**: Complete
-
-**Completed**:
-- ✅ New `render` module with UTF-8 aware cursor positioning
-- ✅ Single framebuffer write per frame (no VTerm intermediate buffer)
-- ✅ ANSI escape sequences for cursor movement and screen control
-- ✅ Support for multi-byte UTF-8 characters (emoji, CJK, combining chars)
-- ✅ Text wrapping at terminal boundaries
-- ✅ Old vterm-based `render.c`/`render.h` deleted (commit cbcc6f5)
-- ✅ 100% test coverage with comprehensive UTF-8 tests
-- ✅ Manual verification: text entry, wrapping, cursor movement, clean exit
-
-**Key Achievements**:
-- **52× reduction** in syscalls (single write vs. vterm's cell-by-cell updates)
-- **26× reduction** in bytes processed
-- Eliminated libvterm dependency from source code (build system cleanup pending Phase 5)
+**Status**: COMPLETE - Direct ANSI terminal rendering with UTF-8 support. Single framebuffer write per frame (52× syscall reduction, 26× bytes reduction).
 
 ---
 
@@ -108,171 +89,52 @@ See [tasks.md](tasks.md) for detailed breakdown.
 
 ## Phase 2.5: Remove Server and Protocol Code ✅
 
-**Goal**: Remove all server and protocol-related code before Phase 3. This eliminates maintenance burden and jansson complexity.
-
-**Status**: COMPLETE (2025-11-13)
-
-**Rationale**:
-v1.0 is a **desktop client** that connects directly to LLM APIs (OpenAI, Anthropic, etc.). The server/protocol code was from an earlier architecture exploration and is no longer needed.
-
-**Scope**:
-- Remove server binary target (`src/server.c` - 41 lines)
-- Remove protocol module (`src/protocol.{c,h}` - 332 lines)
-- Remove protocol tests (unit + integration - ~400+ lines)
-- Keep jansson in config.c temporarily (revisit in Phase 3)
-- Update Makefile to remove server targets
-- Archive or remove server/protocol documentation
-- Update architecture docs to clarify desktop-only design
-
-**Tasks**:
-1. [x] Remove protocol module (src + tests)
-2. [x] Remove server binary (src + Makefile)
-3. [x] Document jansson scope (config only, temporary)
-4. [x] Update/archive documentation
-5. [x] Verification and commit
-
-**Benefits**:
-- ~773+ lines of code removed
-- Eliminates jansson reference counting complexity (except config)
-- Cleaner architecture for Phase 3+
-- No maintenance burden from unused code
-
-**Estimated effort**: 1-2 hours
-
-See [tasks.md](tasks.md) Phase 2.5 for detailed task breakdown.
+**Status**: COMPLETE (2025-11-13) - Removed ~1,483 lines of server/protocol code. Jansson retained for config.c only.
 
 ---
 
-## Phase 2.75: Pretty-Print (PP) Functionality
+## Phase 2.75: Pretty-Print (PP) Infrastructure ✅
 
-**Goal**: Implement debug pretty-printing for internal C data structures and JSON/YAML content.
-
-**Status**: Infrastructure COMPLETE, REPL Integration DEFERRED to Phase 3 (2025-11-13)
-
-**Rationale**:
-Enables debugging and inspection capabilities before full scrollback implementation. PP functions can output to stdout initially, then migrate to scrollback buffer once Phase 3 is complete.
-
-**Scope**:
-- Format buffer module (`format.{c,h}`) - printf-style formatting into byte buffers
-- `ik_pp_<type>()` functions for C data structures (shows pointers, sizes, internal state)
-- Temporary REPL `/pp` command integration (stdout output)
-- Optional: JSON pretty-print utilities (defer if not immediately needed)
-
-**Tasks**:
-1. [x] Implement format buffer module with 100% test coverage
-2. [x] Implement `ik_pp_workspace()` as first example
-3. [x] Add generic PP helpers (`pp_helpers.c`) for reusable formatting
-4. [x] Implement recursive `ik_pp_cursor()` for proper nesting
-5. [ ] Add `/pp` command to REPL - **DEFERRED to Phase 3**
-   - Current stdout implementation violates design (all output must go screenbuffer → blit)
-   - Requires scrollback buffer for proper visible output
-6. [x] Manual verification and testing (for Tasks 1-4)
-
-**Benefits**:
-- PP infrastructure ready for debugging once scrollback exists
-- Smaller, testable increments
-- Informs scrollback requirements
-- Generic helpers established for all future PP functions
-
-**Actual Effort**: ~1000 lines (format module, pp_helpers, pp functions with 100% tests)
-
-**REPL Integration Blocker**: Without scrollback buffer, cannot display PP output adhering to core principle: all visible output through screenbuffer → blit to alternate buffer (never stdout/stderr)
-
-See [tasks.md](tasks.md) Phase 2.75 for detailed task breakdown.
+**Status**: COMPLETE (2025-11-13) - Infrastructure ready (~1000 lines). REPL `/pp` command integration deferred to Phase 5.
 
 ---
 
 ## Phase 3: Scrollback Buffer Module ✅
 
-**Goal**: Add scrollback buffer storage with layout caching for historical output.
-
-**Status**: COMPLETE (2025-11-14)
-
-**Planned Features**:
-- New `scrollback` module with separated hot/cold data for cache locality
-- Pre-computed `display_width` (scan UTF-8 once on line creation)
-- O(1) arithmetic reflow on terminal resize (`physical_lines = display_width / terminal_width`)
-- Workspace module extended with layout caching
-- Performance target: 1000 lines < 5ms reflow time
-
-**Implementation Tasks**:
-- [x] Design scrollback data structure (hot/cold separation)
-- [x] Implement line storage with pre-computed display widths
-- [x] Implement O(1) arithmetic reflow algorithm
-- [x] Add layout caching to workspace module
-- [x] Write comprehensive tests (TDD)
-- [x] Achieve 100% coverage (1569 lines, 126 functions, 554 branches)
-- [x] Performance benchmarks (0.003-0.009 ms - **726× better than 5ms target**)
-- [x] Manual verification (0 memory leaks, valgrind clean)
-
-See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 105-413 for detailed design.
+**Status**: COMPLETE (2025-11-14) - O(1) arithmetic reflow, 726× better than 5ms target (0.003-0.009 ms). 100% coverage.
 
 ---
 
 ## Phase 4: Viewport and Scrolling Integration ✅
 
-**Goal**: Integrate scrollback with REPL, add viewport calculation and scrolling commands.
-
-**Status**: COMPLETE (2025-11-14) - Implementation and automated testing done
-
-**Completed Features**:
-- ✅ REPL gains `scrollback` and `scroll_offset` members
-- ✅ `ik_repl_submit_line()` - Move workspace content to scrollback history with auto-scroll
-- ✅ Page Up/Down scrolling - Adjust viewport position with proper clamping
-- ✅ `ik_render_frame()` - Render scrollback + workspace in single write (Tasks 4.1-4.4)
-- ✅ Viewport window calculation integrated
-- ✅ Performance: only render visible lines
-
-**Implementation Tasks**:
-- [x] Update REPL context with scrollback and scroll_offset (Task 4.1)
-- [x] Implement viewport calculation (Task 4.2)
-- [x] Implement scrollback rendering (Task 4.3)
-- [x] Update `ik_render_frame()` for viewport rendering (Task 4.4)
-- [x] Add Page Up/Down to input parser (Task 4.5)
-- [x] Implement `ik_repl_submit_line()` with auto-scroll (Task 4.6)
-- [x] Write comprehensive tests - 11 new tests (TDD)
-- [x] Achieve 100% coverage - Lines: 100%, Functions: 100%, Branches: 100%
-- [ ] Manual testing of scrolling behavior - **DEFERRED**
-
-See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 418-527 for rendering algorithm.
+**Status**: COMPLETE (2025-11-14) - Automated testing done (11 tests, 100% coverage). Manual testing deferred to Phase 5.
 
 ---
 
-## Phase 5: Cleanup and Documentation
+## Phase 5: Cleanup and Documentation ⏳
 
-**Goal**: Remove vterm dependency from build system, update all documentation, finalize implementation.
+**Goal**: Finalize REPL implementation and prepare for LLM integration.
 
-**Status**: Not started (blocked on Phase 4 completion)
+**Status**: NOT STARTED
 
-**Current State**:
-- ✅ Source code has NO vterm references (all removed in Phase 1)
-- ✅ `-lvterm` removed from Makefile (CLIENT_LIBS and all test targets)
-- ❌ Distro packaging still lists libvterm-dev dependency
+**Remaining Work**:
 
-**Cleanup Tasks**:
-- [x] Remove `-lvterm` from Makefile `CLIENT_LIBS` and all test targets
-- [x] Delete obsolete `docs/archive/` folder (vterm docs, old phase-1 server plans)
-- [ ] Update distro packaging files (remove libvterm-dev):
-  - [ ] Debian packaging
-  - [ ] Fedora packaging
-  - [ ] Arch packaging
-- [ ] Run `make distro-check` to verify builds across all distros
+1. **Manual Testing**
+   - [ ] Test Phase 4 scrolling (Page Up/Down, auto-scroll on submit)
+   - [ ] Test `/pp` command integration (requires scrollback output)
+   - [ ] Test on multiple terminal emulators (xterm, gnome-terminal, alacritty, kitty)
 
-**Documentation Tasks**:
-- [ ] Update `docs/architecture.md` (remove libvterm from dependencies)
-- [ ] Update `docs/README.md` (mark REPL complete through Phase 4)
-- [ ] Update `docs/repl/README.md` (final status update)
-- [ ] Review and finalize all phase documentation
+2. **Build System Cleanup**
+   - [ ] Update distro packaging files (Debian, Fedora, Arch)
+   - [ ] Run `make distro-check` to verify builds
 
-**Final Verification**:
-- [ ] Run all quality gates: `make check && make lint && make coverage && make check-dynamic`
-- [ ] Run distro verification: `make distro-check`
-- [ ] Manual testing on multiple terminal emulators:
-  - [ ] xterm
-  - [ ] gnome-terminal
-  - [ ] alacritty
-  - [ ] kitty
-- [ ] Verify clean terminal restoration across all emulators
+3. **Documentation**
+   - [ ] Update `docs/architecture.md` (final dependencies list)
+   - [ ] Update `docs/repl/README.md` (final status)
+   - [ ] Archive plan.md and tasks.md (move to docs/repl/)
+
+4. **Quality Gates**
+   - [ ] Final run: `make check && make lint && make coverage && make check-dynamic`
 
 ---
 
@@ -323,27 +185,25 @@ client.c (32 lines, main only)
 ```
 
 **External Dependencies**:
-- **Removed**: libvterm (Phase 1 source, Phase 5 build system)
-- **Current**: talloc, jansson, uuid, libb64, pthread, libutf8proc
+- talloc, jansson, uuid, libb64, pthread, libutf8proc
 
 ---
 
 ## Performance Targets
 
-Based on `docs/eliminate_vterm.md` analysis:
-
 ### Scrollback Reflow (Terminal Resize)
-- **1000 lines**: < 5ms (target: ~2μs with pre-computed display_width)
+- **Target**: 1000 lines < 5ms
+- **Achieved**: 0.003-0.009 ms (726× better than target)
 - **Operation**: O(n) where n = number of lines, but each line is O(1) arithmetic
 
 ### Frame Rendering
 - **Write operations**: 1 (entire frame in single write)
 - **Bytes processed**: Only visible content (~1,920 chars for 24×80 terminal)
-- **vs. vterm**: 52× reduction in syscalls, 26× reduction in bytes processed
+- **Syscall reduction**: 52× fewer syscalls, 26× fewer bytes than cell-by-cell updates
 
 ### Memory Overhead
 - **Per scrollback line**: 32 bytes metadata + text content
-- **1000 lines**: ~32 KB metadata (vs ~96 KB for full VTerm grid)
+- **1000 lines**: ~32 KB metadata
 - **Cache locality**: Hot data (layouts) separated from cold data (text)
 
 ---
@@ -355,4 +215,3 @@ Based on `docs/eliminate_vterm.md` analysis:
 - **Manual Testing**: Use client.c demos to verify each phase before moving forward
 - **Zero Technical Debt**: Fix issues immediately as discovered
 - **Incremental**: Each phase builds on the previous, with full verification
-- **Strategy**: Replace immediately (Option B) - no parallel vterm/direct tracks

@@ -11,7 +11,6 @@ Build-Depends: debhelper-compat (= 13),
                uuid-dev,
                libb64-dev,
                libutf8proc-dev,
-               libvterm-dev,
                check
 Standards-Version: 4.6.0
 Homepage: https://github.com/mgreenly/ikigai
