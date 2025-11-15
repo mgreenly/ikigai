@@ -211,9 +211,92 @@
 
 ## Known Issues Still To Test
 
+### 10. Bug #4: Incorrect Viewport Model - Separator/Edit Zone Should Scroll (FOUND - 2025-11-14)
+**Problem**: Separator and edit zone stay "sticky" at bottom when scrolling
+- Current: Scrollback viewport moves, separator/workspace stay fixed at bottom
+- Expected: Entire document (scrollback + separator + workspace) should scroll as one unit
+
+**Current (WRONG) behavior:**
+```
+[Scrollback lines 50-70]  ← viewport scrolls this region
+------------------------  ← separator fixed at bottom
+Edit zone here           ← workspace fixed at bottom
+```
+
+**Correct behavior:**
+```
+The document is: SCROLLBACK → SEPARATOR → EDITZONE
+The screen is a viewport into this document.
+
+When scrolled to bottom (offset=0):
+[Scrollback lines 85-100]
+------------------------
+Edit zone here
+
+When scrolled up (offset=30):
+[Scrollback lines 55-70]
+[Scrollback lines 71-85]
+[Scrollback lines 86-100]
+------------------------  ← separator scrolled off screen
+Edit zone scrolled off    ← workspace scrolled off screen
+```
+
+**Key principle:** Last line of scrollback ALWAYS appears directly above separator
+
+**What needs to change:**
+1. Viewport calculation: Document height = scrollback_lines + 1 (separator) + workspace_lines
+2. Rendering logic: Calculate which lines of total document are visible
+3. Render only visible portions (separator/workspace may be off-screen)
+4. Cursor positioning: Account for document scroll, not just scrollback scroll
+
+**Files affected:**
+- `src/render.c` - `ik_render_combined()` needs complete rewrite
+- `src/repl.c` - Viewport calculation and cursor positioning
+- All scrolling tests need updates
+
+---
+
+### 11. Bug #5: Terminal Resize Not Immediate (FOUND - 2025-11-14)
+**Problem**: Terminal resize doesn't trigger immediate redraw
+- Current: Resize happens, but display doesn't update until next keypress
+- Separator line keeps original width until keypress
+- Expected: Immediate redraw on resize with updated separator width
+
+**What happens:**
+1. User resizes terminal window (drag edge or maximize)
+2. Terminal size changes but display stays stale
+3. Press any key → display updates to new size
+
+**Expected behavior:**
+1. User resizes terminal
+2. SIGWINCH signal caught
+3. Update terminal dimensions
+4. Invalidate layout cache (scrollback reflow needed)
+5. Immediate redraw with new separator width
+
+**Root causes:**
+1. Not listening to SIGWINCH, or not handling it properly
+2. Separator width calculated once, not recalculated on resize
+3. No immediate render triggered on resize
+
+**Files to check:**
+- `src/repl.c` - Event loop, SIGWINCH handling
+- `src/render.c` - Separator width calculation
+- `src/scrollback.c` - Layout cache invalidation on width change
+
+**Test cases needed:**
+- [ ] SIGWINCH triggers terminal dimension update
+- [ ] SIGWINCH invalidates scrollback layout cache
+- [ ] SIGWINCH triggers immediate redraw
+- [ ] Separator width matches new terminal width
+- [ ] Text reflows correctly to new width
+- [ ] Cursor remains visible after resize
+
+---
+
 ### Scrolling
-- [ ] Page Up scrolling
-- [ ] Page Down scrolling
+- [x] Page Up scrolling - Works but uses wrong viewport model (Bug #4)
+- [x] Page Down scrolling - Works but uses wrong viewport model (Bug #4)
 - [ ] Scrolling to top (boundary)
 - [ ] Scrolling to bottom (boundary)
 - [ ] Scroll state persistence while typing
