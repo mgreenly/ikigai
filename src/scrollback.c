@@ -156,7 +156,7 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
 }
 
 void ik_scrollback_ensure_layout(ik_scrollback_t *scrollback,
-                                  int32_t terminal_width)
+                                 int32_t terminal_width)
 {
     assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
     assert(terminal_width > 0);  // LCOV_EXCL_BR_LINE

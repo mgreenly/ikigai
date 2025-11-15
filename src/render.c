@@ -245,7 +245,7 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
         const char *line_text = NULL;
         size_t line_len = 0;
         res_t result = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
-        if (is_err(&result)) return result; /* LCOV_EXCL_LINE */
+        if (is_err(&result))return result;  /* LCOV_EXCL_LINE */
 
         // Count newlines in this line
         size_t newline_count = 0;
