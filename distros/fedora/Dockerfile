@@ -11,7 +11,6 @@ PACKAGES = \
 	uncrustify \
 	check-devel \
 	libtalloc-devel \
-	jansson-devel \
 	libcurl-devel \
 	libuuid-devel \
 	libb64-devel \
@@ -107,7 +106,7 @@ RUN cd /tmp && \
 RUN ldconfig
 
 # Set library linking preferences - static link libraries built from source
-ENV SERVER_LIBS="-ljansson -lcurl -ltalloc -luuid -lb64 -lpthread"
+ENV SERVER_LIBS="-lcurl -ltalloc -luuid -lb64 -lpthread"
 ENV SERVER_STATIC_LIBS="-lulfius -lyder -lorcania"
 
 # Default command

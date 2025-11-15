@@ -10,7 +10,6 @@ Source0:        %{name}-%{version}.tar.gz
 BuildRequires:  gcc
 BuildRequires:  make
 BuildRequires:  libtalloc-devel
-BuildRequires:  jansson-devel
 BuildRequires:  libcurl-devel
 BuildRequires:  libuuid-devel
 BuildRequires:  libb64-devel
@@ -18,7 +17,6 @@ BuildRequires:  utf8proc-devel
 BuildRequires:  check-devel
 
 Requires:       libtalloc
-Requires:       jansson
 Requires:       libcurl
 Requires:       libuuid
 Requires:       libb64

@@ -15,7 +15,6 @@ RUN pacman -S --noconfirm --needed \
     uncrustify \
     check \
     talloc \
-    jansson \
     curl \
     util-linux \
     libb64 \
@@ -53,7 +52,6 @@ PACKAGES = \
 	uncrustify \
 	check \
 	talloc \
-	jansson \
 	curl \
 	util-linux \
 	libb64 \
@@ -139,7 +137,7 @@ RUN cd /tmp && \
 RUN ldconfig
 
 # Set library linking preferences - static link libraries built from source
-ENV SERVER_LIBS="-ljansson -lcurl -ltalloc -luuid -lb64 -lpthread"
+ENV SERVER_LIBS="-lcurl -ltalloc -luuid -lb64 -lpthread"
 ENV SERVER_STATIC_LIBS="-lulfius -lyder -lorcania"
 
 # Default command

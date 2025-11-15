@@ -1,6 +1,5 @@
 #include "test_utils.h"
 #include <talloc.h>
-#include <jansson.h>
 #include <stdarg.h>
 
 // ========== Allocator Wrapper Overrides ==========
@@ -33,27 +32,4 @@ char *ik_talloc_asprintf_wrapper(TALLOC_CTX *ctx, const char *fmt, ...)
     char *result = talloc_vasprintf(ctx, fmt, ap);
     va_end(ap);
     return result;
-}
-
-// ========== Jansson Wrapper Overrides ==========
-// Strong symbols that override the weak symbols in src/wrapper.c
-
-json_t *ik_json_object_wrapper(void)
-{
-    return json_object();
-}
-
-char *ik_json_dumps_wrapper(const json_t *json, size_t flags)
-{
-    return json_dumps(json, flags);
-}
-
-int ik_json_is_object_wrapper(const json_t *json)
-{
-    return json_is_object(json);
-}
-
-int ik_json_is_string_wrapper(const json_t *json)
-{
-    return json_is_string(json);
 }

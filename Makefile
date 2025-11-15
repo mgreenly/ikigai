@@ -68,7 +68,7 @@ endif
 # Allow LDFLAGS override if not set by BUILD type
 LDFLAGS ?=
 
-CLIENT_LIBS ?= -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
+CLIENT_LIBS ?= -ltalloc -luuid -lb64 -lpthread -lutf8proc
 CLIENT_STATIC_LIBS ?=
 
 COMPLEXITY_THRESHOLD = 15
@@ -81,7 +81,7 @@ COVERAGE_DIR = coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
-LCOV_EXCL_COVERAGE = 340  # Increased after OOM refactoring (removed OOM tests, added exclusions for unreachable OOM error paths)
+LCOV_EXCL_COVERAGE = 308
 
 CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer.c src/input_buffer_multiline.c src/input_buffer_cursor.c src/input_buffer_layout.c src/render.c src/render_cursor.c src/repl.c src/repl_actions.c src/signal_handler.c src/format.c src/pp_helpers.c src/input_buffer_pp.c src/input_buffer_cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
@@ -129,19 +129,19 @@ $(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
 
 $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
 
 $(BUILDDIR)/tests/integration/%_test.o: tests/integration/%_test.c | $(BUILDDIR)/tests/integration
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILDDIR)/tests/integration/%_test: $(BUILDDIR)/tests/integration/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | $(BUILDDIR)/tests/integration
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
 
 $(BUILDDIR)/tests/performance/%_perf.o: tests/performance/%_perf.c | $(BUILDDIR)/tests/performance
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILDDIR)/tests/performance/%_perf: $(BUILDDIR)/tests/performance/%_perf.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | $(BUILDDIR)/tests/performance
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
 
 $(BUILDDIR)/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | $(BUILDDIR)/tests
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -153,11 +153,11 @@ $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o: tests/unit/repl/repl_run_tes
 # Special rule for repl_run tests that need the common object
 $(BUILDDIR)/tests/unit/repl/repl_run_basic_test: $(BUILDDIR)/tests/unit/repl/repl_run_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
 
 $(BUILDDIR)/tests/unit/repl/repl_run_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
 
 bin:
 	mkdir -p bin
@@ -511,7 +511,6 @@ PACKAGES ?= \
 	check \
 	libtalloc-dev \
 	libulfius-dev \
-	libjansson-dev \
 	libcurl4-gnutls-dev \
 	uuid-dev \
 	libb64-dev \

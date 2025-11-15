@@ -8,7 +8,6 @@ RUN apt-get update && apt-get install -y \
     check \
     libtalloc-dev \
     libulfius-dev \
-    libjansson-dev \
     libcurl4-gnutls-dev \
     uuid-dev \
     libb64-dev \

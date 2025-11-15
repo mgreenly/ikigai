@@ -221,8 +221,7 @@ yyjson_val *ik_yyjson_doc_get_root_wrapper(yyjson_doc *doc)
     return yyjson_doc_get_root(doc);
 }
 
-START_TEST(test_config_doc_get_root_null)
-{
+START_TEST(test_config_doc_get_root_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

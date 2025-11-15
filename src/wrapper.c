@@ -44,30 +44,6 @@ MOCKABLE char *ik_talloc_asprintf_wrapper(TALLOC_CTX *ctx, const char *fmt, ...)
 }
 
 // ============================================================================
-// jansson wrappers - debug/test builds only
-// ============================================================================
-
-MOCKABLE json_t *ik_json_object_wrapper(void)
-{
-    return json_object();
-}
-
-MOCKABLE char *ik_json_dumps_wrapper(const json_t *json, size_t flags)
-{
-    return json_dumps(json, flags);
-}
-
-MOCKABLE int ik_json_is_object_wrapper(const json_t *json)
-{
-    return json_is_object(json);
-}
-
-MOCKABLE int ik_json_is_string_wrapper(const json_t *json)
-{
-    return json_is_string(json);
-}
-
-// ============================================================================
 // yyjson wrappers - debug/test builds only
 // ============================================================================
 

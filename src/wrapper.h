@@ -9,7 +9,6 @@
 #define IK_WRAPPER_H
 
 #include <talloc.h>
-#include <jansson.h>
 #include <stddef.h>
 #include <stdarg.h>
 #include "vendor/yyjson/yyjson.h"
@@ -64,40 +63,6 @@ MOCKABLE char *ik_talloc_strdup_wrapper(TALLOC_CTX *ctx, const char *str);
 MOCKABLE void *ik_talloc_array_wrapper(TALLOC_CTX *ctx, size_t el_size, size_t count);
 MOCKABLE void *ik_talloc_realloc_wrapper(TALLOC_CTX *ctx, void *ptr, size_t size);
 MOCKABLE char *ik_talloc_asprintf_wrapper(TALLOC_CTX *ctx, const char *fmt, ...);
-#endif
-
-// ============================================================================
-// jansson wrappers
-// ============================================================================
-
-#ifdef NDEBUG
-// Release build: inline definitions for zero overhead
-MOCKABLE json_t *ik_json_object_wrapper(void)
-{
-    return json_object();
-}
-
-MOCKABLE char *ik_json_dumps_wrapper(const json_t *json, size_t flags)
-{
-    return json_dumps(json, flags);
-}
-
-MOCKABLE int ik_json_is_object_wrapper(const json_t *json)
-{
-    return json_is_object(json);
-}
-
-MOCKABLE int ik_json_is_string_wrapper(const json_t *json)
-{
-    return json_is_string(json);
-}
-
-#else
-// Debug/test build: weak symbol declarations
-MOCKABLE json_t *ik_json_object_wrapper(void);
-MOCKABLE char *ik_json_dumps_wrapper(const json_t *json, size_t flags);
-MOCKABLE int ik_json_is_object_wrapper(const json_t *json);
-MOCKABLE int ik_json_is_string_wrapper(const json_t *json);
 #endif
 
 // ============================================================================
