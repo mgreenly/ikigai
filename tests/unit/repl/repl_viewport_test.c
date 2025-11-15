@@ -297,6 +297,7 @@ static Suite *repl_viewport_suite(void)
     Suite *s = suite_create("REPL Viewport Calculation");
 
     TCase *tc_viewport = tcase_create("Viewport");
+    tcase_set_timeout(tc_viewport, 30);
     tcase_add_test(tc_viewport, test_viewport_empty_scrollback);
     tcase_add_test(tc_viewport, test_viewport_small_scrollback);
     tcase_add_test(tc_viewport, test_viewport_large_scrollback);

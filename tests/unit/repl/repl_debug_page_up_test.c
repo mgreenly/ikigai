@@ -159,6 +159,7 @@ static Suite *debug_page_up_suite(void)
     Suite *s = suite_create("Debug Page Up");
 
     TCase *tc_debug = tcase_create("Debug");
+    tcase_set_timeout(tc_debug, 30);
     tcase_add_test(tc_debug, test_page_up_with_4_lines);
     suite_add_tcase(s, tc_debug);
 

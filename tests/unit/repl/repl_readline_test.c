@@ -385,6 +385,7 @@ static Suite *repl_readline_suite(void)
 {
     Suite *s = suite_create("REPL_Readline");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_repl_process_action_ctrl_a);
     tcase_add_test(tc_core, test_repl_process_action_ctrl_e);

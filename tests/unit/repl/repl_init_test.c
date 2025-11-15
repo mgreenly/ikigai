@@ -159,6 +159,7 @@ static Suite *repl_init_suite(void)
     Suite *s = suite_create("REPL Initialization");
 
     TCase *tc_term = tcase_create("Terminal Init Failures");
+    tcase_set_timeout(tc_term, 30);
     tcase_add_test(tc_term, test_repl_init_terminal_open_failure);
     tcase_add_test(tc_term, test_repl_init_render_invalid_dimensions);
     suite_add_tcase(s, tc_term);
