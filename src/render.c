@@ -223,10 +223,7 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     }
 
     // Ensure scrollback layout is up to date
-    res_t result = ik_scrollback_ensure_layout(scrollback, ctx->cols);
-    if (is_err(&result)) { /* LCOV_EXCL_LINE */
-        return result;      /* LCOV_EXCL_LINE */
-    }
+    ik_scrollback_ensure_layout(scrollback, ctx->cols);
 
     // Validate range
     size_t total_lines = ik_scrollback_get_line_count(scrollback);
@@ -247,10 +244,8 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     for (size_t i = start_line; i < end_line; i++) {
         const char *line_text = NULL;
         size_t line_len = 0;
-        result = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
-        if (is_err(&result)) { /* LCOV_EXCL_LINE */
-            return result;      /* LCOV_EXCL_LINE */
-        }
+        res_t result = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
+        if (is_err(&result)) return result; /* LCOV_EXCL_LINE */
 
         // Count newlines in this line
         size_t newline_count = 0;
@@ -285,11 +280,8 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     for (size_t i = start_line; i < end_line; i++) {
         const char *line_text = NULL;
         size_t line_len = 0;
-        result = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
-        if (is_err(&result)) { /* LCOV_EXCL_LINE */
-            talloc_free(framebuffer); /* LCOV_EXCL_LINE */
-            return result;      /* LCOV_EXCL_LINE */
-        }
+        res_t result = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
+        if (is_err(&result)) { talloc_free(framebuffer); return result; } /* LCOV_EXCL_LINE */
 
         // Copy line text, converting \n to \r\n
         for (size_t j = 0; j < line_len; j++) {

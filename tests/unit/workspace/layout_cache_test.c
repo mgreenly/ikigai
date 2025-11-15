@@ -43,8 +43,7 @@ START_TEST(test_workspace_ensure_layout_initial)
     ik_workspace_insert_codepoint(workspace, 'o');
 
     /* Ensure layout */
-    res_t res = ik_workspace_ensure_layout(workspace, terminal_width);
-    ck_assert(is_ok(&res));
+    ik_workspace_ensure_layout(workspace, terminal_width);
 
     /* Verify layout was calculated */
     ck_assert_int_eq(workspace->layout_dirty, 0);
@@ -74,8 +73,7 @@ START_TEST(test_workspace_ensure_layout_clean)
     size_t prev_physical = workspace->physical_lines;
 
     /* Second ensure layout with same width - should be no-op */
-    res_t res = ik_workspace_ensure_layout(workspace, terminal_width);
-    ck_assert(is_ok(&res));
+    ik_workspace_ensure_layout(workspace, terminal_width);
     ck_assert_int_eq(workspace->layout_dirty, 0);
     ck_assert_uint_eq(workspace->physical_lines, prev_physical);
 
@@ -169,8 +167,7 @@ START_TEST(test_workspace_layout_empty)
     ik_workspace_create(ctx, &workspace);
 
     /* Ensure layout for empty workspace */
-    res_t res = ik_workspace_ensure_layout(workspace, 80);
-    ck_assert(is_ok(&res));
+    ik_workspace_ensure_layout(workspace, 80);
     ck_assert_uint_eq(workspace->physical_lines, 1);  /* Empty workspace still occupies 1 line */
 
     talloc_free(ctx);

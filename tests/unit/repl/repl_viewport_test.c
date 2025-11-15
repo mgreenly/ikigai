@@ -29,8 +29,7 @@ START_TEST(test_viewport_empty_scrollback) {
     ck_assert(is_ok(&res));
 
     // Ensure workspace layout
-    res = ik_workspace_ensure_layout(workspace, 80);
-    ck_assert(is_ok(&res));
+    ik_workspace_ensure_layout(workspace, 80);
     size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
     ck_assert_uint_eq(workspace_rows, 1);  // "hi" is 1 line
 
@@ -75,8 +74,7 @@ START_TEST(test_viewport_small_scrollback)
     // Add single line to workspace
     res = ik_workspace_insert_codepoint(workspace, 'h');
     ck_assert(is_ok(&res));
-    res = ik_workspace_ensure_layout(workspace, 80);
-    ck_assert(is_ok(&res));
+    ik_workspace_ensure_layout(workspace, 80);
     size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
     ck_assert_uint_eq(workspace_rows, 1);
 
@@ -137,8 +135,7 @@ START_TEST(test_viewport_large_scrollback)
     ck_assert(is_ok(&res));
     res = ik_workspace_insert_codepoint(workspace, 'i');
     ck_assert(is_ok(&res));
-    res = ik_workspace_ensure_layout(workspace, 80);
-    ck_assert(is_ok(&res));
+    ik_workspace_ensure_layout(workspace, 80);
     size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
     ck_assert_uint_eq(workspace_rows, 2);
 
@@ -195,8 +192,7 @@ START_TEST(test_viewport_offset_clamping)
     // Add 1 line to workspace
     res = ik_workspace_insert_codepoint(workspace, 'h');
     ck_assert(is_ok(&res));
-    res = ik_workspace_ensure_layout(workspace, 80);
-    ck_assert(is_ok(&res));
+    ik_workspace_ensure_layout(workspace, 80);
     size_t workspace_rows = ik_workspace_get_physical_lines(workspace);
     ck_assert_uint_eq(workspace_rows, 1);
 

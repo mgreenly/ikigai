@@ -97,9 +97,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Process action
         result = ik_repl_process_action(repl, &action);
-        if (is_err(&result)) { // LCOV_EXCL_BR_LINE - Defensive check, input parser validates codepoints
-            return result;     // LCOV_EXCL_LINE
-        }
+        if (is_err(&result)) return result; // LCOV_EXCL_LINE - Defensive check, input parser validates codepoints
 
         // Render frame (only if action was not UNKNOWN)
         if (action.type != IK_INPUT_UNKNOWN) {
@@ -122,16 +120,10 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     assert(repl->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Ensure workspace layout is up to date
-    res_t result = ik_workspace_ensure_layout(repl->workspace, repl->term->screen_cols);
-    if (is_err(&result)) { /* LCOV_EXCL_LINE */
-        return result;      /* LCOV_EXCL_LINE */
-    }
+    ik_workspace_ensure_layout(repl->workspace, repl->term->screen_cols);
 
     // Ensure scrollback layout is up to date
-    result = ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
-    if (is_err(&result)) { /* LCOV_EXCL_LINE */
-        return result;      /* LCOV_EXCL_LINE */
-    }
+    ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
 
     // Get physical rows needed
     size_t workspace_rows = ik_workspace_get_physical_lines(repl->workspace);
@@ -174,7 +166,7 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
         // Find the logical line that contains this physical row
         size_t start_line = 0;
         size_t row_offset = 0;
-        result = ik_scrollback_find_logical_line_at_physical_row(repl->scrollback,
+        res_t result = ik_scrollback_find_logical_line_at_physical_row(repl->scrollback,
                                                                  target_physical_row,
                                                                  &start_line,
                                                                  &row_offset);
@@ -207,9 +199,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     // Calculate viewport to determine what to render
     ik_viewport_t viewport;
     res_t result = ik_repl_calculate_viewport(repl, &viewport);
-    if (is_err(&result)) { /* LCOV_EXCL_LINE */
-        return result;      /* LCOV_EXCL_LINE */
-    }
+    if (is_err(&result)) return result; /* LCOV_EXCL_LINE */
 
     // If no scrollback visible, just render workspace (current behavior)
     if (viewport.scrollback_lines_count == 0) {
@@ -238,9 +228,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
                                   viewport.scrollback_start_line,
                                   viewport.scrollback_lines_count,
                                   &scrollback_rows_used);
-    if (is_err(&result)) { /* LCOV_EXCL_LINE */
-        return result;      /* LCOV_EXCL_LINE */
-    }
+    if (is_err(&result)) return result; /* LCOV_EXCL_LINE */
 
     // Get workspace text
     char *text = NULL;

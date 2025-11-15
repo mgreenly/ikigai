@@ -101,13 +101,12 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback, const char *text, s
  *
  * @param scrollback Scrollback buffer
  * @param terminal_width Terminal width in columns (must be > 0)
- * @return RES_OK on success, RES_ERR on failure
  *
  * Assertions:
  * - scrollback must not be NULL
  * - terminal_width must be > 0
  */
-res_t ik_scrollback_ensure_layout(ik_scrollback_t *scrollback, int32_t terminal_width);
+void ik_scrollback_ensure_layout(ik_scrollback_t *scrollback, int32_t terminal_width);
 
 /**
  * @brief Get number of logical lines in scrollback

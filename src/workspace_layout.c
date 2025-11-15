@@ -46,13 +46,13 @@ static size_t calculate_display_width(const char *text, size_t len)
     return display_width;
 }
 
-res_t ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_width)
+void ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_width)
 {
     assert(workspace != NULL); /* LCOV_EXCL_BR_LINE */
 
     /* If layout is clean and width unchanged, no recalculation needed */
     if (workspace->layout_dirty == 0 && workspace->cached_width == terminal_width) {
-        return OK(NULL);
+        return;
     }
 
     /* Get workspace text */
@@ -65,7 +65,7 @@ res_t ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_wid
         workspace->physical_lines = 1;
         workspace->cached_width = terminal_width;
         workspace->layout_dirty = 0;
-        return OK(NULL);
+        return;
     }
 
     /* Calculate physical lines by scanning text */
@@ -108,8 +108,6 @@ res_t ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_wid
     workspace->physical_lines = physical_lines;
     workspace->cached_width = terminal_width;
     workspace->layout_dirty = 0;
-
-    return OK(NULL);
 }
 
 void ik_workspace_invalidate_layout(ik_workspace_t *workspace)

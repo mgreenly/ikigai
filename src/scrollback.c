@@ -155,7 +155,7 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
     return OK(scrollback);
 }
 
-res_t ik_scrollback_ensure_layout(ik_scrollback_t *scrollback,
+void ik_scrollback_ensure_layout(ik_scrollback_t *scrollback,
                                   int32_t terminal_width)
 {
     assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
@@ -163,7 +163,7 @@ res_t ik_scrollback_ensure_layout(ik_scrollback_t *scrollback,
 
     // If width hasn't changed, nothing to do
     if (terminal_width == scrollback->cached_width) {
-        return OK(scrollback);
+        return;
     }
 
     // Recalculate physical_lines for all lines with new width
@@ -188,8 +188,6 @@ res_t ik_scrollback_ensure_layout(ik_scrollback_t *scrollback,
     // Update cached width and total
     scrollback->cached_width = terminal_width;
     scrollback->total_physical_lines = new_total_physical_lines;
-
-    return OK(scrollback);
 }
 
 size_t ik_scrollback_get_line_count(const ik_scrollback_t *scrollback)

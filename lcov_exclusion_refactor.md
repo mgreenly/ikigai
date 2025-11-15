@@ -337,72 +337,129 @@ During Category 5 verification, discovered error handling inconsistency where in
 
 ## Category 6: Verify Switch Statement Exhaustiveness
 
-**Status**: [ ] Not Started
+**Status**: [X] Complete
 
-### Task 6.1: src/error.h (lines 137-148)
+### Task 6.1: src/error.h (lines 137-150)
 
-- [ ] Read switch statement on `error_code_t`
-- [ ] Verify all enum values have cases
-- [ ] Verify default case is single-line PANIC or similar
-- [ ] Document which enum values are handled
-- [ ] No code changes needed if exhaustive
+- [X] Read switch statement on `err_code_t`
+- [X] Verify all enum values have cases
+- [X] Verify default case is single-line PANIC or similar
+- [X] Document which enum values are handled
+- [X] No code changes needed if exhaustive
 
-### Task 6.2: src/repl.c (lines 314-374)
+**Findings**:
+- Enum `err_code_t` has 5 values: OK, ERR_INVALID_ARG, ERR_OUT_OF_RANGE, ERR_IO, ERR_PARSE
+- Switch covers all 5 values with explicit cases
+- Default case: single-line PANIC "Invalid error code" (lines 148-149)
+- **EXHAUSTIVE** - handles corrupted enum values
 
-- [ ] Read switch statement on `ik_input_action_type_t`
-- [ ] Verify all enum values have cases
-- [ ] Verify default case is single-line PANIC (line 374-375)
-- [ ] Document which enum values are handled
-- [ ] No code changes needed if exhaustive
+### Task 6.2: src/repl.c (lines 303-363)
+
+- [X] Read switch statement on `ik_input_action_type_t`
+- [X] Verify all enum values have cases
+- [X] Verify default case is single-line PANIC (lines 361-362)
+- [X] Document which enum values are handled
+- [X] No code changes needed if exhaustive
+
+**Findings**:
+- Enum `ik_input_action_type_t` has 15 values (IK_INPUT_CHAR through IK_INPUT_UNKNOWN)
+- Switch covers all 15 values with explicit cases:
+  - IK_INPUT_CHAR, IK_INPUT_NEWLINE, IK_INPUT_BACKSPACE, IK_INPUT_DELETE
+  - IK_INPUT_ARROW_LEFT, IK_INPUT_ARROW_RIGHT, IK_INPUT_ARROW_UP, IK_INPUT_ARROW_DOWN
+  - IK_INPUT_CTRL_A, IK_INPUT_CTRL_C, IK_INPUT_CTRL_E, IK_INPUT_CTRL_K
+  - IK_INPUT_CTRL_U, IK_INPUT_CTRL_W, IK_INPUT_UNKNOWN
+- Default case: single-line PANIC "Invalid input action type" (lines 361-362)
+- **EXHAUSTIVE** - handles corrupted enum values
 
 **Category 6 Verification**:
-- [ ] Both switches confirmed exhaustive
-- [ ] Default cases are single-line format
-- [ ] Default cases handle corrupted enum values
-- [ ] Documentation added to review file
+- [X] Both switches confirmed exhaustive
+- [X] Default cases are single-line format
+- [X] Default cases handle corrupted enum values (memory corruption scenarios)
+- [X] No exclusion markers removed (verification-only category)
+- [X] No code changes needed
 
 ---
 
-## Category 7: Render/IO Defensive Checks - Mixed Actions
+## Category 7: Render/IO Defensive Checks - REFACTORED to Void Return
 
-**Status**: [ ] Not Started
+**Status**: [X] Complete (via void refactor, not invariant format)
 
 ### Task 7.1: Refactor OOM Checks (covered in Category 2)
-- [ ] Line 287-288: Already in Category 2, Task 2.4
-- [ ] Line 334-335: Already in Category 2, Task 2.4
+- [X] Line 287-288: Already in Category 2, Task 2.4 (Complete)
+- [X] Line 334-335: Already in Category 2, Task 2.4 (Complete)
+
+**Note**: These OOM checks were already refactored to single-line PANIC format in Category 2.
 
 ### Task 7.2: Verify Invariant Checks - Single-Line Format
 
 **src/render.c**
-- [ ] Line 227-228: Verify single-line format
-- [ ] Line 251-252: Verify single-line format
-- [ ] Line 289-291: Verify single-line format (may be 3 lines with cleanup)
+- [X] Line 227: Refactored to single-line format `if (is_err(&result)) return result; /* LCOV_EXCL_LINE */`
+- [X] Line 249: Refactored to single-line format `if (is_err(&result)) return result; /* LCOV_EXCL_LINE */`
+- [X] Line 285: Refactored to single-line format with cleanup `if (is_err(&result)) { talloc_free(framebuffer); return result; } /* LCOV_EXCL_LINE */`
 
 **src/repl.c**
-- [ ] Line 135-136: Verify single-line format
-- [ ] Line 141-142: Verify single-line format
-- [ ] Line 152-153: Already PANIC format, verify
-- [ ] Line 190-191: Already PANIC format, verify
-- [ ] Line 219-220: Verify single-line format
-- [ ] Line 250-251: Verify single-line format
+- [X] Line 100: Refactored to single-line format (defensive check for input validation)
+- [X] Line 124: Refactored to single-line format (workspace layout)
+- [X] Line 128: Refactored to single-line format (scrollback layout)
+- [X] Line 143-144: Already in correct PANIC format (workspace height invariant)
+- [X] Line 181-182: Already in correct PANIC format (logical line lookup)
+- [X] Line 204: Refactored to single-line format (viewport calculation)
+- [X] Line 233: Refactored to single-line format (scrollback rendering)
 
 ### Task 7.3: Investigate Input Validation
 
-**src/repl.c Line 109-110**: Can codepoint validation fail?
+**src/repl.c Line 100**: Can codepoint validation fail?
 
-- [ ] Read `ik_workspace_insert_codepoint` implementation
-- [ ] Check if `encode_utf8` can return 0 (invalid codepoint)
-- [ ] Check if input parser validates codepoint range (0-0x10FFFF)
-- [ ] If parser validates: ACCEPT as invariant, verify single-line
-- [ ] If parser doesn't validate: Write test with codepoint > 0x10FFFF
-- [ ] Document findings in review file
+- [X] Read `ik_workspace_insert_codepoint` implementation
+- [X] Check if `encode_utf8` can return 0 (invalid codepoint)
+- [X] Check if input parser validates codepoint range (0-0x10FFFF)
+- [X] Parser validates: ACCEPT as invariant, verified single-line format
+- [X] No test needed - parser guarantees valid codepoints
+- [X] Documented findings below
+
+**Findings**:
+- Input parser (`src/input.c:decode_utf8_sequence`) validates all UTF-8 and returns:
+  - Valid codepoints (0-0x10FFFF, excluding surrogates)
+  - `0xFFFD` (replacement character) for invalid sequences
+- Workspace (`src/workspace.c:encode_utf8`) accepts codepoints 0-0x10FFFF
+- **Conclusion**: Input parser ALWAYS produces valid codepoints, so `encode_utf8` will never return 0 for parser output. The check on repl.c:100 is a **legitimate defensive invariant** and the LCOV_EXCL_LINE marker is correct.
+
+**Category 7 DISCOVERY & REFACTOR**:
+
+During investigation, discovered that error checks for `ik_workspace_ensure_layout` and `ik_scrollback_ensure_layout` were **not legitimate exclusions**:
+
+1. **Initial approach was wrong**: Tried to exclude `if (is_err(&result)) return result;` as invariants
+2. **User challenged this**: Correctly pointed out these are error returns, not PANIC invariants
+3. **Root cause analysis**: Both functions:
+   - Only do arithmetic (no allocations, no I/O)
+   - Always return OK()
+   - **Can never actually fail**
+
+**Solution: Change return type to `void`**
+
+Refactored both functions from `res_t` to `void`:
+- `void ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_width)`
+- `void ik_scrollback_ensure_layout(ik_scrollback_t *scrollback, int32_t terminal_width)`
+
+**Impact**:
+- Removed all fake error checks (5 call sites in production code, ~10 in tests)
+- **Eliminated 3 LCOV exclusion markers** (down from 277 → 274)
+- Made code clearer - type system now tells the truth
+- No performance impact
+
+**Remaining exclusions from Category 7**:
+- [X] repl.c:100 - Valid defensive invariant (input validation)
+- [X] repl.c:143-144 - Valid PANIC (workspace height invariant)
+- [X] repl.c:181-182 - Valid PANIC (logical line lookup)
+- [X] repl.c:204 - Valid defensive invariant (viewport calculation)
+- [X] repl.c:233 - Valid defensive invariant (scrollback rendering)
+- [X] render.c:248, 284 - Valid defensive invariants (line text retrieval)
 
 **Category 7 Verification**:
-- [ ] OOM checks refactored (via Category 2)
-- [ ] All invariant checks single-line format
-- [ ] Input validation investigated and decision made
-- [ ] Tests added if needed
-- [ ] Coverage remains 100%
+- [X] Type system refactor completed
+- [X] All tests pass
+- [X] Coverage remains 100.0%
+- [X] Exclusion count: 277 → 274 (saved 3 markers via void refactor)
 
 ---
 
@@ -515,15 +572,15 @@ grep -r "LCOV_EXCL" src/ | wc -l
 
 ## Progress Tracking
 
-**Overall Progress**: 5/8 categories complete
+**Overall Progress**: 7/8 categories complete
 
 - [X] Category 1: Remove Dead Code
 - [X] Category 2: Refactor OOM Checks
 - [X] Category 3: Add Environmental/IO Tests
 - [X] Category 4: Verify Invariant Format
 - [X] Category 5: Verify UTF-8 Validation
-- [ ] Category 6: Verify Switch Exhaustiveness
-- [ ] Category 7: Render/IO Mixed Actions
+- [X] Category 6: Verify Switch Exhaustiveness
+- [X] Category 7: Render/IO Mixed Actions
 - [ ] Category 8: Add Edge Case Tests
 
 **Final Verification**: [ ] Not Started

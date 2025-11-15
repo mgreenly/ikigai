@@ -233,9 +233,8 @@ res_t ik_workspace_delete_word_backward(ik_workspace_t *workspace);
  *
  * @param workspace Workspace
  * @param terminal_width Terminal width in columns
- * @return RES_OK on success, RES_ERR on failure
  */
-res_t ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_width);
+void ik_workspace_ensure_layout(ik_workspace_t *workspace, int32_t terminal_width);
 
 /**
  * @brief Invalidate the cached layout
