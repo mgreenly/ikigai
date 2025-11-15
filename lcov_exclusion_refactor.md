@@ -296,6 +296,43 @@ if (is_err(&res)) PANIC("allocation failed"); // LCOV_EXCL_LINE
 - [X] No exclusion markers removed (all are legitimate defensive checks)
 - [X] No code changes needed
 
+### Task 5.4: Error Handling Consistency Refactor
+
+**Status**: [X] Complete
+
+During Category 5 verification, discovered error handling inconsistency where invariant checks used `assert()` instead of `PANIC()`.
+
+**Issue**: Three functions violated error handling philosophy from `docs/error_handling.md`:
+- **Assert**: For preconditions (caller's responsibility), compiles out in release
+- **PANIC**: For invariants (our responsibility), always present
+
+**Files Changed**:
+
+1. **src/input.c - decode_utf8_sequence (lines 50-85)**:
+   - BEFORE: `assert(len >= 1 && len <= 4)` + if/else chain
+   - AFTER: Converted to switch statement with PANIC default
+   - Markers: 3 → 3 (no change, but better structure)
+   - Reasoning: Invalid length is an invariant violation, not precondition
+
+2. **src/workspace_multiline.c - count_graphemes (lines 79-89)**:
+   - BEFORE: `fprintf() + abort()` for invalid UTF-8
+   - AFTER: Single `PANIC("invalid UTF-8 in workspace text")`
+   - Markers: 3 → 2 (saved 1 marker)
+   - Removed includes: stdio.h, stdlib.h
+   - Added include: panic.h
+
+3. **src/workspace_multiline.c - grapheme_to_byte_offset (lines 125-135)**:
+   - BEFORE: `fprintf() + abort()` for invalid UTF-8
+   - AFTER: Single `PANIC("invalid UTF-8 in workspace text")`
+   - Markers: 3 → 2 (saved 1 marker)
+
+**Results**:
+- ✅ Exclusion count: 288 → 286 (saved 2 markers)
+- ✅ Coverage: 100.0% maintained (lines, functions, branches)
+- ✅ Philosophy: Consistent with docs/error_handling.md
+- ✅ Clarity: No confusing "unreachable else after assert"
+- ✅ Safety: Works correctly in both debug AND release builds
+
 ---
 
 ## Category 6: Verify Switch Statement Exhaustiveness

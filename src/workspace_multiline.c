@@ -3,9 +3,8 @@
 
 #include "workspace.h"
 #include "error.h"
+#include "panic.h"
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 // @brief Find the start of the current line (position after previous newline, or 0)
 //
@@ -85,8 +84,7 @@ static size_t count_graphemes(const char *text, size_t len)
         } else if ((first_byte & 0xF8) == 0xF0) { // LCOV_EXCL_BR_LINE
             char_len = 4;
         } else {
-            fprintf(stderr, "invalid UTF-8 %s:%d\n", __FILE__, __LINE__); // LCOV_EXCL_LINE
-            abort(); // LCOV_EXCL_LINE
+            PANIC("invalid UTF-8 in workspace text");  // LCOV_EXCL_LINE
         }
 
         byte_pos += char_len;
@@ -133,8 +131,7 @@ static size_t grapheme_to_byte_offset(const char *text, size_t len, size_t targe
         } else if ((first_byte & 0xF8) == 0xF0) { // LCOV_EXCL_BR_LINE
             char_len = 4;
         } else {
-            fprintf(stderr, "invalid UTF-8 %s:%d\n", __FILE__, __LINE__); // LCOV_EXCL_LINE
-            abort(); // LCOV_EXCL_LINE
+            PANIC("invalid UTF-8 in workspace text");  // LCOV_EXCL_LINE
         }
 
         byte_pos += char_len;

@@ -49,35 +49,39 @@ static void reset_utf8_state(ik_input_parser_t *parser)
 // Returns U+FFFD (replacement character) for invalid sequences
 static uint32_t decode_utf8_sequence(const char *buf, size_t len)
 {
-    assert(buf != NULL);           // LCOV_EXCL_BR_LINE
-    assert(len >= 1 && len <= 4);  // LCOV_EXCL_BR_LINE
+    assert(buf != NULL);  // LCOV_EXCL_BR_LINE
 
     unsigned char b0 = (unsigned char)buf[0];
+    unsigned char b1, b2, b3;
     uint32_t codepoint = 0;
 
-    if (len == 2) {
-        // 110xxxxx 10xxxxxx
-        unsigned char b1 = (unsigned char)buf[1];
-        codepoint = ((uint32_t)(b0 & 0x1F) << 6) |
-                    ((uint32_t)(b1 & 0x3F));
-    } else if (len == 3) {
-        // 1110xxxx 10xxxxxx 10xxxxxx
-        unsigned char b1 = (unsigned char)buf[1];
-        unsigned char b2 = (unsigned char)buf[2];
-        codepoint = ((uint32_t)(b0 & 0x0F) << 12) |
-                    ((uint32_t)(b1 & 0x3F) << 6) |
-                    ((uint32_t)(b2 & 0x3F));
-    } else if (len == 4) {  // LCOV_EXCL_BR_LINE
-        // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-        unsigned char b1 = (unsigned char)buf[1];
-        unsigned char b2 = (unsigned char)buf[2];
-        unsigned char b3 = (unsigned char)buf[3];
-        codepoint = ((uint32_t)(b0 & 0x07) << 18) |
-                    ((uint32_t)(b1 & 0x3F) << 12) |
-                    ((uint32_t)(b2 & 0x3F) << 6) |
-                    ((uint32_t)(b3 & 0x3F));
-    } else {
-        PANIC("Invalid UTF-8 sequence length");  // LCOV_EXCL_LINE
+    switch (len) {  // LCOV_EXCL_BR_LINE
+        case 2:
+            // 110xxxxx 10xxxxxx
+            b1 = (unsigned char)buf[1];
+            codepoint = ((uint32_t)(b0 & 0x1F) << 6) |
+                        ((uint32_t)(b1 & 0x3F));
+            break;
+        case 3:
+            // 1110xxxx 10xxxxxx 10xxxxxx
+            b1 = (unsigned char)buf[1];
+            b2 = (unsigned char)buf[2];
+            codepoint = ((uint32_t)(b0 & 0x0F) << 12) |
+                        ((uint32_t)(b1 & 0x3F) << 6) |
+                        ((uint32_t)(b2 & 0x3F));
+            break;
+        case 4:
+            // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+            b1 = (unsigned char)buf[1];
+            b2 = (unsigned char)buf[2];
+            b3 = (unsigned char)buf[3];
+            codepoint = ((uint32_t)(b0 & 0x07) << 18) |
+                        ((uint32_t)(b1 & 0x3F) << 12) |
+                        ((uint32_t)(b2 & 0x3F) << 6) |
+                        ((uint32_t)(b3 & 0x3F));
+            break;
+        default:  // LCOV_EXCL_LINE
+            PANIC("UTF-8 parser state corruption: invalid length");  // LCOV_EXCL_LINE
     }
 
     // Validate codepoint (reject overlong encodings, surrogates, out-of-range)
