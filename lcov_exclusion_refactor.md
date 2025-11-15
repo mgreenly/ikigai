@@ -217,7 +217,7 @@ if (is_err(&res)) PANIC("allocation failed"); // LCOV_EXCL_LINE
 
 ## Category 5: Verify UTF-8 Validation
 
-**Status**: [ ] Not Started
+**Status**: [X] Complete
 
 **Task**: Verify that UTF-8 validation assumptions are correct
 
@@ -225,34 +225,76 @@ if (is_err(&res)) PANIC("allocation failed"); // LCOV_EXCL_LINE
 
 **Files**: `src/workspace_multiline.c`, `src/input.c`
 
-- [ ] Check existing tests for 4-byte UTF-8 (emojis: 👍, 🎉, etc.)
-- [ ] Verify tests exist in input parser tests
-- [ ] Verify tests exist in workspace tests
-- [ ] If missing: Add tests for 4-byte UTF-8 characters
-- [ ] Verify exclusions are for invalid sequences, not valid 4-byte UTF-8
+- [X] Check existing tests for 4-byte UTF-8 (emojis: 👍, 🎉, etc.)
+- [X] Verify tests exist in input parser tests
+- [X] Verify tests exist in workspace tests
+- [X] Verify exclusions are for invalid sequences, not valid 4-byte UTF-8
+
+**Findings**:
+- Comprehensive 4-byte UTF-8 test coverage confirmed:
+  - `tests/unit/input/utf8_test.c:test_input_parse_utf8_4byte` - tests parsing 🎉 (U+1F389)
+  - Multiple workspace tests use 4-byte emoji characters
+  - Cursor movement, insertion, deletion all tested with emoji
+- Coverage data confirms execution:
+  - `src/input.c:70` (len == 4 decode path): executed 5 times
+  - `src/workspace_multiline.c:85-86` (4-byte in count_graphemes): executed 2 times
+  - `src/workspace_multiline.c:133-134` (4-byte in grapheme_to_byte_offset): executed 1 time
+- LCOV_EXCL_BR_LINE markers are LEGITIMATE:
+  - They exclude the **false branch** of the condition, not the line itself
+  - The false branch leads to error/abort paths that are unreachable with valid input
+  - The true branch (4-byte UTF-8 handling) is fully covered
 
 ### Task 5.2: Verify Input Validation
 
 **Files**: `src/workspace.c`, `src/workspace_layout.c`
 
-- [ ] Verify input parser rejects invalid UTF-8 at entry points
-- [ ] Check for validation in `ik_input_parse_byte`
-- [ ] Verify workspace only receives valid UTF-8
-- [ ] Confirm defensive checks in layout are truly unreachable
+- [X] Verify input parser rejects invalid UTF-8 at entry points
+- [X] Check for validation in `ik_input_parse_byte`
+- [X] Verify workspace only receives valid UTF-8
+- [X] Confirm defensive checks in layout are truly unreachable
+
+**Findings**:
+- Input validation chain confirmed:
+  1. **Input Parser** (`src/input.c:decode_utf8_sequence`):
+     - Validates UTF-8 byte sequences
+     - Rejects overlong encodings
+     - Rejects surrogates (0xD800-0xDFFF)
+     - Rejects out-of-range codepoints (> 0x10FFFF)
+     - Returns U+FFFD for invalid sequences
+  2. **Workspace Insert** (`src/workspace.c:ik_workspace_insert_codepoint`):
+     - Validates codepoint range via `encode_utf8()`
+     - Returns error for invalid codepoints (> 0x10FFFF)
+     - Only inserts valid UTF-8 bytes
+  3. **Workspace Newline** (`src/workspace.c:ik_workspace_insert_newline`):
+     - Inserts ASCII '\n' which is always valid UTF-8
+- Text modification analysis:
+  - Only insertion points: `ik_workspace_insert_codepoint()` and `ik_workspace_insert_newline()`
+  - All delete operations only remove existing bytes
+  - No direct byte array access from external code
+- **Conclusion**: Precondition in `workspace_multiline.c` is VALID - workspace text always contains valid UTF-8
 
 ### Task 5.3: Verify utf8proc Library Guarantees
 
-**File**: `src/workspace_layout.c` line 45
+**File**: `src/workspace_layout.c` line 38
 
-- [ ] Verify utf8proc documentation confirms `char_width >= 0` for valid codepoints
-- [ ] Confirm defensive check is based on library guarantee
-- [ ] No code changes needed
+- [X] Verify utf8proc documentation confirms `char_width >= 0` for all codepoints
+- [X] Confirm defensive check is based on library guarantee
+- [X] No code changes needed
+
+**Findings**:
+- utf8proc documentation confirms: **`utf8proc_charwidth()` NEVER returns negative values**
+- Unlike POSIX `wcwidth()` which returns -1 for non-printable characters
+- `utf8proc_charwidth()` returns 0 for non-printable/zero-width characters instead
+- Return values: 0 (non-printable/zero-width), 1 (normal), 2 (wide/CJK)
+- LCOV_EXCL_BR_LINE on line 38 is LEGITIMATE - the false branch is impossible
 
 **Category 5 Verification**:
-- [ ] 4-byte UTF-8 test coverage confirmed
-- [ ] Input validation confirmed at entry points
-- [ ] Library guarantees documented
-- [ ] All checks remain single-line format
+- [X] 4-byte UTF-8 test coverage confirmed (comprehensive)
+- [X] Input validation confirmed at entry points (complete validation chain)
+- [X] Library guarantees documented (utf8proc_charwidth always >= 0)
+- [X] All checks remain single-line format
+- [X] No exclusion markers removed (all are legitimate defensive checks)
+- [X] No code changes needed
 
 ---
 
@@ -436,13 +478,13 @@ grep -r "LCOV_EXCL" src/ | wc -l
 
 ## Progress Tracking
 
-**Overall Progress**: 4/8 categories complete
+**Overall Progress**: 5/8 categories complete
 
 - [X] Category 1: Remove Dead Code
 - [X] Category 2: Refactor OOM Checks
 - [X] Category 3: Add Environmental/IO Tests
 - [X] Category 4: Verify Invariant Format
-- [ ] Category 5: Verify UTF-8 Validation
+- [X] Category 5: Verify UTF-8 Validation
 - [ ] Category 6: Verify Switch Exhaustiveness
 - [ ] Category 7: Render/IO Mixed Actions
 - [ ] Category 8: Add Edge Case Tests
