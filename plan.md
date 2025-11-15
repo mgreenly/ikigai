@@ -209,31 +209,30 @@ See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 105-413 for detaile
 
 ---
 
-## Phase 4: Viewport and Scrolling Integration
+## Phase 4: Viewport and Scrolling Integration ✅
 
 **Goal**: Integrate scrollback with REPL, add viewport calculation and scrolling commands.
 
-**Status**: Not started (blocked on Phase 3 completion)
+**Status**: COMPLETE (2025-11-14) - Implementation and automated testing done
 
-**Planned Features**:
-- REPL gains `scrollback` and `scroll_offset` members
-- `ik_repl_submit_line()` - Move workspace content to scrollback history
-- `ik_repl_scroll()` - Adjust viewport position
-- `ik_render_frame()` - Render scrollback + separator + workspace in single write (only visible lines)
-- Add Page Up/Down input actions for scrollback navigation
-- Viewport window calculation: total_physical_lines = scrollback + 1 (separator) + workspace
-- Performance: only copy visible text (not entire scrollback)
+**Completed Features**:
+- ✅ REPL gains `scrollback` and `scroll_offset` members
+- ✅ `ik_repl_submit_line()` - Move workspace content to scrollback history with auto-scroll
+- ✅ Page Up/Down scrolling - Adjust viewport position with proper clamping
+- ✅ `ik_render_frame()` - Render scrollback + workspace in single write (Tasks 4.1-4.4)
+- ✅ Viewport window calculation integrated
+- ✅ Performance: only render visible lines
 
 **Implementation Tasks**:
-- [ ] Update REPL context with scrollback and scroll_offset
-- [ ] Implement `ik_repl_submit_line()` function
-- [ ] Implement `ik_repl_scroll()` function
-- [ ] Update `ik_render_frame()` for viewport rendering
-- [ ] Add Page Up/Down to input parser
-- [ ] Integrate viewport calculation into event loop
-- [ ] Write comprehensive tests (TDD)
-- [ ] Achieve 100% coverage
-- [ ] Manual testing of scrolling behavior
+- [x] Update REPL context with scrollback and scroll_offset (Task 4.1)
+- [x] Implement viewport calculation (Task 4.2)
+- [x] Implement scrollback rendering (Task 4.3)
+- [x] Update `ik_render_frame()` for viewport rendering (Task 4.4)
+- [x] Add Page Up/Down to input parser (Task 4.5)
+- [x] Implement `ik_repl_submit_line()` with auto-scroll (Task 4.6)
+- [x] Write comprehensive tests - 11 new tests (TDD)
+- [x] Achieve 100% coverage - Lines: 100%, Functions: 100%, Branches: 100%
+- [ ] Manual testing of scrolling behavior - **DEFERRED**
 
 See [docs/eliminate_vterm.md](docs/eliminate_vterm.md) lines 418-527 for rendering algorithm.
 

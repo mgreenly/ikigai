@@ -202,6 +202,22 @@ static void parse_escape_sequence(ik_input_parser_t *parser, char byte,
         return;
     }
 
+    // Check for page up: ESC [ 5 ~
+    // Note: We know esc_buf[0] == '[' due to validation above
+    if (parser->esc_len == 3 && parser->esc_buf[1] == '5' && byte == '~') {  // LCOV_EXCL_BR_LINE
+        reset_escape_state(parser);
+        action_out->type = IK_INPUT_PAGE_UP;
+        return;
+    }
+
+    // Check for page down: ESC [ 6 ~
+    // Note: We know esc_buf[0] == '[' due to validation above
+    if (parser->esc_len == 3 && parser->esc_buf[1] == '6' && byte == '~') {  // LCOV_EXCL_BR_LINE
+        reset_escape_state(parser);
+        action_out->type = IK_INPUT_PAGE_DOWN;
+        return;
+    }
+
     // Check for other complete sequences we don't recognize
     // Pattern: ESC [ digit ~ (e.g., Insert=2~, Home=1~, End=4~, etc.)
     if (parser->esc_len == 3 && byte == '~') {

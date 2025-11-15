@@ -283,6 +283,29 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
     return OK(NULL);
 }
 
+res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
+
+    // Get current workspace text
+    const char *text = (const char *)repl->workspace->text->data;
+    size_t text_len = ik_byte_array_size(repl->workspace->text);
+
+    // Append to scrollback (only if there's content and scrollback exists)
+    if (text_len > 0 && repl->scrollback != NULL) {
+        res_t result = ik_scrollback_append_line(repl->scrollback, text, text_len);
+        if (is_err(&result))return result;  // LCOV_EXCL_LINE - Defensive, allocation failures are rare
+    }
+
+    // Clear workspace
+    ik_workspace_clear(repl->workspace);
+
+    // Auto-scroll to bottom (reset viewport offset)
+    repl->viewport_offset = 0;
+
+    return OK(NULL);
+}
+
 res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
@@ -310,9 +333,8 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
 
                 if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
 
-                // Clear workspace after executing command
-                ik_workspace_clear(repl->workspace);
-                return OK(NULL);
+                // Submit line to scrollback (clears workspace and auto-scrolls)
+                return ik_repl_submit_line(repl);
             }
 
             // Not a slash command, insert newline as usual
@@ -330,6 +352,33 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             return ik_workspace_cursor_up(repl->workspace);
         case IK_INPUT_ARROW_DOWN:
             return ik_workspace_cursor_down(repl->workspace);
+        case IK_INPUT_PAGE_UP: {
+            // Scroll up by terminal height (increase offset)
+            // First ensure scrollback layout is current
+            ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
+
+            // Calculate maximum offset (don't scroll past top)
+            size_t total_phys_lines = ik_scrollback_get_total_physical_lines(repl->scrollback);
+            size_t max_offset = total_phys_lines;
+
+            // Scroll up by one page
+            size_t new_offset = repl->viewport_offset + (size_t)repl->term->screen_rows;
+            if (new_offset > max_offset) {
+                repl->viewport_offset = max_offset;
+            } else {
+                repl->viewport_offset = new_offset;
+            }
+            return OK(NULL);
+        }
+        case IK_INPUT_PAGE_DOWN: {
+            // Scroll down by terminal height (decrease offset)
+            if (repl->viewport_offset >= (size_t)repl->term->screen_rows) {
+                repl->viewport_offset -= (size_t)repl->term->screen_rows;
+            } else {
+                repl->viewport_offset = 0;  // At bottom
+            }
+            return OK(NULL);
+        }
         case IK_INPUT_CTRL_A:
             return ik_workspace_cursor_to_line_start(repl->workspace);
         case IK_INPUT_CTRL_E:

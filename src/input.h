@@ -17,6 +17,8 @@ typedef enum {
     IK_INPUT_ARROW_RIGHT, // Right arrow
     IK_INPUT_ARROW_UP,    // Up arrow
     IK_INPUT_ARROW_DOWN,  // Down arrow
+    IK_INPUT_PAGE_UP,     // Page Up key
+    IK_INPUT_PAGE_DOWN,   // Page Down key
     IK_INPUT_CTRL_A,      // Ctrl+A (beginning of line)
     IK_INPUT_CTRL_C,      // Ctrl+C (exit)
     IK_INPUT_CTRL_E,      // Ctrl+E (end of line)

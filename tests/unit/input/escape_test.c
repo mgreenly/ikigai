@@ -204,7 +204,7 @@ START_TEST(test_input_parse_buffer_overflow)
 }
 
 END_TEST
-// Test: invalid delete-like sequence (ESC [ X ~ where X is not '3')
+// Test: invalid delete-like sequence (ESC [ X ~ where X is not '3', '5', or '6')
 START_TEST(test_input_parse_invalid_delete_like_sequence)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -214,14 +214,14 @@ START_TEST(test_input_parse_invalid_delete_like_sequence)
     res_t res = ik_input_parser_create(ctx, &parser);
     ck_assert(is_ok(&res));
 
-    // Parse ESC [ 5 ~ (not a valid delete sequence)
+    // Parse ESC [ 7 ~ (unrecognized sequence)
     ik_input_parse_byte(parser, 0x1B, &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
     ik_input_parse_byte(parser, '[', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
 
-    ik_input_parse_byte(parser, '5', &action);
+    ik_input_parse_byte(parser, '7', &action);
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
     ck_assert(parser->in_escape); // Still in escape mode
 
@@ -350,6 +350,60 @@ START_TEST(test_input_parse_unrecognized_single_char_escape)
 }
 
 END_TEST
+// Test: parse page up escape sequence
+START_TEST(test_input_parse_page_up)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse full sequence \x1b[5~
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '[', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '5', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '~', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_PAGE_UP);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse page down escape sequence
+START_TEST(test_input_parse_page_down)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = NULL;
+    ik_input_action_t action = {0};
+
+    res_t res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    // Parse full sequence \x1b[6~
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '[', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '6', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '~', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_PAGE_DOWN);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 // Test suite
 static Suite *input_escape_suite(void)
@@ -362,6 +416,8 @@ static Suite *input_escape_suite(void)
     tcase_add_test(tc_core, test_input_parse_arrow_left);
     tcase_add_test(tc_core, test_input_parse_arrow_right);
     tcase_add_test(tc_core, test_input_parse_delete);
+    tcase_add_test(tc_core, test_input_parse_page_up);
+    tcase_add_test(tc_core, test_input_parse_page_down);
     tcase_add_test(tc_core, test_input_parse_invalid_escape);
     tcase_add_test(tc_core, test_input_parse_buffer_overflow);
     tcase_add_test(tc_core, test_input_parse_invalid_delete_like_sequence);

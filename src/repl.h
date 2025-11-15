@@ -42,5 +42,8 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl);
 // Calculate viewport boundaries (Phase 4)
 res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_out);
 
+// Submit current workspace line to scrollback (Phase 4 Task 4.6)
+res_t ik_repl_submit_line(ik_repl_ctx_t *repl);
+
 // Process single input action
 res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action);
