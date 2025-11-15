@@ -325,6 +325,7 @@ static Suite *repl_navigation_suite(void)
     Suite *s = suite_create("REPL_Navigation");
     TCase *tc_core = tcase_create("Core");
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     tcase_add_test(tc_core, test_repl_process_action_arrow_left);
     tcase_add_test(tc_core, test_repl_process_action_arrow_right);

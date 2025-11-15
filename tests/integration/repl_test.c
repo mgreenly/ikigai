@@ -218,6 +218,7 @@ static Suite *repl_suite(void)
     suite_add_tcase(s, tc_core);
 
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_repl_init_null_parent, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_repl_init_null_out, SIGABRT);
     suite_add_tcase(s, tc_assertions);

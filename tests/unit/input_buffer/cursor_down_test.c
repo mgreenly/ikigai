@@ -274,6 +274,7 @@ static Suite *input_buffer_cursor_down_suite(void)
     Suite *s = suite_create("Input Buffer Cursor Down");
     TCase *tc_core = tcase_create("Core");
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_cursor_down_basic);

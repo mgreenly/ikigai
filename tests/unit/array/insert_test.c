@@ -164,6 +164,7 @@ static Suite *array_insert_suite(void)
 #ifndef NDEBUG
     // Assertion tests - only in debug builds
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_array_insert_invalid_index_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
 #endif

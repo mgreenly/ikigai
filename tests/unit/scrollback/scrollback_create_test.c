@@ -61,6 +61,7 @@ static Suite *scrollback_create_suite(void)
     Suite *s = suite_create("Scrollback Create");
     TCase *tc_core = tcase_create("Core");
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_scrollback_create);

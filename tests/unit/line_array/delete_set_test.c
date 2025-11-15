@@ -210,6 +210,7 @@ static Suite *line_array_delete_set_suite(void)
 #ifndef NDEBUG
     // Assertion tests (debug mode only)
     tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_line_array_get_out_of_bounds_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_line_array_delete_out_of_bounds_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_line_array_set_out_of_bounds_asserts, SIGABRT);

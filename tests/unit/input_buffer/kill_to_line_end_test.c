@@ -235,6 +235,7 @@ static Suite *input_buffer_kill_to_line_end_suite(void)
     Suite *s = suite_create("Input Buffer Kill To Line End");
     TCase *tc_core = tcase_create("Core");
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_kill_to_line_end_basic);

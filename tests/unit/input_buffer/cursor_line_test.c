@@ -426,6 +426,7 @@ static Suite *input_buffer_cursor_line_suite(void)
     Suite *s = suite_create("Input Buffer Cursor Line Operations");
     TCase *tc_core = tcase_create("Core");
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests - cursor to line start */
     tcase_add_test(tc_core, test_cursor_to_line_start_basic);

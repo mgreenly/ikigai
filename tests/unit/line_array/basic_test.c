@@ -129,6 +129,7 @@ static Suite *line_array_basic_suite(void)
 #ifndef NDEBUG
     // Assertion tests (debug mode only)
     tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_line_array_size_null_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_line_array_capacity_null_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
