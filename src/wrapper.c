@@ -68,6 +68,43 @@ MOCKABLE int ik_json_is_string_wrapper(const json_t *json)
 }
 
 // ============================================================================
+// yyjson wrappers - debug/test builds only
+// ============================================================================
+
+MOCKABLE yyjson_doc *ik_yyjson_read_file_wrapper(const char *path, yyjson_read_flag flg,
+                                                 const yyjson_alc *alc, yyjson_read_err *err)
+{
+    return yyjson_read_file(path, flg, alc, err);
+}
+
+MOCKABLE bool ik_yyjson_mut_write_file_wrapper(const char *path, const yyjson_mut_doc *doc,
+                                               yyjson_write_flag flg, const yyjson_alc *alc,
+                                               yyjson_write_err *err)
+{
+    return yyjson_mut_write_file(path, doc, flg, alc, err);
+}
+
+MOCKABLE yyjson_val *ik_yyjson_doc_get_root_wrapper(yyjson_doc *doc)
+{
+    return yyjson_doc_get_root(doc);
+}
+
+MOCKABLE yyjson_val *ik_yyjson_obj_get_wrapper(yyjson_val *obj, const char *key)
+{
+    return yyjson_obj_get(obj, key);
+}
+
+MOCKABLE int64_t ik_yyjson_get_sint_wrapper(yyjson_val *val)
+{
+    return yyjson_get_sint(val);
+}
+
+MOCKABLE const char *ik_yyjson_get_str_wrapper(yyjson_val *val)
+{
+    return yyjson_get_str(val);
+}
+
+// ============================================================================
 // POSIX system call wrappers - debug/test builds only
 // ============================================================================
 

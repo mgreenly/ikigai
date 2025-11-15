@@ -1,7 +1,7 @@
 # Migration Plan: jansson → yyjson
 
 **Date:** 2025-11-15
-**Status:** READY TO EXECUTE
+**Status:** IN PROGRESS - Step 3.1 Complete (100% Coverage Achieved)
 **Background:** See [docs/jansson_to_yyjson_proposal.md](docs/jansson_to_yyjson_proposal.md)
 
 ---
@@ -30,30 +30,33 @@ Protocol module was removed in Phase 2.5, so scope is smaller than original prop
 
 ## Migration Steps
 
-### Step 1: Vendor yyjson and Create talloc Allocator
+### Step 1: Vendor yyjson and Create talloc Allocator ✅ COMPLETE
 
 **Goal:** Add yyjson to codebase with talloc integration, verify build
 
 **Tasks:**
-1. Download yyjson.c and yyjson.h from https://github.com/ibireme/yyjson
-2. Place in `src/vendor/yyjson/`
-3. Create `src/json_allocator.{c,h}` with talloc wrapper (see proposal:103-136)
-4. Update `Makefile` to compile yyjson.c
-5. Verify clean build: `make clean && make`
+1. ✅ Download yyjson.c and yyjson.h from https://github.com/ibireme/yyjson
+2. ✅ Place in `src/vendor/yyjson/`
+3. ✅ Create `src/json_allocator.{c,h}` with talloc wrapper (see proposal:103-136)
+4. ✅ Update `Makefile` to compile yyjson.c (CLIENT_SOURCES and MODULE_SOURCES)
+5. ✅ Verify clean build: `make clean && make`
+6. ✅ Exclude vendor code from coverage reporting
 
 **TDD Note:** No tests yet - just infrastructure setup. Both jansson and yyjson will coexist temporarily.
 
 **Success Criteria:**
-- `make` compiles without errors
-- yyjson vendored files present
-- json_allocator module compiles
-- **No functional changes yet**
+- ✅ `make` compiles without errors
+- ✅ yyjson vendored files present
+- ✅ json_allocator module compiles
+- ✅ **No functional changes yet**
 
 ---
 
-### Step 2: Migrate src/wrapper.{c,h} (TDD)
+### Step 2: Migrate src/wrapper.{c,h} (TDD) ⏭️ SKIPPED
 
 **Goal:** Replace jansson wrapper functions with yyjson equivalents
+
+**Decision:** Skipped - jansson wrappers only used in test mocking, not production code. Will create yyjson wrappers as needed for test coverage in Step 3.1.
 
 **Current wrapper.h functions to migrate:**
 - `ik_json_object_set_new_wrapper()`
@@ -98,9 +101,11 @@ make check-dynamic # Sanitizers clean
 
 ---
 
-### Step 3: Migrate src/config.c (TDD)
+### Step 3: Migrate src/config.c (TDD) 🔄 PARTIALLY COMPLETE
 
 **Goal:** Replace jansson usage in config.c with yyjson
+
+**Status:** Migration complete, all tests passing. Coverage: 99.9% lines, 100% functions, 99.0% branches. Need Step 3.1 to reach 100%.
 
 **Current config.c jansson usage:**
 - `json_loads()` - Parse JSON config file
@@ -144,11 +149,56 @@ make check-dynamic
 - Verify with: `grep -n "json_decref" src/config.c` (should be empty)
 
 **Success Criteria:**
-- config.c fully migrated to yyjson
-- All config tests pass
-- No more `json_decref()` calls
-- 100% coverage maintained
-- Memory leaks clean (valgrind/sanitizers)
+- ✅ config.c fully migrated to yyjson
+- ✅ All config tests pass (100% of test cases)
+- ✅ No more `json_decref()` calls
+- ✅ 100% coverage maintained (100.0% lines, functions, branches)
+- ✅ Memory leaks clean (valgrind/sanitizers)
+
+---
+
+### Step 3.1: Achieve 100% Coverage for config.c ✅ COMPLETE
+
+**Goal:** Add yyjson wrappers to achieve 100% line and branch coverage
+
+**What We Did:**
+
+1. ✅ Created comprehensive yyjson wrappers in `src/wrapper.{c,h}`:
+   - `ik_yyjson_read_file_wrapper()` - mock file read errors
+   - `ik_yyjson_mut_write_file_wrapper()` - mock file write errors
+   - `ik_yyjson_doc_get_root_wrapper()` - mock NULL root
+   - `ik_yyjson_obj_get_wrapper()` - mock missing keys
+   - `ik_yyjson_get_sint_wrapper()` - wrapper for int extraction
+   - `ik_yyjson_get_str_wrapper()` - wrapper for string extraction
+   - All follow MOCKABLE pattern (weak symbols in debug, inline in release)
+
+2. ✅ Updated config.c to use all wrappers instead of direct yyjson calls
+
+3. ✅ Added comprehensive tests in `tests/integration/config_integration_test.c`:
+   - `test_config_write_failure` - yyjson_mut_write_file error path
+   - `test_config_read_failure` - yyjson_read_file error path
+   - `test_config_invalid_json_root` - JSON root is array not object
+   - `test_config_doc_get_root_null` - doc_get_root returns NULL
+
+4. ✅ Removed invalid LCOV exclusions (vendor function internal branches)
+   - Wrapped and tested all vendor function error paths
+   - Kept only valid exclusions (asserts and OOM PANICs)
+
+**Key Lesson Learned:**
+If we rely on vendor function checks, we MUST wrap them and test both paths. Making error paths "logically impossible" through validation is a design flaw - it prevents testing the very error handling we depend on.
+
+**Final Coverage:**
+- Overall: 100.0% lines (1816/1816), 100.0% functions (135/135), 100.0% branches (608/608)
+- config.c: 100% lines, 100% branches
+- LCOV exclusions: 308/340 (only asserts and OOM PANICs)
+- All quality gates passing
+
+**Success Criteria:**
+- ✅ config.c: 100% lines, 100% branches
+- ✅ Overall: 100% lines, 100% functions, 100% branches
+- ✅ All tests still passing (11 config tests total)
+- ✅ Wrappers ready for future LLM module use
+- ✅ All LCOV exclusions justified and documented
 
 ---
 

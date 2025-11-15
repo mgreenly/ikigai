@@ -66,6 +66,53 @@ if (is_err(&res)) PANIC("allocation failed"); // LCOV_EXCL_LINE
 - Refactor code if needed to make testable
 - **No exclusions** - these must be covered
 
+### 5. Vendor Function Error Paths
+
+**ADD WRAPPERS AND TEST** - If we rely on vendor function checks, we must test them:
+
+**Anti-Pattern**: Making error paths "logically impossible" through validation
+```c
+// BAD: Validation makes error path unreachable
+yyjson_doc *doc = yyjson_read_file(...);
+if (!doc) {
+    // Already validated - this can't happen!
+    return ERR(ctx, PARSE, "Failed to parse");
+}
+
+yyjson_val *root = yyjson_doc_get_root(doc);
+if (!root) {  // LCOV_EXCL_LINE - "logically impossible"
+    return ERR(ctx, PARSE, "No root");
+}
+```
+
+**Correct Pattern**: Wrap vendor functions and test both paths
+```c
+// GOOD: Wrappers allow testing both success and failure
+yyjson_doc *doc = ik_yyjson_read_file_wrapper(...);
+if (!doc) {
+    return ERR(ctx, PARSE, "Failed to parse");
+}
+
+yyjson_val *root = ik_yyjson_doc_get_root_wrapper(doc);
+if (!root) {  // Tested via mock in test
+    return ERR(ctx, PARSE, "No root");
+}
+```
+
+**Why This Matters**:
+- If we rely on vendor function checks, they ARE our error handling
+- Making paths "impossible" through validation is a coverage anti-pattern
+- Design flaw: prevents testing the error handling we depend on
+- Both success AND failure paths must be exercised in tests
+
+**Approach**:
+- Wrap ALL vendor functions whose results we check
+- Use MOCKABLE pattern (weak symbols in debug, inline in release)
+- Write tests that mock both success and failure
+- **No exclusions** for vendor function error paths
+
+**Key Lesson**: Don't design code to make error paths impossible - that's what tests are for!
+
 ## Unacceptable Exclusions
 
 ### User Input Validation

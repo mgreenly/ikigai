@@ -83,7 +83,7 @@ COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
 LCOV_EXCL_COVERAGE = 340  # Increased after OOM refactoring (removed OOM tests, added exclusions for unreachable OOM error paths)
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer.c src/input_buffer_multiline.c src/input_buffer_cursor.c src/input_buffer_layout.c src/render.c src/render_cursor.c src/repl.c src/repl_actions.c src/signal_handler.c src/format.c src/pp_helpers.c src/input_buffer_pp.c src/input_buffer_cursor_pp.c src/scrollback.c src/panic.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer.c src/input_buffer_multiline.c src/input_buffer_cursor.c src/input_buffer_layout.c src/render.c src/render_cursor.c src/repl.c src/repl_actions.c src/signal_handler.c src/format.c src/pp_helpers.c src/input_buffer_pp.c src/input_buffer_cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
@@ -98,7 +98,7 @@ PERFORMANCE_TEST_TARGETS = $(patsubst tests/performance/%_perf.c,$(BUILDDIR)/tes
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS) $(PERFORMANCE_TEST_TARGETS)
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer.c src/input_buffer_multiline.c src/input_buffer_cursor.c src/input_buffer_layout.c src/repl.c src/repl_actions.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer_pp.c src/input_buffer_cursor_pp.c src/scrollback.c src/panic.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer.c src/input_buffer_multiline.c src/input_buffer_cursor.c src/input_buffer_layout.c src/repl.c src/repl_actions.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer_pp.c src/input_buffer_cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c
 MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
@@ -120,6 +120,7 @@ $(CLIENT_TARGET): $(CLIENT_OBJ) | bin
 	$(CC) $(LDFLAGS) -o $@ $^ -Wl,-Bstatic $(CLIENT_STATIC_LIBS) -Wl,-Bdynamic $(CLIENT_LIBS)
 
 $(BUILDDIR)/%.o: src/%.c | $(BUILDDIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
@@ -464,6 +465,7 @@ coverage:
 	@mkdir -p $(COVERAGE_DIR)
 	@lcov --capture --directory . --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated --quiet
 	@lcov --extract $(COVERAGE_DIR)/coverage.info '*/src/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --quiet
+	@lcov --remove $(COVERAGE_DIR)/coverage.info '*/src/vendor/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --quiet
 	@echo ""
 	@echo "=== Coverage by File ===" > $(COVERAGE_DIR)/summary.txt
 	@lcov --list $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 2>&1 >> $(COVERAGE_DIR)/summary.txt

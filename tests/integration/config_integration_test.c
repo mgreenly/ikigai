@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "../../src/config.h"
 #include "../../src/error.h"
+#include "../../src/wrapper.h"
 #include "../test_utils.h"
 
 START_TEST(test_config_full_flow) {
@@ -71,14 +72,203 @@ START_TEST(test_config_full_flow) {
     rmdir(test_dir);
     talloc_free(ctx);
 }
+END_TEST
 
-END_TEST static Suite *config_integration_suite(void)
+// Mock for yyjson_mut_write_file failure
+static bool mock_write_failure = false;
+bool ik_yyjson_mut_write_file_wrapper(const char *path, const yyjson_mut_doc *doc,
+                                      yyjson_write_flag flg, const yyjson_alc *alc,
+                                      yyjson_write_err *err)
+{
+    if (mock_write_failure) {
+        if (err) {
+            err->msg = "Mock write error";
+            err->code = YYJSON_WRITE_ERROR_FILE_OPEN;
+        }
+        return false;
+    }
+    return yyjson_mut_write_file(path, doc, flg, alc, err);
+}
+
+START_TEST(test_config_write_failure) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Use a test directory in /tmp
+    char test_dir[256];
+    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_write_fail_%d", getpid());
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+
+    // Clean up if it exists from previous run
+    unlink(test_config);
+    rmdir(test_dir);
+
+    // Enable mock write failure
+    mock_write_failure = true;
+
+    // Try to load config - should fail to create default config
+    res_t result = ik_cfg_load(ctx, test_config);
+    ck_assert(result.is_err);
+    ck_assert_int_eq(result.err->code, ERR_IO);
+
+    // Disable mock write failure
+    mock_write_failure = false;
+
+    // Clean up
+    unlink(test_config);
+    rmdir(test_dir);
+    talloc_free(ctx);
+}
+END_TEST
+
+// Mock for yyjson_read_file failure
+static bool mock_read_failure = false;
+yyjson_doc *ik_yyjson_read_file_wrapper(const char *path, yyjson_read_flag flg,
+                                        const yyjson_alc *alc, yyjson_read_err *err)
+{
+    if (mock_read_failure) {
+        if (err) {
+            err->msg = "Mock read error";
+            err->code = YYJSON_READ_ERROR_FILE_OPEN;
+        }
+        return NULL;
+    }
+    return yyjson_read_file(path, flg, alc, err);
+}
+
+START_TEST(test_config_read_failure) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Use a test directory in /tmp
+    char test_dir[256];
+    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_read_fail_%d", getpid());
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+
+    // Clean up if it exists from previous run
+    unlink(test_config);
+    rmdir(test_dir);
+
+    // First create a valid config file
+    res_t result1 = ik_cfg_load(ctx, test_config);
+    ck_assert(!result1.is_err);
+
+    // Now enable mock read failure
+    mock_read_failure = true;
+
+    // Try to load config - should fail to read
+    res_t result2 = ik_cfg_load(ctx, test_config);
+    ck_assert(result2.is_err);
+    ck_assert_int_eq(result2.err->code, ERR_PARSE);
+
+    // Disable mock read failure
+    mock_read_failure = false;
+
+    // Clean up
+    unlink(test_config);
+    rmdir(test_dir);
+    talloc_free(ctx);
+}
+END_TEST START_TEST(test_config_invalid_json_root)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Use a test directory in /tmp
+    char test_dir[256];
+    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_invalid_%d", getpid());
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+
+    // Clean up if it exists from previous run
+    unlink(test_config);
+    rmdir(test_dir);
+
+    // Create directory
+    mkdir(test_dir, 0755);
+
+    // Create a JSON file where root is an array, not an object
+    FILE *f = fopen(test_config, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "[\n");
+    fprintf(f, "  \"item1\",\n");
+    fprintf(f, "  \"item2\"\n");
+    fprintf(f, "]\n");
+    fclose(f);
+
+    // Try to load config - should fail because root is not an object
+    res_t result = ik_cfg_load(ctx, test_config);
+    ck_assert(result.is_err);
+    ck_assert_int_eq(result.err->code, ERR_PARSE);
+
+    // Clean up
+    unlink(test_config);
+    rmdir(test_dir);
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Mock for yyjson_doc_get_root returning NULL
+static bool mock_doc_get_root_null = false;
+yyjson_val *ik_yyjson_doc_get_root_wrapper(yyjson_doc *doc)
+{
+    if (mock_doc_get_root_null) {
+        return NULL;
+    }
+    return yyjson_doc_get_root(doc);
+}
+
+START_TEST(test_config_doc_get_root_null)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Use a test directory in /tmp
+    char test_dir[256];
+    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_root_null_%d", getpid());
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+
+    // Clean up if it exists from previous run
+    unlink(test_config);
+    rmdir(test_dir);
+
+    // First create a valid config file
+    res_t result1 = ik_cfg_load(ctx, test_config);
+    ck_assert(!result1.is_err);
+
+    // Now enable mock to return NULL from doc_get_root
+    mock_doc_get_root_null = true;
+
+    // Try to load config - should fail because root is NULL
+    res_t result2 = ik_cfg_load(ctx, test_config);
+    ck_assert(result2.is_err);
+    ck_assert_int_eq(result2.err->code, ERR_PARSE);
+
+    // Disable mock
+    mock_doc_get_root_null = false;
+
+    // Clean up
+    unlink(test_config);
+    rmdir(test_dir);
+    talloc_free(ctx);
+}
+END_TEST
+
+static Suite *config_integration_suite(void)
 {
     Suite *s = suite_create("ConfigIntegration");
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_config_full_flow);
+    tcase_add_test(tc_core, test_config_write_failure);
+    tcase_add_test(tc_core, test_config_read_failure);
+    tcase_add_test(tc_core, test_config_invalid_json_root);
+    tcase_add_test(tc_core, test_config_doc_get_root_null);
 
     suite_add_tcase(s, tc_core);
     return s;
