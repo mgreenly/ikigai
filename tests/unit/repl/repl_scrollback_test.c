@@ -293,32 +293,38 @@ START_TEST(test_page_up_clamping)
 {
     void *ctx = talloc_new(NULL);
 
-    // Setup REPL with scrollback
+    // Setup REPL with scrollback (terminal is 24 rows from ik_repl_init)
     ik_repl_ctx_t *repl = NULL;
     res_t res = ik_repl_init(ctx, &repl);
     ck_assert(is_ok(&res));
 
-    // Add a few lines to scrollback (total ~10 physical lines)
-    for (int i = 0; i < 10; i++) {
+    // Add enough lines to overflow terminal (30 lines > 24 terminal rows)
+    for (int i = 0; i < 30; i++) {
         char line[100];
         snprintf(line, sizeof(line), "Line %d", i);
         res = ik_scrollback_append_line(repl->scrollback, line, strlen(line));
         ck_assert(is_ok(&res));
     }
 
-    // Get total physical lines for reference
-    size_t total_phys = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    // With unified document model:
+    // document_height = scrollback (30) + separator (1) + workspace (~1) = ~32 rows
+    // max_offset = 32 - 24 = 8
+    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    ik_workspace_ensure_layout(repl->workspace, repl->term->screen_cols);
+    size_t workspace_rows = ik_workspace_get_physical_lines(repl->workspace);
+    size_t document_height = scrollback_rows + 1 + workspace_rows;
+    size_t expected_max = document_height - (size_t)repl->term->screen_rows;
 
-    // Start near top (offset = total - 10)
-    repl->viewport_offset = (total_phys > 10) ? total_phys - 10 : 0;
+    // Start near top
+    repl->viewport_offset = (expected_max > 10) ? expected_max - 10 : 0;
 
     // Simulate Page Up action (should hit ceiling)
     ik_input_action_t action = {.type = IK_INPUT_PAGE_UP};
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    // Should clamp to total_phys (not exceed it)
-    ck_assert_uint_eq(repl->viewport_offset, total_phys);
+    // Should clamp to max offset (document model)
+    ck_assert_uint_eq(repl->viewport_offset, expected_max);
 
     // Cleanup
     talloc_free(ctx);

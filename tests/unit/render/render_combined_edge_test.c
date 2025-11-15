@@ -30,12 +30,12 @@ START_TEST(test_render_combined_invalid_scrollback_start) {
     ck_assert(is_ok(&res));
 
     /* Try to render with scrollback_start_line = 3 (>= 3 lines) */
-    res = ik_render_combined(render_ctx, scrollback, 3, 1, "test", 4, 0);
+    res = ik_render_combined(render_ctx, scrollback, 3, 1, "test", 4, 0, true, true);
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_INVALID_ARG);
 
     /* Also test with scrollback_start_line > total_lines */
-    res = ik_render_combined(render_ctx, scrollback, 10, 1, "test", 4, 0);
+    res = ik_render_combined(render_ctx, scrollback, 10, 1, "test", 4, 0, true, true);
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_INVALID_ARG);
 
@@ -65,7 +65,7 @@ START_TEST(test_render_combined_scrollback_count_clamping)
 
     /* Try to render with scrollback_start_line=1, line_count=5 (would go beyond 3 lines) */
     /* Should clamp to show lines 1-2 (2 lines total) */
-    res = ik_render_combined(render_ctx, scrollback, 1, 5, "test", 4, 0);
+    res = ik_render_combined(render_ctx, scrollback, 1, 5, "test", 4, 0, true, true);
     ck_assert(is_ok(&res));
     /* If it didn't crash/error, the clamping worked */
 
@@ -94,7 +94,7 @@ START_TEST(test_render_combined_scrollback_with_newlines)
     ck_assert(is_ok(&res));
 
     /* Render the scrollback - should handle newlines correctly without crashing */
-    res = ik_render_combined(render_ctx, scrollback, 0, 1, "test", 4, 0);
+    res = ik_render_combined(render_ctx, scrollback, 0, 1, "test", 4, 0, true, true);
     ck_assert(is_ok(&res));
 
     /* Verify we got output (not NULL) - the conversion worked */
@@ -129,7 +129,7 @@ START_TEST(test_render_combined_invalid_utf8_in_workspace)
     size_t cursor_offset = 6; /* Position cursor after "valid\xFF" to trigger UTF-8 decoding */
 
     /* Render should fail with INVALID_ARG due to invalid UTF-8 */
-    res = ik_render_combined(render_ctx, scrollback, 0, 0, invalid_utf8, text_len, cursor_offset);
+    res = ik_render_combined(render_ctx, scrollback, 0, 0, invalid_utf8, text_len, cursor_offset, true, true);
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_INVALID_ARG);
 

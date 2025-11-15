@@ -51,8 +51,8 @@ START_TEST(test_viewport_empty_scrollback) {
     // With empty scrollback, all rows go to workspace
     ck_assert_uint_eq(viewport.scrollback_start_line, 0);
     ck_assert_uint_eq(viewport.scrollback_lines_count, 0);
-    // Workspace should start at row 0 (no scrollback)
-    ck_assert_uint_eq(viewport.workspace_start_row, 0);
+    // Workspace starts at row 1 (after separator at row 0)
+    ck_assert_uint_eq(viewport.workspace_start_row, 1);
 
     talloc_free(ctx);
 }
@@ -103,12 +103,12 @@ START_TEST(test_viewport_small_scrollback)
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Total: 3 scrollback rows + 1 workspace row = 4 rows (fits in 24)
+    // Total: 3 scrollback rows + 1 separator + 1 workspace row = 5 rows (fits in 24)
     // All scrollback lines should be visible
     ck_assert_uint_eq(viewport.scrollback_start_line, 0);
     ck_assert_uint_eq(viewport.scrollback_lines_count, 3);
-    // Workspace should start after scrollback (row 3)
-    ck_assert_uint_eq(viewport.workspace_start_row, 3);
+    // Workspace starts at row 4 (3 scrollback + 1 separator)
+    ck_assert_uint_eq(viewport.workspace_start_row, 4);
 
     talloc_free(ctx);
 }
@@ -164,12 +164,13 @@ START_TEST(test_viewport_large_scrollback)
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Terminal: 10 rows, separator: 1 row, workspace: 2 rows, available for scrollback: 7 rows
-    // Should show last 7 lines of scrollback (lines 13-19)
+    // Terminal: 10 rows, workspace: 2 rows, separator: 1 row
+    // Document: 20 scrollback + 1 separator + 2 workspace = 23 rows
+    // Viewport shows last 10 rows: scrollback 13-19 (7 rows) + separator (1) + workspace (2)
     ck_assert_uint_eq(viewport.scrollback_start_line, 13);
     ck_assert_uint_eq(viewport.scrollback_lines_count, 7);
-    // Workspace starts at row 7 (after 7 rows of scrollback)
-    ck_assert_uint_eq(viewport.workspace_start_row, 7);
+    // Workspace starts at row 8 (7 scrollback + 1 separator)
+    ck_assert_uint_eq(viewport.workspace_start_row, 8);
 
     talloc_free(ctx);
 }
@@ -218,11 +219,11 @@ START_TEST(test_viewport_offset_clamping)
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Available space: 10 rows - 1 separator - 1 workspace = 8 rows for scrollback
-    // Scrollback has 20 lines, so it overflows
-    // With viewport_offset clamped, should show first lines
+    // Document: 20 scrollback + 1 separator + 1 workspace = 22 rows
+    // Viewport shows 10 rows, max offset = 22 - 10 = 12
+    // offset=100 clamped to 12, showing rows 0-9 of document (first 10 scrollback lines)
     ck_assert_uint_eq(viewport.scrollback_start_line, 0);
-    ck_assert_uint_eq(viewport.scrollback_lines_count, 8);
+    ck_assert_uint_eq(viewport.scrollback_lines_count, 10);
 
     talloc_free(ctx);
 }

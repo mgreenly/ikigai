@@ -125,75 +125,90 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     // Ensure scrollback layout is up to date
     ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
 
-    // Get physical rows needed
+    // Get component sizes
     size_t workspace_rows = ik_workspace_get_physical_lines(repl->workspace);
-    size_t total_scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
     size_t scrollback_line_count = ik_scrollback_get_line_count(repl->scrollback);
     int32_t terminal_rows = repl->term->screen_rows;
 
-    // Ensure workspace fits on screen (should never occur - invariant)
-    if (workspace_rows > (size_t)terminal_rows) { /* LCOV_EXCL_BR_LINE */
-        PANIC("Workspace exceeds terminal height"); /* LCOV_EXCL_LINE */
+    // Unified document model:
+    // Document = scrollback_rows + 1 (separator) + workspace_rows
+    size_t separator_row = scrollback_rows;  // Separator is at this document row (0-indexed)
+    size_t workspace_start_doc_row = scrollback_rows + 1;  // Workspace starts here
+    size_t document_height = scrollback_rows + 1 + workspace_rows;
+
+    // Calculate visible document range
+    // viewport_offset = how many rows scrolled UP from bottom
+    size_t first_visible_row, last_visible_row;
+
+    if (document_height <= (size_t)terminal_rows) {
+        // Entire document fits on screen
+        first_visible_row = 0;
+        last_visible_row = document_height > 0 ? document_height - 1 : 0;  /* LCOV_EXCL_BR_LINE */
+    } else {
+        // Document overflows - calculate window
+        // Clamp viewport_offset to valid range
+        size_t max_offset = document_height - (size_t)terminal_rows;
+        size_t offset = repl->viewport_offset;
+        if (offset > max_offset) {
+            offset = max_offset;
+        }
+
+        // When offset=0, show last terminal_rows of document
+        // When offset=N, scroll up by N rows
+        last_visible_row = document_height - 1 - offset;
+        first_visible_row = last_visible_row + 1 - (size_t)terminal_rows;
     }
 
-    // Calculate available rows for scrollback
-    // Always reserve 1 row for separator line (shown even with empty scrollback)
-    size_t available_for_scrollback = (size_t)terminal_rows - workspace_rows;
-    if (available_for_scrollback > 0) {
-        available_for_scrollback -= 1;  // Reserve row for separator
-    }
-
-    // Calculate which scrollback lines to show
-    if (available_for_scrollback == 0) {
-        // No room for scrollback - workspace fills entire terminal
+    // Determine which scrollback lines are visible
+    if (first_visible_row > separator_row || scrollback_rows == 0) {
+        // Viewport starts after all scrollback - no scrollback visible
         viewport_out->scrollback_start_line = 0;
         viewport_out->scrollback_lines_count = 0;
-        viewport_out->workspace_start_row = 0;
-    } else if (total_scrollback_rows <= available_for_scrollback) {
-        // All scrollback fits on screen
-        viewport_out->scrollback_start_line = 0;
-        viewport_out->scrollback_lines_count = scrollback_line_count;
-        viewport_out->workspace_start_row = total_scrollback_rows;
     } else {
-        // Scrollback overflows - need to calculate visible window
-        // viewport_offset tells us how many rows we've scrolled up from bottom
-        size_t visible_scrollback_rows = available_for_scrollback;
-
-        // Calculate the bottom position (when offset = 0)
-        // We want to show the last N rows of scrollback
-        size_t rows_from_bottom = repl->viewport_offset;
-
-        // Clamp viewport_offset to valid range
-        size_t max_offset = total_scrollback_rows - available_for_scrollback;
-        if (rows_from_bottom > max_offset) {
-            rows_from_bottom = max_offset;
-        }
-
-        // Calculate which physical row to start from
-        size_t target_physical_row = total_scrollback_rows - available_for_scrollback - rows_from_bottom;
-
-        // Find the logical line that contains this physical row
+        // Some scrollback is visible
+        // Find logical line at first_visible_row
         size_t start_line = 0;
         size_t row_offset = 0;
-        res_t result = ik_scrollback_find_logical_line_at_physical_row(repl->scrollback,
-                                                                       target_physical_row,
-                                                                       &start_line,
-                                                                       &row_offset);
-        if (is_err(&result)) { /* LCOV_EXCL_BR_LINE */
-            PANIC("Failed to find logical line at physical row"); /* LCOV_EXCL_LINE */
+
+        if (scrollback_rows > 0 && first_visible_row < scrollback_rows) {  /* LCOV_EXCL_BR_LINE */
+            res_t result = ik_scrollback_find_logical_line_at_physical_row(
+                repl->scrollback,
+                first_visible_row,
+                &start_line,
+                &row_offset
+            );
+            if (is_err(&result)) { /* LCOV_EXCL_BR_LINE */
+                PANIC("Failed to find logical line at physical row"); /* LCOV_EXCL_LINE */
+            }
         }
 
-        // Calculate how many logical lines fit in the visible window
-        size_t lines_to_show = 0;
-        size_t rows_used = 0;
-        for (size_t i = start_line; i < scrollback_line_count && rows_used < visible_scrollback_rows; i++) {
-            rows_used += repl->scrollback->layouts[i].physical_lines;
-            lines_to_show++;
+        // Count how many scrollback lines are visible
+        size_t lines_count = 0;
+        size_t current_row = first_visible_row;
+        for (size_t i = start_line; i < scrollback_line_count && current_row < separator_row; i++) {  /* LCOV_EXCL_BR_LINE */
+            current_row += repl->scrollback->layouts[i].physical_lines;
+            lines_count++;
+            if (current_row > last_visible_row) break;
         }
 
         viewport_out->scrollback_start_line = start_line;
-        viewport_out->scrollback_lines_count = lines_to_show;
-        viewport_out->workspace_start_row = visible_scrollback_rows;
+        viewport_out->scrollback_lines_count = lines_count;
+    }
+
+    // Calculate where workspace appears in viewport (applies to both branches)
+    if (workspace_start_doc_row <= last_visible_row) {
+        // Workspace is at least partially visible
+        if (workspace_start_doc_row >= first_visible_row) {  /* LCOV_EXCL_BR_LINE */
+            // Workspace starts within viewport
+            viewport_out->workspace_start_row = workspace_start_doc_row - first_visible_row;
+        } else {  /* LCOV_EXCL_BR_LINE */
+            // Workspace starts before viewport (shouldn't happen in current design)  /* LCOV_EXCL_LINE */
+            viewport_out->workspace_start_row = 0;  /* LCOV_EXCL_LINE */
+        }  /* LCOV_EXCL_LINE */
+    } else {
+        // Workspace is completely off-screen
+        viewport_out->workspace_start_row = (size_t)terminal_rows;  // Mark as off-screen
     }
 
     return OK(repl);
@@ -220,14 +235,21 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     size_t cursor_grapheme = 0;
     ik_workspace_get_cursor_position(repl->workspace, &cursor_byte_offset, &cursor_grapheme);
 
-    // Always render combined (includes separator even with empty scrollback)
+    // Determine visibility of separator and workspace (unified document model)
+    // If workspace_start_row >= terminal_rows, they're scrolled off-screen
+    bool separator_visible = viewport.workspace_start_row < (size_t)repl->term->screen_rows;
+    bool workspace_visible = viewport.workspace_start_row < (size_t)repl->term->screen_rows;
+
+    // Render combined view with conditional separator/workspace
     return ik_render_combined(repl->render,
                               repl->scrollback,
                               viewport.scrollback_start_line,
                               viewport.scrollback_lines_count,
                               text,
                               text_len,
-                              cursor_byte_offset);
+                              cursor_byte_offset,
+                              separator_visible,
+                              workspace_visible);
 }
 
 /**
@@ -361,12 +383,21 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             return ik_workspace_cursor_down(repl->workspace);
         case IK_INPUT_PAGE_UP: {
             // Scroll up by terminal height (increase offset)
-            // First ensure scrollback layout is current
+            // First ensure layouts are current
             ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
+            ik_workspace_ensure_layout(repl->workspace, repl->term->screen_cols);
 
-            // Calculate maximum offset (don't scroll past top)
-            size_t total_phys_lines = ik_scrollback_get_total_physical_lines(repl->scrollback);
-            size_t max_offset = total_phys_lines;
+            // Calculate maximum offset using unified document model
+            // Document = scrollback + separator (1) + workspace
+            size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
+            size_t workspace_rows = ik_workspace_get_physical_lines(repl->workspace);
+            size_t document_height = scrollback_rows + 1 + workspace_rows;
+
+            // Max offset = document_height - terminal_rows (can't scroll past top)
+            size_t max_offset = 0;
+            if (document_height > (size_t)repl->term->screen_rows) {
+                max_offset = document_height - (size_t)repl->term->screen_rows;
+            }
 
             // Scroll up by one page
             size_t new_offset = repl->viewport_offset + (size_t)repl->term->screen_rows;

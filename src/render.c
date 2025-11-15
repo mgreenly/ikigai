@@ -5,6 +5,7 @@
 #include "wrapper.h"
 #include <assert.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <talloc.h>
 #include <utf8proc.h>
 
@@ -316,13 +317,16 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
 }
 
 // Render combined scrollback + workspace in single atomic write (Phase 4 Task 4.4)
+// render_separator and render_workspace control visibility (unified document model)
 res_t ik_render_combined(ik_render_ctx_t *ctx,
                          ik_scrollback_t *scrollback,
                          size_t scrollback_start_line,
                          size_t scrollback_line_count,
                          const char *workspace_text,
                          size_t workspace_text_len,
-                         size_t workspace_cursor_offset)
+                         size_t workspace_cursor_offset,
+                         bool render_separator,
+                         bool render_workspace)
 {
     assert(ctx != NULL);                    // LCOV_EXCL_BR_LINE
     assert(scrollback != NULL);             // LCOV_EXCL_BR_LINE
@@ -370,8 +374,10 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
     // Clear (4) + Home (3) + scrollback content + separator (cols+2) + workspace content + cursor escape (~20)
     size_t buffer_size = 7 + 20;  // Base escapes
 
-    // Always add separator line (shown even with empty scrollback)
-    buffer_size += (size_t)ctx->cols + 2;  // separator line + \r\n
+    // Add separator line if visible
+    if (render_separator) {
+        buffer_size += (size_t)ctx->cols + 2;  // separator line + \r\n
+    }
 
     // Add scrollback size
     for (size_t i = scrollback_start_line; i < scrollback_end_line; i++) {
@@ -389,8 +395,8 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         buffer_size += line_len + newline_count + 2;  // +2 for final \r\n
     }
 
-    // Add workspace size
-    if (workspace_text_len > 0) {
+    // Add workspace size if visible
+    if (render_workspace && workspace_text_len > 0) {
         size_t ws_newline_count = 0;
         for (size_t i = 0; i < workspace_text_len; i++) {
             if (workspace_text[i] == '\n')ws_newline_count++;
@@ -437,19 +443,20 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         framebuffer[offset++] = '\n';
     }
 
-    // Add separator line between scrollback and workspace (always visible)
-    // Draw a line of dashes across the terminal width
-    for (int32_t i = 0; i < ctx->cols; i++) {
-        framebuffer[offset++] = '-';
+    // Add separator line between scrollback and workspace (if visible)
+    if (render_separator) {
+        for (int32_t i = 0; i < ctx->cols; i++) {
+            framebuffer[offset++] = '-';
+        }
+        framebuffer[offset++] = '\r';
+        framebuffer[offset++] = '\n';
+
+        // Account for separator in cursor position
+        final_cursor_row++;
     }
-    framebuffer[offset++] = '\r';
-    framebuffer[offset++] = '\n';
 
-    // Account for separator in cursor position
-    final_cursor_row++;
-
-    // Write workspace text
-    if (workspace_text_len > 0) {
+    // Write workspace text (if visible)
+    if (render_workspace && workspace_text_len > 0) {
         for (size_t i = 0; i < workspace_text_len; i++) {
             if (workspace_text[i] == '\n') {
                 framebuffer[offset++] = '\r';

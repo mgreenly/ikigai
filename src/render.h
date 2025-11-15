@@ -4,6 +4,7 @@
 #include "error.h"
 #include "scrollback.h"
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 typedef struct ik_render_ctx_t {
@@ -26,12 +27,15 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
                            int32_t *rows_used_out);
 
 // Render combined scrollback + workspace in single atomic write (Phase 4 Task 4.4)
+// render_separator and render_workspace control visibility (unified document model)
 res_t ik_render_combined(ik_render_ctx_t *ctx,
                          ik_scrollback_t *scrollback,
                          size_t scrollback_start_line,
                          size_t scrollback_line_count,
                          const char *workspace_text,
                          size_t workspace_text_len,
-                         size_t workspace_cursor_offset);
+                         size_t workspace_cursor_offset,
+                         bool render_separator,
+                         bool render_workspace);
 
 #endif /* IKIGAI_RENDER_H */
