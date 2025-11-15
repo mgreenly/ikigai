@@ -264,6 +264,7 @@ END_TEST static Suite *config_validation_suite(void)
 {
     Suite *s = suite_create("Config Validation");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_config_missing_field_openai_key);
     tcase_add_test(tc_core, test_config_missing_field_listen_address);

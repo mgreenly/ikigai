@@ -100,8 +100,6 @@ END_TEST static Suite *logger_integration_suite(void)
 
     s = suite_create("LoggerIntegration");
     tc_core = tcase_create("Core");
-
-    // Set longer timeout for concurrent test
     tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_all_log_levels);

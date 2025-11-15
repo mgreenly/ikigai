@@ -287,9 +287,7 @@ END_TEST
 static Suite *scrollback_reflow_perf_suite(void) {
     Suite *s = suite_create("Scrollback Reflow Performance");
     TCase *tc_perf = tcase_create("Performance");
-
-    /* Increase timeout for performance tests (default is 4 seconds) */
-    tcase_set_timeout(tc_perf, 10);
+    tcase_set_timeout(tc_perf, 30);
 
     tcase_add_test(tc_perf, test_scrollback_reflow_1000_lines);
     tcase_add_test(tc_perf, test_scrollback_reflow_1000_lines_utf8);

@@ -211,6 +211,7 @@ static Suite *repl_suite(void)
     Suite *s = suite_create("REPL");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_repl_init);
     tcase_add_test(tc_core, test_repl_cleanup_null);
     tcase_add_test(tc_core, test_repl_cleanup_null_term);

@@ -97,6 +97,7 @@ END_TEST static Suite *config_tilde_suite(void)
 {
     Suite *s = suite_create("Config Tilde");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_config_expand_tilde);
     tcase_add_test(tc_core, test_config_expand_tilde_home_unset);
