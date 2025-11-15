@@ -115,14 +115,14 @@ See [tasks.md](tasks.md) for detailed breakdown.
 
 **Goal**: Finalize REPL implementation and prepare for LLM integration.
 
-**Status**: NOT STARTED
+**Status**: IN PROGRESS
 
 **Remaining Work**:
 
-1. **Manual Testing**
-   - [ ] Test Phase 4 scrolling (Page Up/Down, auto-scroll on submit)
-   - [ ] Test `/pp` command integration (requires scrollback output)
-   - [ ] Test on multiple terminal emulators (xterm, gnome-terminal, alacritty, kitty)
+1. **Manual Testing** ✅
+   - [x] Test Phase 4 scrolling (Page Up/Down, auto-scroll on submit)
+   - [x] Test `/pp` command integration (requires scrollback output)
+   - [x] Test on multiple terminal emulators (xterm, gnome-terminal, alacritty, kitty)
 
 2. **Build System Cleanup**
    - [ ] Update distro packaging files (Debian, Fedora, Arch)

@@ -10,19 +10,21 @@ Desktop AI coding agent with local tool execution and persistent conversation hi
 
 ## Dependencies
 
-### Core Libraries
-- **yyjson** - JSON serialization (migrating from jansson for talloc integration)
-- **libcurl** - HTTP client for LLM APIs
+### Current Libraries (Phase 4 - REPL Complete)
+- **jansson** - JSON for config parsing (will migrate to yyjson during LLM integration)
 - **libb64** - Base64 encoding for identifiers
 - **talloc** - Hierarchical pool-based memory allocator ([why?](decisions/talloc-memory-management.md))
 - **libuuid** - RFC 4122 UUID generation (util-linux)
 - **libutf8proc** - UTF-8 text processing and Unicode normalization
+- **pthread** - POSIX threads (required by check framework)
 - **check** - Unit testing framework
 
-### Database
-- **libpq** - PostgreSQL C client library
+### Next Phase (LLM Integration)
+- **yyjson** - JSON serialization with talloc integration (replacing jansson)
+- **libcurl** - HTTP client for streaming LLM APIs
 
 ### Future Libraries
+- **libpq** - PostgreSQL C client library (database integration)
 - **libpcre2** - Perl-compatible regex library for text processing
 - **libtree-sitter** - Incremental parsing library for code analysis
 
@@ -76,20 +78,22 @@ Target platform: Debian 13 (Trixie)
 
 ([why phased?](decisions/phased-implementation.md))
 
-### Current: REPL Terminal Foundation
+### Completed: REPL Terminal Foundation ✅
 
-**Foundation**: Terminal interface mechanics without LLM integration.
+**Status**: Phase 4 complete (2025-11-14) - Full REPL with scrollback, viewport scrolling, and 100% test coverage.
 
-Establishes:
-- Terminal initialization (raw mode, alternate screen)
-- Split-buffer layout (scrollback + dynamic input zone)
-- Input handling (keyboard, mouse, scrolling)
-- Rendering pipeline (compose + blit)
+Implemented:
+- Terminal initialization (raw mode, direct rendering)
+- Input handling (multi-line editing, readline shortcuts, UTF-8 support)
+- Scrollback buffer with O(1) arithmetic reflow (726× faster than target)
+- Viewport scrolling (Page Up/Down, auto-scroll on submit)
+- Rendering pipeline (single framebuffer write per frame)
+- Pretty-print infrastructure (format module, pp functions)
 - Config module integration
 
-**Deliverable**: Working REPL where lines move from input to scrollback. Foundation for streaming AI responses.
+**Deliverable**: Production-ready REPL with direct terminal rendering. Foundation ready for streaming AI responses.
 
-See [repl/README.md](repl/README.md) for detailed design.
+See [repl/README.md](repl/README.md) for detailed design and [plan.md](../plan.md) for implementation phases.
 
 ### Next: OpenAI Integration
 

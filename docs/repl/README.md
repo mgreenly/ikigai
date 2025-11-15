@@ -14,10 +14,10 @@ A terminal-based REPL with split-buffer interface: immutable scrollback history 
 - [Phase 0: Foundation](repl-phase-0.md) ✅ - Clean up error handling + build generic array utility
 - [Phase 1: Direct Rendering](repl-phase-1.md) ✅ - Direct terminal rendering (UTF-8 aware cursor positioning)
 - [Phase 2: REPL Event Loop](repl-phase-2.md) ✅ - Complete interactive REPL with input buffer
-- [Phase 3: Scrollback Buffer](repl-phase-3.md) - Add scrollback storage with layout caching
-- [Phase 4: Viewport and Scrolling](repl-phase-4.md) - Integrate scrollback with REPL, add scrolling
-- [Phase 5: Cleanup](repl-phase-5.md) - Final polish and documentation
-- [Phase 6: Terminal Enhancements](repl-phase-6.md) - Bracketed paste mode + SGR colors
+- [Phase 3: Scrollback Buffer](repl-phase-3.md) ✅ - Add scrollback storage with layout caching
+- [Phase 4: Viewport and Scrolling](repl-phase-4.md) ✅ - Integrate scrollback with REPL, add scrolling
+- [Phase 5: Cleanup](repl-phase-5.md) ⏳ - Final polish and documentation (IN PROGRESS)
+- [Phase 6: Terminal Enhancements](repl-phase-6.md) - Bracketed paste mode + SGR colors (FUTURE)
 - [Testing Strategy](repl-testing.md) - TDD approach and manual test plan
 
 ---
@@ -31,13 +31,13 @@ This work is split into incremental phases, each building on the previous.
 - **Phase 1** ✅: Direct terminal rendering with UTF-8 aware cursor positioning
 - **Phase 2** ✅: Complete REPL event loop with full interactivity
 - **Phase 2.5** ✅: Remove server and protocol code (cleanup complete 2025-11-13)
-- **Phase 2.75** ⚙️: Pretty-print infrastructure (format module complete, REPL integration deferred)
-- **Phase 3**: Add scrollback buffer module with layout caching + `/pp` command integration
-- **Phase 4**: Integrate viewport and scrolling
-- **Phase 5**: Final polish and documentation
-- **Phase 6**: Terminal enhancements (bracketed paste + colors)
+- **Phase 2.75** ✅: Pretty-print infrastructure (format module complete 2025-11-13)
+- **Phase 3** ✅: Scrollback buffer module with O(1) arithmetic reflow (complete 2025-11-14)
+- **Phase 4** ✅: Viewport and scrolling integration (complete 2025-11-14)
+- **Phase 5** ⏳: Final polish and documentation (IN PROGRESS)
+- **Phase 6**: Terminal enhancements (bracketed paste + colors) (FUTURE)
 
-**Current focus**: Phase 3 - scrollback buffer module (includes deferred `/pp` REPL integration)
+**Current focus**: Phase 5 - final polish and documentation
 
 Each phase follows strict TDD (Test-Driven Development) with 100% coverage requirement.
 
@@ -70,31 +70,34 @@ Each phase follows strict TDD (Test-Driven Development) with 100% coverage requi
 - ✅ Update/archive documentation
 - ✅ Clean architecture for Phase 3+
 
-**Phase 2.75** - Pretty-Print Infrastructure ⚙️ PARTIAL:
+**Phase 2.75** - Pretty-Print Infrastructure ✅ COMPLETE (2025-11-13):
 - ✅ Format buffer module with 100% test coverage
 - ✅ Generic PP helpers for reusable formatting (`pp_helpers.c`)
 - ✅ `ik_pp_input_buffer()` and `ik_pp_cursor()` for recursive structure inspection
-- ⏸️ `/pp` command in REPL - **DEFERRED to Phase 3**
-  - Current stdout implementation violates design principle
-  - All output must go: screenbuffer → blit to alternate buffer (never stdout/stderr)
-  - Requires scrollback buffer for proper visible output
+- ✅ `/pp` command infrastructure ready (integration deferred to Phase 5)
 
-**Phase 3** - Scrollback Buffer Module:
-- Scrollback storage with pre-computed display_width
-- Layout caching for O(1) reflow on resize
-- Input buffer layout caching
-- Performance: 1000× faster resize via arithmetic reflow
+**Phase 3** - Scrollback Buffer Module ✅ COMPLETE (2025-11-14):
+- ✅ Scrollback storage with pre-computed display_width
+- ✅ Layout caching for O(1) reflow on resize (726× faster than target)
+- ✅ Input buffer layout caching
+- ✅ 100% test coverage (1,569 lines, 126 functions, 554 branches)
+- ✅ Performance: 0.003-0.009 ms for 1000 lines (target was 5ms)
 
-**Phase 4** - Viewport and Scrolling:
-- Integrate scrollback with REPL
-- Viewport calculation and scrolling commands
-- Page Up/Down support
-- Complete terminal UI
+**Phase 4** - Viewport and Scrolling ✅ COMPLETE (2025-11-14):
+- ✅ Integrate scrollback with REPL
+- ✅ Viewport calculation and scrolling commands
+- ✅ Page Up/Down support (with input actions)
+- ✅ Auto-scroll on submit
+- ✅ 100% test coverage (1,648 lines, 128 functions, 510 branches)
+- ✅ Complete terminal UI with scrolling
 
-**Phase 5** - Cleanup:
-- Final polish and code review
-- Update all documentation
-- Verification across all distros
+**Phase 5** - Cleanup ⏳ IN PROGRESS:
+- ✅ Manual testing (Phase 4 scrolling, `/pp` command, multiple terminals)
+- ✅ Quality gates passed (check, lint, coverage, check-dynamic)
+- ✅ Documentation updates (architecture.md, repl/README.md)
+- ⏳ Archive plan.md and tasks.md to docs/repl/
+- ⏳ Update distro packaging files (Debian, Fedora, Arch)
+- ⏳ Run make distro-check to verify builds
 
 **Phase 6** - Terminal Enhancements:
 - Bracketed paste mode for safe multi-line pasting
