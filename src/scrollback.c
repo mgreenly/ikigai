@@ -107,9 +107,14 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
         scrollback->buffer_used += length;
     }
 
-    // Calculate display width by scanning UTF-8
-    size_t display_width = 0;
+    // Calculate display width and physical lines by scanning UTF-8
+    // Handle newlines: each newline starts a new physical line
+    size_t physical_lines = 0;
+    size_t line_width = 0;
     size_t pos = 0;
+    bool has_any_content = false;  // Track if we've seen any non-newline characters
+    bool ends_with_newline = false;  // Track if last character was \n
+
     while (pos < length) {
         // Decode UTF-8 codepoint
         utf8proc_int32_t cp;
@@ -120,28 +125,84 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
 
         if (bytes <= 0) {
             // Invalid UTF-8 - treat as 1 column per byte
-            display_width++;
+            line_width++;
+            has_any_content = true;
+            ends_with_newline = false;
             pos++;
+            continue;
+        }
+
+        // Handle newlines
+        if (cp == '\n') {
+            // Finalize current line
+            if (line_width == 0) {
+                physical_lines += 1;  // Empty line takes 1 row
+            } else {
+                // Calculate rows for this line: ceil(line_width / terminal_width)
+                size_t line_rows = (line_width + (size_t)scrollback->cached_width - 1) /
+                                   (size_t)scrollback->cached_width;
+                physical_lines += line_rows;
+            }
+            // Start new line
+            line_width = 0;
+            ends_with_newline = true;
+            pos += (size_t)bytes;
             continue;
         }
 
         // Get display width (may be negative for control chars)
         int32_t width = utf8proc_charwidth(cp);
         if (width > 0) {
-            display_width += (size_t)width;
+            line_width += (size_t)width;
         }
+        has_any_content = true;
+        ends_with_newline = false;
 
         pos += (size_t)bytes;
     }
 
-    // Calculate physical lines (at least 1 if display_width > 0)
-    size_t physical_lines;
-    if (display_width == 0) {
+    // Finalize last line (or only line if no newlines)
+    if (line_width == 0 && physical_lines == 0) {
         physical_lines = 1;  // Empty line still takes 1 row
-    } else {
-        // Calculate number of rows: ceil(display_width / terminal_width)
-        physical_lines = (display_width + (size_t)scrollback->cached_width - 1) /
-                         (size_t)scrollback->cached_width;
+    } else if (line_width > 0) {
+        // Calculate rows for last line: ceil(line_width / terminal_width)
+        size_t line_rows = (line_width + (size_t)scrollback->cached_width - 1) /
+                           (size_t)scrollback->cached_width;
+        physical_lines += line_rows;
+    } else if (ends_with_newline && has_any_content) {
+        // Trailing empty line after content that ended with newline
+        // (line_width == 0 && physical_lines > 0 at this point)
+        physical_lines += 1;
+    }
+
+    // Calculate total display width for the layout (sum of all line widths)
+    // For simplicity, we'll recalculate it by scanning again
+    size_t display_width = 0;
+    pos = 0;
+    while (pos < length) {
+        utf8proc_int32_t cp;
+        utf8proc_ssize_t bytes = utf8proc_iterate(
+            (const utf8proc_uint8_t *)(text + pos),
+            (utf8proc_ssize_t)(length - pos),
+            &cp);
+
+        if (bytes <= 0) {
+            display_width++;
+            pos++;
+            continue;
+        }
+
+        if (cp == '\n') {
+            pos += (size_t)bytes;
+            continue;
+        }
+
+        int32_t width = utf8proc_charwidth(cp);
+        if (width > 0) {
+            display_width += (size_t)width;
+        }
+
+        pos += (size_t)bytes;
     }
 
     // Store layout

@@ -302,6 +302,106 @@ START_TEST(test_scrollback_append_control_chars)
 }
 
 END_TEST
+// Test: Line with trailing newline
+START_TEST(test_scrollback_append_trailing_newline)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_scrollback_t *sb = NULL;
+    res_t res = ik_scrollback_create(ctx, 80, &sb);
+    ck_assert(is_ok(&res));
+
+    // "A\n" should be 2 physical rows (A + empty line)
+    const char *line = "A\n";
+    res = ik_scrollback_append_line(sb, line, 2);
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(sb->layouts[0].physical_lines, 2);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: Line with just newline
+START_TEST(test_scrollback_append_just_newline)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_scrollback_t *sb = NULL;
+    res_t res = ik_scrollback_create(ctx, 80, &sb);
+    ck_assert(is_ok(&res));
+
+    // "\n" should be 1 physical row (one empty line)
+    const char *line = "\n";
+    res = ik_scrollback_append_line(sb, line, 1);
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(sb->layouts[0].physical_lines, 1);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: Line with multiple newlines
+START_TEST(test_scrollback_append_multiple_newlines)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_scrollback_t *sb = NULL;
+    res_t res = ik_scrollback_create(ctx, 80, &sb);
+    ck_assert(is_ok(&res));
+
+    // "\n\n" should be 2 physical rows (two empty lines)
+    const char *line = "\n\n";
+    res = ik_scrollback_append_line(sb, line, 2);
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(sb->layouts[0].physical_lines, 2);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: Line with content and multiple trailing newlines
+START_TEST(test_scrollback_append_content_multiple_newlines)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_scrollback_t *sb = NULL;
+    res_t res = ik_scrollback_create(ctx, 80, &sb);
+    ck_assert(is_ok(&res));
+
+    // "A\n\n" should be 3 physical rows (A + two empty lines)
+    const char *line = "A\n\n";
+    res = ik_scrollback_append_line(sb, line, 3);
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(sb->layouts[0].physical_lines, 3);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: Line with newline followed by control character
+START_TEST(test_scrollback_append_newline_control_char)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_scrollback_t *sb = NULL;
+    res_t res = ik_scrollback_create(ctx, 80, &sb);
+    ck_assert(is_ok(&res));
+
+    // "A\n\x00" should be 1 physical row (control char has width 0, no trailing line)
+    const char line[] = "A\n\x00";
+    res = ik_scrollback_append_line(sb, line, 3);
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(sb->layouts[0].physical_lines, 1);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 static Suite *scrollback_append_suite(void)
 {
@@ -321,6 +421,11 @@ static Suite *scrollback_append_suite(void)
     tcase_add_test(tc_core, test_scrollback_buffer_multiple_doublings);
     tcase_add_test(tc_core, test_scrollback_append_invalid_utf8);
     tcase_add_test(tc_core, test_scrollback_append_control_chars);
+    tcase_add_test(tc_core, test_scrollback_append_trailing_newline);
+    tcase_add_test(tc_core, test_scrollback_append_just_newline);
+    tcase_add_test(tc_core, test_scrollback_append_multiple_newlines);
+    tcase_add_test(tc_core, test_scrollback_append_content_multiple_newlines);
+    tcase_add_test(tc_core, test_scrollback_append_newline_control_char);
 
     suite_add_tcase(s, tc_core);
     return s;
