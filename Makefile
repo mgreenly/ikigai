@@ -185,9 +185,9 @@ $(BUILDDIR)/tests/performance: | $(BUILDDIR)/tests
 -include $(wildcard $(BUILDDIR)/tests/integration/*.d)
 
 clean:
-	rm -rf build build-* bin $(COVERAGE_DIR)
+	rm -rf build build-* bin $(COVERAGE_DIR) coverage_html
 	@rm -rf distros/dist distros/*/build 2>/dev/null || true
-	@find . -name "*.gcda" -o -name "*.gcno" -delete 2>/dev/null || true
+	@find . -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" -delete 2>/dev/null || true
 	@rm -f core.* vgcore.* 2>/dev/null || true
 
 install: all

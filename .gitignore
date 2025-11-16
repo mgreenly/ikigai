@@ -8,4 +8,6 @@ coverage/
 **/core.*
 **/vgcore.*
 **/*.gcov
+**/*.gcda
+**/*.gcno
 coverage_html/
