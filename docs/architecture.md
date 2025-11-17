@@ -110,8 +110,8 @@ Store conversation history locally with PostgreSQL. ([why PostgreSQL?](decisions
 
 Features:
 - PostgreSQL schema for conversations and messages
-- Save/load conversation history
-- Full-text search across past conversations
+- Persistent conversation history
+- Full-text search across past conversations (tool-based)
 - RAG memory access patterns
 
 ### Future: Multi-LLM Support
@@ -131,7 +131,7 @@ Enable file operations and shell execution.
 
 Features:
 - Tool interface design
-- File read/write/search
+- File operations (read/write)
 - Shell command execution
 - Code analysis (tree-sitter)
 - Results flow back to conversation

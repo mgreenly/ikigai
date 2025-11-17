@@ -217,7 +217,6 @@ void on_chunk_callback(void *user_data, const char *chunk) {
 - **C) Inline handling** - Keep growing the switch statement
 
 **Considerations:**
-- Will have `/new`, `/save`, `/load`, `/search`, etc.
 - May need `/model`, `/provider` for LLM control
 - Future: `/tool`, `/edit`, `/run` for tool execution
 
@@ -414,35 +413,7 @@ Unlike traditional chat UIs, ikigai doesn't auto-load history. Scrollback starts
 
 **When to load from database:**
 - **Never on startup** - Fresh context every session
-- **Explicit user commands** - `/load [search]` to add specific messages to context
-- **Search results** - User searches DB, selects messages to inject into scrollback
-- **Recall operations** - "Find when we discussed X" → add to current context
-
-**Example: Selective Context Loading**
-```c
-// User types: /load "PostgreSQL schema design"
-res_t load_context_from_search(ik_repl_ctx_t *repl, const char *query) {
-    // Search database for relevant messages
-    ik_message_t **results = NULL;
-    size_t count = 0;
-    TRY(ik_db_search(repl->db, query, &results, &count));
-
-    // User selects which messages to add (or auto-select top N)
-    // For each selected message:
-    for (size_t i = 0; i < selected_count; i++) {
-        ik_message_t *msg = selected[i];
-
-        // Format for display with decorations
-        char *display_text = format_message_for_display(msg);
-
-        // Add to scrollback (now part of LLM context)
-        ik_scrollback_append(repl->scrollback, display_text);
-        talloc_free(display_text);
-    }
-
-    return OK(NULL);
-}
-```
+- **Tool-based operations** - LLM can use tools to search and load relevant context when needed
 
 **Key Principle:** Database is for recall and search, not automatic context injection. User decides what goes into the active context window (scrollback).
 
@@ -910,12 +881,10 @@ Scrollback: "Assistant: Talloc is..." (with syntax highlighting)
 **Options:**
 - **A) One conversation per session** - New conversation on each launch
 - **B) Resume last conversation** - Continue where you left off
-- **C) Explicit commands** - `/new`, `/load <id>`, `/save`
 
 **Implications:**
 - **A** keeps sessions isolated but loses context
 - **B** provides continuity but may have stale context
-- **C** gives user control but requires command discovery
 
 ### 3. Message Assembly During Streaming
 
@@ -1038,7 +1007,6 @@ Each layer optimized for its purpose without coupling.
 
 **Mental model matches behavior:**
 - "Start fresh" → `/clear` → empty screen → LLM has no history
-- "Add context" → `/load [search]` → see it appear → LLM gets it
 - "What does AI know?" → look at scrollback → that's it
 
 No hidden state, no surprises.
@@ -1052,7 +1020,7 @@ No hidden state, no surprises.
 1. **Three-layer architecture:**
    - **Scrollback:** Display layer (what user sees, decorated text)
    - **Session messages:** Active context (what LLM receives, structured data)
-   - **Database:** Permanent archive (all messages, recall/search only)
+   - **Database:** Permanent archive (all messages, tool-based access)
 
 2. **Scrollback IS the context window:**
    - Starts blank on startup or `/clear`
@@ -1063,7 +1031,7 @@ No hidden state, no surprises.
 3. **Database for recall, not automatic injection:**
    - Messages persisted immediately (synchronous INSERTs)
    - Never auto-loaded into context
-   - User searches and selectively loads from DB
+   - Tool-based search and selective loading (when database is implemented)
    - Permanent archive independent of active session
 
 4. **Session messages tracked in REPL:**
@@ -1283,9 +1251,6 @@ if (text[0] == '/') {
 
 **Future Commands Needed:**
 - `/clear` - Clear scrollback and session context
-- `/search <query>` - Search database for messages
-- `/load <query>` - Load messages from DB into context
-- `/sessions` - List recent conversation sessions
 - `/model <name>` - Switch LLM model
 - `/help` - Show available commands
 - `/quit` - Exit application
@@ -1308,9 +1273,6 @@ typedef struct {
 // Registry
 static ik_command_t commands[] = {
     {"clear",   "Clear scrollback and start fresh context",    cmd_clear},
-    {"search",  "Search database for messages",                cmd_search},
-    {"load",    "Load messages from database into context",    cmd_load},
-    {"sessions","List recent conversation sessions",           cmd_sessions},
     {"help",    "Show available commands",                     cmd_help},
     {"quit",    "Exit ikigai",                                 cmd_quit},
     {NULL, NULL, NULL}  // Sentinel
@@ -1338,14 +1300,6 @@ res_t cmd_clear(ik_repl_ctx_t *repl, const char *args) {
     clear_session_messages(repl);
     return OK(NULL);
 }
-
-res_t cmd_search(ik_repl_ctx_t *repl, const char *args) {
-    if (args == NULL || strlen(args) == 0) {
-        return ERR("Usage: /search <query>");
-    }
-    // Implement search...
-    return OK(NULL);
-}
 ```
 - ✅ Easy to add new commands
 - ✅ Self-documenting (registry has descriptions)
@@ -1359,10 +1313,6 @@ res_t cmd_search(ik_repl_ctx_t *repl, const char *args) {
 res_t handle_command(ik_repl_ctx_t *repl, const char *input) {
     if (strcmp(input, "/clear") == 0) {
         // Handle clear
-    } else if (strncmp(input, "/search ", 8) == 0) {
-        // Handle search
-    } else if (strncmp(input, "/load ", 6) == 0) {
-        // Handle load
     } else if (strcmp(input, "/help") == 0) {
         // Handle help
     } else {
@@ -1547,7 +1497,6 @@ CREATE TABLE messages (
 **Rationale:**
 - Sessions track chronological work periods
 - Messages can be grouped for search context
-- `/sessions` command can show recent activity
 - Search results can include session context
 - Doesn't conflict with scrollback-as-context model
 
@@ -1588,29 +1537,6 @@ void ik_repl_cleanup(ik_repl_ctx_t *repl) {
     ik_db_session_end(repl->db, repl->current_session_id);
 
     // ... rest of cleanup
-}
-```
-
-**Search with Session Context:**
-```c
-// /search returns messages with their session context
-res_t cmd_search(ik_repl_ctx_t *repl, const char *args) {
-    // Search returns messages grouped by session
-    ik_search_result_t *results = NULL;
-    size_t count = 0;
-    TRY(ik_db_search_with_session(repl->db, args, &results, &count));
-
-    // Display results with session headers
-    for (size_t i = 0; i < count; i++) {
-        append_to_scrollback(repl->scrollback,
-            "Session %ld (%s):",
-            results[i].session_id,
-            results[i].session_started);
-
-        for (size_t j = 0; j < results[i].message_count; j++) {
-            render_message_to_scrollback(repl->scrollback, results[i].messages[j]);
-        }
-    }
 }
 ```
 
@@ -1867,7 +1793,7 @@ Based on dependency analysis, here's the recommended implementation sequence:
 
 **Deliverable:** Permanent message storage, sessions tracked, full conversation history preserved.
 
-**Note on Database Access:** User commands for database interaction (`/search`, `/load`, `/sessions`) are deferred. Database access will primarily be performed by the LLM through tool use (Phase 5). The `/clear` command remains essential for user control of context.
+**Note on Database Access:** Database access will primarily be performed by the LLM through tool use (Phase 5). The `/clear` command remains essential for user control of context.
 
 **Phase 4: Interactive Streaming** (Polish on LLM)
 1. Upgrade event loop to select()-based polling

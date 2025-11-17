@@ -92,8 +92,8 @@ See [repl/README.md](repl/README.md) for detailed documentation.
 
 **Tasks**:
 - PostgreSQL schema for conversations and messages
-- Save/load conversation history
-- Full-text search across past conversations
+- Persistent conversation history
+- Full-text search across past conversations (tool-based)
 - RAG memory access patterns
 
 ### Future: Local Tool Execution
@@ -126,6 +126,10 @@ See [repl/README.md](repl/README.md) for detailed documentation.
 - External editor integration ($EDITOR)
 - Command history and session management
 - Rich formatting and themes
+
+## v2.0 Vision
+
+v2.0 focuses on intelligent context management through comprehensive RAG infrastructure. Automated indexing and summarization will maintain conversation history, with retrieval systems constructing optimal context for each LLM request. The model gains tools to search and retrieve historical messages, while the architecture introduces concurrency foundations for background processing of RAG operations.
 
 ---
 
