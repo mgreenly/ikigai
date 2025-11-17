@@ -96,12 +96,13 @@ LLM sees only messages currently in scrollback
 **Potential Structure:**
 ```c
 typedef struct {
-    int64_t id;              // Database primary key (0 if not persisted)
-    char *role;              // "user", "assistant", "system"
-    char *content;           // Text content
-    char *timestamp;         // ISO 8601
-    int32_t tokens;          // Token count (if available)
-    char *model;             // Model identifier
+    int64_t id;                    // Database primary key (0 if not persisted)
+    char *role;                    // "user", "assistant", "system", "mark", "rewind"
+    char *content;                 // Text content or label for marks
+    char *timestamp;               // ISO 8601
+    int32_t tokens;                // Token count (if available)
+    char *model;                   // Model identifier
+    int64_t rewind_to_message_id;  // For rewind messages: points to mark
     // Future: tool calls, attachments
 } ik_message_t;
 
@@ -241,6 +242,8 @@ ik_repl_ctx_t (root context)
 ├─> ik_scrollback_t *scrollback            // Display layer (decorated text)
 ├─> ik_message_t **session_messages        // Active LLM context
 ├─> size_t session_message_count
+├─> ik_mark_t **marks                      // Checkpoint stack for /rewind
+├─> size_t mark_count
 ├─> ik_llm_client_t *llm                   // HTTP client (streaming)
 ├─> ik_db_ctx_t *db                        // PostgreSQL connection
 └─> char *streaming_buffer                 // Accumulates current LLM response
@@ -302,12 +305,13 @@ CREATE TABLE conversations (
 CREATE TABLE messages (
     id BIGSERIAL PRIMARY KEY,
     conversation_id BIGINT NOT NULL REFERENCES conversations(id),
-    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system', 'mark', 'rewind')),
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     tokens INTEGER,
     model TEXT,
-    sequence_num INTEGER NOT NULL  -- Order within conversation
+    sequence_num INTEGER NOT NULL,  -- Order within conversation
+    rewind_to_message_id BIGINT REFERENCES messages(id)  -- For rewind: points to mark
 );
 
 CREATE INDEX idx_messages_conversation ON messages(conversation_id, sequence_num);
@@ -514,6 +518,14 @@ res_t handle_clear_command(ik_repl_ctx_t *repl) {
     repl->session_messages = NULL;
     repl->session_message_count = 0;
 
+    // Clear marks
+    for (size_t i = 0; i < repl->mark_count; i++) {
+        talloc_free(repl->marks[i]);
+    }
+    talloc_free(repl->marks);
+    repl->marks = NULL;
+    repl->mark_count = 0;
+
     // Database still has all messages - nothing deleted
 
     // Render fresh frame
@@ -528,6 +540,251 @@ res_t handle_clear_command(ik_repl_ctx_t *repl) {
 - Next LLM request will have no history
 - All previous messages remain searchable in database
 - Can selectively load context from DB if needed
+
+### /mark and /rewind Commands
+
+The `/mark` and `/rewind` commands provide conversation checkpointing and rollback capabilities:
+
+**`/mark [LABEL]`** - Creates a checkpoint at the current position
+- Optional label for easy reference
+- Persisted to database as a 'mark' message type
+- Visible in scrollback as a separator
+- Multiple marks can exist simultaneously
+
+**`/rewind [LABEL]`** - Rolls back to a specific checkpoint
+- Without label: rewinds to most recent mark (LIFO)
+- With label: rewinds to most recent mark with matching label
+- Removes messages after the mark from in-memory context
+- Persists 'rewind' operation to database for replay
+- Database retains all messages (complete audit trail)
+
+#### Data Structures
+
+```c
+typedef struct {
+    size_t message_index;          // Position in session_messages[] array
+    int64_t db_message_id;         // ID of the mark message in database
+    char *label;                   // Optional user label (or NULL)
+    char *timestamp;               // ISO 8601
+} ik_mark_t;
+
+struct ik_repl_ctx_t {
+    // ... existing fields ...
+    ik_mark_t **marks;             // Stack of marks (LIFO)
+    size_t mark_count;
+};
+```
+
+#### Implementation
+
+```c
+// /mark [label]
+res_t cmd_mark(ik_repl_ctx_t *repl, const char *args) {
+    // Create mark message
+    ik_message_t *mark_msg = talloc_zero(repl, ik_message_t);
+    mark_msg->role = talloc_strdup(mark_msg, "mark");
+    mark_msg->content = args && strlen(args) > 0 ?
+                        talloc_strdup(mark_msg, args) :
+                        talloc_strdup(mark_msg, "");
+    mark_msg->timestamp = get_iso8601_timestamp(mark_msg);
+
+    // Persist to database immediately
+    TRY(ik_db_message_insert(repl->db, repl->current_session_id, mark_msg));
+
+    // Create in-memory mark structure
+    ik_mark_t *mark = talloc_zero(repl, ik_mark_t);
+    mark->message_index = repl->session_message_count;
+    mark->db_message_id = mark_msg->id;
+    mark->label = mark_msg->content[0] != '\0' ?
+                  talloc_strdup(mark, mark_msg->content) : NULL;
+
+    // Add to marks array
+    repl->marks = talloc_realloc(repl, repl->marks, ik_mark_t*, repl->mark_count + 1);
+    repl->marks[repl->mark_count++] = mark;
+
+    // Add mark message to session_messages
+    repl->session_messages = talloc_realloc(repl, repl->session_messages,
+                                           ik_message_t*, repl->session_message_count + 1);
+    repl->session_messages[repl->session_message_count++] = mark_msg;
+
+    // Display marker in scrollback
+    render_mark_to_scrollback(repl->scrollback, mark);
+
+    return OK(NULL);
+}
+
+// /rewind [label]
+res_t cmd_rewind(ik_repl_ctx_t *repl, const char *args) {
+    if (repl->mark_count == 0) {
+        return ERR("No marks to rewind to. Use /mark to create a checkpoint.");
+    }
+
+    // Find target mark
+    ik_mark_t *target_mark = NULL;
+    ssize_t target_index = -1;
+
+    if (args && strlen(args) > 0) {
+        // Search for mark with matching label (most recent first)
+        for (ssize_t i = repl->mark_count - 1; i >= 0; i--) {
+            if (repl->marks[i]->label && strcmp(repl->marks[i]->label, args) == 0) {
+                target_mark = repl->marks[i];
+                target_index = i;
+                break;
+            }
+        }
+        if (!target_mark) {
+            return ERR("No mark found with label: %s", args);
+        }
+    } else {
+        // No label - use most recent mark
+        target_mark = repl->marks[repl->mark_count - 1];
+        target_index = repl->mark_count - 1;
+    }
+
+    // Create rewind message in database
+    ik_message_t *rewind_msg = talloc_zero(repl, ik_message_t);
+    rewind_msg->role = talloc_strdup(rewind_msg, "rewind");
+    rewind_msg->content = talloc_asprintf(rewind_msg,
+        "Rewind to mark%s%s",
+        target_mark->label ? ": " : "",
+        target_mark->label ? target_mark->label : "");
+    rewind_msg->rewind_to_message_id = target_mark->db_message_id;
+
+    // Persist rewind operation to database
+    ik_db_message_insert(repl->db, repl->current_session_id, rewind_msg);
+
+    // Free messages after the mark (already in DB)
+    for (size_t i = target_mark->message_index; i < repl->session_message_count; i++) {
+        talloc_free(repl->session_messages[i]);
+    }
+    repl->session_message_count = target_mark->message_index;
+
+    // Remove marks at and after the target
+    for (ssize_t i = repl->mark_count - 1; i >= target_index; i--) {
+        talloc_free(repl->marks[i]);
+    }
+    repl->mark_count = target_index;
+
+    // Rebuild scrollback from remaining messages
+    rebuild_scrollback_from_messages(repl);
+    render_rewind_indicator_to_scrollback(repl->scrollback, target_mark);
+
+    return OK(NULL);
+}
+```
+
+#### Database Replay
+
+The database contains complete history including rewind operations, allowing reconstruction of exact context states:
+
+```c
+// Replay session from database to reconstruct context state
+res_t ik_session_replay(
+    ik_db_ctx_t *db,
+    int64_t session_id,
+    ik_message_t ***session_messages_out,
+    size_t *count_out
+) {
+    // Load all messages in order
+    ik_message_t **all_messages = NULL;
+    size_t total_count = 0;
+    TRY(ik_db_messages_load(db, session_id, &all_messages, &total_count));
+
+    // Build context array (dynamically shrinks on rewind)
+    ik_message_t **context = talloc_array(db, ik_message_t*, total_count);
+    size_t context_count = 0;
+
+    ik_mark_t **marks = NULL;
+    size_t mark_count = 0;
+
+    for (size_t i = 0; i < total_count; i++) {
+        ik_message_t *msg = all_messages[i];
+
+        if (strcmp(msg->role, "mark") == 0) {
+            // Create mark at current position
+            ik_mark_t *mark = talloc_zero(db, ik_mark_t);
+            mark->message_index = context_count;
+            mark->db_message_id = msg->id;
+            mark->label = msg->content[0] != '\0' ?
+                         talloc_strdup(mark, msg->content) : NULL;
+
+            marks = talloc_realloc(db, marks, ik_mark_t*, mark_count + 1);
+            marks[mark_count++] = mark;
+
+            // Mark messages are part of context
+            context[context_count++] = msg;
+
+        } else if (strcmp(msg->role, "rewind") == 0) {
+            // Find the mark being rewound to
+            ik_mark_t *target = NULL;
+            ssize_t target_idx = -1;
+            for (ssize_t j = mark_count - 1; j >= 0; j--) {
+                if (marks[j]->db_message_id == msg->rewind_to_message_id) {
+                    target = marks[j];
+                    target_idx = j;
+                    break;
+                }
+            }
+
+            if (target) {
+                // Truncate context to mark position
+                context_count = target->message_index;
+
+                // Remove marks at and after target
+                mark_count = target_idx;
+            }
+
+            // Rewind message itself is not part of context (it's a meta-operation)
+
+        } else {
+            // Regular message (user, assistant, system)
+            context[context_count++] = msg;
+        }
+    }
+
+    *session_messages_out = context;
+    *count_out = context_count;
+
+    talloc_free(marks);
+    return OK(NULL);
+}
+```
+
+#### Usage Examples
+
+```bash
+# Simple undo
+/mark
+User: "Try approach A"
+LLM: [suggests A]
+/rewind      # Goes back to unnamed mark
+
+# Named checkpoints
+/mark approach-a
+User: "Use state machine"
+LLM: [complex solution]
+/mark approach-b
+User: "Actually use regex"
+LLM: [different solution]
+/rewind approach-a    # Jump back to first mark
+
+# Exploration with labels
+/mark before-refactor
+User: "Refactor parseInput to use state machine"
+LLM: [complex refactor]
+User: "Too complicated"
+/rewind before-refactor
+User: "Just extract a helper function instead"
+LLM: [simpler refactor]
+```
+
+#### Benefits
+
+1. **Complete audit trail** - Database shows full exploration including dead ends
+2. **Reproducible context** - Can reconstruct exact LLM context at any point in time
+3. **Flexible navigation** - Jump to specific points or use simple undo
+4. **Non-destructive** - All messages preserved in database for analysis
+5. **Explicit control** - User decides what context to keep or discard
 
 ### Streaming Response Assembly
 
@@ -1205,11 +1462,12 @@ CREATE TABLE sessions (
 CREATE TABLE messages (
     id BIGSERIAL PRIMARY KEY,
     session_id BIGINT REFERENCES sessions(id),  -- Can be NULL
-    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system', 'mark', 'rewind')),
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     tokens INTEGER,
-    model TEXT
+    model TEXT,
+    rewind_to_message_id BIGINT REFERENCES messages(id)  -- For rewind: points to mark
 );
 
 CREATE INDEX idx_messages_session ON messages(session_id, created_at);
@@ -1588,11 +1846,13 @@ Based on dependency analysis, here's the recommended implementation sequence:
 1. Create `src/commands.c` with command registry
 2. Implement `/help` (auto-generated from registry)
 3. Implement `/quit` (graceful exit)
-4. Implement `/clear` (clear scrollback and session messages)
-5. Move `/pp` into registry
-6. Create `src/message_format.c` for message decorations
+4. Implement `/clear` (clear scrollback, session messages, and marks)
+5. Implement `/mark [LABEL]` (create checkpoint for rollback)
+6. Implement `/rewind [LABEL]` (rollback to checkpoint)
+7. Move `/pp` into registry
+8. Create `src/message_format.c` for message decorations
 
-**Deliverable:** Structured command system, better UX with /clear and /help.
+**Deliverable:** Structured command system with context management (/clear, /mark, /rewind) and /help.
 
 **Phase 3: Database Integration** (Depends on LLM for usefulness)
 1. Add libpq dependency to Makefile
