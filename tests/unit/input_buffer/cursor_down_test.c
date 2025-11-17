@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /* Test: Cursor down - basic */
@@ -40,7 +40,7 @@ START_TEST(test_cursor_down_basic) {
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 0);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 0);
 
     /* Move down - should go to start of line2 (byte 6) */
     res_t res = ik_input_buffer_cursor_down(input_buffer);
@@ -122,7 +122,7 @@ START_TEST(test_cursor_down_column_preservation)
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 3);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 3);
 
     /* Move down - should go to column 3 of second line (after 'h', byte 9) */
     res_t res = ik_input_buffer_cursor_down(input_buffer);
@@ -164,7 +164,7 @@ START_TEST(test_cursor_down_shorter_line)
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 4);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 4);
 
     /* Move down - should go to end of second line (byte 9, after 'b') */
     res_t res = ik_input_buffer_cursor_down(input_buffer);
@@ -201,7 +201,7 @@ START_TEST(test_cursor_down_empty_line)
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 1);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 1);
 
     /* Move down - should go to start of second line (byte 4, after newline) */
     res_t res = ik_input_buffer_cursor_down(input_buffer);
@@ -242,7 +242,7 @@ START_TEST(test_cursor_down_utf8)
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 2);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 2);
 
     /* Move down - should go to column 2 of second line (after é, byte 7) */
     // Line 2 starts at byte 4: a(1) + é(2) = byte 7, grapheme 6 (a,b,c,\n,a,é)

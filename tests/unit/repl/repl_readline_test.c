@@ -191,7 +191,7 @@ START_TEST(test_repl_process_action_ctrl_k)
     res = ik_input_buffer_get_text(input_buf, &text, &text_len);
     ck_assert(is_ok(&res));
     input_buf->cursor_byte_offset = 8;
-    ik_cursor_set_position(input_buf->cursor, text, text_len, 8);
+    ik_input_buffer_cursor_set_position(input_buf->cursor, text, text_len, 8);
 
     // Verify cursor is at byte 8
     size_t byte_offset = 0;
@@ -274,7 +274,7 @@ START_TEST(test_repl_process_action_ctrl_u)
     res = ik_input_buffer_get_text(input_buf, &text, &text_len);
     ck_assert(is_ok(&res));
     input_buf->cursor_byte_offset = 8;
-    ik_cursor_set_position(input_buf->cursor, text, text_len, 8);
+    ik_input_buffer_cursor_set_position(input_buf->cursor, text, text_len, 8);
 
     // Verify cursor is at byte 8
     size_t byte_offset = 0;

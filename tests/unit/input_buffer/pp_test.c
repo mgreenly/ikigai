@@ -6,7 +6,7 @@
 #include <check.h>
 #include <string.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../../src/format.h"
 #include "../../test_utils.h"
 
@@ -32,7 +32,7 @@ START_TEST(test_pp_input_buffer_empty) {
     ck_assert_ptr_nonnull(output);
     ck_assert_ptr_nonnull(strstr(output, "ik_input_buffer_t @"));
     ck_assert_ptr_nonnull(strstr(output, "text_len: 0"));
-    ck_assert_ptr_nonnull(strstr(output, "ik_cursor_t @"));
+    ck_assert_ptr_nonnull(strstr(output, "ik_input_buffer_cursor_t @"));
     ck_assert_ptr_nonnull(strstr(output, "byte_offset: 0"));
     ck_assert_ptr_nonnull(strstr(output, "grapheme_offset: 0"));
     ck_assert_ptr_nonnull(strstr(output, "target_column: 0"));

@@ -1,7 +1,7 @@
 #include <check.h>
 #include <talloc.h>
-#include "../../../src/input_buffer_cursor.h"
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/cursor.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../../src/format.h"
 
 // Helper: Insert text character by character (ASCII only)
@@ -13,7 +13,7 @@ static void insert_text(ik_input_buffer_t *input_buffer, const char *text)
     }
 }
 
-// Test: ik_pp_cursor with cursor at start
+// Test: ik_pp_input_buffer_cursor with cursor at start
 START_TEST(test_pp_cursor_at_start) {
     void *tmp_ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
@@ -30,17 +30,17 @@ START_TEST(test_pp_cursor_at_start) {
     res = ik_format_buffer_create(tmp_ctx, &buf);
     ck_assert(is_ok(&res));
 
-    ik_pp_cursor(input_buffer->cursor, buf, 0);
+    ik_pp_input_buffer_cursor(input_buffer->cursor, buf, 0);
 
     const char *output = ik_format_get_string(buf);
-    ck_assert(strstr(output, "ik_cursor_t @ ") != NULL);
+    ck_assert(strstr(output, "ik_input_buffer_cursor_t @ ") != NULL);
     ck_assert(strstr(output, "byte_offset: 0\n") != NULL);
     ck_assert(strstr(output, "grapheme_offset: 0\n") != NULL);
 
     talloc_free(tmp_ctx);
 }
 END_TEST
-// Test: ik_pp_cursor with cursor in middle
+// Test: ik_pp_input_buffer_cursor with cursor in middle
 START_TEST(test_pp_cursor_in_middle)
 {
     void *tmp_ctx = talloc_new(NULL);
@@ -62,7 +62,7 @@ START_TEST(test_pp_cursor_in_middle)
     res = ik_format_buffer_create(tmp_ctx, &buf);
     ck_assert(is_ok(&res));
 
-    ik_pp_cursor(input_buffer->cursor, buf, 0);
+    ik_pp_input_buffer_cursor(input_buffer->cursor, buf, 0);
 
     const char *output = ik_format_get_string(buf);
     ck_assert(strstr(output, "byte_offset: 5\n") != NULL);
@@ -72,7 +72,7 @@ START_TEST(test_pp_cursor_in_middle)
 }
 
 END_TEST
-// Test: ik_pp_cursor with indentation
+// Test: ik_pp_input_buffer_cursor with indentation
 START_TEST(test_pp_cursor_with_indent)
 {
     void *tmp_ctx = talloc_new(NULL);
@@ -86,11 +86,11 @@ START_TEST(test_pp_cursor_with_indent)
     res = ik_format_buffer_create(tmp_ctx, &buf);
     ck_assert(is_ok(&res));
 
-    ik_pp_cursor(input_buffer->cursor, buf, 4);
+    ik_pp_input_buffer_cursor(input_buffer->cursor, buf, 4);
 
     const char *output = ik_format_get_string(buf);
     // Check that header is indented with 4 spaces
-    ck_assert(strstr(output, "    ik_cursor_t @ ") != NULL);
+    ck_assert(strstr(output, "    ik_input_buffer_cursor_t @ ") != NULL);
     // Check that fields are indented with 6 spaces (4 + 2)
     ck_assert(strstr(output, "      byte_offset: ") != NULL);
 
@@ -98,7 +98,7 @@ START_TEST(test_pp_cursor_with_indent)
 }
 
 END_TEST
-// Test: ik_pp_cursor with UTF-8 text
+// Test: ik_pp_input_buffer_cursor with UTF-8 text
 START_TEST(test_pp_cursor_utf8)
 {
     void *tmp_ctx = talloc_new(NULL);
@@ -124,7 +124,7 @@ START_TEST(test_pp_cursor_utf8)
     res = ik_format_buffer_create(tmp_ctx, &buf);
     ck_assert(is_ok(&res));
 
-    ik_pp_cursor(input_buffer->cursor, buf, 0);
+    ik_pp_input_buffer_cursor(input_buffer->cursor, buf, 0);
 
     const char *output = ik_format_get_string(buf);
     ck_assert(strstr(output, "byte_offset: 10\n") != NULL);

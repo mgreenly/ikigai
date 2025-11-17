@@ -301,7 +301,7 @@ START_TEST(test_repl_process_action_arrow_down)
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buf, &text, &text_len);
-    ik_cursor_set_position(input_buf->cursor, text, text_len, 0);
+    ik_input_buffer_cursor_set_position(input_buf->cursor, text, text_len, 0);
 
     // Move down
     action.type = IK_INPUT_ARROW_DOWN;

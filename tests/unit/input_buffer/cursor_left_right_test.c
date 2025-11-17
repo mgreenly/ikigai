@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /* Test: Cursor left - ASCII */
@@ -127,7 +127,7 @@ START_TEST(test_cursor_right_ascii)
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 0);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 0);
 
     /* Move right */
     res_t res = ik_input_buffer_cursor_right(input_buffer);
@@ -162,7 +162,7 @@ START_TEST(test_cursor_right_utf8)
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 0);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 0);
 
     /* Move right (skip 'a') */
     res_t res = ik_input_buffer_cursor_right(input_buffer);

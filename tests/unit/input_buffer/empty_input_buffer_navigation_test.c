@@ -1,6 +1,6 @@
 #include <check.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../../src/error.h"
 
 // Test: cursor_up on empty input_buffer should not crash

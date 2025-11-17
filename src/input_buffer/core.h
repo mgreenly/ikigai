@@ -1,16 +1,16 @@
 /**
- * @file input_buffer.h
+ * @file core.h
  * @brief Input buffer text storage for REPL input area
  *
  * Provides a text buffer for the input buffer (input area) of the REPL.
  * Uses ik_byte_array_t for UTF-8 text storage and tracks cursor position.
  */
 
-#ifndef IKIGAI_INPUT_BUFFER_H
-#define IKIGAI_INPUT_BUFFER_H
+#ifndef IKIGAI_INPUT_BUFFER_CORE_H
+#define IKIGAI_INPUT_BUFFER_CORE_H
 
 #include "byte_array.h"
-#include "input_buffer_cursor.h"
+#include "cursor.h"
 #include "error.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -23,7 +23,7 @@
  */
 typedef struct ik_input_buffer_t {
     ik_byte_array_t *text;       /**< UTF-8 text buffer */
-    ik_cursor_t *cursor;         /**< Cursor position (byte and grapheme offsets) */
+    ik_input_buffer_cursor_t *cursor;         /**< Cursor position (byte and grapheme offsets) */
     size_t cursor_byte_offset;   /**< Legacy byte offset - deprecated, use cursor instead */
     size_t target_column;        /**< Preserved column position for multi-line navigation (0 = use current) */
     size_t physical_lines;       /**< Cached number of physical lines (accounting for wrapping) */
@@ -278,4 +278,4 @@ typedef struct ik_format_buffer_t ik_format_buffer_t;
  */
 void ik_pp_input_buffer(const ik_input_buffer_t *input_buffer, ik_format_buffer_t *buf, int32_t indent);
 
-#endif /* IKIGAI_INPUT_BUFFER_H */
+#endif /* IKIGAI_INPUT_BUFFER_CORE_H */

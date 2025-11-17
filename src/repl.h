@@ -3,7 +3,7 @@
 #include "error.h"
 #include "terminal.h"
 #include "render.h"
-#include "input_buffer.h"
+#include "input_buffer/core.h"
 #include "input.h"
 #include "scrollback.h"
 #include <stdbool.h>

@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /* Test: Input buffer cursor initialized to 0,0 */
@@ -204,7 +204,7 @@ START_TEST(test_cursor_after_delete)
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 1);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 1);
 
     /* Delete (removes 'b') */
     res_t res = ik_input_buffer_delete(input_buffer);

@@ -4,7 +4,7 @@
 #include "panic.h"
 #include "wrapper.h"
 #include "format.h"
-#include "input_buffer.h"
+#include "input_buffer/core.h"
 #include <assert.h>
 #include <talloc.h>
 #include <string.h>

@@ -1,10 +1,10 @@
 /**
- * @file input_buffer_pp.c
+ * @file pp.c
  * @brief Input buffer pretty-print implementation
  */
 
-#include "input_buffer.h"
-#include "input_buffer_cursor.h"
+#include "core.h"
+#include "cursor.h"
 #include "format.h"
 #include "byte_array.h"
 #include "pp_helpers.h"
@@ -31,9 +31,9 @@ void ik_pp_input_buffer(const ik_input_buffer_t *input_buffer, ik_format_buffer_
     /* Print text length using generic helper */
     ik_pp_size_t(buf, indent + 2, "text_len", text_len);
 
-    /* Print cursor recursively using ik_pp_cursor (nested structure) */
+    /* Print cursor recursively using ik_pp_input_buffer_cursor (nested structure) */
     if (input_buffer->cursor != NULL) { /* LCOV_EXCL_BR_LINE - defensive: cursor always allocated in create */
-        ik_pp_cursor(input_buffer->cursor, buf, indent + 2);
+        ik_pp_input_buffer_cursor(input_buffer->cursor, buf, indent + 2);
     }
 
     /* Print target column using generic helper */

@@ -1,9 +1,9 @@
 /**
- * @file input_buffer_layout.c
+ * @file layout.c
  * @brief Input buffer layout caching implementation
  */
 
-#include "input_buffer.h"
+#include "core.h"
 #include "error.h"
 #include <assert.h>
 #include <inttypes.h>

@@ -1,9 +1,9 @@
 /**
- * @file input_buffer_cursor.c
+ * @file cursor.c
  * @brief Cursor position tracking implementation
  */
 
-#include "input_buffer_cursor.h"
+#include "cursor.h"
 #include "panic.h"
 #include "wrapper.h"
 #include <assert.h>
@@ -12,12 +12,12 @@
 #include <talloc.h>
 #include <utf8proc.h>
 
-res_t ik_cursor_create(void *parent, ik_cursor_t **cursor_out)
+res_t ik_input_buffer_cursor_create(void *parent, ik_input_buffer_cursor_t **cursor_out)
 {
     assert(parent != NULL);      /* LCOV_EXCL_BR_LINE */
     assert(cursor_out != NULL);  /* LCOV_EXCL_BR_LINE */
 
-    ik_cursor_t *cursor = talloc_zero_(parent, sizeof(ik_cursor_t));
+    ik_input_buffer_cursor_t *cursor = talloc_zero_(parent, sizeof(ik_input_buffer_cursor_t));
     if (cursor == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Both offsets initialize to 0 via talloc_zero_wrapper (via memset)
@@ -25,7 +25,7 @@ res_t ik_cursor_create(void *parent, ik_cursor_t **cursor_out)
     return OK(cursor);
 }
 
-void ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_len, size_t byte_offset)
+void ik_input_buffer_cursor_set_position(ik_input_buffer_cursor_t *cursor, const char *text, size_t text_len, size_t byte_offset)
 {
     assert(cursor != NULL);         /* LCOV_EXCL_BR_LINE */
     assert(text != NULL);           /* LCOV_EXCL_BR_LINE */
@@ -60,7 +60,7 @@ void ik_cursor_set_position(ik_cursor_t *cursor, const char *text, size_t text_l
     cursor->grapheme_offset = grapheme_count;
 }
 
-void ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len)
+void ik_input_buffer_cursor_move_left(ik_input_buffer_cursor_t *cursor, const char *text, size_t text_len)
 {
     assert(cursor != NULL);  /* LCOV_EXCL_BR_LINE */
     assert(text != NULL);    /* LCOV_EXCL_BR_LINE */
@@ -108,7 +108,7 @@ void ik_cursor_move_left(ik_cursor_t *cursor, const char *text, size_t text_len)
     cursor->grapheme_offset = grapheme_count > 0 ? grapheme_count - 1 : 0;  /* LCOV_EXCL_BR_LINE */
 }
 
-void ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_len)
+void ik_input_buffer_cursor_move_right(ik_input_buffer_cursor_t *cursor, const char *text, size_t text_len)
 {
     assert(cursor != NULL);  /* LCOV_EXCL_BR_LINE */
     assert(text != NULL);    /* LCOV_EXCL_BR_LINE */
@@ -156,7 +156,7 @@ void ik_cursor_move_right(ik_cursor_t *cursor, const char *text, size_t text_len
     cursor->grapheme_offset++;
 }
 
-void ik_cursor_get_position(ik_cursor_t *cursor, size_t *byte_offset_out, size_t *grapheme_offset_out)
+void ik_input_buffer_cursor_get_position(ik_input_buffer_cursor_t *cursor, size_t *byte_offset_out, size_t *grapheme_offset_out)
 {
     assert(cursor != NULL);              /* LCOV_EXCL_BR_LINE */
     assert(byte_offset_out != NULL);     /* LCOV_EXCL_BR_LINE */

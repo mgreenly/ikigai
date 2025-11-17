@@ -5,7 +5,7 @@
 
 #include <check.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /* Test: Column preservation when moving up and down through lines of different lengths */
@@ -51,7 +51,7 @@ START_TEST(test_cursor_up_down_column_preservation) {
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 16);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 16);
 
     /* Verify we're at column 10 of line 2 */
     size_t byte_offset = 0;
@@ -110,7 +110,7 @@ START_TEST(test_column_preservation_resets_on_horizontal_move)
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 16);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 16);
 
     /* Move up (clamps to end of "short" at byte 5) */
     res_t res = ik_input_buffer_cursor_up(input_buffer);
@@ -188,7 +188,7 @@ START_TEST(test_multiple_vertical_movements)
     char *text;
     size_t text_len;
     ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 38);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 38);
 
     size_t byte_offset = 0;
     size_t grapheme_offset = 0;
