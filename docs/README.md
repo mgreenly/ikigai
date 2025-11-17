@@ -4,126 +4,129 @@ This documentation is primarily for AI agents and secondarily for humans.
 
 ## Project Overview
 
-**Ikigai** is a Linux focused, multi-model, coding agent with RAG accessible permanent memory, written in "C".
+**Ikigai** is a Linux-focused, multi-model coding agent with RAG-accessible permanent memory, written in C.
 
-It's in an early stage of development.
+A desktop terminal application that combines:
+- Direct LLM API integration (OpenAI, Anthropic, Google, X.AI)
+- Local tool execution (file operations, shell commands, code analysis)
+- PostgreSQL-backed conversation history with full-text search
+- Terminal UI with direct rendering and scrollback
+
+**Current status**: v0.1.0 - Production-ready REPL terminal foundation complete. Ready for LLM integration.
 
 ## v1.0 Vision
 
-**Desktop/terminal client** with:
-- **Terminal UI**: Direct terminal rendering with scrollback, dynamic input, and clean UX
-- **Database integration**: PostgreSQL for persistent conversation history and RAG memory
-- **Multi-LLM support**: Anthropic, OpenAI, Google, X.AI
-- **Local tool execution**: File operations, shell commands, code analysis (full trust model)
-- **RAG-based memory**: Conversation search and context retrieval
+**Desktop terminal client** with:
+- **Terminal UI**: Direct terminal rendering with scrollback, multi-line input, and clean UX
+- **LLM Integration**: Streaming responses from multiple providers (OpenAI, Anthropic, Google, X.AI)
+- **Local Tool Execution**: File operations, shell commands, code analysis (full trust model)
+- **Database Integration**: PostgreSQL for persistent conversation history and RAG memory
+- **RAG-based Memory**: Conversation search and context retrieval across all past interactions
 
-## Codebase Structure
+## Quick Start
 
-- **Source**: `src/` contains the source code
+- **Source code**: `src/`
 - **Build target**: `bin/ikigai`
-- **Build system**: Make with comprehensive warnings, sanitizers, Valgrind, and coverage support - see [build-system.md](build-system.md)
-- **Testing**: [Check framework](https://github.com/libcheck/check) with unit and integration tests; OOM injection via test seams, exists in `tests/` folder.
+- **Tests**: `tests/unit/`, `tests/integration/`, `tests/performance/`
+- **Build**: `make` (debug), `make release`, `make check` (run tests)
 - **Standard**: C17 with K&R style (120-char width)
 
-## Documentation Files
+See [build-system.md](build-system.md) for comprehensive build documentation.
 
-### Core Documentation
-- **[repl/](repl/)** - REPL terminal interface documentation (Complete - ready for LLM integration)
-- **[architecture.md](architecture.md)** - System architecture and design decisions
-- **[decisions/](decisions/)** - Architecture decision records (ADRs) for key design choices
+## Documentation
+
+### Architecture & Design
+- **[architecture.md](architecture.md)** - System architecture, dependencies, and design principles
+- **[decisions/](decisions/)** - Architecture Decision Records (ADRs) for key design choices
+- **[repl/](repl/)** - REPL terminal interface documentation (v0.1.0 - complete)
+
+### Development Standards
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
-- **[memory.md](memory.md)** - Memory management with talloc, ownership rules, patterns
-- **[error_handling.md](error_handling.md)** - Error handling philosophy: Result types, assertions, FATAL(), and decision framework
-- **[error_patterns.md](error_patterns.md)** - Error handling patterns, best practices, and usage examples
-- **[error_testing.md](error_testing.md)** - Error handling testing strategy and coverage requirements
-- **[generic-types.md](generic-types.md)** - Generic base implementation with type-safe wrapper pattern
-- **[build-system.md](build-system.md)** - Build system with quality gates, testing infrastructure, and multi-distro support
-- **[security-analysis.md](security-analysis.md)** - Security analysis of input parsing, UTF-8 handling, and terminal control
-- **[vulnerabilities.md](vulnerabilities.md)** - CVE vulnerability tracking for dependencies
+- **[memory.md](memory.md)** - Memory management with talloc, ownership rules, and patterns
+- **[error_handling.md](error_handling.md)** - Error handling philosophy and decision framework
+- **[error_patterns.md](error_patterns.md)** - Error handling patterns and best practices
+- **[error_testing.md](error_testing.md)** - Error handling testing strategy
+- **[memory+error_handling.md](memory+error_handling.md)** - Integration of memory and error handling
+- **[generic-types.md](generic-types.md)** - Generic base implementation with type-safe wrappers
 
+### Build & Testing
+- **[build-system.md](build-system.md)** - Build system, quality gates, testing infrastructure, multi-distro support
+- **[lcov_exclusion_strategy.md](lcov_exclusion_strategy.md)** - Coverage exclusion guidelines
 
-### Future Work
-- **[roadmap.md](roadmap.md)** - Post-v1.0 exploration areas
+### Internal Analysis
+- **[memory_usage_analysis.md](memory_usage_analysis.md)** - Memory usage analysis and optimization notes
 
-## Development Roadmap
+## Roadmap to v1.0
 
-### Completed: REPL Terminal Foundation ✅
-**All phases complete (2025-11-15)** - See [repl/](repl/) for detailed documentation.
+### ✅ Completed: REPL Terminal Foundation (v0.1.0)
 
-Built a production-ready terminal interface with direct rendering:
-- ✅ Phase 0: Foundation (error handling, memory management, generic arrays)
-- ✅ Phase 1: Direct rendering (UTF-8 aware cursor positioning)
-- ✅ Phase 2: Complete REPL event loop (multi-line editing, readline shortcuts)
-- ✅ Phase 2.5: Remove server/protocol code (cleanup complete)
-- ✅ Phase 2.75: Pretty-print infrastructure (format module, pp_helpers, pp functions)
-- ✅ Phase 3: Scrollback buffer with layout caching (O(1) reflow, 726× faster than target)
-- ✅ Phase 4: Viewport and scrolling integration (100% test coverage)
-- ✅ Phase 5: Manual testing, documentation, and final cleanup
+**Released**: 2025-11-16
 
-**Delivered capabilities:**
-- Direct terminal rendering (single write per frame, 52× syscall reduction)
+Production-ready terminal interface with:
+- Direct terminal rendering (single write per frame)
 - UTF-8 support (emoji, CJK, combining characters)
-- Multi-line input with cursor navigation
-- Readline-style shortcuts (Ctrl+A/E/K/U/W)
-- Text wrapping and clean terminal restoration
-- Full REPL event loop with comprehensive test coverage
-- Scrollback buffer with O(1) arithmetic reflow (0.003-0.009 ms for 1000 lines)
-- Viewport scrolling (Page Up/Down, auto-scroll on submit)
-- Pretty-print infrastructure for debugging
+- Multi-line input with readline-style shortcuts
+- Scrollback buffer with O(1) arithmetic reflow
+- Viewport scrolling (Page Up/Down, auto-scroll)
 - 100% test coverage (1,807 lines, 131 functions, 600 branches)
 
-### Next: Core v1.0 Features
+See [repl/README.md](repl/README.md) for detailed documentation.
 
-The following features will be implemented **in the order listed**:
+### Next: LLM Integration
 
-**1. LLM Integration**
+**Status**: Next phase
 
-*JSON Library Migration (yyjson)*
-- Migrate from jansson to yyjson for better talloc integration
-- Custom allocator support eliminates reference counting complexity
-- 3× faster parsing for streaming LLM responses
-- See [jansson_to_yyjson_proposal.md](jansson_to_yyjson_proposal.md) for details
+**Objective**: Stream LLM responses directly to the terminal
 
-*OpenAI API Integration*
-- OpenAI API client with streaming
-- Display AI responses in scrollback
-- Basic conversation flow
-- Response streaming to terminal
+**Tasks**:
+- OpenAI API client with libcurl streaming
+- Display AI responses in scrollback as chunks arrive
+- Basic conversation flow (user input → API call → streamed response)
+- Status indicators (loading spinner, error handling)
 
-**2. Database Integration (PostgreSQL)**
-- Persistent conversation history
-- Message storage and retrieval
-- Full-text search capabilities
-- RAG memory access
+**Dependencies**: yyjson (complete), libcurl (to be added)
 
-**3. Multi-LLM Provider Support**
+### Future: Database Integration (PostgreSQL)
+
+**Objective**: Persistent conversation history with RAG memory
+
+**Tasks**:
+- PostgreSQL schema for conversations and messages
+- Save/load conversation history
+- Full-text search across past conversations
+- RAG memory access patterns
+
+### Future: Multi-LLM Provider Support
+
+**Objective**: Support multiple LLM providers with unified interface
+
+**Tasks**:
 - Abstract provider interface
-- OpenAI integration (streaming)
-- Anthropic integration
-- Google integration
+- OpenAI, Anthropic, Google, X.AI implementations
+- Provider switching via config or runtime command
 - Unified conversation format
 
-**4. Local Tool Execution**
+### Future: Local Tool Execution
+
+**Objective**: Enable file operations, shell commands, and code analysis
+
+**Tasks**:
 - Tool interface design
 - File operations (read, write, search)
 - Shell command execution
-- Code analysis tools
-- Full trust model (user's machine)
+- Code analysis (tree-sitter integration)
+- Results flow back to conversation
 
-**5. Enhanced Terminal UI**
-- Syntax highlighting in code blocks (tree-sitter based)
+### Future: Enhanced Terminal UI
+
+**Objective**: Polish the user experience
+
+**Tasks**:
+- Syntax highlighting in code blocks (tree-sitter)
 - External editor integration ($EDITOR)
 - Command history and session management
-- Rich formatting
-
-## Development Philosophy
-
-**Build incrementally**. Each phase establishes solid foundations before adding features. Focus on getting core patterns right (memory management, error handling, terminal UI) early.
-
-**Test-driven development**. 100% test coverage requirement with comprehensive unit tests, OOM injection testing, and multiple quality gates.
-
-**Keep it focused**. v1.0 is a desktop client for a single user. Local execution, full trust model, direct LLM API integration.
+- Rich formatting and themes
 
 ---
 
-**Note**: Documentation maintained for agent and developer understanding. Keep concise and current.
+**Note**: This documentation is maintained for AI agents and developers. Keep it concise, accurate, and current.
