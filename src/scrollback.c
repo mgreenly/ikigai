@@ -20,7 +20,7 @@ res_t ik_scrollback_create(void *parent, int32_t terminal_width,
     *scrollback_out = NULL;
 
     // Allocate scrollback struct
-    ik_scrollback_t *scrollback = ik_talloc_zero_wrapper(parent, sizeof(ik_scrollback_t));
+    ik_scrollback_t *scrollback = talloc_zero_(parent, sizeof(ik_scrollback_t));
     if (scrollback == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Initialize metadata
@@ -32,19 +32,19 @@ res_t ik_scrollback_create(void *parent, int32_t terminal_width,
     scrollback->buffer_capacity = 1024;  // Initial buffer size (1KB)
 
     // Allocate text_offsets array
-    scrollback->text_offsets = ik_talloc_array_wrapper(scrollback, sizeof(size_t), scrollback->capacity);
+    scrollback->text_offsets = talloc_array_(scrollback, sizeof(size_t), scrollback->capacity);
     if (scrollback->text_offsets == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Allocate text_lengths array
-    scrollback->text_lengths = ik_talloc_array_wrapper(scrollback, sizeof(size_t), scrollback->capacity);
+    scrollback->text_lengths = talloc_array_(scrollback, sizeof(size_t), scrollback->capacity);
     if (scrollback->text_lengths == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Allocate layouts array
-    scrollback->layouts = ik_talloc_array_wrapper(scrollback, sizeof(ik_line_layout_t), scrollback->capacity);
+    scrollback->layouts = talloc_array_(scrollback, sizeof(ik_line_layout_t), scrollback->capacity);
     if (scrollback->layouts == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Allocate text_buffer
-    scrollback->text_buffer = ik_talloc_array_wrapper(scrollback, sizeof(char), scrollback->buffer_capacity);
+    scrollback->text_buffer = talloc_array_(scrollback, sizeof(char), scrollback->buffer_capacity);
     if (scrollback->text_buffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     *scrollback_out = scrollback;
@@ -62,19 +62,19 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
         size_t new_capacity = scrollback->capacity * 2;
 
         // Grow text_offsets
-        size_t *new_offsets = ik_talloc_realloc_wrapper(
+        size_t *new_offsets = talloc_realloc_(
             scrollback, scrollback->text_offsets, sizeof(size_t) * new_capacity);
         if (new_offsets == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         scrollback->text_offsets = new_offsets;
 
         // Grow text_lengths
-        size_t *new_lengths = ik_talloc_realloc_wrapper(
+        size_t *new_lengths = talloc_realloc_(
             scrollback, scrollback->text_lengths, sizeof(size_t) * new_capacity);
         if (new_lengths == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         scrollback->text_lengths = new_lengths;
 
         // Grow layouts
-        ik_line_layout_t *new_layouts = ik_talloc_realloc_wrapper(
+        ik_line_layout_t *new_layouts = talloc_realloc_(
             scrollback, scrollback->layouts, sizeof(ik_line_layout_t) * new_capacity);
         if (new_layouts == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         scrollback->layouts = new_layouts;
@@ -90,7 +90,7 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
             new_buffer_capacity *= 2;
         }
 
-        char *new_buffer = ik_talloc_realloc_wrapper(
+        char *new_buffer = talloc_realloc_(
             scrollback, scrollback->text_buffer, new_buffer_capacity);
         if (new_buffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         scrollback->text_buffer = new_buffer;

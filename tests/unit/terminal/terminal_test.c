@@ -23,16 +23,16 @@ static int mock_tcsetattr_count = 0;
 static int mock_tcflush_count = 0;
 
 // Mock function prototypes
-int ik_open_wrapper(const char *pathname, int flags);
-int ik_close_wrapper(int fd);
-int ik_tcgetattr_wrapper(int fd, struct termios *termios_p);
-int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p);
-int ik_tcflush_wrapper(int fd, int queue_selector);
-int ik_ioctl_wrapper(int fd, unsigned long request, void *argp);
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
+int posix_open_(const char *pathname, int flags);
+int posix_close_(int fd);
+int posix_tcgetattr_(int fd, struct termios *termios_p);
+int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p);
+int posix_tcflush_(int fd, int queue_selector);
+int posix_ioctl_(int fd, unsigned long request, void *argp);
+ssize_t posix_write_(int fd, const void *buf, size_t count);
 
 // Mock implementations
-int ik_open_wrapper(const char *pathname, int flags)
+int posix_open_(const char *pathname, int flags)
 {
     (void)pathname;
     (void)flags;
@@ -42,14 +42,14 @@ int ik_open_wrapper(const char *pathname, int flags)
     return 42; // Mock fd
 }
 
-int ik_close_wrapper(int fd)
+int posix_close_(int fd)
 {
     (void)fd;
     mock_close_count++;
     return 0;
 }
 
-int ik_tcgetattr_wrapper(int fd, struct termios *termios_p)
+int posix_tcgetattr_(int fd, struct termios *termios_p)
 {
     (void)fd;
     if (mock_tcgetattr_fail) {
@@ -60,7 +60,7 @@ int ik_tcgetattr_wrapper(int fd, struct termios *termios_p)
     return 0;
 }
 
-int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p)
+int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p)
 {
     (void)fd;
     (void)optional_actions;
@@ -72,7 +72,7 @@ int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *ter
     return 0;
 }
 
-int ik_tcflush_wrapper(int fd, int queue_selector)
+int posix_tcflush_(int fd, int queue_selector)
 {
     (void)fd;
     (void)queue_selector;
@@ -83,7 +83,7 @@ int ik_tcflush_wrapper(int fd, int queue_selector)
     return 0;
 }
 
-int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
+int posix_ioctl_(int fd, unsigned long request, void *argp)
 {
     (void)fd;
     (void)request;
@@ -97,7 +97,7 @@ int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
     return 0;
 }
 
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+ssize_t posix_write_(int fd, const void *buf, size_t count)
 {
     (void)fd;
     (void)buf;

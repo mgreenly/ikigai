@@ -8,10 +8,10 @@
 // ========== Wrapper Function Overrides ==========
 // These override the weak symbols in src/wrapper.c for testing
 
-void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size);
-char *ik_talloc_strdup_wrapper(TALLOC_CTX *ctx, const char *str);
-void *ik_talloc_array_wrapper(TALLOC_CTX *ctx, size_t el_size, size_t count);
-void *ik_talloc_realloc_wrapper(TALLOC_CTX *ctx, void *ptr, size_t size);
-char *ik_talloc_asprintf_wrapper(TALLOC_CTX *ctx, const char *fmt, ...);
+void *talloc_zero_(TALLOC_CTX *ctx, size_t size);
+char *talloc_strdup_(TALLOC_CTX *ctx, const char *str);
+void *talloc_array_(TALLOC_CTX *ctx, size_t el_size, size_t count);
+void *talloc_realloc_(TALLOC_CTX *ctx, void *ptr, size_t size);
+char *talloc_asprintf_(TALLOC_CTX *ctx, const char *fmt, ...);
 
 #endif // IK_TEST_UTILS_H

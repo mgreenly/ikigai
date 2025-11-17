@@ -17,9 +17,9 @@ static char *mock_write_buffer = NULL;
 static size_t mock_write_size = 0;
 
 // Mock wrapper declaration
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
+ssize_t posix_write_(int fd, const void *buf, size_t count);
 
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+ssize_t posix_write_(int fd, const void *buf, size_t count)
 {
     (void)fd; // Unused in mock
 

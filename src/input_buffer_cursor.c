@@ -17,7 +17,7 @@ res_t ik_cursor_create(void *parent, ik_cursor_t **cursor_out)
     assert(parent != NULL);      /* LCOV_EXCL_BR_LINE */
     assert(cursor_out != NULL);  /* LCOV_EXCL_BR_LINE */
 
-    ik_cursor_t *cursor = ik_talloc_zero_wrapper(parent, sizeof(ik_cursor_t));
+    ik_cursor_t *cursor = talloc_zero_(parent, sizeof(ik_cursor_t));
     if (cursor == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Both offsets initialize to 0 via talloc_zero_wrapper (via memset)

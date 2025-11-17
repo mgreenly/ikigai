@@ -41,7 +41,7 @@ return ERR(parent_ctx, IO, "Failed to open file");
 return ERR(tmp_ctx, IO, "Failed to open file");
 
 // ✅ OOM: Use PANIC instead of ERR
-void *ptr = ik_talloc_zero_wrapper(ctx, size);
+void *ptr = talloc_zero_(ctx, size);
 if (!ptr) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 ```
 
@@ -55,7 +55,7 @@ static res_t grow_array(ik_array_t *array)
     TALLOC_CTX *ctx = talloc_parent(array);  // Get parent context
 
     // Try to reallocate
-    void *new_data = ik_talloc_realloc_wrapper(ctx, array->data, ...);
+    void *new_data = talloc_realloc_(ctx, array->data, ...);
     if (!new_data) {
         // OOM: PANIC immediately - cannot continue
         PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
@@ -77,7 +77,7 @@ static res_t grow_array(ik_array_t *array)
 ```c
 res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out)
 {
-    input_buffer_t *input_buffer = ik_talloc_zero_wrapper(parent, sizeof(input_buffer_t));
+    input_buffer_t *input_buffer = talloc_zero_(parent, sizeof(input_buffer_t));
     if (!input_buffer) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     res_t res = ik_byte_array_create(input_buffer, 64);
@@ -118,7 +118,7 @@ if (!init(thing)) {
 TALLOC_CTX *ctx = talloc_new(NULL);
 if (!ctx) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-thing_t *thing = ik_talloc_wrapper(ctx, sizeof(thing_t));
+thing_t *thing = talloc_zero_(ctx, sizeof(thing_t));
 if (!thing) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
 if (!init(thing)) {

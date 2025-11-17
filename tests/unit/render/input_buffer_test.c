@@ -17,9 +17,9 @@ static ssize_t mock_write_return = 0;
 static bool mock_write_should_fail = false;
 
 // Mock wrapper declaration
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
+ssize_t posix_write_(int fd, const void *buf, size_t count);
 
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+ssize_t posix_write_(int fd, const void *buf, size_t count)
 {
     (void)fd; // Unused in mock
 

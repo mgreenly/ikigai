@@ -28,7 +28,7 @@ extern int32_t mock_write_fail_after;
 extern int32_t mock_write_count;
 
 // Mock wrapper functions (implemented once, shared across test files)
-ssize_t ik_read_wrapper(int fd, void *buf, size_t count);
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
+ssize_t posix_read_(int fd, void *buf, size_t count);
+ssize_t posix_write_(int fd, const void *buf, size_t count);
 
 #endif // IK_REPL_RUN_TEST_COMMON_H

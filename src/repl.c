@@ -17,7 +17,7 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
     assert(repl_out != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Allocate REPL context
-    ik_repl_ctx_t *repl = ik_talloc_zero_wrapper(parent, sizeof(ik_repl_ctx_t));
+    ik_repl_ctx_t *repl = talloc_zero_(parent, sizeof(ik_repl_ctx_t));
     if (repl == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Initialize terminal (raw mode + alternate screen)
@@ -101,7 +101,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             return result;
         }
 
-        ssize_t n = ik_read_wrapper(repl->term->tty_fd, &byte, 1);
+        ssize_t n = posix_read_(repl->term->tty_fd, &byte, 1);
         if (n < 0) {
             // LCOV_EXCL_START - Signal interruption requires actual signal delivery
             // Check if interrupted by signal

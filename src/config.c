@@ -22,7 +22,7 @@ res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(path != NULL); // LCOV_EXCL_BR_LINE
     if (path[0] != '~') {
-        char *result = ik_talloc_strdup_wrapper(ctx, path);
+        char *result = talloc_strdup_(ctx, path);
         if (result == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         return OK(result);
     }
@@ -32,7 +32,7 @@ res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
         return ERR(ctx, INVALID_ARG, "HOME not set, cannot expand ~");
     }
 
-    char *result = ik_talloc_asprintf_wrapper(ctx, "%s%s", home, path + 1);
+    char *result = talloc_asprintf_(ctx, "%s%s", home, path + 1);
     if (result == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     return OK(result);
 }
@@ -50,8 +50,8 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
 
     // Create directory if it doesn't exist
     struct stat st;
-    if (ik_stat_wrapper(dir, &st) != 0) {
-        if (ik_mkdir_wrapper(dir, 0755) != 0) {
+    if (posix_stat_(dir, &st) != 0) {
+        if (posix_mkdir_(dir, 0755) != 0) {
             return ERR(ctx, IO, "Failed to create directory %s: %s", dir, strerror(errno));
         }
     }
@@ -71,7 +71,7 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
 
     // Write to file with pretty printing
     yyjson_write_err write_err;
-    if (!ik_yyjson_mut_write_file_wrapper(path, doc, YYJSON_WRITE_PRETTY, &alc, &write_err)) {
+    if (!yyjson_mut_write_file_(path, doc, YYJSON_WRITE_PRETTY, &alc, &write_err)) {
         return ERR(ctx, IO, "Failed to write config file %s: %s", path, write_err.msg);
     }
 
@@ -90,7 +90,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
 
     // Check if file exists
     struct stat st;
-    if (ik_stat_wrapper(expanded_path, &st) != 0) {
+    if (posix_stat_(expanded_path, &st) != 0) {
         // File doesn't exist, create default config
         res_t create_result = create_default_config(ctx, expanded_path);
         if (create_result.is_err) {
@@ -101,12 +101,12 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     // Load and parse config file using yyjson with talloc allocator
     yyjson_alc alc = ik_make_talloc_allocator(ctx);
     yyjson_read_err read_err;
-    yyjson_doc *doc = ik_yyjson_read_file_wrapper(expanded_path, 0, &alc, &read_err);
+    yyjson_doc *doc = yyjson_read_file_(expanded_path, 0, &alc, &read_err);
     if (!doc) {
         return ERR(ctx, PARSE, "Failed to parse JSON: %s", read_err.msg);
     }
 
-    yyjson_val *root = ik_yyjson_doc_get_root_wrapper(doc);
+    yyjson_val *root = yyjson_doc_get_root_(doc);
     if (!root || !yyjson_is_obj(root)) {
         return ERR(ctx, PARSE, "JSON root is not an object");
     }
@@ -116,9 +116,9 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     if (cfg == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Extract fields
-    yyjson_val *api_key = ik_yyjson_obj_get_wrapper(root, "openai_api_key");
-    yyjson_val *address = ik_yyjson_obj_get_wrapper(root, "listen_address");
-    yyjson_val *port = ik_yyjson_obj_get_wrapper(root, "listen_port");
+    yyjson_val *api_key = yyjson_obj_get_(root, "openai_api_key");
+    yyjson_val *address = yyjson_obj_get_(root, "listen_address");
+    yyjson_val *port = yyjson_obj_get_(root, "listen_port");
 
     // Validate openai_api_key
     if (!api_key) {
@@ -145,15 +145,15 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     }
 
     // Extract port value and validate range
-    int64_t port_raw = ik_yyjson_get_sint_wrapper(port);
+    int64_t port_raw = yyjson_get_sint_(port);
     if (port_raw < 1024 || port_raw > 65535) {
         return ERR(ctx, OUT_OF_RANGE, "Port must be 1024-65535, got %lld", (long long)port_raw);
     }
     uint16_t port_value = (uint16_t)port_raw;
 
     // Copy values to config
-    cfg->openai_api_key = talloc_strdup(cfg, ik_yyjson_get_str_wrapper(api_key));
-    cfg->listen_address = talloc_strdup(cfg, ik_yyjson_get_str_wrapper(address));
+    cfg->openai_api_key = talloc_strdup(cfg, yyjson_get_str_(api_key));
+    cfg->listen_address = talloc_strdup(cfg, yyjson_get_str_(address));
     cfg->listen_port = port_value;
 
     // Note: No manual cleanup needed! talloc frees doc when ctx is freed

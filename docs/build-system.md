@@ -102,7 +102,7 @@ All external library calls (talloc, jansson, uuid, b64) are wrapped in functions
 #define MOCKABLE __attribute__((weak))  // Debug: overridable by tests
 #endif
 
-MOCKABLE void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size);
+MOCKABLE void *talloc_zero_(TALLOC_CTX *ctx, size_t size);
 ```
 
 In **debug builds**, these are weak symbols—tests can override them for non-OOM testing.
@@ -294,7 +294,7 @@ Verification:
 # Debug: wrapper functions are weak symbols
 make BUILD=debug
 nm build/wrapper.o | grep ik_talloc
-# Shows: W ik_talloc_zero_wrapper
+# Shows: W talloc_zero_
 
 # Release: wrappers inlined, no symbols
 make BUILD=release

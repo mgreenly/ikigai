@@ -12,7 +12,7 @@ res_t ik_input_parser_create(void *parent, ik_input_parser_t **parser_out)
     assert(parser_out != NULL);  // LCOV_EXCL_BR_LINE
 
     // Allocate parser
-    ik_input_parser_t *parser = ik_talloc_zero_wrapper(parent, sizeof(ik_input_parser_t));
+    ik_input_parser_t *parser = talloc_zero_(parent, sizeof(ik_input_parser_t));
     if (parser == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Initialize fields (talloc_zero already set to 0, but be explicit)

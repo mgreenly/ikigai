@@ -17,10 +17,10 @@ static char mock_write_buffer[4096];
 static size_t mock_write_buffer_len = 0;
 
 // Mock write wrapper declaration
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
+ssize_t posix_write_(int fd, const void *buf, size_t count);
 
 // Mock write wrapper for testing
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+ssize_t posix_write_(int fd, const void *buf, size_t count)
 {
     (void)fd;
     mock_write_calls++;

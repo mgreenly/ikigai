@@ -175,6 +175,41 @@ static void parse_handshake(const char *json) { ... }
 static sse_parser_t *sse_parser_create(TALLOC_CTX *ctx) { ... }
 ```
 
+## External Library Wrappers
+
+**IMPORTANT**: External library wrappers do NOT use the `ik_` prefix.
+
+These wrappers exist solely as link seams for testing (see `docs/decisions/link-seams-mocking.md`). They are not ikigai-authored APIs, but thin testability shims around external code.
+
+### Library Wrappers (talloc, yyjson)
+
+Use **trailing underscore** (`_`):
+```c
+talloc_zero_(ctx, size)           // wraps talloc_zero_size()
+talloc_strdup_(ctx, str)          // wraps talloc_strdup()
+yyjson_read_file_(path, flg, ...)  // wraps yyjson_read_file()
+```
+
+**Rationale**: The trailing `_` signals "this is the library function, with a testability seam". It clearly indicates these are not ikigai APIs while remaining close to the original function names.
+
+### POSIX System Call Wrappers
+
+Use **`posix_` prefix + trailing underscore**:
+```c
+posix_open_(pathname, flags)      // wraps open()
+posix_write_(fd, buf, count)      // wraps write()
+posix_stat_(pathname, statbuf)    // wraps stat()
+```
+
+**Rationale**: Generic POSIX names like `open` and `write` need context. The `posix_` prefix clarifies these are system call wrappers, while the trailing `_` maintains the "seam" signal.
+
+### Build Behavior
+
+- **Release builds** (`NDEBUG`): Wrappers are `static inline` - zero overhead, no symbols in binary
+- **Debug/test builds**: Wrappers are `weak` symbols that tests can override to inject failures
+
+All wrappers are marked with the `MOCKABLE` macro which expands to the appropriate linkage.
+
 ## Rationale
 
 1. **Consistency**: Same abbreviation everywhere (types, functions, fields, variables)

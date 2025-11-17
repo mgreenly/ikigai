@@ -15,7 +15,7 @@ int32_t mock_write_fail_after = -1;  // Fail after N successful writes (-1 = nev
 int32_t mock_write_count = 0;
 
 // Mock read wrapper for testing
-ssize_t ik_read_wrapper(int fd, void *buf, size_t count)
+ssize_t posix_read_(int fd, void *buf, size_t count)
 {
     (void)fd;
 
@@ -35,7 +35,7 @@ ssize_t ik_read_wrapper(int fd, void *buf, size_t count)
 }
 
 // Mock write wrapper (suppress output during tests)
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+ssize_t posix_write_(int fd, const void *buf, size_t count)
 {
     (void)fd;
     (void)buf;

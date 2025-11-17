@@ -289,7 +289,7 @@ res_t parse_port(TALLOC_CTX *ctx, const char *str) {
     if (port < 1024 || port > 65535)
         return ERR(ctx, OUT_OF_RANGE, "Port out of range: %ld", port);
 
-    int *result = ik_talloc_wrapper(ctx, int);
+    int *result = talloc_zero_(ctx, int);
     if (!result) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     *result = (int)port;
     return OK(result);

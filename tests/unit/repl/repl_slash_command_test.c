@@ -17,7 +17,7 @@ START_TEST(test_pp_command_clears_input_buffer) {
     ik_repl_ctx_t *repl = NULL;
 
     /* Create REPL without initializing terminal */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
@@ -63,7 +63,7 @@ START_TEST(test_pp_command_with_args)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create REPL without initializing terminal */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
@@ -102,7 +102,7 @@ START_TEST(test_unknown_slash_command)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create REPL without initializing terminal */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
@@ -137,7 +137,7 @@ START_TEST(test_empty_input_buffer_newline)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create REPL without initializing terminal */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
@@ -168,7 +168,7 @@ START_TEST(test_slash_in_middle_not_command)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create REPL without initializing terminal */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
@@ -211,7 +211,7 @@ START_TEST(test_pp_command_order_in_scrollback)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create minimal REPL context */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
@@ -263,7 +263,7 @@ START_TEST(test_pp_output_trailing_newline)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create minimal REPL context */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */

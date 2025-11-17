@@ -18,7 +18,7 @@ res_t ik_format_buffer_create(void *parent, ik_format_buffer_t **buf_out)
     assert(parent != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
     assert(buf_out != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
 
-    ik_format_buffer_t *buf = ik_talloc_zero_wrapper(parent, sizeof(ik_format_buffer_t));
+    ik_format_buffer_t *buf = talloc_zero_(parent, sizeof(ik_format_buffer_t));
     if (buf == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     buf->parent = parent;
@@ -47,7 +47,7 @@ res_t ik_format_appendf(ik_format_buffer_t *buf, const char *fmt, ...)
 
     // Allocate temporary buffer
     size_t buf_size = (size_t)needed + 1;  // +1 for null terminator
-    char *temp = ik_talloc_array_wrapper(buf->parent, sizeof(char), buf_size);
+    char *temp = talloc_array_(buf->parent, sizeof(char), buf_size);
     if (temp == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Second pass: format into buffer

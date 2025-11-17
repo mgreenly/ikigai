@@ -20,13 +20,13 @@
 // Debug build: wrapper.c compiles weak symbol implementations
 // Release build: wrapper.c is empty, functions defined inline in header
 
-MOCKABLE void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size);
+MOCKABLE void *talloc_zero_(TALLOC_CTX *ctx, size_t size);
 ```
 
 **Testing example**:
 ```c
 // Test can override wrapper to inject OOM
-void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size) {
+void *talloc_zero_(TALLOC_CTX *ctx, size_t size) {
     return NULL;  // Simulate allocation failure
 }
 ```
@@ -36,7 +36,7 @@ void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size) {
 - `make release`: `-O3 -DNDEBUG`, wrappers inlined (zero overhead)
 
 **Verification**:
-- Debug: `nm build/wrapper.o` shows `W ik_talloc_*_wrapper` (weak symbols)
+- Debug: `nm build/wrapper.o` shows `W talloc_*_wrapper` (weak symbols)
 - Release: `nm build/wrapper.o` shows no wrapper symbols (inlined away)
 
 **Design choice**: All external library wrappers live in single `wrapper.c/wrapper.h` file, organized by library (talloc, jansson, etc.). Most libraries only have 3-6 functions we call, so consolidation keeps the codebase simple.

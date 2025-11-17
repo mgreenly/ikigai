@@ -135,12 +135,12 @@ See `docs/error_handling.md` for complete error handling philosophy.
 **First allocation** (when `capacity == 0` and element needs to be added):
 - Allocate `increment` elements
 - Set `capacity = increment`
-- Uses `ik_talloc_realloc_wrapper(ctx, NULL, element_size * increment)`
+- Uses `talloc_realloc_(ctx, NULL, element_size * increment)`
 
 **Subsequent growth** (when `size == capacity` and element needs to be added):
 - Double current capacity: `new_capacity = capacity * 2`
 - Example: increment=10 → capacity goes 0 → 10 → 20 → 40 → 80 → ...
-- Uses `ik_talloc_realloc_wrapper(ctx, data, element_size * new_capacity)`
+- Uses `talloc_realloc_(ctx, data, element_size * new_capacity)`
 - Maintains existing elements during growth
 - **No overflow protection** - assumes realistic array sizes won't overflow size_t
 
@@ -234,7 +234,7 @@ All error handling follows the three-category strategy from `docs/error_handling
 - `src/array.{c,h}` - Generic `ik_array_t` implementation and API
 - `src/byte_array.{c,h}` - `ik_byte_array_t` typed wrapper
 - `src/line_array.{c,h}` - `ik_line_array_t` typed wrapper
-- `src/wrapper.{c,h}` - Includes `ik_talloc_realloc_wrapper` (MOCKABLE pattern)
+- `src/wrapper.{c,h}` - Includes `talloc_realloc_` (MOCKABLE pattern)
 
 **Test files:**
 - `tests/unit/array_test.c` - Unit tests for generic array

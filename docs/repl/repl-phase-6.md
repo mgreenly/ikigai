@@ -39,7 +39,7 @@ Modify `src/terminal.c` in `ik_term_init()`:
 ```c
 // After entering alternate screen, enable bracketed paste
 const char *enable_bracketed_paste = "\x1b[?2004h";
-if (ik_write_wrapper(tty_fd, enable_bracketed_paste, 8) < 0) {
+if (posix_write_(tty_fd, enable_bracketed_paste, 8) < 0) {
     // Handle error
 }
 ```
@@ -48,7 +48,7 @@ Modify `ik_term_cleanup()`:
 ```c
 // Before exiting alternate screen, disable bracketed paste
 const char *disable_bracketed_paste = "\x1b[?2004l";
-(void)ik_write_wrapper(ctx->tty_fd, disable_bracketed_paste, 8);
+(void)posix_write_(ctx->tty_fd, disable_bracketed_paste, 8);
 ```
 
 **2. Add paste action types to input parser**

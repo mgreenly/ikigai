@@ -20,7 +20,7 @@ res_t ik_array_create(TALLOC_CTX *ctx, size_t element_size, size_t increment)
     }
 
     // Allocate array structure
-    ik_array_t *array = ik_talloc_zero_wrapper(ctx, sizeof(ik_array_t));
+    ik_array_t *array = talloc_zero_(ctx, sizeof(ik_array_t));
     if (array == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Initialize fields
@@ -57,7 +57,7 @@ static res_t grow_array(ik_array_t *array)
     }
 
     // Reallocate data buffer
-    void *new_data = ik_talloc_realloc_wrapper(ctx, array->data, array->element_size * new_capacity);
+    void *new_data = talloc_realloc_(ctx, array->data, array->element_size * new_capacity);
     if (new_data == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     array->data = new_data;

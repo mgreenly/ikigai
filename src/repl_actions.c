@@ -106,7 +106,7 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             char *command = NULL;
             if (is_slash_command) {
                 // Extract command (skip the '/' character)
-                command = ik_talloc_zero_wrapper(repl, text_len); // Includes space for null terminator
+                command = talloc_zero_(repl, text_len); // Includes space for null terminator
                 if (command == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
                 memcpy(command, text + 1, text_len - 1);
                 command[text_len - 1] = '\0';

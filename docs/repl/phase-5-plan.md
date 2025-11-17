@@ -51,7 +51,7 @@ This plan implements a REPL with direct terminal rendering. We'll build incremen
   - Ctrl+W (delete word backward with punctuation class support)
 - ✅ Task 3: Main event loop
   - `ik_repl_run()` - Event loop (read → parse → process → render)
-  - `ik_read_wrapper()` added to wrapper.h for testability
+  - `posix_read_()` added to wrapper.h for testability
   - 9 comprehensive tests (basic functionality + error handling)
 - ✅ Task 4: client.c simplified to pure coordination
   - Reduced from 182 lines → 32 lines

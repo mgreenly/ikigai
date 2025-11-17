@@ -115,7 +115,7 @@ void ik_array_delete(ik_array_t *array, size_t index) {
 **Examples:**
 ```c
 // Out of memory - always PANIC
-void *ptr = ik_talloc_zero_wrapper(ctx, size);
+void *ptr = talloc_zero_(ctx, size);
 if (ptr == NULL) PANIC("Out of memory");
 
 // Data corruption detected
@@ -299,7 +299,7 @@ res_t ik_array_create(TALLOC_CTX *ctx, size_t element_size, size_t increment) {
     assert(ctx != NULL);                // LCOV_EXCL_BR_LINE
     assert(element_size > 0);           // LCOV_EXCL_BR_LINE
 
-    ik_array_t *array = ik_talloc_zero_wrapper(ctx, sizeof(ik_array_t));
+    ik_array_t *array = talloc_zero_(ctx, sizeof(ik_array_t));
     if (!array) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     array->size = 0;
@@ -342,7 +342,7 @@ The implementation handles terminal restoration and provides async-signal-safe e
 
 **1. Out of memory (most common):**
 ```c
-void *ptr = ik_talloc_zero_wrapper(ctx, size);
+void *ptr = talloc_zero_(ctx, size);
 if (ptr == NULL) {
     PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 }

@@ -76,9 +76,9 @@ END_TEST
 
 // Mock for yyjson_mut_write_file failure
 static bool mock_write_failure = false;
-bool ik_yyjson_mut_write_file_wrapper(const char *path, const yyjson_mut_doc *doc,
-                                      yyjson_write_flag flg, const yyjson_alc *alc,
-                                      yyjson_write_err *err)
+bool yyjson_mut_write_file_(const char *path, const yyjson_mut_doc *doc,
+                            yyjson_write_flag flg, const yyjson_alc *alc,
+                            yyjson_write_err *err)
 {
     if (mock_write_failure) {
         if (err) {
@@ -124,8 +124,8 @@ END_TEST
 
 // Mock for yyjson_read_file failure
 static bool mock_read_failure = false;
-yyjson_doc *ik_yyjson_read_file_wrapper(const char *path, yyjson_read_flag flg,
-                                        const yyjson_alc *alc, yyjson_read_err *err)
+yyjson_doc *yyjson_read_file_(const char *path, yyjson_read_flag flg,
+                              const yyjson_alc *alc, yyjson_read_err *err)
 {
     if (mock_read_failure) {
         if (err) {
@@ -213,7 +213,7 @@ END_TEST
 
 // Mock for yyjson_doc_get_root returning NULL
 static bool mock_doc_get_root_null = false;
-yyjson_val *ik_yyjson_doc_get_root_wrapper(yyjson_doc *doc)
+yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
 {
     if (mock_doc_get_root_null) {
         return NULL;

@@ -15,7 +15,7 @@ res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out)
 {
     assert(input_buffer_out != NULL); /* LCOV_EXCL_BR_LINE */
 
-    ik_input_buffer_t *input_buffer = ik_talloc_zero_wrapper(parent, sizeof(ik_input_buffer_t));
+    ik_input_buffer_t *input_buffer = talloc_zero_(parent, sizeof(ik_input_buffer_t));
     if (input_buffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     res_t res = ik_byte_array_create(input_buffer, 64);
