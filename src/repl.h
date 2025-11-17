@@ -6,6 +6,8 @@
 #include "input_buffer/core.h"
 #include "input.h"
 #include "scrollback.h"
+#include "layer.h"
+#include "layer_wrappers.h"
 #include <stdbool.h>
 #include <inttypes.h>
 
@@ -26,6 +28,20 @@ typedef struct ik_repl_ctx_t {
     ik_scrollback_t *scrollback;      // Scrollback buffer (Phase 4)
     size_t viewport_offset;           // Physical row offset for scrolling (0 = bottom)
     bool quit;                  // Exit flag
+
+    // Layer-based rendering (Phase 1.3)
+    ik_layer_cake_t *layer_cake;      // Layer cake manager
+    ik_layer_t *scrollback_layer;     // Scrollback layer
+    ik_layer_t *spinner_layer;        // Spinner layer (Phase 1.4)
+    ik_layer_t *separator_layer;      // Separator layer
+    ik_layer_t *input_layer;          // Input buffer layer
+
+    // Reference fields for layers (updated before each render)
+    ik_spinner_state_t spinner_state; // Spinner state (Phase 1.4)
+    bool separator_visible;           // Separator visibility flag
+    bool input_buffer_visible;        // Input buffer visibility flag
+    const char *input_text;           // Input text pointer
+    size_t input_text_len;            // Input text length
 } ik_repl_ctx_t;
 
 // Initialize REPL context

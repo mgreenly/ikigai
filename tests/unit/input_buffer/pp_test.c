@@ -184,7 +184,7 @@ START_TEST(test_pp_input_buffer_indented)
                       "Line not properly indented: %.20s", line);
         /* Move to next line */
         line = strchr(line, '\n');
-        if (line)line++;
+        if (line) line++;
     }
 
     talloc_free(ctx);

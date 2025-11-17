@@ -10,7 +10,7 @@
 int main(void)
 {
     void *root_ctx = talloc_new(NULL);
-    if (root_ctx == NULL)PANIC("Failed to create root talloc context");
+    if (root_ctx == NULL) PANIC("Failed to create root talloc context");
 
     ik_repl_ctx_t *repl = NULL;
     res_t result = ik_repl_init(root_ctx, &repl);

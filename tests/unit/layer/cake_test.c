@@ -31,17 +31,17 @@ static size_t fixed_height_10(const ik_layer_t *layer, size_t width)
     return 10;
 }
 
-static res_t render_simple(const ik_layer_t *layer,
-                           ik_output_buffer_t *output,
-                           size_t width,
-                           size_t start_row,
-                           size_t row_count)
+static void render_simple(const ik_layer_t *layer,
+                          ik_output_buffer_t *output,
+                          size_t width,
+                          size_t start_row,
+                          size_t row_count)
 {
     (void)layer;
     (void)width;
     (void)start_row;
     (void)row_count;
-    return ik_output_buffer_append(output, "X", 1);
+    ik_output_buffer_append(output, "X", 1);
 }
 
 START_TEST(test_layer_cake_create) {
@@ -188,8 +188,7 @@ END_TEST START_TEST(test_layer_cake_render_simple)
     ik_output_buffer_t *output;
     ik_output_buffer_create(ctx, 100, &output);
 
-    res_t res = ik_layer_cake_render(cake, output, 80);
-    ck_assert(is_ok(&res));
+    ik_layer_cake_render(cake, output, 80);
     ck_assert_uint_eq(output->size, 1);
     ck_assert_int_eq(output->data[0], 'X');
 
@@ -213,8 +212,7 @@ END_TEST START_TEST(test_layer_cake_render_multiple_layers)
     ik_output_buffer_t *output;
     ik_output_buffer_create(ctx, 100, &output);
 
-    res_t res = ik_layer_cake_render(cake, output, 80);
-    ck_assert(is_ok(&res));
+    ik_layer_cake_render(cake, output, 80);
     ck_assert_uint_eq(output->size, 2); // One 'X' from each layer
 
     talloc_free(ctx);
@@ -237,8 +235,7 @@ END_TEST START_TEST(test_layer_cake_render_skips_invisible)
     ik_output_buffer_t *output;
     ik_output_buffer_create(ctx, 100, &output);
 
-    res_t res = ik_layer_cake_render(cake, output, 80);
-    ck_assert(is_ok(&res));
+    ik_layer_cake_render(cake, output, 80);
     ck_assert_uint_eq(output->size, 1); // Only layer1
 
     talloc_free(ctx);
@@ -259,8 +256,7 @@ END_TEST START_TEST(test_layer_cake_render_viewport_clipping_top)
     ik_output_buffer_t *output;
     ik_output_buffer_create(ctx, 100, &output);
 
-    res_t res = ik_layer_cake_render(cake, output, 80);
-    ck_assert(is_ok(&res));
+    ik_layer_cake_render(cake, output, 80);
 
     talloc_free(ctx);
 }
@@ -279,8 +275,7 @@ END_TEST START_TEST(test_layer_cake_render_viewport_clipping_bottom)
     ik_output_buffer_t *output;
     ik_output_buffer_create(ctx, 100, &output);
 
-    res_t res = ik_layer_cake_render(cake, output, 80);
-    ck_assert(is_ok(&res));
+    ik_layer_cake_render(cake, output, 80);
 
     talloc_free(ctx);
 }
@@ -302,8 +297,7 @@ END_TEST START_TEST(test_layer_cake_render_early_exit)
     ik_output_buffer_t *output;
     ik_output_buffer_create(ctx, 100, &output);
 
-    res_t res = ik_layer_cake_render(cake, output, 80);
-    ck_assert(is_ok(&res));
+    ik_layer_cake_render(cake, output, 80);
 
     talloc_free(ctx);
 }
@@ -324,8 +318,7 @@ END_TEST START_TEST(test_layer_cake_render_layer_outside_viewport)
     ik_output_buffer_t *output;
     ik_output_buffer_create(ctx, 100, &output);
 
-    res_t res = ik_layer_cake_render(cake, output, 80);
-    ck_assert(is_ok(&res));
+    ik_layer_cake_render(cake, output, 80);
     ck_assert_uint_eq(output->size, 0); // Nothing rendered
 
     talloc_free(ctx);
@@ -352,8 +345,7 @@ END_TEST START_TEST(test_layer_cake_render_layer_after_viewport)
     ik_output_buffer_t *output;
     ik_output_buffer_create(ctx, 100, &output);
 
-    res_t res = ik_layer_cake_render(cake, output, 80);
-    ck_assert(is_ok(&res));
+    ik_layer_cake_render(cake, output, 80);
 
     talloc_free(ctx);
 }
@@ -374,48 +366,12 @@ END_TEST START_TEST(test_layer_cake_render_layer_ends_at_viewport_start)
     ik_output_buffer_t *output;
     ik_output_buffer_create(ctx, 100, &output);
 
-    res_t res = ik_layer_cake_render(cake, output, 80);
-    ck_assert(is_ok(&res));
+    ik_layer_cake_render(cake, output, 80);
     ck_assert_uint_eq(output->size, 0); // Nothing rendered
 
     talloc_free(ctx);
 }
 
-END_TEST
-
-// Helper for error test
-static res_t render_error(const ik_layer_t *layer,
-                          ik_output_buffer_t *output,
-                          size_t width,
-                          size_t start_row,
-                          size_t row_count)
-{
-    (void)layer;
-    (void)output;
-    (void)width;
-    (void)start_row;
-    (void)row_count;
-    return ERR(output, IO, "Render failed");
-}
-
-START_TEST(test_layer_cake_render_error_propagation) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 24, &cake);
-
-    ik_layer_t *layer;
-    ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_5, render_error, &layer);
-    ik_layer_cake_add_layer(cake, layer);
-
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
-
-    res_t res = ik_layer_cake_render(cake, output, 80);
-    ck_assert(!is_ok(&res));
-
-    talloc_free(ctx);
-}
 END_TEST
 
 static Suite *layer_cake_suite(void)
@@ -445,7 +401,6 @@ static Suite *layer_cake_suite(void)
     tcase_add_test(tc_render, test_layer_cake_render_viewport_clipping_top);
     tcase_add_test(tc_render, test_layer_cake_render_viewport_clipping_bottom);
     tcase_add_test(tc_render, test_layer_cake_render_early_exit);
-    tcase_add_test(tc_render, test_layer_cake_render_error_propagation);
     tcase_add_test(tc_render, test_layer_cake_render_layer_outside_viewport);
     tcase_add_test(tc_render, test_layer_cake_render_layer_after_viewport);
     tcase_add_test(tc_render, test_layer_cake_render_layer_ends_at_viewport_start);

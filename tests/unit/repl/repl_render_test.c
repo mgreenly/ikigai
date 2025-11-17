@@ -1,20 +1,25 @@
 /**
  * @file repl_render_test.c
- * @brief Unit tests for REPL render_frame function
+ * @brief Unit tests for REPL render_frame function (basic rendering)
  */
 
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
 #include <string.h>
+#include <stdio.h>
 #include "../../../src/repl.h"
 #include "../../../src/render.h"
+#include "../../../src/layer.h"
+#include "../../../src/layer_wrappers.h"
+#include "../../../src/byte_array.h"
 #include "../../test_utils.h"
 
 // Mock write tracking
 static int32_t mock_write_calls = 0;
 static char mock_write_buffer[4096];
 static size_t mock_write_buffer_len = 0;
+static bool mock_write_should_fail = false;
 
 // Mock write wrapper declaration
 ssize_t posix_write_(int fd, const void *buf, size_t count);
@@ -24,6 +29,11 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
 {
     (void)fd;
     mock_write_calls++;
+
+    if (mock_write_should_fail) {
+        return -1;  // Simulate write failure
+    }
+
     if (mock_write_buffer_len + count < sizeof(mock_write_buffer)) {
         memcpy(mock_write_buffer + mock_write_buffer_len, buf, count);
         mock_write_buffer_len += count;
@@ -266,7 +276,7 @@ static Suite *repl_render_suite(void)
     TCase *tc_assertions = tcase_create("Assertions");
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
-    /* Normal tests */
+    /* Basic rendering tests */
     tcase_add_test(tc_core, test_repl_render_frame_empty_input_buffer);
     tcase_add_test(tc_core, test_repl_render_frame_multiline);
     tcase_add_test(tc_core, test_repl_render_frame_cursor_positions);

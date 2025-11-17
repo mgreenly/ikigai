@@ -18,17 +18,17 @@ static size_t test_layer_height(const ik_layer_t *layer, size_t width)
     return 5; // Fixed height
 }
 
-static res_t test_layer_render(const ik_layer_t *layer,
-                               ik_output_buffer_t *output,
-                               size_t width,
-                               size_t start_row,
-                               size_t row_count)
+static void test_layer_render(const ik_layer_t *layer,
+                              ik_output_buffer_t *output,
+                              size_t width,
+                              size_t start_row,
+                              size_t row_count)
 {
     (void)layer;
     (void)width;
     (void)start_row;
     (void)row_count;
-    return ik_output_buffer_append(output, "test", 4);
+    ik_output_buffer_append(output, "test", 4);
 }
 
 START_TEST(test_output_buffer_create) {
@@ -52,8 +52,7 @@ END_TEST START_TEST(test_output_buffer_append_simple)
     ik_output_buffer_t *buf;
     ik_output_buffer_create(ctx, 100, &buf);
 
-    res_t res = ik_output_buffer_append(buf, "hello", 5);
-    ck_assert(is_ok(&res));
+    ik_output_buffer_append(buf, "hello", 5);
     ck_assert_uint_eq(buf->size, 5);
     ck_assert_int_eq(memcmp(buf->data, "hello", 5), 0);
 
@@ -88,8 +87,7 @@ END_TEST START_TEST(test_output_buffer_append_grow)
     const char *data = "this is a long string that exceeds 10 bytes";
     size_t len = strlen(data);
 
-    res_t res = ik_output_buffer_append(buf, data, len);
-    ck_assert(is_ok(&res));
+    ik_output_buffer_append(buf, data, len);
     ck_assert_uint_eq(buf->size, len);
     ck_assert_uint_ge(buf->capacity, len);
     ck_assert_int_eq(memcmp(buf->data, data, len), 0);
@@ -104,8 +102,7 @@ END_TEST START_TEST(test_output_buffer_append_empty)
     ik_output_buffer_t *buf;
     ik_output_buffer_create(ctx, 100, &buf);
 
-    res_t res = ik_output_buffer_append(buf, "anything", 0);
-    ck_assert(is_ok(&res));
+    ik_output_buffer_append(buf, "anything", 0);
     ck_assert_uint_eq(buf->size, 0);
 
     talloc_free(ctx);
@@ -150,8 +147,7 @@ END_TEST START_TEST(test_layer_callbacks)
     // Test render callback
     ik_output_buffer_t *buf;
     ik_output_buffer_create(ctx, 100, &buf);
-    res_t res = layer->render(layer, buf, 80, 0, 5);
-    ck_assert(is_ok(&res));
+    layer->render(layer, buf, 80, 0, 5);
     ck_assert_uint_eq(buf->size, 4);
     ck_assert_int_eq(memcmp(buf->data, "test", 4), 0);
 

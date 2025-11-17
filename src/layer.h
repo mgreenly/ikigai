@@ -22,16 +22,16 @@ struct ik_output_buffer {
 res_t ik_output_buffer_create(TALLOC_CTX *ctx, size_t initial_capacity, ik_output_buffer_t **out);
 
 // Append bytes to output buffer (grows if needed)
-res_t ik_output_buffer_append(ik_output_buffer_t *buf, const char *data, size_t len);
+void ik_output_buffer_append(ik_output_buffer_t *buf, const char *data, size_t len);
 
 // Layer function signatures
 typedef bool (*ik_layer_is_visible_fn)(const ik_layer_t *layer);
 typedef size_t (*ik_layer_get_height_fn)(const ik_layer_t *layer, size_t width);
-typedef res_t (*ik_layer_render_fn)(const ik_layer_t *layer,
-                                    ik_output_buffer_t *output,
-                                    size_t width,
-                                    size_t start_row,
-                                    size_t row_count);
+typedef void (*ik_layer_render_fn)(const ik_layer_t *layer,
+                                   ik_output_buffer_t *output,
+                                   size_t width,
+                                   size_t start_row,
+                                   size_t row_count);
 
 // Layer structure
 struct ik_layer {
@@ -70,6 +70,6 @@ res_t ik_layer_cake_add_layer(ik_layer_cake_t *cake, ik_layer_t *layer);
 size_t ik_layer_cake_get_total_height(const ik_layer_cake_t *cake, size_t width);
 
 // Render visible portion of cake to output buffer
-res_t ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *output, size_t width);
+void ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *output, size_t width);
 
 #endif // IK_LAYER_H

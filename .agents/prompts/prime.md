@@ -58,7 +58,7 @@ Never commit with ANY known issue - even "pre-existing" or "in another file".
 
 ## Coverage
 
-**CRITICAL: Never change LCOV_EXCL_COVERAGE markers.**
+**CRITICAL:** Never change the LCOV_EXCL_COVERAGE value in the Makefile without explicit user permission.
 
 Finding coverage gaps:
 - `grep "^DA:" coverage/coverage.info | grep ",0$"` - uncovered lines

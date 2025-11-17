@@ -24,7 +24,7 @@ res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
 
     // Allocate context
     ik_term_ctx_t *ctx = talloc_zero_(parent, sizeof(ik_term_ctx_t));
-    if (ctx == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     ctx->tty_fd = tty_fd;
 

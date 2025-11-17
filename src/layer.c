@@ -12,10 +12,10 @@ res_t ik_output_buffer_create(TALLOC_CTX *ctx, size_t initial_capacity, ik_outpu
     assert(initial_capacity > 0); // LCOV_EXCL_BR_LINE
 
     ik_output_buffer_t *buf = talloc(ctx, ik_output_buffer_t);
-    if (buf == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     buf->data = talloc_array_(buf, sizeof(char), initial_capacity);
-    if (buf->data == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (buf->data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     buf->size = 0;
     buf->capacity = initial_capacity;
@@ -25,13 +25,13 @@ res_t ik_output_buffer_create(TALLOC_CTX *ctx, size_t initial_capacity, ik_outpu
 }
 
 // Append bytes to output buffer (grows if needed)
-res_t ik_output_buffer_append(ik_output_buffer_t *buf, const char *data, size_t len)
+void ik_output_buffer_append(ik_output_buffer_t *buf, const char *data, size_t len)
 {
     assert(buf != NULL);                           // LCOV_EXCL_BR_LINE
     assert(data != NULL || len == 0);              // LCOV_EXCL_BR_LINE
 
     if (len == 0) {
-        return OK(buf);
+        return;
     }
 
     // Check if we need to grow the buffer
@@ -44,7 +44,7 @@ res_t ik_output_buffer_append(ik_output_buffer_t *buf, const char *data, size_t 
         }
 
         char *new_data = talloc_realloc_(buf, buf->data, new_capacity);
-        if (new_data == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (new_data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
         buf->data = new_data;
         buf->capacity = new_capacity;
@@ -53,8 +53,6 @@ res_t ik_output_buffer_append(ik_output_buffer_t *buf, const char *data, size_t 
     // Append data
     memcpy(buf->data + buf->size, data, len);
     buf->size += len;
-
-    return OK(buf);
 }
 
 // Create a layer
@@ -74,7 +72,7 @@ res_t ik_layer_create(TALLOC_CTX *ctx,
     assert(layer_out != NULL);  // LCOV_EXCL_BR_LINE
 
     ik_layer_t *layer = talloc(ctx, ik_layer_t);
-    if (layer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (layer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     layer->name = name;
     layer->data = data;
@@ -93,11 +91,11 @@ res_t ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height, ik_layer_cak
     assert(cake_out != NULL);   // LCOV_EXCL_BR_LINE
 
     ik_layer_cake_t *cake = talloc(ctx, ik_layer_cake_t);
-    if (cake == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (cake == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     const size_t initial_capacity = 4; // Reasonable starting size
     cake->layers = talloc_array_(cake, sizeof(ik_layer_t *), initial_capacity);
-    if (cake->layers == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (cake->layers == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     cake->layer_count = 0;
     cake->layer_capacity = initial_capacity;
@@ -119,7 +117,7 @@ res_t ik_layer_cake_add_layer(ik_layer_cake_t *cake, ik_layer_t *layer)
         size_t new_capacity = cake->layer_capacity * 2;
         ik_layer_t **new_layers = talloc_realloc_(cake, cake->layers,
                                                   sizeof(ik_layer_t *) * new_capacity);
-        if (new_layers == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (new_layers == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         cake->layers = new_layers;
         cake->layer_capacity = new_capacity;
     }
@@ -146,7 +144,7 @@ size_t ik_layer_cake_get_total_height(const ik_layer_cake_t *cake, size_t width)
 }
 
 // Render visible portion of cake to output buffer
-res_t ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *output, size_t width)
+void ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *output, size_t width)
 {
     assert(cake != NULL);   // LCOV_EXCL_BR_LINE
     assert(output != NULL); // LCOV_EXCL_BR_LINE
@@ -181,10 +179,7 @@ res_t ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *outp
             }
 
             // Render this layer's portion
-            res_t res = layer->render(layer, output, width, start_row, row_count);
-            if (!is_ok(&res)) {
-                return res;
-            }
+            layer->render(layer, output, width, start_row, row_count);
         }
 
         current_row = layer_end;
@@ -194,6 +189,4 @@ res_t ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *outp
             break;
         }
     }
-
-    return OK(output);
 }

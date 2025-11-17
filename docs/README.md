@@ -93,6 +93,18 @@ See [repl/README.md](repl/README.md) for detailed documentation.
 
 **Dependencies**: yyjson (complete), libcurl (to be added)
 
+### Future: Layer Architecture Refinement
+
+**Objective**: Remove adapter layer and integrate components directly with layer cake
+
+**Tasks**:
+- Remove `layer_wrappers.c` adapter abstraction
+- Update scrollback, separator, and input components to implement layer interface directly
+- Consolidate layer creation logic into REPL initialization
+- Reduce indirection and simplify layer management
+
+**Rationale**: The adapter pattern in `layer_wrappers.c` was useful for prototyping but adds unnecessary indirection. Direct implementation of the layer interface by UI components will simplify the codebase.
+
 ### Future: Database Integration (PostgreSQL)
 
 **Objective**: Persistent conversation history with RAG memory

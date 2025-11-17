@@ -5,11 +5,13 @@
 #include "wrapper.h"
 #include "format.h"
 #include "input_buffer/core.h"
+#include "render_cursor.h"
 #include <assert.h>
 #include <talloc.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <inttypes.h>
 
 res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
 {
@@ -18,7 +20,7 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
 
     // Allocate REPL context
     ik_repl_ctx_t *repl = talloc_zero_(parent, sizeof(ik_repl_ctx_t));
-    if (repl == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (repl == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Initialize terminal (raw mode + alternate screen)
     res_t result = ik_term_init(repl, &repl->term);
@@ -40,21 +42,65 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
 
     // Initialize input buffer
     result = ik_input_buffer_create(repl, &repl->input_buffer);
-    if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
+    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Initialize input parser
     result = ik_input_parser_create(repl, &repl->input_parser);
-    if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
+    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Initialize scrollback buffer (Phase 4)
     result = ik_scrollback_create(repl, repl->term->screen_cols, &repl->scrollback);
-    if (is_err(&result))PANIC("allocation failed");  /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
     // Initialize viewport offset to 0 (at bottom)
     repl->viewport_offset = 0;
 
     // Set quit flag to false
     repl->quit = false;
+
+    // Initialize layer-based rendering (Phase 1.3)
+    // Initialize reference fields
+    repl->spinner_state.frame_index = 0;
+    repl->spinner_state.visible = false;  // Initially hidden
+    repl->separator_visible = true;
+    repl->input_buffer_visible = true;
+    repl->input_text = "";
+    repl->input_text_len = 0;
+
+    // Create layer cake
+    result = ik_layer_cake_create(repl, (size_t)repl->term->screen_rows, &repl->layer_cake);
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+
+    // Create scrollback layer
+    result = ik_scrollback_layer_create(repl, "scrollback", repl->scrollback, &repl->scrollback_layer);
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+
+    // Create spinner layer (Phase 1.4)
+    result = ik_spinner_layer_create(repl, "spinner", &repl->spinner_state, &repl->spinner_layer);
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+
+    // Create separator layer
+    result = ik_separator_layer_create(repl, "separator", &repl->separator_visible, &repl->separator_layer);
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+
+    // Create input layer
+    result = ik_input_layer_create(repl, "input", &repl->input_buffer_visible,
+                                   &repl->input_text, &repl->input_text_len,
+                                   &repl->input_layer);
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+
+    // Add layers to cake (in order: scrollback, spinner, separator, input)
+    result = ik_layer_cake_add_layer(repl->layer_cake, repl->scrollback_layer);
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+
+    result = ik_layer_cake_add_layer(repl->layer_cake, repl->spinner_layer);
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+
+    result = ik_layer_cake_add_layer(repl->layer_cake, repl->separator_layer);
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+
+    result = ik_layer_cake_add_layer(repl->layer_cake, repl->input_layer);
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
     // Set up signal handlers (SIGWINCH for terminal resize)
     result = ik_signal_handler_init(parent);
@@ -128,7 +174,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Process action
         result = ik_repl_process_action(repl, &action);
-        if (is_err(&result))return result;  // LCOV_EXCL_LINE - Defensive check, input parser validates codepoints
+        if (is_err(&result)) return result; // LCOV_EXCL_LINE - Defensive check, input parser validates codepoints
 
         // Render frame (only if action was not UNKNOWN)
         if (action.type != IK_INPUT_UNKNOWN) {
@@ -222,7 +268,7 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
         for (size_t i = start_line; i < scrollback_line_count && current_row < separator_row; i++) {  /* LCOV_EXCL_BR_LINE */
             current_row += repl->scrollback->layouts[i].physical_lines;
             lines_count++;
-            if (current_row > last_visible_row)break;
+            if (current_row > last_visible_row) break;
         }
 
         viewport_out->scrollback_start_line = start_line;
@@ -263,7 +309,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     // Calculate viewport to determine what to render
     ik_viewport_t viewport;
     res_t result = ik_repl_calculate_viewport(repl, &viewport);
-    if (is_err(&result))return result;  /* LCOV_EXCL_LINE */
+    if (is_err(&result)) return result; /* LCOV_EXCL_LINE */
 
     // Get input buffer text
     char *text = NULL;
@@ -276,21 +322,131 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     ik_input_buffer_get_cursor_position(repl->input_buffer, &cursor_byte_offset, &cursor_grapheme);
 
     // Determine visibility of separator and input buffer (unified document model)
-    // Separator visibility is calculated in ik_repl_calculate_viewport()
-    // Input buffer visible when input_buffer_start_row in [0, terminal_rows-1]
     bool separator_visible = viewport.separator_visible;
     bool input_buffer_visible = viewport.input_buffer_start_row < (size_t)repl->term->screen_rows;
 
-    // Render combined view with conditional separator/input_buffer
-    return ik_render_combined(repl->render,
-                              repl->scrollback,
-                              viewport.scrollback_start_line,
-                              viewport.scrollback_lines_count,
-                              text,
-                              text_len,
-                              cursor_byte_offset,
-                              separator_visible,
-                              input_buffer_visible);
+    // Fall back to old rendering path if layer cake not initialized (for tests)
+    if (repl->layer_cake == NULL) {
+        return ik_render_combined(repl->render,
+                                  repl->scrollback,
+                                  viewport.scrollback_start_line,
+                                  viewport.scrollback_lines_count,
+                                  text,
+                                  text_len,
+                                  cursor_byte_offset,
+                                  separator_visible,
+                                  input_buffer_visible);
+    }
+
+    // Update layer reference fields
+    repl->separator_visible = separator_visible;
+    repl->input_buffer_visible = input_buffer_visible;
+    repl->input_text = (text != NULL) ? text : "";
+    repl->input_text_len = text_len;
+
+    // Calculate document dimensions for layer cake viewport
+    // Recalculate first_visible_row from viewport data (duplicates some viewport logic)
+    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
+    size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
+    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows;
+    int32_t terminal_rows = repl->term->screen_rows;
+
+    size_t first_visible_row;
+    if (document_height <= (size_t)terminal_rows) {
+        first_visible_row = 0;
+    } else {
+        size_t max_offset = document_height - (size_t)terminal_rows;
+        size_t offset = repl->viewport_offset;
+        if (offset > max_offset) {
+            offset = max_offset;
+        }
+        size_t last_visible_row = document_height - 1 - offset;
+        first_visible_row = last_visible_row + 1 - (size_t)terminal_rows;
+    }
+
+    // Configure layer cake viewport
+    repl->layer_cake->viewport_row = first_visible_row;
+    repl->layer_cake->viewport_height = (size_t)terminal_rows;
+
+    // Render layers to output buffer
+    ik_output_buffer_t *output;
+    result = ik_output_buffer_create(repl, 4096, &output);
+    if (is_err(&result)) PANIC("Out of memory"); /* LCOV_EXCL_BR_LINE */
+
+    ik_layer_cake_render(repl->layer_cake, output, (size_t)repl->term->screen_cols);
+
+    // Calculate cursor position (offset by scrollback rows if input buffer is visible)
+    cursor_screen_pos_t input_cursor_pos = {0};
+    int32_t final_cursor_row = 0;
+    int32_t final_cursor_col = 0;
+
+    if (input_buffer_visible && text_len > 0) {
+        // Input buffer always contains valid UTF-8 (validated at insertion)
+        result = calculate_cursor_screen_position(repl, text, text_len,
+                                                  cursor_byte_offset, repl->term->screen_cols,
+                                                  &input_cursor_pos);
+        assert(is_ok(&result));  // LCOV_EXCL_BR_LINE
+        // Offset cursor by viewport position of input buffer
+        final_cursor_row = (int32_t)viewport.input_buffer_start_row + input_cursor_pos.screen_row;
+        final_cursor_col = input_cursor_pos.screen_col;
+    } else if (input_buffer_visible) {
+        // Empty input buffer - cursor at start of input area
+        final_cursor_row = (int32_t)viewport.input_buffer_start_row;
+        final_cursor_col = 0;
+    }
+
+    // Build framebuffer with terminal control sequences
+    size_t framebuffer_size = 7 + output->size + 6 + 20;  // clear + home + content + cursor visibility + position
+    char *framebuffer = talloc_array_(repl, sizeof(char), framebuffer_size);
+    if (framebuffer == NULL) PANIC("Out of memory"); /* LCOV_EXCL_BR_LINE */
+
+    size_t offset = 0;
+
+    // Clear screen: \x1b[2J
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = 'J';
+
+    // Home cursor: \x1b[H
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = 'H';
+
+    // Copy rendered content from output buffer
+    memcpy(framebuffer + offset, output->data, output->size);
+    offset += output->size;
+    talloc_free(output);
+
+    // Cursor visibility: show (\x1b[?25h) when input visible, hide (\x1b[?25l) otherwise
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '?';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = '5';
+    framebuffer[offset++] = input_buffer_visible ? 'h' : 'l';
+
+    // Position cursor when input buffer visible
+    if (input_buffer_visible) {
+        char *cursor_escape = talloc_asprintf_(repl, "\x1b[%" PRId32 ";%" PRId32 "H",
+                                               final_cursor_row + 1, final_cursor_col + 1);
+        if (cursor_escape == NULL) PANIC("Out of memory"); /* LCOV_EXCL_BR_LINE */
+        for (size_t i = 0; cursor_escape[i] != '\0'; i++) {
+            framebuffer[offset++] = cursor_escape[i];
+        }
+        talloc_free(cursor_escape);
+    }
+
+    // Single atomic write
+    ssize_t bytes_written = posix_write_(repl->term->tty_fd, framebuffer, offset);
+    talloc_free(framebuffer);
+
+    if (bytes_written < 0) {
+        return ERR(repl, IO, "Failed to write frame to terminal");
+    }
+
+    return OK(repl);
 }
 
 res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
@@ -304,7 +460,7 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
     // Append to scrollback (only if there's content and scrollback exists)
     if (text_len > 0 && repl->scrollback != NULL) {
         res_t result = ik_scrollback_append_line(repl->scrollback, text, text_len);
-        if (is_err(&result))return result;  // LCOV_EXCL_LINE - Defensive, allocation failures are rare
+        if (is_err(&result)) return result; // LCOV_EXCL_LINE - Defensive, allocation failures are rare
     }
 
     // Clear input buffer

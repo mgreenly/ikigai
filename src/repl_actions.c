@@ -34,7 +34,7 @@ static res_t append_multiline_to_scrollback(ik_scrollback_t *scrollback, const c
             size_t line_len = i - line_start;
             if (line_len > 0 || i < output_len) {  // LCOV_EXCL_BR_LINE
                 res_t result = ik_scrollback_append_line(scrollback, output + line_start, line_len);
-                if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
+                if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
             }
             line_start = i + 1;  // Start of next line (skip the \n)
         }
@@ -60,7 +60,7 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
         // Create format buffer for output
         ik_format_buffer_t *buf = NULL;
         res_t result = ik_format_buffer_create(repl, &buf);
-        if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
+        if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
         // Pretty-print the input buffer
         ik_pp_input_buffer(repl->input_buffer, buf, 0);
@@ -69,7 +69,7 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
         const char *output = ik_format_get_string(buf);
         size_t output_len = strlen(output);
         result = append_multiline_to_scrollback(repl->scrollback, output, output_len);
-        if (is_err(&result))return result;  // LCOV_EXCL_LINE
+        if (is_err(&result)) return result; // LCOV_EXCL_LINE
 
         // Clean up format buffer
         talloc_free(buf);
@@ -107,14 +107,14 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             if (is_slash_command) {
                 // Extract command (skip the '/' character)
                 command = talloc_zero_(repl, text_len); // Includes space for null terminator
-                if (command == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+                if (command == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
                 memcpy(command, text + 1, text_len - 1);
                 command[text_len - 1] = '\0';
             }
 
             // Always submit line to scrollback first (so command appears before output)
             res_t result = ik_repl_submit_line(repl);
-            if (is_err(&result))return result;  // LCOV_EXCL_LINE
+            if (is_err(&result)) return result; // LCOV_EXCL_LINE
 
             // If it was a slash command, handle it now (after input buffer text is in scrollback)
             if (is_slash_command) {
@@ -122,7 +122,7 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
                 result = ik_repl_handle_slash_command(repl, command);
                 talloc_free(command);
 
-                if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
+                if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
             }
 
             return OK(NULL);

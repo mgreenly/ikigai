@@ -23,7 +23,7 @@ res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
     assert(path != NULL); // LCOV_EXCL_BR_LINE
     if (path[0] != '~') {
         char *result = talloc_strdup_(ctx, path);
-        if (result == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         return OK(result);
     }
 
@@ -33,7 +33,7 @@ res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
     }
 
     char *result = talloc_asprintf_(ctx, "%s%s", home, path + 1);
-    if (result == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     return OK(result);
 }
 
@@ -44,7 +44,7 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
     assert(path != NULL); // LCOV_EXCL_BR_LINE
     // Extract directory from path
     char *path_copy = talloc_strdup(ctx, path);
-    if (path_copy == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (path_copy == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     char *dir = dirname(path_copy);
 
@@ -59,10 +59,10 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
     // Create default JSON config using yyjson with talloc allocator
     yyjson_alc alc = ik_make_talloc_allocator(ctx);
     yyjson_mut_doc *doc = yyjson_mut_doc_new(&alc);
-    if (doc == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     yyjson_mut_val *root = yyjson_mut_obj(doc);
-    if (root == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     yyjson_mut_doc_set_root(doc, root);
 
     yyjson_mut_obj_add_str(doc, root, "openai_api_key", "YOUR_API_KEY_HERE");
@@ -117,7 +117,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
 
     // Allocate config structure
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    if (cfg == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (cfg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Extract fields
     yyjson_val *api_key = yyjson_obj_get_(root, "openai_api_key");
