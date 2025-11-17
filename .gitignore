@@ -10,4 +10,5 @@ coverage/
 **/*.gcov
 **/*.gcda
 **/*.gcno
+**/*.d
 coverage_html/
