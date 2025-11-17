@@ -9,6 +9,15 @@
 - **Battle-tested**: Used in Samba, proven reliable
 - **Available**: Already in Debian repos (libtalloc-dev)
 
-**Trade-offs**: Dependency on external library, but the productivity gain outweighs this cost.
+**Alternatives Considered**:
+- **Manual malloc/free**: Rejected due to error-prone cleanup, especially with multiple error paths
+- **Custom arena allocator**: Rejected as it would reinvent talloc's functionality without the debugging benefits
+
+**Trade-offs**:
+- **Pro**: Automatic cleanup prevents memory leaks
+- **Pro**: Built-in debugging and leak detection
+- **Pro**: Natural mapping to object lifecycles
+- **Con**: External library dependency
+- **Con**: Learning curve for developers unfamiliar with hierarchical allocators
 
 **Pattern**: Connection context → message context → parsing allocations

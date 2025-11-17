@@ -41,7 +41,7 @@ void *talloc_zero_(TALLOC_CTX *ctx, size_t size) {
 
 **Design choice**: All external library wrappers live in single `wrapper.c/wrapper.h` file, organized by library (talloc, jansson, etc.). Most libraries only have 3-6 functions we call, so consolidation keeps the codebase simple.
 
-**Alternative considered**: GNU linker `--wrap` flag. Rejected because:
+**Alternatives Considered**: GNU linker `--wrap` flag. Rejected because:
 - Requires linker flags for every wrapped function
 - Less transparent (magic happening at link time)
 - Conditional compilation is more explicit and easier to understand

@@ -10,4 +10,14 @@
   - Translating concepts (e.g., folding system prompt into messages for providers without native support)
   - Null operations where appropriate
 
-**Alternative considered**: Common subset approach would artificially limit functionality to the least capable provider.
+**Alternatives Considered**:
+- **Common subset approach**: Limit API to features supported by all providers. Rejected because it would artificially constrain functionality to the least capable provider, preventing users from accessing advanced features when available.
+
+**Trade-offs**:
+- **Pro**: Users can access all features of any provider
+- **Pro**: Switching providers doesn't lose functionality
+- **Pro**: New provider features can be added without breaking existing code
+- **Pro**: Provider-specific optimizations possible
+- **Con**: More complex provider adapters (must handle feature translation/polyfilling)
+- **Con**: API surface grows as new providers add unique features
+- **Con**: Some features may behave differently across providers
