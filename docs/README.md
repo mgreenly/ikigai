@@ -96,16 +96,6 @@ See [repl/README.md](repl/README.md) for detailed documentation.
 - Full-text search across past conversations
 - RAG memory access patterns
 
-### Future: Multi-LLM Provider Support
-
-**Objective**: Support multiple LLM providers with unified interface
-
-**Tasks**:
-- Abstract provider interface
-- OpenAI, Anthropic, Google, X.AI implementations
-- Provider switching via config or runtime command
-- Unified conversation format
-
 ### Future: Local Tool Execution
 
 **Objective**: Enable file operations, shell commands, and code analysis
@@ -116,6 +106,16 @@ See [repl/README.md](repl/README.md) for detailed documentation.
 - Shell command execution
 - Code analysis (tree-sitter integration)
 - Results flow back to conversation
+
+### Future: Multi-LLM Provider Support
+
+**Objective**: Support multiple LLM providers with unified interface
+
+**Tasks**:
+- Abstract provider interface
+- OpenAI, Anthropic, Google, X.AI implementations
+- Provider switching via config or runtime command
+- Unified conversation format
 
 ### Future: Enhanced Terminal UI
 
