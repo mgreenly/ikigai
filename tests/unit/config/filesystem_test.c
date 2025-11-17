@@ -95,7 +95,8 @@ START_TEST(test_config_stat_directory_exists)
     // Create a simple config file for testing
     FILE *f = fopen(test_config, "w");
     if (f) {
-        fprintf(f, "{\"openai_api_key\":\"test\",\"listen_address\":\"127.0.0.1\",\"listen_port\":1984}\n");
+        fprintf(f,
+                "{\"openai_api_key\":\"test\",\"openai_model\":\"gpt-4-turbo\",\"openai_temperature\":0.7,\"openai_max_tokens\":4096,\"openai_system_message\":null,\"listen_address\":\"127.0.0.1\",\"listen_port\":1984}\n");
         fclose(f);
     }
 

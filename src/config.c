@@ -66,6 +66,10 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
     yyjson_mut_doc_set_root(doc, root);
 
     yyjson_mut_obj_add_str(doc, root, "openai_api_key", "YOUR_API_KEY_HERE");
+    yyjson_mut_obj_add_str(doc, root, "openai_model", "gpt-5-mini");
+    yyjson_mut_obj_add_real(doc, root, "openai_temperature", 0.7);
+    yyjson_mut_obj_add_int(doc, root, "openai_max_tokens", 4096);
+    yyjson_mut_obj_add_null(doc, root, "openai_system_message");
     yyjson_mut_obj_add_str(doc, root, "listen_address", "127.0.0.1");
     yyjson_mut_obj_add_int(doc, root, "listen_port", 1984);
 
@@ -117,6 +121,10 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
 
     // Extract fields
     yyjson_val *api_key = yyjson_obj_get_(root, "openai_api_key");
+    yyjson_val *model = yyjson_obj_get_(root, "openai_model");
+    yyjson_val *temperature = yyjson_obj_get_(root, "openai_temperature");
+    yyjson_val *max_tokens = yyjson_obj_get_(root, "openai_max_tokens");
+    yyjson_val *system_message = yyjson_obj_get_(root, "openai_system_message");
     yyjson_val *address = yyjson_obj_get_(root, "listen_address");
     yyjson_val *port = yyjson_obj_get_(root, "listen_port");
 
@@ -126,6 +134,43 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     }
     if (!yyjson_is_str(api_key)) {
         return ERR(ctx, PARSE, "Invalid type for openai_api_key");
+    }
+
+    // Validate openai_model
+    if (!model) {
+        return ERR(ctx, PARSE, "Missing openai_model");
+    }
+    if (!yyjson_is_str(model)) {
+        return ERR(ctx, PARSE, "Invalid type for openai_model");
+    }
+
+    // Validate openai_temperature
+    if (!temperature) {
+        return ERR(ctx, PARSE, "Missing openai_temperature");
+    }
+    if (!yyjson_is_num(temperature)) {
+        return ERR(ctx, PARSE, "Invalid type for openai_temperature");
+    }
+    double temperature_value = yyjson_get_real(temperature);
+    if (temperature_value < 0.0 || temperature_value > 2.0) {
+        return ERR(ctx, OUT_OF_RANGE, "Temperature must be 0.0-2.0, got %f", temperature_value);
+    }
+
+    // Validate openai_max_tokens
+    if (!max_tokens) {
+        return ERR(ctx, PARSE, "Missing openai_max_tokens");
+    }
+    if (!yyjson_is_int(max_tokens)) {
+        return ERR(ctx, PARSE, "Invalid type for openai_max_tokens");
+    }
+    int64_t max_tokens_value = yyjson_get_sint_(max_tokens);
+    if (max_tokens_value < 1 || max_tokens_value > 128000) {
+        return ERR(ctx, OUT_OF_RANGE, "Max tokens must be 1-128000, got %lld", (long long)max_tokens_value);
+    }
+
+    // Validate openai_system_message (optional)
+    if (system_message && !yyjson_is_null(system_message) && !yyjson_is_str(system_message)) {
+        return ERR(ctx, PARSE, "Invalid type for openai_system_message");
     }
 
     // Validate listen_address
@@ -153,6 +198,14 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
 
     // Copy values to config
     cfg->openai_api_key = talloc_strdup(cfg, yyjson_get_str_(api_key));
+    cfg->openai_model = talloc_strdup(cfg, yyjson_get_str_(model));
+    cfg->openai_temperature = temperature_value;
+    cfg->openai_max_tokens = (int32_t)max_tokens_value;
+    if (system_message && !yyjson_is_null(system_message)) {
+        cfg->openai_system_message = talloc_strdup(cfg, yyjson_get_str_(system_message));
+    } else {
+        cfg->openai_system_message = NULL;
+    }
     cfg->listen_address = talloc_strdup(cfg, yyjson_get_str_(address));
     cfg->listen_port = port_value;
 

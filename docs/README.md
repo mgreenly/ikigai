@@ -40,6 +40,13 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - **[decisions/](decisions/)** - Architecture Decision Records (ADRs) for key design choices
 - **[repl/](repl/)** - REPL terminal interface documentation (v0.1.0 - complete)
 
+#### v1.0 Architecture Documentation
+- **[v1-architecture.md](v1-architecture.md)** - v1.0 core architecture: scrollback as context window, three-layer model
+- **[v1-llm-integration.md](v1-llm-integration.md)** - HTTP client design, streaming responses, event loop integration
+- **[v1-database-design.md](v1-database-design.md)** - PostgreSQL schema, persistence strategy, session management
+- **[v1-conversation-management.md](v1-conversation-management.md)** - Message lifecycle, slash commands, /mark and /rewind
+- **[v1-implementation-roadmap.md](v1-implementation-roadmap.md)** - Phase-by-phase implementation plan with dependencies
+
 ### Development Standards
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
 - **[memory.md](memory.md)** - Memory management with talloc, ownership rules, and patterns

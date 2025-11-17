@@ -7,6 +7,10 @@
 
 typedef struct {
     char *openai_api_key;
+    char *openai_model;
+    double openai_temperature;
+    int32_t openai_max_tokens;
+    char *openai_system_message;
     char *listen_address;
     uint16_t listen_port;
 } ik_cfg_t;
