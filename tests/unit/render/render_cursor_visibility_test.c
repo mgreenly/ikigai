@@ -58,6 +58,49 @@ static void mock_write_reset(void)
 }
 
 /**
+ * Check if buffer contains ANSI cursor positioning escape sequence.
+ *
+ * Searches for pattern: \x1b[<row>;<col>H where row and col are digits.
+ *
+ * @param buffer Buffer to search
+ * @param size Size of buffer
+ * @return true if cursor positioning escape found, false otherwise
+ */
+static bool contains_cursor_positioning_escape(const char *buffer, size_t size)
+{
+    for (size_t i = 0; i < size - 4; i++) {
+        if (buffer[i] != '\x1b' || buffer[i + 1] != '[') {
+            continue;
+        }
+
+        // Found ESC[, check for <digits>;<digits>H pattern
+        size_t j = i + 2;
+        bool has_digit_before_semicolon = false;
+        while (j < size && buffer[j] >= '0' && buffer[j] <= '9') {
+            has_digit_before_semicolon = true;
+            j++;
+        }
+
+        if (!has_digit_before_semicolon || j >= size || buffer[j] != ';') {
+            continue;
+        }
+
+        j++; // Skip semicolon
+        bool has_digit_after_semicolon = false;
+        while (j < size && buffer[j] >= '0' && buffer[j] <= '9') {
+            has_digit_after_semicolon = true;
+            j++;
+        }
+
+        if (has_digit_after_semicolon && j < size && buffer[j] == 'H') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * Test: Cursor hidden when input buffer scrolled off-screen (Bug #7)
  *
  * When render_input_buffer = false (input buffer is off-screen), no cursor positioning
@@ -98,35 +141,8 @@ START_TEST(test_cursor_hidden_when_input_buffer_off_screen) {
     ck_assert(strstr(mock_write_buffer, "input buffer text") == NULL);
 
     // Should NOT contain cursor positioning escape (critical - Bug #7 fix)
-    // Cursor escape format: \x1b[<row>;<col>H where row/col are numbers
-    // We check for the pattern \x1b[ followed by digits and semicolon
-    bool found_cursor_escape = false;
-    for (size_t i = 0; i < mock_write_size - 4; i++) {
-        if (mock_write_buffer[i] == '\x1b' && mock_write_buffer[i + 1] == '[') {
-            // Look ahead for pattern like "3;1H" (row;colH)
-            size_t j = i + 2;
-            bool has_digit_before_semicolon = false;
-            while (j < mock_write_size && mock_write_buffer[j] >= '0' && mock_write_buffer[j] <= '9') {
-                has_digit_before_semicolon = true;
-                j++;
-            }
-            if (has_digit_before_semicolon && j < mock_write_size && mock_write_buffer[j] == ';') {
-                j++;
-                bool has_digit_after_semicolon = false;
-                while (j < mock_write_size && mock_write_buffer[j] >= '0' && mock_write_buffer[j] <= '9') {
-                    has_digit_after_semicolon = true;
-                    j++;
-                }
-                if (has_digit_after_semicolon && j < mock_write_size && mock_write_buffer[j] == 'H') {
-                    found_cursor_escape = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    // CRITICAL: Cursor escape should NOT be present when input buffer is off-screen
-    ck_assert_msg(!found_cursor_escape, "Cursor escape found when input buffer is off-screen (Bug #7)");
+    bool found = contains_cursor_positioning_escape(mock_write_buffer, mock_write_size);
+    ck_assert_msg(!found, "Cursor escape found when input buffer is off-screen (Bug #7)");
 
     mock_write_reset();
     talloc_free(ctx);
@@ -167,31 +183,8 @@ START_TEST(test_cursor_visible_when_input_buffer_on_screen)
     ck_assert(strstr(mock_write_buffer, "input buffer text") != NULL);
 
     // SHOULD contain cursor positioning escape
-    bool found_cursor_escape = false;
-    for (size_t i = 0; i < mock_write_size - 4; i++) {
-        if (mock_write_buffer[i] == '\x1b' && mock_write_buffer[i + 1] == '[') {
-            size_t j = i + 2;
-            bool has_digit_before_semicolon = false;
-            while (j < mock_write_size && mock_write_buffer[j] >= '0' && mock_write_buffer[j] <= '9') {
-                has_digit_before_semicolon = true;
-                j++;
-            }
-            if (has_digit_before_semicolon && j < mock_write_size && mock_write_buffer[j] == ';') {
-                j++;
-                bool has_digit_after_semicolon = false;
-                while (j < mock_write_size && mock_write_buffer[j] >= '0' && mock_write_buffer[j] <= '9') {
-                    has_digit_after_semicolon = true;
-                    j++;
-                }
-                if (has_digit_after_semicolon && j < mock_write_size && mock_write_buffer[j] == 'H') {
-                    found_cursor_escape = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    ck_assert_msg(found_cursor_escape, "Cursor escape should be present when input buffer is on-screen");
+    bool found = contains_cursor_positioning_escape(mock_write_buffer, mock_write_size);
+    ck_assert_msg(found, "Cursor escape should be present when input buffer is on-screen");
 
     mock_write_reset();
     talloc_free(ctx);

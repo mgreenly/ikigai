@@ -105,7 +105,7 @@ MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration check-performance check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint cloc ci install-deps coverage help distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS) $(PERFORMANCE_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration check-performance check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS) $(PERFORMANCE_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -377,10 +377,14 @@ fmt:
 	@[ ! -d tests/integration ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/integration/*.c
 	@[ ! -f tests/test_utils.c ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/test_utils.c tests/test_utils.h
 
-lint:
+complexity:
 	@echo "Checking complexity in src/*.c..."
 	@output=$$(complexity --threshold=$(COMPLEXITY_THRESHOLD) src/*.c 2>&1); \
-	echo "$$output" | grep -v "^No procedures were scored$$" || [ $$? -eq 1 ]; \
+	if echo "$$output" | grep -q "^Complexity Scores$$"; then \
+		echo "✗ Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
+		echo "$$output"; \
+		exit 1; \
+	fi; \
 	if echo "$$output" | grep -q "nesting depth reached level [6-9]"; then \
 		echo "✗ Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
 		echo "$$output" | grep "nesting depth"; \
@@ -388,7 +392,11 @@ lint:
 	fi
 	@echo "Checking complexity in tests/unit/*/*.c..."
 	@output=$$(find tests/unit -name "*.c" -exec complexity --threshold=$(COMPLEXITY_THRESHOLD) {} \; 2>&1); \
-	echo "$$output" | grep -v "^No procedures were scored$$" || [ $$? -eq 1 ]; \
+	if echo "$$output" | grep -q "^Complexity Scores$$"; then \
+		echo "✗ Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
+		echo "$$output"; \
+		exit 1; \
+	fi; \
 	if echo "$$output" | grep -q "nesting depth reached level [6-9]"; then \
 		echo "✗ Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
 		echo "$$output" | grep "nesting depth"; \
@@ -397,7 +405,11 @@ lint:
 	@echo "Checking complexity in tests/integration/*.c..."
 	@if [ -d tests/integration ]; then \
 		output=$$(complexity --threshold=$(COMPLEXITY_THRESHOLD) tests/integration/*.c 2>&1); \
-		echo "$$output" | grep -v "^No procedures were scored$$" || [ $$? -eq 1 ]; \
+		if echo "$$output" | grep -q "^Complexity Scores$$"; then \
+			echo "✗ Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
+			echo "$$output"; \
+			exit 1; \
+		fi; \
 		if echo "$$output" | grep -q "nesting depth reached level [6-9]"; then \
 			echo "✗ Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
 			echo "$$output" | grep "nesting depth"; \
@@ -405,6 +417,8 @@ lint:
 		fi; \
 	fi
 	@echo "✓ All complexity checks passed"
+
+filesize:
 	@echo "Checking file line counts (max: $(MAX_FILE_LINES))..."
 	@failed=0; \
 	for file in src/*.c src/*.h; do \
@@ -443,6 +457,8 @@ lint:
 		exit 1; \
 	fi
 	@echo "✓ All file line count checks passed"
+
+lint: complexity filesize
 
 cloc:
 	@cloc src/ tests/ Makefile
@@ -548,7 +564,9 @@ help:
 	@echo ""
 	@echo "Quality assurance:"
 	@echo "  coverage        - Generate text-based coverage report (requires lcov)"
-	@echo "  lint            - Check code complexity (threshold: $(COMPLEXITY_THRESHOLD))"
+	@echo "  lint            - Run all lint checks (complexity + filesize)"
+	@echo "  complexity      - Check code complexity (threshold: $(COMPLEXITY_THRESHOLD))"
+	@echo "  filesize        - Check file line counts (max: $(MAX_FILE_LINES))"
 	@echo "  ci              - Run all CI checks (lint + coverage + dynamic + release)"
 	@echo ""
 	@echo "Distribution targets:"

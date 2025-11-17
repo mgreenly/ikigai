@@ -17,6 +17,49 @@
 #include "../../test_utils.h"
 
 /**
+ * Check if buffer contains ANSI cursor positioning escape sequence.
+ *
+ * Searches for pattern: \x1b[<row>;<col>H where row and col are digits.
+ *
+ * @param buffer Buffer to search
+ * @param size Size of buffer
+ * @return true if cursor positioning escape found, false otherwise
+ */
+static bool contains_cursor_positioning_escape(const char *buffer, size_t size)
+{
+    for (size_t i = 0; i < size - 4; i++) {
+        if (buffer[i] != '\x1b' || buffer[i + 1] != '[') {
+            continue;
+        }
+
+        // Found ESC[, check for <digits>;<digits>H pattern
+        size_t j = i + 2;
+        bool has_digit_before_semicolon = false;
+        while (j < size && buffer[j] >= '0' && buffer[j] <= '9') {
+            has_digit_before_semicolon = true;
+            j++;
+        }
+
+        if (!has_digit_before_semicolon || j >= size || buffer[j] != ';') {
+            continue;
+        }
+
+        j++; // Skip semicolon
+        bool has_digit_after_semicolon = false;
+        while (j < size && buffer[j] >= '0' && buffer[j] <= '9') {
+            has_digit_after_semicolon = true;
+            j++;
+        }
+
+        if (has_digit_after_semicolon && j < size && buffer[j] == 'H') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * Test: Initial state - cursor visible at startup with empty input buffer
  *
  * Scenario:
@@ -266,31 +309,9 @@ START_TEST(test_scrolled_up_cursor_hidden)
     ck_assert_ptr_ne(strstr(output, "\x1b[?25l"), NULL);
 
     // Verify NO cursor positioning (should not have ESC[row;colH)
-    // Look for pattern ESC[ followed by digits and H
-    bool found_cursor_pos = false;
     size_t output_len = (size_t)bytes_read;
-    for (size_t i = 0; i < output_len - 3; i++) {
-        if (output[i] == '\x1b' && output[i + 1] == '[') {
-            // Check if this is a cursor positioning escape
-            size_t j = i + 2;
-            bool has_digit = false;
-            while (j < output_len && (output[j] >= '0' && output[j] <= '9')) {
-                has_digit = true;
-                j++;
-            }
-            if (has_digit && j < output_len && output[j] == ';') {
-                j++;
-                while (j < output_len && (output[j] >= '0' && output[j] <= '9')) {
-                    j++;
-                }
-                if (j < output_len && output[j] == 'H') {
-                    found_cursor_pos = true;
-                    break;
-                }
-            }
-        }
-    }
-    ck_assert(!found_cursor_pos);
+    bool found = contains_cursor_positioning_escape(output, output_len);
+    ck_assert(!found);
 
     talloc_free(ctx);
 }
