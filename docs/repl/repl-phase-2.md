@@ -4,11 +4,11 @@
 
 **Goal**: Full interactive REPL with input buffer only (no scrollback).
 
-Complete the Phase 1 functionality from the original plan with direct rendering. Build working REPL event loop that validates all the fundamentals before adding scrollback complexity.
+This phase completed the functional REPL event loop, building on the direct rendering from Phase 1. It validates all the fundamentals before adding scrollback complexity.
 
-## Implementation Tasks
+## Implementation
 
-### Task 1: Render Frame Helper
+### Render Frame Helper
 
 **Function**: `ik_repl_render_frame(ik_repl_ctx_t *repl)`
 
@@ -24,7 +24,7 @@ Complete the Phase 1 functionality from the original plan with direct rendering.
 - Render with cursor at various positions
 - Error handling (write failure)
 
-### Task 2: Process Input Action Helper
+### Process Input Action Helper
 
 **Function**: `ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action)`
 
@@ -35,13 +35,13 @@ Complete the Phase 1 functionality from the original plan with direct rendering.
 - `IK_INPUT_DELETE` → `ik_input_buffer_delete()`
 - `IK_INPUT_ARROW_LEFT` → `ik_input_buffer_cursor_left()`
 - `IK_INPUT_ARROW_RIGHT` → `ik_input_buffer_cursor_right()`
-- `IK_INPUT_ARROW_UP` → `ik_input_buffer_cursor_up()` (added in Task 2.5)
-- `IK_INPUT_ARROW_DOWN` → `ik_input_buffer_cursor_down()` (added in Task 2.5)
-- `IK_INPUT_CTRL_A` → `ik_input_buffer_cursor_to_line_start()` (added in Task 2.6)
-- `IK_INPUT_CTRL_E` → `ik_input_buffer_cursor_to_line_end()` (added in Task 2.6)
-- `IK_INPUT_CTRL_K` → `ik_input_buffer_kill_to_line_end()` (added in Task 2.6)
-- `IK_INPUT_CTRL_U` → `ik_input_buffer_kill_line()` (added in Task 2.6)
-- `IK_INPUT_CTRL_W` → `ik_input_buffer_delete_word_backward()` (added in Task 2.6)
+- `IK_INPUT_ARROW_UP` → `ik_input_buffer_cursor_up()`
+- `IK_INPUT_ARROW_DOWN` → `ik_input_buffer_cursor_down()`
+- `IK_INPUT_CTRL_A` → `ik_input_buffer_cursor_to_line_start()`
+- `IK_INPUT_CTRL_E` → `ik_input_buffer_cursor_to_line_end()`
+- `IK_INPUT_CTRL_K` → `ik_input_buffer_kill_to_line_end()`
+- `IK_INPUT_CTRL_U` → `ik_input_buffer_kill_line()`
+- `IK_INPUT_CTRL_W` → `ik_input_buffer_delete_word_backward()`
 - `IK_INPUT_CTRL_C` → set quit flag
 
 **Test Coverage**:
@@ -49,15 +49,9 @@ Complete the Phase 1 functionality from the original plan with direct rendering.
 - Edge cases (backspace at start, delete at end, etc.)
 - Quit flag setting
 
-### Task 2.5: Multi-line Cursor Movement
+### Multi-line Cursor Movement
 
-**Goal**: Enable up/down arrow keys for cursor movement within multi-line input buffer.
-
-**Add to** `src/input.h`:
-- Input actions already exist: `IK_INPUT_ARROW_UP`, `IK_INPUT_ARROW_DOWN`
-- No changes needed to input module
-
-**Add to** `src/input_buffer.h`:
+**Input Buffer Functions**:
 ```c
 // Move cursor up one line (within input buffer)
 res_t ik_input_buffer_cursor_up(ik_input_buffer_t *ws);
@@ -67,12 +61,12 @@ res_t ik_input_buffer_cursor_down(ik_input_buffer_t *ws);
 ```
 
 **Implementation Logic**:
-- Track cursor as (byte_offset, grapheme_offset) - existing
-- Need to calculate current (row, col) position from cursor
-- Up: Find start of previous line, move cursor to same column (or end if line shorter)
-- Down: Find start of next line, move cursor to same column (or end if line shorter)
-- Handle newlines and wrapped lines correctly
-- Remember preferred column when moving vertically
+- Tracks cursor as (byte_offset, grapheme_offset)
+- Calculates current (row, col) position from cursor
+- Up: Finds start of previous line, moves cursor to same column (or end if line shorter)
+- Down: Finds start of next line, moves cursor to same column (or end if line shorter)
+- Remembers preferred column when moving vertically
+- Handles newlines and wrapped lines correctly
 
 **Test Coverage**:
 - Move up/down in multi-line text
@@ -83,11 +77,9 @@ res_t ik_input_buffer_cursor_down(ik_input_buffer_t *ws);
 - Movement through UTF-8 text (emoji, CJK)
 - Edge cases: empty lines, cursor at start/end
 
-### Task 2.6: Readline-Style Editing Shortcuts
+### Readline-Style Editing Shortcuts
 
-**Goal**: Add common readline-style keyboard shortcuts for efficient editing.
-
-**Add to** `src/input.h`:
+**Input Actions Added** (`src/input.h`):
 ```c
 typedef enum {
     // ... existing actions ...
@@ -99,11 +91,7 @@ typedef enum {
 } ik_input_action_type_t;
 ```
 
-**Update** `src/input.c`:
-- Parse Ctrl+A, Ctrl+E, Ctrl+K, Ctrl+U, Ctrl+W
-- Return appropriate action types
-
-**Add to** `src/input_buffer.h`:
+**Input Buffer Functions** (`src/input_buffer.h`):
 ```c
 // Move cursor to beginning of current line
 res_t ik_input_buffer_cursor_to_line_start(ik_input_buffer_t *ws);
@@ -126,7 +114,8 @@ res_t ik_input_buffer_delete_word_backward(ik_input_buffer_t *ws);
 - Kill to end: Delete from cursor to next newline (or end of text)
 - Kill line: Delete entire line (from start to newline)
 - Delete word backward: Scan back to find word boundary (whitespace/punctuation), delete
-- All operations must be UTF-8 aware
+- All operations are UTF-8 aware
+- Character class system (word/whitespace/punctuation) for proper word boundaries
 
 **Test Coverage**:
 - Each function with various cursor positions
@@ -135,7 +124,7 @@ res_t ik_input_buffer_delete_word_backward(ik_input_buffer_t *ws);
 - UTF-8 word boundaries
 - Combination of operations
 
-### Task 3: Main Event Loop
+### Main Event Loop
 
 **Function**: `ik_repl_run(ik_repl_ctx_t *repl)`
 
@@ -155,9 +144,10 @@ res_t ik_input_buffer_delete_word_backward(ik_input_buffer_t *ws);
 - Exit via Ctrl+C
 - Error handling (read failure, render failure)
 
-### Task 4: Main Entry Point
+### Main Entry Point
 
-**Update** `src/main.c`:
+**File**: `src/main.c`
+
 ```c
 int main(void) {
     ik_repl_ctx_t *repl = NULL;
@@ -174,33 +164,59 @@ int main(void) {
 }
 ```
 
-**Rename**: `src/client.c` → `src/main.c` (if not already done)
+### Manual Testing and Bugs Fixed
 
-### Task 5: Manual Testing and Polish
+32 manual tests were performed covering:
+- Launch and basic operation
+- UTF-8 handling (emoji, combining chars, CJK)
+- Cursor movement through multi-byte chars
+- Text wrapping at terminal boundary
+- Backspace/delete through wrapped text
+- Insert in middle of wrapped line
+- Multi-line input with newlines
+- Arrow up/down cursor movement
+- Column preservation
+- Readline shortcuts (Ctrl+A/E/K/U/W)
+- Ctrl+C exit and clean terminal restoration
 
-**Manual Testing Checklist** (run `./ikigai`):
-- [ ] Launch and basic operation
-- [ ] UTF-8 handling (emoji, combining chars, CJK)
-- [ ] Cursor movement through multi-byte chars
-- [ ] Text wrapping at terminal boundary
-- [ ] Backspace/delete through wrapped text
-- [ ] Insert in middle of wrapped line
-- [ ] Multi-line input with newlines
-- [ ] Arrow up/down cursor movement in multi-line text
-- [ ] Column preservation when moving up/down
-- [ ] Ctrl+A (beginning of line)
-- [ ] Ctrl+E (end of line)
-- [ ] Ctrl+K (kill to end of line)
-- [ ] Ctrl+U (kill entire line)
-- [ ] Ctrl+W (delete word backward)
-- [ ] Ctrl+C exit and clean terminal restoration
+**Bugs Found and Fixed**:
+1. **CRITICAL** (commit 9b32cff): Empty input buffer crashes
+   - Error: `Assertion 'text != NULL' failed`
+   - Fix: Added NULL/empty checks to all 6 navigation/readline functions
+2. **MEDIUM** (commit 3c226d3): Column preservation in multi-line navigation
+   - Issue: Cursor returned to clamped position instead of original column
+   - Fix: Added `target_column` field to input buffer structure
+3. **LOW** (commits 3c226d3, 4f38c6b): Ctrl+W punctuation handling
+   - Issue: Deleted "test." together instead of treating "." as separate boundary
+   - Fix: Added character class system (word/whitespace/punctuation)
 
-**Polish**:
-- Run `make fmt`
-- Run all quality checks
-- Fix any issues discovered during manual testing
+### Code Review and Refactoring
 
-## What We Validate
+- Security/memory/error handling analysis (Grade: A-)
+- 0 CRITICAL, 0 HIGH issues
+- 2 MEDIUM issues documented (theoretical overflows, commit 025491e)
+- Excellent security: no unsafe functions, proper UTF-8 validation
+- Cursor module made input buffer-internal (void+assertions, -10 LCOV markers)
+- Input buffer split: `input_buffer.c` + `input_buffer_multiline.c` (file size lint compliance)
+- Test files modularized for maintainability
+
+## Final Metrics
+
+**Coverage**: 100%
+- 1315 lines
+- 105 functions
+- 525 branches
+
+**LCOV exclusions**: 162/164 (within limit)
+
+**Quality gates**: All passing
+- fmt ✅
+- check ✅
+- lint ✅
+- coverage ✅
+- check-dynamic (ASan/UBSan/TSan) ✅
+
+## What Was Validated
 
 - Complete REPL event loop with direct rendering
 - Terminal raw mode and alternate screen
@@ -213,28 +229,3 @@ int main(void) {
 - Line-based navigation and deletion operations
 - Word-aware deletion
 - Clean terminal restoration on exit
-
-## What We Defer
-
-- Scrollback buffer (comes in Phase 3)
-- Viewport scrolling (comes in Phase 4)
-- Separator line (comes in Phase 4)
-- Page Up/Down input for scrollback navigation (comes in Phase 4)
-- Line submission to history (comes in Phase 4)
-- Command history with Up/Down navigation (comes in Phase 4)
-
-## Phase 2 Complete When
-
-- [ ] Render frame helper implemented with tests
-- [ ] Process action helper implemented with tests
-- [ ] Multi-line cursor movement implemented with tests (Task 2.5)
-- [ ] Readline-style shortcuts implemented with tests (Task 2.6)
-- [ ] Main event loop implemented with tests
-- [ ] main.c entry point updated
-- [ ] 100% test coverage maintained
-- [ ] Manual testing checklist passes
-- [ ] `make check && make lint && make coverage` all pass
-
-## Development Approach
-
-Strict TDD with 100% coverage requirement.
