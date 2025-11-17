@@ -6,7 +6,7 @@
 - [Philosophy: Three Mechanisms for Three Problems](#philosophy-three-mechanisms-for-three-problems)
   - [1. Result Types - Expected Runtime Errors](#1-result-types---expected-runtime-errors)
   - [2. Assertions - Development-Time Contracts](#2-assertions---development-time-contracts)
-  - [3. FATAL() - Unrecoverable Logic Errors](#3-fatal---unrecoverable-logic-errors)
+  - [3. PANIC() - Unrecoverable Logic Errors](#3-fatal---unrecoverable-logic-errors)
 
 ### Result Types
 - [Result Types - Core API](#result-types---core-api)

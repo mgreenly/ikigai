@@ -74,8 +74,12 @@ The UI is a single continuous scrollable document (the "layer cake") with the vi
 - Example: `WAITING_FOR_LLM` state → spinner visible, input hidden
 
 **Auto-scroll Behaviors:**
-- New content in scrollback → viewport scrolls to show bottom
-- User starts typing (input scrolled out of view) → snap viewport to show input at bottom
+- New content in scrollback → viewport stays put (top line remains on same buffer line)
+- User starts typing → snap viewport to show cursor as bottom line, BUT only if:
+  - The input zone is currently scrolled out of view
+  - The spinner is NOT visible (not in WAITING_FOR_LLM state)
+- Input already visible → no snap needed
+- While spinner is showing → discard all typed characters, no viewport changes
 - Page Up/Down → manual scroll through the entire cake
 
 **Initial Implementation (v1):**
