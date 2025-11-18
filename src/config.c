@@ -80,8 +80,6 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
     }
 
     // Note: No manual cleanup needed! talloc frees everything when ctx is freed
-    ik_log_info("Created default config at %s", path);
-
     return OK(NULL);
 }
 

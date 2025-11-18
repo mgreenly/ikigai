@@ -80,6 +80,8 @@ Coverage exclusions (LCOV markers):
 
 ## Test Execution
 
+**IMPORTANT**: NEVER run tests in the background. Always run tests synchronously so output is visible.
+
 **Default**: Tests run in parallel (configured via `.envrc`):
 - `MAKE_JOBS=32` - up to 32 concurrent tests
 - `PARALLEL=1` - all 4 check-dynamic subtargets in parallel
