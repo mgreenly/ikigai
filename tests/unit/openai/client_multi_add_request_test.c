@@ -6,8 +6,7 @@
  * Add request tests
  */
 
-START_TEST(test_multi_add_request_empty_conversation)
-{
+START_TEST(test_multi_add_request_empty_conversation) {
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
@@ -30,9 +29,7 @@ START_TEST(test_multi_add_request_empty_conversation)
     ck_assert_int_eq(add_res.err->code, ERR_INVALID_ARG);
 }
 
-END_TEST
-
-START_TEST(test_multi_add_request_no_api_key)
+END_TEST START_TEST(test_multi_add_request_no_api_key)
 {
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
@@ -62,9 +59,7 @@ START_TEST(test_multi_add_request_no_api_key)
     ck_assert_int_eq(add_res.err->code, ERR_INVALID_ARG);
 }
 
-END_TEST
-
-START_TEST(test_multi_add_request_empty_api_key)
+END_TEST START_TEST(test_multi_add_request_empty_api_key)
 {
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
@@ -94,9 +89,7 @@ START_TEST(test_multi_add_request_empty_api_key)
     ck_assert_int_eq(add_res.err->code, ERR_INVALID_ARG);
 }
 
-END_TEST
-
-START_TEST(test_multi_add_request_curl_easy_init_failure)
+END_TEST START_TEST(test_multi_add_request_curl_easy_init_failure)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
@@ -129,9 +122,7 @@ START_TEST(test_multi_add_request_curl_easy_init_failure)
     fail_curl_easy_init = false;
 }
 
-END_TEST
-
-START_TEST(test_multi_add_request_api_key_too_long)
+END_TEST START_TEST(test_multi_add_request_api_key_too_long)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
@@ -162,9 +153,7 @@ START_TEST(test_multi_add_request_api_key_too_long)
     ck_assert_int_eq(add_res.err->code, ERR_INVALID_ARG);
 }
 
-END_TEST
-
-START_TEST(test_multi_add_request_success)
+END_TEST START_TEST(test_multi_add_request_success)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
@@ -192,9 +181,7 @@ START_TEST(test_multi_add_request_success)
     ck_assert(!add_res.is_err);
 }
 
-END_TEST
-
-START_TEST(test_multi_add_request_curl_multi_add_handle_failure)
+END_TEST START_TEST(test_multi_add_request_curl_multi_add_handle_failure)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
@@ -227,9 +214,7 @@ START_TEST(test_multi_add_request_curl_multi_add_handle_failure)
     fail_curl_multi_add_handle = false;
 }
 
-END_TEST
-
-START_TEST(test_multi_destructor_with_active_requests)
+END_TEST START_TEST(test_multi_destructor_with_active_requests)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);

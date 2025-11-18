@@ -4,6 +4,9 @@
  */
 
 #include "repl_run_test_common.h"
+#include "../../../src/openai/client_multi.h"
+#include <curl/curl.h>
+#include <sys/select.h>
 
 // Mock read tracking
 const char *mock_input = NULL;
@@ -50,4 +53,64 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
 
     mock_write_count++;
     return (ssize_t)count;
+}
+
+// Mock curl functions for REPL run tests
+static int mock_curl_storage;
+
+CURLM *curl_multi_init_(void)
+{
+    return (CURLM *)&mock_curl_storage;
+}
+
+CURLMcode curl_multi_cleanup_(CURLM *multi)
+{
+    (void)multi;
+    return CURLM_OK;
+}
+
+CURLMcode curl_multi_fdset_(CURLM *multi, fd_set *read_fd_set,
+                            fd_set *write_fd_set, fd_set *exc_fd_set,
+                            int *max_fd)
+{
+    (void)multi;
+    (void)read_fd_set;
+    (void)write_fd_set;
+    (void)exc_fd_set;
+    *max_fd = -1;
+    return CURLM_OK;
+}
+
+CURLMcode curl_multi_timeout_(CURLM *multi, long *timeout)
+{
+    (void)multi;
+    *timeout = -1;
+    return CURLM_OK;
+}
+
+CURLMcode curl_multi_perform_(CURLM *multi, int *running_handles)
+{
+    (void)multi;
+    *running_handles = 0;
+    return CURLM_OK;
+}
+
+CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue)
+{
+    (void)multi;
+    *msgs_in_queue = 0;
+    return NULL;
+}
+
+// Helper to initialize multi handle for REPL tests
+void init_repl_multi_handle(ik_repl_ctx_t *repl)
+{
+    res_t res = ik_openai_multi_create(repl);
+    if (is_err(&res)) {
+        // If we can't create the multi handle, set it to NULL
+        // This shouldn't happen in tests, but handle it gracefully
+        repl->multi = NULL;
+    } else {
+        repl->multi = (struct ik_openai_multi *)res.ok;
+    }
 }

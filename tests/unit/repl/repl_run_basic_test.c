@@ -40,6 +40,8 @@ START_TEST(test_repl_run_simple_char_input) {
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
+    init_repl_multi_handle(repl);
+    init_repl_multi_handle(repl);
 
     mock_input = "a\x03";
     mock_input_pos = 0;
@@ -96,6 +98,8 @@ START_TEST(test_repl_run_multiple_chars)
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
+    init_repl_multi_handle(repl);
+    init_repl_multi_handle(repl);
 
     mock_input = "abc\x03";
     mock_input_pos = 0;
@@ -155,6 +159,7 @@ START_TEST(test_repl_run_with_newline)
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
+    init_repl_multi_handle(repl);
 
     mock_input = "hi\n\x03";
     mock_input_pos = 0;
@@ -212,6 +217,7 @@ START_TEST(test_repl_run_with_backspace)
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
+    init_repl_multi_handle(repl);
 
     mock_input = "ab\x7f\x03";
     mock_input_pos = 0;
@@ -267,6 +273,7 @@ START_TEST(test_repl_run_read_eof)
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
+    init_repl_multi_handle(repl);
 
     mock_input = "";
     mock_input_pos = 0;
@@ -323,6 +330,7 @@ START_TEST(test_repl_run_unknown_action)
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
+    init_repl_multi_handle(repl);
 
     mock_input = "a\x1b";
     mock_input_pos = 0;

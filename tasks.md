@@ -475,12 +475,19 @@
 - **Quality Gates:** All passing (fmt, check, lint, coverage, check-dynamic)
 - **Status:** ✅ COMPLETE - Ready for Task 6.2
 
-### Task 6.2: Add curl FDs to REPL select() call
-- [ ] Call `curl_multi_fdset()` to get read/write/except fd sets
-- [ ] Merge with existing terminal fd in select()
-- [ ] Calculate correct timeout (min of timer timeout and curl timeout)
-- **Tests:** Integration test - mock curl FDs, verify select() behavior
-- **Coverage:** FD set handling, timeout calculation
+### Task 6.2: Add curl FDs to REPL select() call ✅ COMPLETE
+- [x] Call `curl_multi_fdset()` to get read/write/except fd sets
+- [x] Merge with existing terminal fd in select()
+- [x] Calculate correct timeout (min of timer timeout and curl timeout)
+- [x] Refactored event loop to use select() for terminal + curl FDs
+- [x] Added helper functions to reduce complexity (calculate_select_timeout_ms_, setup_fd_sets_, handle_terminal_input_)
+- [x] Integrated spinner timer (80ms when visible)
+- [x] Added curl_multi event handling (perform, info_read)
+- [x] Updated all REPL tests to initialize multi handle
+- **Tests:** All unit and integration tests passing (100%)
+- **Coverage:** 100% (lines, functions, branches)
+- **Quality Gates:** fmt, lint, check, check-dynamic all passing
+- **Status:** ✅ COMPLETE - Event loop ready for non-blocking HTTP
 
 ### Task 6.3: Add curl_multi_perform() to event loop
 - [ ] Check if curl FDs are ready after select()

@@ -6,8 +6,7 @@
  * Write callback tests
  */
 
-START_TEST(test_http_write_callback_with_sse_data)
-{
+START_TEST(test_http_write_callback_with_sse_data) {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
@@ -49,9 +48,8 @@ START_TEST(test_http_write_callback_with_sse_data)
     talloc_free(multi);
 }
 
-END_TEST
-
-START_TEST(test_http_write_callback_user_callback_error) {
+END_TEST START_TEST(test_http_write_callback_user_callback_error)
+{
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
@@ -94,9 +92,7 @@ START_TEST(test_http_write_callback_user_callback_error) {
     talloc_free(multi);
 }
 
-END_TEST
-
-START_TEST(test_http_write_callback_user_callback_success)
+END_TEST START_TEST(test_http_write_callback_user_callback_success)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
@@ -139,9 +135,7 @@ START_TEST(test_http_write_callback_user_callback_success)
     talloc_free(multi);
 }
 
-END_TEST
-
-START_TEST(test_http_write_callback_parse_error)
+END_TEST START_TEST(test_http_write_callback_parse_error)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
@@ -184,9 +178,7 @@ START_TEST(test_http_write_callback_parse_error)
     talloc_free(multi);
 }
 
-END_TEST
-
-START_TEST(test_http_write_callback_null_content)
+END_TEST START_TEST(test_http_write_callback_null_content)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
@@ -229,9 +221,7 @@ START_TEST(test_http_write_callback_null_content)
     talloc_free(multi);
 }
 
-END_TEST
-
-START_TEST(test_http_write_callback_multiple_chunks)
+END_TEST START_TEST(test_http_write_callback_multiple_chunks)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);

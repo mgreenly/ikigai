@@ -6,16 +6,13 @@
  * Multi-handle creation tests
  */
 
-START_TEST(test_multi_create_success)
-{
+START_TEST(test_multi_create_success) {
     res_t res = ik_openai_multi_create(ctx);
     ck_assert(!res.is_err);
     ck_assert(res.ok != NULL);
 }
 
-END_TEST
-
-START_TEST(test_multi_create_curl_init_failure)
+END_TEST START_TEST(test_multi_create_curl_init_failure)
 {
     fail_curl_multi_init = true;
 
@@ -27,7 +24,6 @@ START_TEST(test_multi_create_curl_init_failure)
 }
 
 END_TEST
-
 /*
  * Perform tests
  */
@@ -44,9 +40,7 @@ START_TEST(test_multi_perform_no_requests)
     ck_assert_int_eq(still_running, 0);
 }
 
-END_TEST
-
-START_TEST(test_multi_perform_failure)
+END_TEST START_TEST(test_multi_perform_failure)
 {
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
@@ -64,7 +58,6 @@ START_TEST(test_multi_perform_failure)
 }
 
 END_TEST
-
 /*
  * FD set tests
  */
@@ -87,9 +80,7 @@ START_TEST(test_multi_fdset_no_requests)
     ck_assert_int_eq(max_fd, -1);  /* No FDs when no requests active */
 }
 
-END_TEST
-
-START_TEST(test_multi_fdset_failure)
+END_TEST START_TEST(test_multi_fdset_failure)
 {
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
@@ -113,7 +104,6 @@ START_TEST(test_multi_fdset_failure)
 }
 
 END_TEST
-
 /*
  * Timeout tests
  */
@@ -130,9 +120,7 @@ START_TEST(test_multi_timeout_no_requests)
     ck_assert_int_eq(timeout_ms, -1);  /* No timeout when no requests */
 }
 
-END_TEST
-
-START_TEST(test_multi_timeout_failure)
+END_TEST START_TEST(test_multi_timeout_failure)
 {
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);

@@ -6,12 +6,15 @@
 #include "format.h"
 #include "input_buffer/core.h"
 #include "render_cursor.h"
+#include "openai/client_multi.h"
 #include <assert.h>
 #include <talloc.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <sys/select.h>
+#include <sys/time.h>
 
 res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
 {
@@ -102,6 +105,9 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
     result = ik_layer_cake_add_layer(repl->layer_cake, repl->input_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
+    // Initialize curl_multi handle for non-blocking HTTP (Phase 1.6)
+    repl->multi = TRY(ik_openai_multi_create(repl));  // LCOV_EXCL_BR_LINE
+
     // Set up signal handlers (SIGWINCH for terminal resize)
     result = ik_signal_handler_init(parent);
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - Signal handler setup failure is rare (invalid signal number)
@@ -128,6 +134,90 @@ void ik_repl_cleanup(ik_repl_ctx_t *repl)
     talloc_free(repl);
 }
 
+// Helper: Calculate effective select() timeout
+static inline long calculate_select_timeout_ms_(const ik_repl_ctx_t *repl, long curl_timeout_ms)
+{
+    // Spinner timer: 80ms when visible, no timeout when hidden
+    long spinner_timeout_ms = repl->spinner_state.visible ? 80 : -1;  // LCOV_EXCL_BR_LINE
+
+    // Use minimum of both timeouts (if both are set)
+    if (spinner_timeout_ms >= 0 && curl_timeout_ms >= 0) {  // LCOV_EXCL_BR_LINE
+        return (spinner_timeout_ms < curl_timeout_ms) ? spinner_timeout_ms : curl_timeout_ms;  // LCOV_EXCL_LINE
+    }
+    if (spinner_timeout_ms >= 0) {  // LCOV_EXCL_BR_LINE
+        return spinner_timeout_ms;  // LCOV_EXCL_LINE
+    }
+    if (curl_timeout_ms >= 0) {  // LCOV_EXCL_BR_LINE
+        return curl_timeout_ms;  // LCOV_EXCL_LINE
+    }
+    // Use a 1-second timeout to prevent blocking forever
+    return 1000;
+}
+
+// Helper: Set up file descriptor sets for select()
+static inline res_t setup_fd_sets_(ik_repl_ctx_t *repl,
+                                   fd_set *read_fds,
+                                   fd_set *write_fds,
+                                   fd_set *exc_fds,
+                                   int *max_fd_out)
+{
+    FD_ZERO(read_fds);
+    FD_ZERO(write_fds);
+    FD_ZERO(exc_fds);
+
+    // Add terminal fd
+    int32_t terminal_fd = repl->term->tty_fd;
+    FD_SET(terminal_fd, read_fds);
+    int max_fd = terminal_fd;
+
+    // Add curl_multi fds
+    int curl_max_fd = -1;
+    res_t result = ik_openai_multi_fdset(repl->multi, read_fds, write_fds, exc_fds, &curl_max_fd);
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
+        return result;  // LCOV_EXCL_LINE
+    }
+    if (curl_max_fd > max_fd) {  // LCOV_EXCL_BR_LINE
+        max_fd = curl_max_fd;  // LCOV_EXCL_LINE
+    }
+
+    *max_fd_out = max_fd;
+    return OK(NULL);
+}
+
+// Helper: Handle terminal input
+static inline res_t handle_terminal_input_(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit)
+{
+    char byte;
+    ssize_t n = posix_read_(terminal_fd, &byte, 1);
+    if (n < 0) {  // LCOV_EXCL_BR_LINE
+        // LCOV_EXCL_START
+        if (errno == EINTR) {
+            return OK(NULL);
+        }
+        *should_exit = true;
+        return OK(NULL);
+        // LCOV_EXCL_STOP
+    }
+    if (n == 0) {
+        *should_exit = true;
+        return OK(NULL);
+    }
+
+    // Parse and process action
+    ik_input_action_t action;
+    ik_input_parse_byte(repl->input_parser, byte, &action);
+
+    res_t result = ik_repl_process_action(repl, &action);
+    if (is_err(&result)) return result; // LCOV_EXCL_LINE
+
+    // Render if needed
+    if (action.type != IK_INPUT_UNKNOWN) {
+        return ik_repl_render_frame(repl);
+    }
+
+    return OK(NULL);
+}
+
 res_t ik_repl_run(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
@@ -138,51 +228,56 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         return result;
     }
 
-    // Main event loop: read bytes, parse into actions, process, render
-    char byte;
-    while (!repl->quit) {
-        // Check for pending resize before reading
-        result = ik_signal_check_resize(repl);
-        if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - Signal handler errors require actual signal delivery
-            return result;
-        }
+    // Main event loop
+    bool should_exit = false;
+    while (!repl->quit && !should_exit) {  // LCOV_EXCL_BR_LINE
+        // Check for pending resize
+        CHECK(ik_signal_check_resize(repl));  // LCOV_EXCL_BR_LINE
 
-        ssize_t n = posix_read_(repl->term->tty_fd, &byte, 1);
-        if (n < 0) {
-            // LCOV_EXCL_START - Signal interruption requires actual signal delivery
-            // Check if interrupted by signal
+        // Set up fd_sets
+        fd_set read_fds, write_fds, exc_fds;
+        int max_fd;
+        CHECK(setup_fd_sets_(repl, &read_fds, &write_fds, &exc_fds, &max_fd));  // LCOV_EXCL_BR_LINE
+
+        // Calculate timeout
+        long curl_timeout_ms = -1;
+        CHECK(ik_openai_multi_timeout(repl->multi, &curl_timeout_ms));  // LCOV_EXCL_BR_LINE
+        long effective_timeout_ms = calculate_select_timeout_ms_(repl, curl_timeout_ms);
+
+        struct timeval timeout;
+        timeout.tv_sec = effective_timeout_ms / 1000;
+        timeout.tv_usec = (effective_timeout_ms % 1000) * 1000;
+
+        // Call select()
+        int ready = select(max_fd + 1, &read_fds, &write_fds, &exc_fds, &timeout);
+
+        if (ready < 0) {  // LCOV_EXCL_BR_LINE
+            // LCOV_EXCL_START
             if (errno == EINTR) {
-                // Signal interrupted read - check for resize and continue
-                result = ik_signal_check_resize(repl);
-                if (is_err(&result)) {
-                    return result;
-                }
-                continue;  // Retry read
+                CHECK(ik_signal_check_resize(repl));
+                continue;
             }
+            break;
             // LCOV_EXCL_STOP
-            // Other error - exit loop
-            break;
-        }
-        if (n == 0) {
-            // EOF - exit loop
-            break;
         }
 
-        // Parse byte into action
-        ik_input_action_t action;
-        ik_input_parse_byte(repl->input_parser, byte, &action);
-
-        // Process action
-        result = ik_repl_process_action(repl, &action);
-        if (is_err(&result)) return result; // LCOV_EXCL_LINE - Defensive check, input parser validates codepoints
-
-        // Render frame (only if action was not UNKNOWN)
-        if (action.type != IK_INPUT_UNKNOWN) {
-            result = ik_repl_render_frame(repl);
-            if (is_err(&result)) {
-                return result;
-            }
+        // Handle timeout (spinner animation)
+        if (ready == 0 && repl->spinner_state.visible) {  // LCOV_EXCL_BR_LINE
+            ik_spinner_advance(&repl->spinner_state);  // LCOV_EXCL_LINE
+            CHECK(ik_repl_render_frame(repl));  // LCOV_EXCL_LINE
+            continue;  // LCOV_EXCL_LINE
         }
+
+        // Handle terminal input
+        if (FD_ISSET(repl->term->tty_fd, &read_fds)) {  // LCOV_EXCL_BR_LINE
+            CHECK(handle_terminal_input_(repl, repl->term->tty_fd, &should_exit));
+            if (should_exit) break;
+        }
+
+        // Handle curl_multi events
+        int still_running = 0;
+        CHECK(ik_openai_multi_perform(repl->multi, &still_running));  // LCOV_EXCL_BR_LINE
+        CHECK(ik_openai_multi_info_read(repl->multi));  // LCOV_EXCL_BR_LINE
     }
 
     return OK(NULL);

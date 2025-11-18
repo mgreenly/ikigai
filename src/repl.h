@@ -42,6 +42,9 @@ typedef struct ik_repl_ctx_t {
     bool input_buffer_visible;        // Input buffer visibility flag
     const char *input_text;           // Input text pointer
     size_t input_text_len;            // Input text length
+
+    // Event loop integration (Phase 1.6)
+    struct ik_openai_multi *multi;    // curl_multi handle for non-blocking HTTP
 } ik_repl_ctx_t;
 
 // Initialize REPL context

@@ -6,6 +6,8 @@
 #include <talloc.h>
 #include <termios.h>
 #include <unistd.h>
+#include <curl/curl.h>
+#include <sys/select.h>
 #include "../../src/repl.h"
 #include "../test_utils.h"
 
@@ -26,8 +28,23 @@ int posix_tcgetattr_(int fd, struct termios *termios_p);
 int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p);
 int posix_tcflush_(int fd, int queue_selector);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
+ssize_t posix_read_(int fd, void *buf, size_t count);
 int posix_ioctl_(int fd, unsigned long request, void *argp);
 int posix_close_(int fd);
+CURLM *curl_multi_init_(void);
+CURLMcode curl_multi_cleanup_(CURLM *multi);
+CURLMcode curl_multi_fdset_(CURLM *multi, fd_set *read_fd_set, fd_set *write_fd_set, fd_set *exc_fd_set, int *max_fd);
+CURLMcode curl_multi_timeout_(CURLM *multi, long *timeout);
+CURLMcode curl_multi_perform_(CURLM *multi, int *running_handles);
+CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue);
+CURLMcode curl_multi_add_handle_(CURLM *multi, CURL *easy);
+CURLMcode curl_multi_remove_handle_(CURLM *multi, CURL *easy);
+const char *curl_multi_strerror_(CURLMcode code);
+CURL *curl_easy_init_(void);
+void curl_easy_cleanup_(CURL *curl);
+CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val);
+struct curl_slist *curl_slist_append_(struct curl_slist *list, const char *string);
+void curl_slist_free_all_(struct curl_slist *list);
 
 // Mock functions for terminal operations
 int posix_open_(const char *pathname, int flags)
@@ -87,6 +104,15 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     return (ssize_t)count;
 }
 
+ssize_t posix_read_(int fd, void *buf, size_t count)
+{
+    (void)fd;
+    (void)buf;
+    (void)count;
+    // Return EOF immediately to exit the event loop
+    return 0;
+}
+
 int posix_ioctl_(int fd, unsigned long request, void *argp)
 {
     (void)fd;
@@ -104,6 +130,104 @@ int posix_close_(int fd)
 {
     (void)fd;
     return 0;
+}
+
+// Mock curl functions (for libcurl integration)
+// Use minimal stubs that don't actually call libcurl
+static int mock_multi_handle_storage;
+static int mock_easy_handle_storage;
+
+CURLM *curl_multi_init_(void)
+{
+    // Return a fake handle (just cast an int pointer)
+    return (CURLM *)&mock_multi_handle_storage;
+}
+
+CURLMcode curl_multi_cleanup_(CURLM *multi)
+{
+    (void)multi;
+    return CURLM_OK;
+}
+
+CURLMcode curl_multi_fdset_(CURLM *multi, fd_set *read_fd_set,
+                            fd_set *write_fd_set, fd_set *exc_fd_set,
+                            int *max_fd)
+{
+    (void)multi;
+    (void)read_fd_set;
+    (void)write_fd_set;
+    (void)exc_fd_set;
+    *max_fd = -1;  // No file descriptors
+    return CURLM_OK;
+}
+
+CURLMcode curl_multi_timeout_(CURLM *multi, long *timeout)
+{
+    (void)multi;
+    *timeout = -1;  // No timeout
+    return CURLM_OK;
+}
+
+CURLMcode curl_multi_perform_(CURLM *multi, int *running_handles)
+{
+    (void)multi;
+    *running_handles = 0;  // No running handles
+    return CURLM_OK;
+}
+
+CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue)
+{
+    (void)multi;
+    *msgs_in_queue = 0;
+    return NULL;  // No messages
+}
+
+CURLMcode curl_multi_add_handle_(CURLM *multi, CURL *easy)
+{
+    (void)multi;
+    (void)easy;
+    return CURLM_OK;
+}
+
+CURLMcode curl_multi_remove_handle_(CURLM *multi, CURL *easy)
+{
+    (void)multi;
+    (void)easy;
+    return CURLM_OK;
+}
+
+const char *curl_multi_strerror_(CURLMcode code)
+{
+    return curl_multi_strerror(code);
+}
+
+CURL *curl_easy_init_(void)
+{
+    return (CURL *)&mock_easy_handle_storage;
+}
+
+void curl_easy_cleanup_(CURL *curl)
+{
+    (void)curl;
+}
+
+CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
+{
+    (void)curl;
+    (void)opt;
+    (void)val;
+    return CURLE_OK;
+}
+
+struct curl_slist *curl_slist_append_(struct curl_slist *list, const char *string)
+{
+    (void)string;
+    return list;
+}
+
+void curl_slist_free_all_(struct curl_slist *list)
+{
+    (void)list;
 }
 
 // Helper to reset mocks
@@ -179,7 +303,11 @@ START_TEST(test_repl_run)
     res_t result = ik_repl_init(ctx, &repl);
     ck_assert(is_ok(&result));
 
-    // Run should return OK (even though it's not implemented yet)
+    // Set quit flag immediately so ik_repl_run exits without blocking
+    // (Integration test cannot provide real terminal input)
+    repl->quit = true;
+
+    // Run should return OK
     res_t run_result = ik_repl_run(repl);
     ck_assert(is_ok(&run_result));
 

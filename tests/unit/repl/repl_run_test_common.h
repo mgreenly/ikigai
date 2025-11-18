@@ -31,4 +31,17 @@ extern int32_t mock_write_count;
 ssize_t posix_read_(int fd, void *buf, size_t count);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
 
+// Curl mock prototypes
+#include <curl/curl.h>
+#include <sys/select.h>
+CURLM *curl_multi_init_(void);
+CURLMcode curl_multi_cleanup_(CURLM *multi);
+CURLMcode curl_multi_fdset_(CURLM *multi, fd_set *read_fd_set, fd_set *write_fd_set, fd_set *exc_fd_set, int *max_fd);
+CURLMcode curl_multi_timeout_(CURLM *multi, long *timeout);
+CURLMcode curl_multi_perform_(CURLM *multi, int *running_handles);
+CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue);
+
+// Helper to initialize multi handle for REPL tests
+void init_repl_multi_handle(ik_repl_ctx_t *repl);
+
 #endif // IK_REPL_RUN_TEST_COMMON_H

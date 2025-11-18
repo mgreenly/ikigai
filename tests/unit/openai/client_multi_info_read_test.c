@@ -6,8 +6,7 @@
  * Info read tests
  */
 
-START_TEST(test_multi_info_read_no_messages)
-{
+START_TEST(test_multi_info_read_no_messages) {
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
@@ -16,9 +15,7 @@ START_TEST(test_multi_info_read_no_messages)
     ck_assert(!info_res.is_err);
 }
 
-END_TEST
-
-START_TEST(test_multi_info_read_with_completed_message)
+END_TEST START_TEST(test_multi_info_read_with_completed_message)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
@@ -59,9 +56,7 @@ START_TEST(test_multi_info_read_with_completed_message)
     talloc_free(multi);
 }
 
-END_TEST
-
-START_TEST(test_multi_info_read_non_done_message)
+END_TEST START_TEST(test_multi_info_read_non_done_message)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
@@ -82,9 +77,7 @@ START_TEST(test_multi_info_read_non_done_message)
     talloc_free(multi);
 }
 
-END_TEST
-
-START_TEST(test_multi_info_read_multiple_requests)
+END_TEST START_TEST(test_multi_info_read_multiple_requests)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
@@ -138,9 +131,7 @@ START_TEST(test_multi_info_read_multiple_requests)
     talloc_free(multi);
 }
 
-END_TEST
-
-START_TEST(test_multi_info_read_multiple_requests_shift)
+END_TEST START_TEST(test_multi_info_read_multiple_requests_shift)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
@@ -189,9 +180,7 @@ START_TEST(test_multi_info_read_multiple_requests_shift)
     talloc_free(multi);
 }
 
-END_TEST
-
-START_TEST(test_multi_info_read_message_no_active_requests)
+END_TEST START_TEST(test_multi_info_read_message_no_active_requests)
 {
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);

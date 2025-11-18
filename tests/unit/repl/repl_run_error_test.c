@@ -40,6 +40,7 @@ START_TEST(test_repl_run_initial_render_error) {
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
+    init_repl_multi_handle(repl);
 
     mock_write_should_fail = true;
 
@@ -91,6 +92,7 @@ START_TEST(test_repl_run_render_error_in_loop)
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
+    init_repl_multi_handle(repl);
 
     mock_input = "a";
     mock_input_pos = 0;
