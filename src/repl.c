@@ -108,6 +108,7 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
     // Initialize curl_multi handle for non-blocking HTTP (Phase 1.6)
     repl->multi = TRY(ik_openai_multi_create(repl));  // LCOV_EXCL_BR_LINE
     repl->curl_still_running = 0;  // No active transfers initially
+    repl->state = IK_REPL_STATE_IDLE;  // Start in IDLE state
 
     // Set up signal handlers (SIGWINCH for terminal resize)
     result = ik_signal_handler_init(parent);
@@ -336,4 +337,30 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
 
     // Trigger immediate redraw with new dimensions
     return ik_repl_render_frame(repl);
+}
+
+void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->state == IK_REPL_STATE_IDLE);   /* LCOV_EXCL_BR_LINE */
+
+    // Update state
+    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+
+    // Show spinner, hide input
+    repl->spinner_state.visible = true;
+    repl->input_buffer_visible = false;
+}
+
+void ik_repl_transition_to_idle(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->state == IK_REPL_STATE_WAITING_FOR_LLM);   /* LCOV_EXCL_BR_LINE */
+
+    // Update state
+    repl->state = IK_REPL_STATE_IDLE;
+
+    // Hide spinner, show input
+    repl->spinner_state.visible = false;
+    repl->input_buffer_visible = true;
 }

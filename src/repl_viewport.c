@@ -157,9 +157,20 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
                                   input_buffer_visible);
     }
 
-    // Update layer reference fields
+    // Update layer reference fields (respecting REPL state)
     repl->separator_visible = separator_visible;
-    repl->input_buffer_visible = input_buffer_visible;
+
+    // State-based visibility (Phase 1.6 Task 6.4)
+    if (repl->state == IK_REPL_STATE_WAITING_FOR_LLM) {
+        // When waiting for LLM: hide input, show spinner
+        repl->spinner_state.visible = true;
+        repl->input_buffer_visible = false;
+    } else {
+        // When idle: show input (if in viewport), hide spinner
+        repl->spinner_state.visible = false;
+        repl->input_buffer_visible = input_buffer_visible;
+    }
+
     repl->input_text = (text != NULL) ? text : "";
     repl->input_text_len = text_len;
 

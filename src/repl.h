@@ -11,6 +11,12 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
+// REPL state machine (Phase 1.6)
+typedef enum {
+    IK_REPL_STATE_IDLE,              // Normal input mode
+    IK_REPL_STATE_WAITING_FOR_LLM    // Waiting for LLM response (spinner visible)
+} ik_repl_state_t;
+
 // Viewport boundaries for rendering (Phase 4)
 typedef struct {
     size_t scrollback_start_line;   // First scrollback line to render
@@ -46,6 +52,7 @@ typedef struct ik_repl_ctx_t {
     // Event loop integration (Phase 1.6)
     struct ik_openai_multi *multi;    // curl_multi handle for non-blocking HTTP
     int curl_still_running;           // Number of active curl transfers
+    ik_repl_state_t state;            // Current REPL state (IDLE or WAITING_FOR_LLM)
 } ik_repl_ctx_t;
 
 // Initialize REPL context
@@ -68,3 +75,7 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl);
 
 // Handle terminal resize (Bug #5)
 res_t ik_repl_handle_resize(ik_repl_ctx_t *repl);
+
+// State transition functions (Phase 1.6)
+void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl);
+void ik_repl_transition_to_idle(ik_repl_ctx_t *repl);
