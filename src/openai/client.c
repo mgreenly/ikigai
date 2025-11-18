@@ -8,6 +8,7 @@
 #include <string.h>
 #include <assert.h>
 #include <curl/curl.h>
+#include <sys/select.h>
 
 /**
  * OpenAI API client implementation

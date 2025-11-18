@@ -180,5 +180,52 @@ MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
     return curl_easy_setopt(curl, opt, val);
 }
 
+MOCKABLE CURLM *curl_multi_init_(void)
+{
+    return curl_multi_init();
+}
+
+MOCKABLE CURLMcode curl_multi_cleanup_(CURLM *multi)
+{
+    return curl_multi_cleanup(multi);
+}
+
+MOCKABLE CURLMcode curl_multi_add_handle_(CURLM *multi, CURL *easy)
+{
+    return curl_multi_add_handle(multi, easy);
+}
+
+MOCKABLE CURLMcode curl_multi_remove_handle_(CURLM *multi, CURL *easy)
+{
+    return curl_multi_remove_handle(multi, easy);
+}
+
+MOCKABLE CURLMcode curl_multi_perform_(CURLM *multi, int *running_handles)
+{
+    return curl_multi_perform(multi, running_handles);
+}
+
+MOCKABLE CURLMcode curl_multi_fdset_(CURLM *multi, fd_set *read_fd_set,
+                                     fd_set *write_fd_set, fd_set *exc_fd_set,
+                                     int *max_fd)
+{
+    return curl_multi_fdset(multi, read_fd_set, write_fd_set, exc_fd_set, max_fd);
+}
+
+MOCKABLE CURLMcode curl_multi_timeout_(CURLM *multi, long *timeout)
+{
+    return curl_multi_timeout(multi, timeout);
+}
+
+MOCKABLE CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue)
+{
+    return curl_multi_info_read(multi, msgs_in_queue);
+}
+
+MOCKABLE const char *curl_multi_strerror_(CURLMcode code)
+{
+    return curl_multi_strerror(code);
+}
+
 // LCOV_EXCL_STOP
 #endif
