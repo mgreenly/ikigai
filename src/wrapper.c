@@ -139,6 +139,11 @@ MOCKABLE ssize_t posix_read_(int fd, void *buf, size_t count)
     return read(fd, buf, count);
 }
 
+MOCKABLE int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
+{
+    return select(nfds, readfds, writefds, exceptfds, timeout);
+}
+
 // ============================================================================
 // libcurl wrappers - debug/test builds only
 // ============================================================================

@@ -55,6 +55,19 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     return (ssize_t)count;
 }
 
+// Mock select wrapper - always indicates stdin is ready
+int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
+{
+    (void)nfds;
+    (void)writefds;
+    (void)exceptfds;
+    (void)timeout;
+
+    // Always indicate that stdin (fd 0) is ready for reading
+    // This allows the test to proceed without blocking
+    return FD_ISSET(0, readfds) ? 1 : 0;
+}
+
 // Mock curl functions for REPL run tests
 static int mock_curl_storage;
 

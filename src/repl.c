@@ -249,7 +249,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         timeout.tv_usec = (effective_timeout_ms % 1000) * 1000;
 
         // Call select()
-        int ready = select(max_fd + 1, &read_fds, &write_fds, &exc_fds, &timeout);
+        int ready = posix_select_(max_fd + 1, &read_fds, &write_fds, &exc_fds, &timeout);
 
         if (ready < 0) {  // LCOV_EXCL_BR_LINE
             // LCOV_EXCL_START

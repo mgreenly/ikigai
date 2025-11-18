@@ -300,12 +300,18 @@ MOCKABLE ssize_t posix_read_(int fd, void *buf, size_t count)
     return read(fd, buf, count);
 }
 
+MOCKABLE int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
+{
+    return select(nfds, readfds, writefds, exceptfds, timeout);
+}
+
 #else
 // Debug/test build: weak symbol declarations
 #include <termios.h>
 #include <stddef.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/select.h>
 
 MOCKABLE int posix_open_(const char *pathname, int flags);
 MOCKABLE int posix_close_(int fd);
@@ -317,6 +323,7 @@ MOCKABLE int posix_tcflush_(int fd, int queue_selector);
 MOCKABLE int posix_ioctl_(int fd, unsigned long request, void *argp);
 MOCKABLE ssize_t posix_write_(int fd, const void *buf, size_t count);
 MOCKABLE ssize_t posix_read_(int fd, void *buf, size_t count);
+MOCKABLE int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 #endif
 
 #endif // IK_WRAPPER_H

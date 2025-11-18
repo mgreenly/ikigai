@@ -41,7 +41,6 @@ START_TEST(test_repl_run_simple_char_input) {
     repl->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
-    init_repl_multi_handle(repl);
 
     mock_input = "a\x03";
     mock_input_pos = 0;
@@ -98,7 +97,6 @@ START_TEST(test_repl_run_multiple_chars)
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
-    init_repl_multi_handle(repl);
     init_repl_multi_handle(repl);
 
     mock_input = "abc\x03";

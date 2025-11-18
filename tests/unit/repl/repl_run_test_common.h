@@ -30,6 +30,7 @@ extern int32_t mock_write_count;
 // Mock wrapper functions (implemented once, shared across test files)
 ssize_t posix_read_(int fd, void *buf, size_t count);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
+int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 
 // Curl mock prototypes
 #include <curl/curl.h>
