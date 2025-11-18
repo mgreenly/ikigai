@@ -284,7 +284,7 @@ check-helgrind:
 		'echo -n "Helgrind: {}... "; \
 		if CK_FORK=no valgrind --tool=helgrind --error-exitcode=1 \
 		            --history-level=approx --quiet \
-		            --suppressions=helgrind.supp \
+		            --suppressions=.valgrind/helgrind.supp \
 		            ./{} > /tmp/helgrind-$$$$.log 2>&1; then \
 			echo "✓"; \
 		else \
