@@ -22,6 +22,8 @@ Don't enumerate or read the other files I list here unless you need to.
 * Use `make lint && make coverage` before commits - 100% coverage is MANDATORY
 * make BUILD={debug|release|sanitize|tsan|coverage} for different build modes
 
+**CRITICAL**: Never run multiple `make` commands simultaneously. Different targets use incompatible compiler flags and will corrupt the build.
+
 ## Naming Conventions
 
 All public symbols follow: `ik_MODULE_THING`
@@ -80,16 +82,14 @@ Coverage exclusions (LCOV markers):
 
 ## Test Execution
 
-**IMPORTANT**: NEVER run tests in the background. Always run tests synchronously so output is visible.
-
-**Default**: Tests run in parallel (configured via `.envrc`):
-- `MAKE_JOBS=32` - up to 32 concurrent tests
+**By Default**: Tests run in parallel, with 24 parallel tests on this machine.
+- `MAKE_JOBS=24` - up to 24 concurrent tests
 - `PARALLEL=1` - all 4 check-dynamic subtargets in parallel
 
 **When you need clear debug output** (serialize execution):
 ```bash
-MAKE_JOBS=1 PARALLEL=0 make check
-MAKE_JOBS=1 make check-valgrind
+PARALLEL=0 MAKE_JOBS=1 PARALLEL=0 make check
+PARALLEL=0 MAKE_JOBS=1 make check-valgrind
 ```
 
 **Best practice**: Test individual files during development, run full suite before commits.
