@@ -350,6 +350,115 @@ START_TEST(test_repl_run_unknown_action)
 }
 
 END_TEST
+/* Test: Select timeout triggers curl event handling */
+START_TEST(test_repl_run_select_timeout)
+{
+    void *ctx = talloc_new(NULL);
+
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
+    ck_assert(is_ok(&res));
+
+    ik_input_parser_t *parser = NULL;
+    res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    ck_assert_ptr_nonnull(term);
+    term->tty_fd = 0;
+    term->screen_rows = 24;
+    term->screen_cols = 80;
+
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);
+    ck_assert(is_ok(&res));
+
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
+    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ck_assert_ptr_nonnull(repl);
+    repl->input_buffer = input_buf;
+    repl->input_parser = parser;
+    repl->term = term;
+    repl->render = render;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
+    repl->quit = false;
+    repl->spinner_state.visible = false;  // Spinner not visible
+    init_repl_multi_handle(repl);
+
+    // Simulate select timeout (return 0) on first call only, then return to normal behavior
+    mock_select_return_value = 0;  // Return 0 (timeout)
+    mock_select_return_on_call = 0;  // Only on first call (call number 0)
+    mock_select_call_count = 0;  // Reset call counter
+    mock_input = "\x03";  // Ctrl+C on second iteration to exit
+    mock_input_pos = 0;
+
+    res = ik_repl_run(repl);
+    ck_assert(is_ok(&res));
+
+    // Reset mocks
+    mock_select_return_value = -1;
+    mock_select_return_on_call = -1;
+    mock_select_call_count = 0;
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: Active curl transfers trigger curl event handling */
+START_TEST(test_repl_run_active_curl_transfers)
+{
+    void *ctx = talloc_new(NULL);
+
+    ik_input_buffer_t *input_buf = NULL;
+    res_t res = ik_input_buffer_create(ctx, &input_buf);
+    ck_assert(is_ok(&res));
+
+    ik_input_parser_t *parser = NULL;
+    res = ik_input_parser_create(ctx, &parser);
+    ck_assert(is_ok(&res));
+
+    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    ck_assert_ptr_nonnull(term);
+    term->tty_fd = 0;
+    term->screen_rows = 24;
+    term->screen_cols = 80;
+
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, 24, 80, 1, &render);
+    ck_assert(is_ok(&res));
+
+    ik_scrollback_t *scrollback = NULL;
+    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ck_assert(is_ok(&res));
+
+    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ck_assert_ptr_nonnull(repl);
+    repl->input_buffer = input_buf;
+    repl->input_parser = parser;
+    repl->term = term;
+    repl->render = render;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
+    repl->quit = false;
+    repl->spinner_state.visible = false;
+    init_repl_multi_handle(repl);
+    repl->curl_still_running = 1;  // Simulate active curl transfer
+
+    mock_select_return_value = -1;  // Use default behavior (returns 1)
+    mock_input = "\x03";  // Ctrl+C to exit
+    mock_input_pos = 0;
+
+    res = ik_repl_run(repl);
+    ck_assert(is_ok(&res));
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 static Suite *repl_run_basic_suite(void)
 {
@@ -363,6 +472,8 @@ static Suite *repl_run_basic_suite(void)
     tcase_add_test(tc_core, test_repl_run_with_backspace);
     tcase_add_test(tc_core, test_repl_run_read_eof);
     tcase_add_test(tc_core, test_repl_run_unknown_action);
+    tcase_add_test(tc_core, test_repl_run_select_timeout);
+    tcase_add_test(tc_core, test_repl_run_active_curl_transfers);
 
     suite_add_tcase(s, tc_core);
     return s;

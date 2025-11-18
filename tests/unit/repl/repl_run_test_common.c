@@ -17,6 +17,11 @@ bool mock_write_should_fail = false;
 int32_t mock_write_fail_after = -1;  // Fail after N successful writes (-1 = never fail)
 int32_t mock_write_count = 0;
 
+// Mock select tracking
+int mock_select_return_value = -1;  // -1 means use default behavior
+int mock_select_call_count = 0;     // Number of times select has been called
+int mock_select_return_on_call = -1;  // Return mock value only on this call number (-1 for all calls)
+
 // Mock read wrapper for testing
 ssize_t posix_read_(int fd, void *buf, size_t count)
 {
@@ -55,7 +60,7 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     return (ssize_t)count;
 }
 
-// Mock select wrapper - always indicates stdin is ready
+// Mock select wrapper - can return timeout or indicate stdin is ready
 int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
 {
     (void)nfds;
@@ -63,7 +68,19 @@ int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds
     (void)exceptfds;
     (void)timeout;
 
-    // Always indicate that stdin (fd 0) is ready for reading
+    // Track number of calls
+    int current_call = mock_select_call_count++;
+
+    // If mock_select_return_value is set, check if we should use it
+    if (mock_select_return_value >= 0) {
+        // If mock_select_return_on_call is -1, always use mock value
+        // Otherwise, only use it on the specific call number
+        if (mock_select_return_on_call == -1 || current_call == mock_select_return_on_call) {
+            return mock_select_return_value;
+        }
+    }
+
+    // Default behavior: indicate that stdin (fd 0) is ready for reading
     // This allows the test to proceed without blocking
     return FD_ISSET(0, readfds) ? 1 : 0;
 }

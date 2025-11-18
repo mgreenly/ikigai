@@ -107,6 +107,7 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
 
     // Initialize curl_multi handle for non-blocking HTTP (Phase 1.6)
     repl->multi = TRY(ik_openai_multi_create(repl));  // LCOV_EXCL_BR_LINE
+    repl->curl_still_running = 0;  // No active transfers initially
 
     // Set up signal handlers (SIGWINCH for terminal resize)
     result = ik_signal_handler_init(parent);
@@ -275,9 +276,13 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         }
 
         // Handle curl_multi events
-        int still_running = 0;
-        CHECK(ik_openai_multi_perform(repl->multi, &still_running));  // LCOV_EXCL_BR_LINE
-        CHECK(ik_openai_multi_info_read(repl->multi));  // LCOV_EXCL_BR_LINE
+        // Only call curl_multi_perform when there's work to do:
+        // - ready == 0 means select() timed out (curl may need to handle its timeouts)
+        // - curl_still_running > 0 means there are active transfers that need processing
+        if (ready == 0 || repl->curl_still_running > 0) {
+            CHECK(ik_openai_multi_perform(repl->multi, &repl->curl_still_running));  // LCOV_EXCL_BR_LINE
+            CHECK(ik_openai_multi_info_read(repl->multi));  // LCOV_EXCL_BR_LINE
+        }
     }
 
     return OK(NULL);

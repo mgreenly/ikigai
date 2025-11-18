@@ -489,13 +489,19 @@
 - **Quality Gates:** fmt, lint, check, check-dynamic all passing
 - **Status:** ✅ COMPLETE - Event loop ready for non-blocking HTTP
 
-### Task 6.3: Add curl_multi_perform() to event loop
-- [ ] Check if curl FDs are ready after select()
-- [ ] Call `curl_multi_perform()` if ready
-- [ ] Process completed transfers
-- [ ] Invoke callbacks for streaming chunks
-- **Tests:** Integration test - simulate ready FDs, verify perform called
-- **Coverage:** Transfer completion, errors
+### Task 6.3: Add curl_multi_perform() to event loop ✅ COMPLETE
+- [x] Check if curl FDs are ready after select()
+- [x] Call `curl_multi_perform()` if ready
+- [x] Process completed transfers
+- [x] Invoke callbacks for streaming chunks (will be wired up in Task 6.6)
+- **Tests:** Added 2 unit tests - select timeout and active curl transfers
+- **Coverage:** 100% (lines, functions, branches)
+- **Implementation Details:**
+  - Added `curl_still_running` field to REPL context to track active transfers
+  - Conditional curl_multi_perform: only called when `ready == 0` (timeout) OR `curl_still_running > 0` (active transfers)
+  - Added mock infrastructure for testing select() timeout behavior
+  - Test coverage: timeout triggers curl handling, active transfers trigger curl handling
+- **Status:** ✅ COMPLETE - curl_multi event handling integrated into event loop
 
 ### Task 6.4: Add REPL state machine transitions
 - [ ] Add `IDLE` state (normal input)

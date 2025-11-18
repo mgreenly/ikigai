@@ -27,6 +27,11 @@ extern bool mock_write_should_fail;
 extern int32_t mock_write_fail_after;
 extern int32_t mock_write_count;
 
+// Mock select tracking
+extern int mock_select_return_value;  // -1 to use default behavior, otherwise use this value
+extern int mock_select_call_count;   // Number of times select has been called
+extern int mock_select_return_on_call;  // Return mock value only on this call number (0-based, -1 for all calls)
+
 // Mock wrapper functions (implemented once, shared across test files)
 ssize_t posix_read_(int fd, void *buf, size_t count);
 ssize_t posix_write_(int fd, const void *buf, size_t count);

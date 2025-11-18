@@ -45,6 +45,7 @@ typedef struct ik_repl_ctx_t {
 
     // Event loop integration (Phase 1.6)
     struct ik_openai_multi *multi;    // curl_multi handle for non-blocking HTTP
+    int curl_still_running;           // Number of active curl transfers
 } ik_repl_ctx_t;
 
 // Initialize REPL context
