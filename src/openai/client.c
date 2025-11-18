@@ -332,7 +332,11 @@ static res_t http_post(void *parent, const char *url, const char *api_key,
 
     /* Set up curl options */
     curl_easy_setopt_(curl, CURLOPT_URL, url);
+#ifdef NDEBUG
+    curl_easy_setopt_(curl, CURLOPT_POST, 1L);
+#else
     curl_easy_setopt_(curl, CURLOPT_POST, (const void *)1L);
+#endif
     curl_easy_setopt_(curl, CURLOPT_POSTFIELDS, request_body);
     curl_easy_setopt_(curl, CURLOPT_WRITEFUNCTION, http_write_callback);
     curl_easy_setopt_(curl, CURLOPT_WRITEDATA, write_ctx);
