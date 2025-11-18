@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Rate limit reached for gpt-4-turbo in organization org-***. Please try again in 20s. Visit https://platform.openai.com/account/rate-limits to learn more about rate limits.",
+    "type": "requests",
+    "param": null,
+    "code": "rate_limit_exceeded"
+  }
+}

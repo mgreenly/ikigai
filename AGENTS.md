@@ -90,6 +90,19 @@ The requirement is ABSOLUTE:
 
 Coverage philosophy: Gaps are learning opportunities showing where design can improve. Fix the design, don't silence the messenger.
 
+**Coverage Exclusion Policy**
+
+`LCOV_EXCL_BR_LINE` is ONLY permitted for:
+1. Asserts on invariants (compiled out in production builds)
+2. PANIC lines asserting invariants (unconditionally terminate)
+
+NEVER use `LCOV_EXCL_BR_LINE` for:
+- Defensive programming
+- Library error returns
+- Any code path reachable at runtime
+
+All runtime-reachable branches require actual test coverage. If a library can return an error, write tests that trigger that error. Coverage exclusions are not a substitute for testing.
+
 ## Code Style
 
 **Comments:**
