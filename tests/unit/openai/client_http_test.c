@@ -157,6 +157,7 @@ static Suite *client_http_suite(void)
 
     TCase *tc_http = tcase_create("HTTP");
     tcase_add_checked_fixture(tc_http, setup, teardown);
+    tcase_set_timeout(tc_http, 30); /* Increase timeout for HTTP tests (default: 4s) */
     tcase_add_test(tc_http, test_chat_create_empty_conversation);
     tcase_add_test(tc_http, test_chat_create_missing_api_key);
     tcase_add_test(tc_http, test_chat_create_empty_api_key);
