@@ -32,7 +32,7 @@ Think tmux for AI conversations. Multiple agents running in parallel, each focus
 **Your home base:**
 - Long-running conversation
 - Coordinates overall work
-- Switches to helpers as needed
+- You switch to helpers as needed
 
 ### Helper Agents
 
