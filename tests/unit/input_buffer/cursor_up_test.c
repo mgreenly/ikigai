@@ -274,19 +274,19 @@ START_TEST(test_cursor_up_utf8)
     talloc_free(ctx);
 }
 
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: Cursor up - NULL input_buffer asserts */
 START_TEST(test_cursor_up_null_input_buffer_asserts) {
     ik_input_buffer_cursor_up(NULL);
 }
 
 END_TEST
+#endif
 
 static Suite *input_buffer_cursor_up_suite(void)
 {
     Suite *s = suite_create("Input Buffer Cursor Up");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_cursor_up_basic);
@@ -296,11 +296,16 @@ static Suite *input_buffer_cursor_up_suite(void)
     tcase_add_test(tc_core, test_cursor_up_empty_line);
     tcase_add_test(tc_core, test_cursor_up_utf8);
 
-    /* Assertion tests */
-    tcase_add_test_raise_signal(tc_assertions, test_cursor_up_null_input_buffer_asserts, SIGABRT);
-
     suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+    /* Assertion tests */
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_add_test_raise_signal(tc_assertions, test_cursor_up_null_input_buffer_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

@@ -31,6 +31,8 @@ START_TEST(test_scrollback_create) {
     talloc_free(ctx);
 }
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL parameter assertions */
 START_TEST(test_scrollback_create_null_scrollback_out_asserts)
 {
@@ -55,23 +57,27 @@ END_TEST START_TEST(test_scrollback_create_invalid_width_asserts)
 }
 
 END_TEST
+#endif
 
 static Suite *scrollback_create_suite(void)
 {
     Suite *s = suite_create("Scrollback Create");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_scrollback_create);
 
+    suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_scrollback_create_null_scrollback_out_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_scrollback_create_invalid_width_asserts, SIGABRT);
-
-    suite_add_tcase(s, tc_core);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

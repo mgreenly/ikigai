@@ -24,28 +24,6 @@ START_TEST(test_cursor_create) {
     talloc_free(ctx);
 }
 END_TEST
-// Test NULL parent parameter assertion
-START_TEST(test_cursor_create_null_parent)
-{
-    ik_input_buffer_cursor_t *cursor = NULL;
-
-    /* parent cannot be NULL - should abort */
-    ik_input_buffer_cursor_create(NULL, &cursor);
-}
-
-END_TEST
-// Test NULL out parameter assertion
-START_TEST(test_cursor_create_null_out)
-{
-    void *ctx = talloc_new(NULL);
-
-    /* cursor_out cannot be NULL - should abort */
-    ik_input_buffer_cursor_create(ctx, NULL);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test set position with ASCII text
 START_TEST(test_cursor_set_position_ascii)
 {
@@ -109,6 +87,56 @@ START_TEST(test_cursor_set_position_emoji)
 }
 
 END_TEST
+// Test get_position
+START_TEST(test_cursor_get_position)
+{
+    void *ctx = talloc_new(NULL);
+    ik_input_buffer_cursor_t *cursor = NULL;
+    const char *text = "hello";
+    size_t text_len = 5;
+
+    // Create cursor
+    ik_input_buffer_cursor_create(ctx, &cursor);
+
+    // Set position
+    ik_input_buffer_cursor_set_position(cursor, text, text_len, 3);
+
+    // Get position
+    size_t byte_offset = 0;
+    size_t grapheme_offset = 0;
+    ik_input_buffer_cursor_get_position(cursor, &byte_offset, &grapheme_offset);
+
+    ck_assert_uint_eq(byte_offset, 3);
+    ck_assert_uint_eq(grapheme_offset, 3);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+// Test NULL parent parameter assertion
+START_TEST(test_cursor_create_null_parent)
+{
+    ik_input_buffer_cursor_t *cursor = NULL;
+
+    /* parent cannot be NULL - should abort */
+    ik_input_buffer_cursor_create(NULL, &cursor);
+}
+
+END_TEST
+// Test NULL out parameter assertion
+START_TEST(test_cursor_create_null_out)
+{
+    void *ctx = talloc_new(NULL);
+
+    /* cursor_out cannot be NULL - should abort */
+    ik_input_buffer_cursor_create(ctx, NULL);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 // Test NULL cursor parameter assertion
 START_TEST(test_cursor_set_position_null_cursor)
 {
@@ -143,32 +171,6 @@ START_TEST(test_cursor_set_position_offset_too_large)
 
     /* byte_offset must be <= text_len - should abort */
     ik_input_buffer_cursor_set_position(cursor, text, 5, 10);
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test get_position
-START_TEST(test_cursor_get_position)
-{
-    void *ctx = talloc_new(NULL);
-    ik_input_buffer_cursor_t *cursor = NULL;
-    const char *text = "hello";
-    size_t text_len = 5;
-
-    // Create cursor
-    ik_input_buffer_cursor_create(ctx, &cursor);
-
-    // Set position
-    ik_input_buffer_cursor_set_position(cursor, text, text_len, 3);
-
-    // Get position
-    size_t byte_offset = 0;
-    size_t grapheme_offset = 0;
-    ik_input_buffer_cursor_get_position(cursor, &byte_offset, &grapheme_offset);
-
-    ck_assert_uint_eq(byte_offset, 3);
-    ck_assert_uint_eq(grapheme_offset, 3);
 
     talloc_free(ctx);
 }
@@ -217,6 +219,7 @@ START_TEST(test_cursor_get_position_null_grapheme_out)
 }
 
 END_TEST
+#endif
 
 // Test suite
 static Suite *cursor_suite(void)
@@ -237,6 +240,7 @@ static Suite *cursor_suite(void)
     tcase_add_test(tc_get_position, test_cursor_get_position);
     suite_add_tcase(s, tc_get_position);
 
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_cursor_create_null_parent, SIGABRT);
@@ -248,6 +252,7 @@ static Suite *cursor_suite(void)
     tcase_add_test_raise_signal(tc_assertions, test_cursor_get_position_null_byte_out, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_cursor_get_position_null_grapheme_out, SIGABRT);
     suite_add_tcase(s, tc_assertions);
+#endif
 
     return s;
 }

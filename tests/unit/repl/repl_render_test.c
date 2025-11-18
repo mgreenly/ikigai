@@ -260,6 +260,8 @@ START_TEST(test_repl_render_frame_utf8)
 }
 
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL parameter assertions */
 START_TEST(test_repl_render_frame_null_repl_asserts)
 {
@@ -268,13 +270,12 @@ START_TEST(test_repl_render_frame_null_repl_asserts)
 }
 
 END_TEST
+#endif
 
 static Suite *repl_render_suite(void)
 {
     Suite *s = suite_create("REPL_Render");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Basic rendering tests */
     tcase_add_test(tc_core, test_repl_render_frame_empty_input_buffer);
@@ -282,11 +283,16 @@ static Suite *repl_render_suite(void)
     tcase_add_test(tc_core, test_repl_render_frame_cursor_positions);
     tcase_add_test(tc_core, test_repl_render_frame_utf8);
 
-    /* Assertion tests */
-    tcase_add_test_raise_signal(tc_assertions, test_repl_render_frame_null_repl_asserts, SIGABRT);
-
     suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+    /* Assertion tests */
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_add_test_raise_signal(tc_assertions, test_repl_render_frame_null_repl_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

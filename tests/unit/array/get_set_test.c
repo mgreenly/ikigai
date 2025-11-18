@@ -82,7 +82,7 @@ START_TEST(test_array_stale_pointer_after_reallocation)
 
 END_TEST
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion: get with NULL array
 START_TEST(test_array_get_null_array_asserts)
 {
@@ -133,7 +133,7 @@ static Suite *array_get_set_suite(void)
     tcase_add_test(tc_core, test_array_set);
     tcase_add_test(tc_core, test_array_stale_pointer_after_reallocation);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     // Assertion tests - only in debug builds
     TCase *tc_assertions = tcase_create("Assertions");
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind

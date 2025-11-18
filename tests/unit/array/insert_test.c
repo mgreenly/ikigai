@@ -129,7 +129,7 @@ START_TEST(test_array_insert_with_growth)
 
 END_TEST
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion: insert with invalid index
 START_TEST(test_array_insert_invalid_index_asserts)
 {
@@ -161,7 +161,7 @@ static Suite *array_insert_suite(void)
     tcase_add_test(tc_core, test_array_insert_at_end);
     tcase_add_test(tc_core, test_array_insert_with_growth);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     // Assertion tests - only in debug builds
     TCase *tc_assertions = tcase_create("Assertions");
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind

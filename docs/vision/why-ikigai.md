@@ -16,18 +16,15 @@ Current AI coding agents treat complex workflows as an afterthought:
 - Agents don't understand branches
 - Manual branch switching required
 - Can't work on multiple features in parallel
-- No awareness of git context
 
 **No Exploration Safety:**
 - Try risky approach → doesn't work → lose context
 - No checkpoint/rollback
-- Start new conversation, re-establish context
 - Wasted time, wasted API calls
 
 **Slow Workflows:**
 - Sequential feature development
 - Manual git management
-- Context switching overhead
 - Mental overhead tracking state
 
 ## The ikigai Solution
@@ -38,472 +35,125 @@ Current AI coding agents treat complex workflows as an afterthought:
 
 ```bash
 # Create three agents for three features
-/agent new oauth --worktree       # Works on OAuth
-/agent new rate-limit --worktree  # Works on rate limiting
-/agent new audit --worktree       # Works on audit logging
+/agent new oauth --worktree
+/agent new rate-limit --worktree
+/agent new audit --worktree
 
-# Switch between them instantly
-Ctrl-\ oauth        # Check OAuth progress
-Ctrl-\ rate         # Check rate limiting
-Ctrl-\ audit        # Check audit logging
-Ctrl-\ m            # Back to main
-
-# Each agent works independently:
-- Own conversation history
-- Own git worktree
-- Own branch
-- No context pollution
+# Switch instantly with Ctrl-\ <name>
+# Each works independently with own conversation, worktree, and branch
 
 # Merge when ready
-/agent oauth
-/agent merge
-/agent close
-
-# Result: 3x parallelization, 10x less overhead
+/agent merge && /agent close
 ```
 
-**Use Cases:**
-- Parallel feature development (3+ features simultaneously)
-- Background research while coding
-- Experimental branches (try multiple approaches)
-- Long-running refactors in isolation
+**Use Cases:** Parallel features, background research, experimental branches, long-running refactors
 
 ### 2. Git-Native Workflows
 
 **ikigai understands git. Agents = Branches = Worktrees.**
 
 ```bash
-# Agent automatically creates worktree and branch
 /agent new feature-x --worktree
+# Automatically: creates branch, creates worktree, sets working dir
 
-What happens:
-✓ Creates branch feature-x from HEAD
-✓ Creates worktree in .worktrees/feature-x/
-✓ Creates agent with working directory in worktree
-✓ Switches to agent
-
-# Agent works in complete isolation
-[Agent: feature-x] [Branch: feature-x] [Worktree: .worktrees/feature-x]
-
-# No branch switching conflicts
-# No "what branch am I on?" confusion
-# No manual worktree management
-
-# Merge and clean up automatically
+# Work in complete isolation - no branch switching
 /agent merge   # Merge to main
 /agent close   # Delete worktree, delete branch
-
-# Result: Git workflows at the speed of thought
 ```
 
-**Benefits:**
-- Physical isolation (separate directories)
-- No branch switching
-- No merge conflicts during development
-- Automatic cleanup
-- Git-aware status line
-
-**Comparison:**
-
-| Task | Other Agents | ikigai |
-|------|--------------|--------|
-| Create feature branch | Manual | `/agent new feature --worktree` |
-| Switch branches | `git checkout` | `Ctrl-\ feature` |
-| Work on feature | Manual context | Agent maintains context |
-| Merge to main | Manual git | `/agent merge` |
-| Clean up | Manual | `/agent close` (auto) |
+**Benefits:** Physical isolation, no branch switching, no merge conflicts during development, automatic cleanup
 
 ### 3. Mark/Rewind Exploration
 
 **Checkpoint and rollback for safe exploration.**
 
 ```bash
-# Before risky refactor
 /mark before-refactor
-
-# Try approach A
-[Deep conversation exploring approach A...]
-
-# Doesn't work? Instant rollback.
-/rewind before-refactor
-
-# Try approach B from same starting point
-[Clean context, no pollution from approach A]
-
-# Result: Fearless exploration
+[Try approach A...]
+/rewind before-refactor  # Instant rollback
+[Try approach B from same starting point]
 ```
 
-**Use Cases:**
-- Try multiple implementation approaches
-- Explore risky refactors safely
-- Compare alternatives objectively
-- Document exploration paths
-
-**Comparison:**
-
-| Scenario | Other Agents | ikigai |
-|----------|--------------|--------|
-| Try risky approach | New conversation (lose context) | `/mark` → try → `/rewind` |
-| Compare alternatives | Multiple conversations | `mark` → try A → `rewind` → try B |
-| Dead end recovery | Start over | `/rewind` (instant) |
-| Audit trail | Manual notes | Database preserves everything |
+**Use Cases:** Try multiple approaches, explore risky refactors, compare alternatives, document exploration
 
 ### 4. Shared Knowledge Layer
 
 **Memory documents persist across agents and sessions.**
 
 ```bash
-# Research agent creates knowledge
 [Agent: research]
-[You]
-Research OAuth best practices
-
-[Assistant]
-[Researches comprehensively]
+# Research creates knowledge
 Created #mem-oauth/patterns
 
-/agent close
-
-# Implementation agent uses knowledge
 [Agent: impl]
-[You]
-Implement OAuth using #mem-oauth/patterns
-
-[Assistant]
-[Loads memory doc]
-Based on the research...
-
-# Result: Research once, use everywhere
+# Implementation uses knowledge
+[You] Implement OAuth using #mem-oauth/patterns
 ```
-
-**Benefits:**
-- Knowledge survives agent destruction
-- Searchable, referenceable
-- Organized with aliases (e.g., `oauth/*`)
-- Cross-agent collaboration
 
 ## Killer Features
 
-### 1. Parallel Feature Development
+### Parallel Feature Development
+Develop 3+ features simultaneously without branch switching. Time saved: 60-70%.
 
-**Develop 3+ features simultaneously without branch switching.**
+### Experimental Branches
+Try multiple approaches, benchmark objectively, keep the best, discard losers without wasted commits.
 
-```bash
-/agent new feature-a --worktree
-/agent new feature-b --worktree
-/agent new feature-c --worktree
+### Background Research
+Research in one agent while continuing to code in another. Check findings later, implement when ready.
 
-# All work in parallel
-# Each in own worktree
-# Merge when ready
+### Long-Running Refactors
+Major refactor in isolation while main branch stays stable and continues development.
 
-# Time saved: 60-70%
-```
-
-### 2. Experimental Branches
-
-**Try multiple approaches, keep the best.**
-
-```bash
-/agent new experiment-a --worktree
-[Try approach A, benchmark]
-
-/agent new experiment-b --worktree
-[Try approach B, benchmark]
-
-# Compare objectively
-# Keep winner, discard loser
-# No wasted commits
-```
-
-### 3. Background Research
-
-**Research in one agent, implement in another.**
-
-```bash
-/agent new research
-[You]
-Research WebSocket libraries and create memory doc
-
-# Switch back to main, continue coding
-Ctrl-\ m
-[Continue working]
-
-# Check research later
-Ctrl-\ research
-[Assistant]
-Research complete! #mem-websocket/research
-
-# Implement using findings
-/agent new websocket-impl --worktree
-[You]
-Implement using #mem-websocket/research
-```
-
-### 4. Long-Running Refactors
-
-**Major refactor in isolation while main stays stable.**
-
-```bash
-/agent new refactor-errors --worktree
-[Refactor runs for hours/days in separate worktree]
-
-# Meanwhile, main agent continues normal work
-Ctrl-\ m
-[Work on features, bug fixes]
-
-# When refactor done
-Ctrl-\ refactor
-/agent merge
-/agent close
-
-# Result: No disruption to main development
-```
-
-### 5. Safe Exploration
-
-**Try anything, rewind if it doesn't work.**
-
-```bash
-/mark safe-point
-[Try risky changes]
-# Doesn't work
-/rewind safe-point
-[Try different approach]
-
-# Result: Fearless experimentation
-```
+### Safe Exploration
+Try anything, rewind if it doesn't work. Fearless experimentation.
 
 ## Power User Workflows
 
 ### The "3 Features in 2 Hours" Workflow
-
-```bash
-# Traditional approach: ~6 hours sequential
-
-# ikigai approach:
-/agent new auth --worktree
-[Specify auth work]
-
-/agent new api --worktree
-[Specify API work]
-
-/agent new logging --worktree
-[Specify logging work]
-
-# All agents work in parallel
-# Each in own worktree
-# Switch between to check progress
-# Merge each when complete
-
-# Result: 2 hours, 3 features done
-```
+Traditional: ~6 hours sequential. ikigai: Create 3 agents with worktrees, all work in parallel, merge each when complete. Result: 2 hours, 3 features done.
 
 ### The "Exploration Then Implementation" Workflow
-
-```bash
-# Research without worktree
-/agent new research
-[You]
-Research OAuth, WebSocket, and caching strategies
-Create memory docs for each
-
-# Implement from research
-/agent new oauth --worktree
-[You]
-Implement using #mem-oauth/patterns
-
-/agent new websocket --worktree
-[You]
-Implement using #mem-websocket/patterns
-
-/agent new cache --worktree
-[You]
-Implement using #mem-cache/patterns
-
-# Result: Clean separation of research and implementation
-```
+Research agent creates memory docs for multiple topics, then separate implementation agents use those docs for clean implementation.
 
 ### The "Try Everything, Keep the Best" Workflow
-
-```bash
-/mark baseline
-
-/agent new approach-a --worktree
-[Implement and benchmark approach A]
-
-/agent new approach-b --worktree
-[Implement and benchmark approach B]
-
-/agent new approach-c --worktree
-[Implement and benchmark approach C]
-
-# Compare all three
-# Keep best, discard others
-/agent approach-b  # Winner
-/agent merge
-
-/agent approach-a
-/agent close --no-merge
-
-/agent approach-c
-/agent close --no-merge
-
-# Result: Objective comparison, best approach chosen
-```
+Mark baseline, create agents for approaches A/B/C, compare objectively, keep winner, discard losers.
 
 ## Comparison Matrix
 
-### vs Cursor
-
-| Feature | Cursor | ikigai |
-|---------|--------|--------|
+| Feature | Other Agents | ikigai |
+|---------|--------------|--------|
 | Multiple agents | ✗ | ✓ |
 | Git worktree integration | ✗ | ✓ |
 | Parallel features | ✗ | ✓ |
 | Mark/rewind | ✗ | ✓ |
-| Terminal-native | ✗ | ✓ |
+| Terminal-native | Limited | ✓ |
 | Memory documents | ✗ | ✓ |
-
-### vs GitHub Copilot
-
-| Feature | Copilot | ikigai |
-|---------|---------|--------|
-| Multiple agents | ✗ | ✓ |
-| Git worktree integration | ✗ | ✓ |
-| Conversation context | Limited | Full |
-| Mark/rewind | ✗ | ✓ |
-| Parallel development | ✗ | ✓ |
-
-### vs Aider
-
-| Feature | Aider | ikigai |
-|---------|-------|--------|
-| Multiple agents | ✗ | ✓ |
-| Git awareness | Basic | Native |
-| Worktree support | ✗ | ✓ |
-| Mark/rewind | ✗ | ✓ |
-| Parallel features | ✗ | ✓ |
-| Memory documents | ✗ | ✓ |
-
-### vs Claude Code / Claude Desktop
-
-| Feature | Claude Code | ikigai |
-|---------|-------------|--------|
-| Multiple agents | ✗ | ✓ |
-| Git worktrees | ✗ | ✓ |
-| Mark/rewind | ✗ | ✓ |
-| Parallel work | ✗ | ✓ |
-| Local-first | ✗ | ✓ |
-| Terminal UI | Basic | Native |
+| Local-first | Varies | ✓ |
 
 ## Design Philosophy
 
-### Terminal-Native
+**Terminal-Native:** Fast startup (~100ms), low memory (<50MB), works over SSH, maximum responsiveness
 
-**Built for the terminal from the ground up.**
+**Power User Focus:** Keyboard-driven, fuzzy matching, vim-inspired bindings, tmux-inspired multiplexing
 
-Benefits:
-- Fast startup (~100ms)
-- Low memory footprint (< 50MB)
-- Works seamlessly over SSH
-- Direct terminal integration
-- Maximum responsiveness
+**Git-Native:** Status line shows branch, agents map to branches, worktrees for isolation, git-aware everywhere
 
-### Power User Focus
-
-**Keyboard-driven for expert efficiency.**
-
-- Fuzzy matching for speed
-- Vim-inspired key bindings
-- Tmux-inspired multiplexing
-- Direct control without interruptions
-- Maximum flexibility
-
-### Git-Native
-
-**Git is a first-class citizen.**
-
-- Status line shows branch
-- Agents map to branches
-- Worktrees for isolation
-- Auto-merge workflows
-- Git-aware everywhere
-
-### Local-First
-
-**Your machine, your data, your control.**
-
-- All data stored locally in PostgreSQL
-- Direct API calls to LLMs
-- Complete privacy
-- Simple architecture: local database + LLM APIs
-- Full trust model
+**Local-First:** PostgreSQL storage, direct LLM API calls, complete privacy, full control
 
 ## Target Users
 
-### Senior/Staff Engineers
+**Senior/Staff Engineers:** 5+ years experience, comfortable with terminal, heavy git users, work on multiple features simultaneously
 
-**Who:**
-- 5+ years experience
-- Comfortable with terminal
-- Heavy git users
-- Work on multiple features simultaneously
+**Open Source Maintainers:** Manage complex projects, multiple feature branches, frequent context switching, value git hygiene
 
-**Why ikigai:**
-- Matches mental model (branches = features)
-- Eliminates git overhead
-- Enables parallel workflows
-- Terminal-native speed
+**Platform/Infrastructure Engineers:** Build tools and frameworks, deep exploration, experiment with approaches, need comprehensive documentation
 
-### Open Source Maintainers
-
-**Who:**
-- Manage complex projects
-- Multiple feature branches
-- Need to context switch frequently
-- Value git hygiene
-
-**Why ikigai:**
-- Multiple agents for multiple PRs
-- Each PR in own worktree
-- Easy context switching
-- Clean branch management
-
-### Platform/Infrastructure Engineers
-
-**Who:**
-- Build tools and frameworks
-- Deep technical exploration
-- Experiment with approaches
-- Need comprehensive documentation
-
-**Why ikigai:**
-- Mark/rewind for safe exploration
-- Memory docs for patterns
-- Parallel experimental branches
-- Research agents for investigation
-
-### Technical Founders/CTOs
-
-**Who:**
-- Wear multiple hats
-- Work on multiple features
-- Need to move fast
-- Can't afford context switching overhead
-
-**Why ikigai:**
-- Massive parallelization
-- Minimal mental overhead
-- Fast workflows
-- Maximum productivity
+**Technical Founders/CTOs:** Wear multiple hats, work on multiple features, need to move fast, can't afford context switching overhead
 
 ## Getting Started
 
-### Installation
-
 ```bash
-# Install ikigai
+# Install
 git clone https://github.com/mgreenly/ikigai.git
 cd ikigai
 make install
@@ -525,92 +175,32 @@ EOF
 ikigai
 ```
 
-### First Session
-
+First session example:
 ```bash
-# Start ikigai
-$ ikigai
-
-[Agent: main] [Branch: main]
-
-[You]
-Help me implement OAuth authentication
-
-[Assistant]
-I'll help you implement OAuth. Let me start by...
-
-# Create research agent
-/agent new oauth-research
-
-[You]
-Research OAuth 2.0 best practices and create memory doc
-
-# Create implementation agent
-Ctrl-\ m
-/agent new oauth-impl --worktree
-
-[You]
-Implement OAuth using patterns from oauth-research agent when ready
-
+/agent new research      # Research agent
+/agent new impl --worktree  # Implementation agent with worktree
 # You're now parallelized!
 ```
 
-### Learning Resources
-
-- [Getting Started Guide](../getting-started.md)
-- [Command Reference](commands.md)
-- [Workflow Examples](workflows.md)
-- [Key Bindings](keybindings.md)
-
 ## The Future
 
-### Roadmap
+**v1.0 (2025 Q2):** Single agent, mark/rewind, OpenAI integration, database persistence
 
-**v1.0 (2025 Q2):**
-- Single agent
-- Mark/rewind
-- OpenAI integration
-- Database persistence
+**v2.0 (2025 Q3):** Multi-agent support, git worktree integration, memory document store
 
-**v2.0 (2025 Q3):**
-- Multi-agent support
-- Git worktree integration
-- Memory document store
-- Advanced navigation
+**v2.1 (2025 Q4):** Multi-LLM support (Anthropic, Google), visual branch tree, GitHub/GitLab integration
 
-**v2.1 (2025 Q4):**
-- Multi-LLM support (Anthropic, Google)
-- Visual branch tree
-- GitHub/GitLab integration
-- Enhanced search
-
-**v3.0 (2026):**
-- Distributed agents (remote execution)
-- Team collaboration features
-- Advanced AI orchestration
-- Plugin system
+**v3.0 (2026):** Distributed agents, team collaboration, advanced AI orchestration, plugin system
 
 ### Vision
 
 **The terminal-native AI coding agent for power users.**
 
-- Massively parallel workflows
-- Git-native by design
-- Terminal speed and efficiency
-- Local-first, user-controlled
-- Open source, extensible
-
-**Why it matters:**
-
-Current AI coding agents are built for beginners. ikigai is built for experts.
-
-We believe expert developers deserve expert tools:
-- Tools that match their mental model
-- Tools that enhance their workflows
-- Tools that stay out of your way
-- Tools that maximize productivity
-
-ikigai is that tool.
+Current AI coding agents are built for beginners. ikigai is built for experts who deserve tools that:
+- Match their mental model
+- Enhance their workflows
+- Stay out of the way
+- Maximize productivity
 
 ## Try It
 
@@ -619,8 +209,6 @@ git clone https://github.com/mgreenly/ikigai.git
 cd ikigai
 make
 ./build/bin/ikigai
-
-# Welcome to the future of AI-assisted coding
 ```
 
 ## Join Us
@@ -628,7 +216,6 @@ make
 - GitHub: https://github.com/mgreenly/ikigai
 - Issues: https://github.com/mgreenly/ikigai/issues
 - Discussions: https://github.com/mgreenly/ikigai/discussions
-- Discord: [Coming soon]
 
 **Built by power users, for power users.**
 

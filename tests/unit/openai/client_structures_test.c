@@ -136,10 +136,7 @@ START_TEST(test_request_create_valid)
     ik_openai_conversation_t *conv = conv_res.ok;
 
     /* Create request */
-    res_t req_res = ik_openai_request_create(ctx, cfg, conv);
-    ck_assert(!req_res.is_err);
-
-    ik_openai_request_t *req = req_res.ok;
+    ik_openai_request_t *req = ik_openai_request_create(ctx, cfg, conv);
     ck_assert_ptr_nonnull(req);
     ck_assert_str_eq(req->model, "gpt-4-turbo");
     ck_assert(req->temperature == 0.7);
@@ -155,10 +152,7 @@ END_TEST
 
 START_TEST(test_response_create_valid)
 {
-    res_t res = ik_openai_response_create(ctx);
-    ck_assert(!res.is_err);
-
-    ik_openai_response_t *resp = res.ok;
+    ik_openai_response_t *resp = ik_openai_response_create(ctx);
     ck_assert_ptr_nonnull(resp);
     ck_assert_ptr_null(resp->content);
     ck_assert_ptr_null(resp->finish_reason);
@@ -186,15 +180,11 @@ START_TEST(test_serialize_empty_conversation)
     ik_openai_conversation_t *conv = conv_res.ok;
 
     /* Create request */
-    res_t req_res = ik_openai_request_create(ctx, cfg, conv);
-    ck_assert(!req_res.is_err);
-    ik_openai_request_t *req = req_res.ok;
+    ik_openai_request_t *req = ik_openai_request_create(ctx, cfg, conv);
+    ck_assert_ptr_nonnull(req);
 
     /* Serialize */
-    res_t json_res = ik_openai_serialize_request(ctx, req);
-    ck_assert(!json_res.is_err);
-
-    char *json = json_res.ok;
+    char *json = ik_openai_serialize_request(ctx, req);
     ck_assert_ptr_nonnull(json);
 
     /* Parse JSON to verify structure */
@@ -246,15 +236,11 @@ END_TEST START_TEST(test_serialize_with_messages)
     ik_openai_conversation_add_msg(conv, msg2_res.ok);
 
     /* Create request */
-    res_t req_res = ik_openai_request_create(ctx, cfg, conv);
-    ck_assert(!req_res.is_err);
-    ik_openai_request_t *req = req_res.ok;
+    ik_openai_request_t *req = ik_openai_request_create(ctx, cfg, conv);
+    ck_assert_ptr_nonnull(req);
 
     /* Serialize */
-    res_t json_res = ik_openai_serialize_request(ctx, req);
-    ck_assert(!json_res.is_err);
-
-    char *json = json_res.ok;
+    char *json = ik_openai_serialize_request(ctx, req);
     ck_assert_ptr_nonnull(json);
 
     /* Parse JSON to verify structure */

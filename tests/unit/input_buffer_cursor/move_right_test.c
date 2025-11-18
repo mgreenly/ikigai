@@ -136,6 +136,8 @@ START_TEST(test_cursor_move_right_at_end)
 }
 
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test NULL cursor parameter assertion
 START_TEST(test_cursor_move_right_null_cursor)
 {
@@ -160,6 +162,7 @@ START_TEST(test_cursor_move_right_null_text)
 }
 
 END_TEST
+#endif
 
 // Test suite
 static Suite *cursor_move_right_suite(void)
@@ -174,11 +177,13 @@ static Suite *cursor_move_right_suite(void)
     tcase_add_test(tc_move_right, test_cursor_move_right_at_end);
     suite_add_tcase(s, tc_move_right);
 
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_cursor_move_right_null_cursor, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_cursor_move_right_null_text, SIGABRT);
     suite_add_tcase(s, tc_assertions);
+#endif
 
     return s;
 }

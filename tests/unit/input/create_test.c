@@ -22,7 +22,7 @@ START_TEST(test_input_parser_create) {
 }
 END_TEST
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: ik_input_parser_create with NULL parent asserts
 START_TEST(test_input_parser_create_null_parent_asserts)
 {
@@ -71,7 +71,7 @@ static Suite *input_create_suite(void)
 
     tcase_add_test(tc_core, test_input_parser_create);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     tcase_add_test_raise_signal(tc_assertions, test_input_parser_create_null_parent_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_input_parser_create_null_parser_out_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_input_parse_byte_null_parser_asserts, SIGABRT);

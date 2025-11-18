@@ -330,7 +330,7 @@ START_TEST(test_term_get_size_fails)
 
 END_TEST
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: ik_term_init with NULL parent asserts
 START_TEST(test_term_init_null_parent_asserts)
 {
@@ -432,7 +432,7 @@ static Suite *terminal_suite(void)
     tcase_add_test(tc_core, test_term_get_size_success);
     tcase_add_test(tc_core, test_term_get_size_fails);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     tcase_add_test_raise_signal(tc_core, test_term_init_null_parent_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_core, test_term_init_null_ctx_out_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_core, test_term_get_size_null_ctx_asserts, SIGABRT);

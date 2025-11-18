@@ -296,6 +296,8 @@ START_TEST(test_error_code_str)
 }
 
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test error code to string conversion with invalid code (should PANIC)
 START_TEST(test_error_code_str_invalid)
 {
@@ -303,6 +305,7 @@ START_TEST(test_error_code_str_invalid)
 }
 
 END_TEST
+#endif
 
 // Test suite setup
 static Suite *error_suite(void)
@@ -327,9 +330,16 @@ static Suite *error_suite(void)
     tcase_add_test(tc_core, test_error_message_empty);
     tcase_add_test(tc_core, test_error_fprintf_null_file);
     tcase_add_test(tc_core, test_error_code_str);
-    tcase_add_test_raise_signal(tc_core, test_error_code_str_invalid, SIGABRT);
 
     suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_add_test_raise_signal(tc_assertions, test_error_code_str_invalid, SIGABRT);
+    suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

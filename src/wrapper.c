@@ -139,5 +139,46 @@ MOCKABLE ssize_t posix_read_(int fd, void *buf, size_t count)
     return read(fd, buf, count);
 }
 
+// ============================================================================
+// libcurl wrappers - debug/test builds only
+// ============================================================================
+
+#include <curl/curl.h>
+
+MOCKABLE CURL *curl_easy_init_(void)
+{
+    return curl_easy_init();
+}
+
+MOCKABLE void curl_easy_cleanup_(CURL *curl)
+{
+    curl_easy_cleanup(curl);
+}
+
+MOCKABLE CURLcode curl_easy_perform_(CURL *curl)
+{
+    return curl_easy_perform(curl);
+}
+
+MOCKABLE const char *curl_easy_strerror_(CURLcode code)
+{
+    return curl_easy_strerror(code);
+}
+
+MOCKABLE struct curl_slist *curl_slist_append_(struct curl_slist *list, const char *string)
+{
+    return curl_slist_append(list, string);
+}
+
+MOCKABLE void curl_slist_free_all_(struct curl_slist *list)
+{
+    curl_slist_free_all(list);
+}
+
+MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
+{
+    return curl_easy_setopt(curl, opt, val);
+}
+
 // LCOV_EXCL_STOP
 #endif

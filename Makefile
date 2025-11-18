@@ -33,7 +33,11 @@ SANITIZE_FLAGS = -fsanitize=address,undefined
 TSAN_FLAGS = -fsanitize=thread
 
 # Valgrind build flags (optimized for backtraces)
-VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
+ifeq ($(SKIP_SIGNAL_TESTS),1)
+  VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG -DSKIP_SIGNAL_TESTS
+else
+  VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
+endif
 
 # Release build flags (_FORTIFY_SOURCE requires optimization)
 RELEASE_FLAGS = -O2 -g -DNDEBUG -D_FORTIFY_SOURCE=2
@@ -68,22 +72,22 @@ endif
 # Allow LDFLAGS override if not set by BUILD type
 LDFLAGS ?=
 
-CLIENT_LIBS ?= -ltalloc -luuid -lb64 -lpthread -lutf8proc
+CLIENT_LIBS ?= -ltalloc -luuid -lb64 -lpthread -lutf8proc -lcurl
 CLIENT_STATIC_LIBS ?=
 
 COMPLEXITY_THRESHOLD = 15
 NESTING_DEPTH_THRESHOLD = 5
 LINE_LENGTH = 120
-MAX_FILE_LINES = 500
+MAX_FILE_BYTES = 16384
 
 # Coverage settings
 COVERAGE_DIR = coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
-LCOV_EXCL_COVERAGE = 457
+LCOV_EXCL_COVERAGE = 467
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_actions.c src/signal_handler.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_viewport.c src/repl_actions.c src/signal_handler.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/sse_parser.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
@@ -98,7 +102,7 @@ PERFORMANCE_TEST_TARGETS = $(patsubst tests/performance/%_perf.c,$(BUILDDIR)/tes
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS) $(PERFORMANCE_TEST_TARGETS)
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_actions.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_viewport.c src/repl_actions.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/sse_parser.c
 MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
@@ -129,19 +133,19 @@ $(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
 
 $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 $(BUILDDIR)/tests/integration/%_test.o: tests/integration/%_test.c | $(BUILDDIR)/tests/integration
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILDDIR)/tests/integration/%_test: $(BUILDDIR)/tests/integration/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | $(BUILDDIR)/tests/integration
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 $(BUILDDIR)/tests/performance/%_perf.o: tests/performance/%_perf.c | $(BUILDDIR)/tests/performance
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILDDIR)/tests/performance/%_perf: $(BUILDDIR)/tests/performance/%_perf.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | $(BUILDDIR)/tests/performance
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 $(BUILDDIR)/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | $(BUILDDIR)/tests
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -153,11 +157,11 @@ $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o: tests/unit/repl/repl_run_tes
 # Special rule for repl_run tests that need the common object
 $(BUILDDIR)/tests/unit/repl/repl_run_basic_test: $(BUILDDIR)/tests/unit/repl/repl_run_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 $(BUILDDIR)/tests/unit/repl/repl_run_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 bin:
 	mkdir -p bin
@@ -273,13 +277,14 @@ check-helgrind:
 	@rm -rf build-helgrind
 	@mkdir -p build-helgrind/tests/unit build-helgrind/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-helgrind/tests/unit|' | xargs mkdir -p
-	@$(MAKE) -j$(MAKE_JOBS) check BUILD=valgrind BUILDDIR=build-helgrind
+	@$(MAKE) -j$(MAKE_JOBS) check BUILD=valgrind BUILDDIR=build-helgrind SKIP_SIGNAL_TESTS=1
 	@echo "Running tests under Valgrind Helgrind..."
 	@ulimit -n 1024; \
 	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
 		'echo -n "Helgrind: {}... "; \
-		if valgrind --tool=helgrind --error-exitcode=1 \
+		if CK_FORK=no valgrind --tool=helgrind --error-exitcode=1 \
 		            --history-level=approx --quiet \
+		            --suppressions=helgrind.supp \
 		            ./{} > /tmp/helgrind-$$$$.log 2>&1; then \
 			echo "✓"; \
 		else \
@@ -420,44 +425,43 @@ complexity:
 	@echo "✓ All complexity checks passed"
 
 filesize:
-	@echo "Checking file line counts (max: $(MAX_FILE_LINES))..."
+	@echo "Checking file sizes (max: $(MAX_FILE_BYTES) bytes)..."
 	@failed=0; \
-	for file in src/*.c src/*.h; do \
-		[ -f "$$file" ] || continue; \
-		lines=$$(wc -l < "$$file"); \
-		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
-			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+	for file in $$(find src -name "*.c" -o -name "*.h" | grep -v vendor); do \
+		bytes=$$(wc -c < "$$file"); \
+		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
+			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
 	for file in $$(find tests/unit -name "*.c"); do \
-		lines=$$(wc -l < "$$file"); \
-		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
-			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+		bytes=$$(wc -c < "$$file"); \
+		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
+			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
 	for file in tests/integration/*.c; do \
 		[ -f "$$file" ] || continue; \
-		lines=$$(wc -l < "$$file"); \
-		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
-			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+		bytes=$$(wc -c < "$$file"); \
+		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
+			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
 	for file in docs/*.md docs/*/*.md; do \
 		[ -f "$$file" ] || continue; \
-		lines=$$(wc -l < "$$file"); \
-		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
-			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+		bytes=$$(wc -c < "$$file"); \
+		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
+			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
 	if [ $$failed -eq 1 ]; then \
-		echo "✗ Some files exceed $(MAX_FILE_LINES) line limit"; \
+		echo "✗ Some files exceed $(MAX_FILE_BYTES) byte limit"; \
 		exit 1; \
 	fi
-	@echo "✓ All file line count checks passed"
+	@echo "✓ All file size checks passed"
 
 lint: complexity filesize
 
@@ -567,7 +571,7 @@ help:
 	@echo "  coverage        - Generate text-based coverage report (requires lcov)"
 	@echo "  lint            - Run all lint checks (complexity + filesize)"
 	@echo "  complexity      - Check code complexity (threshold: $(COMPLEXITY_THRESHOLD))"
-	@echo "  filesize        - Check file line counts (max: $(MAX_FILE_LINES))"
+	@echo "  filesize        - Check file sizes (max: $(MAX_FILE_BYTES) bytes)"
 	@echo "  ci              - Run all CI checks (lint + coverage + dynamic + release)"
 	@echo ""
 	@echo "Distribution targets:"

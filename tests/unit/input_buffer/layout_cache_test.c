@@ -375,6 +375,8 @@ START_TEST(test_layout_zero_width)
 }
 
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL parameter assertions */
 START_TEST(test_ensure_layout_null_asserts)
 {
@@ -395,6 +397,7 @@ END_TEST START_TEST(test_get_physical_lines_null_asserts)
 }
 
 END_TEST
+#endif
 
 static Suite *input_buffer_layout_cache_suite(void)
 {
@@ -420,13 +423,16 @@ static Suite *input_buffer_layout_cache_suite(void)
     tcase_add_test(tc_core, test_layout_empty_lines);
     tcase_add_test(tc_core, test_layout_zero_width);
 
+    suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
     tcase_add_test_raise_signal(tc_assertions, test_ensure_layout_null_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_invalidate_layout_null_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_get_physical_lines_null_asserts, SIGABRT);
-
-    suite_add_tcase(s, tc_core);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

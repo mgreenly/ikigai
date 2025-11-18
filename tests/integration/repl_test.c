@@ -140,23 +140,6 @@ START_TEST(test_repl_init) {
     talloc_free(ctx);
 }
 END_TEST
-// Test: REPL initialization with NULL parent
-START_TEST(test_repl_init_null_parent)
-{
-    ik_repl_ctx_t *repl = NULL;
-    (void)ik_repl_init(NULL, &repl);
-}
-
-END_TEST
-// Test: REPL initialization with NULL out pointer
-START_TEST(test_repl_init_null_out)
-{
-    void *ctx = talloc_new(NULL);
-    (void)ik_repl_init(ctx, NULL);
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test: ik_repl_cleanup with NULL
 START_TEST(test_repl_cleanup_null)
 {
@@ -206,6 +189,26 @@ START_TEST(test_repl_run)
 
 END_TEST
 
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+// Test: REPL initialization with NULL parent
+START_TEST(test_repl_init_null_parent)
+{
+    ik_repl_ctx_t *repl = NULL;
+    (void)ik_repl_init(NULL, &repl);
+}
+
+END_TEST
+// Test: REPL initialization with NULL out pointer
+START_TEST(test_repl_init_null_out)
+{
+    void *ctx = talloc_new(NULL);
+    (void)ik_repl_init(ctx, NULL);
+    talloc_free(ctx);
+}
+
+END_TEST
+#endif
+
 static Suite *repl_suite(void)
 {
     Suite *s = suite_create("REPL");
@@ -218,11 +221,13 @@ static Suite *repl_suite(void)
     tcase_add_test(tc_core, test_repl_run);
     suite_add_tcase(s, tc_core);
 
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_repl_init_null_parent, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_repl_init_null_out, SIGABRT);
     suite_add_tcase(s, tc_assertions);
+#endif
 
     return s;
 }

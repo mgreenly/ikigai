@@ -122,6 +122,62 @@ MOCKABLE const char *yyjson_get_str_(yyjson_val *val);
 #endif
 
 // ============================================================================
+// libcurl wrappers
+// ============================================================================
+
+#ifdef NDEBUG
+// Release build: inline definitions for zero overhead
+#include <curl/curl.h>
+
+MOCKABLE CURL *curl_easy_init_(void)
+{
+    return curl_easy_init();
+}
+
+MOCKABLE void curl_easy_cleanup_(CURL *curl)
+{
+    curl_easy_cleanup(curl);
+}
+
+MOCKABLE CURLcode curl_easy_perform_(CURL *curl)
+{
+    return curl_easy_perform(curl);
+}
+
+MOCKABLE const char *curl_easy_strerror_(CURLcode code)
+{
+    return curl_easy_strerror(code);
+}
+
+MOCKABLE struct curl_slist *curl_slist_append_(struct curl_slist *list, const char *string)
+{
+    return curl_slist_append(list, string);
+}
+
+MOCKABLE void curl_slist_free_all_(struct curl_slist *list)
+{
+    curl_slist_free_all(list);
+}
+
+// curl_easy_setopt wrapper - single void* version for simplicity
+#define curl_easy_setopt_(curl, opt, val) curl_easy_setopt(curl, opt, val)
+
+#else
+// Debug/test build: weak symbol declarations
+#include <curl/curl.h>
+
+MOCKABLE CURL *curl_easy_init_(void);
+MOCKABLE void curl_easy_cleanup_(CURL *curl);
+MOCKABLE CURLcode curl_easy_perform_(CURL *curl);
+MOCKABLE const char *curl_easy_strerror_(CURLcode code);
+MOCKABLE struct curl_slist *curl_slist_append_(struct curl_slist *list, const char *string);
+MOCKABLE void curl_slist_free_all_(struct curl_slist *list);
+
+// curl_easy_setopt wrapper - const void* to preserve const-correctness
+MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val);
+#endif
+
+// ============================================================================
 // POSIX system call wrappers
 // ============================================================================
 

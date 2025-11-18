@@ -24,10 +24,7 @@ static void teardown(void)
  */
 
 START_TEST(test_sse_parser_create) {
-    res_t res = ik_openai_sse_parser_create(ctx);
-    ck_assert(!res.is_err);
-
-    ik_openai_sse_parser_t *parser = res.ok;
+    ik_openai_sse_parser_t *parser = ik_openai_sse_parser_create(ctx);
     ck_assert_ptr_nonnull(parser);
     ck_assert_ptr_nonnull(parser->buffer);
     ck_assert_uint_eq(parser->buffer_len, 0);
@@ -36,19 +33,16 @@ START_TEST(test_sse_parser_create) {
 
 END_TEST START_TEST(test_sse_parser_feed_partial_data)
 {
-    res_t parser_res = ik_openai_sse_parser_create(ctx);
-    ck_assert(!parser_res.is_err);
-    ik_openai_sse_parser_t *parser = parser_res.ok;
+    ik_openai_sse_parser_t *parser = ik_openai_sse_parser_create(ctx);
+    ck_assert_ptr_nonnull(parser);
 
     /* Feed partial data (no \n\n delimiter) */
     const char *data = "data: {\"test\": \"value\"}";
-    res_t feed_res = ik_openai_sse_parser_feed(parser, data, strlen(data));
-    ck_assert(!feed_res.is_err);
+    ik_openai_sse_parser_feed(parser, data, strlen(data));
 
     /* No complete event yet */
-    res_t event_res = ik_openai_sse_parser_get_event(parser);
-    ck_assert(!event_res.is_err);
-    ck_assert_ptr_null(event_res.ok);
+    char *event = ik_openai_sse_parser_get_event(parser);
+    ck_assert_ptr_null(event);
 
     /* Buffer should contain the partial data */
     ck_assert_uint_eq(parser->buffer_len, strlen(data));
@@ -57,96 +51,81 @@ END_TEST START_TEST(test_sse_parser_feed_partial_data)
 
 END_TEST START_TEST(test_sse_parser_feed_complete_event)
 {
-    res_t parser_res = ik_openai_sse_parser_create(ctx);
-    ck_assert(!parser_res.is_err);
-    ik_openai_sse_parser_t *parser = parser_res.ok;
+    ik_openai_sse_parser_t *parser = ik_openai_sse_parser_create(ctx);
+    ck_assert_ptr_nonnull(parser);
 
     /* Feed complete event with \n\n delimiter */
     const char *data = "data: {\"test\": \"value\"}\n\n";
-    res_t feed_res = ik_openai_sse_parser_feed(parser, data, strlen(data));
-    ck_assert(!feed_res.is_err);
+    ik_openai_sse_parser_feed(parser, data, strlen(data));
 
     /* Should have one complete event */
-    res_t event_res = ik_openai_sse_parser_get_event(parser);
-    ck_assert(!event_res.is_err);
-    ck_assert_ptr_nonnull(event_res.ok);
-
-    char *event = event_res.ok;
+    char *event = ik_openai_sse_parser_get_event(parser);
+    ck_assert_ptr_nonnull(event);
     ck_assert_str_eq(event, "data: {\"test\": \"value\"}");
 
     /* Buffer should now be empty */
     ck_assert_uint_eq(parser->buffer_len, 0);
 
     /* No more events */
-    res_t event_res2 = ik_openai_sse_parser_get_event(parser);
-    ck_assert(!event_res2.is_err);
-    ck_assert_ptr_null(event_res2.ok);
+    char *event2 = ik_openai_sse_parser_get_event(parser);
+    ck_assert_ptr_null(event2);
 }
 
 END_TEST START_TEST(test_sse_parser_feed_multiple_events)
 {
-    res_t parser_res = ik_openai_sse_parser_create(ctx);
-    ck_assert(!parser_res.is_err);
-    ik_openai_sse_parser_t *parser = parser_res.ok;
+    ik_openai_sse_parser_t *parser = ik_openai_sse_parser_create(ctx);
+    ck_assert_ptr_nonnull(parser);
 
     /* Feed multiple events at once */
     const char *data = "data: event1\n\ndata: event2\n\ndata: event3\n\n";
-    res_t feed_res = ik_openai_sse_parser_feed(parser, data, strlen(data));
-    ck_assert(!feed_res.is_err);
+    ik_openai_sse_parser_feed(parser, data, strlen(data));
 
     /* Extract first event */
-    res_t event1_res = ik_openai_sse_parser_get_event(parser);
-    ck_assert(!event1_res.is_err);
-    ck_assert_str_eq(event1_res.ok, "data: event1");
+    char *event1 = ik_openai_sse_parser_get_event(parser);
+    ck_assert_str_eq(event1, "data: event1");
 
     /* Extract second event */
-    res_t event2_res = ik_openai_sse_parser_get_event(parser);
-    ck_assert(!event2_res.is_err);
-    ck_assert_str_eq(event2_res.ok, "data: event2");
+    char *event2 = ik_openai_sse_parser_get_event(parser);
+    ck_assert_str_eq(event2, "data: event2");
 
     /* Extract third event */
-    res_t event3_res = ik_openai_sse_parser_get_event(parser);
-    ck_assert(!event3_res.is_err);
-    ck_assert_str_eq(event3_res.ok, "data: event3");
+    char *event3 = ik_openai_sse_parser_get_event(parser);
+    ck_assert_str_eq(event3, "data: event3");
 
     /* No more events */
-    res_t event4_res = ik_openai_sse_parser_get_event(parser);
-    ck_assert(!event4_res.is_err);
-    ck_assert_ptr_null(event4_res.ok);
+    char *event4 = ik_openai_sse_parser_get_event(parser);
+    ck_assert_ptr_null(event4);
 }
 
 END_TEST START_TEST(test_sse_parser_feed_chunked_event)
 {
-    res_t parser_res = ik_openai_sse_parser_create(ctx);
-    ck_assert(!parser_res.is_err);
-    ik_openai_sse_parser_t *parser = parser_res.ok;
+    ik_openai_sse_parser_t *parser = ik_openai_sse_parser_create(ctx);
+    ck_assert_ptr_nonnull(parser);
 
     /* Simulate streaming: feed event in multiple chunks */
     ik_openai_sse_parser_feed(parser, "data: {\"", 8);
-    ck_assert_ptr_null(ik_openai_sse_parser_get_event(parser).ok);
+    ck_assert_ptr_null(ik_openai_sse_parser_get_event(parser));
 
     ik_openai_sse_parser_feed(parser, "test\": \"", 8);
-    ck_assert_ptr_null(ik_openai_sse_parser_get_event(parser).ok);
+    ck_assert_ptr_null(ik_openai_sse_parser_get_event(parser));
 
     ik_openai_sse_parser_feed(parser, "value\"}", 7);
-    ck_assert_ptr_null(ik_openai_sse_parser_get_event(parser).ok);
+    ck_assert_ptr_null(ik_openai_sse_parser_get_event(parser));
 
     ik_openai_sse_parser_feed(parser, "\n", 1);
-    ck_assert_ptr_null(ik_openai_sse_parser_get_event(parser).ok);
+    ck_assert_ptr_null(ik_openai_sse_parser_get_event(parser));
 
     /* Final chunk completes the event */
     ik_openai_sse_parser_feed(parser, "\n", 1);
 
-    res_t event_res = ik_openai_sse_parser_get_event(parser);
-    ck_assert(!event_res.is_err);
-    ck_assert_str_eq(event_res.ok, "data: {\"test\": \"value\"}");
+    char *event = ik_openai_sse_parser_get_event(parser);
+    ck_assert_str_eq(event, "data: {\"test\": \"value\"}");
 }
 
 END_TEST START_TEST(test_sse_parser_buffer_growth)
 {
-    res_t parser_res = ik_openai_sse_parser_create(ctx);
-    ck_assert(!parser_res.is_err);
-    ik_openai_sse_parser_t *parser = parser_res.ok;
+    ik_openai_sse_parser_t *parser = ik_openai_sse_parser_create(ctx);
+    ck_assert_ptr_nonnull(parser);
 
     /* Create large data that exceeds initial buffer capacity */
     const size_t large_size = 8192;  /* Larger than initial 4096 */
@@ -158,27 +137,21 @@ END_TEST START_TEST(test_sse_parser_buffer_growth)
     large_data[large_size + 2] = '\0';
 
     /* Feed large data - should trigger buffer growth */
-    res_t feed_res = ik_openai_sse_parser_feed(parser, large_data, large_size + 2);
-    ck_assert(!feed_res.is_err);
+    ik_openai_sse_parser_feed(parser, large_data, large_size + 2);
 
     /* Should be able to extract the event */
-    res_t event_res = ik_openai_sse_parser_get_event(parser);
-    ck_assert(!event_res.is_err);
-    ck_assert_ptr_nonnull(event_res.ok);
-
-    char *event = event_res.ok;
+    char *event = ik_openai_sse_parser_get_event(parser);
+    ck_assert_ptr_nonnull(event);
     ck_assert_uint_eq(strlen(event), large_size);
 }
 
 END_TEST START_TEST(test_sse_parser_empty_feed)
 {
-    res_t parser_res = ik_openai_sse_parser_create(ctx);
-    ck_assert(!parser_res.is_err);
-    ik_openai_sse_parser_t *parser = parser_res.ok;
+    ik_openai_sse_parser_t *parser = ik_openai_sse_parser_create(ctx);
+    ck_assert_ptr_nonnull(parser);
 
     /* Feed empty data */
-    res_t feed_res = ik_openai_sse_parser_feed(parser, "", 0);
-    ck_assert(!feed_res.is_err);
+    ik_openai_sse_parser_feed(parser, "", 0);
 
     /* Buffer should still be empty */
     ck_assert_uint_eq(parser->buffer_len, 0);
@@ -186,43 +159,39 @@ END_TEST START_TEST(test_sse_parser_empty_feed)
 
 END_TEST START_TEST(test_sse_parser_done_marker)
 {
-    res_t parser_res = ik_openai_sse_parser_create(ctx);
-    ck_assert(!parser_res.is_err);
-    ik_openai_sse_parser_t *parser = parser_res.ok;
+    ik_openai_sse_parser_t *parser = ik_openai_sse_parser_create(ctx);
+    ck_assert_ptr_nonnull(parser);
 
     /* Feed DONE marker (as seen in OpenAI streams) */
     const char *data = "data: [DONE]\n\n";
-    res_t feed_res = ik_openai_sse_parser_feed(parser, data, strlen(data));
-    ck_assert(!feed_res.is_err);
+    ik_openai_sse_parser_feed(parser, data, strlen(data));
 
     /* Should extract the DONE marker */
-    res_t event_res = ik_openai_sse_parser_get_event(parser);
-    ck_assert(!event_res.is_err);
-    ck_assert_str_eq(event_res.ok, "data: [DONE]");
+    char *event = ik_openai_sse_parser_get_event(parser);
+    ck_assert_str_eq(event, "data: [DONE]");
 }
 
 END_TEST START_TEST(test_sse_parser_partial_then_complete)
 {
-    res_t parser_res = ik_openai_sse_parser_create(ctx);
-    ck_assert(!parser_res.is_err);
-    ik_openai_sse_parser_t *parser = parser_res.ok;
+    ik_openai_sse_parser_t *parser = ik_openai_sse_parser_create(ctx);
+    ck_assert_ptr_nonnull(parser);
 
     /* Feed partial event */
     ik_openai_sse_parser_feed(parser, "data: partial", 13);
 
     /* No event yet */
-    ck_assert_ptr_null(ik_openai_sse_parser_get_event(parser).ok);
+    ck_assert_ptr_null(ik_openai_sse_parser_get_event(parser));
 
     /* Complete the event */
     ik_openai_sse_parser_feed(parser, "\n\ndata: next\n\n", 14);
 
     /* Extract first event */
-    res_t event1_res = ik_openai_sse_parser_get_event(parser);
-    ck_assert_str_eq(event1_res.ok, "data: partial");
+    char *event1 = ik_openai_sse_parser_get_event(parser);
+    ck_assert_str_eq(event1, "data: partial");
 
     /* Extract second event */
-    res_t event2_res = ik_openai_sse_parser_get_event(parser);
-    ck_assert_str_eq(event2_res.ok, "data: next");
+    char *event2 = ik_openai_sse_parser_get_event(parser);
+    ck_assert_str_eq(event2, "data: next");
 }
 
 END_TEST

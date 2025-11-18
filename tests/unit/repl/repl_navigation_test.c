@@ -208,6 +208,8 @@ START_TEST(test_repl_process_action_unknown)
 }
 
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL parameter assertions */
 START_TEST(test_repl_process_action_null_repl_asserts)
 {
@@ -229,6 +231,8 @@ START_TEST(test_repl_process_action_null_action_asserts)
 }
 
 END_TEST
+#endif
+
 /* Test: Arrow up */
 START_TEST(test_repl_process_action_arrow_up)
 {
@@ -324,8 +328,6 @@ static Suite *repl_navigation_suite(void)
 {
     Suite *s = suite_create("REPL_Navigation");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     tcase_add_test(tc_core, test_repl_process_action_arrow_left);
     tcase_add_test(tc_core, test_repl_process_action_arrow_right);
@@ -336,11 +338,16 @@ static Suite *repl_navigation_suite(void)
     tcase_add_test(tc_core, test_repl_process_action_right_at_end);
     tcase_add_test(tc_core, test_repl_process_action_unknown);
 
+    suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_repl_process_action_null_repl_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_repl_process_action_null_action_asserts, SIGABRT);
-
-    suite_add_tcase(s, tc_core);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

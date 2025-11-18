@@ -42,6 +42,10 @@ Internal static symbols don't need `ik_` prefix.
 
 See docs/naming.md for complete conventions and approved abbreviations.
 
+## Test Code Style
+
+Always add a blank line between END_TEST and START_TEST.
+
 ## Pre-Commit Requirements
 
 BEFORE creating ANY commit (mandatory, no exceptions):

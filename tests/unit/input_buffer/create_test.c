@@ -89,6 +89,8 @@ START_TEST(test_clear)
 }
 
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL parameter assertions */
 START_TEST(test_create_null_input_buffer_out_asserts)
 {
@@ -150,28 +152,31 @@ END_TEST START_TEST(test_clear_null_input_buffer_asserts)
 }
 
 END_TEST
+#endif
 
 static Suite *input_buffer_create_suite(void)
 {
     Suite *s = suite_create("Input Buffer Create");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_create);
     tcase_add_test(tc_core, test_get_text);
     tcase_add_test(tc_core, test_clear);
 
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_create_null_input_buffer_out_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_get_text_null_input_buffer_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_get_text_null_text_out_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_get_text_null_len_out_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_clear_null_input_buffer_asserts, SIGABRT);
+    suite_add_tcase(s, tc_assertions);
+#endif
 
     suite_add_tcase(s, tc_core);
-    suite_add_tcase(s, tc_assertions);
     return s;
 }
 

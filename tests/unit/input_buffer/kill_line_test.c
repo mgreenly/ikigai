@@ -287,6 +287,8 @@ START_TEST(test_kill_line_then_insert)
 }
 
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL input_buffer should assert */
 START_TEST(test_kill_line_null_input_buffer_asserts)
 {
@@ -295,13 +297,12 @@ START_TEST(test_kill_line_null_input_buffer_asserts)
 }
 
 END_TEST
+#endif
 
 static Suite *input_buffer_kill_line_suite(void)
 {
     Suite *s = suite_create("Input Buffer Kill Line");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_kill_line_basic);
@@ -310,11 +311,16 @@ static Suite *input_buffer_kill_line_suite(void)
     tcase_add_test(tc_core, test_kill_line_empty_line);
     tcase_add_test(tc_core, test_kill_line_then_insert);
 
-    /* Assertion tests */
-    tcase_add_test_raise_signal(tc_assertions, test_kill_line_null_input_buffer_asserts, SIGABRT);
-
     suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+    /* Assertion tests */
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_add_test_raise_signal(tc_assertions, test_kill_line_null_input_buffer_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 
