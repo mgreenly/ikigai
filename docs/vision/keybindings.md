@@ -15,9 +15,9 @@ Fast keyboard navigation for power users. All key bindings are designed to minim
 - Status line always visible
 
 **Terminal-Native:**
-- No mouse required
+- Keyboard-driven for maximum efficiency
 - Works over SSH
-- No GUI dependencies
+- Fast and lightweight
 
 ## Quick Reference
 

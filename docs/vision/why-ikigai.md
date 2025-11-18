@@ -399,26 +399,26 @@ Implement using #mem-cache/patterns
 
 ## Design Philosophy
 
-### Terminal-First
+### Terminal-Native
 
-**No Electron. No web UI. Pure terminal.**
+**Built for the terminal from the ground up.**
 
 Benefits:
 - Fast startup (~100ms)
-- Low memory (< 50MB)
-- Works over SSH
-- No GUI dependencies
-- Power user efficiency
+- Low memory footprint (< 50MB)
+- Works seamlessly over SSH
+- Direct terminal integration
+- Maximum responsiveness
 
 ### Power User Focus
 
-**Keyboard-driven, no hand-holding.**
+**Keyboard-driven for expert efficiency.**
 
 - Fuzzy matching for speed
 - Vim-inspired key bindings
 - Tmux-inspired multiplexing
-- No unnecessary confirmations
-- Maximum control
+- Direct control without interruptions
+- Maximum flexibility
 
 ### Git-Native
 
@@ -434,10 +434,10 @@ Benefits:
 
 **Your machine, your data, your control.**
 
-- All data in local PostgreSQL
+- All data stored locally in PostgreSQL
 - Direct API calls to LLMs
-- No telemetry
-- No external servers (except LLM APIs)
+- Complete privacy
+- Simple architecture: local database + LLM APIs
 - Full trust model
 
 ## Target Users
@@ -607,7 +607,7 @@ Current AI coding agents are built for beginners. ikigai is built for experts.
 We believe expert developers deserve expert tools:
 - Tools that match their mental model
 - Tools that enhance their workflows
-- Tools that don't get in the way
+- Tools that stay out of your way
 - Tools that maximize productivity
 
 ikigai is that tool.

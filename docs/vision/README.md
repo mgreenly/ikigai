@@ -2,10 +2,17 @@
 
 ## Overview
 
-ikigai's vision is to be the **power user's AI coding agent** with git-aware multi-agent parallelization. Two core features differentiate ikigai from other coding agents:
+ikigai is a **unified terminal-native AI coding agent** that runs multiple parallel conversations within a single application. Each agent maintains isolated context while sharing knowledge through a persistent memory document store.
 
-1. **Multi-Agent Conversations** - Parallel conversations in isolated worktrees
-2. **Mark/Rewind** - Checkpoint/rollback for iterative exploration
+**The Core Innovation:**
+
+A single ikigai instance manages multiple AI agents, each focused on different work:
+- **Root agent** coordinates overall development on the main branch
+- **Helper agents** work on features in isolated git worktrees
+- **Memory documents** enable knowledge sharing across all agents
+- **Mark/rewind** provides checkpoint/rollback for safe exploration
+
+All agents run in the same application, with instant switching and shared knowledge - like having multiple expert developers working in parallel, coordinating through shared documentation.
 
 ## Design Philosophy
 
@@ -18,12 +25,12 @@ ikigai's vision is to be the **power user's AI coding agent** with git-aware mul
 **Power User First:**
 - Keyboard-driven navigation
 - Slash commands for explicit actions
-- No hand-holding, maximum control
-- Terminal-native (no web UI, no Electron)
+- Maximum control and transparency
+- Terminal-native for speed and efficiency
 
 **Parallelization Without Complexity:**
-- Simple conversation switching (like tmux panes)
-- No complex state management
+- Fast switching between agents (like browser tabs)
+- Clean state management
 - Each agent has isolated context
 - Shared knowledge through memory documents
 
