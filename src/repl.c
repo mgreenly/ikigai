@@ -7,6 +7,8 @@
 #include "input_buffer/core.h"
 #include "render_cursor.h"
 #include "openai/client_multi.h"
+#include "openai/client.h"
+#include "config.h"
 #include <assert.h>
 #include <talloc.h>
 #include <stdio.h>
@@ -16,9 +18,10 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
-res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
+res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
 {
     assert(parent != NULL);     /* LCOV_EXCL_BR_LINE */
+    assert(cfg != NULL);        /* LCOV_EXCL_BR_LINE */
     assert(repl_out != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Allocate REPL context
@@ -109,6 +112,15 @@ res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
     repl->multi = TRY(ik_openai_multi_create(repl));  // LCOV_EXCL_BR_LINE
     repl->curl_still_running = 0;  // No active transfers initially
     repl->state = IK_REPL_STATE_IDLE;  // Start in IDLE state
+
+    // Store config reference (borrowed from parent)
+    repl->cfg = cfg;
+
+    // Initialize conversation for session messages (Phase 1.6)
+    repl->conversation = TRY(ik_openai_conversation_create(repl));  // LCOV_EXCL_BR_LINE
+
+    // Initialize assistant response accumulator (Phase 1.6)
+    repl->assistant_response = NULL;
 
     // Set up signal handlers (SIGWINCH for terminal resize)
     result = ik_signal_handler_init(parent);
@@ -281,8 +293,31 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         // - ready == 0 means select() timed out (curl may need to handle its timeouts)
         // - curl_still_running > 0 means there are active transfers that need processing
         if (ready == 0 || repl->curl_still_running > 0) {
+            int prev_running = repl->curl_still_running;
             CHECK(ik_openai_multi_perform(repl->multi, &repl->curl_still_running));  // LCOV_EXCL_BR_LINE
             CHECK(ik_openai_multi_info_read(repl->multi));  // LCOV_EXCL_BR_LINE
+
+            // Detect request completion (was running, now not running)
+            if (prev_running > 0 && repl->curl_still_running == 0 && repl->state == IK_REPL_STATE_WAITING_FOR_LLM) {
+                // Request completed - add assistant response to conversation
+                if (repl->assistant_response != NULL && strlen(repl->assistant_response) > 0) {
+                    ik_openai_msg_t *assistant_msg = TRY(ik_openai_msg_create(repl->conversation,
+                                                                              "assistant",
+                                                                              repl->assistant_response));                                   // LCOV_EXCL_BR_LINE
+                    result = ik_openai_conversation_add_msg(repl->conversation, assistant_msg);
+                    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+
+                    // Clear the assistant response
+                    talloc_free(repl->assistant_response);
+                    repl->assistant_response = NULL;
+                }
+
+                // Transition back to IDLE state
+                ik_repl_transition_to_idle(repl);
+
+                // Trigger re-render to update UI
+                CHECK(ik_repl_render_frame(repl));  // LCOV_EXCL_BR_LINE
+            }
         }
     }
 

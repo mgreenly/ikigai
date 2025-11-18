@@ -248,7 +248,8 @@ START_TEST(test_repl_init) {
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL
-    res_t result = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
 
     // Verify successful initialization
     ck_assert(is_ok(&result));
@@ -300,7 +301,8 @@ START_TEST(test_repl_run)
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
-    res_t result = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&result));
 
     // Set quit flag immediately so ik_repl_run exits without blocking
@@ -322,7 +324,7 @@ END_TEST
 START_TEST(test_repl_init_null_parent)
 {
     ik_repl_ctx_t *repl = NULL;
-    (void)ik_repl_init(NULL, &repl);
+    (void)ik_repl_init(NULL, NULL, &repl);
 }
 
 END_TEST
@@ -330,7 +332,8 @@ END_TEST
 START_TEST(test_repl_init_null_out)
 {
     void *ctx = talloc_new(NULL);
-    (void)ik_repl_init(ctx, NULL);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    (void)ik_repl_init(ctx, cfg, NULL);
     talloc_free(ctx);
 }
 

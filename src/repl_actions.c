@@ -5,6 +5,8 @@
 #include "wrapper.h"
 #include "format.h"
 #include "input_buffer/core.h"
+#include "openai/client.h"
+#include "openai/client_multi.h"
 #include <assert.h>
 #include <talloc.h>
 #include <string.h>
@@ -39,6 +41,44 @@ static res_t append_multiline_to_scrollback(ik_scrollback_t *scrollback, const c
             line_start = i + 1;  // Start of next line (skip the \n)
         }
     }
+    return OK(NULL);
+}
+
+/**
+ * @brief Streaming callback for OpenAI API responses
+ *
+ * Called for each content chunk received during streaming.
+ * Appends the chunk to the scrollback buffer.
+ *
+ * @param chunk   Content chunk (null-terminated string)
+ * @param ctx     REPL context pointer
+ * @return        OK(NULL) to continue, ERR(...) to abort
+ */
+static res_t streaming_callback(const char *chunk, void *ctx)
+{
+    assert(chunk != NULL);  /* LCOV_EXCL_BR_LINE */
+    assert(ctx != NULL);    /* LCOV_EXCL_BR_LINE */
+
+    ik_repl_ctx_t *repl = (ik_repl_ctx_t *)ctx;
+
+    // Append chunk to scrollback (handle multi-line content)
+    size_t chunk_len = strlen(chunk);
+    res_t result = append_multiline_to_scrollback(repl->scrollback, chunk, chunk_len);
+    if (is_err(&result)) return result;  // LCOV_EXCL_LINE
+
+    // Accumulate complete response for adding to conversation later
+    if (repl->assistant_response == NULL) {
+        repl->assistant_response = talloc_strdup(repl, chunk);
+    } else {
+        repl->assistant_response = talloc_strdup_append(repl->assistant_response, chunk);
+    }
+    if (repl->assistant_response == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Trigger re-render to show streaming content
+    // Note: This will be called from within the event loop, so rendering here
+    // should be safe. However, for now we'll let the main event loop handle
+    // rendering after curl_multi_perform completes.
+
     return OK(NULL);
 }
 
@@ -123,6 +163,40 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
                 talloc_free(command);
 
                 if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+            } else if (text_len > 0 && repl->conversation != NULL && repl->cfg != NULL) {
+                // Not a slash command and not empty - send to LLM (Phase 1.6)
+                // Only send if conversation and config are initialized
+                // Create null-terminated copy for OpenAI message
+                char *message_text = talloc_zero_(repl, text_len + 1);
+                if (message_text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                memcpy(message_text, text, text_len);
+                message_text[text_len] = '\0';
+
+                // Create user message and add to conversation
+                ik_openai_msg_t *user_msg = TRY(ik_openai_msg_create(repl->conversation, "user", message_text));  // LCOV_EXCL_BR_LINE
+                result = ik_openai_conversation_add_msg(repl->conversation, user_msg);
+                if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+
+                // Clear previous assistant response (prepare for new response)
+                if (repl->assistant_response != NULL) {
+                    talloc_free(repl->assistant_response);
+                    repl->assistant_response = NULL;
+                }
+
+                // Transition to WAITING_FOR_LLM state (shows spinner, hides input)
+                ik_repl_transition_to_waiting_for_llm(repl);
+
+                // Initiate non-blocking API request
+                result = ik_openai_multi_add_request(repl->multi, repl->cfg, repl->conversation,
+                                                     streaming_callback, repl);
+                if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
+                    // If request fails, transition back to IDLE  // LCOV_EXCL_LINE
+                    ik_repl_transition_to_idle(repl);  // LCOV_EXCL_LINE
+                    PANIC("Failed to initiate API request"); // LCOV_EXCL_LINE
+                }
+
+                // Clean up temporary message text
+                talloc_free(message_text);
             }
 
             return OK(NULL);

@@ -79,7 +79,8 @@ ssize_t posix_read_(int fd, void *b, size_t c)
 // Helper: Create REPL with scrollback and set viewport offset
 static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offset)
 {
-    res_t res = ik_repl_init(ctx, repl_out);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, repl_out);
     ck_assert(is_ok(&res));
     for (int32_t i = 0; i < 50; i++) {
         char buf[32];

@@ -12,6 +12,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/terminal.h"
 #include "../../../src/wrapper.h"
+#include "../../test_utils.h"
 
 // Forward declaration for suite function
 static Suite *repl_resize_suite(void);
@@ -104,7 +105,8 @@ START_TEST(test_resize_updates_terminal_dimensions) {
 
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
 
@@ -135,7 +137,8 @@ START_TEST(test_resize_invalidates_scrollback_layout)
 
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&result));
 
     // Add a long line that will wrap differently at different widths
@@ -173,7 +176,8 @@ START_TEST(test_resize_handles_ioctl_failure)
 
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&result));
 
     // Make ioctl fail
@@ -198,7 +202,8 @@ START_TEST(test_sigwinch_handler_installed)
 
     // Create REPL context (which installs SIGWINCH handler)
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&result));
 
     // Get current SIGWINCH handler

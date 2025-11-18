@@ -8,6 +8,8 @@
 #include "scrollback.h"
 #include "layer.h"
 #include "layer_wrappers.h"
+#include "config.h"
+#include "openai/client.h"
 #include <stdbool.h>
 #include <inttypes.h>
 
@@ -53,10 +55,15 @@ typedef struct ik_repl_ctx_t {
     struct ik_openai_multi *multi;    // curl_multi handle for non-blocking HTTP
     int curl_still_running;           // Number of active curl transfers
     ik_repl_state_t state;            // Current REPL state (IDLE or WAITING_FOR_LLM)
+
+    // Configuration and conversation (Phase 1.6)
+    ik_cfg_t *cfg;                                // Configuration (API key, model, etc.)
+    ik_openai_conversation_t *conversation;       // Current conversation (session messages)
+    char *assistant_response;                     // Accumulated assistant response (during streaming)
 } ik_repl_ctx_t;
 
 // Initialize REPL context
-res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out);
+res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out);
 
 // Cleanup REPL context
 void ik_repl_cleanup(ik_repl_ctx_t *repl);

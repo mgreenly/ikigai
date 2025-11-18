@@ -118,7 +118,8 @@ START_TEST(test_repl_init_terminal_open_failure) {
     mock_open_should_fail = true;
 
     // Attempt to initialize REPL - should fail
-    res_t res = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -140,7 +141,8 @@ START_TEST(test_repl_init_render_invalid_dimensions)
     mock_ioctl_should_fail = true;
 
     // Attempt to initialize REPL - should fail when creating render
-    res_t res = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
 
     // Verify failure
     ck_assert(is_err(&res));

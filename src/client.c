@@ -5,6 +5,7 @@
 #include "repl.h"
 #include "error.h"
 #include "panic.h"
+#include "config.h"
 
 /* LCOV_EXCL_START */
 int main(void)
@@ -12,8 +13,17 @@ int main(void)
     void *root_ctx = talloc_new(NULL);
     if (root_ctx == NULL) PANIC("Failed to create root talloc context");
 
+    // Load configuration
+    res_t cfg_result = ik_cfg_load(root_ctx, "~/.config/ikigai/config.json");
+    if (is_err(&cfg_result)) {
+        error_fprintf(stderr, cfg_result.err);
+        talloc_free(root_ctx);
+        return EXIT_FAILURE;
+    }
+    ik_cfg_t *cfg = cfg_result.ok;
+
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(root_ctx, &repl);
+    res_t result = ik_repl_init(root_ctx, cfg, &repl);
     if (is_err(&result)) {
         error_fprintf(stderr, result.err);
         talloc_free(root_ctx);
