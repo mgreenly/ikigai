@@ -4,6 +4,7 @@ bin/
 dist/
 coverage/
 .envrc
+tags
 
 **/core.*
 **/vgcore.*

@@ -109,6 +109,10 @@ START_TEST(test_unknown_slash_command)
     res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
     ck_assert(is_ok(&res));
 
+    /* Create scrollback (needed for error messages) */
+    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    ck_assert(is_ok(&res));
+
     /* Insert "/unknown" command */
     const char *cmd = "/unknown";
     for (size_t i = 0; cmd[i] != '\0'; i++) {

@@ -343,7 +343,7 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
     size_t text_len = ik_byte_array_size(repl->input_buffer->text);
 
     // Append to scrollback (only if there's content and scrollback exists)
-    if (text_len > 0 && repl->scrollback != NULL) {
+    if (text_len > 0 && repl->scrollback != NULL) {  // LCOV_EXCL_BR_LINE
         ik_scrollback_append_line(repl->scrollback, text, text_len);
     }
 

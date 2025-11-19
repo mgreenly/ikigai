@@ -4,6 +4,7 @@
 #include "panic.h"
 #include "wrapper.h"
 #include "format.h"
+#include "commands.h"
 #include "input_buffer/core.h"
 #include "openai/client.h"
 #include "openai/client_multi.h"
@@ -79,7 +80,10 @@ static res_t streaming_callback(const char *chunk, void *ctx)
 }
 
 /**
- * @brief Handle slash commands (e.g., /pp input_buffer)
+ * @brief Handle legacy /pp command (internal debug command)
+ *
+ * Note: This is a legacy command for debugging. All other slash commands
+ * are handled by the command dispatcher (ik_cmd_dispatch).
  *
  * @param repl REPL context
  * @param command Command text (without leading /)
@@ -89,30 +93,24 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
     assert(command != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(strncmp(command, "pp", 2) == 0); /* LCOV_EXCL_BR_LINE */  // Only /pp reaches here
 
-    // Parse command (simple whitespace-based parsing for now)
-    // Expected format: "pp input_buffer" or "pp"
-    if (strncmp(command, "pp", 2) == 0) {
-        // Create format buffer for output
-        ik_format_buffer_t *buf = NULL;
-        res_t result = ik_format_buffer_create(repl, &buf);
-        if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+    // Create format buffer for output
+    ik_format_buffer_t *buf = NULL;
+    res_t result = ik_format_buffer_create(repl, &buf);
+    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
-        // Pretty-print the input buffer
-        ik_pp_input_buffer(repl->input_buffer, buf, 0);
+    // Pretty-print the input buffer
+    ik_pp_input_buffer(repl->input_buffer, buf, 0);
 
-        // Append output to scrollback buffer (split by newlines)
-        const char *output = ik_format_get_string(buf);
-        size_t output_len = strlen(output);
-        append_multiline_to_scrollback(repl->scrollback, output, output_len);
+    // Append output to scrollback buffer (split by newlines)
+    const char *output = ik_format_get_string(buf);
+    size_t output_len = strlen(output);
+    append_multiline_to_scrollback(repl->scrollback, output, output_len);
 
-        // Clean up format buffer
-        talloc_free(buf);
+    // Clean up format buffer
+    talloc_free(buf);
 
-        return OK(NULL);
-    }
-
-    // Unknown command - just ignore for now
     return OK(NULL);
 }
 
@@ -134,13 +132,13 @@ static res_t handle_newline_action_(ik_repl_ctx_t *repl)
 
     // Check if text starts with '/' and extract command BEFORE submit clears input buffer
     bool is_slash_command = (text_len > 0 && text[0] == '/');
-    char *command = NULL;
+    char *command_text = NULL;
     if (is_slash_command) {
-        // Extract command (skip the '/' character)
-        command = talloc_zero_(repl, text_len); // Includes space for null terminator
-        if (command == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        memcpy(command, text + 1, text_len - 1);
-        command[text_len - 1] = '\0';
+        // Extract full command text (including '/' for dispatcher)
+        command_text = talloc_zero_(repl, text_len + 1); // Includes space for null terminator
+        if (command_text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        memcpy(command_text, text, text_len);
+        command_text[text_len] = '\0';
     }
 
     // Always submit line to scrollback first (so command appears before output)
@@ -148,11 +146,18 @@ static res_t handle_newline_action_(ik_repl_ctx_t *repl)
 
     // If it was a slash command, handle it now (after input buffer text is in scrollback)
     if (is_slash_command) {
-        // Handle the slash command (appends output to scrollback)
-        res_t result = ik_repl_handle_slash_command(repl, command);
-        talloc_free(command);
-
-        if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+        // Check for legacy /pp command (internal debug command)
+        if (strncmp(command_text + 1, "pp", 2) == 0) {
+            // Handle legacy /pp command
+            res_t result = ik_repl_handle_slash_command(repl, command_text + 1);
+            if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+        } else {
+            // Dispatch to command registry
+            res_t result = ik_cmd_dispatch(repl, repl, command_text);
+            // Errors are already displayed in scrollback by dispatcher
+            (void)result;
+        }
+        talloc_free(command_text);
     } else if (text_len > 0 && repl->conversation != NULL && repl->cfg != NULL) {
         // Not a slash command and not empty - send to LLM (Phase 1.6)
         // Only send if conversation and config are initialized
