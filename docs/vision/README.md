@@ -2,45 +2,55 @@
 
 ## Overview
 
-ikigai is a **unified terminal-native AI coding agent** that runs multiple parallel conversations. Each agent maintains isolated context while sharing knowledge through a persistent memory document store.
+ikigai is your **personal super agent** - a coordinated system of AI agent threads that work together through shared memory and inter-agent communication. Think of it as a team of expert developers collaborating seamlessly, but all within a single terminal-native environment.
 
 **The Core Innovation:**
 
-A shared PostgreSQL database is the source of truth for all agents, conversations, and knowledge:
-- **Multiple client instances** can run simultaneously, each in a different project directory
-- **Root agent** coordinates overall development on the main branch
-- **Helper agents** work on features in isolated git worktrees
-- **Memory documents** enable knowledge sharing across all agents and clients
-- **Mark/rewind** provides checkpoint/rollback for safe exploration
+Multiple agent threads coordinate through a **shared PostgreSQL database** that serves as both memory and communication backbone:
 
-All agents are first-class database entities, accessible from any connected client, with instant switching and shared knowledge - like having multiple expert developers working in parallel across different projects, coordinating through shared documentation.
+- **Coordinated agent threads** - Agents work in parallel on different tasks while maintaining awareness of each other
+- **Shared memory store** - Memory documents provide persistent knowledge accessible to all agents
+- **Inter-agent communication** - Agents can message each other, delegate work, and coordinate automatically
+- **Database as source of truth** - All conversations, memory, and agent state persist in PostgreSQL
+- **Multi-client support** - Run multiple terminal clients across different projects, all connected to the same agent ecosystem
+- **Git-native workflow** - Agents can work in separate worktrees with automatic branch management
+
+Instead of a single agent with limited context, ikigai gives you a **coordinated team** where research agents feed implementation agents, testing agents validate work, and all agents build on shared institutional knowledge - all orchestrated through the database.
 
 ## Design Philosophy
 
-**Database as Source of Truth:**
-- Shared PostgreSQL database stores all agents, conversations, and knowledge
-- Multiple ikigai client instances can connect to same database
-- Each client differentiated by working directory / project
-- Agents are database entities, not tied to specific client processes
-- Enables multi-project workflows with shared knowledge
+**Coordinated Multi-Agent System:**
+- Multiple agent threads work simultaneously on different aspects of your project
+- Agents maintain isolated context but coordinate through shared database
+- Inter-agent messaging enables delegation and collaboration
+- Memory documents serve as persistent shared knowledge base
+- Like having a team of specialists who can communicate and build on each other's work
+
+**Database as Coordination Hub:**
+- Shared PostgreSQL database stores all agents, conversations, memory, and messages
+- Agents discover each other through database queries
+- Memory documents persist knowledge across all agents and sessions
+- Message identity tracking enables powerful RAG queries
+- All conversation history tagged with rich metadata for future retrieval
+
+**Inter-Agent Communication:**
+- Agents can send messages to each other for delegation and coordination
+- Research agents notify implementation agents when findings are ready
+- Testing agents report results back to feature agents
+- Root agent coordinates work across multiple helper agents
+- Start with manual message processing, evolve to automatic handlers
 
 **Git-Native Workflow:**
 - Each agent can work in its own git worktree on its own branch
 - Root agent stays on main branch in primary directory
 - Helper agents work on feature branches in `.worktrees/`
-- Memory documents persist in PostgreSQL (outside git)
+- Physical isolation prevents conflicts while enabling parallel work
 
 **Power User First:**
-- Keyboard-driven navigation
-- Slash commands for explicit actions
-- Maximum control and transparency
+- Keyboard-driven navigation with fast agent switching
+- Slash commands for explicit actions and coordination
+- Maximum control and transparency of agent interactions
 - Terminal-native for speed and efficiency
-
-**Parallelization Without Complexity:**
-- Fast switching between agents (like browser tabs)
-- Clean state management
-- Each agent has isolated context
-- Shared knowledge through memory documents
 
 ## Quick Navigation
 
@@ -62,73 +72,127 @@ All agents are first-class database entities, accessible from any connected clie
 
 ## Core Concepts
 
-### Agents
+### Coordinated Agent Threads
 
-- **Root Agent**: Always exists, typically on main branch in primary worktree
-- **Helper Agents**: Created as needed, can work in separate worktrees on feature branches
-- Each agent has complete conversation history and context
-- Agents share access to memory document store
+**Root Agent:**
+- Always exists, typically on main branch in primary worktree
+- Coordinates work across helper agents
+- Receives status updates and escalations from helper agents
+- Maintains overall project context
+
+**Helper Agents:**
+- Created for specific tasks (research, implementation, testing, review)
+- Work in parallel on different aspects of the project
+- Can work in separate worktrees on feature branches
+- Communicate with each other and with root agent
+
+**Agent Coordination:**
+- Each agent has isolated conversation context
+- Agents discover each other through database queries
+- Share knowledge through memory documents
+- Communicate through inter-agent messages
+- Can delegate work and notify each other of progress
 
 ### Memory Documents
 
-- Shared wiki accessible to all agents across all clients
-- Markdown files stored in PostgreSQL (not in git)
-- Persistent knowledge base that survives agent destruction
-- Accessible by any agent in any project
+The **shared knowledge base** that enables coordination:
+
+- Markdown documents stored in PostgreSQL (not in git)
+- Accessible to all agents across all clients and projects
+- Persistent - survive agent destruction and session restarts
 - Referenced with `#mem-<id>` or `#mem-<alias>`
+- Research agents create them, implementation agents consume them
+- Build up institutional knowledge over time
+
+**Example workflow:**
+1. Research agent investigates OAuth patterns → creates `#mem-oauth/patterns`
+2. Implementation agent reads memory doc → implements feature using documented patterns
+3. Testing agent references memory doc → validates implementation matches patterns
+
+### Inter-Agent Messages
+
+Agents **communicate and delegate** through messages:
+
+- Point-to-point messages (`/send oauth-impl "research complete"`)
+- Messages queue in database, processed manually or automatically
+- Agents can send messages autonomously when prompted
+- Enable workflows like research→implementation→testing handoffs
+- Start with manual message processing, evolve to handlers
+
+**Example:**
+```
+[research-agent] Completes research, sends message to oauth-impl
+[oauth-impl]     Receives message, reads memory doc, starts implementation
+[oauth-impl]     Completes work, sends to testing-agent
+[testing-agent]  Runs tests, reports results back
+```
 
 ### Worktrees
 
-- Git worktrees provide physical isolation for parallel work
+- Git worktrees provide physical isolation for parallel agent work
 - Optional: agents can work without worktrees (research, analysis)
 - Automatic cleanup when agents close
-- Natural mapping: agent → branch → worktree
+- Natural mapping: agent → branch → worktree → task
 
 ### Mark/Rewind
 
-- In-session checkpoints for exploration
+- In-session checkpoints for safe exploration
 - Non-destructive (all messages preserved in DB)
 - Named or anonymous marks
 - LIFO stack for nested exploration
 
 ## Status Line
 
-Shows current context at a glance:
+Shows current context and coordination state at a glance:
 
 ```
-[Agent: main] [Branch: main] [Worktree: ~/projects/ikigai/main]
-[Agent: oauth-impl | +2] [Branch: feature-oauth] [Worktree: ~/projects/ikigai/main/.worktrees/oauth-impl]
+[Agent: main | +3] [Branch: main] [Worktree: ~/projects/ikigai/main]
+[Agent: oauth-impl | 2 msgs] [Branch: feature-oauth] [Worktree: .worktrees/oauth-impl]
+[Agent: research-oauth] [Branch: main] [Project: ikigai]
 ```
 
 Indicators:
-- Current agent name
-- Active helper count (e.g., `+2` means 2 other agents exist)
-- Current git branch
-- Current working directory / worktree path
-- Mark count (when marks exist)
+- **Agent name** - Current agent you're interacting with
+- **Active helper count** - `+3` means 3 other agents exist in your ecosystem
+- **Message count** - `2 msgs` means 2 unread inter-agent messages queued
+- **Git branch** - Current branch the agent is working on
+- **Worktree path** - Physical location of agent's workspace
+- **Mark count** - Shows when conversation checkpoints exist
+
+The status line keeps you aware of your agent ecosystem and coordination state without cluttering the interface.
 
 ## Command Categories
 
-### Agent Management
+### Agent Management & Coordination
 - `/agent new [name]` - Create helper agent
-- `/agent list` - Show all agents
-- `/agent <name>` - Switch to agent
+- `/agent list` - Show all agents in your ecosystem
+- `/agent <name>` - Switch to agent (instant context switch)
 - `/agent close` - Close current helper
 - `/agent rename <name>` - Rename current agent
+- `/agents active` - Show currently running agents
+- `/agents find --tag=<tag>` - Discover agents by capability/tag
+
+### Inter-Agent Communication
+- `/send <agent> <message>` - Send message to another agent
+- `/send <agent> --priority=high <message>` - Send priority message
+- `/messages next` - Process next queued message
+- `/messages show` - View message queue
+- `/messages wait` - Process all queued messages
+
+### Memory Documents (Shared Knowledge)
+- `/memory list` - List all documents across all agents
+- `/memory show <id|alias>` - Display document
+- `/memory merge <id|alias>` - Pull into current context
+- `/memory create <alias>` - Create new memory document
+- `/memory delete <id|alias>` - Remove document
 
 ### Conversation Control
 - `/mark [label]` - Create checkpoint
 - `/rewind [label]` - Rollback to checkpoint
 - `/clear` - Clear session context
 
-### Memory Documents
-- `/memory list` - List all documents
-- `/memory show <id|alias>` - Display document
-- `/memory merge <id|alias>` - Pull into context
-- `/memory delete <id|alias>` - Remove document
-
 ### Git Integration
-- `/agent new <name> --worktree` - Create agent with worktree
+- `/agent new <name> --worktree` - Create agent with isolated worktree
 - `/agent merge` - Merge current branch to main
 - `/branch` - Show branch status
 
@@ -152,44 +216,132 @@ See [keybindings.md](keybindings.md) for complete reference.
 
 ## Design Principles
 
-### 1. Explicit Over Implicit
+### 1. Coordination Through Shared Memory
 
-Commands are explicit actions:
-- `/agent new research` - Create agent
-- `/mark before-refactor` - Create checkpoint
-- No automatic branching or hidden state
+The database is the coordination hub:
+- All agents read from and write to shared PostgreSQL database
+- Memory documents serve as persistent knowledge base
+- Inter-agent messages enable explicit coordination
+- Conversation history tagged with rich metadata for RAG
+- Knowledge accumulates across all agents and sessions
 
-### 2. Git-Aware By Default
+### 2. Explicit Communication Over Implicit
 
-ikigai understands git and makes it first-class:
-- Show current branch in status line
-- Agents can own worktrees
-- Memory docs reference commits/branches
-- Integration with git operations
+Agent interactions are explicit and visible:
+- `/send agent-name "message"` for inter-agent communication
+- `/messages next` to process incoming messages
+- `/memory merge #mem-doc` to pull in shared knowledge
+- User stays in control of coordination
+- No hidden automation until explicitly configured
 
-### 3. No Context Pollution
+### 3. Isolated Context, Shared Knowledge
 
-Each agent has isolated context:
-- Own conversation history
+Balance between isolation and collaboration:
+- Each agent has own conversation history and context
 - Own working directory (when using worktrees)
-- No shared state except memory documents
+- Share knowledge through memory documents and messages
 - `/clear` on one agent doesn't affect others
+- Agents coordinate explicitly, not through shared context
 
-### 4. Persistent Knowledge
+### 4. Git-Aware By Default
 
-Memory documents are the knowledge layer:
-- Survive agent destruction
-- Searchable and referenceable
-- Can include code snippets, research, patterns
-- Shared across all agents
+ikigai understands git as a coordination mechanism:
+- Show current branch in status line
+- Agents can own separate worktrees for parallel work
+- Memory docs can reference commits/branches
+- Physical isolation through git enables parallel work
 
 ### 5. Power User Efficiency
 
-Fast, keyboard-driven workflows:
+Fast, keyboard-driven coordination:
+- Instant agent switching (Ctrl-\ like browser tabs)
 - Fuzzy matching for agents/commands
-- Quick shortcuts for common actions
+- Quick shortcuts for common coordination tasks
 - No unnecessary confirmations
 - Terminal-native speed
+
+## Example: Coordinated Multi-Agent Workflow
+
+Here's how the personal super agent concept works in practice:
+
+```bash
+# You're in the root agent working on your project
+[main] Implement OAuth 2.0 authentication
+
+# Root agent coordinates: creates specialized helper agents
+[Assistant] I'll coordinate this across multiple agents:
+1. Creating research-oauth to investigate patterns
+2. Creating oauth-impl for implementation
+3. They'll coordinate through memory docs and messages
+
+# Switch to research agent (Ctrl-\ → research-oauth)
+[research-oauth] Research OAuth 2.0 best practices, security patterns,
+                 and create memory doc. When done, notify oauth-impl agent.
+
+[Assistant researches, creates #mem-oauth/patterns, #mem-oauth/security]
+[Assistant] Research complete. Sending notification...
+/send oauth-impl "OAuth research complete. See #mem-oauth/patterns and #mem-oauth/security"
+
+# Switch to implementation agent (Ctrl-\ → oauth-impl)
+[oauth-impl] [Status shows: 1 msg]
+/messages next
+
+[System] Message from research-oauth (2 minutes ago):
+         OAuth research complete. See #mem-oauth/patterns and #mem-oauth/security
+
+[Assistant] I'll review the research and start implementing...
+[Reads memory docs, writes code, runs tests]
+[Assistant] Implementation complete. Notifying root agent...
+/send main "OAuth implementation done in feature/oauth branch. Tests passing."
+
+# Switch back to root agent (Ctrl-\ Ctrl-\ toggles to last)
+[main] [Status shows: 1 msg]
+/messages next
+
+[System] Message from oauth-impl:
+         OAuth implementation done in feature/oauth branch. Tests passing.
+
+[Assistant] Excellent! Let me review the implementation and merge it...
+```
+
+**Key observations:**
+- **Specialized agents** - Each agent focuses on its specific task
+- **Shared knowledge** - Memory docs (`#mem-oauth/patterns`) persist and are accessible to all
+- **Explicit coordination** - Messages enable handoffs (research → implementation → review)
+- **Fast switching** - Move between agents instantly with Ctrl-\
+- **Database persistence** - All agents, messages, and memory persist across sessions
+- **User in control** - Manual message processing (`/messages next`) keeps you aware of coordination
+
+This is fundamentally different from a single agent with a large context window - it's a **coordinated team** where agents build on each other's work.
+
+## The Personal Super Agent Advantage
+
+**Traditional single-agent approach:**
+- One conversation with one context window
+- Agent forgets or loses track when context grows
+- No specialization - agent does everything
+- No persistent knowledge base
+- Work stops when context clears
+
+**ikigai's coordinated multi-agent approach:**
+- Multiple specialized agents working in parallel
+- Each agent maintains focused context on their task
+- Agents coordinate through messages and shared memory
+- Persistent knowledge accumulates in database
+- Work persists across sessions and context clears
+- Institutional knowledge builds over time
+
+**The coordination mechanisms make the difference:**
+
+1. **Shared Memory Database** - All agents contribute to and benefit from a growing knowledge base. Research from months ago is still accessible. Patterns documented in one project inform work in another.
+
+2. **Inter-Agent Communication** - Agents can delegate work to each other. Research agent → Implementation agent → Testing agent, each building on the previous work without the user manually copying context.
+
+3. **Message Identity & RAG** - Every conversation is tagged with rich metadata (project, agent, tags, focus). Future agents can query: "What did we learn about OAuth security?" and get relevant answers from across all agents and sessions.
+
+4. **Multi-Client Architecture** - Multiple terminal clients can connect to the same agent ecosystem. Work on project A in one terminal, project B in another, all agents share the same memory and can collaborate.
+
+**Result:** Instead of constantly re-explaining context and re-researching topics, you build a personal AI team that accumulates knowledge and can tackle increasingly complex projects through coordination.
 
 ## Implementation Status
 
