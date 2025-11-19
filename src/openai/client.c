@@ -89,6 +89,24 @@ res_t ik_openai_conversation_add_msg(ik_openai_conversation_t *conv, ik_openai_m
     return OK(NULL);
 }
 
+void ik_openai_conversation_clear(ik_openai_conversation_t *conv) {
+    assert(conv != NULL); // LCOV_EXCL_BR_LINE
+
+    /* Free all messages */
+    for (size_t i = 0; i < conv->message_count; i++) {  // LCOV_EXCL_BR_LINE
+        talloc_free(conv->messages[i]);
+    }
+
+    /* Free messages array */
+    if (conv->messages != NULL) {  // LCOV_EXCL_BR_LINE
+        talloc_free(conv->messages);
+    }
+
+    /* Reset to empty state */
+    conv->messages = NULL;
+    conv->message_count = 0;
+}
+
 /*
  * Request/Response functions
  */

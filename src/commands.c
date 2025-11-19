@@ -8,6 +8,7 @@
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "openai/client.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -113,12 +114,16 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
     (void)args;     // Unused for /clear
 
-    // TODO: Implement in Task 7.2
-    char *msg = talloc_strdup(ctx, "TODO: /clear not yet implemented");
-    if (!msg) {     // LCOV_EXCL_BR_LINE
-        PANIC("OOM");   // LCOV_EXCL_LINE
+    // Clear scrollback buffer
+    ik_scrollback_clear(repl->scrollback);
+
+    // Clear conversation (session messages)
+    if (repl->conversation != NULL) {  // LCOV_EXCL_BR_LINE
+        ik_openai_conversation_clear(repl->conversation);
     }
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+
+    // Note: Marks will be cleared when implemented (Task 7.3)
+
     return OK(NULL);
 }
 

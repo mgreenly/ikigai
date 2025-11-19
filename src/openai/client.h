@@ -112,6 +112,16 @@ res_t ik_openai_conversation_create(void *parent);
  */
 res_t ik_openai_conversation_add_msg(ik_openai_conversation_t *conv, ik_openai_msg_t *msg);
 
+/**
+ * Clear all messages from a conversation
+ *
+ * Removes all messages from the conversation, freeing associated memory.
+ * Resets conversation to empty state.
+ *
+ * @param conv    Conversation to clear
+ */
+void ik_openai_conversation_clear(ik_openai_conversation_t *conv);
+
 /*
  * Request/Response functions
  */

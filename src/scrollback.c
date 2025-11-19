@@ -326,3 +326,16 @@ res_t ik_scrollback_find_logical_line_at_physical_row(
     return ERR(scrollback, OUT_OF_RANGE, "Failed to find line for physical row %zu",  // LCOV_EXCL_LINE
                physical_row);
 }
+
+void ik_scrollback_clear(ik_scrollback_t *scrollback)
+{
+    assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Reset counters to empty state
+    scrollback->count = 0;
+    scrollback->buffer_used = 0;
+    scrollback->total_physical_lines = 0;
+
+    // Preserve allocated capacity for efficient reuse
+    // (no need to free/reallocate arrays)
+}

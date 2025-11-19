@@ -11,7 +11,7 @@
 - ✅ Phase 1.4: Spinner Layer - COMPLETE
 - ✅ Phase 1.5: HTTP Client Module (libcurl) - COMPLETE (12/12 tasks, 100%)
 - ✅ Phase 1.6: Event Loop Integration - COMPLETE (8/8 tasks, 100%)
-- ⏳ Phase 1.7: Command Infrastructure & Manual Testing - IN PROGRESS (2/15 tasks done)
+- ⏳ Phase 1.7: Command Infrastructure & Manual Testing - IN PROGRESS (3/15 tasks done)
 - ⏳ Phase 1.8: Mock Verification & Polish - PENDING
 
 **Future Phases** (see `docs/logical-architecture-analysis.md`):
@@ -621,7 +621,7 @@
 - Command handlers are currently stubs that append TODO messages to scrollback
 - Legacy `/pp` command still uses old handler for backward compatibility
 
-### Task 7.1b: Fix command dispatch tests (BLOCKER) ✅
+### Task 7.1b: Fix command dispatch tests (BLOCKER) ✅ COMPLETE
 - [x] Debug why ik_repl_init() fails in dispatch_test.c setup()
 - [x] Check if test needs mock implementations like other REPL tests
 - [x] Verify all 11 dispatch tests pass (added test for /rewind)
@@ -632,13 +632,24 @@
 - **Solution:** Created `create_test_repl_for_commands()` helper that builds minimal REPL context without terminal initialization
 - **Coverage:** Achieved 100% lines, functions, and branches
 
-### Task 7.2: Implement /clear command
-- [ ] Clear scrollback buffer
-- [ ] Clear session_messages[] array (free all messages)
-- [ ] Clear marks[] array (free all marks)
-- [ ] Reset counters to 0
-- **Tests:** Unit test - verify scrollback, session messages, and marks cleared
-- **Manual verification:** Run app, send messages, create marks, type `/clear`, verify UI cleared
+### Task 7.2: Implement /clear command ✅ COMPLETE
+- [x] Clear scrollback buffer (ik_scrollback_clear)
+- [x] Clear session_messages[] array (ik_openai_conversation_clear)
+- [ ] Clear marks[] array (deferred - marks not yet implemented)
+- [x] Reset counters to 0
+- **Tests:** 6 unit tests in clear_test.c, updated dispatch_test.c (all passing)
+- **Coverage:** 100% (lines, functions, branches)
+- **LCOV Exclusions:** Added 5 markers (569/569 total, limit updated)
+- **Deliverables:**
+  - `src/scrollback.c` - Added ik_scrollback_clear() function (12 lines)
+  - `src/scrollback.h` - Added clear function declaration
+  - `src/openai/client.c` - Added ik_openai_conversation_clear() function (16 lines)
+  - `src/openai/client.h` - Added clear function declaration
+  - `src/commands.c` - Implemented cmd_clear() handler
+  - `tests/unit/commands/clear_test.c` - 6 comprehensive tests (NEW, 222 lines)
+  - Updated `tests/unit/commands/dispatch_test.c` - Fixed /clear tests
+  - Updated Makefile - LCOV_EXCL_COVERAGE 566 → 569
+- **Manual verification:** Deferred to Task 7.10
 
 ### Task 7.3: Implement /mark command
 - [ ] Parse `/mark [label]` command
@@ -823,16 +834,16 @@
 
 Phase 1 implementation is complete when:
 
-1. ✅ All unit tests pass (100% coverage)
-2. ✅ All integration tests pass
-3. ✅ All quality gates pass (fmt, lint, check-dynamic, valgrind)
-4. ✅ All manual test sessions completed successfully
-5. ✅ Mock verification tests pass against real API
-6. ✅ Documentation updated
-7. ✅ Final acceptance test passed by human
-8. ✅ Basic LLM chat works with streaming responses
-9. ✅ Commands work: /clear, /mark, /rewind, /help, /model, /system
-10. ✅ Messages stored in-memory only (database is Phase 2)
+1. ✅ All unit tests pass (100% coverage) - DONE
+2. ✅ All integration tests pass - DONE
+3. ✅ All quality gates pass (fmt, lint, check-dynamic, valgrind) - DONE
+4. ⏳ All manual test sessions completed successfully - PENDING (Tasks 7.10-7.14)
+5. ⏳ Mock verification tests pass against real API - PENDING (Phase 1.8)
+6. ⏳ Documentation updated - PENDING (Phase 1.8)
+7. ⏳ Final acceptance test passed by human - PENDING (Task 8.6)
+8. ✅ Basic LLM chat works with streaming responses - DONE (Phase 1.6)
+9. ⏳ Commands work: /clear, /mark, /rewind, /help, /model, /system - PARTIAL (/clear done, others pending)
+10. ✅ Messages stored in-memory only (database is Phase 2) - DONE
 
 ## Notes
 

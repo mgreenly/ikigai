@@ -84,16 +84,17 @@ END_TEST
 // Test: Dispatch valid command (clear)
 START_TEST(test_dispatch_clear_command)
 {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
+    // Add some content to scrollback
+    res_t res = ik_scrollback_append_line(repl->scrollback, "Line 1", 6);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+
+    // Dispatch /clear command
+    res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback received the TODO message
-    const char *line = NULL;
-    size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "TODO: /clear not yet implemented");
+    // Verify scrollback is now empty (clear was executed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
 }
 
 END_TEST
@@ -164,16 +165,17 @@ END_TEST
 // Test: Dispatch command with leading/trailing whitespace
 START_TEST(test_dispatch_command_with_whitespace)
 {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/  clear  ");
+    // Add content to scrollback
+    res_t res = ik_scrollback_append_line(repl->scrollback, "Test line", 9);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+
+    // Dispatch /clear with whitespace
+    res = ik_cmd_dispatch(ctx, repl, "/  clear  ");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback received the TODO message
-    const char *line = NULL;
-    size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "TODO: /clear not yet implemented");
+    // Verify scrollback is cleared (whitespace was handled correctly)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
 }
 
 END_TEST

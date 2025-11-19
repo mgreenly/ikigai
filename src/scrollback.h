@@ -177,4 +177,17 @@ res_t ik_scrollback_find_logical_line_at_physical_row(ik_scrollback_t *scrollbac
                                                       size_t *line_index_out,
                                                       size_t *row_offset_out);
 
+/**
+ * @brief Clear all lines from the scrollback buffer
+ *
+ * Removes all lines from the scrollback buffer, resetting it to an empty state.
+ * Preserves allocated capacity for efficient reuse.
+ *
+ * @param scrollback Scrollback buffer
+ *
+ * Assertions:
+ * - scrollback must not be NULL
+ */
+void ik_scrollback_clear(ik_scrollback_t *scrollback);
+
 #endif // IKIGAI_SCROLLBACK_H
