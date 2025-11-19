@@ -8,6 +8,7 @@
 #include "../../../src/error.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
+#include "../../../src/openai/client.h"
 #include "../../test_utils.h"
 
 #include <check.h>
@@ -32,10 +33,19 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(scrollback);
 
+    // Create conversation (needed for mark/rewind commands)
+    res = ik_openai_conversation_create(parent);
+    ck_assert(is_ok(&res));
+    ik_openai_conversation_t *conv = res.ok;
+    ck_assert_ptr_nonnull(conv);
+
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
     r->scrollback = scrollback;
+    r->conversation = conv;
+    r->marks = NULL;
+    r->mark_count = 0;
 
     return r;
 }
@@ -120,13 +130,18 @@ START_TEST(test_dispatch_mark_with_args)
     res_t res = ik_cmd_dispatch(ctx, repl, "/mark checkpoint1");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback received the TODO message
+    // Verify mark was created
+    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_ptr_nonnull(repl->marks);
+    ck_assert_str_eq(repl->marks[0]->label, "checkpoint1");
+
+    // Verify scrollback received the mark indicator
     const char *line = NULL;
     size_t length = 0;
     res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "TODO: /mark not yet implemented");
+    ck_assert_str_eq(line, "─── Mark: checkpoint1 ───");
 }
 
 END_TEST
@@ -217,13 +232,13 @@ START_TEST(test_dispatch_rewind_with_arg)
     res_t res = ik_cmd_dispatch(ctx, repl, "/rewind checkpoint1");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback received the TODO message
+    // Verify scrollback received error message (no marks exist)
     const char *line = NULL;
     size_t length = 0;
     res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "TODO: /rewind not yet implemented");
+    ck_assert_str_eq(line, "Error: No marks found");
 }
 
 END_TEST

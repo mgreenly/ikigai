@@ -19,6 +19,13 @@ typedef enum {
     IK_REPL_STATE_WAITING_FOR_LLM    // Waiting for LLM response (spinner visible)
 } ik_repl_state_t;
 
+// Mark structure for conversation checkpoints (Phase 1.7)
+typedef struct {
+    size_t message_index;     // Position in conversation at time of mark
+    char *label;              // Optional user label (or NULL for unlabeled mark)
+    char *timestamp;          // ISO 8601 timestamp
+} ik_mark_t;
+
 // Viewport boundaries for rendering (Phase 4)
 typedef struct {
     size_t scrollback_start_line;   // First scrollback line to render
@@ -60,6 +67,10 @@ typedef struct ik_repl_ctx_t {
     ik_cfg_t *cfg;                                // Configuration (API key, model, etc.)
     ik_openai_conversation_t *conversation;       // Current conversation (session messages)
     char *assistant_response;                     // Accumulated assistant response (during streaming)
+
+    // Checkpoint management (Phase 1.7)
+    ik_mark_t **marks;                            // Array of conversation marks
+    size_t mark_count;                            // Number of marks
 } ik_repl_ctx_t;
 
 // Initialize REPL context

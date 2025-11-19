@@ -9,6 +9,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/openai/client.h"
+#include "../../../src/marks.h"
 #include "../../test_utils.h"
 
 #include <check.h>
@@ -204,6 +205,43 @@ START_TEST(test_clear_with_ignored_arguments)
 }
 
 END_TEST
+// Test: Clear with marks
+START_TEST(test_clear_with_marks)
+{
+    // Add some content and marks
+    res_t res = ik_scrollback_append_line(repl->scrollback, "Line 1", 6);
+    ck_assert(is_ok(&res));
+
+    res = ik_openai_msg_create(ctx, "user", "Message");
+    ck_assert(is_ok(&res));
+    ik_openai_msg_t *msg = res.ok;
+    res = ik_openai_conversation_add_msg(repl->conversation, msg);
+    ck_assert(is_ok(&res));
+
+    // Create marks
+    res = ik_mark_create(repl, "mark1");
+    ck_assert(is_ok(&res));
+    res = ik_mark_create(repl, "mark2");
+    ck_assert(is_ok(&res));
+
+    // Verify marks exist
+    ck_assert_uint_eq(repl->mark_count, 2);
+    ck_assert_ptr_nonnull(repl->marks);
+
+    // Execute /clear
+    res = ik_cmd_dispatch(ctx, repl, "/clear");
+    ck_assert(is_ok(&res));
+
+    // Verify marks are cleared
+    ck_assert_uint_eq(repl->mark_count, 0);
+    ck_assert_ptr_null(repl->marks);
+
+    // Verify scrollback and conversation also cleared
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(repl->conversation->message_count, 0);
+}
+
+END_TEST
 
 static Suite *commands_clear_suite(void)
 {
@@ -218,6 +256,7 @@ static Suite *commands_clear_suite(void)
     tcase_add_test(tc, test_clear_both_scrollback_and_conversation);
     tcase_add_test(tc, test_clear_with_null_conversation);
     tcase_add_test(tc, test_clear_with_ignored_arguments);
+    tcase_add_test(tc, test_clear_with_marks);
 
     suite_add_tcase(s, tc);
     return s;

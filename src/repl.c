@@ -1,28 +1,31 @@
 #include "repl.h"
-#include "repl_actions.h"
-#include "signal_handler.h"
-#include "panic.h"
-#include "wrapper.h"
+
+#include "config.h"
 #include "format.h"
 #include "input_buffer/core.h"
-#include "render_cursor.h"
-#include "openai/client_multi.h"
 #include "openai/client.h"
-#include "config.h"
+#include "openai/client_multi.h"
+#include "panic.h"
+#include "render_cursor.h"
+#include "repl_actions.h"
+#include "signal_handler.h"
+#include "wrapper.h"
+
 #include <assert.h>
-#include <talloc.h>
-#include <stdio.h>
-#include <string.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <talloc.h>
+#include <time.h>
 
 res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
 {
-    assert(parent != NULL);     /* LCOV_EXCL_BR_LINE */
-    assert(cfg != NULL);        /* LCOV_EXCL_BR_LINE */
-    assert(repl_out != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(parent != NULL);     // LCOV_EXCL_BR_LINE
+    assert(cfg != NULL);        // LCOV_EXCL_BR_LINE
+    assert(repl_out != NULL);   // LCOV_EXCL_BR_LINE
 
     // Allocate REPL context
     ik_repl_ctx_t *repl = talloc_zero_(parent, sizeof(ik_repl_ctx_t));
@@ -121,6 +124,10 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
 
     // Initialize assistant response accumulator (Phase 1.6)
     repl->assistant_response = NULL;
+
+    // Initialize marks array (Phase 1.7)
+    repl->marks = NULL;
+    repl->mark_count = 0;
 
     // Set up signal handlers (SIGWINCH for terminal resize)
     result = ik_signal_handler_init(parent);

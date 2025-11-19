@@ -9,6 +9,7 @@
 #include "repl.h"
 #include "scrollback.h"
 #include "openai/client.h"
+#include "marks.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -122,7 +123,15 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
         ik_openai_conversation_clear(repl->conversation);
     }
 
-    // Note: Marks will be cleared when implemented (Task 7.3)
+    // Clear marks
+    if (repl->marks != NULL) {  // LCOV_EXCL_BR_LINE
+        for (size_t i = 0; i < repl->mark_count; i++) {
+            talloc_free(repl->marks[i]);
+        }
+        talloc_free(repl->marks);
+        repl->marks = NULL;
+        repl->mark_count = 0;
+    }
 
     return OK(NULL);
 }
@@ -131,14 +140,18 @@ static res_t cmd_mark(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
-    (void)args;
+    (void)ctx;
 
-    // TODO: Implement in Task 7.3
-    char *msg = talloc_strdup(ctx, "TODO: /mark not yet implemented");
-    if (!msg) {     // LCOV_EXCL_BR_LINE
-        PANIC("OOM");   // LCOV_EXCL_LINE
+    // Parse optional label from args
+    // Note: dispatcher ensures args is either NULL or points to non-empty string
+    const char *label = args;
+
+    // Create the mark
+    res_t result = ik_mark_create(repl, label);
+    if (is_err(&result)) {  /* LCOV_EXCL_BR_LINE */
+        return result;  // LCOV_EXCL_LINE
     }
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+
     return OK(NULL);
 }
 
@@ -146,14 +159,23 @@ static res_t cmd_rewind(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
-    (void)args;
+    (void)ctx;
 
-    // TODO: Implement in Task 7.4
-    char *msg = talloc_strdup(ctx, "TODO: /rewind not yet implemented");
-    if (!msg) {     // LCOV_EXCL_BR_LINE
-        PANIC("OOM");   // LCOV_EXCL_LINE
+    // Parse optional label from args
+    // Note: dispatcher ensures args is either NULL or points to non-empty string
+    const char *label = args;
+
+    // Rewind to the mark
+    res_t result = ik_mark_rewind_to(repl, label);
+    if (is_err(&result)) {
+        // Show error message in scrollback
+        char *err_msg = talloc_asprintf(ctx, "Error: %s", result.err->msg);
+        if (err_msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        ik_scrollback_append_line(repl->scrollback, err_msg, strlen(err_msg));
+        talloc_free(err_msg);
+        return OK(NULL);  // Don't propagate error, just show it
     }
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+
     return OK(NULL);
 }
 
