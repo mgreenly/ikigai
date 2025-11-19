@@ -20,8 +20,8 @@
  * @return A yyjson allocator configured to use talloc
  *
  * Usage:
- *   yyjson_alc alc = ik_make_talloc_allocator(ctx);
- *   yyjson_doc *doc = yyjson_read_opts(json_str, len, 0, &alc, NULL);
+ *   yyjson_alc allocator = ik_make_talloc_allocator(ctx);
+ *   yyjson_doc *doc = yyjson_read_opts(json_str, len, 0, &allocator, NULL);
  *   // All JSON memory is now in talloc hierarchy - no manual cleanup needed
  */
 yyjson_alc ik_make_talloc_allocator(TALLOC_CTX *ctx);

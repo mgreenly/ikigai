@@ -86,3 +86,7 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl);
 // State transition functions (Phase 1.6)
 void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl);
 void ik_repl_transition_to_idle(ik_repl_ctx_t *repl);
+
+// Internal helper functions (exposed for testing)
+res_t handle_curl_events_(ik_repl_ctx_t *repl, int ready);
+res_t handle_terminal_input_(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit);

@@ -140,8 +140,8 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
     assert(request->conv != NULL); // LCOV_EXCL_BR_LINE
 
     /* Create yyjson document with talloc allocator */
-    yyjson_alc alc = ik_make_talloc_allocator(parent);
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(&alc);
+    yyjson_alc allocator = ik_make_talloc_allocator(parent);
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(&allocator);
     if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     /* Create root object */

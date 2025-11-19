@@ -17,7 +17,7 @@ typedef struct {
 
 res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);
 
-// Internal helper function (exposed for testing)
+// internal helper function (exposed for testing)
 res_t expand_tilde(TALLOC_CTX *ctx, const char *path);
 
 #endif // IK_CONFIG_H

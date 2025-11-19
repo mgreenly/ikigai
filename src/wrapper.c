@@ -48,16 +48,16 @@ MOCKABLE char *talloc_asprintf_(TALLOC_CTX *ctx, const char *fmt, ...)
 // ============================================================================
 
 MOCKABLE yyjson_doc *yyjson_read_file_(const char *path, yyjson_read_flag flg,
-                                       const yyjson_alc *alc, yyjson_read_err *err)
+                                       const yyjson_alc *allocator, yyjson_read_err *err)
 {
-    return yyjson_read_file(path, flg, alc, err);
+    return yyjson_read_file(path, flg, allocator, err);
 }
 
 MOCKABLE bool yyjson_mut_write_file_(const char *path, const yyjson_mut_doc *doc,
-                                     yyjson_write_flag flg, const yyjson_alc *alc,
+                                     yyjson_write_flag flg, const yyjson_alc *allocator,
                                      yyjson_write_err *err)
 {
-    return yyjson_mut_write_file(path, doc, flg, alc, err);
+    return yyjson_mut_write_file(path, doc, flg, allocator, err);
 }
 
 MOCKABLE yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
@@ -142,6 +142,11 @@ MOCKABLE ssize_t posix_read_(int fd, void *buf, size_t count)
 MOCKABLE int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
 {
     return select(nfds, readfds, writefds, exceptfds, timeout);
+}
+
+MOCKABLE int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact)
+{
+    return sigaction(signum, act, oldact);
 }
 
 // ============================================================================

@@ -34,11 +34,11 @@ static void json_talloc_free(void *ctx, void *ptr)
 
 yyjson_alc ik_make_talloc_allocator(TALLOC_CTX *ctx)
 {
-    yyjson_alc alc = {
+    yyjson_alc allocator = {
         .malloc = json_talloc_malloc,
         .realloc = json_talloc_realloc,
         .free = json_talloc_free,
         .ctx = ctx
     };
-    return alc;
+    return allocator;
 }

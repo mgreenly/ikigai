@@ -72,16 +72,16 @@ MOCKABLE char *talloc_asprintf_(TALLOC_CTX *ctx, const char *fmt, ...);
 #ifdef NDEBUG
 // Release build: inline definitions for zero overhead
 MOCKABLE yyjson_doc *yyjson_read_file_(const char *path, yyjson_read_flag flg,
-                                       const yyjson_alc *alc, yyjson_read_err *err)
+                                       const yyjson_alc *allocator, yyjson_read_err *err)
 {
-    return yyjson_read_file(path, flg, alc, err);
+    return yyjson_read_file(path, flg, allocator, err);
 }
 
 MOCKABLE bool yyjson_mut_write_file_(const char *path, const yyjson_mut_doc *doc,
-                                     yyjson_write_flag flg, const yyjson_alc *alc,
+                                     yyjson_write_flag flg, const yyjson_alc *allocator,
                                      yyjson_write_err *err)
 {
-    return yyjson_mut_write_file(path, doc, flg, alc, err);
+    return yyjson_mut_write_file(path, doc, flg, allocator, err);
 }
 
 MOCKABLE yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
@@ -108,12 +108,12 @@ MOCKABLE const char *yyjson_get_str_(yyjson_val *val)
 // Debug/test build: weak symbol declarations
 MOCKABLE yyjson_doc *yyjson_read_file_(const char *path,
                                        yyjson_read_flag flg,
-                                       const yyjson_alc *alc,
+                                       const yyjson_alc *allocator,
                                        yyjson_read_err *err);
 MOCKABLE bool yyjson_mut_write_file_(const char *path,
                                      const yyjson_mut_doc *doc,
                                      yyjson_write_flag flg,
-                                     const yyjson_alc *alc,
+                                     const yyjson_alc *allocator,
                                      yyjson_write_err *err);
 MOCKABLE yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc);
 MOCKABLE yyjson_val *yyjson_obj_get_(yyjson_val *obj, const char *key);
@@ -305,6 +305,11 @@ MOCKABLE int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *
     return select(nfds, readfds, writefds, exceptfds, timeout);
 }
 
+MOCKABLE int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact)
+{
+    return sigaction(signum, act, oldact);
+}
+
 #else
 // Debug/test build: weak symbol declarations
 #include <termios.h>
@@ -312,6 +317,7 @@ MOCKABLE int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/select.h>
+#include <signal.h>
 
 MOCKABLE int posix_open_(const char *pathname, int flags);
 MOCKABLE int posix_close_(int fd);
@@ -324,6 +330,7 @@ MOCKABLE int posix_ioctl_(int fd, unsigned long request, void *argp);
 MOCKABLE ssize_t posix_write_(int fd, const void *buf, size_t count);
 MOCKABLE ssize_t posix_read_(int fd, void *buf, size_t count);
 MOCKABLE int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+MOCKABLE int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
 #endif
 
 #endif // IK_WRAPPER_H

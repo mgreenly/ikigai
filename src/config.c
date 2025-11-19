@@ -1,37 +1,36 @@
 #include "config.h"
+#include "json_allocator.h"
 #include "logger.h"
 #include "panic.h"
-#include "wrapper.h"
-#include "json_allocator.h"
 #include "vendor/yyjson/yyjson.h"
+#include "wrapper.h"
+
+#include <errno.h>
+#include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <errno.h>
-#include <libgen.h>
 
-// NOTE: yyjson is used for config parsing with talloc integration.
-// All JSON memory is managed by talloc - no manual cleanup needed.
-// See docs/jansson_to_yyjson_proposal.md for migration details.
-
-// Expand tilde (~) to HOME directory
-// Returns error if path starts with ~ but HOME is not set
 res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(path != NULL); // LCOV_EXCL_BR_LINE
+
+    // check if path needs tilde expansion
     if (path[0] != '~') {
         char *result = talloc_strdup_(ctx, path);
         if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         return OK(result);
     }
 
+    // if the path starts with tilde but $HOME is not set error
     const char *home = getenv("HOME");
     if (!home) {
         return ERR(ctx, INVALID_ARG, "HOME not set, cannot expand ~");
     }
 
+    // return $HOME expanded path
     char *result = talloc_asprintf_(ctx, "%s%s", home, path + 1);
     if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     return OK(result);
@@ -42,13 +41,13 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(path != NULL); // LCOV_EXCL_BR_LINE
+
     // Extract directory from path
     char *path_copy = talloc_strdup(ctx, path);
     if (path_copy == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    char *dir = dirname(path_copy);
-
     // Create directory if it doesn't exist
+    char *dir = dirname(path_copy);
     struct stat st;
     if (posix_stat_(dir, &st) != 0) {
         if (posix_mkdir_(dir, 0755) != 0) {
@@ -56,15 +55,17 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
         }
     }
 
-    // Create default JSON config using yyjson with talloc allocator
-    yyjson_alc alc = ik_make_talloc_allocator(ctx);
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(&alc);
+    // create the json document with talloc allocator
+    yyjson_alc allocator = ik_make_talloc_allocator(ctx);
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(&allocator);
     if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
+    // create a mutable root document
     yyjson_mut_val *root = yyjson_mut_obj(doc);
     if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     yyjson_mut_doc_set_root(doc, root);
 
+    // add the objects
     yyjson_mut_obj_add_str(doc, root, "openai_api_key", "YOUR_API_KEY_HERE");
     yyjson_mut_obj_add_str(doc, root, "openai_model", "gpt-5-mini");
     yyjson_mut_obj_add_real(doc, root, "openai_temperature", 0.7);
@@ -75,11 +76,11 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
 
     // Write to file with pretty printing
     yyjson_write_err write_err;
-    if (!yyjson_mut_write_file_(path, doc, YYJSON_WRITE_PRETTY, &alc, &write_err)) {
+    if (!yyjson_mut_write_file_(path, doc, YYJSON_WRITE_PRETTY, &allocator, &write_err)) {
         return ERR(ctx, IO, "Failed to write config file %s: %s", path, write_err.msg);
     }
 
-    // Note: No manual cleanup needed! talloc frees everything when ctx is freed
+    // no cleanup required talloc frees everything when ctx is freed
     return OK(NULL);
 }
 
@@ -87,10 +88,11 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(path != NULL); // LCOV_EXCL_BR_LINE
-    // Expand tilde in path
+
+    // expand tilde in path
     char *expanded_path = TRY(expand_tilde(ctx, path));
 
-    // Check if file exists
+    // check if file exists
     struct stat st;
     if (posix_stat_(expanded_path, &st) != 0) {
         // File doesn't exist, create default config
@@ -100,10 +102,10 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
         }
     }
 
-    // Load and parse config file using yyjson with talloc allocator
-    yyjson_alc alc = ik_make_talloc_allocator(ctx);
+    // load and parse config file using yyjson with talloc allocator
+    yyjson_alc allocator = ik_make_talloc_allocator(ctx);
     yyjson_read_err read_err;
-    yyjson_doc *doc = yyjson_read_file_(expanded_path, 0, &alc, &read_err);
+    yyjson_doc *doc = yyjson_read_file_(expanded_path, 0, &allocator, &read_err);
     if (!doc) {
         return ERR(ctx, PARSE, "Failed to parse JSON: %s", read_err.msg);
     }
@@ -126,7 +128,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     yyjson_val *address = yyjson_obj_get_(root, "listen_address");
     yyjson_val *port = yyjson_obj_get_(root, "listen_port");
 
-    // Validate openai_api_key
+    // validate openai_api_key
     if (!api_key) {
         return ERR(ctx, PARSE, "Missing openai_api_key");
     }
@@ -134,7 +136,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
         return ERR(ctx, PARSE, "Invalid type for openai_api_key");
     }
 
-    // Validate openai_model
+    // validate openai_model
     if (!model) {
         return ERR(ctx, PARSE, "Missing openai_model");
     }
@@ -142,7 +144,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
         return ERR(ctx, PARSE, "Invalid type for openai_model");
     }
 
-    // Validate openai_temperature
+    // validate openai_temperature
     if (!temperature) {
         return ERR(ctx, PARSE, "Missing openai_temperature");
     }
@@ -154,7 +156,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
         return ERR(ctx, OUT_OF_RANGE, "Temperature must be 0.0-2.0, got %f", temperature_value);
     }
 
-    // Validate openai_max_tokens
+    // validate openai_max_tokens
     if (!max_tokens) {
         return ERR(ctx, PARSE, "Missing openai_max_tokens");
     }
@@ -166,12 +168,12 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
         return ERR(ctx, OUT_OF_RANGE, "Max tokens must be 1-128000, got %lld", (long long)max_tokens_value);
     }
 
-    // Validate openai_system_message (optional)
+    // validate openai_system_message (optional)
     if (system_message && !yyjson_is_null(system_message) && !yyjson_is_str(system_message)) {
         return ERR(ctx, PARSE, "Invalid type for openai_system_message");
     }
 
-    // Validate listen_address
+    // validate listen_address
     if (!address) {
         return ERR(ctx, PARSE, "Missing listen_address");
     }
@@ -179,7 +181,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
         return ERR(ctx, PARSE, "Invalid type for listen_address");
     }
 
-    // Validate listen_port
+    // validate listen_port
     if (!port) {
         return ERR(ctx, PARSE, "Missing listen_port");
     }
@@ -187,14 +189,14 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
         return ERR(ctx, PARSE, "Invalid type for listen_port");
     }
 
-    // Extract port value and validate range
+    // extract port value and validate range
     int64_t port_raw = yyjson_get_sint_(port);
     if (port_raw < 1024 || port_raw > 65535) {
         return ERR(ctx, OUT_OF_RANGE, "Port must be 1024-65535, got %lld", (long long)port_raw);
     }
     uint16_t port_value = (uint16_t)port_raw;
 
-    // Copy values to config
+    // copy values to config
     cfg->openai_api_key = talloc_strdup(cfg, yyjson_get_str_(api_key));
     cfg->openai_model = talloc_strdup(cfg, yyjson_get_str_(model));
     cfg->openai_temperature = temperature_value;
@@ -207,6 +209,6 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     cfg->listen_address = talloc_strdup(cfg, yyjson_get_str_(address));
     cfg->listen_port = port_value;
 
-    // Note: No manual cleanup needed! talloc frees doc when ctx is freed
+    // no cleanup required talloc frees everything when ctx is freed
     return OK(cfg);
 }

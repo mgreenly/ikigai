@@ -1,11 +1,11 @@
+#include "config.h"
+#include "error.h"
+#include "panic.h"
+#include "repl.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <talloc.h>
-
-#include "repl.h"
-#include "error.h"
-#include "panic.h"
-#include "config.h"
 
 /* LCOV_EXCL_START */
 int main(void)
@@ -29,11 +29,9 @@ int main(void)
         talloc_free(root_ctx);
         return EXIT_FAILURE;
     }
-
-    // Set global for panic handler (after terminal initialization)
+    // Our abort implementation uses `g_term_ctx_for_panic` to restore the primary buffer if it's not NULL.
     g_term_ctx_for_panic = repl->term;
-
-    // Hook talloc abort handler
+    // The talloc library will call this, instead of `abort` if it's defined, which will restore the primary buffer.
     talloc_set_abort_fn(ik_talloc_abort_handler);
 
     result = ik_repl_run(repl);

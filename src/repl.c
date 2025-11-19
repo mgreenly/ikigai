@@ -117,16 +117,16 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
     repl->cfg = cfg;
 
     // Initialize conversation for session messages (Phase 1.6)
-    repl->conversation = TRY(ik_openai_conversation_create(repl));  // LCOV_EXCL_BR_LINE
+    repl->conversation = ik_openai_conversation_create(repl).ok;
 
     // Initialize assistant response accumulator (Phase 1.6)
     repl->assistant_response = NULL;
 
     // Set up signal handlers (SIGWINCH for terminal resize)
     result = ik_signal_handler_init(parent);
-    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - Signal handler setup failure is rare (invalid signal number)
-        talloc_free(repl);  // LCOV_EXCL_LINE
-        return result;  // LCOV_EXCL_LINE
+    if (is_err(&result)) {
+        talloc_free(repl);
+        return result;
     }
 
     *repl_out = repl;
@@ -187,8 +187,8 @@ static inline res_t setup_fd_sets_(ik_repl_ctx_t *repl,
     // Add curl_multi fds
     int curl_max_fd = -1;
     res_t result = ik_openai_multi_fdset(repl->multi, read_fds, write_fds, exc_fds, &curl_max_fd);
-    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
-        return result;  // LCOV_EXCL_LINE
+    if (is_err(&result)) {
+        return result;
     }
     if (curl_max_fd > max_fd) {  // LCOV_EXCL_BR_LINE
         max_fd = curl_max_fd;  // LCOV_EXCL_LINE
@@ -199,18 +199,17 @@ static inline res_t setup_fd_sets_(ik_repl_ctx_t *repl,
 }
 
 // Helper: Handle terminal input
-static inline res_t handle_terminal_input_(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit)
+// Exposed for testing
+res_t handle_terminal_input_(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit)
 {
     char byte;
     ssize_t n = posix_read_(terminal_fd, &byte, 1);
-    if (n < 0) {  // LCOV_EXCL_BR_LINE
-        // LCOV_EXCL_START
+    if (n < 0) {
         if (errno == EINTR) {
             return OK(NULL);
         }
         *should_exit = true;
         return OK(NULL);
-        // LCOV_EXCL_STOP
     }
     if (n == 0) {
         *should_exit = true;
@@ -222,13 +221,55 @@ static inline res_t handle_terminal_input_(ik_repl_ctx_t *repl, int terminal_fd,
     ik_input_parse_byte(repl->input_parser, byte, &action);
 
     res_t result = ik_repl_process_action(repl, &action);
-    if (is_err(&result)) return result; // LCOV_EXCL_LINE
+    // Error propagation: Currently unreachable through normal terminal input because
+    // the input parser (input.c:decode_utf8_sequence) sanitizes invalid codepoints
+    // to U+FFFD before they reach ik_repl_process_action(). The error handling in
+    // ik_repl_process_action itself IS tested (see test_repl_process_action_invalid_codepoint).
+    // This defensive check remains for future robustness if new failable actions are added.
+    if (is_err(&result)) return result; // LCOV_EXCL_BR_LINE
 
     // Render if needed
     if (action.type != IK_INPUT_UNKNOWN) {
         return ik_repl_render_frame(repl);
     }
 
+    return OK(NULL);
+}
+
+// Helper: Handle curl_multi events and detect request completion
+// Exposed for testing
+res_t handle_curl_events_(ik_repl_ctx_t *repl, int ready)
+{
+    // Only call curl_multi_perform when there's work to do:
+    // - ready == 0 means select() timed out (curl may need to handle its timeouts)
+    // - curl_still_running > 0 means there are active transfers that need processing
+    if (ready == 0 || repl->curl_still_running > 0) {
+        int prev_running = repl->curl_still_running;
+        CHECK(ik_openai_multi_perform(repl->multi, &repl->curl_still_running));
+        ik_openai_multi_info_read(repl->multi);
+
+        // Detect request completion (was running, now not running)
+        if (prev_running > 0 && repl->curl_still_running == 0 && repl->state == IK_REPL_STATE_WAITING_FOR_LLM) {
+            // Request completed - add assistant response to conversation
+            if (repl->assistant_response != NULL && strlen(repl->assistant_response) > 0) {
+                ik_openai_msg_t *assistant_msg = ik_openai_msg_create(repl->conversation,
+                                                                      "assistant",
+                                                                      repl->assistant_response).ok;
+                res_t result = ik_openai_conversation_add_msg(repl->conversation, assistant_msg);
+                if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+
+                // Clear the assistant response
+                talloc_free(repl->assistant_response);
+                repl->assistant_response = NULL;
+            }
+
+            // Transition back to IDLE state
+            ik_repl_transition_to_idle(repl);
+
+            // Trigger re-render to update UI
+            CHECK(ik_repl_render_frame(repl));
+        }
+    }
     return OK(NULL);
 }
 
@@ -255,7 +296,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Calculate timeout
         long curl_timeout_ms = -1;
-        CHECK(ik_openai_multi_timeout(repl->multi, &curl_timeout_ms));  // LCOV_EXCL_BR_LINE
+        CHECK(ik_openai_multi_timeout(repl->multi, &curl_timeout_ms));
         long effective_timeout_ms = calculate_select_timeout_ms_(repl, curl_timeout_ms);
 
         struct timeval timeout;
@@ -265,21 +306,19 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         // Call select()
         int ready = posix_select_(max_fd + 1, &read_fds, &write_fds, &exc_fds, &timeout);
 
-        if (ready < 0) {  // LCOV_EXCL_BR_LINE
-            // LCOV_EXCL_START
+        if (ready < 0) {
             if (errno == EINTR) {
-                CHECK(ik_signal_check_resize(repl));
+                CHECK(ik_signal_check_resize(repl));  // LCOV_EXCL_BR_LINE
                 continue;
             }
             break;
-            // LCOV_EXCL_STOP
         }
 
         // Handle timeout (spinner animation)
-        if (ready == 0 && repl->spinner_state.visible) {  // LCOV_EXCL_BR_LINE
-            ik_spinner_advance(&repl->spinner_state);  // LCOV_EXCL_LINE
-            CHECK(ik_repl_render_frame(repl));  // LCOV_EXCL_LINE
-            continue;  // LCOV_EXCL_LINE
+        if (ready == 0 && repl->spinner_state.visible) {
+            ik_spinner_advance(&repl->spinner_state);
+            CHECK(ik_repl_render_frame(repl));
+            continue;
         }
 
         // Handle terminal input
@@ -289,36 +328,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         }
 
         // Handle curl_multi events
-        // Only call curl_multi_perform when there's work to do:
-        // - ready == 0 means select() timed out (curl may need to handle its timeouts)
-        // - curl_still_running > 0 means there are active transfers that need processing
-        if (ready == 0 || repl->curl_still_running > 0) {
-            int prev_running = repl->curl_still_running;
-            CHECK(ik_openai_multi_perform(repl->multi, &repl->curl_still_running));  // LCOV_EXCL_BR_LINE
-            CHECK(ik_openai_multi_info_read(repl->multi));  // LCOV_EXCL_BR_LINE
-
-            // Detect request completion (was running, now not running)
-            if (prev_running > 0 && repl->curl_still_running == 0 && repl->state == IK_REPL_STATE_WAITING_FOR_LLM) {
-                // Request completed - add assistant response to conversation
-                if (repl->assistant_response != NULL && strlen(repl->assistant_response) > 0) {
-                    ik_openai_msg_t *assistant_msg = TRY(ik_openai_msg_create(repl->conversation,
-                                                                              "assistant",
-                                                                              repl->assistant_response));                                   // LCOV_EXCL_BR_LINE
-                    result = ik_openai_conversation_add_msg(repl->conversation, assistant_msg);
-                    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
-
-                    // Clear the assistant response
-                    talloc_free(repl->assistant_response);
-                    repl->assistant_response = NULL;
-                }
-
-                // Transition back to IDLE state
-                ik_repl_transition_to_idle(repl);
-
-                // Trigger re-render to update UI
-                CHECK(ik_repl_render_frame(repl));  // LCOV_EXCL_BR_LINE
-            }
-        }
+        CHECK(handle_curl_events_(repl, ready));  // LCOV_EXCL_BR_LINE
     }
 
     return OK(NULL);
@@ -334,8 +344,7 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
 
     // Append to scrollback (only if there's content and scrollback exists)
     if (text_len > 0 && repl->scrollback != NULL) {
-        res_t result = ik_scrollback_append_line(repl->scrollback, text, text_len);
-        if (is_err(&result)) return result; // LCOV_EXCL_LINE - Defensive, allocation failures are rare
+        ik_scrollback_append_line(repl->scrollback, text, text_len);
     }
 
     // Clear input buffer

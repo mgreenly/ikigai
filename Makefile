@@ -105,6 +105,7 @@ MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 # Test utilities (linked with all tests)
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
+REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 
 .PHONY: all release clean install uninstall check check-unit check-integration check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
@@ -145,12 +146,33 @@ $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o: tests/unit/repl/repl_run_tes
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-# Special rule for repl_run tests that need the common object
+$(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o: tests/unit/repl/repl_streaming_test_common.c tests/unit/repl/repl_streaming_test_common.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+# Special rules for repl_run tests that need the run common object
 $(BUILDDIR)/tests/unit/repl/repl_run_basic_test: $(BUILDDIR)/tests/unit/repl/repl_run_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-$(BUILDDIR)/tests/unit/repl/repl_run_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_run_io_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_io_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+$(BUILDDIR)/tests/unit/repl/repl_run_curl_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_curl_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+$(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test: $(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+# Special rules for repl streaming/completion tests that need the streaming common object
+$(BUILDDIR)/tests/unit/repl/repl_streaming_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+$(BUILDDIR)/tests/unit/repl/repl_completion_test: $(BUILDDIR)/tests/unit/repl/repl_completion_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 

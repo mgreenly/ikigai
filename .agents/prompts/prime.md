@@ -48,6 +48,30 @@ See docs/naming.md for complete conventions and approved abbreviations.
 
 Always add a blank line between END_TEST and START_TEST.
 
+## Include Order
+
+Follow Google C++ style guide for #include ordering:
+
+1. Own header first (e.g., `config.h` in `config.c`) - catches missing dependencies
+2. Project headers (`"header.h"`) - alphabetically sorted
+3. System/library headers (`<header.h>`) - alphabetically sorted
+
+Example:
+```c
+#include "config.h"           // Own header
+
+#include "json_allocator.h"   // Project headers (alphabetical)
+#include "logger.h"
+#include "panic.h"
+#include "wrapper.h"
+
+#include <errno.h>            // System headers (alphabetical)
+#include <stdlib.h>
+#include <string.h>
+```
+
+Rationale: Project headers before system headers catches non-self-contained headers early.
+
 ## Pre-Commit Requirements
 
 BEFORE creating ANY commit (mandatory, no exceptions):
