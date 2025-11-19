@@ -458,15 +458,15 @@ The implementation is divided into 8 sub-phases:
 
 Phase 1 implementation is complete when:
 
-1. ✅ All unit tests pass (100% coverage) - DONE (Phases 1.1-1.6)
-2. ✅ All integration tests pass - DONE (Phases 1.1-1.6)
-3. ✅ All quality gates pass (fmt, lint, check-dynamic, valgrind) - DONE (Phases 1.1-1.6)
-4. ⏳ All manual test sessions completed successfully - PENDING (Phase 1.7)
+1. ✅ All unit tests pass (100% coverage) - DONE (Phases 1.1-1.7)
+2. ✅ All integration tests pass - DONE (Phases 1.1-1.7)
+3. ✅ All quality gates pass (fmt, lint, check-dynamic, valgrind) - DONE (Phases 1.1-1.7)
+4. ⏳ All manual test sessions completed successfully - PENDING (Phase 1.7 Tasks 7.10-7.14)
 5. ⏳ Mock verification tests pass against real API - PENDING (Phase 1.8)
 6. ⏳ Documentation updated - PENDING (Phase 1.8)
 7. ⏳ Final acceptance test passed by human - PENDING (Phase 1.8)
 8. ✅ Basic LLM chat works with streaming responses - DONE (Phase 1.6)
-9. ⏳ Commands work: /clear, /mark, /rewind, /help, /model, /system - PENDING (Phase 1.7)
+9. ⏳ Commands work: /clear, /mark, /rewind, /help, /model, /system - PARTIAL (/clear done, others in Phase 1.7)
 10. ✅ Messages stored in-memory only (database is Phase 2) - DONE (Phase 1.6)
 
 ## Next Steps After Phase 1
