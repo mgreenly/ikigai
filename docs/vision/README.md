@@ -50,6 +50,7 @@ All agents are first-class database entities, accessible from any connected clie
 - [commands.md](commands.md) - Complete command reference
 - [keybindings.md](keybindings.md) - Keyboard navigation and shortcuts
 - [multi-agent.md](multi-agent.md) - Multi-agent conversation design
+- [inter-agent-communication.md](inter-agent-communication.md) - Agent-to-agent messaging, handlers, and automation
 - [mark-rewind.md](mark-rewind.md) - Checkpoint/rollback system
 - [git-integration.md](git-integration.md) - Git worktree workflows
 - [why-ikigai.md](why-ikigai.md) - The vision and sales pitch
