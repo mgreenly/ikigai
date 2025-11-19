@@ -2,19 +2,27 @@
 
 ## Overview
 
-ikigai is a **unified terminal-native AI coding agent** that runs multiple parallel conversations within a single application. Each agent maintains isolated context while sharing knowledge through a persistent memory document store.
+ikigai is a **unified terminal-native AI coding agent** that runs multiple parallel conversations. Each agent maintains isolated context while sharing knowledge through a persistent memory document store.
 
 **The Core Innovation:**
 
-A single ikigai instance manages multiple AI agents, each focused on different work:
+A shared PostgreSQL database is the source of truth for all agents, conversations, and knowledge:
+- **Multiple client instances** can run simultaneously, each in a different project directory
 - **Root agent** coordinates overall development on the main branch
 - **Helper agents** work on features in isolated git worktrees
-- **Memory documents** enable knowledge sharing across all agents
+- **Memory documents** enable knowledge sharing across all agents and clients
 - **Mark/rewind** provides checkpoint/rollback for safe exploration
 
-All agents run in the same application, with instant switching and shared knowledge - like having multiple expert developers working in parallel, coordinating through shared documentation.
+All agents are first-class database entities, accessible from any connected client, with instant switching and shared knowledge - like having multiple expert developers working in parallel across different projects, coordinating through shared documentation.
 
 ## Design Philosophy
+
+**Database as Source of Truth:**
+- Shared PostgreSQL database stores all agents, conversations, and knowledge
+- Multiple ikigai client instances can connect to same database
+- Each client differentiated by working directory / project
+- Agents are database entities, not tied to specific client processes
+- Enables multi-project workflows with shared knowledge
 
 **Git-Native Workflow:**
 - Each agent can work in its own git worktree on its own branch
@@ -38,6 +46,7 @@ All agents run in the same application, with instant switching and shared knowle
 
 ### Core Vision Documents
 
+- [database-architecture.md](database-architecture.md) - Multi-client database architecture and message identity
 - [commands.md](commands.md) - Complete command reference
 - [keybindings.md](keybindings.md) - Keyboard navigation and shortcuts
 - [multi-agent.md](multi-agent.md) - Multi-agent conversation design
@@ -61,9 +70,10 @@ All agents run in the same application, with instant switching and shared knowle
 
 ### Memory Documents
 
-- Persistent knowledge base (PostgreSQL)
-- Accessible by all agents
-- Survive agent destruction
+- Shared wiki accessible to all agents across all clients
+- Markdown files stored in PostgreSQL (not in git)
+- Persistent knowledge base that survives agent destruction
+- Accessible by any agent in any project
 - Referenced with `#mem-<id>` or `#mem-<alias>`
 
 ### Worktrees
