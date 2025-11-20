@@ -263,13 +263,13 @@ START_TEST(test_dispatch_system_with_multiword_arg)
         ik_cmd_dispatch(ctx, repl, "/system You are a helpful assistant");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback received the TODO message
+    // Verify scrollback received the confirmation message
     const char *line = NULL;
     size_t length = 0;
     res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "TODO: /system not yet implemented");
+    ck_assert_str_eq(line, "System message set to: You are a helpful assistant");
 }
 
 END_TEST

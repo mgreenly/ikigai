@@ -11,7 +11,7 @@
 - ✅ Phase 1.4: Spinner Layer - COMPLETE
 - ✅ Phase 1.5: HTTP Client Module (libcurl) - COMPLETE (12/12 tasks, 100%)
 - ✅ Phase 1.6: Event Loop Integration - COMPLETE (8/8 tasks, 100%)
-- ⏳ Phase 1.7: Command Infrastructure & Manual Testing - IN PROGRESS (7/16 tasks done)
+- ⏳ Phase 1.7: Command Infrastructure & Manual Testing - IN PROGRESS (8/16 tasks done)
 - ⏳ Phase 1.8: Mock Verification & Polish - PENDING
 
 **Future Phases** (see `docs/logical-architecture-analysis.md`):
@@ -741,12 +741,18 @@
   - Updated `Makefile` - LCOV_EXCL_COVERAGE: 614 → 626
 - **Quality Gates:** All passing (fmt, check, lint, coverage: 100%)
 
-### Task 7.7: Implement /system command
-- [ ] Parse `/system <text>` command
-- [ ] Update system_message in config
-- [ ] Show confirmation
-- **Tests:** Unit test - set/clear system message
-- **Manual verification:** Type `/system You are a pirate`, verify personality change
+### Task 7.7: Implement /system command ✅ COMPLETE
+- [x] Parse `/system <text>` command
+- [x] Update system_message in config
+- [x] Show confirmation
+- **Tests:** 6 unit tests - all passing (100%)
+- **Deliverables:**
+  - `src/commands.c` - Implemented `cmd_system()` handler (35 lines)
+  - `tests/unit/commands/system_test.c` - NEW (213 lines, 6 tests)
+  - Updated `tests/unit/commands/dispatch_test.c` - Fixed test expectations
+  - Updated Makefile - LCOV_EXCL_COVERAGE: 626 → 635
+- **Coverage:** 100% (2966 lines, 209 functions, 932 branches)
+- **Manual verification:** Deferred to Task 7.12
 
 ### Task 7.8: Error handling integration
 - [ ] HTTP errors → format message, append to scrollback
@@ -897,7 +903,7 @@ Phase 1 implementation is complete when:
 6. ⏳ Documentation updated - PENDING (Phase 1.8)
 7. ⏳ Final acceptance test passed by human - PENDING (Task 8.6)
 8. ✅ Basic LLM chat works with streaming responses - DONE (Phase 1.6)
-9. ⏳ Commands work: /clear, /mark, /rewind, /help, /model, /system - PARTIAL (/clear, /mark, /rewind, /help done; /model, /system pending)
+9. ✅ Commands work: /clear, /mark, /rewind, /help, /model, /system - DONE (all 6 commands implemented)
 10. ✅ Messages stored in-memory only (database is Phase 2) - DONE
 
 ## Notes

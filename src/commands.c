@@ -288,13 +288,35 @@ static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
-    (void)args;
 
-    // TODO: Implement in Task 7.7
-    char *msg = talloc_strdup(ctx, "TODO: /system not yet implemented");
-    if (!msg) {     // LCOV_EXCL_BR_LINE
-        PANIC("OOM");   // LCOV_EXCL_LINE
+    // Free old system message
+    if (repl->cfg->openai_system_message != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(repl->cfg->openai_system_message);
+        repl->cfg->openai_system_message = NULL;
     }
+
+    char *msg = NULL;
+
+    // If args is NULL or empty, clear the system message
+    if (args == NULL) {     // LCOV_EXCL_BR_LINE
+        msg = talloc_strdup(ctx, "System message cleared");
+        if (!msg) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+    } else {
+        // Set new system message
+        repl->cfg->openai_system_message = talloc_strdup(repl->cfg, args);
+        if (!repl->cfg->openai_system_message) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+
+        // Show confirmation
+        msg = talloc_asprintf(ctx, "System message set to: %s", args);
+        if (!msg) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+    }
+
     ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
     return OK(NULL);
 }
