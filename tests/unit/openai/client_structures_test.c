@@ -128,7 +128,7 @@ START_TEST(test_request_create_valid)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4-turbo");
     cfg->openai_temperature = 0.7;
-    cfg->openai_max_tokens = 2048;
+    cfg->openai_max_completion_tokens = 2048;
 
     /* Create conversation */
     res_t conv_res = ik_openai_conversation_create(ctx);
@@ -140,7 +140,7 @@ START_TEST(test_request_create_valid)
     ck_assert_ptr_nonnull(req);
     ck_assert_str_eq(req->model, "gpt-4-turbo");
     ck_assert(req->temperature == 0.7);
-    ck_assert_int_eq(req->max_tokens, 2048);
+    ck_assert_int_eq(req->max_completion_tokens, 2048);
     ck_assert(req->stream == true);
     ck_assert_ptr_eq(req->conv, conv);
 }
@@ -172,7 +172,7 @@ START_TEST(test_serialize_empty_conversation)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4-turbo");
     cfg->openai_temperature = 0.7;
-    cfg->openai_max_tokens = 2048;
+    cfg->openai_max_completion_tokens = 2048;
 
     /* Create empty conversation */
     res_t conv_res = ik_openai_conversation_create(ctx);
@@ -205,7 +205,7 @@ START_TEST(test_serialize_empty_conversation)
     yyjson_val *temp = yyjson_obj_get(root, "temperature");
     ck_assert(yyjson_get_real(temp) == 0.7);
 
-    yyjson_val *max_tokens = yyjson_obj_get(root, "max_tokens");
+    yyjson_val *max_tokens = yyjson_obj_get(root, "max_completion_tokens");
     ck_assert_int_eq(yyjson_get_int(max_tokens), 2048);
 
     yyjson_val *stream = yyjson_obj_get(root, "stream");
@@ -220,7 +220,7 @@ END_TEST START_TEST(test_serialize_with_messages)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.5;
-    cfg->openai_max_tokens = 1024;
+    cfg->openai_max_completion_tokens = 1024;
 
     /* Create conversation with messages */
     res_t conv_res = ik_openai_conversation_create(ctx);

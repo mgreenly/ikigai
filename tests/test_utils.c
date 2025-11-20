@@ -45,7 +45,7 @@ ik_cfg_t *ik_test_create_config(TALLOC_CTX *ctx)
     cfg->openai_api_key = talloc_strdup(cfg, "test-api-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4-turbo");
     cfg->openai_temperature = 0.7;
-    cfg->openai_max_tokens = 4096;
+    cfg->openai_max_completion_tokens = 4096;
     cfg->openai_system_message = NULL;
     cfg->listen_address = talloc_strdup(cfg, "127.0.0.1");
     cfg->listen_port = 8080;

@@ -23,6 +23,7 @@ static res_t cmd_rewind(void *ctx, ik_repl_ctx_t *repl, const char *args);
 static res_t cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args);
 static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args);
 static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args);
+static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 // Command registry
 static const ik_command_t commands[] = {
@@ -33,6 +34,7 @@ static const ik_command_t commands[] = {
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},
+    {"debug", "Toggle debug output (usage: /debug [on|off])", cmd_debug},
 };
 
 static const size_t command_count =
@@ -315,6 +317,47 @@ static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args)
         if (!msg) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
+    }
+
+    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+    return OK(NULL);
+}
+
+static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);     // LCOV_EXCL_BR_LINE
+
+    char *msg = NULL;
+
+    if (args == NULL) {
+        // Show current status
+        msg = talloc_asprintf(ctx, "Debug output: %s", repl->debug_enabled ? "ON" : "OFF");
+        if (!msg) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+    } else if (strcmp(args, "on") == 0) {
+        // Enable debug output
+        repl->debug_enabled = true;
+        msg = talloc_strdup(ctx, "Debug output enabled");
+        if (!msg) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+    } else if (strcmp(args, "off") == 0) {
+        // Disable debug output
+        repl->debug_enabled = false;
+        msg = talloc_strdup(ctx, "Debug output disabled");
+        if (!msg) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+    } else {
+        // Invalid argument
+        msg = talloc_asprintf(ctx, "Error: Invalid argument '%s' (usage: /debug [on|off])", args);
+        if (!msg) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+        ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+        return ERR(ctx, INVALID_ARG, "Invalid argument '%s'", args);
     }
 
     ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));

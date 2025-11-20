@@ -128,7 +128,7 @@ ik_openai_request_t *ik_openai_request_create(void *parent, const ik_cfg_t *cfg,
 
     req->conv = conv;  /* Borrowed reference, not owned */
     req->temperature = cfg->openai_temperature;
-    req->max_tokens = cfg->openai_max_tokens;
+    req->max_completion_tokens = cfg->openai_max_completion_tokens;
     req->stream = true;  /* Always enable streaming */
 
     return req;
@@ -203,9 +203,9 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
         PANIC("Failed to add temperature field to JSON"); // LCOV_EXCL_LINE
     }
 
-    /* Add max_tokens field */
-    if (!yyjson_mut_obj_add_int(doc, root, "max_tokens", (int64_t)request->max_tokens)) { // LCOV_EXCL_BR_LINE
-        PANIC("Failed to add max_tokens field to JSON"); // LCOV_EXCL_LINE
+    /* Add max_completion_tokens field */
+    if (!yyjson_mut_obj_add_int(doc, root, "max_completion_tokens", (int64_t)request->max_completion_tokens)) { // LCOV_EXCL_BR_LINE
+        PANIC("Failed to add max_completion_tokens field to JSON"); // LCOV_EXCL_LINE
     }
 
     /* Add stream field */

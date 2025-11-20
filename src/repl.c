@@ -125,12 +125,20 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
     // Initialize assistant response accumulator (Phase 1.6)
     repl->assistant_response = NULL;
 
+    // Initialize streaming line buffer
+    repl->streaming_line_buffer = NULL;
+
     // Initialize HTTP error message (Phase 1.7)
     repl->http_error_message = NULL;
 
     // Initialize marks array (Phase 1.7)
     repl->marks = NULL;
     repl->mark_count = 0;
+
+    // Debug pipe manager
+    repl->debug_mgr = TRY(ik_debug_mgr_create(repl));  // LCOV_EXCL_BR_LINE
+    repl->openai_debug_pipe = TRY(ik_debug_mgr_add_pipe(repl->debug_mgr, "[openai]"));  // LCOV_EXCL_BR_LINE
+    repl->debug_enabled = false;
 
     // Set up signal handlers (SIGWINCH for terminal resize)
     result = ik_signal_handler_init(parent);
@@ -274,6 +282,7 @@ static void handle_request_error_(ik_repl_ctx_t *repl)
         repl->assistant_response = NULL;
     }
 }
+
 // LCOV_EXCL_STOP
 
 // Helper: Handle HTTP request success
@@ -312,9 +321,9 @@ res_t handle_curl_events_(ik_repl_ctx_t *repl, int ready)
             if (repl->http_error_message != NULL) {
                 handle_request_error_(repl);
             } else {
-            // LCOV_EXCL_STOP
+                // LCOV_EXCL_STOP
                 handle_request_success_(repl);
-            // LCOV_EXCL_START
+                // LCOV_EXCL_START
             }
             // LCOV_EXCL_STOP
 
@@ -349,6 +358,11 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         int max_fd;
         CHECK(setup_fd_sets_(repl, &read_fds, &write_fds, &exc_fds, &max_fd));  // LCOV_EXCL_BR_LINE
 
+        // Add debug pipes to fd_set
+        if (repl->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
+            ik_debug_mgr_add_to_fdset(repl->debug_mgr, &read_fds, &max_fd);  // LCOV_EXCL_LINE
+        }
+
         // Calculate timeout
         long curl_timeout_ms = -1;
         CHECK(ik_openai_multi_timeout(repl->multi, &curl_timeout_ms));
@@ -374,6 +388,11 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             ik_spinner_advance(&repl->spinner_state);
             CHECK(ik_repl_render_frame(repl));
             continue;
+        }
+
+        // Handle debug pipes
+        if (ready > 0 && repl->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
+            ik_debug_mgr_handle_ready(repl->debug_mgr, &read_fds, repl->scrollback, repl->debug_enabled);  // LCOV_EXCL_LINE
         }
 
         // Handle terminal input

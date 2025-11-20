@@ -1,15 +1,18 @@
 #include "openai/client_multi.h"
+
 #include "openai/client.h"
 #include "openai/sse_parser.h"
 #include "error.h"
 #include "wrapper.h"
 #include "json_allocator.h"
 #include "vendor/yyjson/yyjson.h"
-#include <talloc.h>
-#include <string.h>
+
 #include <assert.h>
 #include <curl/curl.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/select.h>
+#include <talloc.h>
 
 /**
  * OpenAI multi-handle client implementation
@@ -167,7 +170,8 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
                                    ik_openai_stream_cb_t stream_cb,
                                    void *stream_ctx,
                                    ik_http_completion_cb_t completion_cb,
-                                   void *completion_ctx) {
+                                   void *completion_ctx,
+                                   FILE *debug_output) {
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);  // LCOV_EXCL_BR_LINE
     assert(conv != NULL);  // LCOV_EXCL_BR_LINE
@@ -235,11 +239,25 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
     curl_easy_setopt_(active_req->easy_handle, CURLOPT_WRITEFUNCTION, http_write_callback);
     curl_easy_setopt_(active_req->easy_handle, CURLOPT_WRITEDATA, active_req->write_ctx);
 
+    // LCOV_EXCL_START - Debug: Enable verbose curl output if debug pipe provided
+    if (debug_output != NULL) {
+        fprintf(debug_output, "[OpenAI Request]\n");
+        fprintf(debug_output, "URL: https://api.openai.com/v1/chat/completions\n");
+        fprintf(debug_output, "Content-Type: application/json\n");
+        fprintf(debug_output, "Body: %s\n", json_body);
+        fprintf(debug_output, "\n");
+        fflush(debug_output);
+
+        curl_easy_setopt_(active_req->easy_handle, CURLOPT_VERBOSE, (const void *)1L);
+        curl_easy_setopt_(active_req->easy_handle, CURLOPT_STDERR, debug_output);
+    }
+    // LCOV_EXCL_STOP
+
     /* Set headers */
     active_req->headers = NULL;
     active_req->headers = curl_slist_append_(active_req->headers, "Content-Type: application/json");
 
-    char auth_header[256];
+    char auth_header[512];  // Increased from 256 to handle longer API keys
     int32_t written = snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", cfg->openai_api_key);
     if (written < 0 || (size_t)written >= sizeof(auth_header)) {  // LCOV_EXCL_BR_LINE
         curl_easy_cleanup_(active_req->easy_handle);  // LCOV_EXCL_LINE

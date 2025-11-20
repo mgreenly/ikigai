@@ -77,6 +77,7 @@ res_t ik_openai_multi_create(void *parent);
  * @param stream_ctx     Context pointer passed to streaming callback
  * @param completion_cb  Callback for request completion (or NULL)
  * @param completion_ctx Context pointer passed to completion callback
+ * @param debug_output   FILE* for debug output (request/response details), or NULL
  * @return               OK(NULL) or ERR(...)
  */
 res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
@@ -85,7 +86,8 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
                                    ik_openai_stream_cb_t stream_cb,
                                    void *stream_ctx,
                                    ik_http_completion_cb_t completion_cb,
-                                   void *completion_ctx);
+                                   void *completion_ctx,
+                                   FILE *debug_output);
 
 /**
  * Perform non-blocking I/O operations

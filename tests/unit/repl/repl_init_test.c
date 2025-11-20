@@ -197,6 +197,31 @@ START_TEST(test_repl_init_signal_handler_failure)
 }
 
 END_TEST
+/* Test: Successful initialization verifies debug manager creation */
+START_TEST(test_repl_init_success_debug_manager)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Initialize REPL - should succeed
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
+
+    // Verify success
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(repl);
+
+    // Verify debug manager is created
+    ck_assert_ptr_nonnull(repl->debug_mgr);
+
+    // Verify debug is disabled by default
+    ck_assert(!repl->debug_enabled);
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+
+END_TEST
 
 static Suite *repl_init_suite(void)
 {
@@ -208,6 +233,11 @@ static Suite *repl_init_suite(void)
     tcase_add_test(tc_term, test_repl_init_render_invalid_dimensions);
     tcase_add_test(tc_term, test_repl_init_signal_handler_failure);
     suite_add_tcase(s, tc_term);
+
+    TCase *tc_success = tcase_create("Successful Init");
+    tcase_set_timeout(tc_success, 30);
+    tcase_add_test(tc_success, test_repl_init_success_debug_manager);
+    suite_add_tcase(s, tc_success);
 
     return s;
 }

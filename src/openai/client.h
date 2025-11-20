@@ -46,10 +46,10 @@ typedef struct {
  * Contains all parameters for a Chat Completions API request.
  */
 typedef struct {
-    char *model;                      /* Model identifier (e.g., "gpt-4-turbo") */
+    char *model;                      /* Model identifier (e.g., "gpt-5-mini") */
     ik_openai_conversation_t *conv;   /* Conversation messages */
     double temperature;               /* Randomness (0.0-2.0) */
-    int32_t max_tokens;               /* Maximum response tokens */
+    int32_t max_completion_tokens;    /* Maximum response tokens */
     bool stream;                      /* Enable streaming responses */
 } ik_openai_request_t;
 

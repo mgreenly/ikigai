@@ -10,6 +10,7 @@
 #include "layer_wrappers.h"
 #include "config.h"
 #include "openai/client.h"
+#include "debug_pipe.h"
 #include <stdbool.h>
 #include <inttypes.h>
 
@@ -67,11 +68,17 @@ typedef struct ik_repl_ctx_t {
     ik_cfg_t *cfg;                                // Configuration (API key, model, etc.)
     ik_openai_conversation_t *conversation;       // Current conversation (session messages)
     char *assistant_response;                     // Accumulated assistant response (during streaming)
+    char *streaming_line_buffer;                  // Buffer for incomplete line during streaming
     char *http_error_message;                     // HTTP error message (if request failed)
 
     // Checkpoint management (Phase 1.7)
     ik_mark_t **marks;                            // Array of conversation marks
     size_t mark_count;                            // Number of marks
+
+    // Debug pipes
+    ik_debug_pipe_manager_t *debug_mgr;
+    ik_debug_pipe_t *openai_debug_pipe;
+    bool debug_enabled;
 } ik_repl_ctx_t;
 
 // Initialize REPL context

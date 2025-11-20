@@ -173,7 +173,7 @@ START_TEST(test_http_callback_with_sse_streaming) {
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-12345");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
-    cfg->openai_max_tokens = 100;
+    cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
     res_t conv_res = ik_openai_conversation_create(ctx);
@@ -218,7 +218,7 @@ START_TEST(test_http_callback_empty_response)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-12345");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
-    cfg->openai_max_tokens = 100;
+    cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
     res_t conv_res = ik_openai_conversation_create(ctx);
@@ -258,7 +258,7 @@ START_TEST(test_http_callback_sse_parser_feed_error)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-12345");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
-    cfg->openai_max_tokens = 100;
+    cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
     res_t conv_res = ik_openai_conversation_create(ctx);
@@ -301,7 +301,7 @@ START_TEST(test_http_callback_sse_parse_error)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-12345");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
-    cfg->openai_max_tokens = 100;
+    cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
     res_t conv_res = ik_openai_conversation_create(ctx);
@@ -369,7 +369,7 @@ START_TEST(test_http_callback_user_success) {
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-12345");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
-    cfg->openai_max_tokens = 100;
+    cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
     res_t conv_res = ik_openai_conversation_create(ctx);
@@ -412,7 +412,7 @@ START_TEST(test_http_callback_user_error)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-12345");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
-    cfg->openai_max_tokens = 100;
+    cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
     res_t conv_res = ik_openai_conversation_create(ctx);

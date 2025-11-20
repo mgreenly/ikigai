@@ -58,10 +58,7 @@ static res_t streaming_callback(const char *chunk, void *ctx)
     assert(ctx != NULL);    /* LCOV_EXCL_BR_LINE */
 
     ik_repl_ctx_t *repl = (ik_repl_ctx_t *)ctx;
-
-    // Append chunk to scrollback (handle multi-line content)
     size_t chunk_len = strlen(chunk);
-    append_multiline_to_scrollback(repl->scrollback, chunk, chunk_len);
 
     // Accumulate complete response for adding to conversation later
     if (repl->assistant_response == NULL) {
@@ -71,10 +68,50 @@ static res_t streaming_callback(const char *chunk, void *ctx)
     }
     if (repl->assistant_response == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Trigger re-render to show streaming content
-    // Note: This will be called from within the event loop, so rendering here
-    // should be safe. However, for now we'll let the main event loop handle
-    // rendering after curl_multi_perform completes.
+    // Handle streaming display with line buffering
+    // Accumulate chunks until we hit a newline, then flush to scrollback
+    size_t start = 0;
+    for (size_t i = 0; i < chunk_len; i++) {
+        if (chunk[i] == '\n') {
+            // Flush buffered line (if any) plus characters up to newline
+            size_t prefix_len = i - start;  // Characters before newline in this segment
+            if (repl->streaming_line_buffer != NULL) {
+                // Append prefix to buffer
+                size_t buffer_len = strlen(repl->streaming_line_buffer);
+                size_t total_len = buffer_len + prefix_len;
+                char *line = talloc_size(repl, total_len + 1);
+                if (line == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                memcpy(line, repl->streaming_line_buffer, buffer_len);
+                memcpy(line + buffer_len, chunk + start, prefix_len);
+                line[total_len] = '\0';
+
+                ik_scrollback_append_line(repl->scrollback, line, total_len);
+                talloc_free(line);
+                talloc_free(repl->streaming_line_buffer);
+                repl->streaming_line_buffer = NULL;
+            } else if (prefix_len > 0) {
+                // No buffer, just flush the prefix
+                ik_scrollback_append_line(repl->scrollback, chunk + start, prefix_len);
+            } else {
+                // Empty line (just a newline)
+                ik_scrollback_append_line(repl->scrollback, "", 0);
+            }
+
+            // Start next segment after newline
+            start = i + 1;
+        }
+    }
+
+    // Buffer any remaining characters (no newline found)
+    if (start < chunk_len) {
+        size_t remaining_len = chunk_len - start;
+        if (repl->streaming_line_buffer == NULL) {
+            repl->streaming_line_buffer = talloc_strndup(repl, chunk + start, remaining_len);
+        } else {
+            repl->streaming_line_buffer = talloc_strndup_append_buffer(repl->streaming_line_buffer, chunk + start, remaining_len);
+        }
+        if (repl->streaming_line_buffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
 
     return OK(NULL);
 }
@@ -98,6 +135,14 @@ static void http_completion_callback(const ik_http_completion_t *completion, voi
 
     ik_repl_ctx_t *repl = (ik_repl_ctx_t *)ctx;
 
+    // Flush any remaining buffered line content (streaming ended without final newline)
+    if (repl->streaming_line_buffer != NULL) {
+        size_t buffer_len = strlen(repl->streaming_line_buffer);
+        ik_scrollback_append_line(repl->scrollback, repl->streaming_line_buffer, buffer_len);
+        talloc_free(repl->streaming_line_buffer);
+        repl->streaming_line_buffer = NULL;
+    }
+
     // Clear any previous error
     if (repl->http_error_message != NULL) {
         talloc_free(repl->http_error_message);
@@ -110,6 +155,7 @@ static void http_completion_callback(const ik_http_completion_t *completion, voi
         if (repl->http_error_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
 }
+
 // LCOV_EXCL_STOP
 
 /**
@@ -211,19 +257,32 @@ static res_t handle_newline_action_(ik_repl_ctx_t *repl)
             repl->assistant_response = NULL;
         }
 
+        // Clear streaming line buffer
+        if (repl->streaming_line_buffer != NULL) {
+            talloc_free(repl->streaming_line_buffer);
+            repl->streaming_line_buffer = NULL;
+        }
+
         // Transition to WAITING_FOR_LLM state (shows spinner, hides input)
         ik_repl_transition_to_waiting_for_llm(repl);
 
         // Initiate non-blocking API request
+        FILE *debug_out = repl->debug_enabled ? repl->openai_debug_pipe->write_end : NULL;
         result = ik_openai_multi_add_request(repl->multi, repl->cfg, repl->conversation,
                                              streaming_callback, repl,
-                                             http_completion_callback, repl);
+                                             http_completion_callback, repl,
+                                             debug_out);
         if (is_err(&result)) {
             // If request fails, display error and transition back to IDLE
             const char *err_msg = error_message(result.err);
             ik_scrollback_append_line(repl->scrollback, err_msg, strlen(err_msg));
             ik_repl_transition_to_idle(repl);
             talloc_free(result.err);
+        } else {
+            // Set curl_still_running to 1 so the event loop will call curl_multi_perform
+            // This is necessary because curl_still_running starts at 0, and we only call
+            // curl_multi_perform if ready==0 OR curl_still_running>0
+            repl->curl_still_running = 1;
         }
 
         // Clean up temporary message text
