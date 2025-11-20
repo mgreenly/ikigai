@@ -11,7 +11,7 @@
 - ✅ Phase 1.4: Spinner Layer - COMPLETE
 - ✅ Phase 1.5: HTTP Client Module (libcurl) - COMPLETE (12/12 tasks, 100%)
 - ✅ Phase 1.6: Event Loop Integration - COMPLETE (8/8 tasks, 100%)
-- ⏳ Phase 1.7: Command Infrastructure & Manual Testing - IN PROGRESS (6/16 tasks done)
+- ⏳ Phase 1.7: Command Infrastructure & Manual Testing - IN PROGRESS (7/16 tasks done)
 - ⏳ Phase 1.8: Mock Verification & Polish - PENDING
 
 **Future Phases** (see `docs/logical-architecture-analysis.md`):
