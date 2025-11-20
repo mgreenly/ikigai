@@ -67,6 +67,7 @@ typedef struct ik_repl_ctx_t {
     ik_cfg_t *cfg;                                // Configuration (API key, model, etc.)
     ik_openai_conversation_t *conversation;       // Current conversation (session messages)
     char *assistant_response;                     // Accumulated assistant response (during streaming)
+    char *http_error_message;                     // HTTP error message (if request failed)
 
     // Checkpoint management (Phase 1.7)
     ik_mark_t **marks;                            // Array of conversation marks

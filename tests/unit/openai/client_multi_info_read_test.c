@@ -39,7 +39,7 @@ END_TEST START_TEST(test_multi_info_read_with_completed_message)
     cfg->openai_max_tokens = 1000;
 
     /* Add a request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL);
     ck_assert(!add_res.is_err);
 
     /* Create a mock CURLMsg indicating completed transfer with actual handle */
@@ -100,7 +100,7 @@ END_TEST START_TEST(test_multi_info_read_multiple_requests)
     cfg->openai_max_tokens = 1000;
 
     /* Add first request */
-    res_t add_res1 = ik_openai_multi_add_request(multi, cfg, conv1, NULL, NULL);
+    res_t add_res1 = ik_openai_multi_add_request(multi, cfg, conv1, NULL, NULL, NULL, NULL);
     ck_assert(!add_res1.is_err);
 
     /* Add second request */
@@ -112,7 +112,7 @@ END_TEST START_TEST(test_multi_info_read_multiple_requests)
     ck_assert(!msg_res2.is_err);
     ik_openai_conversation_add_msg(conv2, msg_res2.ok);
 
-    res_t add_res2 = ik_openai_multi_add_request(multi, cfg, conv2, NULL, NULL);
+    res_t add_res2 = ik_openai_multi_add_request(multi, cfg, conv2, NULL, NULL, NULL, NULL);
     ck_assert(!add_res2.is_err);
     CURL *second_handle = g_last_easy_handle;
 
@@ -156,7 +156,7 @@ END_TEST START_TEST(test_multi_info_read_multiple_requests_shift)
         ck_assert(!msg_res.is_err);
         ik_openai_conversation_add_msg(conv, msg_res.ok);
 
-        res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL);
+        res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL);
         ck_assert(!add_res.is_err);
 
         /* Capture the first handle */

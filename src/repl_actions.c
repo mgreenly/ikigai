@@ -80,6 +80,39 @@ static res_t streaming_callback(const char *chunk, void *ctx)
 }
 
 /**
+ * @brief Completion callback for HTTP requests
+ *
+ * Called when an HTTP request completes (success or failure).
+ * Stores error information in REPL context for display by completion handler.
+ *
+ * NOTE: This function is tested manually (see Tasks 7.10-7.14 in tasks.md)
+ *
+ * @param completion   Completion information (status, error message)
+ * @param ctx          REPL context pointer
+ */
+// LCOV_EXCL_START
+static void http_completion_callback(const ik_http_completion_t *completion, void *ctx)
+{
+    assert(completion != NULL);  /* LCOV_EXCL_BR_LINE */
+    assert(ctx != NULL);         /* LCOV_EXCL_BR_LINE */
+
+    ik_repl_ctx_t *repl = (ik_repl_ctx_t *)ctx;
+
+    // Clear any previous error
+    if (repl->http_error_message != NULL) {
+        talloc_free(repl->http_error_message);
+        repl->http_error_message = NULL;
+    }
+
+    // Store error message if request failed
+    if (completion->type != IK_HTTP_SUCCESS && completion->error_message != NULL) {
+        repl->http_error_message = talloc_strdup(repl, completion->error_message);
+        if (repl->http_error_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+}
+// LCOV_EXCL_STOP
+
+/**
  * @brief Handle legacy /pp command (internal debug command)
  *
  * Note: This is a legacy command for debugging. All other slash commands
@@ -183,7 +216,8 @@ static res_t handle_newline_action_(ik_repl_ctx_t *repl)
 
         // Initiate non-blocking API request
         result = ik_openai_multi_add_request(repl->multi, repl->cfg, repl->conversation,
-                                             streaming_callback, repl);
+                                             streaming_callback, repl,
+                                             http_completion_callback, repl);
         if (is_err(&result)) {
             // If request fails, display error and transition back to IDLE
             const char *err_msg = error_message(result.err);

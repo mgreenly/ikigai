@@ -125,6 +125,9 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
     // Initialize assistant response accumulator (Phase 1.6)
     repl->assistant_response = NULL;
 
+    // Initialize HTTP error message (Phase 1.7)
+    repl->http_error_message = NULL;
+
     // Initialize marks array (Phase 1.7)
     repl->marks = NULL;
     repl->mark_count = 0;
@@ -243,6 +246,53 @@ res_t handle_terminal_input_(ik_repl_ctx_t *repl, int terminal_fd, bool *should_
     return OK(NULL);
 }
 
+// Helper: Handle HTTP request error
+// NOTE: Tested manually (Tasks 7.10-7.14)
+// LCOV_EXCL_START
+static void handle_request_error_(ik_repl_ctx_t *repl)
+{
+    // Display error in scrollback
+    const char *error_prefix = "Error: ";
+    size_t prefix_len = strlen(error_prefix);
+    size_t error_len = strlen(repl->http_error_message);
+    char *full_error = talloc_zero_(repl, prefix_len + error_len + 1);
+    if (full_error == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    memcpy(full_error, error_prefix, prefix_len);
+    memcpy(full_error + prefix_len, repl->http_error_message, error_len);
+    full_error[prefix_len + error_len] = '\0';
+
+    ik_scrollback_append_line(repl->scrollback, full_error, prefix_len + error_len);
+    talloc_free(full_error);
+
+    // Clear error message
+    talloc_free(repl->http_error_message);
+    repl->http_error_message = NULL;
+
+    // Clear accumulated assistant response (partial response on error)
+    if (repl->assistant_response != NULL) {
+        talloc_free(repl->assistant_response);
+        repl->assistant_response = NULL;
+    }
+}
+// LCOV_EXCL_STOP
+
+// Helper: Handle HTTP request success
+static void handle_request_success_(ik_repl_ctx_t *repl)
+{
+    // Add assistant response to conversation
+    if (repl->assistant_response != NULL && strlen(repl->assistant_response) > 0) {
+        ik_openai_msg_t *assistant_msg = ik_openai_msg_create(repl->conversation,
+                                                              "assistant",
+                                                              repl->assistant_response).ok;
+        res_t result = ik_openai_conversation_add_msg(repl->conversation, assistant_msg);
+        if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+
+        // Clear the assistant response
+        talloc_free(repl->assistant_response);
+        repl->assistant_response = NULL;
+    }
+}
+
 // Helper: Handle curl_multi events and detect request completion
 // Exposed for testing
 res_t handle_curl_events_(ik_repl_ctx_t *repl, int ready)
@@ -257,18 +307,16 @@ res_t handle_curl_events_(ik_repl_ctx_t *repl, int ready)
 
         // Detect request completion (was running, now not running)
         if (prev_running > 0 && repl->curl_still_running == 0 && repl->state == IK_REPL_STATE_WAITING_FOR_LLM) {
-            // Request completed - add assistant response to conversation
-            if (repl->assistant_response != NULL && strlen(repl->assistant_response) > 0) {
-                ik_openai_msg_t *assistant_msg = ik_openai_msg_create(repl->conversation,
-                                                                      "assistant",
-                                                                      repl->assistant_response).ok;
-                res_t result = ik_openai_conversation_add_msg(repl->conversation, assistant_msg);
-                if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
-
-                // Clear the assistant response
-                talloc_free(repl->assistant_response);
-                repl->assistant_response = NULL;
+            // Check if request failed (error message set by completion callback)
+            // LCOV_EXCL_START
+            if (repl->http_error_message != NULL) {
+                handle_request_error_(repl);
+            } else {
+            // LCOV_EXCL_STOP
+                handle_request_success_(repl);
+            // LCOV_EXCL_START
             }
+            // LCOV_EXCL_STOP
 
             // Transition back to IDLE state
             ik_repl_transition_to_idle(repl);

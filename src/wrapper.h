@@ -162,6 +162,9 @@ MOCKABLE void curl_slist_free_all_(struct curl_slist *list)
 // curl_easy_setopt wrapper - single void* version for simplicity
 #define curl_easy_setopt_(curl, opt, val) curl_easy_setopt(curl, opt, val)
 
+// curl_easy_getinfo wrapper - variadic function
+#define curl_easy_getinfo_(curl, info, ...) curl_easy_getinfo(curl, info, __VA_ARGS__)
+
 MOCKABLE CURLM *curl_multi_init_(void)
 {
     return curl_multi_init();
@@ -222,6 +225,9 @@ MOCKABLE void curl_slist_free_all_(struct curl_slist *list);
 
 // curl_easy_setopt wrapper - const void* to preserve const-correctness
 MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val);
+
+// curl_easy_getinfo wrapper - variadic function
+#define curl_easy_getinfo_(curl, info, ...) curl_easy_getinfo(curl, info, __VA_ARGS__)
 
 MOCKABLE CURLM *curl_multi_init_(void);
 MOCKABLE CURLMcode curl_multi_cleanup_(CURLM *multi);

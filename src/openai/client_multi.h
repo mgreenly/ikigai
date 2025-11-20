@@ -17,6 +17,38 @@
  */
 
 /**
+ * HTTP completion status types
+ */
+typedef enum {
+    IK_HTTP_SUCCESS,           /* HTTP 200-299 */
+    IK_HTTP_CLIENT_ERROR,      /* HTTP 400-499 (401 unauthorized, 429 rate limit, etc.) */
+    IK_HTTP_SERVER_ERROR,      /* HTTP 500-599 */
+    IK_HTTP_NETWORK_ERROR,     /* Connection failed, timeout, DNS error, etc. */
+} ik_http_status_type_t;
+
+/**
+ * HTTP request completion information
+ *
+ * Provided to completion callback when a request finishes.
+ */
+typedef struct {
+    ik_http_status_type_t type;  /* Completion status type */
+    int32_t http_code;            /* HTTP response code (0 if network error) */
+    int32_t curl_code;            /* CURLcode (CURLE_OK on success) */
+    char *error_message;          /* Human-readable error message (or NULL on success) */
+} ik_http_completion_t;
+
+/**
+ * Completion callback for finished requests
+ *
+ * Called by ik_openai_multi_info_read() for each completed request.
+ *
+ * @param completion  Completion information (success or error)
+ * @param ctx         User-provided context pointer
+ */
+typedef void (*ik_http_completion_cb_t)(const ik_http_completion_t *completion, void *ctx);
+
+/**
  * Multi-handle manager structure (opaque)
  *
  * Manages non-blocking HTTP requests using curl_multi interface.
@@ -38,18 +70,22 @@ res_t ik_openai_multi_create(void *parent);
  * Initiates an HTTP request without blocking. The request will make progress
  * when ik_openai_multi_perform() is called.
  *
- * @param multi      Multi-handle manager
- * @param cfg        Configuration with API key, model, etc.
- * @param conv       Conversation to send
- * @param stream_cb  Callback for streaming chunks (or NULL)
- * @param cb_ctx     Context pointer passed to callback
- * @return           OK(NULL) or ERR(...)
+ * @param multi          Multi-handle manager
+ * @param cfg            Configuration with API key, model, etc.
+ * @param conv           Conversation to send
+ * @param stream_cb      Callback for streaming chunks (or NULL)
+ * @param stream_ctx     Context pointer passed to streaming callback
+ * @param completion_cb  Callback for request completion (or NULL)
+ * @param completion_ctx Context pointer passed to completion callback
+ * @return               OK(NULL) or ERR(...)
  */
 res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
                                    const ik_cfg_t *cfg,
                                    ik_openai_conversation_t *conv,
                                    ik_openai_stream_cb_t stream_cb,
-                                   void *cb_ctx);
+                                   void *stream_ctx,
+                                   ik_http_completion_cb_t completion_cb,
+                                   void *completion_ctx);
 
 /**
  * Perform non-blocking I/O operations

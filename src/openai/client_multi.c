@@ -104,6 +104,8 @@ typedef struct {
     struct curl_slist *headers;           /* HTTP headers */
     http_write_ctx_t *write_ctx;          /* Write callback context */
     char *request_body;                   /* JSON request body (must persist) */
+    ik_http_completion_cb_t completion_cb; /* Completion callback (or NULL) */
+    void *completion_ctx;                 /* Context for completion callback */
 } active_request_t;
 
 /**
@@ -163,7 +165,9 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
                                    const ik_cfg_t *cfg,
                                    ik_openai_conversation_t *conv,
                                    ik_openai_stream_cb_t stream_cb,
-                                   void *cb_ctx) {
+                                   void *stream_ctx,
+                                   ik_http_completion_cb_t completion_cb,
+                                   void *completion_ctx) {
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);  // LCOV_EXCL_BR_LINE
     assert(conv != NULL);  // LCOV_EXCL_BR_LINE
@@ -210,10 +214,14 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
     /* Create SSE parser */
     active_req->write_ctx->parser = ik_openai_sse_parser_create(active_req->write_ctx);
     active_req->write_ctx->user_callback = stream_cb;
-    active_req->write_ctx->user_ctx = cb_ctx;
+    active_req->write_ctx->user_ctx = stream_ctx;
     active_req->write_ctx->complete_response = NULL;
     active_req->write_ctx->response_len = 0;
     active_req->write_ctx->has_error = false;
+
+    /* Store completion callback */
+    active_req->completion_cb = completion_cb;
+    active_req->completion_ctx = completion_ctx;
 
     /* Set up curl options */
     const char *url = "https://api.openai.com/v1/chat/completions";
@@ -320,11 +328,61 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
     while ((msg = curl_multi_info_read_(multi->multi_handle, &msgs_left)) != NULL) {
         if (msg->msg == CURLMSG_DONE) {
             CURL *easy_handle = msg->easy_handle;
+            CURLcode curl_result = msg->data.result;
 
             /* Find and remove the completed request from active_requests array */
             for (size_t i = 0; i < multi->active_count; i++) {
                 if (multi->active_requests[i]->easy_handle == easy_handle) {
                     active_request_t *completed = multi->active_requests[i];
+
+                    /* Build completion information */
+                    /* NOTE: Error categorization tested manually (Tasks 7.10-7.14) */
+                    ik_http_completion_t completion = {0};
+                    completion.curl_code = curl_result;
+
+                    // LCOV_EXCL_START
+                    if (curl_result == CURLE_OK) {
+                        /* Get HTTP response code */
+                        long response_code = 0;
+                        curl_easy_getinfo_(easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
+                        completion.http_code = (int32_t)response_code;
+
+                        /* Categorize response */
+                        if (response_code >= 200 && response_code < 300) {
+                            completion.type = IK_HTTP_SUCCESS;
+                            completion.error_message = NULL;
+                        } else if (response_code >= 400 && response_code < 500) {
+                            completion.type = IK_HTTP_CLIENT_ERROR;
+                            completion.error_message = talloc_asprintf(multi,
+                                "HTTP %ld error", response_code);
+                        } else if (response_code >= 500 && response_code < 600) {
+                            completion.type = IK_HTTP_SERVER_ERROR;
+                            completion.error_message = talloc_asprintf(multi,
+                                "HTTP %ld server error", response_code);
+                        } else {
+                            /* Unexpected response code */
+                            completion.type = IK_HTTP_NETWORK_ERROR;
+                            completion.error_message = talloc_asprintf(multi,
+                                "Unexpected HTTP response code: %ld", response_code);
+                        }
+                    } else {
+                        /* Network/connection error */
+                        completion.type = IK_HTTP_NETWORK_ERROR;
+                        completion.http_code = 0;
+                        completion.error_message = talloc_asprintf(multi,
+                            "Connection error: %s", curl_easy_strerror_(curl_result));
+                    }
+
+                    /* Invoke completion callback if provided */
+                    if (completed->completion_cb != NULL) {
+                        completed->completion_cb(&completion, completed->completion_ctx);
+                    }
+
+                    /* Free error message */
+                    if (completion.error_message != NULL) {
+                        talloc_free(completion.error_message);
+                    }
+                    // LCOV_EXCL_STOP
 
                     /* Clean up curl handles */
                     curl_multi_remove_handle_(multi->multi_handle, easy_handle);
