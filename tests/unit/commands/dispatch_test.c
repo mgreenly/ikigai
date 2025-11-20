@@ -23,7 +23,7 @@ static ik_repl_ctx_t *repl;
 
 /**
  * Create a minimal REPL context for command testing.
- * Only creates the scrollback buffer needed by command handlers.
+ * Creates scrollback, conversation, and config needed by command handlers.
  */
 static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
 {
@@ -39,11 +39,18 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ik_openai_conversation_t *conv = res.ok;
     ck_assert_ptr_nonnull(conv);
 
+    // Create config (needed for model/system commands)
+    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->openai_model = talloc_strdup(cfg, "gpt-5-mini");
+    ck_assert_ptr_nonnull(cfg->openai_model);
+
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
     r->scrollback = scrollback;
     r->conversation = conv;
+    r->cfg = cfg;
     r->marks = NULL;
     r->mark_count = 0;
 
@@ -220,13 +227,16 @@ START_TEST(test_dispatch_model_with_arg)
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4-turbo");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback received the TODO message
+    // Verify model changed
+    ck_assert_str_eq(repl->cfg->openai_model, "gpt-4-turbo");
+
+    // Verify scrollback received confirmation message
     const char *line = NULL;
     size_t length = 0;
     res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "TODO: /model not yet implemented");
+    ck_assert_str_eq(line, "Switched to model: gpt-4-turbo");
 }
 
 END_TEST

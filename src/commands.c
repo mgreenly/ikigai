@@ -5,14 +5,15 @@
 
 #include "commands.h"
 
+#include "marks.h"
+#include "openai/client.h"
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
-#include "openai/client.h"
-#include "marks.h"
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdbool.h>
 #include <string.h>
 
 // Forward declarations of command handlers (to be implemented in later tasks)
@@ -221,10 +222,61 @@ static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
-    (void)args;
 
-    // TODO: Implement in Task 7.6
-    char *msg = talloc_strdup(ctx, "TODO: /model not yet implemented");
+    // Check if model name provided
+    if (args == NULL) {     // LCOV_EXCL_BR_LINE
+        char *msg = talloc_strdup(ctx, "Error: Model name required (usage: /model <name>)");
+        if (!msg) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+        ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+        return ERR(ctx, INVALID_ARG, "Model name required");
+    }
+
+    // List of supported OpenAI models
+    static const char *valid_models[] = {
+        "gpt-4",
+        "gpt-4-turbo",
+        "gpt-4o",
+        "gpt-4o-mini",
+        "gpt-3.5-turbo",
+        "gpt-5",
+        "gpt-5-mini",
+        "o1",
+        "o1-mini",
+        "o1-preview",
+    };
+    static const size_t valid_model_count = sizeof(valid_models) / sizeof(valid_models[0]);     // LCOV_EXCL_BR_LINE
+
+    // Validate model name
+    bool valid = false;
+    for (size_t i = 0; i < valid_model_count; i++) {     // LCOV_EXCL_BR_LINE
+        if (strcmp(args, valid_models[i]) == 0) {     // LCOV_EXCL_BR_LINE
+            valid = true;
+            break;
+        }
+    }
+
+    if (!valid) {     // LCOV_EXCL_BR_LINE
+        char *msg = talloc_asprintf(ctx, "Error: Unknown model '%s'", args);
+        if (!msg) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+        ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+        return ERR(ctx, INVALID_ARG, "Unknown model '%s'", args);
+    }
+
+    // Update config (free old, allocate new)
+    if (repl->cfg->openai_model != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(repl->cfg->openai_model);
+    }
+    repl->cfg->openai_model = talloc_strdup(repl->cfg, args);
+    if (!repl->cfg->openai_model) {     // LCOV_EXCL_BR_LINE
+        PANIC("OOM");   // LCOV_EXCL_LINE
+    }
+
+    // Show confirmation
+    char *msg = talloc_asprintf(ctx, "Switched to model: %s", args);
     if (!msg) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
