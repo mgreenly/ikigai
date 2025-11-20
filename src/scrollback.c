@@ -82,11 +82,11 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
         scrollback->capacity = new_capacity;
     }
 
-    // Check if we need to grow the text buffer
-    if (scrollback->buffer_used + length > scrollback->buffer_capacity) {
+    // Check if we need to grow the text buffer (need space for text + null terminator)
+    if (scrollback->buffer_used + length + 1 > scrollback->buffer_capacity) {
         size_t new_buffer_capacity = scrollback->buffer_capacity * 2;
         // Keep doubling until we have enough space
-        while (scrollback->buffer_used + length > new_buffer_capacity) {
+        while (scrollback->buffer_used + length + 1 > new_buffer_capacity) {
             new_buffer_capacity *= 2;
         }
 
@@ -101,11 +101,14 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
     scrollback->text_offsets[scrollback->count] = scrollback->buffer_used;
     scrollback->text_lengths[scrollback->count] = length;
 
-    // Copy text to buffer
+    // Copy text to buffer and add null terminator
     if (length > 0) {
         memcpy(scrollback->text_buffer + scrollback->buffer_used, text, length);
         scrollback->buffer_used += length;
     }
+    // Add null terminator (even for zero-length lines)
+    scrollback->text_buffer[scrollback->buffer_used] = '\0';
+    scrollback->buffer_used++;
 
     // Calculate display width and physical lines by scanning UTF-8
     // Handle newlines: each newline starts a new physical line

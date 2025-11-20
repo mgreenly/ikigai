@@ -114,13 +114,17 @@ START_TEST(test_dispatch_help_command)
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback received the TODO message
+    // Verify scrollback received help header
     const char *line = NULL;
     size_t length = 0;
     res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "TODO: /help not yet implemented");
+    ck_assert_str_eq(line, "Available commands:");
+
+    // Verify at least one command is listed
+    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    ck_assert_uint_gt(line_count, 1);
 }
 
 END_TEST

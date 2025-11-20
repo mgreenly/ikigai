@@ -26,7 +26,7 @@ START_TEST(test_scrollback_append_single_line) {
     ck_assert_uint_eq(sb->text_offsets[0], 0);
     ck_assert_uint_eq(sb->text_lengths[0], strlen(line));
     ck_assert_mem_eq(sb->text_buffer, line, strlen(line));
-    ck_assert_uint_eq(sb->buffer_used, strlen(line));
+    ck_assert_uint_eq(sb->buffer_used, strlen(line) + 1);  // +1 for null terminator
 
     // Verify layout was calculated (11 chars / 80 width = 1 physical line)
     ck_assert_uint_eq(sb->layouts[0].display_width, 11);
@@ -68,18 +68,18 @@ START_TEST(test_scrollback_append_multiple_lines)
     ck_assert_uint_eq(sb->text_lengths[0], 5);
     ck_assert_mem_eq(sb->text_buffer + sb->text_offsets[0], "first", 5);
 
-    // Verify second line
-    ck_assert_uint_eq(sb->text_offsets[1], 5);
+    // Verify second line (offset includes null terminator from first line)
+    ck_assert_uint_eq(sb->text_offsets[1], 6);  // 5 + 1 for null terminator
     ck_assert_uint_eq(sb->text_lengths[1], 6);
     ck_assert_mem_eq(sb->text_buffer + sb->text_offsets[1], "second", 6);
 
-    // Verify third line
-    ck_assert_uint_eq(sb->text_offsets[2], 11);
+    // Verify third line (offset includes null terminators from first two lines)
+    ck_assert_uint_eq(sb->text_offsets[2], 13);  // 6 + 6 + 1
     ck_assert_uint_eq(sb->text_lengths[2], 5);
     ck_assert_mem_eq(sb->text_buffer + sb->text_offsets[2], "third", 5);
 
-    // Verify buffer_used
-    ck_assert_uint_eq(sb->buffer_used, 16);
+    // Verify buffer_used (includes 3 null terminators)
+    ck_assert_uint_eq(sb->buffer_used, 19);  // 5 + 1 + 6 + 1 + 5 + 1
 
     // Verify total physical lines
     ck_assert_uint_eq(sb->total_physical_lines, 3);
@@ -218,9 +218,9 @@ START_TEST(test_scrollback_buffer_growth)
         ck_assert(is_ok(&res));
     }
 
-    // Verify buffer capacity grew
+    // Verify buffer capacity grew (11 lines * (100 bytes + 1 null) = 1111)
     ck_assert_uint_eq(sb->count, 11);
-    ck_assert_uint_eq(sb->buffer_used, 1100);
+    ck_assert_uint_eq(sb->buffer_used, 1111);  // 11 * (100 + 1)
     ck_assert_uint_ge(sb->buffer_capacity, 2048);  // Doubled from 1024
 
     talloc_free(ctx);
@@ -246,9 +246,9 @@ START_TEST(test_scrollback_buffer_multiple_doublings)
     res = ik_scrollback_append_line(sb, huge_line, 3000);
     ck_assert(is_ok(&res));
 
-    // Verify buffer grew with multiple doublings
+    // Verify buffer grew with multiple doublings (3000 bytes + 1 null = 3001)
     ck_assert_uint_eq(sb->count, 1);
-    ck_assert_uint_eq(sb->buffer_used, 3000);
+    ck_assert_uint_eq(sb->buffer_used, 3001);  // 3000 + 1 for null terminator
     ck_assert_uint_ge(sb->buffer_capacity, 4096);  // 1024 → 2048 → 4096
 
     talloc_free(ctx);

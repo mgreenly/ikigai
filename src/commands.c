@@ -185,12 +185,35 @@ static res_t cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args)
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
     (void)args;
 
-    // TODO: Implement in Task 7.5
-    char *msg = talloc_strdup(ctx, "TODO: /help not yet implemented");
-    if (!msg) {     // LCOV_EXCL_BR_LINE
+    // Build help header
+    char *header = talloc_strdup(ctx, "Available commands:");
+    if (!header) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+    res_t result = ik_scrollback_append_line(repl->scrollback, header, strlen(header));
+    talloc_free(header);
+    if (is_err(&result)) {  /* LCOV_EXCL_BR_LINE */
+        return result;  // LCOV_EXCL_LINE
+    }
+
+    // Get all registered commands
+    size_t count;
+    const ik_command_t *cmds = ik_cmd_get_all(&count);
+
+    // Append each command with description
+    for (size_t i = 0; i < count; i++) {     // LCOV_EXCL_BR_LINE
+        char *cmd_line = talloc_asprintf(ctx, "  /%s - %s",
+                                         cmds[i].name, cmds[i].description);
+        if (!cmd_line) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+        result = ik_scrollback_append_line(repl->scrollback, cmd_line, strlen(cmd_line));
+        talloc_free(cmd_line);
+        if (is_err(&result)) {  /* LCOV_EXCL_BR_LINE */
+            return result;  // LCOV_EXCL_LINE
+        }
+    }
+
     return OK(NULL);
 }
 
