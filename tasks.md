@@ -754,19 +754,19 @@
 - **Coverage:** 100% (2966 lines, 209 functions, 932 branches)
 - **Manual verification:** Deferred to Task 7.12
 
-### Task 7.8: Error handling integration
-- [ ] HTTP errors → format message, append to scrollback
-- [ ] Parse errors → show error, return to IDLE
-- [ ] Connection timeouts → show message
+### Task 7.8: Error handling integration ✅
+- [x] HTTP errors → format message, append to scrollback
+- [x] Parse errors → show error, return to IDLE
+- [x] Connection timeouts → show message
 - **Tests:** Unit test with error fixtures
 - **Manual verification:** Use invalid API key, verify error shown
 
-### Task 7.9: Quality gates
-- [ ] Run `make fmt`
-- [ ] Run `make check` - 100% pass
-- [ ] Run `make lint` - all pass
-- [ ] Run `make coverage` - 100.0%
-- [ ] Run `make check-dynamic` - all pass
+### Task 7.9: Quality gates ✅
+- [x] Run `make fmt`
+- [x] Run `make check` - 100% pass
+- [x] Run `make lint` - all pass
+- [x] Run `make coverage` - 100.0% (2975 lines, 210 functions, 932 branches)
+- [x] Run `make check-dynamic` - all pass
 
 ### Task 7.10: **MANUAL TESTING SESSION 1** (Basic functionality)
 - [ ] **Human:** Set valid API key in `~/.config/ikigai/config.json`
