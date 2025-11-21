@@ -21,6 +21,7 @@ Don't enumerate or read the other files I list here unless you need to.
 * Use `make check` to verify tests while working on code changes
 * Use `make lint && make coverage` before commits - 100% coverage is MANDATORY
 * make BUILD={debug|release|sanitize|tsan|coverage} for different build modes
+* you can use `sudo apt update`, `sudo apt upgrade` and `sudo apt install *`
 
 **CRITICAL**: Never run multiple `make` commands simultaneously. Different targets use incompatible compiler flags and will corrupt the build.
 

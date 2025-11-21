@@ -32,6 +32,7 @@
   - [Pattern 4: Per-Request Context](#pattern-4-per-request-context)
 
 ### Related Documentation
+- **[return_values.md](return_values.md)** - Complete guide to function return patterns and how to use them
 - **[error_handling.md](error_handling.md)** - Core philosophy and mechanisms
 - **[error_testing.md](error_testing.md)** - Testing strategy and coverage requirements
 

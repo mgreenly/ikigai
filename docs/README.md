@@ -50,6 +50,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 ### Development Standards
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
 - **[memory.md](memory.md)** - Memory management with talloc, ownership rules, and patterns
+- **[return_values.md](return_values.md)** - Complete guide to function return patterns and how to use them
 - **[error_handling.md](error_handling.md)** - Error handling philosophy and decision framework
 - **[error_patterns.md](error_patterns.md)** - Error handling patterns and best practices
 - **[error_testing.md](error_testing.md)** - Error handling testing strategy
@@ -62,6 +63,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 
 ### Internal Analysis
 - **[memory_usage_analysis.md](memory_usage_analysis.md)** - Memory usage analysis and optimization notes
+- **[fix.md](fix.md)** - Known issues and technical debt
 
 ## Roadmap to v1.0
 

@@ -28,6 +28,7 @@
 - [Summary](#summary)
 
 ### Related Documentation
+- **[return_values.md](return_values.md)** - Complete guide to function return patterns and how to use them
 - **[error_patterns.md](error_patterns.md)** - Detailed patterns, best practices, and usage examples
 - **[error_testing.md](error_testing.md)** - Testing strategy and coverage requirements
 
