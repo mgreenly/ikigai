@@ -75,22 +75,14 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     repl->state = IK_REPL_STATE_IDLE;
 
     // Create layers
-    ik_layer_t *scrollback_layer = NULL;
-    res = ik_scrollback_layer_create(ctx, "scrollback", scrollback, &scrollback_layer);
-    ck_assert(is_ok(&res));
+    ik_layer_t *scrollback_layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
-    ik_layer_t *spinner_layer = NULL;
-    res = ik_spinner_layer_create(ctx, "spinner", &repl->spinner_state, &spinner_layer);
-    ck_assert(is_ok(&res));
+    ik_layer_t *spinner_layer = ik_spinner_layer_create(ctx, "spinner", &repl->spinner_state);
 
-    ik_layer_t *separator_layer = NULL;
-    res = ik_separator_layer_create(ctx, "separator", &repl->separator_visible, &separator_layer);
-    ck_assert(is_ok(&res));
+    ik_layer_t *separator_layer = ik_separator_layer_create(ctx, "separator", &repl->separator_visible);
 
-    ik_layer_t *input_layer = NULL;
-    res = ik_input_layer_create(ctx, "input", &repl->input_buffer_visible,
-                                &repl->input_text, &repl->input_text_len, &input_layer);
-    ck_assert(is_ok(&res));
+    ik_layer_t *input_layer = ik_input_layer_create(ctx, "input", &repl->input_buffer_visible,
+                                                    &repl->input_text, &repl->input_text_len);
 
     // Add layers to cake
     res = ik_layer_cake_add_layer(layer_cake, scrollback_layer);

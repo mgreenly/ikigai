@@ -13,10 +13,8 @@ START_TEST(test_input_layer_create_and_visibility) {
     const char *text_ptr = text;
     size_t text_len = 4;
 
-    ik_layer_t *layer;
-    res_t res = ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len, &layer);
+    ik_layer_t *layer = ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len);
 
-    ck_assert(is_ok(&res));
     ck_assert(layer != NULL);
     ck_assert_str_eq(layer->name, "input");
     ck_assert(layer->is_visible(layer) == true);
@@ -36,8 +34,7 @@ END_TEST START_TEST(test_input_layer_height_empty)
     const char *text_ptr = text;
     size_t text_len = 0;
 
-    ik_layer_t *layer;
-    ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len, &layer);
+    ik_layer_t *layer = ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len);
 
     // Empty input still occupies 1 row (for cursor)
     ck_assert_uint_eq(layer->get_height(layer, 80), 1);
@@ -54,8 +51,7 @@ END_TEST START_TEST(test_input_layer_height_single_line)
     const char *text_ptr = text;
     size_t text_len = 11;
 
-    ik_layer_t *layer;
-    ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len, &layer);
+    ik_layer_t *layer = ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len);
 
     // Single line text
     ck_assert_uint_eq(layer->get_height(layer, 80), 1);
@@ -72,8 +68,7 @@ END_TEST START_TEST(test_input_layer_height_with_newline)
     const char *text_ptr = text;
     size_t text_len = 13;
 
-    ik_layer_t *layer;
-    ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len, &layer);
+    ik_layer_t *layer = ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len);
 
     // Two lines (1 newline)
     ck_assert_uint_eq(layer->get_height(layer, 80), 2);
@@ -91,8 +86,7 @@ END_TEST START_TEST(test_input_layer_height_with_wrapping)
     const char *text_ptr = text;
     size_t text_len = 20;
 
-    ik_layer_t *layer;
-    ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len, &layer);
+    ik_layer_t *layer = ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len);
 
     // Should wrap to 3 lines at width 10 (10 + 10 chars with wrapping logic)
     ck_assert_uint_eq(layer->get_height(layer, 10), 3);
@@ -109,8 +103,7 @@ END_TEST START_TEST(test_input_layer_render_empty)
     const char *text_ptr = text;
     size_t text_len = 0;
 
-    ik_layer_t *layer;
-    ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len, &layer);
+    ik_layer_t *layer = ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
@@ -130,8 +123,7 @@ END_TEST START_TEST(test_input_layer_render_simple_text)
     const char *text_ptr = text;
     size_t text_len = 5;
 
-    ik_layer_t *layer;
-    ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len, &layer);
+    ik_layer_t *layer = ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
@@ -151,8 +143,7 @@ END_TEST START_TEST(test_input_layer_render_with_newline)
     const char *text_ptr = text;
     size_t text_len = 11;
 
-    ik_layer_t *layer;
-    ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len, &layer);
+    ik_layer_t *layer = ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 

@@ -12,10 +12,8 @@ START_TEST(test_scrollback_layer_create_and_visibility) {
     ik_scrollback_t *scrollback;
     scrollback = ik_scrollback_create(ctx, 80);
 
-    ik_layer_t *layer;
-    res_t res = ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
+    ik_layer_t *layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
-    ck_assert(is_ok(&res));
     ck_assert(layer != NULL);
     ck_assert_str_eq(layer->name, "scrollback");
     // Scrollback is always visible
@@ -30,8 +28,7 @@ END_TEST START_TEST(test_scrollback_layer_height_empty)
     ik_scrollback_t *scrollback;
     scrollback = ik_scrollback_create(ctx, 80);
 
-    ik_layer_t *layer;
-    ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
+    ik_layer_t *layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
     // Empty scrollback has 0 height
     size_t height = layer->get_height(layer, 80);
@@ -49,8 +46,7 @@ END_TEST START_TEST(test_scrollback_layer_height_with_content)
     ik_scrollback_append_line(scrollback, "Line 1", 6);
     ik_scrollback_append_line(scrollback, "Line 2", 6);
 
-    ik_layer_t *layer;
-    ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
+    ik_layer_t *layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
     size_t height = layer->get_height(layer, 80);
     ck_assert_uint_eq(height, 2); // 2 lines
@@ -65,8 +61,7 @@ END_TEST START_TEST(test_scrollback_layer_render_empty)
     ik_scrollback_t *scrollback;
     scrollback = ik_scrollback_create(ctx, 80);
 
-    ik_layer_t *layer;
-    ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
+    ik_layer_t *layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
@@ -86,8 +81,7 @@ END_TEST START_TEST(test_scrollback_layer_render_with_content)
     ik_scrollback_append_line(scrollback, "Hello", 5);
     ik_scrollback_append_line(scrollback, "World", 5);
 
-    ik_layer_t *layer;
-    ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
+    ik_layer_t *layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
@@ -109,8 +103,7 @@ END_TEST START_TEST(test_scrollback_layer_render_row_count_zero)
     scrollback = ik_scrollback_create(ctx, 80);
     ik_scrollback_append_line(scrollback, "Test", 4);
 
-    ik_layer_t *layer;
-    ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
+    ik_layer_t *layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
@@ -129,8 +122,7 @@ END_TEST START_TEST(test_scrollback_layer_render_start_row_beyond_content)
     scrollback = ik_scrollback_create(ctx, 80);
     ik_scrollback_append_line(scrollback, "Test", 4);
 
-    ik_layer_t *layer;
-    ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
+    ik_layer_t *layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
@@ -151,8 +143,7 @@ END_TEST START_TEST(test_scrollback_layer_render_newline_conversion)
     // Append line with embedded newline
     ik_scrollback_append_line(scrollback, "Line\nWith\nNewlines", 18);
 
-    ik_layer_t *layer;
-    ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
+    ik_layer_t *layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
@@ -183,8 +174,7 @@ END_TEST START_TEST(test_scrollback_render_end_row_beyond_content)
     // Add one line
     ik_scrollback_append_line(scrollback, "Line 1", 6);
 
-    ik_layer_t *layer;
-    ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
+    ik_layer_t *layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 

@@ -211,9 +211,9 @@ All phases completed successfully:
 
 ---
 
-## Issue: Refactor Borrowed Pointer Naming Convention
+## ✅ Issue: Refactor Borrowed Pointer Naming Convention
 
-**Status:** Not yet addressed
+**Status:** RESOLVED
 **Impact:** Low - Clarity improvement, no functional change
 **Effort:** Low - Search and replace with manual review
 
@@ -287,6 +287,30 @@ The `_ptr` suffix is more useful to indicate:
 - **Clearer semantics** - `_ptr` specifically means "raw pointer into buffer"
 - **Better fits talloc model** - Doesn't pretend talloc handles have ownership ambiguity
 - **More useful distinction** - Highlights when you're working with raw memory vs talloc handles
+
+### Implementation Summary
+
+All phases completed successfully:
+
+**Files Modified:**
+- `src/layer_wrappers.h` - Updated function signatures to use `_ptr` suffix
+- `src/layer_wrappers.c` - Updated all struct fields and local variables to use `_ptr` suffix
+- `docs/naming.md` - Updated "Special Conventions" section with new `_ptr` convention and rationale
+
+**Changes Made:**
+- Renamed all `visible_ref` → `visible_ptr`
+- Renamed all `text_ref` → `text_ptr`
+- Renamed all `text_len_ref` → `text_len_ptr`
+- Updated comments from "borrowed pointers" to "raw pointers"
+- Documented the distinction between raw buffer pointers and talloc handles
+
+**Validation Results:**
+- ✅ All tests pass (make check)
+- ✅ 100% coverage maintained (lines, functions, branches)
+- ✅ All lint checks pass
+- ✅ All sanitizer checks pass (ASan, UBSan, TSan, Valgrind, Helgrind)
+
+**Result:** Naming convention now clearly distinguishes raw pointers into buffers (`_ptr`) from talloc handles (no suffix).
 
 ---
 

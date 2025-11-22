@@ -158,11 +158,24 @@ void ik_handler_websocket_msg_cb(struct _u_websocket_manager *ws_mgr,
 
 ## Special Conventions
 
-**Borrowed pointers** use `_ref` suffix:
+**Raw pointers into buffers** use `_ptr` suffix:
 ```c
-ik_cfg_t *cfg_ref;      // Borrowed, caller owns
-ik_handler_t *handler;  // Owned by this struct
+bool *visible_ptr;         // Raw pointer to external bool storage
+const char **text_ptr;     // Raw pointer to external string pointer
+size_t *len_ptr;           // Raw pointer to external size storage
+
+// Talloc handles don't need suffix - context ownership is clear
+ik_cfg_t *cfg;             // Talloc handle (context-owned)
+ik_handler_t *handler;     // Talloc handle (context-owned)
 ```
+
+The `_ptr` suffix specifically indicates **pointers into buffers** - raw memory pointers that aren't talloc-allocated handles, but rather point into the internal storage of another object. These pointers:
+- Are not independent talloc objects
+- Cannot be reparented
+- Have lifetimes tied to their parent object
+- Represent raw memory access, not handle manipulation
+
+In talloc, everything is context-owned and nothing is explicitly freed, so there's no meaningful "owned vs borrowed" distinction at the variable level. The `_ptr` suffix highlights when you're working with raw pointers versus talloc handles.
 
 **Global variables** use `g_` prefix:
 ```c

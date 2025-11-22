@@ -6,7 +6,7 @@
 
 // Separator layer data
 typedef struct {
-    bool *visible_ref;  // Borrowed pointer to visibility flag
+    bool *visible_ptr;  // Raw pointer to visibility flag
 } ik_separator_layer_data_t;
 
 // Separator layer callbacks
@@ -16,7 +16,7 @@ static bool separator_is_visible(const ik_layer_t *layer)
     assert(layer->data != NULL);     // LCOV_EXCL_BR_LINE
 
     ik_separator_layer_data_t *data = (ik_separator_layer_data_t *)layer->data;
-    return *data->visible_ref;
+    return *data->visible_ptr;
 }
 
 static size_t separator_get_height(const ik_layer_t *layer, size_t width)
@@ -46,28 +46,25 @@ static void separator_render(const ik_layer_t *layer,
 }
 
 // Create separator layer
-res_t ik_separator_layer_create(TALLOC_CTX *ctx,
-                                const char *name,
-                                bool *visible_ref,
-                                ik_layer_t **layer_out)
+ik_layer_t *ik_separator_layer_create(TALLOC_CTX *ctx,
+                                      const char *name,
+                                      bool *visible_ptr)
 {
     assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(name != NULL);         // LCOV_EXCL_BR_LINE
-    assert(visible_ref != NULL);  // LCOV_EXCL_BR_LINE
-    assert(layer_out != NULL);    // LCOV_EXCL_BR_LINE
+    assert(visible_ptr != NULL);  // LCOV_EXCL_BR_LINE
 
     // Allocate separator data
     ik_separator_layer_data_t *data = talloc(ctx, ik_separator_layer_data_t);
     if (data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    data->visible_ref = visible_ref;
+    data->visible_ptr = visible_ptr;
 
     // Create layer
-    *layer_out = ik_layer_create(ctx, name, data,
-                                 separator_is_visible,
-                                 separator_get_height,
-                                 separator_render);
-    return OK(*layer_out);
+    return ik_layer_create(ctx, name, data,
+                           separator_is_visible,
+                           separator_get_height,
+                           separator_render);
 }
 
 // Scrollback layer data
@@ -164,15 +161,13 @@ static void scrollback_render(const ik_layer_t *layer,
 }
 
 // Create scrollback layer
-res_t ik_scrollback_layer_create(TALLOC_CTX *ctx,
-                                 const char *name,
-                                 ik_scrollback_t *scrollback,
-                                 ik_layer_t **layer_out)
+ik_layer_t *ik_scrollback_layer_create(TALLOC_CTX *ctx,
+                                       const char *name,
+                                       ik_scrollback_t *scrollback)
 {
     assert(ctx != NULL);         // LCOV_EXCL_BR_LINE
     assert(name != NULL);        // LCOV_EXCL_BR_LINE
     assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
-    assert(layer_out != NULL);   // LCOV_EXCL_BR_LINE
 
     // Allocate scrollback data
     ik_scrollback_layer_data_t *data = talloc(ctx, ik_scrollback_layer_data_t);
@@ -181,18 +176,17 @@ res_t ik_scrollback_layer_create(TALLOC_CTX *ctx,
     data->scrollback = scrollback;
 
     // Create layer
-    *layer_out = ik_layer_create(ctx, name, data,
-                                 scrollback_is_visible,
-                                 scrollback_get_height,
-                                 scrollback_render);
-    return OK(*layer_out);
+    return ik_layer_create(ctx, name, data,
+                           scrollback_is_visible,
+                           scrollback_get_height,
+                           scrollback_render);
 }
 
 // Input layer data
 typedef struct {
-    bool *visible_ref;        // Borrowed pointer to visibility flag
-    const char **text_ref;    // Borrowed pointer to text pointer
-    size_t *text_len_ref;     // Borrowed pointer to text length
+    bool *visible_ptr;        // Raw pointer to visibility flag
+    const char **text_ptr;    // Raw pointer to text pointer
+    size_t *text_len_ptr;     // Raw pointer to text length
 } ik_input_layer_data_t;
 
 // Input layer callbacks
@@ -202,7 +196,7 @@ static bool input_is_visible(const ik_layer_t *layer)
     assert(layer->data != NULL); // LCOV_EXCL_BR_LINE
 
     ik_input_layer_data_t *data = (ik_input_layer_data_t *)layer->data;
-    return *data->visible_ref;
+    return *data->visible_ptr;
 }
 
 static size_t input_get_height(const ik_layer_t *layer, size_t width)
@@ -213,14 +207,14 @@ static size_t input_get_height(const ik_layer_t *layer, size_t width)
     ik_input_layer_data_t *data = (ik_input_layer_data_t *)layer->data;
 
     // If no text, input buffer still occupies 1 row (for the cursor)
-    if (*data->text_len_ref == 0) {
+    if (*data->text_len_ptr == 0) {
         return 1;
     }
 
     // Calculate physical lines based on text length and width
     // This is a simplified calculation - just count newlines and assume wrapping
-    const char *text = *data->text_ref;
-    size_t text_len = *data->text_len_ref;
+    const char *text = *data->text_ptr;
+    size_t text_len = *data->text_len_ptr;
 
     size_t physical_lines = 1;  // Start with 1 line
     size_t current_col = 0;
@@ -256,8 +250,8 @@ static void input_render(const ik_layer_t *layer,
     (void)row_count;
 
     ik_input_layer_data_t *data = (ik_input_layer_data_t *)layer->data;
-    const char *text = *data->text_ref;
-    size_t text_len = *data->text_len_ref;
+    const char *text = *data->text_ptr;
+    size_t text_len = *data->text_len_ptr;
 
     // Render input text with \n to \r\n conversion
     for (size_t i = 0; i < text_len; i++) {
@@ -270,34 +264,31 @@ static void input_render(const ik_layer_t *layer,
 }
 
 // Create input layer
-res_t ik_input_layer_create(TALLOC_CTX *ctx,
-                            const char *name,
-                            bool *visible_ref,
-                            const char **text_ref,
-                            size_t *text_len_ref,
-                            ik_layer_t **layer_out)
+ik_layer_t *ik_input_layer_create(TALLOC_CTX *ctx,
+                                  const char *name,
+                                  bool *visible_ptr,
+                                  const char **text_ptr,
+                                  size_t *text_len_ptr)
 {
     assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(name != NULL);         // LCOV_EXCL_BR_LINE
-    assert(visible_ref != NULL);  // LCOV_EXCL_BR_LINE
-    assert(text_ref != NULL);     // LCOV_EXCL_BR_LINE
-    assert(text_len_ref != NULL); // LCOV_EXCL_BR_LINE
-    assert(layer_out != NULL);    // LCOV_EXCL_BR_LINE
+    assert(visible_ptr != NULL);  // LCOV_EXCL_BR_LINE
+    assert(text_ptr != NULL);     // LCOV_EXCL_BR_LINE
+    assert(text_len_ptr != NULL); // LCOV_EXCL_BR_LINE
 
     // Allocate input data
     ik_input_layer_data_t *data = talloc(ctx, ik_input_layer_data_t);
     if (data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    data->visible_ref = visible_ref;
-    data->text_ref = text_ref;
-    data->text_len_ref = text_len_ref;
+    data->visible_ptr = visible_ptr;
+    data->text_ptr = text_ptr;
+    data->text_len_ptr = text_len_ptr;
 
     // Create layer
-    *layer_out = ik_layer_create(ctx, name, data,
-                                 input_is_visible,
-                                 input_get_height,
-                                 input_render);
-    return OK(*layer_out);
+    return ik_layer_create(ctx, name, data,
+                           input_is_visible,
+                           input_get_height,
+                           input_render);
 }
 
 // Spinner animation frames
@@ -367,15 +358,13 @@ static void spinner_render(const ik_layer_t *layer,
 }
 
 // Create spinner layer
-res_t ik_spinner_layer_create(TALLOC_CTX *ctx,
-                              const char *name,
-                              ik_spinner_state_t *state,
-                              ik_layer_t **layer_out)
+ik_layer_t *ik_spinner_layer_create(TALLOC_CTX *ctx,
+                                    const char *name,
+                                    ik_spinner_state_t *state)
 {
     assert(ctx != NULL);       // LCOV_EXCL_BR_LINE
     assert(name != NULL);      // LCOV_EXCL_BR_LINE
     assert(state != NULL);     // LCOV_EXCL_BR_LINE
-    assert(layer_out != NULL); // LCOV_EXCL_BR_LINE
 
     // Allocate spinner data
     ik_spinner_layer_data_t *data = talloc(ctx, ik_spinner_layer_data_t);
@@ -384,9 +373,8 @@ res_t ik_spinner_layer_create(TALLOC_CTX *ctx,
     data->state = state;
 
     // Create layer
-    *layer_out = ik_layer_create(ctx, name, data,
-                                 spinner_is_visible,
-                                 spinner_get_height,
-                                 spinner_render);
-    return OK(*layer_out);
+    return ik_layer_create(ctx, name, data,
+                           spinner_is_visible,
+                           spinner_get_height,
+                           spinner_render);
 }

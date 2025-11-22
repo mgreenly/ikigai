@@ -9,10 +9,8 @@ START_TEST(test_separator_layer_create_and_visibility) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
-    ik_layer_t *layer;
-    res_t res = ik_separator_layer_create(ctx, "sep", &visible, &layer);
+    ik_layer_t *layer = ik_separator_layer_create(ctx, "sep", &visible);
 
-    ck_assert(is_ok(&res));
     ck_assert(layer != NULL);
     ck_assert_str_eq(layer->name, "sep");
     ck_assert(layer->is_visible(layer) == true);
@@ -28,8 +26,7 @@ END_TEST START_TEST(test_separator_layer_height)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
-    ik_layer_t *layer;
-    ik_separator_layer_create(ctx, "sep", &visible, &layer);
+    ik_layer_t *layer = ik_separator_layer_create(ctx, "sep", &visible);
 
     // Separator is always 1 row
     ck_assert_uint_eq(layer->get_height(layer, 80), 1);
@@ -44,8 +41,7 @@ END_TEST START_TEST(test_separator_layer_render)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
-    ik_layer_t *layer;
-    ik_separator_layer_create(ctx, "sep", &visible, &layer);
+    ik_layer_t *layer = ik_separator_layer_create(ctx, "sep", &visible);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
@@ -64,8 +60,7 @@ END_TEST START_TEST(test_separator_layer_render_various_widths)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
-    ik_layer_t *layer;
-    ik_separator_layer_create(ctx, "sep", &visible, &layer);
+    ik_layer_t *layer = ik_separator_layer_create(ctx, "sep", &visible);
 
     // Test width 5
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);

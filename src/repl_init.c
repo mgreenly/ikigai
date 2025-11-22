@@ -67,22 +67,17 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
     repl->layer_cake = ik_layer_cake_create(repl, (size_t)repl->term->screen_rows);
 
     // Create scrollback layer
-    result = ik_scrollback_layer_create(repl, "scrollback", repl->scrollback, &repl->scrollback_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    repl->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", repl->scrollback);
 
     // Create spinner layer (Phase 1.4)
-    result = ik_spinner_layer_create(repl, "spinner", &repl->spinner_state, &repl->spinner_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    repl->spinner_layer = ik_spinner_layer_create(repl, "spinner", &repl->spinner_state);
 
     // Create separator layer
-    result = ik_separator_layer_create(repl, "separator", &repl->separator_visible, &repl->separator_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    repl->separator_layer = ik_separator_layer_create(repl, "separator", &repl->separator_visible);
 
     // Create input layer
-    result = ik_input_layer_create(repl, "input", &repl->input_buffer_visible,
-                                   &repl->input_text, &repl->input_text_len,
-                                   &repl->input_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    repl->input_layer = ik_input_layer_create(repl, "input", &repl->input_buffer_visible,
+                                              &repl->input_text, &repl->input_text_len);
 
     // Add layers to cake (in order: scrollback, spinner, separator, input)
     result = ik_layer_cake_add_layer(repl->layer_cake, repl->scrollback_layer);

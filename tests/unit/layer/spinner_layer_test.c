@@ -9,10 +9,8 @@ START_TEST(test_spinner_layer_create_and_visibility) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};
-    ik_layer_t *layer;
-    res_t res = ik_spinner_layer_create(ctx, "spinner", &state, &layer);
+    ik_layer_t *layer = ik_spinner_layer_create(ctx, "spinner", &state);
 
-    ck_assert(is_ok(&res));
     ck_assert(layer != NULL);
     ck_assert_str_eq(layer->name, "spinner");
     ck_assert(layer->is_visible(layer) == true);
@@ -28,8 +26,7 @@ END_TEST START_TEST(test_spinner_layer_height)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};
-    ik_layer_t *layer;
-    ik_spinner_layer_create(ctx, "spinner", &state, &layer);
+    ik_layer_t *layer = ik_spinner_layer_create(ctx, "spinner", &state);
 
     // Spinner is always 1 row when visible
     ck_assert_uint_eq(layer->get_height(layer, 80), 1);
@@ -80,8 +77,7 @@ END_TEST START_TEST(test_spinner_layer_render_frame0)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};
-    ik_layer_t *layer;
-    ik_spinner_layer_create(ctx, "spinner", &state, &layer);
+    ik_layer_t *layer = ik_spinner_layer_create(ctx, "spinner", &state);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
@@ -101,8 +97,7 @@ END_TEST START_TEST(test_spinner_layer_render_all_frames)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};
-    ik_layer_t *layer;
-    ik_spinner_layer_create(ctx, "spinner", &state, &layer);
+    ik_layer_t *layer = ik_spinner_layer_create(ctx, "spinner", &state);
 
     const char *expected_frames[] = {
         "[|] Waiting for response...\r\n",
@@ -130,8 +125,7 @@ END_TEST START_TEST(test_spinner_animation_sequence)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};
-    ik_layer_t *layer;
-    ik_spinner_layer_create(ctx, "spinner", &state, &layer);
+    ik_layer_t *layer = ik_spinner_layer_create(ctx, "spinner", &state);
 
     // Simulate animation: advance and render multiple times
     for (size_t i = 0; i < 8; i++) {  // Two full cycles
