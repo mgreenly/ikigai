@@ -12,8 +12,6 @@ A desktop terminal application that combines:
 - PostgreSQL-backed conversation history with full-text search
 - Terminal UI with direct rendering and scrollback
 
-**Current status**: v1.0-alpha - REPL terminal and OpenAI streaming integration complete. Ready for database integration.
-
 ## Quick Start
 
 - **Source code**: `src/`
@@ -47,6 +45,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 
 ### Internal Analysis
 - **[memory_usage_analysis.md](memory_usage_analysis.md)** - Memory usage analysis and optimization notes
+- **[considerations.md](considerations.md)** - Candidate features and changes to consider for the future
 - **[../fix.md](../fix.md)** - Known issues and technical debt
 
 ## Roadmap to v1.0
