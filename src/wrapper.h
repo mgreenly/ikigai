@@ -8,9 +8,18 @@
 #ifndef IK_WRAPPER_H
 #define IK_WRAPPER_H
 
-#include <talloc.h>
-#include <stddef.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <talloc.h>
+#include <termios.h>
+#include <unistd.h>
 #include "vendor/yyjson/yyjson.h"
 
 // MOCKABLE: Weak symbols for testing in debug builds,
@@ -334,14 +343,6 @@ MOCKABLE FILE *posix_fdopen_(int fd, const char *mode)
 
 #else
 // Debug/test build: weak symbol declarations
-#include <signal.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <sys/select.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <termios.h>
-
 MOCKABLE int posix_open_(const char *pathname, int flags);
 MOCKABLE int posix_close_(int fd);
 MOCKABLE int posix_stat_(const char *pathname, struct stat *statbuf);

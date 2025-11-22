@@ -60,6 +60,7 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
     assert(command != NULL); /* LCOV_EXCL_BR_LINE */
     assert(strncmp(command, "pp", 2) == 0); /* LCOV_EXCL_BR_LINE */  // Only /pp reaches here
+    (void)command;  // Used only in assert (compiled out in release builds)
 
     // Create format buffer for output
     ik_format_buffer_t *buf = ik_format_buffer_create(repl);

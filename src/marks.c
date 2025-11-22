@@ -144,6 +144,7 @@ res_t ik_mark_rewind_to(ik_repl_ctx_t *repl, const char *label)
         }
     }
     assert(found);  /* LCOV_EXCL_BR_LINE */
+    (void)found;  // Used only in assert (compiled out in release builds)
 
     // Free marks from target onwards
     for (size_t i = target_index; i < repl->mark_count; i++) {

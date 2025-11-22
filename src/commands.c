@@ -116,6 +116,7 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
+    (void)ctx;      // Used only in assert (compiled out in release builds)
     (void)args;     // Unused for /clear
 
     // Clear scrollback buffer

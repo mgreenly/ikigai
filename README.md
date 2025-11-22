@@ -17,13 +17,12 @@ See [docs/](docs/README.md/) for design and implementation details.
 
 **Clone**:
 ```text
-git clone https://github.com/mgreenly/ikigai.git && cd ikigai
-git checkout v0.2.0
+git clone https://github.com/mgreenly/ikigai.git && cd ikigai && git checkout v0.2.0
 ```
 
 **Install**:
 ```text
-make install PREFIX=$HOME/.local
+make install BUILD=release PREFIX=$HOME/.local
 ```
 
 **Uninstall**:
