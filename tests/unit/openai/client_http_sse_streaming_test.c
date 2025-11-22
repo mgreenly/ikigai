@@ -207,6 +207,7 @@ START_TEST(test_http_callback_with_sse_streaming) {
 }
 
 END_TEST
+
 /*
  * Test: Empty response through callback
  */
@@ -247,6 +248,7 @@ START_TEST(test_http_callback_empty_response)
 }
 
 END_TEST
+
 /*
  * Test: Callback error handling - SSE parser feed failure
  */
@@ -290,6 +292,7 @@ START_TEST(test_http_callback_sse_parser_feed_error)
 }
 
 END_TEST
+
 /*
  * Test: Callback error handling - SSE event parse failure
  */
@@ -401,6 +404,7 @@ START_TEST(test_http_callback_user_success) {
 }
 
 END_TEST
+
 /*
  * Test: User callback returns error
  */
@@ -444,9 +448,9 @@ END_TEST
 /*
  * Test suite
  */
-static Suite *client_http_sse_suite(void)
+static Suite *client_http_sse_streaming_suite(void)
 {
-    Suite *s = suite_create("OpenAI Client HTTP SSE");
+    Suite *s = suite_create("OpenAI Client HTTP SSE Streaming");
 
     TCase *tc_sse = tcase_create("SSE Streaming");
     tcase_add_checked_fixture(tc_sse, setup, teardown);
@@ -464,7 +468,7 @@ static Suite *client_http_sse_suite(void)
 int main(void)
 {
     int number_failed;
-    Suite *s = client_http_sse_suite();
+    Suite *s = client_http_sse_streaming_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);

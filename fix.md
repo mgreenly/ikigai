@@ -4,59 +4,7 @@ This document tracks known issues, technical debt, and improvement tasks.
 
 ## Active Issues
 
-### 1. Oversize Test File (Priority: Low)
-
-**Added:** 2025-11-22 (Phase 1.8)
-**File Size Limit:** 16,384 bytes (16 KB)
-
-**Affected Files:**
-
-#### 1.1. `tests/unit/openai/client_http_sse_test.c` - 21,366 bytes (+4,982 bytes over limit)
-
-**Growth Factors:**
-- Original size: ~16KB
-- Added 4 new finish_reason test cases in Phase 1.8:
-  - `test_http_callback_with_finish_reason` (~45 lines)
-  - `test_http_callback_without_finish_reason` (~45 lines)
-  - `test_http_callback_malformed_finish_reason` (~45 lines)
-  - `test_http_callback_finish_reason_edge_cases` (~50 lines)
-- Total added: ~185 lines of test code
-
-**Refactoring Options:**
-
-**Option A: Split by feature area**
-```
-client_http_sse_streaming_test.c  (basic SSE streaming tests)
-client_http_sse_finish_test.c     (finish_reason extraction tests)
-```
-
-**Option B: Split by test scenario complexity**
-```
-client_http_sse_basic_test.c      (happy path tests)
-client_http_sse_edge_test.c       (edge cases and error handling)
-```
-
-**Option C: Extract test utilities to common file**
-```
-client_http_sse_test_utils.c      (mock setup, fixtures, helpers)
-client_http_sse_test.c             (actual test cases)
-```
-
-**Tasks:**
-
-- [ ] **Task 1.1.1:** Analyze test organization - which split makes tests easier to maintain?
-- [ ] **Task 1.1.2:** Decide on refactoring approach (Option A, B, or C)
-- [ ] **Task 1.1.3:** Split test file according to chosen approach
-- [ ] **Task 1.1.4:** Ensure shared fixtures/mocks are properly accessible
-- [ ] **Task 1.1.5:** Update build system to compile new test files
-- [ ] **Task 1.1.6:** Verify all tests still pass
-- [ ] **Task 1.1.7:** Update test documentation if needed
-
-**Acceptance Criteria:**
-- All test files < 16,384 bytes
-- All tests pass with same coverage
-- Test organization is logical and maintainable
-- No duplicate code between test files
+(No active issues)
 
 ---
 
@@ -152,6 +100,54 @@ LCOV exclusions should be used sparingly and only for:
 Each exclusion should have a clear comment explaining why coverage is impractical.
 
 Current count: **681 markers** (at limit of 681)
+
+---
+
+---
+
+### Oversize Test File: `tests/unit/openai/client_http_sse_test.c`
+
+**Resolved:** 2025-11-22
+**Original Size:** 21,366 bytes (+4,982 bytes over 16KB limit)
+**Final Sizes:**
+- `client_http_sse_streaming_test.c`: 15,360 bytes (94% of limit)
+- `client_http_sse_finish_test.c`: 12,288 bytes (75% of limit)
+
+**Problem:**
+The `tests/unit/openai/client_http_sse_test.c` file exceeded the 16KB file size limit due to growth from adding finish_reason extraction functionality tests in Phase 1.8.
+
+**Solution:**
+Implemented **Option A: Split by feature area**. This created a logical separation between general SSE streaming tests and finish_reason-specific tests.
+
+**Changes:**
+1. Created `tests/unit/openai/client_http_sse_streaming_test.c` (15,360 bytes) containing:
+   - Mock curl infrastructure for all tests
+   - 6 general SSE streaming tests:
+     - `test_http_callback_with_sse_streaming`
+     - `test_http_callback_empty_response`
+     - `test_http_callback_sse_parser_feed_error`
+     - `test_http_callback_sse_parse_error`
+     - `test_http_callback_user_success`
+     - `test_http_callback_user_error`
+
+2. Created `tests/unit/openai/client_http_sse_finish_test.c` (12,288 bytes) containing:
+   - Mock curl infrastructure for all tests
+   - 4 finish_reason extraction tests:
+     - `test_http_callback_with_finish_reason`
+     - `test_http_callback_without_finish_reason`
+     - `test_http_callback_malformed_finish_reason`
+     - `test_http_callback_finish_reason_edge_cases`
+
+3. Removed original `tests/unit/openai/client_http_sse_test.c`
+
+4. Build system automatically detected new test files (wildcard-based discovery)
+
+**Results:**
+- Both files well under 16KB limit
+- All 10 tests passing (100% success rate)
+- 100% test coverage maintained
+- Clear logical separation makes future maintenance easier
+- Each file has a focused purpose aligned with feature areas
 
 ---
 
