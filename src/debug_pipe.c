@@ -85,6 +85,8 @@ static int debug_pipe_destructor(ik_debug_pipe_t *pipe)
         fclose(pipe->write_end);  // This also closes the underlying fd
         pipe->write_end = NULL;
     }
+    // Defensive check: read_fd is always >= 0 when pipe is created successfully
+    // FALSE branch is impossible without corrupting pipe state
     if (pipe->read_fd >= 0) {  // LCOV_EXCL_BR_LINE
         posix_close_(pipe->read_fd);
         pipe->read_fd = -1;
@@ -107,7 +109,8 @@ res_t ik_debug_pipe_read(ik_debug_pipe_t *pipe, char ***lines_out, size_t *count
 
     // Handle read errors
     if (nread == -1) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        // Platform-specific: EAGAIN == EWOULDBLOCK on this system, so one branch of OR is impossible
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {  // LCOV_EXCL_BR_LINE
             // No data available (non-blocking) - not an error
             return OK(NULL);
         }
@@ -219,8 +222,8 @@ res_t ik_debug_mgr_add_pipe(ik_debug_pipe_manager_t *mgr, const char *prefix)
 
     // Create debug pipe
     res_t res = ik_debug_pipe_create(mgr, prefix);
-    if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
-        return res;  // LCOV_EXCL_LINE
+    if (is_err(&res)) {
+        return res;
     }
 
     ik_debug_pipe_t *pipe = res.ok;
@@ -244,7 +247,7 @@ void ik_debug_mgr_add_to_fdset(ik_debug_pipe_manager_t *mgr, fd_set *read_fds, i
         FD_SET(pipe->read_fd, read_fds);
 
         // Update max_fd if this fd is larger
-        if (pipe->read_fd > *max_fd) {  // LCOV_EXCL_BR_LINE
+        if (pipe->read_fd > *max_fd) {
             *max_fd = pipe->read_fd;
         }
     }
@@ -270,12 +273,12 @@ res_t ik_debug_mgr_handle_ready(ik_debug_pipe_manager_t *mgr, fd_set *read_fds,
         char **lines = NULL;
         size_t count = 0;
         res_t res = ik_debug_pipe_read(pipe, &lines, &count);
-        if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
-            return res;  // LCOV_EXCL_LINE
+        if (is_err(&res)) {
+            return res;
         }
 
         // If debug enabled, append lines to scrollback
-        if (debug_enabled && count > 0) {  // LCOV_EXCL_BR_LINE
+        if (debug_enabled && count > 0) {
             assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
             for (size_t j = 0; j < count; j++) {
                 res_t append_res = ik_scrollback_append_line(scrollback, lines[j], strlen(lines[j]));
@@ -287,7 +290,7 @@ res_t ik_debug_mgr_handle_ready(ik_debug_pipe_manager_t *mgr, fd_set *read_fds,
         }
 
         // Free lines array (whether or not we used it)
-        if (lines != NULL) {  // LCOV_EXCL_BR_LINE
+        if (lines != NULL) {
             talloc_free(lines);
         }
     }

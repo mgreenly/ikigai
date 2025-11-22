@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/select.h>
@@ -11,6 +12,7 @@
 #include <unistd.h>
 #include "../../../src/debug_pipe.h"
 #include "../../../src/scrollback.h"
+#include "../../../src/wrapper.h"
 #include "../../test_utils.h"
 
 /* Test: Create debug pipe manager */
@@ -159,9 +161,7 @@ START_TEST(test_debug_mgr_handle_ready_enabled)
     ik_debug_pipe_t *pipe = pipe_res.ok;
 
     /* Create scrollback */
-    ik_scrollback_t *scrollback = NULL;
-    res_t sb_res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&sb_res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert_ptr_nonnull(scrollback);
 
     /* Write test data to pipe */
@@ -210,9 +210,7 @@ START_TEST(test_debug_mgr_handle_ready_disabled)
     ik_debug_pipe_t *pipe = pipe_res.ok;
 
     /* Create scrollback */
-    ik_scrollback_t *scrollback = NULL;
-    res_t sb_res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&sb_res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert_ptr_nonnull(scrollback);
 
     /* Write test data to pipe */
@@ -267,9 +265,7 @@ START_TEST(test_debug_mgr_handle_ready_partial)
     ik_debug_pipe_t *pipe3 = pipe3_res.ok;
 
     /* Create scrollback */
-    ik_scrollback_t *scrollback = NULL;
-    res_t sb_res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&sb_res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     /* Write to pipe1 and pipe3 only */
     fwrite("from pipe1\n", 1, 11, pipe1->write_end);
@@ -278,12 +274,12 @@ START_TEST(test_debug_mgr_handle_ready_partial)
     fwrite("from pipe3\n", 1, 11, pipe3->write_end);
     fflush(pipe3->write_end);
 
-    /* Set up fd_set with only pipe1 and pipe3 marked as ready (not pipe2) */
+    /* Set up fd_set with only pipe1 and pipe3 (not pipe2) */
     fd_set read_fds;
     FD_ZERO(&read_fds);
     FD_SET(pipe1->read_fd, &read_fds);
     FD_SET(pipe3->read_fd, &read_fds);
-    /* pipe2 is NOT set - this tests the continue path */
+    /* pipe2 NOT set - tests continue path */
 
     /* Handle ready pipes with debug enabled */
     res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
@@ -291,6 +287,227 @@ START_TEST(test_debug_mgr_handle_ready_partial)
 
     /* Verify we got 2 lines (from pipe1 and pipe3, but not pipe2) */
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+/* Error injection tests */
+
+/* Override posix_pipe_ to inject failure */
+static int fail_pipe = 0;
+int posix_pipe_(int pipefd[2])
+{
+    if (fail_pipe) {
+        errno = EMFILE;
+        return -1;
+    }
+    return pipe(pipefd);
+}
+
+/* Test: Add pipe fails when pipe creation fails */
+START_TEST(test_debug_mgr_add_pipe_creation_failure) {
+    void *ctx = talloc_new(NULL);
+
+    /* Create manager */
+    res_t mgr_res = ik_debug_mgr_create(ctx);
+    ck_assert(is_ok(&mgr_res));
+    ik_debug_pipe_manager_t *mgr = mgr_res.ok;
+
+    /* Enable pipe() failure */
+    fail_pipe = 1;
+
+    /* Try to add pipe - should fail */
+    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    ck_assert(is_err(&pipe_res));
+
+    /* Manager should still be valid but empty */
+    ck_assert_uint_eq(mgr->count, 0);
+
+    /* Disable failure for cleanup */
+    fail_pipe = 0;
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: add_to_fdset when max_fd is already larger than pipe fds */
+START_TEST(test_debug_mgr_add_to_fdset_max_fd_large)
+{
+    void *ctx = talloc_new(NULL);
+
+    /* Create manager and add pipe */
+    res_t mgr_res = ik_debug_mgr_create(ctx);
+    ck_assert(is_ok(&mgr_res));
+    ik_debug_pipe_manager_t *mgr = mgr_res.ok;
+
+    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    ck_assert(is_ok(&pipe_res));
+    ik_debug_pipe_t *pipe = pipe_res.ok;
+
+    /* Initialize fd_set and set max_fd to a value larger than pipe->read_fd */
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    int max_fd = pipe->read_fd + 100;  /* Much larger than any pipe fd */
+    int original_max_fd = max_fd;
+
+    /* Add pipe to fd_set */
+    ik_debug_mgr_add_to_fdset(mgr, &read_fds, &max_fd);
+
+    /* Verify pipe is in set */
+    ck_assert(FD_ISSET(pipe->read_fd, &read_fds));
+
+    /* max_fd should remain unchanged since pipe->read_fd < original max_fd */
+    ck_assert_int_eq(max_fd, original_max_fd);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+/* Override posix_read_ to inject failure */
+static int fail_read = 0;
+ssize_t posix_read_(int fd, void *buf, size_t count)
+{
+    if (fail_read) {
+        errno = EIO;
+        return -1;
+    }
+    return read(fd, buf, count);
+}
+
+/* Test: handle_ready when read fails with error */
+START_TEST(test_debug_mgr_handle_ready_read_error) {
+    void *ctx = talloc_new(NULL);
+
+    /* Create manager and add pipe */
+    res_t mgr_res = ik_debug_mgr_create(ctx);
+    ck_assert(is_ok(&mgr_res));
+    ik_debug_pipe_manager_t *mgr = mgr_res.ok;
+
+    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    ck_assert(is_ok(&pipe_res));
+    ik_debug_pipe_t *pipe = pipe_res.ok;
+
+    /* Create scrollback */
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+
+    /* Set up fd_set with pipe marked as ready */
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(pipe->read_fd, &read_fds);
+
+    /* Enable read() failure */
+    fail_read = 1;
+
+    /* Handle ready pipes - should fail with read error */
+    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
+    ck_assert(is_err(&handle_res));
+
+    /* Disable failure for cleanup */
+    fail_read = 0;
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: handle_ready when pipe has data but no complete line */
+START_TEST(test_debug_mgr_handle_ready_no_newline)
+{
+    void *ctx = talloc_new(NULL);
+
+    /* Create manager and add pipe */
+    res_t mgr_res = ik_debug_mgr_create(ctx);
+    ck_assert(is_ok(&mgr_res));
+    ik_debug_pipe_manager_t *mgr = mgr_res.ok;
+
+    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    ck_assert(is_ok(&pipe_res));
+    ik_debug_pipe_t *pipe = pipe_res.ok;
+
+    /* Create scrollback */
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+
+    /* Write data WITHOUT newline */
+    const char *test_data = "incomplete line";
+    size_t written = fwrite(test_data, 1, strlen(test_data), pipe->write_end);
+    ck_assert_uint_eq(written, strlen(test_data));
+    fflush(pipe->write_end);
+
+    /* Set up fd_set with pipe marked as ready */
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(pipe->read_fd, &read_fds);
+
+    /* Handle ready pipes with debug enabled */
+    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
+    ck_assert(is_ok(&handle_res));
+
+    /* Since no newline, no lines should be added to scrollback (count == 0) */
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
+
+    /* The data should be buffered in the pipe for next read */
+    ck_assert_uint_eq(pipe->buffer_pos, strlen(test_data));
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: handle_ready when pipe has no data (tests lines==NULL branch) */
+START_TEST(test_debug_mgr_handle_ready_no_data)
+{
+    void *ctx = talloc_new(NULL);
+
+    /* Create manager and add pipe */
+    res_t mgr_res = ik_debug_mgr_create(ctx);
+    ck_assert(is_ok(&mgr_res));
+    ik_debug_pipe_manager_t *mgr = mgr_res.ok;
+
+    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    ck_assert(is_ok(&pipe_res));
+    ik_debug_pipe_t *pipe = pipe_res.ok;
+
+    /* Create scrollback */
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+
+    /* Don't write anything to pipe - it will have no data */
+
+    /* Set up fd_set with pipe marked as ready */
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(pipe->read_fd, &read_fds);
+
+    /* Handle ready pipes with debug enabled */
+    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
+    ck_assert(is_ok(&handle_res));
+
+    /* No lines should be added since there was no data */
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: Destructor properly cleans up read_fd */
+START_TEST(test_debug_pipe_destructor)
+{
+    void *ctx = talloc_new(NULL);
+
+    /* Create a pipe */
+    res_t res = ik_debug_pipe_create(ctx, "[destructor_test]");
+    ck_assert(is_ok(&res));
+    ik_debug_pipe_t *pipe = res.ok;
+
+    /* Store the read_fd for verification */
+    int read_fd = pipe->read_fd;
+    ck_assert_int_ge(read_fd, 0);
+
+    /* Free the pipe - this triggers the destructor */
+    talloc_free(pipe);
+
+    /* After destruction, the read_fd should be closed */
+    /* We can't directly verify it's closed, but at least we tested the destructor path */
 
     talloc_free(ctx);
 }
@@ -310,6 +527,12 @@ static Suite *debug_pipe_manager_suite(void)
     tcase_add_test(tc_core, test_debug_mgr_handle_ready_enabled);
     tcase_add_test(tc_core, test_debug_mgr_handle_ready_disabled);
     tcase_add_test(tc_core, test_debug_mgr_handle_ready_partial);
+    tcase_add_test(tc_core, test_debug_mgr_add_pipe_creation_failure);
+    tcase_add_test(tc_core, test_debug_mgr_add_to_fdset_max_fd_large);
+    tcase_add_test(tc_core, test_debug_mgr_handle_ready_read_error);
+    tcase_add_test(tc_core, test_debug_mgr_handle_ready_no_newline);
+    tcase_add_test(tc_core, test_debug_mgr_handle_ready_no_data);
+    tcase_add_test(tc_core, test_debug_pipe_destructor);
 
     suite_add_tcase(s, tc_core);
 
