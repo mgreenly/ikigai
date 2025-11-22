@@ -14,11 +14,9 @@
 // Test: ESC [ followed by null byte
 START_TEST(test_escape_sequence_null_byte) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     ik_input_parse_byte(parser, 0x1B, &action); // ESC
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
@@ -40,11 +38,9 @@ END_TEST
 START_TEST(test_escape_sequence_control_char)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     ik_input_parse_byte(parser, 0x1B, &action); // ESC
     ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
@@ -65,11 +61,9 @@ END_TEST
 START_TEST(test_escape_sequence_nearly_full_buffer)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     ik_input_parse_byte(parser, 0x1B, &action); // ESC
 

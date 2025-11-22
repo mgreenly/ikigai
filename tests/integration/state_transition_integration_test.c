@@ -14,11 +14,9 @@
 // Test: Start UTF-8 sequence, then send ESC - should this reset UTF-8 state?
 START_TEST(test_state_confusion_utf8_then_escape) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Start 2-byte UTF-8 sequence (é = 0xC3 0xA9)
     ik_input_parse_byte(parser, (char)0xC3, &action);
@@ -43,11 +41,9 @@ END_TEST
 START_TEST(test_state_confusion_escape_then_utf8)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Start escape sequence
     ik_input_parse_byte(parser, 0x1B, &action); // ESC
@@ -72,11 +68,9 @@ END_TEST
 START_TEST(test_rapid_esc_transitions)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Send: ESC, 'x', ESC, 'y', ESC, '[', 'A'
     ik_input_parse_byte(parser, 0x1B, &action); // ESC
@@ -105,11 +99,9 @@ END_TEST
 START_TEST(test_multiple_incomplete_utf8)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Send 3 different UTF-8 lead bytes without completions
     ik_input_parse_byte(parser, (char)0xC3, &action); // 2-byte lead

@@ -54,12 +54,10 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Initialize input parser
-    result = ik_input_parser_create(repl, &repl->input_parser);
-    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+    repl->input_parser = ik_input_parser_create(repl);
 
     // Initialize scrollback buffer (Phase 4)
-    result = ik_scrollback_create(repl, repl->term->screen_cols, &repl->scrollback);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    repl->scrollback = ik_scrollback_create(repl, repl->term->screen_cols);
 
     // Initialize viewport offset to 0 (at bottom)
     repl->viewport_offset = 0;

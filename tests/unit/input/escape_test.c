@@ -9,11 +9,9 @@
 // Test: parse arrow up escape sequence byte by byte
 START_TEST(test_input_parse_arrow_up) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse ESC (0x1B) - incomplete sequence
     ik_input_parse_byte(parser, 0x1B, &action);
@@ -38,11 +36,9 @@ END_TEST
 START_TEST(test_input_parse_arrow_down)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse full sequence \x1b[B
     ik_input_parse_byte(parser, 0x1B, &action);
@@ -62,11 +58,9 @@ END_TEST
 START_TEST(test_input_parse_arrow_left)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse full sequence \x1b[D
     ik_input_parse_byte(parser, 0x1B, &action);
@@ -86,11 +80,9 @@ END_TEST
 START_TEST(test_input_parse_arrow_right)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse full sequence \x1b[C
     ik_input_parse_byte(parser, 0x1B, &action);
@@ -110,11 +102,9 @@ END_TEST
 START_TEST(test_input_parse_delete)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse full sequence \x1b[3~
     ik_input_parse_byte(parser, 0x1B, &action);
@@ -137,11 +127,9 @@ END_TEST
 START_TEST(test_input_parse_invalid_escape)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Start escape sequence
     ik_input_parse_byte(parser, 0x1B, &action);
@@ -166,11 +154,9 @@ END_TEST
 START_TEST(test_input_parse_buffer_overflow)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Start escape sequence
     ik_input_parse_byte(parser, 0x1B, &action);
@@ -208,11 +194,9 @@ END_TEST
 START_TEST(test_input_parse_invalid_delete_like_sequence)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse ESC [ 7 ~ (unrecognized sequence)
     ik_input_parse_byte(parser, 0x1B, &action);
@@ -237,11 +221,9 @@ END_TEST
 START_TEST(test_input_parse_escape_partial_at_boundary)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse ESC [ 3 X where X is not '~'
     ik_input_parse_byte(parser, 0x1B, &action);
@@ -265,11 +247,9 @@ END_TEST
 START_TEST(test_input_parse_unrecognized_csi_sequence)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse ESC [ Z (complete but unrecognized arrow-like sequence)
     ik_input_parse_byte(parser, 0x1B, &action);
@@ -290,11 +270,9 @@ END_TEST
 START_TEST(test_input_parse_unrecognized_csi_middle_letter)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse ESC [ E (complete but unrecognized arrow-like sequence)
     // This tests a letter in the middle range, not at boundaries
@@ -316,11 +294,9 @@ END_TEST
 START_TEST(test_input_parse_unrecognized_single_char_escape)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse Insert key sequence: ESC [ 2 ~
     ik_input_parse_byte(parser, 0x1B, &action); // ESC
@@ -354,11 +330,9 @@ END_TEST
 START_TEST(test_input_parse_page_up)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse full sequence \x1b[5~
     ik_input_parse_byte(parser, 0x1B, &action);
@@ -381,11 +355,9 @@ END_TEST
 START_TEST(test_input_parse_page_down)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse full sequence \x1b[6~
     ik_input_parse_byte(parser, 0x1B, &action);

@@ -9,11 +9,9 @@
 // Test: parse regular ASCII characters
 START_TEST(test_input_parse_regular_char) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse 'a'
     ik_input_parse_byte(parser, 'a', &action);
@@ -38,11 +36,9 @@ END_TEST
 START_TEST(test_input_parse_nonprintable)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse non-printable character below 0x20 (except recognized control chars)
     // Use 0x02 (Ctrl+B) which is not recognized
@@ -61,11 +57,9 @@ END_TEST
 START_TEST(test_input_parse_newline)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse '\n' (0x0A) - Ctrl+J inserts newline without submitting
     ik_input_parse_byte(parser, '\n', &action);
@@ -79,11 +73,9 @@ END_TEST
 START_TEST(test_input_parse_carriage_return)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse '\r' (0x0D) - Enter key sends this in raw mode
     ik_input_parse_byte(parser, '\r', &action);
@@ -97,11 +89,9 @@ END_TEST
 START_TEST(test_input_parse_backspace)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse DEL (0x7F)
     ik_input_parse_byte(parser, 0x7F, &action);
@@ -115,11 +105,9 @@ END_TEST
 START_TEST(test_input_parse_ctrl_c)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse Ctrl+C (0x03)
     ik_input_parse_byte(parser, 0x03, &action);
@@ -133,11 +121,9 @@ END_TEST
 START_TEST(test_input_parse_ctrl_a)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse Ctrl+A (0x01)
     ik_input_parse_byte(parser, 0x01, &action);
@@ -151,11 +137,9 @@ END_TEST
 START_TEST(test_input_parse_ctrl_e)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse Ctrl+E (0x05)
     ik_input_parse_byte(parser, 0x05, &action);
@@ -169,11 +153,9 @@ END_TEST
 START_TEST(test_input_parse_ctrl_k)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse Ctrl+K (0x0B)
     ik_input_parse_byte(parser, 0x0B, &action);
@@ -187,11 +169,9 @@ END_TEST
 START_TEST(test_input_parse_ctrl_u)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse Ctrl+U (0x15)
     ik_input_parse_byte(parser, 0x15, &action);
@@ -205,11 +185,9 @@ END_TEST
 START_TEST(test_input_parse_ctrl_w)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse Ctrl+W (0x17)
     ik_input_parse_byte(parser, 0x17, &action);

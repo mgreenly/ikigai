@@ -16,11 +16,9 @@
 // Overlong: 0xC1 0x81 (INVALID - security risk)
 START_TEST(test_utf8_overlong_2byte) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Send overlong encoding 0xC1 0x81 for 'A'
     // 0xC1 is a valid 2-byte lead byte pattern (110xxxxx)
@@ -42,11 +40,9 @@ END_TEST
 START_TEST(test_utf8_overlong_3byte_slash)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Send overlong encoding 0xE0 0x80 0xAF for '/'
     ik_input_parse_byte(parser, (char)0xE0, &action);
@@ -70,11 +66,9 @@ END_TEST
 START_TEST(test_utf8_overlong_4byte)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Send overlong 4-byte encoding 0xF0 0x80 0x80 0x81
     ik_input_parse_byte(parser, (char)0xF0, &action);
@@ -103,11 +97,9 @@ END_TEST
 START_TEST(test_utf8_invalid_lead_byte_f8)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // 0xF8 = 11111000 (would be 5-byte sequence, invalid in UTF-8)
     ik_input_parse_byte(parser, (char)0xF8, &action);
@@ -123,11 +115,9 @@ END_TEST
 START_TEST(test_utf8_continuation_without_lead)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Send continuation byte 0x80 (10xxxxxx) without lead byte
     ik_input_parse_byte(parser, (char)0x80, &action);
@@ -148,11 +138,9 @@ END_TEST
 START_TEST(test_utf8_surrogate_high)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Encode U+D800 (high surrogate) - INVALID in UTF-8
     ik_input_parse_byte(parser, (char)0xED, &action);
@@ -174,11 +162,9 @@ END_TEST
 START_TEST(test_utf8_surrogate_low)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // U+DFFF (low surrogate) = 0xED 0xBF 0xBF (INVALID)
     ik_input_parse_byte(parser, (char)0xED, &action);
@@ -205,11 +191,9 @@ END_TEST
 START_TEST(test_utf8_codepoint_too_large)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Encode U+110000 (beyond valid Unicode range)
     ik_input_parse_byte(parser, (char)0xF4, &action);
@@ -234,11 +218,9 @@ END_TEST
 START_TEST(test_utf8_null_codepoint_overlong)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Overlong encoding of null: 0xC0 0x80
     ik_input_parse_byte(parser, (char)0xC0, &action);
@@ -261,11 +243,9 @@ END_TEST
 START_TEST(test_utf8_replacement_char_U_FFFD)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // U+FFFD = 0xEF 0xBF 0xBD (valid 3-byte UTF-8)
     ik_input_parse_byte(parser, (char)0xEF, &action);
@@ -286,11 +266,9 @@ END_TEST
 START_TEST(test_utf8_valid_boundary_codepoints)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // U+0080 (minimum valid 2-byte): 0xC2 0x80
     ik_input_parse_byte(parser, (char)0xC2, &action);
@@ -321,11 +299,9 @@ END_TEST
 START_TEST(test_utf8_max_valid_codepoint)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // U+10FFFF = 0xF4 0x8F 0xBF 0xBF (maximum valid Unicode)
     ik_input_parse_byte(parser, (char)0xF4, &action);
