@@ -14,14 +14,6 @@ A desktop terminal application that combines:
 
 **Current status**: v1.0-alpha - REPL terminal and OpenAI streaming integration complete. Ready for database integration.
 
-## v1.0 Vision
-
-**Desktop terminal client** with:
-- **Terminal UI**: Direct terminal rendering with scrollback, multi-line input, and clean UX
-- **LLM Integration**: Streaming responses from multiple providers (OpenAI, Anthropic, Google, X.AI)
-- **Local Tool Execution**: File operations, shell commands, code analysis (full trust model)
-- **Database Integration**: PostgreSQL for persistent conversation history
-
 ## Quick Start
 
 - **Source code**: `src/`
@@ -38,13 +30,6 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - **[architecture.md](architecture.md)** - System architecture, dependencies, and design principles
 - **[decisions/](decisions/)** - Architecture Decision Records (ADRs) for key design choices
 - **[repl/](repl/)** - REPL terminal interface documentation (v0.1.0 - complete)
-
-#### v1.0 Architecture Documentation
-- **[v1-architecture.md](v1-architecture.md)** - v1.0 core architecture: scrollback as context window, three-layer model
-- **[v1-llm-integration.md](v1-llm-integration.md)** - HTTP client design, streaming responses, event loop integration
-- **[v1-database-design.md](v1-database-design.md)** - PostgreSQL schema, persistence strategy, session management
-- **[v1-conversation-management.md](v1-conversation-management.md)** - Message lifecycle, slash commands, /mark and /rewind
-- **[v1-implementation-roadmap.md](v1-implementation-roadmap.md)** - Phase-by-phase implementation plan with dependencies
 
 ### Development Standards
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
@@ -65,6 +50,10 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - **[../fix.md](../fix.md)** - Known issues and technical debt
 
 ## Roadmap to v1.0
+
+**Architecture Overview**:
+- **[v1-architecture.md](v1-architecture.md)** - v1.0 core architecture: scrollback as context window, three-layer model
+- **[v1-implementation-roadmap.md](v1-implementation-roadmap.md)** - Phase-by-phase implementation plan with dependencies
 
 ### ✅ Completed: REPL Terminal Foundation (v0.1.0)
 
@@ -113,6 +102,10 @@ This runs integration tests against the real API to ensure fixtures stay current
 
 **Dependencies**: yyjson (complete), libcurl (added)
 
+**Documentation**:
+- **[v1-llm-integration.md](v1-llm-integration.md)** - HTTP client design, streaming responses, event loop integration
+- **[v1-conversation-management.md](v1-conversation-management.md)** - Message lifecycle, slash commands, /mark and /rewind
+
 ### Future: Database Integration (PostgreSQL)
 
 **Objective**: Persistent conversation history
@@ -121,6 +114,9 @@ This runs integration tests against the real API to ensure fixtures stay current
 - PostgreSQL schema for conversations and messages
 - Persistent conversation history
 - Session management and conversation retrieval
+
+**Documentation**:
+- **[v1-database-design.md](v1-database-design.md)** - PostgreSQL schema, persistence strategy, session management
 
 ### Future: Local Tool Execution
 
