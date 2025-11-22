@@ -4,7 +4,7 @@ This documentation is primarily for AI agents and secondarily for humans.
 
 ## Project Overview
 
-**Ikigai** is a Linux-focused, multi-model coding agent with RAG-accessible permanent memory, written in C.
+**Ikigai** is a Linux-focused, multi-model coding agent with permanent memory, written in C.
 
 A desktop terminal application that combines:
 - Direct LLM API integration (OpenAI, Anthropic, Google, X.AI)
@@ -20,8 +20,7 @@ A desktop terminal application that combines:
 - **Terminal UI**: Direct terminal rendering with scrollback, multi-line input, and clean UX
 - **LLM Integration**: Streaming responses from multiple providers (OpenAI, Anthropic, Google, X.AI)
 - **Local Tool Execution**: File operations, shell commands, code analysis (full trust model)
-- **Database Integration**: PostgreSQL for persistent conversation history and RAG memory
-- **RAG-based Memory**: Conversation search and context retrieval across all past interactions
+- **Database Integration**: PostgreSQL for persistent conversation history
 
 ## Quick Start
 
@@ -116,13 +115,12 @@ This runs integration tests against the real API to ensure fixtures stay current
 
 ### Future: Database Integration (PostgreSQL)
 
-**Objective**: Persistent conversation history with RAG memory
+**Objective**: Persistent conversation history
 
 **Tasks**:
 - PostgreSQL schema for conversations and messages
 - Persistent conversation history
-- Full-text search across past conversations (tool-based)
-- RAG memory access patterns
+- Session management and conversation retrieval
 
 ### Future: Local Tool Execution
 
