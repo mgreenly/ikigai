@@ -317,7 +317,26 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
 
                     /* Invoke completion callback if provided */
                     if (completed->completion_cb != NULL) {
-                        completed->completion_cb(&completion, completed->completion_ctx);
+                        res_t cb_result = completed->completion_cb(&completion, completed->completion_ctx);
+                        if (is_err(&cb_result)) {
+                            /* Free error message from completion */
+                            if (completion.error_message != NULL) {
+                                talloc_free(completion.error_message);
+                            }
+                            /* Clean up curl handles */
+                            curl_multi_remove_handle_(multi->multi_handle, easy_handle);
+                            curl_easy_cleanup_(easy_handle);
+                            curl_slist_free_all_(completed->headers);
+                            /* Free the completed request context */
+                            talloc_free(completed);
+                            /* Remove from array */
+                            for (size_t j = i; j < multi->active_count - 1; j++) {
+                                multi->active_requests[j] = multi->active_requests[j + 1];
+                            }
+                            multi->active_count--;
+                            /* Return the callback error */
+                            return cb_result;
+                        }
                     }
 
                     /* Free error message */

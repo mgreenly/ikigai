@@ -45,8 +45,9 @@ typedef struct {
  *
  * @param completion  Completion information (success or error)
  * @param ctx         User-provided context pointer
+ * @return            OK(NULL) on success, ERR(...) on failure
  */
-typedef void (*ik_http_completion_cb_t)(const ik_http_completion_t *completion, void *ctx);
+typedef res_t (*ik_http_completion_cb_t)(const ik_http_completion_t *completion, void *ctx);
 
 /**
  * Multi-handle manager structure (opaque)

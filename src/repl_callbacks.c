@@ -93,9 +93,10 @@ res_t ik_repl_streaming_callback(const char *chunk, void *ctx)
  *
  * @param completion   Completion information (status, error message)
  * @param ctx          REPL context pointer
+ * @return             OK(NULL) on success, ERR(...) on failure
  */
 // LCOV_EXCL_START
-void ik_repl_http_completion_callback(const ik_http_completion_t *completion, void *ctx)
+res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, void *ctx)
 {
     assert(completion != NULL);  /* LCOV_EXCL_BR_LINE */
     assert(ctx != NULL);         /* LCOV_EXCL_BR_LINE */
@@ -121,6 +122,8 @@ void ik_repl_http_completion_callback(const ik_http_completion_t *completion, vo
         repl->http_error_message = talloc_strdup(repl, completion->error_message);
         if (repl->http_error_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
+
+    return OK(NULL);
 }
 
 // LCOV_EXCL_STOP

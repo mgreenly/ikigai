@@ -30,5 +30,6 @@ res_t ik_repl_streaming_callback(const char *chunk, void *ctx);
  *
  * @param completion   Completion information (status, error message)
  * @param ctx          REPL context pointer
+ * @return             OK(NULL) on success, ERR(...) on failure
  */
-void ik_repl_http_completion_callback(const ik_http_completion_t *completion, void *ctx);
+res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, void *ctx);
