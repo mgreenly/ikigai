@@ -107,12 +107,9 @@ END_TEST START_TEST(test_layer_create)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     int dummy_data = 42;
-    ik_layer_t *layer;
-    res_t res = ik_layer_create(ctx, "test_layer", &dummy_data,
-                                test_layer_visible, test_layer_height, test_layer_render,
-                                &layer);
+    ik_layer_t *layer = ik_layer_create(ctx, "test_layer", &dummy_data,
+                                        test_layer_visible, test_layer_height, test_layer_render);
 
-    ck_assert(is_ok(&res));
     ck_assert(layer != NULL);
     ck_assert_str_eq(layer->name, "test_layer");
     ck_assert_ptr_eq(layer->data, &dummy_data);
@@ -127,8 +124,7 @@ END_TEST START_TEST(test_layer_callbacks)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_layer_t *layer;
-    ik_layer_create(ctx, "test", NULL, test_layer_visible, test_layer_height, test_layer_render, &layer);
+    ik_layer_t *layer = ik_layer_create(ctx, "test", NULL, test_layer_visible, test_layer_height, test_layer_render);
 
     // Test is_visible callback
     bool visible = layer->is_visible(layer);

@@ -63,11 +63,11 @@ res_t ik_separator_layer_create(TALLOC_CTX *ctx,
     data->visible_ref = visible_ref;
 
     // Create layer
-    return ik_layer_create(ctx, name, data,
-                           separator_is_visible,
-                           separator_get_height,
-                           separator_render,
-                           layer_out);
+    *layer_out = ik_layer_create(ctx, name, data,
+                                 separator_is_visible,
+                                 separator_get_height,
+                                 separator_render);
+    return OK(*layer_out);
 }
 
 // Scrollback layer data
@@ -181,11 +181,11 @@ res_t ik_scrollback_layer_create(TALLOC_CTX *ctx,
     data->scrollback = scrollback;
 
     // Create layer
-    return ik_layer_create(ctx, name, data,
-                           scrollback_is_visible,
-                           scrollback_get_height,
-                           scrollback_render,
-                           layer_out);
+    *layer_out = ik_layer_create(ctx, name, data,
+                                 scrollback_is_visible,
+                                 scrollback_get_height,
+                                 scrollback_render);
+    return OK(*layer_out);
 }
 
 // Input layer data
@@ -293,11 +293,11 @@ res_t ik_input_layer_create(TALLOC_CTX *ctx,
     data->text_len_ref = text_len_ref;
 
     // Create layer
-    return ik_layer_create(ctx, name, data,
-                           input_is_visible,
-                           input_get_height,
-                           input_render,
-                           layer_out);
+    *layer_out = ik_layer_create(ctx, name, data,
+                                 input_is_visible,
+                                 input_get_height,
+                                 input_render);
+    return OK(*layer_out);
 }
 
 // Spinner animation frames
@@ -384,9 +384,9 @@ res_t ik_spinner_layer_create(TALLOC_CTX *ctx,
     data->state = state;
 
     // Create layer
-    return ik_layer_create(ctx, name, data,
-                           spinner_is_visible,
-                           spinner_get_height,
-                           spinner_render,
-                           layer_out);
+    *layer_out = ik_layer_create(ctx, name, data,
+                                 spinner_is_visible,
+                                 spinner_get_height,
+                                 spinner_render);
+    return OK(*layer_out);
 }

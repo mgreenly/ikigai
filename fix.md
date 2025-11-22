@@ -243,7 +243,7 @@ These exclusions in debug_pipe.c are correct per policy:
 
 ## Issue: Unnecessary res_t Return for OOM-Only Functions
 
-**Status:** In Progress (4/13 functions completed)
+**Status:** In Progress (9/13 functions completed - Phase 2 complete!)
 **Impact:** Medium - Adds boilerplate without providing real error handling
 **Effort:** Low-Medium - Requires API changes and call site updates
 
@@ -364,7 +364,7 @@ A function should KEEP `res_t` if:
 - ✅ Categorized into Group A (13 to simplify) and Group B (5 to keep)
 - ✅ Created `REFACTOR_ANALYSIS.md` with complete categorization and phased refactoring plan
 
-**Refactored Functions (7/13):**
+**Refactored Functions (9/13):**
 1. ✅ **ik_format_buffer_create** - src/format.c:16
    - Updated signature, implementation, and 27 call sites (1 production + 26 tests)
    - All tests passing (100%: Checks: 15, Failures: 0)
@@ -404,9 +404,9 @@ A function should KEEP `res_t` if:
 
 **Phase 1 Complete! All leaf functions refactored (6/6)**
 
-**Phase 2 - Intermediate Functions (2/3 complete):**
+**Phase 2 - Intermediate Functions (3/3 complete):**
 7. ✅ ik_input_buffer_create - src/input_buffer/core.c:14
-8. ✅ **ik_layer_cake_create** - src/layer.c:86
+8. ✅ ik_layer_cake_create - src/layer.c:86
    - Changed from `res_t ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height, ik_layer_cake_t **cake_out)`
      to `ik_layer_cake_t *ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height)`
    - Updated signature, implementation, and 10 call sites (1 production + 9 tests)
@@ -414,7 +414,16 @@ A function should KEEP `res_t` if:
    - All tests passing (62 test suites, 597+ checks, 0 failures)
    - LCOV exclusion count reduced from 678 to 677 (removed 1 assertion exclusion)
    - Returns pointer directly - consistent with ik_input_buffer_create pattern
-9. ⏳ ik_layer_create - src/layer.c:59
+9. ✅ **ik_layer_create** - src/layer.c:57
+   - Changed from `res_t ik_layer_create(TALLOC_CTX *ctx, const char *name, void *data, ik_layer_is_visible_fn is_visible, ik_layer_get_height_fn get_height, ik_layer_render_fn render, ik_layer_t **layer_out)`
+     to `ik_layer_t *ik_layer_create(TALLOC_CTX *ctx, const char *name, void *data, ik_layer_is_visible_fn is_visible, ik_layer_get_height_fn get_height, ik_layer_render_fn render)`
+   - Updated signature, implementation, and 25 call sites (4 production in layer_wrappers.c + 21 tests)
+   - Updated files: layer.h, layer.c, layer_wrappers.c, basic_test.c, cake_test.c
+   - All tests passing (62 test suites, 597+ checks, 0 failures)
+   - LCOV exclusion count reduced from 677 to 675 (removed 2 assertion exclusions)
+   - Returns pointer directly - enables cleaner layer wrapper implementations
+
+**Phase 2 Complete! All intermediate functions refactored (3/3)**
 
 **Remaining Phase 3 - Wrapper Functions (4/7):**
 10. ⏳ ik_separator_layer_create - src/layer_wrappers.c:49

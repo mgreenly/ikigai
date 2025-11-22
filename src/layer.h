@@ -43,13 +43,13 @@ struct ik_layer {
 };
 
 // Create a layer
-res_t ik_layer_create(TALLOC_CTX *ctx,
-                      const char *name,
-                      void *data,
-                      ik_layer_is_visible_fn is_visible,
-                      ik_layer_get_height_fn get_height,
-                      ik_layer_render_fn render,
-                      ik_layer_t **layer_out);
+// Returns newly allocated layer (never returns NULL - PANICs on OOM)
+ik_layer_t *ik_layer_create(TALLOC_CTX *ctx,
+                            const char *name,
+                            void *data,
+                            ik_layer_is_visible_fn is_visible,
+                            ik_layer_get_height_fn get_height,
+                            ik_layer_render_fn render);
 
 // Layer cake - manages ordered collection of layers
 typedef struct {

@@ -54,20 +54,18 @@ void ik_output_buffer_append(ik_output_buffer_t *buf, const char *data, size_t l
 }
 
 // Create a layer
-res_t ik_layer_create(TALLOC_CTX *ctx,
-                      const char *name,
-                      void *data,
-                      ik_layer_is_visible_fn is_visible,
-                      ik_layer_get_height_fn get_height,
-                      ik_layer_render_fn render,
-                      ik_layer_t **layer_out)
+ik_layer_t *ik_layer_create(TALLOC_CTX *ctx,
+                            const char *name,
+                            void *data,
+                            ik_layer_is_visible_fn is_visible,
+                            ik_layer_get_height_fn get_height,
+                            ik_layer_render_fn render)
 {
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(name != NULL);       // LCOV_EXCL_BR_LINE
     assert(is_visible != NULL); // LCOV_EXCL_BR_LINE
     assert(get_height != NULL); // LCOV_EXCL_BR_LINE
     assert(render != NULL);     // LCOV_EXCL_BR_LINE
-    assert(layer_out != NULL);  // LCOV_EXCL_BR_LINE
 
     ik_layer_t *layer = talloc(ctx, ik_layer_t);
     if (layer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -78,8 +76,7 @@ res_t ik_layer_create(TALLOC_CTX *ctx,
     layer->get_height = get_height;
     layer->render = render;
 
-    *layer_out = layer;
-    return OK(layer);
+    return layer;
 }
 
 // Create layer cake

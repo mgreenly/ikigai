@@ -65,8 +65,7 @@ END_TEST START_TEST(test_layer_cake_add_layer_single)
     ik_layer_cake_t *cake;
     cake = ik_layer_cake_create(ctx, 24);
 
-    ik_layer_t *layer;
-    ik_layer_create(cake, "test", NULL, always_visible, fixed_height_5, render_simple, &layer);
+    ik_layer_t *layer = ik_layer_create(cake, "test", NULL, always_visible, fixed_height_5, render_simple);
 
     res_t res = ik_layer_cake_add_layer(cake, layer);
     ck_assert(is_ok(&res));
@@ -83,9 +82,8 @@ END_TEST START_TEST(test_layer_cake_add_layer_multiple)
     ik_layer_cake_t *cake;
     cake = ik_layer_cake_create(ctx, 24);
 
-    ik_layer_t *layer1, *layer2;
-    ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple, &layer1);
-    ik_layer_create(cake, "layer2", NULL, always_visible, fixed_height_10, render_simple, &layer2);
+    ik_layer_t *layer1 = ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple);
+    ik_layer_t *layer2 = ik_layer_create(cake, "layer2", NULL, always_visible, fixed_height_10, render_simple);
 
     ik_layer_cake_add_layer(cake, layer1);
     ik_layer_cake_add_layer(cake, layer2);
@@ -106,8 +104,7 @@ END_TEST START_TEST(test_layer_cake_add_layer_grows_array)
 
     // Add more layers than initial capacity to force growth
     for (size_t i = 0; i < 10; i++) {
-        ik_layer_t *layer;
-        ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_5, render_simple, &layer);
+        ik_layer_t *layer = ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_5, render_simple);
         ik_layer_cake_add_layer(cake, layer);
     }
 
@@ -124,9 +121,8 @@ END_TEST START_TEST(test_layer_cake_get_total_height_all_visible)
     ik_layer_cake_t *cake;
     cake = ik_layer_cake_create(ctx, 24);
 
-    ik_layer_t *layer1, *layer2;
-    ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple, &layer1);
-    ik_layer_create(cake, "layer2", NULL, always_visible, fixed_height_10, render_simple, &layer2);
+    ik_layer_t *layer1 = ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple);
+    ik_layer_t *layer2 = ik_layer_create(cake, "layer2", NULL, always_visible, fixed_height_10, render_simple);
 
     ik_layer_cake_add_layer(cake, layer1);
     ik_layer_cake_add_layer(cake, layer2);
@@ -144,10 +140,9 @@ END_TEST START_TEST(test_layer_cake_get_total_height_some_invisible)
     ik_layer_cake_t *cake;
     cake = ik_layer_cake_create(ctx, 24);
 
-    ik_layer_t *layer1, *layer2, *layer3;
-    ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple, &layer1);
-    ik_layer_create(cake, "layer2", NULL, never_visible, fixed_height_10, render_simple, &layer2);
-    ik_layer_create(cake, "layer3", NULL, always_visible, fixed_height_5, render_simple, &layer3);
+    ik_layer_t *layer1 = ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple);
+    ik_layer_t *layer2 = ik_layer_create(cake, "layer2", NULL, never_visible, fixed_height_10, render_simple);
+    ik_layer_t *layer3 = ik_layer_create(cake, "layer3", NULL, always_visible, fixed_height_5, render_simple);
 
     ik_layer_cake_add_layer(cake, layer1);
     ik_layer_cake_add_layer(cake, layer2);
@@ -179,8 +174,7 @@ END_TEST START_TEST(test_layer_cake_render_simple)
     ik_layer_cake_t *cake;
     cake = ik_layer_cake_create(ctx, 24);
 
-    ik_layer_t *layer;
-    ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_5, render_simple, &layer);
+    ik_layer_t *layer = ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_5, render_simple);
     ik_layer_cake_add_layer(cake, layer);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
@@ -199,9 +193,8 @@ END_TEST START_TEST(test_layer_cake_render_multiple_layers)
     ik_layer_cake_t *cake;
     cake = ik_layer_cake_create(ctx, 24);
 
-    ik_layer_t *layer1, *layer2;
-    ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple, &layer1);
-    ik_layer_create(cake, "layer2", NULL, always_visible, fixed_height_10, render_simple, &layer2);
+    ik_layer_t *layer1 = ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple);
+    ik_layer_t *layer2 = ik_layer_create(cake, "layer2", NULL, always_visible, fixed_height_10, render_simple);
 
     ik_layer_cake_add_layer(cake, layer1);
     ik_layer_cake_add_layer(cake, layer2);
@@ -221,9 +214,8 @@ END_TEST START_TEST(test_layer_cake_render_skips_invisible)
     ik_layer_cake_t *cake;
     cake = ik_layer_cake_create(ctx, 24);
 
-    ik_layer_t *layer1, *layer2;
-    ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple, &layer1);
-    ik_layer_create(cake, "layer2", NULL, never_visible, fixed_height_10, render_simple, &layer2);
+    ik_layer_t *layer1 = ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple);
+    ik_layer_t *layer2 = ik_layer_create(cake, "layer2", NULL, never_visible, fixed_height_10, render_simple);
 
     ik_layer_cake_add_layer(cake, layer1);
     ik_layer_cake_add_layer(cake, layer2);
@@ -244,8 +236,7 @@ END_TEST START_TEST(test_layer_cake_render_viewport_clipping_top)
     cake = ik_layer_cake_create(ctx, 10); // Small viewport
     cake->viewport_row = 3;                // Start viewport at row 3
 
-    ik_layer_t *layer;
-    ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple, &layer);
+    ik_layer_t *layer = ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple);
     ik_layer_cake_add_layer(cake, layer);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
@@ -262,8 +253,7 @@ END_TEST START_TEST(test_layer_cake_render_viewport_clipping_bottom)
     ik_layer_cake_t *cake;
     cake = ik_layer_cake_create(ctx, 5); // Small viewport
 
-    ik_layer_t *layer;
-    ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple, &layer);
+    ik_layer_t *layer = ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple);
     ik_layer_cake_add_layer(cake, layer);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
@@ -281,9 +271,8 @@ END_TEST START_TEST(test_layer_cake_render_early_exit)
     cake = ik_layer_cake_create(ctx, 5); // Small viewport
 
     // Add multiple layers, but viewport can only show first layer
-    ik_layer_t *layer1, *layer2;
-    ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_10, render_simple, &layer1);
-    ik_layer_create(cake, "layer2", NULL, always_visible, fixed_height_10, render_simple, &layer2);
+    ik_layer_t *layer1 = ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_10, render_simple);
+    ik_layer_t *layer2 = ik_layer_create(cake, "layer2", NULL, always_visible, fixed_height_10, render_simple);
     ik_layer_cake_add_layer(cake, layer1);
     ik_layer_cake_add_layer(cake, layer2);
 
@@ -303,8 +292,7 @@ END_TEST START_TEST(test_layer_cake_render_layer_outside_viewport)
     cake->viewport_row = 20;               // Viewport at rows 20-24
 
     // Layer at rows 0-9 (completely before viewport)
-    ik_layer_t *layer;
-    ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple, &layer);
+    ik_layer_t *layer = ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple);
     ik_layer_cake_add_layer(cake, layer);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
@@ -323,13 +311,11 @@ END_TEST START_TEST(test_layer_cake_render_layer_after_viewport)
     cake = ik_layer_cake_create(ctx, 5); // Viewport: rows 0-4
 
     // Add a layer at rows 10-19 (completely after viewport)
-    ik_layer_t *layer1;
-    ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_10, render_simple, &layer1);
+    ik_layer_t *layer1 = ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_10, render_simple);
     // This layer starts at row 10, which is >= viewport_end (5)
 
     // Add a first layer to offset the second layer
-    ik_layer_t *layer0;
-    ik_layer_create(cake, "layer0", NULL, always_visible, fixed_height_10, render_simple, &layer0);
+    ik_layer_t *layer0 = ik_layer_create(cake, "layer0", NULL, always_visible, fixed_height_10, render_simple);
     ik_layer_cake_add_layer(cake, layer0);
     ik_layer_cake_add_layer(cake, layer1);
 
@@ -349,8 +335,7 @@ END_TEST START_TEST(test_layer_cake_render_layer_ends_at_viewport_start)
     cake->viewport_row = 10; // Viewport at rows 10-14
 
     // Layer at rows 0-9, ends exactly at viewport start
-    ik_layer_t *layer;
-    ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple, &layer);
+    ik_layer_t *layer = ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple);
     ik_layer_cake_add_layer(cake, layer);
 
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
