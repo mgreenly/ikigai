@@ -251,9 +251,10 @@ MOCKABLE const char *curl_multi_strerror_(CURLMcode code);
 #ifdef NDEBUG
 // Release build: inline definitions for zero overhead
 #include <fcntl.h>
-#include <termios.h>
+#include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <termios.h>
 #include <unistd.h>
 
 MOCKABLE int posix_open_(const char *pathname, int flags)
@@ -316,14 +317,30 @@ MOCKABLE int posix_sigaction_(int signum, const struct sigaction *act, struct si
     return sigaction(signum, act, oldact);
 }
 
+MOCKABLE int posix_pipe_(int pipefd[2])
+{
+    return pipe(pipefd);
+}
+
+MOCKABLE int posix_fcntl_(int fd, int cmd, int arg)
+{
+    return fcntl(fd, cmd, arg);
+}
+
+MOCKABLE FILE *posix_fdopen_(int fd, const char *mode)
+{
+    return fdopen(fd, mode);
+}
+
 #else
 // Debug/test build: weak symbol declarations
-#include <termios.h>
-#include <stddef.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/select.h>
 #include <signal.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <sys/select.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <termios.h>
 
 MOCKABLE int posix_open_(const char *pathname, int flags);
 MOCKABLE int posix_close_(int fd);
@@ -337,6 +354,9 @@ MOCKABLE ssize_t posix_write_(int fd, const void *buf, size_t count);
 MOCKABLE ssize_t posix_read_(int fd, void *buf, size_t count);
 MOCKABLE int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 MOCKABLE int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
+MOCKABLE int posix_pipe_(int pipefd[2]);
+MOCKABLE int posix_fcntl_(int fd, int cmd, int arg);
+MOCKABLE FILE *posix_fdopen_(int fd, const char *mode);
 #endif
 
 #endif // IK_WRAPPER_H

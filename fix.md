@@ -73,7 +73,7 @@ Two tests in `tests/unit/repl/repl_streaming_test.c` were failing. The productio
 
 ## Issue: Invalid LCOV Exclusions in debug_pipe.c
 
-**Status:** Not yet addressed
+**Status:** ✅ Partially Complete (19/~30 invalid exclusions removed)
 **Impact:** High - Violates coverage policy and contributes to exceeding LCOV exclusion limit (708/635)
 **Effort:** Medium - Requires wrapper additions and comprehensive error injection tests
 
@@ -124,68 +124,89 @@ Line 109-114:  if (nread == -1) {                     // read() syscall - SHOULD
                }
 ```
 
-### Resolution Plan
+### Resolution Completed
 
-#### Phase 1: Add MOCKABLE Wrappers to wrapper.h
+#### Phase 1: ✅ Added MOCKABLE Wrappers to wrapper.h
 
-The code currently uses raw system calls instead of wrappers. Update debug_pipe.c to use wrappers:
+**Completed wrappers added to `src/wrapper.h` and `src/wrapper.c`:**
+- `MOCKABLE int posix_pipe_(int pipefd[2])` - for pipe() syscall
+- `MOCKABLE int posix_fcntl_(int fd, int cmd, int arg)` - for fcntl() syscall
+- `MOCKABLE FILE *posix_fdopen_(int fd, const char *mode)` - for fdopen() library call
 
-**Needed wrapper additions**:
-```c
-// Add to wrapper.h:
-MOCKABLE int posix_pipe_(int pipefd[2]);
-MOCKABLE int posix_fcntl_(int fd, int cmd, ...);
-MOCKABLE FILE *posix_fdopen_(int fd, const char *mode);
-```
+**Updated `src/debug_pipe.c` to use wrappers:**
+- ✅ Replaced `pipe(...)` with `posix_pipe_(...)`
+- ✅ Replaced `fcntl(...)` with `posix_fcntl_(...)`
+- ✅ Replaced `fdopen(...)` with `posix_fdopen_(...)`
+- ✅ Replaced `read(...)` with `posix_read_(...)`
+- ✅ Replaced `close(...)` with `posix_close_(...)`
 
-**Update debug_pipe.c to use existing wrappers**:
-- Replace `read(...)` with `posix_read_(...)`  (already in wrapper.h)
-- Replace `close(...)` with `posix_close_(...)` (already in wrapper.h)
+#### Phase 2: ✅ Wrote Error Injection Tests
 
-#### Phase 2: Write Comprehensive Error Injection Tests
+**Added 7 new error injection tests:**
 
-Current test files have **only happy path tests**:
-- `tests/unit/debug_pipe/create_test.c` - No error injection
-- `tests/unit/debug_pipe/manager_test.c` - No error injection
-- `tests/unit/debug_pipe/read_test.c` - Needs verification
+`tests/unit/debug_pipe/create_test.c` (4 new tests):
+1. ✅ `test_debug_pipe_create_pipe_failure` - Tests pipe() syscall failure
+2. ✅ `test_debug_pipe_create_fcntl_getfl_failure` - Tests fcntl(F_GETFL) failure
+3. ✅ `test_debug_pipe_create_fcntl_setfl_failure` - Tests fcntl(F_SETFL) failure
+4. ✅ `test_debug_pipe_create_fdopen_failure` - Tests fdopen() failure
 
-**Required new tests**:
-1. Test `pipe()` failure - override `posix_pipe_` to return -1
-2. Test `fcntl(F_GETFL)` failure - override `posix_fcntl_` to return -1
-3. Test `fcntl(F_SETFL)` failure - override `posix_fcntl_` to return -1
-4. Test `fdopen()` failure - override `posix_fdopen_` to return NULL
-5. Test `read()` failure - override `posix_read_` to return -1 with errno != EAGAIN
-6. Test `read()` EAGAIN case - override `posix_read_` to return -1 with errno = EAGAIN
-7. Test destructor path where `read_fd >= 0`
-8. Test `max_fd` update branch in `ik_debug_mgr_add_to_fdset`
-9. Test both branches of `debug_enabled && count > 0` in `ik_debug_mgr_handle_ready`
-10. Test `lines != NULL` cleanup path
-11. Test error propagation from `ik_debug_pipe_create` in `ik_debug_mgr_add_pipe`
-12. Test error propagation from `ik_debug_pipe_read` in `ik_debug_mgr_handle_ready`
-13. Test error propagation from `ik_scrollback_append_line` in `ik_debug_mgr_handle_ready`
+`tests/unit/debug_pipe/read_test.c` (3 new tests):
+5. ✅ `test_debug_pipe_read_eagain` - Tests read() with EAGAIN (non-error case)
+6. ✅ `test_debug_pipe_read_ewouldblock` - Tests read() with EWOULDBLOCK (non-error case)
+7. ✅ `test_debug_pipe_read_error` - Tests read() with real error (EIO)
 
-#### Phase 3: Remove Invalid LCOV Exclusions
+**Test results:**
+- `create_test`: 100% (Checks: 7, Failures: 0) - 3 original + 4 new
+- `read_test`: 100% (Checks: 12, Failures: 0) - 9 original + 3 new
 
-After tests are written and passing with 100% coverage:
-1. Remove all `LCOV_EXCL_BR_LINE` and `LCOV_EXCL_LINE` markers from the violations listed above
-2. Keep only the valid exclusions (assert and PANIC statements)
-3. Verify coverage remains at 100%
-4. Verify LCOV marker count decreases by ~20
+#### Phase 3: ✅ Removed Invalid LCOV Exclusions
 
-#### Phase 4: Validation
+**Removed 19 LCOV exclusion markers from `src/debug_pipe.c`:**
+- Lines 25-26: pipe() failure (2 markers)
+- Lines 34-37: fcntl(F_GETFL) failure (4 markers)
+- Lines 40-43: fcntl(F_SETFL) failure (4 markers)
+- Lines 48-51: fdopen() failure (4 markers)
+- Lines 109-114: read() error handling (5 markers)
 
-1. Run `make check` - All tests pass
-2. Run `make coverage` - 100% coverage maintained
-3. Count LCOV markers - Should decrease from 708 toward 635 limit
-4. Run `make lint` - All checks pass
-5. Run `make check-dynamic` - All sanitizers pass
+**Impact:**
+- LCOV exclusion count reduced: **708 → 689** (19 markers removed, 2.7% reduction)
+- All tests passing: ✅ 100% (603 total checks, 0 failures)
+- Coverage: Lines 100%, Functions 100%, Branches 99.9% (999/1000)
 
-### Expected Impact
+**Note on branch coverage:** One branch remains uncovered due to platform-specific behavior where `EAGAIN == EWOULDBLOCK` (both equal 11 on this system), making one branch of the OR condition impossible to hit.
 
-- Reduces LCOV exclusion count by ~20 markers
-- Improves test coverage quality (tests actual error paths instead of excluding them)
-- Aligns codebase with documented coverage policy
-- Sets example for handling system call errors in other modules
+### Remaining Work
+
+**11 invalid exclusions still in debug_pipe.c:**
+- Line 88: Destructor path (`if (pipe->read_fd >= 0)`)
+- Lines 222-223: Error propagation from `ik_debug_pipe_create`
+- Line 247: Max FD comparison (`if (pipe->read_fd > *max_fd)`)
+- Lines 273-274: Error propagation from `ik_debug_pipe_read`
+- Line 278: Debug enabled check (`if (debug_enabled && count > 0)`)
+- Lines 282-284: Error propagation from `ik_scrollback_append_line`
+- Line 290: NULL check (`if (lines != NULL)`)
+
+**Required tests to remove remaining exclusions:**
+- Test destructor path where `read_fd >= 0`
+- Test `max_fd` update branch in `ik_debug_mgr_add_to_fdset`
+- Test both branches of `debug_enabled && count > 0` in `ik_debug_mgr_handle_ready`
+- Test `lines != NULL` cleanup path
+- Test error propagation from `ik_debug_pipe_create` in `ik_debug_mgr_add_pipe`
+- Test error propagation from `ik_debug_pipe_read` in `ik_debug_mgr_handle_ready`
+- Test error propagation from `ik_scrollback_append_line` in `ik_debug_mgr_handle_ready`
+
+### Achievements
+
+**Coverage improvements:**
+- ✅ Reduced LCOV exclusion count by 19 markers (2.7% reduction)
+- ✅ Improved test coverage quality by testing actual error paths instead of excluding them
+- ✅ Aligned 63% of debug_pipe.c syscall error handling with documented coverage policy
+- ✅ Set example pattern for handling system call errors in other modules via MOCKABLE wrappers
+
+**Technical improvements:**
+- ✅ Added 3 new MOCKABLE wrappers to wrapper.h for better testability
+- ✅ Added 7 comprehensive error injection tests
+- ✅ All tests passing (603 checks, 0 failures)
 
 ### Valid Exclusions (No Changes Needed)
 

@@ -4,12 +4,15 @@
  */
 
 #include <check.h>
+#include <errno.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <talloc.h>
 #include <unistd.h>
 #include "../../../src/debug_pipe.h"
+#include "../../../src/error.h"
+#include "../../../src/wrapper.h"
 #include "../../test_utils.h"
 
 /* Test: Read single complete line */
@@ -275,6 +278,96 @@ START_TEST(test_debug_pipe_read_long_line)
 
 END_TEST
 
+/* Error injection tests */
+
+/* Override posix_read_ to inject read() failure */
+static int fail_read = 0;
+static int read_errno_value = 0;
+ssize_t posix_read_(int fd, void *buf, size_t count)
+{
+    if (fail_read) {
+        errno = read_errno_value;
+        return -1;
+    }
+    return read(fd, buf, count);
+}
+
+START_TEST(test_debug_pipe_read_eagain) {
+    void *ctx = talloc_new(NULL);
+
+    res_t res = ik_debug_pipe_create(ctx, NULL);
+    ck_assert(is_ok(&res));
+    ik_debug_pipe_t *pipe = res.ok;
+
+    /* Enable read() failure with EAGAIN */
+    fail_read = 1;
+    read_errno_value = EAGAIN;
+
+    /* Read should return OK with 0 lines (EAGAIN is not an error) */
+    char **lines = NULL;
+    size_t count = 0;
+    res_t read_res = ik_debug_pipe_read(pipe, &lines, &count);
+    ck_assert(is_ok(&read_res));
+    ck_assert_uint_eq(count, 0);
+
+    /* Disable failure for cleanup */
+    fail_read = 0;
+
+    talloc_free(ctx);
+}
+
+END_TEST START_TEST(test_debug_pipe_read_ewouldblock)
+{
+    void *ctx = talloc_new(NULL);
+
+    res_t res = ik_debug_pipe_create(ctx, NULL);
+    ck_assert(is_ok(&res));
+    ik_debug_pipe_t *pipe = res.ok;
+
+    /* Enable read() failure with EWOULDBLOCK */
+    fail_read = 1;
+    read_errno_value = EWOULDBLOCK;
+
+    /* Read should return OK with 0 lines (EWOULDBLOCK is not an error) */
+    char **lines = NULL;
+    size_t count = 0;
+    res_t read_res = ik_debug_pipe_read(pipe, &lines, &count);
+    ck_assert(is_ok(&read_res));
+    ck_assert_uint_eq(count, 0);
+
+    /* Disable failure for cleanup */
+    fail_read = 0;
+
+    talloc_free(ctx);
+}
+
+END_TEST START_TEST(test_debug_pipe_read_error)
+{
+    void *ctx = talloc_new(NULL);
+
+    res_t res = ik_debug_pipe_create(ctx, NULL);
+    ck_assert(is_ok(&res));
+    ik_debug_pipe_t *pipe = res.ok;
+
+    /* Enable read() failure with EIO (real error) */
+    fail_read = 1;
+    read_errno_value = EIO;
+
+    /* Read should return error */
+    char **lines = NULL;
+    size_t count = 0;
+    res_t read_res = ik_debug_pipe_read(pipe, &lines, &count);
+    ck_assert(is_err(&read_res));
+    ck_assert_int_eq(read_res.err->code, ERR_IO);
+
+    /* Disable failure for cleanup */
+    fail_read = 0;
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 static Suite *debug_pipe_read_suite(void)
 {
     Suite *s = suite_create("Debug Pipe Read");
@@ -290,6 +383,11 @@ static Suite *debug_pipe_read_suite(void)
     tcase_add_test(tc_core, test_debug_pipe_read_eof);
     tcase_add_test(tc_core, test_debug_pipe_read_many_lines);
     tcase_add_test(tc_core, test_debug_pipe_read_long_line);
+
+    /* Error injection tests */
+    tcase_add_test(tc_core, test_debug_pipe_read_eagain);
+    tcase_add_test(tc_core, test_debug_pipe_read_ewouldblock);
+    tcase_add_test(tc_core, test_debug_pipe_read_error);
 
     suite_add_tcase(s, tc_core);
 

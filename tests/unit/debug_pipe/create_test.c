@@ -4,11 +4,15 @@
  */
 
 #include <check.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdio.h>
 #include <talloc.h>
 #include <unistd.h>
 #include "../../../src/debug_pipe.h"
+#include "../../../src/error.h"
+#include "../../../src/wrapper.h"
 #include "../../test_utils.h"
 
 /* Test: Create debug pipe with prefix */
@@ -97,6 +101,122 @@ START_TEST(test_debug_pipe_connectivity)
 
 END_TEST
 
+/* Error injection tests */
+
+/* Override posix_pipe_ to inject failure */
+static int fail_pipe = 0;
+int posix_pipe_(int pipefd[2])
+{
+    if (fail_pipe) {
+        errno = EMFILE;  // Too many open files
+        return -1;
+    }
+    return pipe(pipefd);
+}
+
+START_TEST(test_debug_pipe_create_pipe_failure) {
+    void *ctx = talloc_new(NULL);
+
+    /* Enable pipe() failure */
+    fail_pipe = 1;
+
+    /* Create debug pipe - should fail */
+    res_t res = ik_debug_pipe_create(ctx, NULL);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(res.err->code, ERR_IO);
+
+    /* Disable failure for cleanup */
+    fail_pipe = 0;
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+/* Override posix_fcntl_ to inject failure */
+static int fail_fcntl = 0;
+static int fcntl_fail_mode = 0;  // 0=F_GETFL, 1=F_SETFL
+int posix_fcntl_(int fd, int cmd, int arg)
+{
+    if (fail_fcntl) {
+        if ((fcntl_fail_mode == 0 && cmd == F_GETFL) ||
+            (fcntl_fail_mode == 1 && cmd == F_SETFL)) {
+            errno = EBADF;  // Bad file descriptor
+            return -1;
+        }
+    }
+    return fcntl(fd, cmd, arg);
+}
+
+START_TEST(test_debug_pipe_create_fcntl_getfl_failure) {
+    void *ctx = talloc_new(NULL);
+
+    /* Enable fcntl(F_GETFL) failure */
+    fail_fcntl = 1;
+    fcntl_fail_mode = 0;
+
+    /* Create debug pipe - should fail */
+    res_t res = ik_debug_pipe_create(ctx, NULL);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(res.err->code, ERR_IO);
+
+    /* Disable failure for cleanup */
+    fail_fcntl = 0;
+
+    talloc_free(ctx);
+}
+
+END_TEST START_TEST(test_debug_pipe_create_fcntl_setfl_failure)
+{
+    void *ctx = talloc_new(NULL);
+
+    /* Enable fcntl(F_SETFL) failure */
+    fail_fcntl = 1;
+    fcntl_fail_mode = 1;
+
+    /* Create debug pipe - should fail */
+    res_t res = ik_debug_pipe_create(ctx, NULL);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(res.err->code, ERR_IO);
+
+    /* Disable failure for cleanup */
+    fail_fcntl = 0;
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+/* Override posix_fdopen_ to inject failure */
+static int fail_fdopen = 0;
+FILE *posix_fdopen_(int fd, const char *mode)
+{
+    if (fail_fdopen) {
+        errno = EMFILE;  // Too many open files
+        return NULL;
+    }
+    return fdopen(fd, mode);
+}
+
+START_TEST(test_debug_pipe_create_fdopen_failure) {
+    void *ctx = talloc_new(NULL);
+
+    /* Enable fdopen() failure */
+    fail_fdopen = 1;
+
+    /* Create debug pipe - should fail */
+    res_t res = ik_debug_pipe_create(ctx, NULL);
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(res.err->code, ERR_IO);
+
+    /* Disable failure for cleanup */
+    fail_fdopen = 0;
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 static Suite *debug_pipe_create_suite(void)
 {
     Suite *s = suite_create("Debug Pipe Create");
@@ -106,6 +226,12 @@ static Suite *debug_pipe_create_suite(void)
     tcase_add_test(tc_core, test_debug_pipe_create_with_prefix);
     tcase_add_test(tc_core, test_debug_pipe_create_no_prefix);
     tcase_add_test(tc_core, test_debug_pipe_connectivity);
+
+    /* Error injection tests */
+    tcase_add_test(tc_core, test_debug_pipe_create_pipe_failure);
+    tcase_add_test(tc_core, test_debug_pipe_create_fcntl_getfl_failure);
+    tcase_add_test(tc_core, test_debug_pipe_create_fcntl_setfl_failure);
+    tcase_add_test(tc_core, test_debug_pipe_create_fdopen_failure);
 
     suite_add_tcase(s, tc_core);
 

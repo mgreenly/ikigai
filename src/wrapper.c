@@ -149,6 +149,21 @@ MOCKABLE int posix_sigaction_(int signum, const struct sigaction *act, struct si
     return sigaction(signum, act, oldact);
 }
 
+MOCKABLE int posix_pipe_(int pipefd[2])
+{
+    return pipe(pipefd);
+}
+
+MOCKABLE int posix_fcntl_(int fd, int cmd, int arg)
+{
+    return fcntl(fd, cmd, arg);
+}
+
+MOCKABLE FILE *posix_fdopen_(int fd, const char *mode)
+{
+    return fdopen(fd, mode);
+}
+
 // ============================================================================
 // libcurl wrappers - debug/test builds only
 // ============================================================================

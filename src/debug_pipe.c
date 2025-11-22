@@ -22,33 +22,33 @@ res_t ik_debug_pipe_create(void *parent, const char *prefix)
 {
     // Create pipe
     int pipefd[2];
-    if (pipe(pipefd) == -1) {  // LCOV_EXCL_BR_LINE
-        return ERR(parent, IO, "pipe() failed: %s", strerror(errno));  // LCOV_EXCL_LINE
+    if (posix_pipe_(pipefd) == -1) {
+        return ERR(parent, IO, "pipe() failed: %s", strerror(errno));
     }
 
     int read_fd = pipefd[0];
     int write_fd = pipefd[1];
 
     // Set read end to non-blocking
-    int flags = fcntl(read_fd, F_GETFL);
-    if (flags == -1) {  // LCOV_EXCL_BR_LINE
-        close(read_fd);  // LCOV_EXCL_LINE
-        close(write_fd);  // LCOV_EXCL_LINE
-        return ERR(parent, IO, "fcntl(F_GETFL) failed: %s", strerror(errno));  // LCOV_EXCL_LINE
+    int flags = posix_fcntl_(read_fd, F_GETFL, 0);
+    if (flags == -1) {
+        posix_close_(read_fd);
+        posix_close_(write_fd);
+        return ERR(parent, IO, "fcntl(F_GETFL) failed: %s", strerror(errno));
     }
 
-    if (fcntl(read_fd, F_SETFL, flags | O_NONBLOCK) == -1) {  // LCOV_EXCL_BR_LINE
-        close(read_fd);  // LCOV_EXCL_LINE
-        close(write_fd);  // LCOV_EXCL_LINE
-        return ERR(parent, IO, "fcntl(F_SETFL) failed: %s", strerror(errno));  // LCOV_EXCL_LINE
+    if (posix_fcntl_(read_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        posix_close_(read_fd);
+        posix_close_(write_fd);
+        return ERR(parent, IO, "fcntl(F_SETFL) failed: %s", strerror(errno));
     }
 
     // Open write end as FILE*
-    FILE *write_end = fdopen(write_fd, "w");
-    if (write_end == NULL) {  // LCOV_EXCL_BR_LINE
-        close(read_fd);  // LCOV_EXCL_LINE
-        close(write_fd);  // LCOV_EXCL_LINE
-        return ERR(parent, IO, "fdopen() failed: %s", strerror(errno));  // LCOV_EXCL_LINE
+    FILE *write_end = posix_fdopen_(write_fd, "w");
+    if (write_end == NULL) {
+        posix_close_(read_fd);
+        posix_close_(write_fd);
+        return ERR(parent, IO, "fdopen() failed: %s", strerror(errno));
     }
 
     // Allocate debug_pipe structure
@@ -86,7 +86,7 @@ static int debug_pipe_destructor(ik_debug_pipe_t *pipe)
         pipe->write_end = NULL;
     }
     if (pipe->read_fd >= 0) {  // LCOV_EXCL_BR_LINE
-        close(pipe->read_fd);
+        posix_close_(pipe->read_fd);
         pipe->read_fd = -1;
     }
     return 0;
@@ -103,15 +103,15 @@ res_t ik_debug_pipe_read(ik_debug_pipe_t *pipe, char ***lines_out, size_t *count
 
     // Read buffer (4KB)
     char read_buf[4096];
-    ssize_t nread = read(pipe->read_fd, read_buf, sizeof(read_buf));
+    ssize_t nread = posix_read_(pipe->read_fd, read_buf, sizeof(read_buf));
 
     // Handle read errors
-    if (nread == -1) {  // LCOV_EXCL_BR_LINE
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {  // LCOV_EXCL_BR_LINE
+    if (nread == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
             // No data available (non-blocking) - not an error
             return OK(NULL);
         }
-        return ERR(pipe, IO, "read() failed: %s", strerror(errno));  // LCOV_EXCL_LINE
+        return ERR(pipe, IO, "read() failed: %s", strerror(errno));
     }
 
     // No data available
