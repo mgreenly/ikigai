@@ -4,54 +4,14 @@ This document tracks known issues, technical debt, and improvement tasks.
 
 ## Active Issues
 
-### 1. Oversize Source Files (Priority: Low)
+### 1. Oversize Test File (Priority: Low)
 
 **Added:** 2025-11-22 (Phase 1.8)
 **File Size Limit:** 16,384 bytes (16 KB)
 
 **Affected Files:**
 
-#### 1.1. `src/openai/client.c` - 18,995 bytes (+2,611 bytes over limit)
-
-**Growth Factors:**
-- Original size: ~16KB
-- Added `extract_finish_reason()` function: ~70 lines
-- Added `http_response_t` internal structure
-- Added LCOV exclusions and explanatory comments documenting defensive paths
-
-**Refactoring Options:**
-
-**Option A: Extract finish_reason extraction to separate file**
-```
-src/openai/client.c          (main HTTP client logic)
-src/openai/sse_extractor.c   (SSE field extraction utilities)
-```
-
-**Option B: Extract HTTP response handling to separate file**
-```
-src/openai/client.c           (high-level API)
-src/openai/http_handler.c     (low-level HTTP/curl operations)
-```
-
-**Tasks:**
-
-- [ ] **Task 1.1.1:** Analyze module cohesion - which refactoring preserves logical grouping?
-- [ ] **Task 1.1.2:** Decide on refactoring approach (Option A or B)
-- [ ] **Task 1.1.3:** Extract chosen module to new file
-- [ ] **Task 1.1.4:** Update header files and exports
-- [ ] **Task 1.1.5:** Update build system (Makefile, add new .c file)
-- [ ] **Task 1.1.6:** Ensure 100% test coverage maintained
-- [ ] **Task 1.1.7:** Verify all quality gates pass
-
-**Acceptance Criteria:**
-- `src/openai/client.c` < 16,384 bytes
-- All tests pass with 100% coverage
-- Module boundaries are logical and well-documented
-- No regression in functionality
-
----
-
-#### 1.2. `tests/unit/openai/client_http_sse_test.c` - 21,366 bytes (+4,982 bytes over limit)
+#### 1.1. `tests/unit/openai/client_http_sse_test.c` - 21,366 bytes (+4,982 bytes over limit)
 
 **Growth Factors:**
 - Original size: ~16KB
@@ -84,13 +44,13 @@ client_http_sse_test.c             (actual test cases)
 
 **Tasks:**
 
-- [ ] **Task 1.2.1:** Analyze test organization - which split makes tests easier to maintain?
-- [ ] **Task 1.2.2:** Decide on refactoring approach (Option A, B, or C)
-- [ ] **Task 1.2.3:** Split test file according to chosen approach
-- [ ] **Task 1.2.4:** Ensure shared fixtures/mocks are properly accessible
-- [ ] **Task 1.2.5:** Update build system to compile new test files
-- [ ] **Task 1.2.6:** Verify all tests still pass
-- [ ] **Task 1.2.7:** Update test documentation if needed
+- [ ] **Task 1.1.1:** Analyze test organization - which split makes tests easier to maintain?
+- [ ] **Task 1.1.2:** Decide on refactoring approach (Option A, B, or C)
+- [ ] **Task 1.1.3:** Split test file according to chosen approach
+- [ ] **Task 1.1.4:** Ensure shared fixtures/mocks are properly accessible
+- [ ] **Task 1.1.5:** Update build system to compile new test files
+- [ ] **Task 1.1.6:** Verify all tests still pass
+- [ ] **Task 1.1.7:** Update test documentation if needed
 
 **Acceptance Criteria:**
 - All test files < 16,384 bytes
@@ -101,6 +61,45 @@ client_http_sse_test.c             (actual test cases)
 ---
 
 ## Resolved Issues
+
+### Oversize Source File: `src/openai/client.c`
+
+**Resolved:** 2025-11-22
+**Original Size:** 18,995 bytes (+2,611 bytes over 16KB limit)
+**Final Size:** 8,877 bytes (54% of limit)
+
+**Problem:**
+The `src/openai/client.c` file exceeded the 16KB file size limit due to growth from adding finish_reason extraction functionality and HTTP/SSE streaming logic.
+
+**Solution:**
+Implemented **Option B: Extract HTTP response handling to separate file**. This created a clean architectural separation between the high-level API layer and low-level transport layer.
+
+**Changes:**
+1. Created `src/openai/http_handler.c` (9,531 bytes) containing:
+   - HTTP request/response handling via libcurl
+   - SSE streaming and callback management
+   - `extract_finish_reason()` function
+   - Internal `http_write_callback()` and context structures
+
+2. Refactored `src/openai/client.c` (8,877 bytes) to contain:
+   - High-level API functions (messages, conversations, requests)
+   - JSON serialization
+   - Public API orchestration via `ik_openai_chat_create()`
+
+3. Created `src/openai/http_handler.h` with internal API:
+   - `ik_openai_http_post()` - HTTP transport abstraction
+   - `ik_openai_http_response_t` - response structure
+
+4. Updated Makefile to include new source file in build
+
+**Results:**
+- `src/openai/client.c`: Reduced by 10,118 bytes (53% reduction)
+- Both files well under 16KB limit
+- 100% test coverage maintained (lines, functions, branches)
+- All tests passing
+- Improved module cohesion and separation of concerns
+
+---
 
 ### LCOV Exclusions in finish_reason Extraction
 

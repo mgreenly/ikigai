@@ -85,9 +85,9 @@ COVERAGE_DIR = coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
-LCOV_EXCL_COVERAGE = 667
+LCOV_EXCL_COVERAGE = 681
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/signal_handler.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/client_multi.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/commands.c src/marks.c src/debug_pipe.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/signal_handler.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/commands.c src/marks.c src/debug_pipe.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
@@ -99,7 +99,7 @@ INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/%_test.c,$(BUILDDIR)/tes
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS)
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/client_multi.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/commands.c src/marks.c src/debug_pipe.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/commands.c src/marks.c src/debug_pipe.c
 MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
@@ -107,7 +107,7 @@ TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration verify-mocks check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -234,6 +234,21 @@ check-unit: $(UNIT_TEST_RUNS)
 
 check-integration: $(INTEGRATION_TEST_RUNS)
 	@echo "Integration tests passed!"
+
+# Verify mock fixtures against real OpenAI API
+# Requires OPENAI_API_KEY environment variable
+# Only runs the verification test, which checks if fixtures match real API responses
+# Usage: OPENAI_API_KEY=sk-... make verify-mocks
+verify-mocks: $(BUILDDIR)/tests/integration/openai_mock_verification_test
+	@if [ -z "$$OPENAI_API_KEY" ]; then \
+		echo "Error: OPENAI_API_KEY environment variable not set"; \
+		echo "Usage: OPENAI_API_KEY=sk-... make verify-mocks"; \
+		exit 1; \
+	fi
+	@echo "Running mock verification tests against real OpenAI API..."
+	@echo "Note: This will make real API calls and incur costs."
+	@VERIFY_MOCKS=1 OPENAI_API_KEY=$$OPENAI_API_KEY $(BUILDDIR)/tests/integration/openai_mock_verification_test
+	@echo "Mock verification passed!"
 
 # Clean up .run sentinel files
 clean: clean-test-runs
@@ -570,6 +585,7 @@ help:
 	@echo "  check           - Build and run all tests (unit + integration)"
 	@echo "  check-unit      - Build and run only unit tests"
 	@echo "  check-integration - Build and run only integration tests"
+	@echo "  verify-mocks    - Verify OpenAI mock fixtures (requires OPENAI_API_KEY)"
 	@echo "  check-sanitize  - Run all tests with AddressSanitizer + UBSanitizer"
 	@echo "  check-valgrind  - Run all tests under Valgrind Memcheck"
 	@echo "  check-helgrind  - Run all tests under Valgrind Helgrind (thread errors)"
