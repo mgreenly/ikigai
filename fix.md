@@ -714,13 +714,13 @@ While the limit has been adjusted to unblock development, the goal remains to re
 
 ## Issue: File Size Limit Exceeded
 
-**Status:** Blocking pre-commit checks
+**Status:** ✅ RESOLVED
 **Impact:** Medium - Indicates files need refactoring
 **Effort:** High - Requires breaking up large files
 
 ### Problem
 
-Three source files exceed the 16KB (16384 bytes) file size limit:
+Three source files exceeded the 16KB (16384 bytes) file size limit:
 - `src/repl_actions.c`: 17242 bytes (858 bytes over) - Increased during coverage work
 - `src/repl.c`: 16856 bytes (472 bytes over)
 - `src/openai/client_multi.c`: 16951 bytes (567 bytes over)
@@ -729,11 +729,61 @@ This limit encourages keeping individual files focused and manageable.
 
 **Note:** `repl_actions.c` grew by 47 bytes during the streaming test fix work, as `append_multiline_to_scrollback` was made public for testability.
 
-### Resolution Plan
+### Resolution Completed
 
-1. **repl_actions.c** - Extract slash command handlers into separate file
-2. **repl.c** - Extract state transition logic or initialization code
-3. **client_multi.c** - Extract request building or callback handling logic
+**Actions taken:**
+
+1. ✅ **Extracted HTTP callbacks from repl_actions.c** (reduced by 4,779 bytes)
+   - Created `src/repl_callbacks.h` and `src/repl_callbacks.c`
+   - Moved `streaming_callback` → `ik_repl_streaming_callback`
+   - Moved `http_completion_callback` → `ik_repl_http_completion_callback`
+   - Updated call sites in `repl_actions.c` to use new function names
+   - New file size: 12,463 bytes (well under 16KB limit)
+
+2. ✅ **Extracted initialization from repl.c** (reduced by 5,386 bytes)
+   - Created `src/repl_init.c`
+   - Moved `ik_repl_init` function (127 lines)
+   - Moved `ik_repl_cleanup` function (14 lines)
+   - New file size: 11,470 bytes (well under 16KB limit)
+
+3. ✅ **Extracted HTTP callback from client_multi.c** (reduced by 2,617 bytes)
+   - Created `src/openai/client_multi_callbacks.h` and `src/openai/client_multi_callbacks.c`
+   - Moved `http_write_ctx_t` struct definition
+   - Moved `http_write_callback` function (56 lines)
+   - New file size: 14,334 bytes (well under 16KB limit)
+
+**Files created:**
+- `src/repl_callbacks.h` - HTTP callback declarations
+- `src/repl_callbacks.c` - HTTP callback implementations (137 lines, 100% coverage)
+- `src/repl_init.c` - REPL initialization and cleanup (167 lines, 100% coverage)
+- `src/openai/client_multi_callbacks.h` - Multi-client callback declarations
+- `src/openai/client_multi_callbacks.c` - Multi-client callback implementations (69 lines, 100% coverage)
+
+4. ✅ **Fixed test file size issue**
+   - Shortened verbose comments in `tests/unit/repl/repl_streaming_test.c`
+   - Reduced from 16,468 bytes to 16,350 bytes (under limit)
+
+**Validation:**
+- ✅ All 62 test suites pass (603 total checks)
+- ✅ 100% coverage maintained on all new files
+- ✅ Lines: 100.0% (3162 of 3162)
+- ✅ Functions: 100.0% (218 of 218)
+- ✅ Branches: 99.9% (999 of 1000) - pre-existing EAGAIN/EWOULDBLOCK issue in debug_pipe.c
+- ✅ Updated Makefile CLIENT_SOURCES and MODULE_SOURCES
+- ✅ `make check` passes
+- ✅ `make lint` passes (all complexity and file size checks)
+- ✅ All files now under 16KB limit
+
+### Final File Sizes
+
+| File | Before | After | Reduction |
+|------|--------|-------|-----------|
+| `src/repl_actions.c` | 17,242 bytes | 12,463 bytes | 4,779 bytes (27.7%) |
+| `src/repl.c` | 16,856 bytes | 11,470 bytes | 5,386 bytes (31.9%) |
+| `src/openai/client_multi.c` | 16,951 bytes | 14,334 bytes | 2,617 bytes (15.4%) |
+| `tests/unit/repl/repl_streaming_test.c` | 16,468 bytes | 16,350 bytes | 118 bytes (0.7%) |
+
+All files now under 16,384 byte limit! ✅
 
 ---
 
