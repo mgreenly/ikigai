@@ -48,9 +48,8 @@ START_TEST(test_cursor_up_down_column_preservation) {
      * Column 10 means byte 6 + 10 = 16
      */
     input_buffer->cursor_byte_offset = 16;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 16);
 
     /* Verify we're at column 10 of line 2 */
@@ -107,9 +106,8 @@ START_TEST(test_column_preservation_resets_on_horizontal_move)
 
     /* Position at column 10 of line 2 (byte 6 + 10 = 16) */
     input_buffer->cursor_byte_offset = 16;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 16);
 
     /* Move up (clamps to end of "short" at byte 5) */
@@ -185,9 +183,8 @@ START_TEST(test_multiple_vertical_movements)
      * Column 10 of line 4 = byte 28 + 10 = 38
      */
     input_buffer->cursor_byte_offset = 38;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 38);
 
     size_t byte_offset = 0;

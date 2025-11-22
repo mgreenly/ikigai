@@ -339,9 +339,8 @@ START_TEST(test_handle_terminal_input_success)
     ck_assert(!should_exit);
 
     // Verify character was added to input buffer
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buf, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
     ck_assert_uint_eq((unsigned int)text_len, 1);
     ck_assert_int_eq(text[0], 'a');
 

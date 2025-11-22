@@ -47,11 +47,10 @@ res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out)
  * The returned pointer is valid until the next modification.
  *
  * @param input_bufferWorkspace
- * @param text_out Pointer to receive text buffer
  * @param len_out Pointer to receive text length in bytes
- * @return RES_OK on success, RES_ERR on failure
+ * @return Pointer to text buffer (may be NULL if empty)
  */
-res_t ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, char **text_out, size_t *len_out);
+const char *ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, size_t *len_out);
 
 /**
  * @brief Clear the input buffer

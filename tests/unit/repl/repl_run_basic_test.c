@@ -45,13 +45,10 @@ START_TEST(test_repl_run_simple_char_input) {
     res = ik_repl_run(repl);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(repl->input_buffer, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
     ck_assert_uint_eq(len, 1);
     ck_assert_int_eq(text[0], 'a');
-    talloc_free(text);
 
     ck_assert(repl->quit);
 
@@ -99,15 +96,12 @@ START_TEST(test_repl_run_multiple_chars)
     res = ik_repl_run(repl);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 3);
     ck_assert_int_eq(text[0], 'a');
     ck_assert_int_eq(text[1], 'b');
     ck_assert_int_eq(text[2], 'c');
-    talloc_free(text);
 
     ck_assert(repl->quit);
 
@@ -156,15 +150,12 @@ START_TEST(test_repl_run_with_newline)
     res = ik_repl_run(repl);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 3);
     ck_assert_int_eq(text[0], 'h');
     ck_assert_int_eq(text[1], 'i');
     ck_assert_int_eq(text[2], '\n');
-    talloc_free(text);
 
     talloc_free(ctx);
 }
@@ -211,13 +202,10 @@ START_TEST(test_repl_run_with_backspace)
     res = ik_repl_run(repl);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 1);
     ck_assert_int_eq(text[0], 'a');
-    talloc_free(text);
 
     talloc_free(ctx);
 }
@@ -264,12 +252,9 @@ START_TEST(test_repl_run_read_eof)
     res = ik_repl_run(repl);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    (void)ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 0);
-    talloc_free(text);
 
     ck_assert_int_eq(repl->quit, false);
 
@@ -320,13 +305,10 @@ START_TEST(test_repl_run_unknown_action)
 
     ck_assert_int_eq(repl->quit, false);
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 1);
     ck_assert_int_eq(text[0], 'a');
-    talloc_free(text);
 
     talloc_free(ctx);
 }

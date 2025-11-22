@@ -40,10 +40,8 @@ START_TEST(test_delete_word_backward_mixed_case_digits) {
     res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
     /* Assert: text is "Test123 ", cursor after space */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 8);
     ck_assert_mem_eq(result_text, "Test123 ", 8);
     size_t cursor_after = 0;
@@ -76,10 +74,8 @@ START_TEST(test_delete_word_backward_only_punctuation)
     res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
     /* Assert: text is empty */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    (void)ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 0);
     size_t cursor_after = 0;
     size_t grapheme_after = 0;
@@ -107,10 +103,8 @@ START_TEST(test_delete_word_backward_punctuation_boundaries)
         do { \
             res_t res = ik_input_buffer_delete_word_backward(input_buffer); \
             ck_assert(is_ok(&res)); \
-            char *text = NULL; \
             size_t len = 0; \
-            res = ik_input_buffer_get_text(input_buffer, &text, &len); \
-            ck_assert(is_ok(&res)); \
+            const char *text = ik_input_buffer_get_text(input_buffer, &len); \
             ck_assert_uint_eq(len, expected_len); \
             ck_assert_mem_eq(text, expected_text, expected_len); \
         } while (0)
@@ -140,9 +134,8 @@ START_TEST(test_delete_word_backward_whitespace_variants)
     }
     res_t res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
-    char *text = NULL;
     size_t len = 0;
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 6);
     ck_assert_mem_eq(text, "hello\t", 6);
     talloc_free(input_buffer);
@@ -154,7 +147,7 @@ START_TEST(test_delete_word_backward_whitespace_variants)
     ik_input_buffer_insert_codepoint(input_buffer, 'b');
     res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 2);
     ck_assert_mem_eq(text, "a\r", 2);
     talloc_free(input_buffer);
@@ -166,7 +159,7 @@ START_TEST(test_delete_word_backward_whitespace_variants)
     ik_input_buffer_insert_codepoint(input_buffer, 'b');
     res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 2);
     ck_assert_mem_eq(text, "a\n", 2);
     talloc_free(input_buffer);
@@ -178,7 +171,7 @@ START_TEST(test_delete_word_backward_whitespace_variants)
     }
     res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 0);
     talloc_free(ctx);
 }

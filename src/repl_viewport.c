@@ -131,9 +131,8 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     if (is_err(&result)) return result; /* LCOV_EXCL_LINE */
 
     // Get input buffer text
-    char *text = NULL;
     size_t text_len = 0;
-    ik_input_buffer_get_text(repl->input_buffer, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
 
     // Get cursor byte offset
     size_t cursor_byte_offset = 0;

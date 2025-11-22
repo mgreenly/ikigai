@@ -196,10 +196,8 @@ START_TEST(test_repl_process_action_unknown)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 2);
     ck_assert_int_eq(text[0], 'a');
     ck_assert_int_eq(text[1], 'b');
@@ -302,9 +300,8 @@ START_TEST(test_repl_process_action_arrow_down)
 
     // Move cursor to start (byte 0)
     input_buf->cursor_byte_offset = 0;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buf, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
     ik_input_buffer_cursor_set_position(input_buf->cursor, text, text_len, 0);
 
     // Move down

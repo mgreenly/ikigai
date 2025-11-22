@@ -45,9 +45,8 @@ START_TEST(test_cursor_up_basic) {
 
     /* Move cursor to start of line2 (byte 6, after first newline) */
     input_buffer->cursor_byte_offset = 6;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 6);
 
     /* Move up - should go to start of line1 (byte 0) */
@@ -87,9 +86,8 @@ START_TEST(test_cursor_up_from_first_line)
 
     /* Move to position 2 (middle of first line) */
     input_buffer->cursor_byte_offset = 2;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 2);
 
     /* Move up - should be no-op (already on first line) */
@@ -131,9 +129,8 @@ START_TEST(test_cursor_up_column_preservation)
 
     /* Move to position 9 (column 3 of second line: after 'h') */
     input_buffer->cursor_byte_offset = 9;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 9);
 
     /* Move up - should go to column 3 of first line (after 'c') */
@@ -173,9 +170,8 @@ START_TEST(test_cursor_up_shorter_line)
 
     /* Move to position 7 (column 4 of second line: after 'd') */
     input_buffer->cursor_byte_offset = 7;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 7);
 
     /* Move up - should go to end of first line (byte 2, after 'b') */
@@ -210,9 +206,8 @@ START_TEST(test_cursor_up_empty_line)
 
     /* Move to position 2 (column 1 of second line: after 'a') */
     input_buffer->cursor_byte_offset = 2;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 2);
 
     /* Move up - should go to start of first line (byte 0) */
@@ -253,9 +248,8 @@ START_TEST(test_cursor_up_utf8)
     /* Move to position 15 (column 4 of second line: after 'g') */
     // Text is: a(1) + é(2) + 中(3) + 🎉(4) + \n(1) + d(1) + e(1) + f(1) + g(1) = byte 15
     input_buffer->cursor_byte_offset = 15;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 15);
 
     /* Move up - should go to column 4 of first line (after 🎉, byte 10) */

@@ -145,9 +145,8 @@ res_t ik_input_buffer_cursor_up(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
 
     // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
@@ -202,9 +201,8 @@ res_t ik_input_buffer_cursor_down(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
 
     // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
@@ -259,9 +257,8 @@ res_t ik_input_buffer_cursor_to_line_start(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
 
     // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
@@ -292,9 +289,8 @@ res_t ik_input_buffer_cursor_to_line_end(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
 
     // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
@@ -325,9 +321,8 @@ res_t ik_input_buffer_kill_to_line_end(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
 
     // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
@@ -351,7 +346,7 @@ res_t ik_input_buffer_kill_to_line_end(ik_input_buffer_t *input_buffer)
     }
 
     // Update cursor (text changed, need to resync cursor object)
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    text = ik_input_buffer_get_text(input_buffer, &text_len); // Never fails
     input_buffer->cursor_byte_offset = cursor_pos;
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, cursor_pos);
 
@@ -368,9 +363,8 @@ res_t ik_input_buffer_kill_line(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
 
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
 
     // Empty input buffer - no-op
     if (text == NULL || text_len == 0) {
@@ -397,7 +391,7 @@ res_t ik_input_buffer_kill_line(ik_input_buffer_t *input_buffer)
     }
 
     // Position cursor at line_start (where the deleted line was)
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    text = ik_input_buffer_get_text(input_buffer, &text_len); // Never fails
 
     // Ensure cursor position doesn't exceed new text length
     size_t new_cursor_pos = (line_start <= text_len) ? line_start : text_len;

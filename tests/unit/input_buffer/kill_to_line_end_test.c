@@ -46,10 +46,8 @@ START_TEST(test_kill_to_line_end_basic) {
     ck_assert(is_ok(&res));
 
     /* Assert: text is "hello ", cursor unchanged */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 6);
     ck_assert_mem_eq(result_text, "hello ", 6);
 
@@ -99,10 +97,8 @@ START_TEST(test_kill_to_line_end_at_newline)
     ck_assert(is_ok(&res));
 
     /* Assert: text is "hello\nworld", cursor unchanged (newline not deleted) */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 11); /* "hello\nworld" */
     ck_assert_mem_eq(result_text, "hello\nworld", 11);
 
@@ -142,10 +138,8 @@ START_TEST(test_kill_to_line_end_already_at_end)
     ck_assert(is_ok(&res));
 
     /* Assert: text unchanged */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 5);
     ck_assert_mem_eq(result_text, "hello", 5);
 
@@ -204,10 +198,8 @@ START_TEST(test_kill_to_line_end_multiline)
     ck_assert(is_ok(&res));
 
     /* Assert: text is "line1\nli\nline3", cursor unchanged */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 14); /* "line1\nli\nline3" */
     ck_assert_mem_eq(result_text, "line1\nli\nline3", 14);
 

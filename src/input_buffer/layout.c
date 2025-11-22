@@ -56,9 +56,8 @@ void ik_input_buffer_ensure_layout(ik_input_buffer_t *input_buffer, int32_t term
     }
 
     /* Get input buffer text */
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
 
     /* Empty input buffer: 0 physical lines (Bug #10 fix) */
     if (text == NULL || text_len == 0) { /* LCOV_EXCL_BR_LINE - defensive: text is NULL only when text_len is 0 */

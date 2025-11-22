@@ -41,10 +41,8 @@ START_TEST(test_delete_word_backward_basic) {
     res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
     /* Assert: text is "hello world ", cursor after "world " */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 12);
     ck_assert_mem_eq(result_text, "hello world ", 12);
     size_t cursor_after = 0;
@@ -87,10 +85,8 @@ START_TEST(test_delete_word_backward_at_word_boundary)
     res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
     /* Assert: text is "world", cursor at start */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 5);
     ck_assert_mem_eq(result_text, "world", 5);
     size_t cursor_after = 0;
@@ -133,10 +129,8 @@ START_TEST(test_delete_word_backward_multiple_spaces)
     res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
     /* Assert: text is "hello   ", cursor after spaces */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 8);
     ck_assert_mem_eq(result_text, "hello   ", 8);
     size_t cursor_after = 0;
@@ -177,10 +171,8 @@ START_TEST(test_delete_word_backward_punctuation)
     res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
     /* Assert: text is "hello,", cursor after comma */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 6);
     ck_assert_mem_eq(result_text, "hello,", 6);
     size_t cursor_after = 0;
@@ -218,10 +210,8 @@ START_TEST(test_delete_word_backward_utf8)
     res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
     /* Assert: text is "hello ", cursor after space */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 6);
     ck_assert_mem_eq(result_text, "hello ", 6);
     size_t cursor_after = 0;
@@ -258,10 +248,8 @@ START_TEST(test_delete_word_backward_at_start)
     res = ik_input_buffer_delete_word_backward(input_buffer);
     ck_assert(is_ok(&res));
     /* Assert: text unchanged */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 5);
     ck_assert_mem_eq(result_text, "hello", 5);
     size_t cursor_after = 0;

@@ -364,7 +364,7 @@ A function should KEEP `res_t` if:
 - ✅ Categorized into Group A (13 to simplify) and Group B (5 to keep)
 - ✅ Created `REFACTOR_ANALYSIS.md` with complete categorization and phased refactoring plan
 
-**Refactored Functions (5/13):**
+**Refactored Functions (6/13):**
 1. ✅ **ik_format_buffer_create** - src/format.c:16
    - Updated signature, implementation, and 27 call sites (1 production + 26 tests)
    - All tests passing (100%: Checks: 15, Failures: 0)
@@ -385,16 +385,23 @@ A function should KEEP `res_t` if:
    - Removed test_cursor_create_null_out test (no longer has cursor_out parameter)
    - All tests passing (100% coverage: 3161/3161 lines, 218/218 functions, 1008/1008 branches)
    - LCOV exclusion count reduced from 683 to 681 (removed 2 assertion exclusions)
+6. ✅ **ik_input_buffer_get_text** - src/input_buffer/core.c:36
+   - Changed from `res_t ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, char **text_out, size_t *len_out)`
+     to `const char *ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, size_t *len_out)`
+   - Updated signature, implementation, and 100+ call sites (11 production + 80+ tests)
+   - Removed test_get_text_null_text_out_asserts test (text_out parameter no longer exists)
+   - All tests passing (100% coverage: 3158/3158 lines, 218/218 functions, 1008/1008 branches)
+   - LCOV exclusion count reduced from 681 to 680 (removed 1 assertion exclusion)
+   - Returns pointer directly instead of using output parameter - cleaner getter semantics
 
-**Remaining Phase 1 - Leaf Functions (1/13):**
-6. ⏳ ik_input_buffer_get_text - src/input_buffer/core.c:37
+**Phase 1 Complete! All leaf functions refactored (6/6)**
 
-**Remaining Phase 2 - Intermediate Functions (3/13):**
+**Remaining Phase 2 - Intermediate Functions (3/7):**
 7. ⏳ ik_input_buffer_create - src/input_buffer/core.c:14
 8. ⏳ ik_layer_cake_create - src/layer.c:88
 9. ⏳ ik_layer_create - src/layer.c:59
 
-**Remaining Phase 3 - Wrapper Functions (4/13):**
+**Remaining Phase 3 - Wrapper Functions (4/7):**
 10. ⏳ ik_separator_layer_create - src/layer_wrappers.c:49
 11. ⏳ ik_scrollback_layer_create - src/layer_wrappers.c:167
 12. ⏳ ik_input_layer_create - src/layer_wrappers.c:273

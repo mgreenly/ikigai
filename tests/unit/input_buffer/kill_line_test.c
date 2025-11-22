@@ -52,10 +52,8 @@ START_TEST(test_kill_line_basic) {
     ck_assert(is_ok(&res));
 
     /* Assert: text is "hello\ntest", cursor at start of "test" line */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 10); /* "hello\ntest" */
     ck_assert_mem_eq(result_text, "hello\ntest", 10);
 
@@ -106,10 +104,8 @@ START_TEST(test_kill_line_first_line)
     ck_assert(is_ok(&res));
 
     /* Assert: text is "world", cursor at start */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 5); /* "world" */
     ck_assert_mem_eq(result_text, "world", 5);
 
@@ -156,10 +152,8 @@ START_TEST(test_kill_line_last_line)
     ck_assert(is_ok(&res));
 
     /* Assert: text is "hello\n", cursor at position 6 (after "hello\n") */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 6); /* "hello\n" */
     ck_assert_mem_eq(result_text, "hello\n", 6);
 
@@ -211,10 +205,8 @@ START_TEST(test_kill_line_empty_line)
     ck_assert(is_ok(&res));
 
     /* Assert: text is "hello\nworld", cursor still at 6 (after "hello\n") */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 11); /* "hello\nworld" */
     ck_assert_mem_eq(result_text, "hello\nworld", 11);
 
@@ -254,10 +246,8 @@ START_TEST(test_kill_line_then_insert)
     ck_assert(is_ok(&res));
 
     /* Assert: text is empty */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 0);
 
     /* Verify cursor at position 0 */
@@ -272,8 +262,7 @@ START_TEST(test_kill_line_then_insert)
     ck_assert(is_ok(&res));
 
     /* Assert: text is "a", cursor at position 1 */
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 1);
     ck_assert_mem_eq(result_text, "a", 1);
 

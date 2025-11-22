@@ -33,15 +33,13 @@ res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out)
     return OK(input_buffer);
 }
 
-res_t ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, char **text_out, size_t *len_out)
+const char *ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, size_t *len_out)
 {
     assert(input_buffer != NULL);     /* LCOV_EXCL_BR_LINE */
-    assert(text_out != NULL); /* LCOV_EXCL_BR_LINE */
     assert(len_out != NULL);  /* LCOV_EXCL_BR_LINE */
 
-    *text_out = (char *)input_buffer->text->data;
     *len_out = ik_byte_array_size(input_buffer->text);
-    return OK(NULL);
+    return (const char *)input_buffer->text->data;
 }
 
 void ik_input_buffer_clear(ik_input_buffer_t *input_buffer)
@@ -120,9 +118,8 @@ res_t ik_input_buffer_insert_codepoint(ik_input_buffer_t *input_buffer, uint32_t
     ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
 
     /* Update cursor position */
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
 
     return OK(NULL);
@@ -144,9 +141,8 @@ res_t ik_input_buffer_insert_newline(ik_input_buffer_t *input_buffer)
     ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
 
     /* Update cursor position */
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
 
     return OK(NULL);
@@ -202,9 +198,8 @@ res_t ik_input_buffer_backspace(ik_input_buffer_t *input_buffer)
     ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
 
     /* Update cursor position */
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
 
     return OK(NULL);
@@ -276,8 +271,7 @@ res_t ik_input_buffer_delete(ik_input_buffer_t *input_buffer)
     ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
 
     /* Update cursor position */
-    char *text;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
 
     return OK(NULL);
@@ -292,9 +286,8 @@ res_t ik_input_buffer_cursor_left(ik_input_buffer_t *input_buffer)
         return OK(NULL);
     }
 
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
 
     // Defensive check: text can be NULL (lazy allocation), but cursor > 0 implies text exists
     if (text == NULL)return OK(NULL);  // LCOV_EXCL_LINE - defensive: cursor > 0 implies text != NULL
@@ -314,9 +307,8 @@ res_t ik_input_buffer_cursor_right(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len); // Never fails
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
 
     /* If at end or empty text, no-op */
     if (text == NULL || input_buffer->cursor->byte_offset >= text_len) { /* LCOV_EXCL_BR_LINE - defensive: text NULL only when cursor at 0 */
@@ -459,9 +451,8 @@ delete_range:
 
     /* Update cursor */
     input_buffer->cursor_byte_offset = pos;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
 
     /* Reset target column on text modification */
