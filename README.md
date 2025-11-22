@@ -3,7 +3,7 @@
 [![CI](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml/badge.svg)](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml)
 
 
-An experiment to build a Linux focused, multi-model, coding agent with RAG accessible permanent memory.
+An experiment to build a Linux focused, multi-model, terminal based coding agent with RAG accessible permanent memory.
 
 Why?  Because I want to and no one can stop me!
 
@@ -11,13 +11,15 @@ See [docs/](docs/README.md/) for design and implementation details.
 
 ## Install
 
-**Platform**: The build system runs natively on Debian 13 (Trixie), other distributions may have dependency issues.  If you're brave you can check out the distros/ folder for distro specific builds but it's to early in the project's life-cycle for me to officially support those yet.
+**Platform**: The build system runs natively on Debian 13 (Trixie), other distributions may have library dependency issues.  If you're brave you can check out the distros/ folder for distro specific builds but it's to early in the project's life-cycle for me to officially support those.
 
-**Development Note**: This project uses trunk-based development on `main`. For building or running ikigai, always check out the latest release tag for a stable version.
+**Development Note**: This project uses trunk-based development on `main`. If you just intend to build Ikigai to run it always check out the most recent tagged release.
 
 **Clone**:
 ```text
-git clone https://github.com/mgreenly/ikigai.git && cd ikigai && git checkout v0.2.0
+git clone https://github.com/mgreenly/ikigai.git
+cd ikigai
+git checkout v0.2.0
 ```
 
 **Install**:
