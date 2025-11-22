@@ -81,7 +81,7 @@ Production-ready terminal interface with:
 
 See [repl/README.md](repl/README.md) for detailed documentation.
 
-### ✅ Completed: LLM Integration (Phase 1)
+### ✅ Completed: LLM Integration (v0.2.0)
 
 **Released**: 2025-11-22
 
@@ -114,18 +114,6 @@ This runs integration tests against the real API to ensure fixtures stay current
 
 **Dependencies**: yyjson (complete), libcurl (added)
 
-### Future: Layer Architecture Refinement
-
-**Objective**: Remove adapter layer and integrate components directly with layer cake
-
-**Tasks**:
-- Remove `layer_wrappers.c` adapter abstraction
-- Update scrollback, separator, and input components to implement layer interface directly
-- Consolidate layer creation logic into REPL initialization
-- Reduce indirection and simplify layer management
-
-**Rationale**: The adapter pattern in `layer_wrappers.c` was useful for prototyping but adds unnecessary indirection. Direct implementation of the layer interface by UI components will simplify the codebase.
-
 ### Future: Database Integration (PostgreSQL)
 
 **Objective**: Persistent conversation history with RAG memory
@@ -157,6 +145,18 @@ This runs integration tests against the real API to ensure fixtures stay current
 - Provider switching via config or runtime command
 - Unified conversation format
 
+### Future: Layer Architecture Refinement
+
+**Objective**: Remove adapter layer and integrate components directly with layer cake
+
+**Tasks**:
+- Remove `layer_wrappers.c` adapter abstraction
+- Update scrollback, separator, and input components to implement layer interface directly
+- Consolidate layer creation logic into REPL initialization
+- Reduce indirection and simplify layer management
+
+**Rationale**: The adapter pattern in `layer_wrappers.c` was useful for prototyping but adds unnecessary indirection. Direct implementation of the layer interface by UI components will simplify the codebase.
+
 ### Future: Enhanced Terminal UI
 
 **Objective**: Polish the user experience
@@ -166,6 +166,21 @@ This runs integration tests against the real API to ensure fixtures stay current
 - External editor integration ($EDITOR)
 - Command history and session management
 - Rich formatting and themes
+
+### Future: Code Organization and Module Cleanup
+
+**Objective**: Refactor codebase structure for better organization and maintainability
+
+**Tasks**:
+- Reorganize source into subfolder-per-module structure
+- Consolidate to one public header (*.h) per module/subfolder
+- Standardize naming conventions across all modules
+- Remove code redundancies and duplications
+- Reorganize and consolidate test structure
+- Improve module boundaries and interfaces
+- Clean up internal module organization
+
+**Rationale**: This is the standard refactoring cycle before each major release. As features are added throughout development, technical debt accumulates and module boundaries become less clear. A dedicated refactoring phase before release ensures the codebase is clean, well-organized, and maintainable for the next development cycle.
 
 ## v2.0 Vision
 
