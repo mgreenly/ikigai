@@ -5,15 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Next: Core v1.0 Features
-1. ~~**LLM Integration**: OpenAI API client with streaming responses~~ ✓ Complete (v0.2.0)
-2. **Database Integration**: PostgreSQL for persistent conversation history and RAG
-3. **Multi-LLM Support**: Anthropic, OpenAI, Google, X.AI provider interfaces
-4. **Local Tool Execution**: File operations, shell commands, code analysis
-5. **Enhanced Terminal UI**: Syntax highlighting, editor integration, rich formatting
-
 ## [0.2.0] - 2025-11-22
 
 ### Added
