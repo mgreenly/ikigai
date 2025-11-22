@@ -12,17 +12,15 @@
 #include <talloc.h>
 #include <utf8proc.h>
 
-res_t ik_input_buffer_cursor_create(void *parent, ik_input_buffer_cursor_t **cursor_out)
+ik_input_buffer_cursor_t *ik_input_buffer_cursor_create(void *parent)
 {
-    assert(parent != NULL);      /* LCOV_EXCL_BR_LINE */
-    assert(cursor_out != NULL);  /* LCOV_EXCL_BR_LINE */
+    assert(parent != NULL);  /* LCOV_EXCL_BR_LINE */
 
     ik_input_buffer_cursor_t *cursor = talloc_zero_(parent, sizeof(ik_input_buffer_cursor_t));
-    if (cursor == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (cursor == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Both offsets initialize to 0 via talloc_zero_wrapper (via memset)
-    *cursor_out = cursor;
-    return OK(cursor);
+    return cursor;
 }
 
 void ik_input_buffer_cursor_set_position(ik_input_buffer_cursor_t *cursor, const char *text, size_t text_len, size_t byte_offset)

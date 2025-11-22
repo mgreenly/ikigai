@@ -10,10 +10,8 @@
 START_TEST(test_format_buffer_create_success) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(buf);
     ck_assert_ptr_eq(buf->parent, ctx);
     ck_assert_ptr_nonnull(buf->array);
@@ -26,11 +24,9 @@ START_TEST(test_format_append_empty)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    res = ik_format_append(buf, "");
+    res_t res = ik_format_append(buf, "");
     ck_assert(is_ok(&res));
 
     const char *result = ik_format_get_string(buf);
@@ -47,11 +43,9 @@ START_TEST(test_format_append_short)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    res = ik_format_append(buf, "Hello");
+    res_t res = ik_format_append(buf, "Hello");
     ck_assert(is_ok(&res));
 
     const char *result = ik_format_get_string(buf);
@@ -68,9 +62,7 @@ START_TEST(test_format_append_long)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
     // Create a string longer than initial buffer (32 bytes)
     // Use 200 bytes to ensure multiple reallocations
@@ -80,7 +72,7 @@ START_TEST(test_format_append_long)
     }
     long_str[200] = '\0';
 
-    res = ik_format_append(buf, long_str);
+    res_t res = ik_format_append(buf, long_str);
     ck_assert(is_ok(&res));
 
     const char *result = ik_format_get_string(buf);
@@ -97,11 +89,9 @@ START_TEST(test_format_append_multiple)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    res = ik_format_append(buf, "Hello");
+    res_t res = ik_format_append(buf, "Hello");
     ck_assert(is_ok(&res));
 
     res = ik_format_append(buf, " ");
@@ -124,11 +114,9 @@ START_TEST(test_format_appendf_simple)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    res = ik_format_appendf(buf, "Hello %s", "World");
+    res_t res = ik_format_appendf(buf, "Hello %s", "World");
     ck_assert(is_ok(&res));
 
     const char *result = ik_format_get_string(buf);
@@ -145,11 +133,9 @@ START_TEST(test_format_appendf_multiple)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    res = ik_format_appendf(buf, "Count: %" PRId32 ", Size: %" PRIu64, (int32_t)42, (uint64_t)1024);
+    res_t res = ik_format_appendf(buf, "Count: %" PRId32 ", Size: %" PRIu64, (int32_t)42, (uint64_t)1024);
     ck_assert(is_ok(&res));
 
     const char *result = ik_format_get_string(buf);
@@ -165,12 +151,10 @@ START_TEST(test_format_appendf_large)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
     // Create a format string that will produce 200+ bytes
-    res = ik_format_appendf(buf, "%-200s", "X");
+    res_t res = ik_format_appendf(buf, "%-200s", "X");
     ck_assert(is_ok(&res));
 
     const char *result = ik_format_get_string(buf);
@@ -186,11 +170,9 @@ START_TEST(test_format_appendf_empty)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    res = ik_format_appendf(buf, "");
+    res_t res = ik_format_appendf(buf, "");
     ck_assert(is_ok(&res));
 
     const char *result = ik_format_get_string(buf);
@@ -207,11 +189,9 @@ START_TEST(test_format_indent_zero)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    res = ik_format_indent(buf, 0);
+    res_t res = ik_format_indent(buf, 0);
     ck_assert(is_ok(&res));
 
     const char *result = ik_format_get_string(buf);
@@ -228,11 +208,9 @@ START_TEST(test_format_indent_small)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    res = ik_format_indent(buf, 4);
+    res_t res = ik_format_indent(buf, 4);
     ck_assert(is_ok(&res));
 
     const char *result = ik_format_get_string(buf);
@@ -249,11 +227,9 @@ START_TEST(test_format_indent_large)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    res = ik_format_indent(buf, 120);
+    res_t res = ik_format_indent(buf, 120);
     ck_assert(is_ok(&res));
 
     const char *result = ik_format_get_string(buf);
@@ -274,9 +250,7 @@ START_TEST(test_get_string_empty)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
     const char *result = ik_format_get_string(buf);
     ck_assert_ptr_nonnull(result);
@@ -291,11 +265,9 @@ START_TEST(test_get_length_before_string)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    res = ik_format_append(buf, "Hello");
+    res_t res = ik_format_append(buf, "Hello");
     ck_assert(is_ok(&res));
 
     // Get length BEFORE get_string - buffer not null-terminated yet
@@ -311,11 +283,9 @@ START_TEST(test_get_string_twice)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
 
-    res = ik_format_append(buf, "Hello");
+    res_t res = ik_format_append(buf, "Hello");
     ck_assert(is_ok(&res));
 
     const char *result1 = ik_format_get_string(buf);

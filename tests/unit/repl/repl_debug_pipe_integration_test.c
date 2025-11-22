@@ -29,8 +29,7 @@ START_TEST(test_debug_pipe_enabled) {
     ck_assert_ptr_nonnull(mgr);
 
     // Create scrollback
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     // Enable debug output
@@ -99,8 +98,7 @@ START_TEST(test_debug_pipe_disabled)
     ck_assert_ptr_nonnull(mgr);
 
     // Create scrollback
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     // Debug is disabled

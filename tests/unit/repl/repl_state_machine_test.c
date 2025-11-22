@@ -42,8 +42,7 @@ static ik_repl_ctx_t *create_test_repl(void *ctx)
     term->screen_cols = 80;
 
     // Create scrollback
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     // Create layer cake and layers (minimal setup for render_frame)

@@ -22,8 +22,7 @@ res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out)
     if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
     input_buffer->text = res.ok;
 
-    res = ik_input_buffer_cursor_create(input_buffer, &input_buffer->cursor);
-    if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
+    input_buffer->cursor = ik_input_buffer_cursor_create(input_buffer);
 
     input_buffer->cursor_byte_offset = 0;
     input_buffer->target_column = 0;

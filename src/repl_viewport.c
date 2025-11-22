@@ -200,9 +200,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     repl->layer_cake->viewport_height = (size_t)terminal_rows;
 
     // Render layers to output buffer
-    ik_output_buffer_t *output;
-    result = ik_output_buffer_create(repl, 4096, &output);
-    if (is_err(&result)) PANIC("Out of memory"); /* LCOV_EXCL_BR_LINE */
+    ik_output_buffer_t *output = ik_output_buffer_create(repl, 4096);
 
     ik_layer_cake_render(repl->layer_cake, output, (size_t)repl->term->screen_cols);
 

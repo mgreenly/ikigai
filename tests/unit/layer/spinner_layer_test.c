@@ -83,8 +83,7 @@ END_TEST START_TEST(test_spinner_layer_render_frame0)
     ik_layer_t *layer;
     ik_spinner_layer_create(ctx, "spinner", &state, &layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     // Render spinner
     layer->render(layer, output, 80, 0, 1);
@@ -115,8 +114,7 @@ END_TEST START_TEST(test_spinner_layer_render_all_frames)
     for (size_t i = 0; i < 4; i++) {
         state.frame_index = i;
 
-        ik_output_buffer_t *output;
-        ik_output_buffer_create(ctx, 100, &output);
+        ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
         layer->render(layer, output, 80, 0, 1);
 
@@ -137,8 +135,7 @@ END_TEST START_TEST(test_spinner_animation_sequence)
 
     // Simulate animation: advance and render multiple times
     for (size_t i = 0; i < 8; i++) {  // Two full cycles
-        ik_output_buffer_t *output;
-        ik_output_buffer_create(ctx, 100, &output);
+        ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
         layer->render(layer, output, 80, 0, 1);
 

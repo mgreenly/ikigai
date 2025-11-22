@@ -21,8 +21,7 @@ START_TEST(test_pp_input_buffer_empty) {
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -57,8 +56,7 @@ START_TEST(test_pp_input_buffer_single_line)
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -98,8 +96,7 @@ START_TEST(test_pp_input_buffer_multiline)
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -131,8 +128,7 @@ START_TEST(test_pp_input_buffer_utf8)
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -160,8 +156,7 @@ START_TEST(test_pp_input_buffer_indented)
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print with 4-space indent */
     ik_pp_input_buffer(input_buffer, buf, 4);
@@ -216,8 +211,7 @@ START_TEST(test_pp_input_buffer_cursor_middle)
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -248,8 +242,7 @@ START_TEST(test_pp_input_buffer_target_column)
     input_buffer->target_column = 5;
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -300,8 +293,7 @@ START_TEST(test_pp_input_buffer_special_chars)
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);

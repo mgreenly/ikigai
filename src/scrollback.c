@@ -11,13 +11,9 @@
 #include <talloc.h>
 #include <utf8proc.h>
 
-res_t ik_scrollback_create(void *parent, int32_t terminal_width,
-                           ik_scrollback_t **scrollback_out)
+ik_scrollback_t *ik_scrollback_create(void *parent, int32_t terminal_width)
 {
-    assert(terminal_width > 0);      // LCOV_EXCL_BR_LINE
-    assert(scrollback_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    *scrollback_out = NULL;
+    assert(terminal_width > 0);  // LCOV_EXCL_BR_LINE
 
     // Allocate scrollback struct
     ik_scrollback_t *scrollback = talloc_zero_(parent, sizeof(ik_scrollback_t));
@@ -47,8 +43,7 @@ res_t ik_scrollback_create(void *parent, int32_t terminal_width,
     scrollback->text_buffer = talloc_array_(scrollback, sizeof(char), scrollback->buffer_capacity);
     if (scrollback->text_buffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    *scrollback_out = scrollback;
-    return ok(scrollback);
+    return scrollback;
 }
 
 res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,

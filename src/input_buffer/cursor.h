@@ -35,10 +35,9 @@ typedef struct ik_input_buffer_cursor_t {
  * @brief Create a new cursor
  *
  * @param parent Talloc parent context
- * @param cursor_out Pointer to receive allocated cursor
- * @return RES_OK on success, RES_ERR on failure
+ * @return Allocated cursor (never fails - OOM PANICs)
  */
-res_t ik_input_buffer_cursor_create(void *parent, ik_input_buffer_cursor_t **cursor_out);
+ik_input_buffer_cursor_t *ik_input_buffer_cursor_create(void *parent);
 
 /**
  * @brief Set cursor position by byte offset

@@ -185,8 +185,7 @@ END_TEST START_TEST(test_layer_cake_render_simple)
     ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_5, render_simple, &layer);
     ik_layer_cake_add_layer(cake, layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     ik_layer_cake_render(cake, output, 80);
     ck_assert_uint_eq(output->size, 1);
@@ -209,8 +208,7 @@ END_TEST START_TEST(test_layer_cake_render_multiple_layers)
     ik_layer_cake_add_layer(cake, layer1);
     ik_layer_cake_add_layer(cake, layer2);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     ik_layer_cake_render(cake, output, 80);
     ck_assert_uint_eq(output->size, 2); // One 'X' from each layer
@@ -232,8 +230,7 @@ END_TEST START_TEST(test_layer_cake_render_skips_invisible)
     ik_layer_cake_add_layer(cake, layer1);
     ik_layer_cake_add_layer(cake, layer2);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     ik_layer_cake_render(cake, output, 80);
     ck_assert_uint_eq(output->size, 1); // Only layer1
@@ -253,8 +250,7 @@ END_TEST START_TEST(test_layer_cake_render_viewport_clipping_top)
     ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple, &layer);
     ik_layer_cake_add_layer(cake, layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     ik_layer_cake_render(cake, output, 80);
 
@@ -272,8 +268,7 @@ END_TEST START_TEST(test_layer_cake_render_viewport_clipping_bottom)
     ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple, &layer);
     ik_layer_cake_add_layer(cake, layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     ik_layer_cake_render(cake, output, 80);
 
@@ -294,8 +289,7 @@ END_TEST START_TEST(test_layer_cake_render_early_exit)
     ik_layer_cake_add_layer(cake, layer1);
     ik_layer_cake_add_layer(cake, layer2);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     ik_layer_cake_render(cake, output, 80);
 
@@ -315,8 +309,7 @@ END_TEST START_TEST(test_layer_cake_render_layer_outside_viewport)
     ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple, &layer);
     ik_layer_cake_add_layer(cake, layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     ik_layer_cake_render(cake, output, 80);
     ck_assert_uint_eq(output->size, 0); // Nothing rendered
@@ -342,8 +335,7 @@ END_TEST START_TEST(test_layer_cake_render_layer_after_viewport)
     ik_layer_cake_add_layer(cake, layer0);
     ik_layer_cake_add_layer(cake, layer1);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     ik_layer_cake_render(cake, output, 80);
 
@@ -363,8 +355,7 @@ END_TEST START_TEST(test_layer_cake_render_layer_ends_at_viewport_start)
     ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple, &layer);
     ik_layer_cake_add_layer(cake, layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     ik_layer_cake_render(cake, output, 80);
     ck_assert_uint_eq(output->size, 0); // Nothing rendered

@@ -56,8 +56,7 @@ START_TEST(test_separator_partial_first_line) {
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with long lines that wrap to exactly 3 physical rows
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     // Each line is 161 characters (wraps to 3 rows: 80 + 80 + 1)
@@ -155,8 +154,7 @@ START_TEST(test_separator_row_offset_impact)
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 2-row lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     // Each line wraps to exactly 2 rows (81 chars)

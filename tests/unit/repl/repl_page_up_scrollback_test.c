@@ -41,8 +41,7 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 9 lines (5 initial + A, B, C, D)
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     // 5 initial lines

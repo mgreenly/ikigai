@@ -39,8 +39,7 @@ START_TEST(test_separator_with_wrapped_lines) {
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with lines that wrap (each line is 81+ chars to force wrapping)
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     // Each line is exactly 81 characters (wraps to 2 physical rows)

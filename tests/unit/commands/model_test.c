@@ -26,9 +26,7 @@ static ik_repl_ctx_t *repl;
 static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
 {
     // Create scrollback buffer (80 columns is standard)
-    ik_scrollback_t *scrollback = NULL;
-    res_t res = ik_scrollback_create(parent, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(parent, 80);
     ck_assert_ptr_nonnull(scrollback);
 
     // Create config

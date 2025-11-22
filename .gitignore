@@ -6,6 +6,8 @@ coverage/
 .envrc
 tags
 
+**/*.py
+
 **/core.*
 **/vgcore.*
 **/*.gcov

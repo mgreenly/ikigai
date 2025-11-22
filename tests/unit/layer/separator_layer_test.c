@@ -47,8 +47,7 @@ END_TEST START_TEST(test_separator_layer_render)
     ik_layer_t *layer;
     ik_separator_layer_create(ctx, "sep", &visible, &layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     // Render separator at width 10
     layer->render(layer, output, 10, 0, 1);
@@ -69,8 +68,7 @@ END_TEST START_TEST(test_separator_layer_render_various_widths)
     ik_separator_layer_create(ctx, "sep", &visible, &layer);
 
     // Test width 5
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
     layer->render(layer, output, 5, 0, 1);
     ck_assert_uint_eq(output->size, 7); // "-----\r\n"
 

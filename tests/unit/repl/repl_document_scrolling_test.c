@@ -46,8 +46,7 @@ START_TEST(test_separator_scrolls_offscreen) {
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 50 lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
     for (int32_t i = 0; i < 50; i++) {
         char buf[32];
@@ -145,8 +144,7 @@ START_TEST(test_input_buffer_scrolls_offscreen)
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 50 lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
     for (int32_t i = 0; i < 50; i++) {
         char buf[32];
@@ -222,8 +220,7 @@ START_TEST(test_scrollback_adjacent_to_separator)
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 10 lines, last line has distinctive marker
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
     for (int32_t i = 0; i < 9; i++) {
         char buf[32];

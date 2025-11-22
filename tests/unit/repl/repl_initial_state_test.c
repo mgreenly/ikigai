@@ -89,8 +89,7 @@ START_TEST(test_initial_state_cursor_visible) {
     ck_assert_uint_eq(physical_lines, 0);
 
     // Create empty scrollback
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     // Create render context
@@ -177,8 +176,7 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible)
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 2 lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "line1", 5);
     ck_assert(is_ok(&res));
@@ -255,8 +253,7 @@ START_TEST(test_scrolled_up_cursor_hidden)
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with many lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
     for (int i = 0; i < 10; i++) {
         char buf[32];

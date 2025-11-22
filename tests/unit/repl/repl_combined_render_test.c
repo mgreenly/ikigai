@@ -65,8 +65,7 @@ START_TEST(test_render_frame_empty_scrollback) {
     res = ik_input_buffer_create(ctx, &input_buf);
     ck_assert(is_ok(&res));
 
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, term->screen_cols, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, term->screen_cols);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -138,8 +137,7 @@ START_TEST(test_render_frame_with_scrollback)
     res = ik_input_buffer_insert_codepoint(input_buf, 'i');
     ck_assert(is_ok(&res));
 
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, term->screen_cols, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, term->screen_cols);
     ck_assert(is_ok(&res));
 
     // Add scrollback content

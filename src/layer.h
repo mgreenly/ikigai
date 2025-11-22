@@ -19,7 +19,7 @@ struct ik_output_buffer {
 };
 
 // Create output buffer with initial capacity
-res_t ik_output_buffer_create(TALLOC_CTX *ctx, size_t initial_capacity, ik_output_buffer_t **out);
+ik_output_buffer_t *ik_output_buffer_create(TALLOC_CTX *ctx, size_t initial_capacity);
 
 // Append bytes to output buffer (grows if needed)
 void ik_output_buffer_append(ik_output_buffer_t *buf, const char *data, size_t len);

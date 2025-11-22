@@ -26,9 +26,7 @@ START_TEST(test_pp_cursor_at_start) {
     res = ik_input_buffer_cursor_to_line_start(input_buffer);
     ck_assert(is_ok(&res));
 
-    ik_format_buffer_t *buf = NULL;
-    res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_input_buffer_cursor(input_buffer->cursor, buf, 0);
 
@@ -58,9 +56,7 @@ START_TEST(test_pp_cursor_in_middle)
         ck_assert(is_ok(&res));
     }
 
-    ik_format_buffer_t *buf = NULL;
-    res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_input_buffer_cursor(input_buffer->cursor, buf, 0);
 
@@ -82,9 +78,7 @@ START_TEST(test_pp_cursor_with_indent)
 
     insert_text(input_buffer, "Test");
 
-    ik_format_buffer_t *buf = NULL;
-    res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_input_buffer_cursor(input_buffer->cursor, buf, 4);
 
@@ -120,9 +114,7 @@ START_TEST(test_pp_cursor_utf8)
         ck_assert(is_ok(&res));
     }
 
-    ik_format_buffer_t *buf = NULL;
-    res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(is_ok(&res));
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_input_buffer_cursor(input_buffer->cursor, buf, 0);
 

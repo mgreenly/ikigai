@@ -10,7 +10,7 @@ START_TEST(test_scrollback_layer_create_and_visibility) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
-    ik_scrollback_create(ctx, 80, &scrollback);
+    scrollback = ik_scrollback_create(ctx, 80);
 
     ik_layer_t *layer;
     res_t res = ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
@@ -28,7 +28,7 @@ END_TEST START_TEST(test_scrollback_layer_height_empty)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
-    ik_scrollback_create(ctx, 80, &scrollback);
+    scrollback = ik_scrollback_create(ctx, 80);
 
     ik_layer_t *layer;
     ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
@@ -45,7 +45,7 @@ END_TEST START_TEST(test_scrollback_layer_height_with_content)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
-    ik_scrollback_create(ctx, 80, &scrollback);
+    scrollback = ik_scrollback_create(ctx, 80);
     ik_scrollback_append_line(scrollback, "Line 1", 6);
     ik_scrollback_append_line(scrollback, "Line 2", 6);
 
@@ -63,13 +63,12 @@ END_TEST START_TEST(test_scrollback_layer_render_empty)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
-    ik_scrollback_create(ctx, 80, &scrollback);
+    scrollback = ik_scrollback_create(ctx, 80);
 
     ik_layer_t *layer;
     ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 1000, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
     layer->render(layer, output, 80, 0, 10);
     // Empty scrollback produces no output
@@ -83,15 +82,14 @@ END_TEST START_TEST(test_scrollback_layer_render_with_content)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
-    ik_scrollback_create(ctx, 80, &scrollback);
+    scrollback = ik_scrollback_create(ctx, 80);
     ik_scrollback_append_line(scrollback, "Hello", 5);
     ik_scrollback_append_line(scrollback, "World", 5);
 
     ik_layer_t *layer;
     ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 1000, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
     layer->render(layer, output, 80, 0, 10);
 
@@ -108,14 +106,13 @@ END_TEST START_TEST(test_scrollback_layer_render_row_count_zero)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
-    ik_scrollback_create(ctx, 80, &scrollback);
+    scrollback = ik_scrollback_create(ctx, 80);
     ik_scrollback_append_line(scrollback, "Test", 4);
 
     ik_layer_t *layer;
     ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 1000, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
     // Request 0 rows
     layer->render(layer, output, 80, 0, 0);
@@ -129,14 +126,13 @@ END_TEST START_TEST(test_scrollback_layer_render_start_row_beyond_content)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
-    ik_scrollback_create(ctx, 80, &scrollback);
+    scrollback = ik_scrollback_create(ctx, 80);
     ik_scrollback_append_line(scrollback, "Test", 4);
 
     ik_layer_t *layer;
     ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 1000, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
     // Request rendering starting from row 100 (beyond content)
     layer->render(layer, output, 80, 100, 10);
@@ -151,15 +147,14 @@ END_TEST START_TEST(test_scrollback_layer_render_newline_conversion)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
-    ik_scrollback_create(ctx, 80, &scrollback);
+    scrollback = ik_scrollback_create(ctx, 80);
     // Append line with embedded newline
     ik_scrollback_append_line(scrollback, "Line\nWith\nNewlines", 18);
 
     ik_layer_t *layer;
     ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 1000, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
     layer->render(layer, output, 80, 0, 10);
 
@@ -184,15 +179,14 @@ END_TEST START_TEST(test_scrollback_render_end_row_beyond_content)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
-    ik_scrollback_create(ctx, 80, &scrollback);
+    scrollback = ik_scrollback_create(ctx, 80);
     // Add one line
     ik_scrollback_append_line(scrollback, "Line 1", 6);
 
     ik_layer_t *layer;
     ik_scrollback_layer_create(ctx, "scrollback", scrollback, &layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 1000, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
     // Request many more rows than exist (end_physical_row will be way beyond content)
     layer->render(layer, output, 80, 0, 100);

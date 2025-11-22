@@ -5,10 +5,9 @@
 #include <string.h>
 
 // Create output buffer with initial capacity
-res_t ik_output_buffer_create(TALLOC_CTX *ctx, size_t initial_capacity, ik_output_buffer_t **out)
+ik_output_buffer_t *ik_output_buffer_create(TALLOC_CTX *ctx, size_t initial_capacity)
 {
     assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
-    assert(out != NULL);          // LCOV_EXCL_BR_LINE
     assert(initial_capacity > 0); // LCOV_EXCL_BR_LINE
 
     ik_output_buffer_t *buf = talloc(ctx, ik_output_buffer_t);
@@ -20,8 +19,7 @@ res_t ik_output_buffer_create(TALLOC_CTX *ctx, size_t initial_capacity, ik_outpu
     buf->size = 0;
     buf->capacity = initial_capacity;
 
-    *out = buf;
-    return OK(buf);
+    return buf;
 }
 
 // Append bytes to output buffer (grows if needed)

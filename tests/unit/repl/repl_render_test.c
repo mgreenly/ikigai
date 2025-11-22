@@ -60,8 +60,7 @@ START_TEST(test_repl_render_frame_empty_input_buffer) {
     term->screen_cols = 80;
 
     // Create scrollback (required by ik_repl_render_frame)
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     // Create minimal REPL context
@@ -120,8 +119,7 @@ START_TEST(test_repl_render_frame_multiline)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -168,8 +166,7 @@ START_TEST(test_repl_render_frame_cursor_positions)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -239,8 +236,7 @@ START_TEST(test_repl_render_frame_utf8)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);

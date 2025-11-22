@@ -25,7 +25,7 @@ START_TEST(test_pp_command_clears_input_buffer) {
     ck_assert(is_ok(&res));
 
     /* Create scrollback (needed for submit_line) */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    repl->scrollback = ik_scrollback_create(repl, 80);
     ck_assert(is_ok(&res));
 
     /* Insert "/pp" command */
@@ -71,7 +71,7 @@ START_TEST(test_pp_command_with_args)
     ck_assert(is_ok(&res));
 
     /* Create scrollback (needed for submit_line) */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    repl->scrollback = ik_scrollback_create(repl, 80);
     ck_assert(is_ok(&res));
 
     /* Insert "/pp input buffer" command */
@@ -110,7 +110,7 @@ START_TEST(test_unknown_slash_command)
     ck_assert(is_ok(&res));
 
     /* Create scrollback (needed for error messages) */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    repl->scrollback = ik_scrollback_create(repl, 80);
     ck_assert(is_ok(&res));
 
     /* Insert "/unknown" command */
@@ -149,7 +149,7 @@ START_TEST(test_empty_input_buffer_newline)
     ck_assert(is_ok(&res));
 
     /* Create scrollback (needed for submit_line) */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    repl->scrollback = ik_scrollback_create(repl, 80);
     ck_assert(is_ok(&res));
 
     /* input buffer is empty, press NEWLINE */
@@ -180,7 +180,7 @@ START_TEST(test_slash_in_middle_not_command)
     ck_assert(is_ok(&res));
 
     /* Create scrollback (needed for submit_line) */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    repl->scrollback = ik_scrollback_create(repl, 80);
     ck_assert(is_ok(&res));
 
     /* Insert "hello" */
@@ -223,7 +223,7 @@ START_TEST(test_pp_command_order_in_scrollback)
     ck_assert(is_ok(&res));
 
     /* Create scrollback */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    repl->scrollback = ik_scrollback_create(repl, 80);
     ck_assert(is_ok(&res));
 
     /* Insert "/pp" command */
@@ -275,7 +275,7 @@ START_TEST(test_pp_output_trailing_newline)
     ck_assert(is_ok(&res));
 
     /* Create scrollback */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
+    repl->scrollback = ik_scrollback_create(repl, 80);
     ck_assert(is_ok(&res));
 
     /* Insert "/pp" command */

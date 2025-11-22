@@ -95,9 +95,7 @@ START_TEST(test_repl_context_with_scrollback) {
     ck_assert_ptr_nonnull(repl);
 
     // Create scrollback with terminal width of 80
-    ik_scrollback_t *scrollback = NULL;
-    res_t res = ik_scrollback_create(repl, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(repl, 80);
     ck_assert_ptr_nonnull(scrollback);
 
     // Assign to REPL context
@@ -132,9 +130,7 @@ START_TEST(test_repl_scrollback_terminal_width)
     repl->term = term;
 
     // Create scrollback with terminal width
-    ik_scrollback_t *scrollback = NULL;
-    res_t res = ik_scrollback_create(repl, term->screen_cols, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(repl, term->screen_cols);
     ck_assert_ptr_nonnull(scrollback);
 
     repl->scrollback = scrollback;

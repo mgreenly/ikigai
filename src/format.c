@@ -13,10 +13,9 @@
 #include "panic.h"
 #include "wrapper.h"
 
-res_t ik_format_buffer_create(void *parent, ik_format_buffer_t **buf_out)
+ik_format_buffer_t *ik_format_buffer_create(void *parent)
 {
     assert(parent != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
-    assert(buf_out != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable
 
     ik_format_buffer_t *buf = talloc_zero_(parent, sizeof(ik_format_buffer_t));
     if (buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -26,8 +25,7 @@ res_t ik_format_buffer_create(void *parent, ik_format_buffer_t **buf_out)
     if (is_err(&res)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
     buf->array = res.ok;
 
-    *buf_out = buf;
-    return OK(buf);
+    return buf;
 }
 
 res_t ik_format_appendf(ik_format_buffer_t *buf, const char *fmt, ...)

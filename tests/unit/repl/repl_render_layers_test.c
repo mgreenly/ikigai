@@ -66,8 +66,7 @@ START_TEST(test_repl_render_frame_with_layers_visible_input) {
     term->tty_fd = 1;
 
     // Create scrollback with just a few lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 40, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 40);
     ck_assert(is_ok(&res));
 
     // Add 15 lines to scrollback (more than terminal height, to test viewport offset)
@@ -151,8 +150,7 @@ START_TEST(test_repl_render_frame_with_layers_scrolling)
     term->tty_fd = 1;
 
     // Create scrollback with many lines (more than terminal height)
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 40, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 40);
     ck_assert(is_ok(&res));
 
     // Add 10 lines to scrollback (more than 5 row terminal)
@@ -228,8 +226,7 @@ START_TEST(test_repl_render_frame_write_failure)
     term->screen_cols = 80;
     term->tty_fd = 1;
 
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);

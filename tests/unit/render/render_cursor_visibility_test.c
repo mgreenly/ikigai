@@ -115,8 +115,7 @@ START_TEST(test_cursor_hidden_when_input_buffer_off_screen) {
     ck_assert(is_ok(&res));
 
     // Create scrollback with some lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "scrollback line 1", 17);
     ck_assert(is_ok(&res));
@@ -163,8 +162,7 @@ START_TEST(test_cursor_visible_when_input_buffer_on_screen)
     ck_assert(is_ok(&res));
 
     // Create scrollback with some lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "scrollback line 1", 17);
     ck_assert(is_ok(&res));
@@ -207,8 +205,7 @@ START_TEST(test_last_scrollback_line_visible_when_scrolled_up)
     ck_assert(is_ok(&res));
 
     // Create scrollback with multiple lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "line 1", 6);
     ck_assert(is_ok(&res));
@@ -249,8 +246,7 @@ START_TEST(test_cursor_visibility_escape_hide_when_off_screen)
     ck_assert(is_ok(&res));
 
     // Create scrollback with some lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "scrollback line 1", 17);
     ck_assert(is_ok(&res));
@@ -301,8 +297,7 @@ START_TEST(test_cursor_visibility_escape_show_when_on_screen)
     ck_assert(is_ok(&res));
 
     // Create scrollback with some lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "scrollback line 1", 17);
     ck_assert(is_ok(&res));

@@ -8,9 +8,7 @@
 // Test: ik_pp_header with valid inputs
 START_TEST(test_pp_header_valid) {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     void *ptr = (void *)0xDEADBEEF;
     ik_pp_header(buf, 0, "TestType", ptr);
@@ -25,9 +23,7 @@ END_TEST
 START_TEST(test_pp_header_indented)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     void *ptr = (void *)0x12345678;
     ik_pp_header(buf, 4, "IndentedType", ptr);
@@ -43,9 +39,7 @@ END_TEST
 START_TEST(test_pp_pointer_valid)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     void *ptr = (void *)0xCAFEBABE;
     ik_pp_pointer(buf, 2, "test_ptr", ptr);
@@ -61,9 +55,7 @@ END_TEST
 START_TEST(test_pp_pointer_null)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_pointer(buf, 2, "null_ptr", NULL);
 
@@ -78,9 +70,7 @@ END_TEST
 START_TEST(test_pp_size_t_values)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_size_t(buf, 0, "zero", 0);
     ik_pp_size_t(buf, 0, "small", 42);
@@ -97,9 +87,7 @@ END_TEST
 START_TEST(test_pp_int32_values)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_int32(buf, 0, "zero", 0);
     ik_pp_int32(buf, 0, "positive", 12345);
@@ -116,9 +104,7 @@ END_TEST
 START_TEST(test_pp_uint32_values)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_uint32(buf, 0, "zero", 0);
     ik_pp_uint32(buf, 0, "small", 42);
@@ -135,9 +121,7 @@ END_TEST
 START_TEST(test_pp_string_simple)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     const char *str = "Hello World";
     ik_pp_string(buf, 0, "message", str, strlen(str));
@@ -153,9 +137,7 @@ END_TEST
 START_TEST(test_pp_string_special_chars)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     const char *str = "Line1\nLine2\tTab\rReturn\\Backslash\"Quote";
     ik_pp_string(buf, 0, "special", str, strlen(str));
@@ -171,9 +153,7 @@ END_TEST
 START_TEST(test_pp_string_null)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_string(buf, 0, "null_str", NULL, 0);
 
@@ -188,9 +168,7 @@ END_TEST
 START_TEST(test_pp_string_empty)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_string(buf, 0, "empty", "", 0);
 
@@ -205,9 +183,7 @@ END_TEST
 START_TEST(test_pp_string_control_chars)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     // Control characters: NUL, BEL, DEL
     const char str[] = {0x00, 0x07, 0x7F, 'X', '\0'};
@@ -224,9 +200,7 @@ END_TEST
 START_TEST(test_pp_bool_values)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_bool(buf, 0, "flag_true", true);
     ik_pp_bool(buf, 0, "flag_false", false);
@@ -242,9 +216,7 @@ END_TEST
 START_TEST(test_indentation_consistent)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = NULL;
-    res_t res = ik_format_buffer_create(tmp_ctx, &buf);
-    ck_assert(res.ok);
+    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
     ik_pp_header(buf, 0, "Root", (void *)0x1000);
     ik_pp_size_t(buf, 2, "field1", 42);

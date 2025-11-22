@@ -34,10 +34,8 @@ static void test_layer_render(const ik_layer_t *layer,
 START_TEST(test_output_buffer_create) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_output_buffer_t *buf;
-    res_t res = ik_output_buffer_create(ctx, 100, &buf);
+    ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 100);
 
-    ck_assert(is_ok(&res));
     ck_assert(buf != NULL);
     ck_assert(buf->data != NULL);
     ck_assert_uint_eq(buf->size, 0);
@@ -49,8 +47,7 @@ END_TEST START_TEST(test_output_buffer_append_simple)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_output_buffer_t *buf;
-    ik_output_buffer_create(ctx, 100, &buf);
+    ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 100);
 
     ik_output_buffer_append(buf, "hello", 5);
     ck_assert_uint_eq(buf->size, 5);
@@ -63,8 +60,7 @@ END_TEST START_TEST(test_output_buffer_append_multiple)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_output_buffer_t *buf;
-    ik_output_buffer_create(ctx, 100, &buf);
+    ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 100);
 
     ik_output_buffer_append(buf, "hello", 5);
     ik_output_buffer_append(buf, " ", 1);
@@ -80,8 +76,7 @@ END_TEST START_TEST(test_output_buffer_append_grow)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_output_buffer_t *buf;
-    ik_output_buffer_create(ctx, 10, &buf); // Small initial capacity
+    ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 10); // Small initial capacity
 
     // Append data that exceeds initial capacity
     const char *data = "this is a long string that exceeds 10 bytes";
@@ -99,8 +94,7 @@ END_TEST START_TEST(test_output_buffer_append_empty)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_output_buffer_t *buf;
-    ik_output_buffer_create(ctx, 100, &buf);
+    ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 100);
 
     ik_output_buffer_append(buf, "anything", 0);
     ck_assert_uint_eq(buf->size, 0);
@@ -145,8 +139,7 @@ END_TEST START_TEST(test_layer_callbacks)
     ck_assert_uint_eq(height, 5);
 
     // Test render callback
-    ik_output_buffer_t *buf;
-    ik_output_buffer_create(ctx, 100, &buf);
+    ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 100);
     layer->render(layer, buf, 80, 0, 5);
     ck_assert_uint_eq(buf->size, 4);
     ck_assert_int_eq(memcmp(buf->data, "test", 4), 0);
@@ -158,8 +151,7 @@ END_TEST START_TEST(test_output_buffer_grow_1_5x)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_output_buffer_t *buf;
-    ik_output_buffer_create(ctx, 10, &buf);
+    ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 10);
 
     // Append 5 bytes (total 5, capacity 10)
     ik_output_buffer_append(buf, "hello", 5);

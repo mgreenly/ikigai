@@ -36,8 +36,7 @@ START_TEST(test_exact_user_scenario) {
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with A, B, C, D
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "A", 1);
     ck_assert(is_ok(&res));

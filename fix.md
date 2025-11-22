@@ -364,7 +364,7 @@ A function should KEEP `res_t` if:
 - ✅ Categorized into Group A (13 to simplify) and Group B (5 to keep)
 - ✅ Created `REFACTOR_ANALYSIS.md` with complete categorization and phased refactoring plan
 
-**Refactored Functions (4/13):**
+**Refactored Functions (5/13):**
 1. ✅ **ik_format_buffer_create** - src/format.c:16
    - Updated signature, implementation, and 27 call sites (1 production + 26 tests)
    - All tests passing (100%: Checks: 15, Failures: 0)
@@ -380,9 +380,13 @@ A function should KEEP `res_t` if:
    - Updated signature, implementation, and 55 call sites (1 production + 54 tests)
    - Removed test_input_parser_create_null_parser_out_asserts (no longer has parser_out parameter)
    - All tests passing (100% coverage: 3151/3151 lines, 218/218 functions, 986/986 branches)
+5. ✅ **ik_input_buffer_cursor_create** - src/input_buffer/cursor.c:15
+   - Updated signature, implementation, and 25 call sites (1 production + 24 tests)
+   - Removed test_cursor_create_null_out test (no longer has cursor_out parameter)
+   - All tests passing (100% coverage: 3161/3161 lines, 218/218 functions, 1008/1008 branches)
+   - LCOV exclusion count reduced from 683 to 681 (removed 2 assertion exclusions)
 
-**Remaining Phase 1 - Leaf Functions (2/13):**
-5. ⏳ ik_input_buffer_cursor_create - src/input_buffer/cursor.c:15
+**Remaining Phase 1 - Leaf Functions (1/13):**
 6. ⏳ ik_input_buffer_get_text - src/input_buffer/core.c:37
 
 **Remaining Phase 2 - Intermediate Functions (3/13):**

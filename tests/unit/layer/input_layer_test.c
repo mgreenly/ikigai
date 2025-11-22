@@ -112,8 +112,7 @@ END_TEST START_TEST(test_input_layer_render_empty)
     ik_layer_t *layer;
     ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len, &layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     layer->render(layer, output, 80, 0, 1);
     // Empty input produces no output
@@ -134,8 +133,7 @@ END_TEST START_TEST(test_input_layer_render_simple_text)
     ik_layer_t *layer;
     ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len, &layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     layer->render(layer, output, 80, 0, 1);
     ck_assert_uint_eq(output->size, 5);
@@ -156,8 +154,7 @@ END_TEST START_TEST(test_input_layer_render_with_newline)
     ik_layer_t *layer;
     ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len, &layer);
 
-    ik_output_buffer_t *output;
-    ik_output_buffer_create(ctx, 100, &output);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     layer->render(layer, output, 80, 0, 2);
 

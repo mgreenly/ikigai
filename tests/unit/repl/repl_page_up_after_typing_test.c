@@ -35,8 +35,7 @@ START_TEST(test_page_up_after_typing_in_input_buffer) {
     ck_assert(is_ok(&res));
 
     // Create scrollback
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     ck_assert(is_ok(&res));
 
     // Create render context
