@@ -75,13 +75,13 @@ START_TEST(test_initial_state_cursor_visible) {
 
     // Terminal: 5 rows x 80 cols
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 5;
     term->screen_cols = 80;
 
     // Create empty input buffer
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Verify input buffer has 0 physical lines
@@ -90,7 +90,6 @@ START_TEST(test_initial_state_cursor_visible) {
 
     // Create empty scrollback
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     // Create render context
     ik_render_ctx_t *render_ctx = NULL;
@@ -166,18 +165,17 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible)
 
     // Terminal: 5 rows x 80 cols
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 5;
     term->screen_cols = 80;
 
     // Create empty input buffer
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 2 lines
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "line1", 5);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "line2", 5);
@@ -243,18 +241,17 @@ START_TEST(test_scrolled_up_cursor_hidden)
 
     // Terminal: 5 rows x 80 cols
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 5;
     term->screen_cols = 80;
 
     // Create empty input buffer
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with many lines
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
     for (int i = 0; i < 10; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "line%d", i);

@@ -17,8 +17,7 @@ START_TEST(test_pp_input_buffer_empty) {
     ik_format_buffer_t *buf = NULL;
 
     /* Create empty input_buffer */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Create format buffer */
     buf = ik_format_buffer_create(ctx);
@@ -47,8 +46,8 @@ START_TEST(test_pp_input_buffer_single_line)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer and add text */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
+    res_t res;
 
     res = ik_input_buffer_insert_codepoint(input_buffer, 'H');
     ck_assert(is_ok(&res));
@@ -81,8 +80,8 @@ START_TEST(test_pp_input_buffer_multiline)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer with multi-line text */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
+    res_t res;
 
     res = ik_input_buffer_insert_codepoint(input_buffer, 'L');
     ck_assert(is_ok(&res));
@@ -121,8 +120,8 @@ START_TEST(test_pp_input_buffer_utf8)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer with UTF-8 emoji */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
+    res_t res;
 
     res = ik_input_buffer_insert_codepoint(input_buffer, 0x1F600); // 😀
     ck_assert(is_ok(&res));
@@ -152,8 +151,7 @@ START_TEST(test_pp_input_buffer_indented)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Create format buffer */
     buf = ik_format_buffer_create(ctx);
@@ -194,8 +192,8 @@ START_TEST(test_pp_input_buffer_cursor_middle)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer with text and cursor in middle */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
+    res_t res;
 
     res = ik_input_buffer_insert_codepoint(input_buffer, 'a');
     ck_assert(is_ok(&res));
@@ -235,8 +233,7 @@ START_TEST(test_pp_input_buffer_target_column)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Set target_column manually (simulating multi-line navigation) */
     input_buffer->target_column = 5;
@@ -264,8 +261,8 @@ START_TEST(test_pp_input_buffer_special_chars)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
+    res_t res;
 
     /* Manually insert text with special characters (bypassing validation) */
     /* Test: \r (carriage return) */

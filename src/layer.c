@@ -83,10 +83,9 @@ res_t ik_layer_create(TALLOC_CTX *ctx,
 }
 
 // Create layer cake
-res_t ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height, ik_layer_cake_t **cake_out)
+ik_layer_cake_t *ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height)
 {
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
-    assert(cake_out != NULL);   // LCOV_EXCL_BR_LINE
 
     ik_layer_cake_t *cake = talloc(ctx, ik_layer_cake_t);
     if (cake == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -100,8 +99,7 @@ res_t ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height, ik_layer_cak
     cake->viewport_row = 0;
     cake->viewport_height = viewport_height;
 
-    *cake_out = cake;
-    return OK(cake);
+    return cake;
 }
 
 // Add layer to cake (appends to end)

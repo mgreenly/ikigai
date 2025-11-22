@@ -46,8 +46,8 @@ START_TEST(test_repl_render_frame_with_layers_visible_input) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Add some text to the input buffer
     const char *text = "test input";
@@ -67,7 +67,6 @@ START_TEST(test_repl_render_frame_with_layers_visible_input) {
 
     // Create scrollback with just a few lines
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 40);
-    ck_assert(is_ok(&res));
 
     // Add 15 lines to scrollback (more than terminal height, to test viewport offset)
     for (int i = 0; i < 15; i++) {
@@ -87,8 +86,7 @@ START_TEST(test_repl_render_frame_with_layers_visible_input) {
     repl->viewport_offset = 0;  // No offset - input buffer will be visible
 
     // Initialize layer cake
-    res = ik_layer_cake_create(repl, (size_t)term->screen_rows, &repl->layer_cake);
-    ck_assert(is_ok(&res));
+    repl->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
 
     // Create layers
     bool separator_visible = true;
@@ -130,8 +128,8 @@ START_TEST(test_repl_render_frame_with_layers_scrolling)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Add some text to the input buffer
     const char *text = "test input";
@@ -151,7 +149,6 @@ START_TEST(test_repl_render_frame_with_layers_scrolling)
 
     // Create scrollback with many lines (more than terminal height)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 40);
-    ck_assert(is_ok(&res));
 
     // Add 10 lines to scrollback (more than 5 row terminal)
     for (int i = 0; i < 10; i++) {
@@ -171,8 +168,7 @@ START_TEST(test_repl_render_frame_with_layers_scrolling)
     repl->viewport_offset = 100;  // Set very large offset to test clamping logic
 
     // Initialize layer cake
-    res = ik_layer_cake_create(repl, (size_t)term->screen_rows, &repl->layer_cake);
-    ck_assert(is_ok(&res));
+    repl->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
 
     // Create layers
     bool separator_visible = true;
@@ -214,8 +210,8 @@ START_TEST(test_repl_render_frame_write_failure)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_render_ctx_t *render = NULL;
     res = ik_render_create(ctx, 24, 80, 1, &render);
@@ -227,7 +223,6 @@ START_TEST(test_repl_render_frame_write_failure)
     term->tty_fd = 1;
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -238,8 +233,7 @@ START_TEST(test_repl_render_frame_write_failure)
     repl->viewport_offset = 0;
 
     // Initialize layer cake
-    res = ik_layer_cake_create(repl, (size_t)term->screen_rows, &repl->layer_cake);
-    ck_assert(is_ok(&res));
+    repl->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
 
     // Create layers
     bool separator_visible = true;

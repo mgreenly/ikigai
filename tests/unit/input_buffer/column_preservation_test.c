@@ -13,7 +13,7 @@ START_TEST(test_cursor_up_down_column_preservation) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Create three lines with different lengths:
      * Line 1: "short" (5 chars)
@@ -90,7 +90,7 @@ START_TEST(test_column_preservation_resets_on_horizontal_move)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Create two lines: "short" and "this is a longer line" */
     const char *line1 = "short";
@@ -146,7 +146,7 @@ START_TEST(test_multiple_vertical_movements)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Create four lines with varying lengths:
      * "short"

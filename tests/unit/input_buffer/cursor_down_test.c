@@ -14,7 +14,7 @@ START_TEST(test_cursor_down_basic) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "line1\nline2\nline3" */
     ik_input_buffer_insert_codepoint(input_buffer, 'l');
@@ -63,7 +63,7 @@ START_TEST(test_cursor_down_from_last_line)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello\nworld" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -101,7 +101,7 @@ START_TEST(test_cursor_down_column_preservation)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abcde\nfghij" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -144,7 +144,7 @@ START_TEST(test_cursor_down_shorter_line)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abcdef\nab" (second line shorter) */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -185,7 +185,7 @@ START_TEST(test_cursor_down_empty_line)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abc\n" (second line empty) */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -221,7 +221,7 @@ START_TEST(test_cursor_down_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abc\naé中🎉" (2-byte, 3-byte, 4-byte UTF-8 in second line) */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');

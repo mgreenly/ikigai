@@ -13,7 +13,7 @@
 START_TEST(test_delete_word_backward_basic) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     /* Insert "hello world test" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
     ik_input_buffer_insert_codepoint(input_buffer, 'e');
@@ -59,7 +59,7 @@ START_TEST(test_delete_word_backward_at_word_boundary)
 {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     /* Insert "hello world" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
     ik_input_buffer_insert_codepoint(input_buffer, 'e');
@@ -103,7 +103,7 @@ START_TEST(test_delete_word_backward_multiple_spaces)
 {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     /* Insert "hello   world" (3 spaces) */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
     ik_input_buffer_insert_codepoint(input_buffer, 'e');
@@ -147,7 +147,7 @@ START_TEST(test_delete_word_backward_punctuation)
 {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     /* Insert "hello,world" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
     ik_input_buffer_insert_codepoint(input_buffer, 'e');
@@ -189,7 +189,7 @@ START_TEST(test_delete_word_backward_utf8)
 {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     /* Insert "hello 世界" (world in Chinese) */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
     ik_input_buffer_insert_codepoint(input_buffer, 'e');
@@ -228,7 +228,7 @@ START_TEST(test_delete_word_backward_at_start)
 {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     /* Insert "hello" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
     ik_input_buffer_insert_codepoint(input_buffer, 'e');

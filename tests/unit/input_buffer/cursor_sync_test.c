@@ -15,13 +15,12 @@ START_TEST(test_cursor_initialized) {
     ik_input_buffer_t *input_buffer = NULL;
 
     /* Create input_buffer */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Verify cursor at position 0,0 */
     size_t byte_offset = 999;
     size_t grapheme_offset = 999;
-    res = ik_input_buffer_get_cursor_position(input_buffer, &byte_offset, &grapheme_offset);
+    res_t res = ik_input_buffer_get_cursor_position(input_buffer, &byte_offset, &grapheme_offset);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(byte_offset, 0);
     ck_assert_uint_eq(grapheme_offset, 0);
@@ -35,7 +34,7 @@ START_TEST(test_cursor_after_insert_ascii)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert 'a' */
     res_t res = ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -69,7 +68,7 @@ START_TEST(test_cursor_after_insert_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert 'a' */
     res_t res = ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -107,7 +106,7 @@ START_TEST(test_cursor_after_newline)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hi" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -135,7 +134,7 @@ START_TEST(test_cursor_after_backspace)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abc" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -164,7 +163,7 @@ START_TEST(test_cursor_after_backspace_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "a" + é (2 bytes) */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -192,7 +191,7 @@ START_TEST(test_cursor_after_delete)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abc" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -227,7 +226,7 @@ START_TEST(test_cursor_after_clear)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');

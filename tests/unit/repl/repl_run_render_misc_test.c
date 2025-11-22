@@ -11,8 +11,8 @@ START_TEST(test_repl_run_initial_render_error) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
@@ -27,7 +27,6 @@ START_TEST(test_repl_run_initial_render_error) {
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -56,13 +55,13 @@ START_TEST(test_repl_run_render_error_in_loop)
 {
     void *ctx = talloc_new(NULL);
 
+    res_t res;
     mock_write_should_fail = false;
     mock_write_fail_after = 1;
     mock_write_count = 0;
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
@@ -77,7 +76,6 @@ START_TEST(test_repl_run_render_error_in_loop)
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -109,8 +107,8 @@ START_TEST(test_repl_run_spinner_render_error)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
@@ -125,7 +123,6 @@ START_TEST(test_repl_run_spinner_render_error)
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -181,8 +178,8 @@ START_TEST(test_repl_run_spinner_timeout_success)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
@@ -197,7 +194,6 @@ START_TEST(test_repl_run_spinner_timeout_success)
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -253,8 +249,8 @@ START_TEST(test_repl_process_action_invalid_codepoint)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
@@ -269,7 +265,6 @@ START_TEST(test_repl_process_action_invalid_codepoint)
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -301,8 +296,8 @@ START_TEST(test_handle_terminal_input_success)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
@@ -317,7 +312,6 @@ START_TEST(test_handle_terminal_input_success)
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);

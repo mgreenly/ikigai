@@ -35,10 +35,9 @@ typedef struct ik_input_buffer_t {
  * @brief Create a new input buffer
  *
  * @param parent Talloc parent context
- * @param input_buffer_out Pointer to receive allocated input buffer
- * @return RES_OK on success, RES_ERR on failure
+ * @return Pointer to new input buffer (never NULL - PANICs on OOM)
  */
-res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out);
+ik_input_buffer_t *ik_input_buffer_create(void *parent);
 
 /**
  * @brief Get the text buffer contents

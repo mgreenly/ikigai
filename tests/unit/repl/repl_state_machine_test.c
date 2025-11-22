@@ -26,10 +26,10 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
 // Helper function to create a minimal REPL context for testing
 static ik_repl_ctx_t *create_test_repl(void *ctx)
 {
+    res_t res;
+
     // Create input buffer
-    ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create render context
     ik_render_ctx_t *render = NULL;
@@ -43,12 +43,10 @@ static ik_repl_ctx_t *create_test_repl(void *ctx)
 
     // Create scrollback
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     // Create layer cake and layers (minimal setup for render_frame)
     ik_layer_cake_t *layer_cake = NULL;
-    res = ik_layer_cake_create(ctx, 24, &layer_cake);
-    ck_assert(is_ok(&res));
+    layer_cake = ik_layer_cake_create(ctx, 24);
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);

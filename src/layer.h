@@ -61,7 +61,8 @@ typedef struct {
 } ik_layer_cake_t;
 
 // Create layer cake
-res_t ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height, ik_layer_cake_t **cake_out);
+// Returns newly allocated layer cake (never returns NULL - PANICs on OOM)
+ik_layer_cake_t *ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height);
 
 // Add layer to cake (appends to end)
 res_t ik_layer_cake_add_layer(ik_layer_cake_t *cake, ik_layer_t *layer);

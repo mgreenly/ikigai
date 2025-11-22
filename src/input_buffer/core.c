@@ -11,10 +11,8 @@
 #include <stdbool.h>
 #include <talloc.h>
 
-res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out)
+ik_input_buffer_t *ik_input_buffer_create(void *parent)
 {
-    assert(input_buffer_out != NULL); /* LCOV_EXCL_BR_LINE */
-
     ik_input_buffer_t *input_buffer = talloc_zero_(parent, sizeof(ik_input_buffer_t));
     if (input_buffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
@@ -29,8 +27,7 @@ res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out)
     input_buffer->physical_lines = 0;
     input_buffer->cached_width = 0;
     input_buffer->layout_dirty = 1;  /* Layout needs initial calculation */
-    *input_buffer_out = input_buffer;
-    return OK(input_buffer);
+    return input_buffer;
 }
 
 const char *ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, size_t *len_out)

@@ -30,7 +30,6 @@ START_TEST(test_debug_pipe_enabled) {
 
     // Create scrollback
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     // Enable debug output
     bool debug_enabled = true;
@@ -99,7 +98,6 @@ START_TEST(test_debug_pipe_disabled)
 
     // Create scrollback
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     // Debug is disabled
     bool debug_enabled = false;

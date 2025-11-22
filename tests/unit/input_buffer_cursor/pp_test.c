@@ -16,14 +16,12 @@ static void insert_text(ik_input_buffer_t *input_buffer, const char *text)
 // Test: ik_pp_input_buffer_cursor with cursor at start
 START_TEST(test_pp_cursor_at_start) {
     void *tmp_ctx = talloc_new(NULL);
-    ik_input_buffer_t *input_buffer = NULL;
-    res_t res = ik_input_buffer_create(tmp_ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    ik_input_buffer_t *input_buffer = ik_input_buffer_create(tmp_ctx);
 
     insert_text(input_buffer, "Hello World");
 
     // Move cursor to start
-    res = ik_input_buffer_cursor_to_line_start(input_buffer);
+    res_t res = ik_input_buffer_cursor_to_line_start(input_buffer);
     ck_assert(is_ok(&res));
 
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
@@ -42,14 +40,12 @@ END_TEST
 START_TEST(test_pp_cursor_in_middle)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_input_buffer_t *input_buffer = NULL;
-    res_t res = ik_input_buffer_create(tmp_ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    ik_input_buffer_t *input_buffer = ik_input_buffer_create(tmp_ctx);
 
     insert_text(input_buffer, "Hello World");
 
     // Move cursor to start, then right 5 times (after "Hello")
-    res = ik_input_buffer_cursor_to_line_start(input_buffer);
+    res_t res = ik_input_buffer_cursor_to_line_start(input_buffer);
     ck_assert(is_ok(&res));
     for (int32_t i = 0; i < 5; i++) {
         res = ik_input_buffer_cursor_right(input_buffer);
@@ -73,8 +69,7 @@ START_TEST(test_pp_cursor_with_indent)
 {
     void *tmp_ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
-    res_t res = ik_input_buffer_create(tmp_ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(tmp_ctx);
 
     insert_text(input_buffer, "Test");
 
@@ -96,13 +91,11 @@ END_TEST
 START_TEST(test_pp_cursor_utf8)
 {
     void *tmp_ctx = talloc_new(NULL);
-    ik_input_buffer_t *input_buffer = NULL;
-    res_t res = ik_input_buffer_create(tmp_ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    ik_input_buffer_t *input_buffer = ik_input_buffer_create(tmp_ctx);
 
     // Insert emoji (4 bytes, 1 grapheme)
     insert_text(input_buffer, "Hello ");
-    res = ik_input_buffer_insert_codepoint(input_buffer, 0x1F600); // 😀
+    res_t res = ik_input_buffer_insert_codepoint(input_buffer, 0x1F600); // 😀
     ck_assert(is_ok(&res));
     insert_text(input_buffer, " World");
 

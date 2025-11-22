@@ -47,10 +47,8 @@ static void render_simple(const ik_layer_t *layer,
 START_TEST(test_layer_cake_create) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_layer_cake_t *cake;
-    res_t res = ik_layer_cake_create(ctx, 24, &cake);
+    ik_layer_cake_t *cake = ik_layer_cake_create(ctx, 24);
 
-    ck_assert(is_ok(&res));
     ck_assert(cake != NULL);
     ck_assert(cake->layers != NULL);
     ck_assert_uint_eq(cake->layer_count, 0);
@@ -65,7 +63,7 @@ END_TEST START_TEST(test_layer_cake_add_layer_single)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 24, &cake);
+    cake = ik_layer_cake_create(ctx, 24);
 
     ik_layer_t *layer;
     ik_layer_create(cake, "test", NULL, always_visible, fixed_height_5, render_simple, &layer);
@@ -83,7 +81,7 @@ END_TEST START_TEST(test_layer_cake_add_layer_multiple)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 24, &cake);
+    cake = ik_layer_cake_create(ctx, 24);
 
     ik_layer_t *layer1, *layer2;
     ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple, &layer1);
@@ -104,7 +102,7 @@ END_TEST START_TEST(test_layer_cake_add_layer_grows_array)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 24, &cake);
+    cake = ik_layer_cake_create(ctx, 24);
 
     // Add more layers than initial capacity to force growth
     for (size_t i = 0; i < 10; i++) {
@@ -124,7 +122,7 @@ END_TEST START_TEST(test_layer_cake_get_total_height_all_visible)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 24, &cake);
+    cake = ik_layer_cake_create(ctx, 24);
 
     ik_layer_t *layer1, *layer2;
     ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple, &layer1);
@@ -144,7 +142,7 @@ END_TEST START_TEST(test_layer_cake_get_total_height_some_invisible)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 24, &cake);
+    cake = ik_layer_cake_create(ctx, 24);
 
     ik_layer_t *layer1, *layer2, *layer3;
     ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple, &layer1);
@@ -166,7 +164,7 @@ END_TEST START_TEST(test_layer_cake_get_total_height_empty)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 24, &cake);
+    cake = ik_layer_cake_create(ctx, 24);
 
     size_t total = ik_layer_cake_get_total_height(cake, 80);
     ck_assert_uint_eq(total, 0);
@@ -179,7 +177,7 @@ END_TEST START_TEST(test_layer_cake_render_simple)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 24, &cake);
+    cake = ik_layer_cake_create(ctx, 24);
 
     ik_layer_t *layer;
     ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_5, render_simple, &layer);
@@ -199,7 +197,7 @@ END_TEST START_TEST(test_layer_cake_render_multiple_layers)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 24, &cake);
+    cake = ik_layer_cake_create(ctx, 24);
 
     ik_layer_t *layer1, *layer2;
     ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple, &layer1);
@@ -221,7 +219,7 @@ END_TEST START_TEST(test_layer_cake_render_skips_invisible)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 24, &cake);
+    cake = ik_layer_cake_create(ctx, 24);
 
     ik_layer_t *layer1, *layer2;
     ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple, &layer1);
@@ -243,7 +241,7 @@ END_TEST START_TEST(test_layer_cake_render_viewport_clipping_top)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 10, &cake); // Small viewport
+    cake = ik_layer_cake_create(ctx, 10); // Small viewport
     cake->viewport_row = 3;                // Start viewport at row 3
 
     ik_layer_t *layer;
@@ -262,7 +260,7 @@ END_TEST START_TEST(test_layer_cake_render_viewport_clipping_bottom)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 5, &cake); // Small viewport
+    cake = ik_layer_cake_create(ctx, 5); // Small viewport
 
     ik_layer_t *layer;
     ik_layer_create(cake, "layer", NULL, always_visible, fixed_height_10, render_simple, &layer);
@@ -280,7 +278,7 @@ END_TEST START_TEST(test_layer_cake_render_early_exit)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 5, &cake); // Small viewport
+    cake = ik_layer_cake_create(ctx, 5); // Small viewport
 
     // Add multiple layers, but viewport can only show first layer
     ik_layer_t *layer1, *layer2;
@@ -301,7 +299,7 @@ END_TEST START_TEST(test_layer_cake_render_layer_outside_viewport)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 5, &cake); // Viewport: rows 0-4
+    cake = ik_layer_cake_create(ctx, 5); // Viewport: rows 0-4
     cake->viewport_row = 20;               // Viewport at rows 20-24
 
     // Layer at rows 0-9 (completely before viewport)
@@ -322,7 +320,7 @@ END_TEST START_TEST(test_layer_cake_render_layer_after_viewport)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 5, &cake); // Viewport: rows 0-4
+    cake = ik_layer_cake_create(ctx, 5); // Viewport: rows 0-4
 
     // Add a layer at rows 10-19 (completely after viewport)
     ik_layer_t *layer1;
@@ -347,7 +345,7 @@ END_TEST START_TEST(test_layer_cake_render_layer_ends_at_viewport_start)
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
-    ik_layer_cake_create(ctx, 5, &cake);
+    cake = ik_layer_cake_create(ctx, 5);
     cake->viewport_row = 10; // Viewport at rows 10-14
 
     // Layer at rows 0-9, ends exactly at viewport start

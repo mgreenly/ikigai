@@ -16,8 +16,8 @@ START_TEST(test_repl_process_action_ctrl_a) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert "hello\nworld" and position cursor at end
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -76,8 +76,8 @@ START_TEST(test_repl_process_action_ctrl_e)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert "hello\nworld"
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -141,8 +141,8 @@ START_TEST(test_repl_process_action_ctrl_k)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert "hello\nworld\ntest"
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -223,8 +223,8 @@ START_TEST(test_repl_process_action_ctrl_u)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert "hello\nworld\ntest"
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -303,8 +303,8 @@ START_TEST(test_repl_process_action_ctrl_w)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert "hello world test"
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');

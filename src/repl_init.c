@@ -40,8 +40,7 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
     }
 
     // Initialize input buffer
-    result = ik_input_buffer_create(repl, &repl->input_buffer);
-    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+    repl->input_buffer = ik_input_buffer_create(repl);
 
     // Initialize input parser
     repl->input_parser = ik_input_parser_create(repl);
@@ -65,8 +64,7 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
     repl->input_text_len = 0;
 
     // Create layer cake
-    result = ik_layer_cake_create(repl, (size_t)repl->term->screen_rows, &repl->layer_cake);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    repl->layer_cake = ik_layer_cake_create(repl, (size_t)repl->term->screen_rows);
 
     // Create scrollback layer
     result = ik_scrollback_layer_create(repl, "scrollback", repl->scrollback, &repl->scrollback_layer);

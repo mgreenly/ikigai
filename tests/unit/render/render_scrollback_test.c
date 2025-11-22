@@ -47,7 +47,6 @@ START_TEST(test_render_empty_scrollback) {
 
     // Create empty scrollback
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     // Reset mock state
     mock_write_calls = 0;
@@ -77,7 +76,6 @@ START_TEST(test_render_single_line)
 
     // Create scrollback with one line
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "Hello, world!", 13);
     ck_assert(is_ok(&res));
 
@@ -113,7 +111,6 @@ START_TEST(test_render_multiple_lines)
 
     // Create scrollback with 3 lines
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "Line 2", 6);
@@ -152,7 +149,6 @@ START_TEST(test_render_partial_scrollback)
 
     // Create scrollback with 5 lines
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
     for (int32_t i = 0; i < 5; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "Line %" PRId32, i);
@@ -193,7 +189,6 @@ START_TEST(test_render_invalid_start_line)
 
     // Create scrollback with 3 lines
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "Line 2", 6);
@@ -222,7 +217,6 @@ START_TEST(test_render_line_count_clamping)
 
     // Create scrollback with 3 lines
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "Line 2", 6);
@@ -260,7 +254,6 @@ START_TEST(test_render_with_newlines)
 
     // Create scrollback with line containing newlines
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "Line\nwith\nnewlines", 17);
     ck_assert(is_ok(&res));
 
@@ -295,7 +288,6 @@ START_TEST(test_render_write_failure)
 
     // Create scrollback with a line
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "Test line", 9);
     ck_assert(is_ok(&res));
 

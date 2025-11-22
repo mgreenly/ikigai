@@ -14,7 +14,7 @@ START_TEST(test_cursor_up_basic) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "line1\nline2\nline3" */
     ik_input_buffer_insert_codepoint(input_buffer, 'l');
@@ -69,7 +69,7 @@ START_TEST(test_cursor_up_from_first_line)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello\nworld" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -112,7 +112,7 @@ START_TEST(test_cursor_up_column_preservation)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abcde\nfghij" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -155,7 +155,7 @@ START_TEST(test_cursor_up_shorter_line)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "ab\nabcdef" (first line shorter) */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -196,7 +196,7 @@ START_TEST(test_cursor_up_empty_line)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "\nabc" (first line empty) */
     ik_input_buffer_insert_newline(input_buffer);
@@ -232,7 +232,7 @@ START_TEST(test_cursor_up_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "aé中🎉\ndefg" (2-byte, 3-byte, 4-byte UTF-8) */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');          // 1 byte

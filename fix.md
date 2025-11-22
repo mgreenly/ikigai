@@ -364,7 +364,7 @@ A function should KEEP `res_t` if:
 - ✅ Categorized into Group A (13 to simplify) and Group B (5 to keep)
 - ✅ Created `REFACTOR_ANALYSIS.md` with complete categorization and phased refactoring plan
 
-**Refactored Functions (6/13):**
+**Refactored Functions (7/13):**
 1. ✅ **ik_format_buffer_create** - src/format.c:16
    - Updated signature, implementation, and 27 call sites (1 production + 26 tests)
    - All tests passing (100%: Checks: 15, Failures: 0)
@@ -393,12 +393,27 @@ A function should KEEP `res_t` if:
    - All tests passing (100% coverage: 3158/3158 lines, 218/218 functions, 1008/1008 branches)
    - LCOV exclusion count reduced from 681 to 680 (removed 1 assertion exclusion)
    - Returns pointer directly instead of using output parameter - cleaner getter semantics
+7. ✅ **ik_input_buffer_create** - src/input_buffer/core.c:14
+   - Changed from `res_t ik_input_buffer_create(void *parent, ik_input_buffer_t **input_buffer_out)`
+     to `ik_input_buffer_t *ik_input_buffer_create(void *parent)`
+   - Updated signature, implementation, and 90+ call sites (1 production + 80+ tests)
+   - Removed test_create_null_input_buffer_out_asserts test (input_buffer_out parameter no longer exists)
+   - All tests passing (62 test suites, 597+ checks, 0 failures)
+   - LCOV exclusion count reduced from 680 to 678 (removed 2 assertion exclusions)
+   - Returns pointer directly - simpler API for allocation-only functions
 
 **Phase 1 Complete! All leaf functions refactored (6/6)**
 
-**Remaining Phase 2 - Intermediate Functions (3/7):**
-7. ⏳ ik_input_buffer_create - src/input_buffer/core.c:14
-8. ⏳ ik_layer_cake_create - src/layer.c:88
+**Phase 2 - Intermediate Functions (2/3 complete):**
+7. ✅ ik_input_buffer_create - src/input_buffer/core.c:14
+8. ✅ **ik_layer_cake_create** - src/layer.c:86
+   - Changed from `res_t ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height, ik_layer_cake_t **cake_out)`
+     to `ik_layer_cake_t *ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height)`
+   - Updated signature, implementation, and 10 call sites (1 production + 9 tests)
+   - Updated files: layer.h, layer.c, repl_init.c, cake_test.c, repl_state_machine_test.c, repl_llm_submission_test.c, repl_streaming_test_common.c, repl_render_layers_test.c
+   - All tests passing (62 test suites, 597+ checks, 0 failures)
+   - LCOV exclusion count reduced from 678 to 677 (removed 1 assertion exclusion)
+   - Returns pointer directly - consistent with ik_input_buffer_create pattern
 9. ⏳ ik_layer_create - src/layer.c:59
 
 **Remaining Phase 3 - Wrapper Functions (4/7):**

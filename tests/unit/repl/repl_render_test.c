@@ -47,8 +47,8 @@ START_TEST(test_repl_render_frame_empty_input_buffer) {
 
     // Manually construct REPL context components
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_render_ctx_t *render = NULL;
     res = ik_render_create(ctx, 24, 80, 1, &render);  // Mock terminal: 24x80, fd=1
@@ -61,7 +61,6 @@ START_TEST(test_repl_render_frame_empty_input_buffer) {
 
     // Create scrollback (required by ik_repl_render_frame)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     // Create minimal REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -94,8 +93,8 @@ START_TEST(test_repl_render_frame_multiline)
 
     // Manually construct REPL context components
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert multi-line text
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -120,7 +119,6 @@ START_TEST(test_repl_render_frame_multiline)
     term->screen_cols = 80;
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -148,8 +146,8 @@ START_TEST(test_repl_render_frame_cursor_positions)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert text: "hello"
     const char *text = "hello";
@@ -167,7 +165,6 @@ START_TEST(test_repl_render_frame_cursor_positions)
     term->screen_cols = 80;
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -221,8 +218,8 @@ START_TEST(test_repl_render_frame_utf8)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert UTF-8 emoji
     res = ik_input_buffer_insert_codepoint(input_buf, 0x1F600);  // 😀
@@ -237,7 +234,6 @@ START_TEST(test_repl_render_frame_utf8)
     term->screen_cols = 80;
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);

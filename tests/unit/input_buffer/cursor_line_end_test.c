@@ -14,7 +14,7 @@ START_TEST(test_cursor_to_line_end_basic) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello\nworld" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -64,7 +64,7 @@ START_TEST(test_cursor_to_line_end_last_line)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello" (single line) */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -104,7 +104,7 @@ START_TEST(test_cursor_to_line_end_already_at_end)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello\nworld" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -146,7 +146,7 @@ START_TEST(test_cursor_to_line_end_before_newline)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello\nworld\ntest" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');

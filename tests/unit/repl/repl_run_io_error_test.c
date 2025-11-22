@@ -12,8 +12,8 @@ START_TEST(test_repl_run_read_error_eintr) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
@@ -28,7 +28,6 @@ START_TEST(test_repl_run_read_error_eintr) {
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -63,8 +62,8 @@ START_TEST(test_repl_run_read_error_other)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
@@ -79,7 +78,6 @@ START_TEST(test_repl_run_read_error_other)
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -114,8 +112,8 @@ START_TEST(test_repl_run_select_error_eintr)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
@@ -130,7 +128,6 @@ START_TEST(test_repl_run_select_error_eintr)
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -169,8 +166,8 @@ START_TEST(test_repl_run_select_error_other)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
@@ -185,7 +182,6 @@ START_TEST(test_repl_run_select_error_other)
     ck_assert(is_ok(&res));
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);

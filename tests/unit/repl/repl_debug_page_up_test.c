@@ -20,18 +20,17 @@ START_TEST(test_page_up_with_4_lines) {
 
     // Terminal: 5 rows x 80 cols
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 5;
     term->screen_cols = 80;
     term->tty_fd = 1;
 
     // Create empty input buffer (1 empty line)
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
 
     // Create scrollback with A, B, C, D
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "A", 1);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "B", 1);

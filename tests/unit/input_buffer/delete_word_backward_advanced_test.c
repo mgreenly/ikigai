@@ -13,7 +13,7 @@
 START_TEST(test_delete_word_backward_mixed_case_digits) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     /* Insert "Test123 ABC456" */
     ik_input_buffer_insert_codepoint(input_buffer, 'T');
     ik_input_buffer_insert_codepoint(input_buffer, 'e');
@@ -58,7 +58,7 @@ START_TEST(test_delete_word_backward_only_punctuation)
 {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     /* Insert "..." (only punctuation) */
     ik_input_buffer_insert_codepoint(input_buffer, '.');
     ik_input_buffer_insert_codepoint(input_buffer, '.');
@@ -91,7 +91,7 @@ START_TEST(test_delete_word_backward_punctuation_boundaries)
 {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     /* Insert "hello-world_test.txt" */
     const char *input = "hello-world_test.txt";
     for (size_t i = 0; input[i] != '\0'; i++) {
@@ -127,7 +127,7 @@ START_TEST(test_delete_word_backward_whitespace_variants)
     ik_input_buffer_t *input_buffer = NULL;
 
     /* Test tab whitespace: "hello\tworld" → Ctrl+W → "hello\t" */
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     const char *tab_input = "hello\tworld";
     for (size_t i = 0; tab_input[i] != '\0'; i++) {
         ik_input_buffer_insert_codepoint(input_buffer, (uint32_t)(unsigned char)tab_input[i]);
@@ -141,7 +141,7 @@ START_TEST(test_delete_word_backward_whitespace_variants)
     talloc_free(input_buffer);
 
     /* Test CR whitespace: "a\rb" → Ctrl+W → "a\r" */
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
     ik_input_buffer_insert_codepoint(input_buffer, '\r');
     ik_input_buffer_insert_codepoint(input_buffer, 'b');
@@ -153,7 +153,7 @@ START_TEST(test_delete_word_backward_whitespace_variants)
     talloc_free(input_buffer);
 
     /* Test newline whitespace: "a\nb" → Ctrl+W → "a\n" */
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
     ik_input_buffer_insert_codepoint(input_buffer, '\n');
     ik_input_buffer_insert_codepoint(input_buffer, 'b');
@@ -165,7 +165,7 @@ START_TEST(test_delete_word_backward_whitespace_variants)
     talloc_free(input_buffer);
 
     /* Test whitespace-only: "   " → Ctrl+W → "" */
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     for (int32_t i = 0; i < 3; i++) {
         ik_input_buffer_insert_codepoint(input_buffer, ' ');
     }

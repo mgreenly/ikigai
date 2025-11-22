@@ -14,7 +14,7 @@ START_TEST(test_insert_ascii) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert 'a' */
     res_t res = ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -51,7 +51,7 @@ START_TEST(test_insert_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert é (U+00E9) - 2-byte UTF-8 sequence */
     res_t res = ik_input_buffer_insert_codepoint(input_buffer, 0x00E9);
@@ -88,7 +88,7 @@ START_TEST(test_insert_utf8_3byte)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert ☃ (U+2603) - 3-byte UTF-8 sequence */
     res_t res = ik_input_buffer_insert_codepoint(input_buffer, 0x2603);
@@ -113,7 +113,7 @@ START_TEST(test_insert_middle)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "ab" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -145,7 +145,7 @@ START_TEST(test_insert_invalid_codepoint)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Try to insert codepoint > U+10FFFF (invalid) */
     res_t res = ik_input_buffer_insert_codepoint(input_buffer, 0x110000);
@@ -169,7 +169,7 @@ START_TEST(test_insert_newline)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');

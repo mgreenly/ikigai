@@ -14,7 +14,7 @@ START_TEST(test_backspace_ascii) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abc" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -44,7 +44,7 @@ START_TEST(test_backspace_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "a" + é (2 bytes) + "b" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -86,7 +86,7 @@ START_TEST(test_backspace_emoji)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert 🎉 (4 bytes: F0 9F 8E 89) */
     ik_input_buffer_insert_codepoint(input_buffer, 0x1F389);
@@ -116,7 +116,7 @@ START_TEST(test_backspace_at_start)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Cursor is at start (position 0) */
     ck_assert_uint_eq(input_buffer->cursor_byte_offset, 0);
@@ -141,7 +141,7 @@ START_TEST(test_delete_ascii)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abc" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -174,7 +174,7 @@ START_TEST(test_delete_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "a" + é (2 bytes) + "b" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -207,7 +207,7 @@ START_TEST(test_delete_utf8_3byte)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "a" + ☃ (3 bytes) + "b" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -240,7 +240,7 @@ START_TEST(test_delete_emoji)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert 🎉 (4 bytes: F0 9F 8E 89) */
     ik_input_buffer_insert_codepoint(input_buffer, 0x1F389);
@@ -270,7 +270,7 @@ START_TEST(test_delete_at_end)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abc" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
