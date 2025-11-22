@@ -207,7 +207,6 @@ START_TEST(test_http_callback_with_sse_streaming) {
 }
 
 END_TEST
-
 /*
  * Test: Empty response through callback
  */
@@ -248,7 +247,6 @@ START_TEST(test_http_callback_empty_response)
 }
 
 END_TEST
-
 /*
  * Test: Callback error handling - SSE parser feed failure
  */
@@ -292,7 +290,6 @@ START_TEST(test_http_callback_sse_parser_feed_error)
 }
 
 END_TEST
-
 /*
  * Test: Callback error handling - SSE event parse failure
  */
@@ -404,7 +401,6 @@ START_TEST(test_http_callback_user_success) {
 }
 
 END_TEST
-
 /*
  * Test: User callback returns error
  */

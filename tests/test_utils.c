@@ -1,6 +1,9 @@
 #include "test_utils.h"
 #include <talloc.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 // ========== Allocator Wrapper Overrides ==========
 // Strong symbols that override the weak symbols in src/wrapper.c
@@ -51,4 +54,38 @@ ik_cfg_t *ik_test_create_config(TALLOC_CTX *ctx)
     cfg->listen_port = 8080;
 
     return cfg;
+}
+
+// ========== File I/O Helpers ==========
+
+char *load_file_to_string(TALLOC_CTX *ctx, const char *path)
+{
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        return NULL;
+    }
+
+    // Get file size
+    struct stat st;
+    if (fstat(fileno(f), &st) != 0) {
+        fclose(f);
+        return NULL;
+    }
+
+    size_t size = (size_t)st.st_size;
+
+    // Allocate buffer (talloc panics on OOM)
+    char *buffer = talloc_zero_size(ctx, size + 1);
+
+    // Read file
+    size_t bytes_read = fread(buffer, 1, size, f);
+    fclose(f);
+
+    if (bytes_read != size) {
+        talloc_free(buffer);
+        return NULL;
+    }
+
+    buffer[size] = '\0';
+    return buffer;
 }

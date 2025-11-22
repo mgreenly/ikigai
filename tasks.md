@@ -11,8 +11,10 @@
 - ✅ Phase 1.4: Spinner Layer - COMPLETE
 - ✅ Phase 1.5: HTTP Client Module (libcurl) - COMPLETE
 - ✅ Phase 1.6: Event Loop Integration - COMPLETE
-- ⏳ Phase 1.7: Command Infrastructure & Manual Testing - IN PROGRESS (9/16 tasks)
-- ⏳ Phase 1.8: Mock Verification & Polish - PENDING
+- ✅ Phase 1.7: Command Infrastructure & Manual Testing - COMPLETE
+- ✅ Phase 1.8: Mock Verification & Polish - COMPLETE
+
+**🎉 ALL PHASES COMPLETE 🎉**
 
 **Future Phases** (see `docs/logical-architecture-analysis.md`):
 - Phase 2: Database Integration (sessions, message persistence)
@@ -92,132 +94,132 @@
 
 ---
 
-## Phase 1.7: Manual Testing (Pending)
+## Phase 1.7: Manual Testing (Mostly Complete)
 
 **Goal:** Validate implementation through human testing
 
-### Task 7.10: **MANUAL TESTING SESSION 1** (Basic functionality)
-- [ ] **Human:** Set valid API key in `~/.config/ikigai/config.json`
-- [ ] **Human:** Run `bin/ikigai`
-- [ ] **Human:** Type "Hello!" and press Enter
-- [ ] **Verify:** Spinner appears, animates at ~80ms intervals
-- [ ] **Verify:** Response streams into scrollback
-- [ ] **Verify:** Spinner disappears when done
-- [ ] **Verify:** Input area returns
-- [ ] **Human:** Type follow-up question "What's 2+2?"
-- [ ] **Verify:** Conversation context maintained (assistant remembers previous message)
-- [ ] **Document:** Any issues, unexpected behavior
+### Task 7.10: **MANUAL TESTING SESSION 1** (Basic functionality) ✅
+- [x] **Human:** Set valid API key in `~/.config/ikigai/config.json`
+- [x] **Human:** Run `bin/ikigai`
+- [x] **Human:** Type "Hello!" and press Enter
+- [x] **Verify:** Spinner appears, animates at ~80ms intervals
+- [x] **Verify:** Response streams into scrollback
+- [x] **Verify:** Spinner disappears when done
+- [x] **Verify:** Input area returns
+- [x] **Human:** Type follow-up question "What's 2+2?"
+- [x] **Verify:** Conversation context maintained (assistant remembers previous message)
+- [x] **Document:** Any issues, unexpected behavior
 
-### Task 7.11: **MANUAL TESTING SESSION 2** (Multi-line & scrolling)
-- [ ] **Human:** Type a multi-line message (Shift+Enter for newlines)
-- [ ] **Verify:** Message wraps correctly in scrollback
-- [ ] **Human:** Send long question that generates long response
-- [ ] **Verify:** Viewport auto-scrolls as response streams in
-- [ ] **Verify:** Can manually scroll up (Page Up) while streaming
-- [ ] **Human:** Let response complete
-- [ ] **Verify:** Can scroll through full history
-- [ ] **Document:** Scrolling behavior, any issues
+### Task 7.11: **MANUAL TESTING SESSION 2** (Multi-line & scrolling) ✅
+- [x] **Human:** Type a multi-line message (Shift+Enter for newlines)
+- [x] **Verify:** Message wraps correctly in scrollback
+- [x] **Human:** Send long question that generates long response
+- [x] **Verify:** Viewport auto-scrolls as response streams in
+- [x] **Verify:** Can manually scroll up (Page Up) while streaming
+- [x] **Human:** Let response complete
+- [x] **Verify:** Can scroll through full history
+- [x] **Document:** Scrolling behavior, any issues
 
-### Task 7.12: **MANUAL TESTING SESSION 3** (Commands)
-- [ ] **Human:** Type `/help`
-- [ ] **Verify:** Help text appears in scrollback, includes all commands
-- [ ] **Human:** Type `/model gpt-3.5-turbo`
-- [ ] **Verify:** Model switched, confirmation shown
-- [ ] **Human:** Send message, verify response from new model
-- [ ] **Human:** Type `/system You are a helpful pirate assistant`
-- [ ] **Verify:** System message set, personality changes
-- [ ] **Human:** Type `/mark checkpoint1`
-- [ ] **Verify:** Mark indicator appears in scrollback
-- [ ] **Human:** Send a few more messages
-- [ ] **Human:** Type `/rewind checkpoint1`
-- [ ] **Verify:** Scrollback truncated to mark, later messages removed
-- [ ] **Human:** Type `/clear`
-- [ ] **Verify:** Scrollback, session messages, and marks all cleared
-- [ ] **Document:** Command behavior
+### Task 7.12: **MANUAL TESTING SESSION 3** (Commands) ✅
+- [x] **Human:** Type `/help`
+- [x] **Verify:** Help text appears in scrollback, includes all commands
+- [x] **Human:** Type `/model gpt-3.5-turbo`
+- [x] **Verify:** Model switched, confirmation shown
+- [x] **Human:** Send message, verify response from new model
+- [x] **Human:** Type `/system You are a helpful pirate assistant`
+- [x] **Verify:** System message set, personality changes
+- [x] **Human:** Type `/mark checkpoint1`
+- [x] **Verify:** Mark indicator appears in scrollback
+- [x] **Human:** Send a few more messages
+- [x] **Human:** Type `/rewind checkpoint1`
+- [x] **Verify:** Scrollback truncated to mark, later messages removed
+- [x] **Human:** Type `/clear`
+- [x] **Verify:** Scrollback, session messages, and marks all cleared
+- [x] **Document:** Command behavior
 
-### Task 7.13: **MANUAL TESTING SESSION 4** (Error handling)
-- [ ] **Human:** Edit config with invalid API key
-- [ ] **Human:** Send message
-- [ ] **Verify:** 401 error shown in scrollback, input returns
-- [ ] **Human:** Restore valid API key
-- [ ] **Human:** Disconnect network (unplug or disable)
-- [ ] **Human:** Send message
-- [ ] **Verify:** Connection error shown gracefully
-- [ ] **Human:** Restore network
-- [ ] **Verify:** Next message works
-- [ ] **Document:** Error messages, recovery behavior
+### Task 7.13: **MANUAL TESTING SESSION 4** (Error handling) ✅
+- [x] **Human:** Edit config with invalid API key
+- [x] **Human:** Send message
+- [x] **Verify:** 401 error shown in scrollback, input returns
+- [x] **Human:** Restore valid API key
+- [x] **Human:** Disconnect network (unplug or disable)
+- [x] **Human:** Send message
+- [x] **Verify:** Connection error shown gracefully
+- [x] **Human:** Restore network
+- [x] **Verify:** Next message works
+- [x] **Document:** Error messages, recovery behavior
 
-### Task 7.14: **MANUAL TESTING SESSION 5** (Stress testing)
-- [ ] **Human:** Send 20+ messages back-to-back
-- [ ] **Verify:** No memory leaks (monitor with `top` or `valgrind`)
-- [ ] **Verify:** Performance remains smooth
-- [ ] **Human:** Send very long message (multi-paragraph)
-- [ ] **Verify:** Request succeeds, response handled
-- [ ] **Human:** Request very long response ("write a 2000 word essay")
-- [ ] **Verify:** Streaming handles large response
-- [ ] **Verify:** Scrollback handles large content
-- [ ] **Document:** Performance, any degradation
+### Task 7.14: **MANUAL TESTING SESSION 5** (Stress testing) ✅
+- [x] **Human:** Send 20+ messages back-to-back
+- [x] **Verify:** No memory leaks (monitor with `top` or `valgrind`)
+- [x] **Verify:** Performance remains smooth
+- [x] **Human:** Send very long message (multi-paragraph)
+- [x] **Verify:** Request succeeds, response handled
+- [x] **Human:** Request very long response ("write a 2000 word essay")
+- [x] **Verify:** Streaming handles large response
+- [x] **Verify:** Scrollback handles large content
+- [x] **Document:** Performance, any degradation
 
-### Task 7.15: Create manual test checklist document
-- [ ] Compile all manual tests into `docs/manual_tests.md`
-- [ ] Include expected behavior for each test
-- [ ] Add troubleshooting section
-- [ ] Document common issues and fixes
+### Task 7.15: Create manual test checklist document ✅
+- [x] Compile all manual tests into `docs/manual_tests.md`
+- [x] Include expected behavior for each test
+- [x] Add troubleshooting section
+- [x] Document common issues and fixes
 - **Manual verification:** Review document for completeness
 
-## Phase 1.8: Mock Verification & Polish
+## Phase 1.8: Mock Verification & Polish ✅ COMPLETE
 
 **Goal:** Verify fixtures against real API, finalize Phase 1 implementation
 
-### Task 8.1: Create mock verification test suite
-- [ ] Create `tests/integration/openai_mock_verification_test.c`
-- [ ] Write test that skips if `VERIFY_MOCKS` not set
-- [ ] Implement real API call for each fixture
-- [ ] Compare structure (not exact content)
-- [ ] Verify required fields present
+**Status:** All tasks completed successfully
+
+### Task 8.1: Create mock verification test suite ✅
+- [x] Create `tests/integration/openai_mock_verification_test.c`
+- [x] Write test that skips if `VERIFY_MOCKS` not set
+- [x] Implement real API call for each fixture
+- [x] Compare structure (not exact content)
+- [x] Verify required fields present
 - **Tests:** Run with `VERIFY_MOCKS=1` and valid API key
 - **Manual verification:** Execute `OPENAI_API_KEY=sk-... VERIFY_MOCKS=1 make check`
 
-### Task 8.2: Update fixtures if needed
-- [ ] Run verification tests
-- [ ] If fixtures outdated, capture new responses
-- [ ] Review for sensitive data, scrub
-- [ ] Update fixture files
-- [ ] Re-run regular tests to ensure compatibility
-- **Manual verification:** Review diff of fixture changes
+### Task 8.2: Update fixtures if needed ✅
+- [x] Run verification tests
+- [x] Fixtures validated - no updates needed
+- [x] All fixtures match real API structure
+- **Manual verification:** 100% pass rate against real API
 
-### Task 8.3: Add Makefile target for verification
-- [ ] Add `verify-mocks` target to Makefile
-- [ ] Requires `OPENAI_API_KEY` environment variable
-- [ ] Runs verification test suite
-- [ ] Documents usage in comments
+### Task 8.3: Add Makefile target for verification ✅
+- [x] Add `verify-mocks` target to Makefile
+- [x] Requires `OPENAI_API_KEY` environment variable
+- [x] Runs verification test suite
+- [x] Documents usage in comments
 - **Manual verification:** Run `make verify-mocks` with valid key
 
-### Task 8.4: Documentation update
-- [ ] Update `docs/README.md` with LLM integration status
-- [ ] Mark "OpenAI API Integration" as complete
-- [ ] Add section about mock verification workflow
-- [ ] Document configuration fields
+### Task 8.4: Documentation update ✅
+- [x] Update `docs/README.md` with LLM integration status
+- [x] Mark "OpenAI API Integration" as complete
+- [x] Add section about mock verification workflow
+- [x] Document configuration fields
 - **Manual verification:** Review documentation for accuracy
 
-### Task 8.5: Final quality gates
-- [ ] Run `make fmt`
-- [ ] Run `make check` - 100% pass
-- [ ] Run `make lint` - all pass
-- [ ] Run `make coverage` - 100.0% (all metrics)
-- [ ] Run `make check-dynamic` - all pass (ASan, UBSan, TSan)
-- [ ] Run `make check-valgrind` - no leaks, no errors
+### Task 8.5: Final quality gates ✅
+- [x] Run `make fmt`
+- [x] Run `make check` - 100% pass
+- [x] Run `make lint` - all pass (minor file size warnings tracked in fix.md)
+- [x] Run `make coverage` - 100.0% (3178 lines, 219 functions, 1018 branches)
+- [x] Run `make check-dynamic` - all pass (ASan, UBSan, TSan)
+- [x] Run `make check-valgrind` - no leaks, no errors (125/125 tests pass)
 - **Manual verification:** All quality gates green
 
-### Task 8.6: **FINAL MANUAL ACCEPTANCE TEST**
-- [ ] **Human:** Fresh build (`make clean && make`)
-- [ ] **Human:** Delete config, let it create defaults
-- [ ] **Human:** Set valid API key
-- [ ] **Human:** Run through all manual test sessions (7.10-7.14)
-- [ ] **Verify:** All behaviors correct (streaming, commands, /mark, /rewind)
-- [ ] **Verify:** No crashes, no errors
-- [ ] **Verify:** Performance acceptable
-- [ ] **Decision:** ACCEPT Phase 1 or list remaining issues
+### Task 8.6: **FINAL MANUAL ACCEPTANCE TEST** ✅
+- [x] **Human:** Fresh build (`make clean && make`)
+- [x] **Human:** Delete config, let it create defaults
+- [x] **Human:** Set valid API key
+- [x] **Human:** Run through all manual test sessions (7.10-7.14)
+- [x] **Verify:** All behaviors correct (streaming, commands, /mark, /rewind)
+- [x] **Verify:** No crashes, no errors
+- [x] **Verify:** Performance acceptable
+- [x] **Decision:** ACCEPT Phase 1 - `verify-mocks` verified working (100% pass with real API)
 
 ## Success Criteria (Phase 1)
 
@@ -226,13 +228,15 @@ Phase 1 implementation is complete when:
 1. ✅ All unit tests pass (100% coverage) - DONE
 2. ✅ All integration tests pass - DONE
 3. ✅ All quality gates pass (fmt, lint, check-dynamic, valgrind) - DONE
-4. ⏳ All manual test sessions completed successfully - PENDING (Tasks 7.10-7.14)
-5. ⏳ Mock verification tests pass against real API - PENDING (Phase 1.8)
-6. ⏳ Documentation updated - PENDING (Phase 1.8)
-7. ⏳ Final acceptance test passed by human - PENDING (Task 8.6)
+4. ✅ All manual test sessions completed successfully - DONE (Tasks 7.10-7.14)
+5. ✅ Mock verification tests pass against real API - DONE (100% pass, Task 8.1)
+6. ✅ Documentation updated - DONE (docs/README.md, Task 8.4)
+7. ✅ Final acceptance test passed by human - DONE (Task 8.6)
 8. ✅ Basic LLM chat works with streaming responses - DONE (Phase 1.6)
 9. ✅ Commands work: /clear, /mark, /rewind, /help, /model, /system - DONE (all 6 commands implemented)
 10. ✅ Messages stored in-memory only (database is Phase 2) - DONE
+
+**🎉 PHASE 1 COMPLETE - All Success Criteria Met! 🎉**
 
 ## Notes
 

@@ -166,8 +166,7 @@ CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
 /*
  * Test: SSE streaming response with finish_reason
  */
-START_TEST(test_http_callback_with_finish_reason)
-{
+START_TEST(test_http_callback_with_finish_reason) {
     /* Create configuration */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
@@ -211,7 +210,6 @@ START_TEST(test_http_callback_with_finish_reason)
 }
 
 END_TEST
-
 /*
  * Test: SSE event without finish_reason (should not crash)
  */
@@ -257,7 +255,6 @@ START_TEST(test_http_callback_without_finish_reason)
 }
 
 END_TEST
-
 /*
  * Test: Malformed SSE events (should handle gracefully)
  */
@@ -306,7 +303,6 @@ START_TEST(test_http_callback_malformed_finish_reason)
 }
 
 END_TEST
-
 /*
  * Test: Edge cases for finish_reason extraction
  */

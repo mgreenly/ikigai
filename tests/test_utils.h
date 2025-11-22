@@ -19,4 +19,8 @@ char *talloc_asprintf_(TALLOC_CTX *ctx, const char *fmt, ...);
 // Creates a minimal config for testing (does not require config file)
 ik_cfg_t *ik_test_create_config(TALLOC_CTX *ctx);
 
+// ========== File I/O Helpers ==========
+// Load a file into a talloc-allocated string
+char *load_file_to_string(TALLOC_CTX *ctx, const char *path);
+
 #endif // IK_TEST_UTILS_H

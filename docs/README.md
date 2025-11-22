@@ -12,7 +12,7 @@ A desktop terminal application that combines:
 - PostgreSQL-backed conversation history with full-text search
 - Terminal UI with direct rendering and scrollback
 
-**Current status**: v0.1.0 - Production-ready REPL terminal foundation complete. Ready for LLM integration.
+**Current status**: v1.0-alpha - REPL terminal and OpenAI streaming integration complete. Ready for database integration.
 
 ## v1.0 Vision
 
@@ -63,7 +63,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 
 ### Internal Analysis
 - **[memory_usage_analysis.md](memory_usage_analysis.md)** - Memory usage analysis and optimization notes
-- **[fix.md](fix.md)** - Known issues and technical debt
+- **[../fix.md](../fix.md)** - Known issues and technical debt
 
 ## Roadmap to v1.0
 
@@ -81,19 +81,38 @@ Production-ready terminal interface with:
 
 See [repl/README.md](repl/README.md) for detailed documentation.
 
-### Next: LLM Integration
+### ✅ Completed: LLM Integration (Phase 1)
 
-**Status**: Next phase
+**Released**: 2025-11-22
 
 **Objective**: Stream LLM responses directly to the terminal
 
-**Tasks**:
-- OpenAI API client with libcurl streaming
-- Display AI responses in scrollback as chunks arrive
-- Basic conversation flow (user input → API call → streamed response)
-- Status indicators (loading spinner, error handling)
+**Completed**:
+- ✅ OpenAI API client with libcurl streaming
+- ✅ Display AI responses in scrollback as chunks arrive
+- ✅ Basic conversation flow (user input → API call → streamed response)
+- ✅ Status indicators (loading spinner, error handling)
+- ✅ Layer architecture (scrollback, spinner, separator, input)
+- ✅ Slash commands (/clear, /mark, /rewind, /help, /model, /system)
+- ✅ In-memory conversation state with checkpoint/rollback
+- ✅ Mock verification test suite
 
-**Dependencies**: yyjson (complete), libcurl (to be added)
+**Configuration** (in `~/.config/ikigai/config.json`):
+- `openai_api_key` - Your OpenAI API key
+- `openai_model` - Model to use (default: "gpt-5-mini")
+- `openai_temperature` - Temperature parameter (default: 1.0)
+- `openai_max_completion_tokens` - Max response tokens (default: 4096)
+- `openai_system_message` - Optional system message (default: null)
+
+**Mock Verification**:
+To verify that test fixtures match real OpenAI API responses:
+```bash
+OPENAI_API_KEY=sk-... make verify-mocks
+```
+
+This runs integration tests against the real API to ensure fixtures stay current. Only needed when API format changes.
+
+**Dependencies**: yyjson (complete), libcurl (added)
 
 ### Future: Layer Architecture Refinement
 
