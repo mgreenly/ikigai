@@ -87,7 +87,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - In-memory conversation state with checkpoint/rollback
 - Mock verification test suite
 
-### v0.3.0: Database Integration (PostgreSQL)
+### rel-03: Database Integration (PostgreSQL)
 
 **Objective**: Persistent conversation history with optional database mode
 
@@ -101,7 +101,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Session restoration on launch
 - Memory-only fallback mode
 
-### Future: Local Tool Execution
+### rel-04: Local Tool Execution
 
 **Objective**: Enable file operations, shell commands, and code analysis
 
