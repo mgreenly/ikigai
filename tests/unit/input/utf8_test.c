@@ -9,11 +9,9 @@
 // Test: parse 2-byte UTF-8 character (é = U+00E9 = 0xC3 0xA9)
 START_TEST(test_input_parse_utf8_2byte) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse é (0xC3 0xA9) - 2 byte UTF-8
     // First byte (lead byte)
@@ -33,11 +31,9 @@ END_TEST
 START_TEST(test_input_parse_utf8_3byte)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse ☃ (0xE2 0x98 0x83) - 3 byte UTF-8
     // First byte (lead byte)
@@ -61,11 +57,9 @@ END_TEST
 START_TEST(test_input_parse_utf8_4byte)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse 🎉 (0xF0 0x9F 0x8E 0x89) - 4 byte UTF-8
     // First byte (lead byte)
@@ -93,11 +87,9 @@ END_TEST
 START_TEST(test_input_parse_utf8_incomplete_eof)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Parse only lead byte of 2-byte sequence
     ik_input_parse_byte(parser, (char)0xC3, &action);
@@ -112,11 +104,9 @@ END_TEST
 START_TEST(test_input_parse_utf8_invalid_continuation)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = NULL;
     ik_input_action_t action = {0};
 
-    res_t res = ik_input_parser_create(ctx, &parser);
-    ck_assert(is_ok(&res));
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
 
     // Start 2-byte sequence
     ik_input_parse_byte(parser, (char)0xC3, &action);

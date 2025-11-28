@@ -66,14 +66,12 @@ typedef struct ik_scrollback_t {
  *
  * @param parent Talloc parent context
  * @param terminal_width Terminal width in columns (must be > 0)
- * @param scrollback_out Pointer to receive allocated scrollback buffer
- * @return RES_OK on success, RES_ERR on failure (OOM)
+ * @return Pointer to allocated scrollback buffer (never NULL - PANICs on OOM)
  *
  * Assertions:
  * - terminal_width must be > 0
- * - scrollback_out must not be NULL
  */
-res_t ik_scrollback_create(void *parent, int32_t terminal_width, ik_scrollback_t **scrollback_out);
+ik_scrollback_t *ik_scrollback_create(void *parent, int32_t terminal_width);
 
 /**
  * @brief Append a line to the scrollback buffer
@@ -176,5 +174,18 @@ res_t ik_scrollback_find_logical_line_at_physical_row(ik_scrollback_t *scrollbac
                                                       size_t physical_row,
                                                       size_t *line_index_out,
                                                       size_t *row_offset_out);
+
+/**
+ * @brief Clear all lines from the scrollback buffer
+ *
+ * Removes all lines from the scrollback buffer, resetting it to an empty state.
+ * Preserves allocated capacity for efficient reuse.
+ *
+ * @param scrollback Scrollback buffer
+ *
+ * Assertions:
+ * - scrollback must not be NULL
+ */
+void ik_scrollback_clear(ik_scrollback_t *scrollback);
 
 #endif // IKIGAI_SCROLLBACK_H

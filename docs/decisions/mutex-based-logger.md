@@ -9,10 +9,15 @@
 - **Simple and effective**: Single global mutex is straightforward to implement and reason about
 - **Acceptable performance**: Logging is not on critical path; mutex contention is negligible for typical log volumes
 
-**Alternative considered**: `flockfile()`/`funlockfile()` (POSIX stream locking). Rejected because:
-- Less explicit control over critical section
-- Still requires pthread library
-- No significant advantage over explicit mutex
+**Alternatives Considered**:
+- **`flockfile()`/`funlockfile()` (POSIX stream locking)**: Rejected because it provides less explicit control over critical section, still requires pthread library, and has no significant advantage over explicit mutex
+
+**Trade-offs**:
+- **Pro**: Simple and straightforward implementation
+- **Pro**: Prevents message interleaving in multi-threaded context
+- **Pro**: Atomic log line writes
+- **Con**: Mutex contention on high-volume logging (negligible in practice)
+- **Con**: Single global mutex serializes all logging
 
 **Implementation**:
 ```c

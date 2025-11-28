@@ -119,7 +119,7 @@ START_TEST(test_byte_array_set)
 
 END_TEST
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion on get with out of bounds index
 START_TEST(test_byte_array_get_out_of_bounds_asserts)
 {
@@ -182,7 +182,6 @@ static Suite *byte_array_delete_set_suite(void)
 {
     Suite *s;
     TCase *tc_core;
-    TCase *tc_assertions;
 
     s = suite_create("ByteArray_DeleteSet");
     tc_core = tcase_create("Core");
@@ -197,9 +196,9 @@ static Suite *byte_array_delete_set_suite(void)
 
     suite_add_tcase(s, tc_core);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     // Assertion tests (debug mode only)
-    tc_assertions = tcase_create("Assertions");
+    TCase *tc_assertions = tcase_create("Assertions");
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_byte_array_get_out_of_bounds_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_byte_array_delete_out_of_bounds_asserts, SIGABRT);

@@ -36,9 +36,7 @@ START_TEST(test_separator_no_trailing_newline_when_last_line) {
     ck_assert(is_ok(&res));
 
     // Create scrollback with 9 lines (fills rows 0-8)
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     for (int32_t i = 0; i < 9; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "line%" PRId32, i);
@@ -135,9 +133,7 @@ START_TEST(test_separator_has_trailing_newline_when_input_buffer_visible)
     ck_assert(is_ok(&res));
 
     // Create scrollback with 5 lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     for (int32_t i = 0; i < 5; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "line%" PRId32, i);
@@ -222,9 +218,7 @@ START_TEST(test_input_buffer_without_separator)
     ck_assert(is_ok(&res));
 
     // Create scrollback with 3 lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     for (int32_t i = 0; i < 3; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "line%" PRId32, i);

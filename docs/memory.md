@@ -216,7 +216,7 @@ void handle_request(const char *input) {
 ```c
 res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path) {
     // Allocate config on caller's context
-    ik_cfg_t *config = ik_talloc_zero_wrapper(ctx, sizeof(ik_cfg_t));
+    ik_cfg_t *config = talloc_zero_(ctx, sizeof(ik_cfg_t));
     if (!config) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // All strings are children of config

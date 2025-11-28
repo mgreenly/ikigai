@@ -1,6 +1,6 @@
 #include <check.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../../src/error.h"
 
 // Test: cursor_up on empty input_buffer should not crash
@@ -9,8 +9,8 @@ START_TEST(test_cursor_up_empty_input_buffer) {
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
     ck_assert_ptr_nonnull(ws);
 
     // Empty input_buffer - no text inserted
@@ -38,8 +38,8 @@ START_TEST(test_cursor_down_empty_input_buffer)
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
     ck_assert_ptr_nonnull(ws);
 
     // Empty input_buffer - no text inserted
@@ -68,8 +68,8 @@ START_TEST(test_cursor_up_after_delete_to_empty)
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
     ck_assert_ptr_nonnull(ws);
 
     // Insert one character, then delete it
@@ -103,8 +103,8 @@ START_TEST(test_cursor_down_after_delete_to_empty)
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
     ck_assert_ptr_nonnull(ws);
 
     // Insert one character, then delete it
@@ -138,8 +138,8 @@ START_TEST(test_ctrl_a_empty_input_buffer)
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
     ck_assert_ptr_nonnull(ws);
 
     // Ctrl+A on empty input_buffer should be a no-op (not crash)
@@ -165,8 +165,8 @@ START_TEST(test_ctrl_e_empty_input_buffer)
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
     ck_assert_ptr_nonnull(ws);
 
     // Ctrl+E on empty input_buffer should be a no-op (not crash)
@@ -192,8 +192,8 @@ START_TEST(test_ctrl_k_empty_input_buffer)
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
     ck_assert_ptr_nonnull(ws);
 
     // Ctrl+K on empty input_buffer should be a no-op (not crash)
@@ -219,8 +219,8 @@ START_TEST(test_ctrl_u_empty_input_buffer)
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
     ck_assert_ptr_nonnull(ws);
 
     // Ctrl+U on empty input_buffer should be a no-op (not crash)
@@ -246,8 +246,8 @@ START_TEST(test_ctrl_a_after_delete_to_empty)
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
 
     // Insert and delete to create empty text buffer (text != NULL but text_len == 0)
     result = ik_input_buffer_insert_codepoint(ws, 'a');
@@ -270,8 +270,8 @@ START_TEST(test_ctrl_e_after_delete_to_empty)
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
 
     // Insert and delete to create empty text buffer
     result = ik_input_buffer_insert_codepoint(ws, 'a');
@@ -294,8 +294,8 @@ START_TEST(test_ctrl_k_after_delete_to_empty)
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
 
     // Insert and delete to create empty text buffer
     result = ik_input_buffer_insert_codepoint(ws, 'a');
@@ -318,8 +318,8 @@ START_TEST(test_ctrl_u_after_delete_to_empty)
     ck_assert_ptr_nonnull(ctx);
 
     ik_input_buffer_t *ws = NULL;
-    res_t result = ik_input_buffer_create(ctx, &ws);
-    ck_assert(is_ok(&result));
+    res_t result;
+    ws = ik_input_buffer_create(ctx);
 
     // Insert and delete to create empty text buffer
     result = ik_input_buffer_insert_codepoint(ws, 'a');

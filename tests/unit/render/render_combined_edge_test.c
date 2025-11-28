@@ -19,9 +19,7 @@ START_TEST(test_render_combined_invalid_scrollback_start) {
     ck_assert(is_ok(&res));
 
     /* Create scrollback with 3 lines */
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     res = ik_scrollback_append_line(scrollback, "line 1", 6);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "line 2", 6);
@@ -53,9 +51,7 @@ START_TEST(test_render_combined_scrollback_count_clamping)
     ck_assert(is_ok(&res));
 
     /* Create scrollback with 3 lines */
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     res = ik_scrollback_append_line(scrollback, "line 1", 6);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "line 2", 6);
@@ -84,9 +80,7 @@ START_TEST(test_render_combined_scrollback_with_newlines)
     ck_assert(is_ok(&res));
 
     /* Create scrollback with a line containing embedded newlines */
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     /* This line contains embedded newlines which need to be converted to \r\n */
     const char *line_with_newlines = "line1\nline2\nline3";
@@ -117,9 +111,7 @@ START_TEST(test_render_combined_invalid_utf8_in_input_buffer)
     ck_assert(is_ok(&res));
 
     /* Create empty scrollback */
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     /* Create input buffer text with invalid UTF-8 sequence
      * 0xFF is never valid in UTF-8 (it's a continuation byte pattern that can't start a sequence)

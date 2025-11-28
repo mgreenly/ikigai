@@ -23,8 +23,8 @@ res_t ik_render_create(void *parent, int32_t rows, int32_t cols,
     }
 
     // Allocate context
-    ik_render_ctx_t *ctx = ik_talloc_zero_wrapper(parent, sizeof(ik_render_ctx_t));
-    if (ctx == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    ik_render_ctx_t *ctx = talloc_zero_(parent, sizeof(ik_render_ctx_t));
+    if (ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Initialize fields
     ctx->rows = rows;
@@ -73,8 +73,8 @@ res_t ik_render_input_buffer(ik_render_ctx_t *ctx,
     // system OOMs and talloc allocation fails long before overflow can occur. This
     // edge case is not tested as it cannot be reproduced without exabytes of RAM.
     size_t buffer_size = 7 + text_len + newline_count + 20;
-    char *framebuffer = ik_talloc_array_wrapper(ctx, sizeof(char), buffer_size);
-    if (framebuffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    char *framebuffer = talloc_array_(ctx, sizeof(char), buffer_size);
+    if (framebuffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Build framebuffer
     size_t offset = 0;
@@ -104,10 +104,10 @@ res_t ik_render_input_buffer(ik_render_ctx_t *ctx,
 
     // Add cursor positioning escape: \x1b[<row+1>;<col+1>H
     // Terminal coordinates are 1-based, our internal are 0-based
-    char *cursor_escape = ik_talloc_asprintf_wrapper(ctx, "\x1b[%" PRId32 ";%" PRId32 "H",
-                                                     cursor_pos.screen_row + 1,
-                                                     cursor_pos.screen_col + 1);
-    if (cursor_escape == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    char *cursor_escape = talloc_asprintf_(ctx, "\x1b[%" PRId32 ";%" PRId32 "H",
+                                           cursor_pos.screen_row + 1,
+                                           cursor_pos.screen_col + 1);
+    if (cursor_escape == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Append cursor escape to framebuffer
     for (size_t i = 0; cursor_escape[i] != '\0'; i++) {
@@ -116,7 +116,7 @@ res_t ik_render_input_buffer(ik_render_ctx_t *ctx,
     talloc_free(cursor_escape);
 
     // Single write to terminal
-    ssize_t bytes_written = ik_write_wrapper(ctx->tty_fd, framebuffer, offset);
+    ssize_t bytes_written = posix_write_(ctx->tty_fd, framebuffer, offset);
     talloc_free(framebuffer);
 
     if (bytes_written < 0) {
@@ -166,7 +166,7 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
         const char *line_text = NULL;
         size_t line_len = 0;
         res_t result = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
-        if (is_err(&result))return result;  /* LCOV_EXCL_LINE */
+        if (is_err(&result)) return result; /* LCOV_EXCL_LINE */
 
         // Count newlines in this line
         size_t newline_count = 0;
@@ -180,8 +180,8 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     }
 
     // Allocate framebuffer
-    char *framebuffer = ik_talloc_array_wrapper(ctx, sizeof(char), total_size);
-    if (framebuffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    char *framebuffer = talloc_array_(ctx, sizeof(char), total_size);
+    if (framebuffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Build framebuffer
     size_t offset = 0;
@@ -225,7 +225,7 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     }
 
     // Write framebuffer to terminal (offset always > 0 when line_count > 0)
-    ssize_t bytes_written = ik_write_wrapper(ctx->tty_fd, framebuffer, offset);
+    ssize_t bytes_written = posix_write_(ctx->tty_fd, framebuffer, offset);
     talloc_free(framebuffer);
 
     if (bytes_written < 0) {
@@ -304,12 +304,12 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         const char *line_text = NULL;
         size_t line_len = 0;
         res_t result = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
-        if (is_err(&result))return result;   // LCOV_EXCL_LINE
+        if (is_err(&result)) return result;  // LCOV_EXCL_LINE
 
         // Count newlines
         size_t newline_count = 0;
         for (size_t j = 0; j < line_len; j++) {
-            if (line_text[j] == '\n')newline_count++;
+            if (line_text[j] == '\n') newline_count++;
         }
 
         buffer_size += line_len + newline_count + 2;  // +2 for final \r\n
@@ -319,14 +319,14 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
     if (render_input_buffer && input_text_len > 0) {
         size_t ib_newline_count = 0;
         for (size_t i = 0; i < input_text_len; i++) {
-            if (input_text[i] == '\n')ib_newline_count++;
+            if (input_text[i] == '\n') ib_newline_count++;
         }
         buffer_size += input_text_len + ib_newline_count;
     }
 
     // Allocate framebuffer
-    char *framebuffer = ik_talloc_array_wrapper(ctx, sizeof(char), buffer_size);
-    if (framebuffer == NULL)PANIC("Out of memory");   // LCOV_EXCL_BR_LINE
+    char *framebuffer = talloc_array_(ctx, sizeof(char), buffer_size);
+    if (framebuffer == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     size_t offset = 0;
 
@@ -346,7 +346,7 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         const char *line_text = NULL;
         size_t line_len = 0;
         res_t result = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
-        if (is_err(&result))return result;   // LCOV_EXCL_LINE - defensive: loop bounds validated
+        if (is_err(&result)) return result;  // LCOV_EXCL_LINE - defensive: loop bounds validated
 
         // Copy line text, converting \n to \r\n
         for (size_t j = 0; j < line_len; j++) {
@@ -408,9 +408,9 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
 
     // Position cursor when input buffer visible
     if (render_input_buffer) {
-        char *cursor_escape = ik_talloc_asprintf_wrapper(ctx, "\x1b[%" PRId32 ";%" PRId32 "H",
-                                                         final_cursor_row + 1, final_cursor_col + 1);
-        if (cursor_escape == NULL)PANIC("Out of memory");   // LCOV_EXCL_BR_LINE
+        char *cursor_escape = talloc_asprintf_(ctx, "\x1b[%" PRId32 ";%" PRId32 "H",
+                                               final_cursor_row + 1, final_cursor_col + 1);
+        if (cursor_escape == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         for (size_t i = 0; cursor_escape[i] != '\0'; i++) {
             framebuffer[offset++] = cursor_escape[i];
         }
@@ -418,7 +418,7 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
     }
 
     // Single atomic write
-    ssize_t bytes_written = ik_write_wrapper(ctx->tty_fd, framebuffer, offset);
+    ssize_t bytes_written = posix_write_(ctx->tty_fd, framebuffer, offset);
     talloc_free(framebuffer);
 
     if (bytes_written < 0) {

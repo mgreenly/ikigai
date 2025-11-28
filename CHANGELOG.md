@@ -5,6 +5,72 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-11-22
+
+### Added
+
+#### OpenAI API Integration (Complete)
+- **Streaming client**: Full OpenAI API integration with Server-Sent Events (SSE) parsing
+- **Async I/O**: libcurl multi-handle for non-blocking HTTP requests integrated with event loop
+- **GPT-5 compatibility**: Updated to support latest OpenAI API format
+- **HTTP handler**: Modular request/response handling with completion callbacks
+- **Error handling**: Comprehensive HTTP error handling with res_t pattern
+- **State management**: REPL state machine for request/response lifecycle
+
+#### REPL Command System
+- **Command registry**: Extensible infrastructure for slash commands
+- **Built-in commands**:
+  - `/help` - Display available commands and usage
+  - `/clear` - Clear conversation history and reset state
+  - `/model` - Runtime LLM model switching
+  - `/system` - Configure system message at runtime
+  - `/mark` and `/rewind` - Conversation checkpoint and restore (architecture defined)
+
+#### Configuration & Infrastructure
+- **Config system**: JSON-based runtime configuration (Phase 1.1)
+- **Layer abstraction**: Clean interface for terminal operations (Phase 1.2)
+- **Debug pipe**: Development tool for inspecting internal state
+
+### Changed
+
+#### Code Quality & Testing
+- **File size limits**: Refactored large files to comply with 16KB limit for maintainability
+- **Test coverage**: Maintained 100% coverage (3,178 lines, 219 functions, 1,018 branches)
+- **Test suite**: 129 test files with comprehensive unit and integration coverage
+- **Mock infrastructure**: Link seams pattern with weak symbol wrappers (zero overhead in release builds)
+- **Error injection**: Added tests for previously untestable error paths
+- **LCOV refinement**: Reduced invalid exclusions through better error injection testing
+
+#### Naming & Conventions
+- **Pointer semantics**: Changed `_ref` suffix to `_ptr` for raw pointers
+- **Return values**: Simplified OOM-only creator functions to return pointers directly
+- **Completion callbacks**: Standardized to return `res_t` for consistent error handling
+
+#### Code Organization
+- **Module restructuring**: Reorganized input_buffer into subdirectory with full symbol prefixes
+- **Wrapper functions**: Renamed to clarify external library seams
+- **File splits**: Divided oversized test files for better maintainability
+
+### Development
+
+#### Testing & Quality Gates
+- **Thread safety**: Added Helgrind testing for race condition detection
+- **Code formatting**: Integrated uncrustify with automated style enforcement
+- **Coverage refinement**: Improved coverage metrics accuracy through error injection
+- **CI improvements**: Better visibility and reliability in GitHub Actions
+
+#### Documentation
+- **Vision docs**: Comprehensive multi-agent and mark/rewind architecture
+- **ADRs**: Link seams mocking strategy and API design decisions
+- **Return values**: Documented patterns and tracked technical debt
+- **Organization**: Streamlined documentation structure and removed obsolete ADRs
+
+### Technical Metrics
+- **Changes**: 275 files modified, +28,676/-7,331 lines
+- **Commits**: 71 commits over development cycle
+- **Test coverage**: 100% lines, functions, and branches
+- **Code quality**: All lint, format, and sanitizer checks pass
+
 ## [0.1.0] - 2025-11-16
 
 ### Added
@@ -51,13 +117,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
-## [Unreleased]
-
-### Next: Core v1.0 Features
-1. **LLM Integration**: OpenAI API client with streaming responses
-2. **Database Integration**: PostgreSQL for persistent conversation history and RAG
-3. **Multi-LLM Support**: Anthropic, OpenAI, Google, X.AI provider interfaces
-4. **Local Tool Execution**: File operations, shell commands, code analysis
-5. **Enhanced Terminal UI**: Syntax highlighting, editor integration, rich formatting
-
+[0.2.0]: https://github.com/mgreenly/ikigai/releases/tag/v0.2.0
 [0.1.0]: https://github.com/mgreenly/ikigai/releases/tag/v0.1.0

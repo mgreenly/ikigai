@@ -221,7 +221,7 @@ res_t func(TALLOC_CTX *ctx) {
 
 ### Correct Pattern: OOM Handling (Updated 2025-11-14)
 ```c
-void *ptr = ik_talloc_size_wrapper(ctx, size);
+void *ptr = talloc_zero_(ctx, size);
 if (!ptr) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 ```
 

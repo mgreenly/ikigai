@@ -14,20 +14,20 @@
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 
-// Mock state for controlling ik_stat_wrapper
+// Mock state for controlling posix_stat_
 static bool mock_stat_should_fail = false;
 static int32_t mock_stat_errno = ENOENT;
 
-// Mock state for controlling ik_mkdir_wrapper
+// Mock state for controlling posix_mkdir_
 static bool mock_mkdir_should_fail = false;
 static int32_t mock_mkdir_errno = EACCES;
 
 // Forward declarations for wrapper functions
-int ik_stat_wrapper(const char *pathname, struct stat *statbuf);
-int ik_mkdir_wrapper(const char *pathname, mode_t mode);
+int posix_stat_(const char *pathname, struct stat *statbuf);
+int posix_mkdir_(const char *pathname, mode_t mode);
 
-// Mock ik_stat_wrapper to test directory existence checks
-int ik_stat_wrapper(const char *pathname, struct stat *statbuf)
+// Mock posix_stat_ to test directory existence checks
+int posix_stat_(const char *pathname, struct stat *statbuf)
 {
     if (mock_stat_should_fail) {
         errno = mock_stat_errno;
@@ -38,8 +38,8 @@ int ik_stat_wrapper(const char *pathname, struct stat *statbuf)
     return stat(pathname, statbuf);
 }
 
-// Mock ik_mkdir_wrapper to test directory creation failure
-int ik_mkdir_wrapper(const char *pathname, mode_t mode)
+// Mock posix_mkdir_ to test directory creation failure
+int posix_mkdir_(const char *pathname, mode_t mode)
 {
     if (mock_mkdir_should_fail) {
         errno = mock_mkdir_errno;
@@ -95,7 +95,8 @@ START_TEST(test_config_stat_directory_exists)
     // Create a simple config file for testing
     FILE *f = fopen(test_config, "w");
     if (f) {
-        fprintf(f, "{\"openai_api_key\":\"test\",\"listen_address\":\"127.0.0.1\",\"listen_port\":1984}\n");
+        fprintf(f,
+                "{\"openai_api_key\":\"test\",\"openai_model\":\"gpt-4-turbo\",\"openai_temperature\":0.7,\"openai_max_completion_tokens\":4096,\"openai_system_message\":null,\"listen_address\":\"127.0.0.1\",\"listen_port\":1984}\n");
         fclose(f);
     }
 

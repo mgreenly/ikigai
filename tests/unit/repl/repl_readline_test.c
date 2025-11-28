@@ -16,8 +16,8 @@ START_TEST(test_repl_process_action_ctrl_a) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert "hello\nworld" and position cursor at end
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -76,8 +76,8 @@ START_TEST(test_repl_process_action_ctrl_e)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert "hello\nworld"
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -141,8 +141,8 @@ START_TEST(test_repl_process_action_ctrl_k)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert "hello\nworld\ntest"
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -186,12 +186,10 @@ START_TEST(test_repl_process_action_ctrl_k)
     // Move cursor to middle of "world" line (after "wo")
     // Cursor is at byte 16 (after "hello\nworld\ntest")
     // Move to byte 8 (after "hello\nwo")
-    char *text = NULL;
     size_t text_len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &text_len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
     input_buf->cursor_byte_offset = 8;
-    ik_cursor_set_position(input_buf->cursor, text, text_len, 8);
+    ik_input_buffer_cursor_set_position(input_buf->cursor, text, text_len, 8);
 
     // Verify cursor is at byte 8
     size_t byte_offset = 0;
@@ -206,8 +204,7 @@ START_TEST(test_repl_process_action_ctrl_k)
     ck_assert(is_ok(&res));
 
     // Text should be "hello\nwo\ntest" (removed "rld")
-    res = ik_input_buffer_get_text(input_buf, &text, &text_len);
-    ck_assert(is_ok(&res));
+    text = ik_input_buffer_get_text(input_buf, &text_len);
     ck_assert_uint_eq(text_len, 13);
     ck_assert_mem_eq(text, "hello\nwo\ntest", 13);
 
@@ -226,8 +223,8 @@ START_TEST(test_repl_process_action_ctrl_u)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert "hello\nworld\ntest"
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -269,12 +266,10 @@ START_TEST(test_repl_process_action_ctrl_u)
     repl->quit = false;
 
     // Move cursor to middle of "world" line (after "wo")
-    char *text = NULL;
     size_t text_len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &text_len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
     input_buf->cursor_byte_offset = 8;
-    ik_cursor_set_position(input_buf->cursor, text, text_len, 8);
+    ik_input_buffer_cursor_set_position(input_buf->cursor, text, text_len, 8);
 
     // Verify cursor is at byte 8
     size_t byte_offset = 0;
@@ -289,8 +284,7 @@ START_TEST(test_repl_process_action_ctrl_u)
     ck_assert(is_ok(&res));
 
     // Text should be "hello\ntest" (removed entire "world\n" line)
-    res = ik_input_buffer_get_text(input_buf, &text, &text_len);
-    ck_assert(is_ok(&res));
+    text = ik_input_buffer_get_text(input_buf, &text_len);
     ck_assert_uint_eq(text_len, 10);
     ck_assert_mem_eq(text, "hello\ntest", 10);
 
@@ -309,8 +303,8 @@ START_TEST(test_repl_process_action_ctrl_w)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert "hello world test"
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -364,10 +358,8 @@ START_TEST(test_repl_process_action_ctrl_w)
     ck_assert(is_ok(&res));
 
     // Text should be "hello world " (removed "test")
-    char *text = NULL;
     size_t text_len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &text_len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
     ck_assert_uint_eq(text_len, 12);
     ck_assert_mem_eq(text, "hello world ", 12);
 

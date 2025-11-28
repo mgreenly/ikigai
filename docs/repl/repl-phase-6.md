@@ -1,14 +1,14 @@
-# REPL Terminal - Phase 6: Terminal Enhancements
+# REPL Terminal - Phase 6: Terminal Enhancements (Future Work)
 
 [← Back to REPL Terminal Overview](README.md)
 
-**Goal**: Add bracketed paste mode and SGR color sequences for improved UX.
+**Status**: Not implemented - future enhancement
 
-**Status**: Not started (post-Phase 5)
+**Goal**: Add bracketed paste mode and SGR color sequences for improved UX.
 
 ## Rationale
 
-After Phase 5, the REPL will have full functionality (input, input buffer, scrollback, scrolling). These enhancements add polish for real-world usage without changing core architecture:
+After Phase 5, the REPL has full functionality (input, input buffer, scrollback, scrolling). These proposed enhancements would add polish for real-world usage without changing core architecture:
 
 **Bracketed paste mode** solves the classic "paste destroys formatting" problem - when users paste multi-line code, the REPL can't distinguish it from typed input, causing auto-indent and newline processing to mangle the content.
 
@@ -16,11 +16,11 @@ After Phase 5, the REPL will have full functionality (input, input buffer, scrol
 
 Both features are widely supported on modern Linux terminals (xterm, gnome-terminal, konsole, alacritty, kitty, wezterm).
 
-## Implementation Tasks
+## Proposed Implementation
 
-### Task 6.1: Bracketed Paste Mode
+### Feature 1: Bracketed Paste Mode
 
-**Goal**: Enable safe pasting of multi-line content without formatting corruption.
+**Objective**: Enable safe pasting of multi-line content without formatting corruption.
 
 #### What is Bracketed Paste Mode?
 
@@ -31,29 +31,29 @@ When enabled, the terminal wraps pasted content in escape sequences:
 
 This lets the application distinguish typed vs pasted text and handle them differently.
 
-#### Implementation Steps
+#### Proposed Implementation Approach
 
 **1. Enable bracketed paste on terminal initialization**
 
-Modify `src/terminal.c` in `ik_term_init()`:
+Would modify `src/terminal.c` in `ik_term_init()`:
 ```c
 // After entering alternate screen, enable bracketed paste
 const char *enable_bracketed_paste = "\x1b[?2004h";
-if (ik_write_wrapper(tty_fd, enable_bracketed_paste, 8) < 0) {
+if (posix_write_(tty_fd, enable_bracketed_paste, 8) < 0) {
     // Handle error
 }
 ```
 
-Modify `ik_term_cleanup()`:
+Would modify `ik_term_cleanup()`:
 ```c
 // Before exiting alternate screen, disable bracketed paste
 const char *disable_bracketed_paste = "\x1b[?2004l";
-(void)ik_write_wrapper(ctx->tty_fd, disable_bracketed_paste, 8);
+(void)posix_write_(ctx->tty_fd, disable_bracketed_paste, 8);
 ```
 
 **2. Add paste action types to input parser**
 
-Modify `src/input.h`:
+Would add to `src/input.h`:
 ```c
 typedef enum {
     // ... existing actions ...
@@ -64,11 +64,11 @@ typedef enum {
 
 **3. Parse paste escape sequences**
 
-Modify `src/input.c` to recognize `\x1b[200~` and `\x1b[201~` sequences in escape sequence parsing logic.
+Would modify `src/input.c` to recognize `\x1b[200~` and `\x1b[201~` sequences in escape sequence parsing logic.
 
 **4. Track paste mode in REPL context**
 
-Modify `src/repl.h`:
+Would add to `src/repl.h`:
 ```c
 typedef struct ik_repl_ctx_t {
     // ... existing fields ...
@@ -78,7 +78,7 @@ typedef struct ik_repl_ctx_t {
 
 **5. Handle paste mode in action processing**
 
-Modify `ik_repl_process_action()` in `src/repl.c`:
+Would modify `ik_repl_process_action()` in `src/repl.c`:
 ```c
 case IK_INPUT_PASTE_START:
     repl->in_paste_mode = true;
@@ -99,7 +99,7 @@ case IK_INPUT_NEWLINE:
     }
 ```
 
-**Test Coverage** (`tests/unit/input/input_paste_test.c`):
+**Proposed Test Coverage**:
 - Parse `\x1b[200~` → `IK_INPUT_PASTE_START`
 - Parse `\x1b[201~` → `IK_INPUT_PASTE_END`
 - Multi-line paste preserves formatting
@@ -107,13 +107,13 @@ case IK_INPUT_NEWLINE:
 - Newlines during paste are literal (not processed)
 - Paste mode survives rendering cycles
 
-**Estimated size**: ~100-150 lines of implementation + tests
+**Estimated effort**: ~100-150 lines of implementation + tests
 
 ---
 
-### Task 6.2: SGR Color Sequences
+### Feature 2: SGR Color Sequences
 
-**Goal**: Add visual distinction between user input and AI output using ANSI SGR color codes.
+**Objective**: Add visual distinction between user input and AI output using ANSI SGR color codes.
 
 #### What are SGR Sequences?
 
@@ -134,11 +134,11 @@ SGR (Select Graphic Rendition) sequences change text appearance:
 
 **Rationale**: Subtle colors that work in both light and dark terminal themes.
 
-#### Implementation Steps
+#### Proposed Implementation Approach
 
 **1. Add color configuration to render context**
 
-Modify `src/render.h`:
+Would add to `src/render.h`:
 ```c
 typedef struct ik_render_ctx_t {
     // ... existing fields ...
@@ -148,7 +148,7 @@ typedef struct ik_render_ctx_t {
 
 **2. Create SGR utility functions**
 
-Add to `src/render.c`:
+Would add to `src/render.c`:
 ```c
 // SGR color codes
 #define SGR_RESET     "\x1b[0m"
@@ -177,13 +177,11 @@ static void append_colored_text(char *buffer, size_t *offset,
 
 **3. Update input buffer rendering**
 
-Modify `ik_render_input_buffer()`:
-- Keep input buffer in default colors (user is actively editing)
-- Or optionally add subtle bold for visual weight
+Would keep input buffer in default colors (user is actively editing) or optionally add subtle bold for visual weight.
 
 **4. Add scrollback line rendering with colors**
 
-When Phase 4 adds scrollback rendering, create:
+Would create:
 ```c
 res_t ik_render_scrollback_line(ik_render_ctx_t *ctx,
                                        const char *text, size_t text_len,
@@ -209,7 +207,7 @@ For accessibility and user preference:
 void ik_render_set_colors_enabled(ik_render_ctx_t *ctx, bool enabled);
 ```
 
-**Test Coverage** (`tests/unit/render/colors_test.c`):
+**Proposed Test Coverage**:
 - SGR codes correctly inserted for each message type
 - Color reset applied after each line
 - Colors can be disabled (returns plain text)
@@ -217,70 +215,63 @@ void ik_render_set_colors_enabled(ik_render_ctx_t *ctx, bool enabled);
 - Buffer size calculations account for color overhead
 - Wide character + color rendering (ensure no corruption)
 
-**Estimated size**: ~150-200 lines of implementation + tests
+**Estimated effort**: ~150-200 lines of implementation + tests
 
 ---
 
-## Testing Strategy
+## Testing Approach
 
 ### Unit Tests
+Would test:
 - Bracketed paste sequence parsing
 - Paste mode state transitions
 - SGR code generation
 - Color toggling
 
 ### Integration Tests
-- Paste multi-line code, verify no extra indentation
-- Paste during mid-line edit, verify cursor position preserved
-- Render scrollback with colors, verify correct ANSI output
+Would verify:
+- Paste multi-line code, no extra indentation
+- Paste during mid-line edit, cursor position preserved
+- Render scrollback with colors, correct ANSI output
 
 ### Manual Testing
-```bash
-# Test bracketed paste
-1. Run ikigai REPL
-2. Copy multi-line Python code with indentation
-3. Paste into input buffer
-4. Verify formatting preserved exactly
-
-# Test colors
-1. Run ikigai REPL
-2. Submit several messages (creating scrollback)
-3. Verify user messages appear in cyan
-4. Verify distinct visual separation from AI responses
-```
+Would test:
+- Paste multi-line code and verify formatting preserved
+- Submit messages and verify color distinction
+- Verify readability in both light and dark themes
 
 ---
 
 ## Notes
 
-**Why after Phase 5?**
-- Non-essential features - core functionality must work first
-- Cleaner to add after architecture is stable
-- Can be shipped incrementally (paste first, colors later)
+**Why not implemented?**
+- Non-essential features - core functionality complete in Phase 5
+- Current REPL is production-ready without these enhancements
+- Can be added later if needed based on user feedback
 
 **Terminal compatibility**:
 - Bracketed paste: xterm (2005+), all modern terminals
 - SGR colors: Universal ANSI support
 - Graceful degradation: If terminal doesn't support, sequences ignored
 
-**Future enhancements** (not in scope for Phase 6):
+**Possible future enhancements** (beyond this proposal):
 - 256-color or truecolor support
 - Configurable color schemes
 - Bold/italic/underline for emphasis
-- Mouse tracking (probably never needed for a REPL)
+- Mouse tracking (unlikely to be needed for a REPL)
 
 ---
 
-## Success Criteria
+## Expected Benefits
 
 **Bracketed paste**:
-- ✅ Users can paste multi-line code without formatting corruption
-- ✅ Paste mode toggles correctly
-- ✅ No performance impact during normal typing
-- ✅ Works in all major Linux terminals
+- Users could paste multi-line code without formatting corruption
+- Paste mode would toggle correctly
+- No performance impact during normal typing
+- Works in all major Linux terminals
 
 **Colors**:
-- ✅ Visual distinction between user input and AI output
-- ✅ Readable in both light and dark terminal themes
-- ✅ Can be disabled for accessibility
-- ✅ No color artifacts or rendering glitches
+- Visual distinction between user input and system output
+- Readable in both light and dark terminal themes
+- Can be disabled for accessibility
+- No color artifacts or rendering glitches

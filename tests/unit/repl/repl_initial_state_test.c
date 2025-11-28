@@ -13,8 +13,51 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
+
+/**
+ * Check if buffer contains ANSI cursor positioning escape sequence.
+ *
+ * Searches for pattern: \x1b[<row>;<col>H where row and col are digits.
+ *
+ * @param buffer Buffer to search
+ * @param size Size of buffer
+ * @return true if cursor positioning escape found, false otherwise
+ */
+static bool contains_cursor_positioning_escape(const char *buffer, size_t size)
+{
+    for (size_t i = 0; i < size - 4; i++) {
+        if (buffer[i] != '\x1b' || buffer[i + 1] != '[') {
+            continue;
+        }
+
+        // Found ESC[, check for <digits>;<digits>H pattern
+        size_t j = i + 2;
+        bool has_digit_before_semicolon = false;
+        while (j < size && buffer[j] >= '0' && buffer[j] <= '9') {
+            has_digit_before_semicolon = true;
+            j++;
+        }
+
+        if (!has_digit_before_semicolon || j >= size || buffer[j] != ';') {
+            continue;
+        }
+
+        j++; // Skip semicolon
+        bool has_digit_after_semicolon = false;
+        while (j < size && buffer[j] >= '0' && buffer[j] <= '9') {
+            has_digit_after_semicolon = true;
+            j++;
+        }
+
+        if (has_digit_after_semicolon && j < size && buffer[j] == 'H') {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 /**
  * Test: Initial state - cursor visible at startup with empty input buffer
@@ -32,13 +75,13 @@ START_TEST(test_initial_state_cursor_visible) {
 
     // Terminal: 5 rows x 80 cols
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 5;
     term->screen_cols = 80;
 
     // Create empty input buffer
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Verify input buffer has 0 physical lines
@@ -46,9 +89,7 @@ START_TEST(test_initial_state_cursor_visible) {
     ck_assert_uint_eq(physical_lines, 0);
 
     // Create empty scrollback
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     // Create render context
     ik_render_ctx_t *render_ctx = NULL;
@@ -124,19 +165,17 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible)
 
     // Terminal: 5 rows x 80 cols
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 5;
     term->screen_cols = 80;
 
     // Create empty input buffer
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 2 lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     res = ik_scrollback_append_line(scrollback, "line1", 5);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "line2", 5);
@@ -202,19 +241,17 @@ START_TEST(test_scrolled_up_cursor_hidden)
 
     // Terminal: 5 rows x 80 cols
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 5;
     term->screen_cols = 80;
 
     // Create empty input buffer
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with many lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     for (int i = 0; i < 10; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "line%d", i);
@@ -266,31 +303,9 @@ START_TEST(test_scrolled_up_cursor_hidden)
     ck_assert_ptr_ne(strstr(output, "\x1b[?25l"), NULL);
 
     // Verify NO cursor positioning (should not have ESC[row;colH)
-    // Look for pattern ESC[ followed by digits and H
-    bool found_cursor_pos = false;
     size_t output_len = (size_t)bytes_read;
-    for (size_t i = 0; i < output_len - 3; i++) {
-        if (output[i] == '\x1b' && output[i + 1] == '[') {
-            // Check if this is a cursor positioning escape
-            size_t j = i + 2;
-            bool has_digit = false;
-            while (j < output_len && (output[j] >= '0' && output[j] <= '9')) {
-                has_digit = true;
-                j++;
-            }
-            if (has_digit && j < output_len && output[j] == ';') {
-                j++;
-                while (j < output_len && (output[j] >= '0' && output[j] <= '9')) {
-                    j++;
-                }
-                if (j < output_len && output[j] == 'H') {
-                    found_cursor_pos = true;
-                    break;
-                }
-            }
-        }
-    }
-    ck_assert(!found_cursor_pos);
+    bool found = contains_cursor_positioning_escape(output, output_len);
+    ck_assert(!found);
 
     talloc_free(ctx);
 }

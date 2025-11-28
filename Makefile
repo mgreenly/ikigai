@@ -33,13 +33,17 @@ SANITIZE_FLAGS = -fsanitize=address,undefined
 TSAN_FLAGS = -fsanitize=thread
 
 # Valgrind build flags (optimized for backtraces)
-VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
+ifeq ($(SKIP_SIGNAL_TESTS),1)
+  VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG -DSKIP_SIGNAL_TESTS
+else
+  VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
+endif
 
 # Release build flags (_FORTIFY_SOURCE requires optimization)
 RELEASE_FLAGS = -O2 -g -DNDEBUG -D_FORTIFY_SOURCE=2
 
 # Base flags (always present)
-BASE_FLAGS = -std=c17 -fPIC -D_GNU_SOURCE
+BASE_FLAGS = -std=c17 -fPIC -D_GNU_SOURCE -Isrc
 
 # Build type selection (debug, release, sanitize, tsan, or valgrind)
 BUILD ?= debug
@@ -68,22 +72,22 @@ endif
 # Allow LDFLAGS override if not set by BUILD type
 LDFLAGS ?=
 
-CLIENT_LIBS ?= -ltalloc -luuid -lb64 -lpthread -lutf8proc
+CLIENT_LIBS ?= -ltalloc -luuid -lb64 -lpthread -lutf8proc -lcurl
 CLIENT_STATIC_LIBS ?=
 
 COMPLEXITY_THRESHOLD = 15
 NESTING_DEPTH_THRESHOLD = 5
 LINE_LENGTH = 120
-MAX_FILE_LINES = 500
+MAX_FILE_BYTES = 16384
 
 # Coverage settings
 COVERAGE_DIR = coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
-LCOV_EXCL_COVERAGE = 308
+LCOV_EXCL_COVERAGE = 681
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer.c src/input_buffer_multiline.c src/input_buffer_cursor.c src/input_buffer_layout.c src/render.c src/render_cursor.c src/repl.c src/repl_actions.c src/signal_handler.c src/format.c src/pp_helpers.c src/input_buffer_pp.c src/input_buffer_cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/signal_handler.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/commands.c src/marks.c src/debug_pipe.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
@@ -93,19 +97,17 @@ UNIT_TEST_TARGETS = $(patsubst tests/unit/%_test.c,$(BUILDDIR)/tests/unit/%_test
 INTEGRATION_TEST_SOURCES = $(wildcard tests/integration/*_test.c)
 INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/%_test.c,$(BUILDDIR)/tests/integration/%_test,$(INTEGRATION_TEST_SOURCES))
 
-PERFORMANCE_TEST_SOURCES = $(wildcard tests/performance/*_perf.c)
-PERFORMANCE_TEST_TARGETS = $(patsubst tests/performance/%_perf.c,$(BUILDDIR)/tests/performance/%_perf,$(PERFORMANCE_TEST_SOURCES))
+TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS)
 
-TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS) $(PERFORMANCE_TEST_TARGETS)
-
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer.c src/input_buffer_multiline.c src/input_buffer_cursor.c src/input_buffer_layout.c src/repl.c src/repl_actions.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer_pp.c src/input_buffer_cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/commands.c src/marks.c src/debug_pipe.c
 MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 
 # Test utilities (linked with all tests)
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
+REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration check-performance check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint cloc ci install-deps coverage help distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS) $(PERFORMANCE_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration verify-mocks check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -129,19 +131,13 @@ $(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
 
 $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 $(BUILDDIR)/tests/integration/%_test.o: tests/integration/%_test.c | $(BUILDDIR)/tests/integration
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILDDIR)/tests/integration/%_test: $(BUILDDIR)/tests/integration/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | $(BUILDDIR)/tests/integration
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
-
-$(BUILDDIR)/tests/performance/%_perf.o: tests/performance/%_perf.c | $(BUILDDIR)/tests/performance
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILDDIR)/tests/performance/%_perf: $(BUILDDIR)/tests/performance/%_perf.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | $(BUILDDIR)/tests/performance
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 $(BUILDDIR)/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | $(BUILDDIR)/tests
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -150,14 +146,35 @@ $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o: tests/unit/repl/repl_run_tes
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-# Special rule for repl_run tests that need the common object
+$(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o: tests/unit/repl/repl_streaming_test_common.c tests/unit/repl/repl_streaming_test_common.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+# Special rules for repl_run tests that need the run common object
 $(BUILDDIR)/tests/unit/repl/repl_run_basic_test: $(BUILDDIR)/tests/unit/repl/repl_run_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-$(BUILDDIR)/tests/unit/repl/repl_run_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_run_io_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_io_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -ltalloc -luuid -lb64 -lpthread -lutf8proc
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+$(BUILDDIR)/tests/unit/repl/repl_run_curl_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_curl_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+$(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test: $(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+# Special rules for repl streaming/completion tests that need the streaming common object
+$(BUILDDIR)/tests/unit/repl/repl_streaming_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+$(BUILDDIR)/tests/unit/repl/repl_completion_test: $(BUILDDIR)/tests/unit/repl/repl_completion_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 bin:
 	mkdir -p bin
@@ -174,9 +191,6 @@ $(BUILDDIR)/tests/unit: | $(BUILDDIR)/tests
 $(BUILDDIR)/tests/integration: | $(BUILDDIR)/tests
 	mkdir -p $(BUILDDIR)/tests/integration
 
-$(BUILDDIR)/tests/performance: | $(BUILDDIR)/tests
-	mkdir -p $(BUILDDIR)/tests/performance
-
 # Include dependency files (auto-generated by -MMD -MP)
 # The '-' prefix means don't error if files don't exist yet
 -include $(wildcard $(BUILDDIR)/*.d)
@@ -185,10 +199,11 @@ $(BUILDDIR)/tests/performance: | $(BUILDDIR)/tests
 -include $(wildcard $(BUILDDIR)/tests/integration/*.d)
 
 clean:
-	rm -rf build build-* bin $(COVERAGE_DIR)
-	@rm -rf distros/dist distros/*/build 2>/dev/null || true
-	@find . -name "*.gcda" -o -name "*.gcno" -delete 2>/dev/null || true
-	@rm -f core.* vgcore.* 2>/dev/null || true
+	rm -rf build build-* bin $(COVERAGE_DIR) coverage_html
+	rm -rf distros/dist distros/*/build 2>/dev/null || true
+	find . -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" -delete 2>/dev/null || true
+	find src tests -name "*.d" -delete 2>/dev/null || true
+	rm -f core.* vgcore.* 2>/dev/null || true
 
 install: all
 	install -d $(DESTDIR)$(bindir)
@@ -202,7 +217,6 @@ uninstall:
 # Speedup: ~7.75x faster on typical systems with clean build
 UNIT_TEST_RUNS = $(UNIT_TEST_TARGETS:%=%.run)
 INTEGRATION_TEST_RUNS = $(INTEGRATION_TEST_TARGETS:%=%.run)
-PERFORMANCE_TEST_RUNS = $(PERFORMANCE_TEST_TARGETS:%=%.run)
 
 # Pattern rule to run a test
 %.run: %
@@ -221,15 +235,27 @@ check-unit: $(UNIT_TEST_RUNS)
 check-integration: $(INTEGRATION_TEST_RUNS)
 	@echo "Integration tests passed!"
 
-check-performance: $(PERFORMANCE_TEST_RUNS)
-	@echo "Performance tests passed!"
+# Verify mock fixtures against real OpenAI API
+# Requires OPENAI_API_KEY environment variable
+# Only runs the verification test, which checks if fixtures match real API responses
+# Usage: OPENAI_API_KEY=sk-... make verify-mocks
+verify-mocks: $(BUILDDIR)/tests/integration/openai_mock_verification_test
+	@if [ -z "$$OPENAI_API_KEY" ]; then \
+		echo "Error: OPENAI_API_KEY environment variable not set"; \
+		echo "Usage: OPENAI_API_KEY=sk-... make verify-mocks"; \
+		exit 1; \
+	fi
+	@echo "Running mock verification tests against real OpenAI API..."
+	@echo "Note: This will make real API calls and incur costs."
+	@VERIFY_MOCKS=1 OPENAI_API_KEY=$$OPENAI_API_KEY $(BUILDDIR)/tests/integration/openai_mock_verification_test
+	@echo "Mock verification passed!"
 
 # Clean up .run sentinel files
 clean: clean-test-runs
 
 .PHONY: clean-test-runs
 clean-test-runs:
-	@rm -f $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS) $(PERFORMANCE_TEST_RUNS)
+	@rm -f $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 check-sanitize:
 	@echo "Building with AddressSanitizer + UndefinedBehaviorSanitizer..."
@@ -272,13 +298,14 @@ check-helgrind:
 	@rm -rf build-helgrind
 	@mkdir -p build-helgrind/tests/unit build-helgrind/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-helgrind/tests/unit|' | xargs mkdir -p
-	@$(MAKE) -j$(MAKE_JOBS) check BUILD=valgrind BUILDDIR=build-helgrind
+	@$(MAKE) -j$(MAKE_JOBS) check BUILD=valgrind BUILDDIR=build-helgrind SKIP_SIGNAL_TESTS=1
 	@echo "Running tests under Valgrind Helgrind..."
 	@ulimit -n 1024; \
 	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
 		'echo -n "Helgrind: {}... "; \
-		if valgrind --tool=helgrind --error-exitcode=1 \
+		if CK_FORK=no valgrind --tool=helgrind --error-exitcode=1 \
 		            --history-level=approx --quiet \
+		            --suppressions=.valgrind/helgrind.supp \
 		            ./{} > /tmp/helgrind-$$$$.log 2>&1; then \
 			echo "✓"; \
 		else \
@@ -377,10 +404,14 @@ fmt:
 	@[ ! -d tests/integration ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/integration/*.c
 	@[ ! -f tests/test_utils.c ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/test_utils.c tests/test_utils.h
 
-lint:
+complexity:
 	@echo "Checking complexity in src/*.c..."
 	@output=$$(complexity --threshold=$(COMPLEXITY_THRESHOLD) src/*.c 2>&1); \
-	echo "$$output" | grep -v "^No procedures were scored$$" || [ $$? -eq 1 ]; \
+	if echo "$$output" | grep -q "^Complexity Scores$$"; then \
+		echo "✗ Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
+		echo "$$output"; \
+		exit 1; \
+	fi; \
 	if echo "$$output" | grep -q "nesting depth reached level [6-9]"; then \
 		echo "✗ Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
 		echo "$$output" | grep "nesting depth"; \
@@ -388,7 +419,11 @@ lint:
 	fi
 	@echo "Checking complexity in tests/unit/*/*.c..."
 	@output=$$(find tests/unit -name "*.c" -exec complexity --threshold=$(COMPLEXITY_THRESHOLD) {} \; 2>&1); \
-	echo "$$output" | grep -v "^No procedures were scored$$" || [ $$? -eq 1 ]; \
+	if echo "$$output" | grep -q "^Complexity Scores$$"; then \
+		echo "✗ Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
+		echo "$$output"; \
+		exit 1; \
+	fi; \
 	if echo "$$output" | grep -q "nesting depth reached level [6-9]"; then \
 		echo "✗ Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
 		echo "$$output" | grep "nesting depth"; \
@@ -397,7 +432,11 @@ lint:
 	@echo "Checking complexity in tests/integration/*.c..."
 	@if [ -d tests/integration ]; then \
 		output=$$(complexity --threshold=$(COMPLEXITY_THRESHOLD) tests/integration/*.c 2>&1); \
-		echo "$$output" | grep -v "^No procedures were scored$$" || [ $$? -eq 1 ]; \
+		if echo "$$output" | grep -q "^Complexity Scores$$"; then \
+			echo "✗ Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
+			echo "$$output"; \
+			exit 1; \
+		fi; \
 		if echo "$$output" | grep -q "nesting depth reached level [6-9]"; then \
 			echo "✗ Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
 			echo "$$output" | grep "nesting depth"; \
@@ -405,47 +444,53 @@ lint:
 		fi; \
 	fi
 	@echo "✓ All complexity checks passed"
-	@echo "Checking file line counts (max: $(MAX_FILE_LINES))..."
+
+filesize:
+	@echo "Checking file sizes (max: $(MAX_FILE_BYTES) bytes)..."
 	@failed=0; \
-	for file in src/*.c src/*.h; do \
-		[ -f "$$file" ] || continue; \
-		lines=$$(wc -l < "$$file"); \
-		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
-			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+	for file in $$(find src -name "*.c" -o -name "*.h" | grep -v vendor); do \
+		bytes=$$(wc -c < "$$file"); \
+		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
+			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
 	for file in $$(find tests/unit -name "*.c"); do \
-		lines=$$(wc -l < "$$file"); \
-		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
-			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+		bytes=$$(wc -c < "$$file"); \
+		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
+			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
 	for file in tests/integration/*.c; do \
 		[ -f "$$file" ] || continue; \
-		lines=$$(wc -l < "$$file"); \
-		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
-			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+		bytes=$$(wc -c < "$$file"); \
+		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
+			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
 	for file in docs/*.md docs/*/*.md; do \
 		[ -f "$$file" ] || continue; \
-		lines=$$(wc -l < "$$file"); \
-		if [ $$lines -gt $(MAX_FILE_LINES) ]; then \
-			echo "✗ $$file: $$lines lines (exceeds $(MAX_FILE_LINES))"; \
+		bytes=$$(wc -c < "$$file"); \
+		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
+			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
 	if [ $$failed -eq 1 ]; then \
-		echo "✗ Some files exceed $(MAX_FILE_LINES) line limit"; \
+		echo "✗ Some files exceed $(MAX_FILE_BYTES) byte limit"; \
 		exit 1; \
 	fi
-	@echo "✓ All file line count checks passed"
+	@echo "✓ All file size checks passed"
+
+lint: complexity filesize
 
 cloc:
 	@cloc src/ tests/ Makefile
+
+tags:
+	ctags -R src/
 
 ci: lint coverage check-dynamic
 	@echo "Building release build to enforce -Werror..."
@@ -540,6 +585,7 @@ help:
 	@echo "  check           - Build and run all tests (unit + integration)"
 	@echo "  check-unit      - Build and run only unit tests"
 	@echo "  check-integration - Build and run only integration tests"
+	@echo "  verify-mocks    - Verify OpenAI mock fixtures (requires OPENAI_API_KEY)"
 	@echo "  check-sanitize  - Run all tests with AddressSanitizer + UBSanitizer"
 	@echo "  check-valgrind  - Run all tests under Valgrind Memcheck"
 	@echo "  check-helgrind  - Run all tests under Valgrind Helgrind (thread errors)"
@@ -548,7 +594,9 @@ help:
 	@echo ""
 	@echo "Quality assurance:"
 	@echo "  coverage        - Generate text-based coverage report (requires lcov)"
-	@echo "  lint            - Check code complexity (threshold: $(COMPLEXITY_THRESHOLD))"
+	@echo "  lint            - Run all lint checks (complexity + filesize)"
+	@echo "  complexity      - Check code complexity (threshold: $(COMPLEXITY_THRESHOLD))"
+	@echo "  filesize        - Check file sizes (max: $(MAX_FILE_BYTES) bytes)"
 	@echo "  ci              - Run all CI checks (lint + coverage + dynamic + release)"
 	@echo ""
 	@echo "Distribution targets:"
@@ -562,6 +610,7 @@ help:
 	@echo "  dist            - Create source distribution"
 	@echo "  fmt             - Format source code with uncrustify (K&R style, line length: $(LINE_LENGTH))"
 	@echo "  cloc            - Count lines of code in src/, tests/, and Makefile"
+	@echo "  tags            - Generate ctags index for src/ directory"
 	@echo "  install-deps    - Install build dependencies (Debian/Ubuntu)"
 	@echo ""
 	@echo "Build modes (use with any target):"

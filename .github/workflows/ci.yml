@@ -21,5 +21,20 @@ jobs:
         docker run --rm ikigai-ci bash -c "lcov --version"
         docker run --rm ikigai-ci bash -c "gcc --version | head -1"
 
-    - name: Run CI checks
-      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make install-deps && make ci"
+    - name: Install dependencies
+      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make install-deps"
+
+    - name: Check file sizes
+      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make filesize"
+
+    - name: Check complexity
+      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make complexity"
+
+    - name: Run tests with coverage
+      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make coverage"
+
+    - name: Run AddressSanitizer tests
+      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make check-sanitize"
+
+    - name: Run ThreadSanitizer tests
+      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make check-tsan"

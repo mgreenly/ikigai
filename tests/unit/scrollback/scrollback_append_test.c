@@ -11,12 +11,10 @@
 START_TEST(test_scrollback_append_single_line) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     const char *line = "hello world";
-    res = ik_scrollback_append_line(sb, line, strlen(line));
+    res_t res = ik_scrollback_append_line(sb, line, strlen(line));
     ck_assert(is_ok(&res));
 
     // Verify count increased
@@ -26,7 +24,7 @@ START_TEST(test_scrollback_append_single_line) {
     ck_assert_uint_eq(sb->text_offsets[0], 0);
     ck_assert_uint_eq(sb->text_lengths[0], strlen(line));
     ck_assert_mem_eq(sb->text_buffer, line, strlen(line));
-    ck_assert_uint_eq(sb->buffer_used, strlen(line));
+    ck_assert_uint_eq(sb->buffer_used, strlen(line) + 1);  // +1 for null terminator
 
     // Verify layout was calculated (11 chars / 80 width = 1 physical line)
     ck_assert_uint_eq(sb->layouts[0].display_width, 11);
@@ -41,13 +39,11 @@ START_TEST(test_scrollback_append_multiple_lines)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // Append first line
     const char *line1 = "first";
-    res = ik_scrollback_append_line(sb, line1, strlen(line1));
+    res_t res = ik_scrollback_append_line(sb, line1, strlen(line1));
     ck_assert(is_ok(&res));
 
     // Append second line
@@ -68,18 +64,18 @@ START_TEST(test_scrollback_append_multiple_lines)
     ck_assert_uint_eq(sb->text_lengths[0], 5);
     ck_assert_mem_eq(sb->text_buffer + sb->text_offsets[0], "first", 5);
 
-    // Verify second line
-    ck_assert_uint_eq(sb->text_offsets[1], 5);
+    // Verify second line (offset includes null terminator from first line)
+    ck_assert_uint_eq(sb->text_offsets[1], 6);  // 5 + 1 for null terminator
     ck_assert_uint_eq(sb->text_lengths[1], 6);
     ck_assert_mem_eq(sb->text_buffer + sb->text_offsets[1], "second", 6);
 
-    // Verify third line
-    ck_assert_uint_eq(sb->text_offsets[2], 11);
+    // Verify third line (offset includes null terminators from first two lines)
+    ck_assert_uint_eq(sb->text_offsets[2], 13);  // 6 + 6 + 1
     ck_assert_uint_eq(sb->text_lengths[2], 5);
     ck_assert_mem_eq(sb->text_buffer + sb->text_offsets[2], "third", 5);
 
-    // Verify buffer_used
-    ck_assert_uint_eq(sb->buffer_used, 16);
+    // Verify buffer_used (includes 3 null terminators)
+    ck_assert_uint_eq(sb->buffer_used, 19);  // 5 + 1 + 6 + 1 + 5 + 1
 
     // Verify total physical lines
     ck_assert_uint_eq(sb->total_physical_lines, 3);
@@ -93,13 +89,11 @@ START_TEST(test_scrollback_append_utf8_content)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // Line with emoji (2 width each)
     const char *line1 = "Hello 😀 World 🎉";
-    res = ik_scrollback_append_line(sb, line1, strlen(line1));
+    res_t res = ik_scrollback_append_line(sb, line1, strlen(line1));
     ck_assert(is_ok(&res));
 
     // Verify display width: "Hello " (6) + emoji (2) + " World " (7) + emoji (2) = 17
@@ -123,16 +117,14 @@ START_TEST(test_scrollback_append_long_line)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // 160 character line should wrap to 2 physical lines
     char long_line[161];
     memset(long_line, 'a', 160);
     long_line[160] = '\0';
 
-    res = ik_scrollback_append_line(sb, long_line, 160);
+    res_t res = ik_scrollback_append_line(sb, long_line, 160);
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(sb->layouts[0].display_width, 160);
@@ -148,11 +140,9 @@ START_TEST(test_scrollback_append_empty_line)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
-    res = ik_scrollback_append_line(sb, "", 0);
+    res_t res = ik_scrollback_append_line(sb, "", 0);
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(sb->count, 1);
@@ -169,9 +159,7 @@ START_TEST(test_scrollback_array_growth)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     size_t initial_capacity = sb->capacity;
     ck_assert_uint_eq(initial_capacity, 16);  // From INITIAL_LINE_CAPACITY
@@ -180,7 +168,7 @@ START_TEST(test_scrollback_array_growth)
     for (size_t i = 0; i < 17; i++) {
         char line[32];
         snprintf(line, sizeof(line), "line %" PRIu64, (uint64_t)i);
-        res = ik_scrollback_append_line(sb, line, strlen(line));
+        res_t res = ik_scrollback_append_line(sb, line, strlen(line));
         ck_assert(is_ok(&res));
     }
 
@@ -201,9 +189,7 @@ START_TEST(test_scrollback_buffer_growth)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     size_t initial_buffer_capacity = sb->buffer_capacity;
     ck_assert_uint_eq(initial_buffer_capacity, 1024);  // From INITIAL_BUFFER_CAPACITY
@@ -214,13 +200,13 @@ START_TEST(test_scrollback_buffer_growth)
     long_line[100] = '\0';
 
     for (size_t i = 0; i < 11; i++) {  // 11 × 100 = 1100 > 1024
-        res = ik_scrollback_append_line(sb, long_line, 100);
+        res_t res = ik_scrollback_append_line(sb, long_line, 100);
         ck_assert(is_ok(&res));
     }
 
-    // Verify buffer capacity grew
+    // Verify buffer capacity grew (11 lines * (100 bytes + 1 null) = 1111)
     ck_assert_uint_eq(sb->count, 11);
-    ck_assert_uint_eq(sb->buffer_used, 1100);
+    ck_assert_uint_eq(sb->buffer_used, 1111);  // 11 * (100 + 1)
     ck_assert_uint_ge(sb->buffer_capacity, 2048);  // Doubled from 1024
 
     talloc_free(ctx);
@@ -232,9 +218,7 @@ START_TEST(test_scrollback_buffer_multiple_doublings)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // Append a very large line that requires multiple doublings
     // Initial capacity: 1024
@@ -243,12 +227,12 @@ START_TEST(test_scrollback_buffer_multiple_doublings)
     memset(huge_line, 'y', 3000);
     huge_line[3000] = '\0';
 
-    res = ik_scrollback_append_line(sb, huge_line, 3000);
+    res_t res = ik_scrollback_append_line(sb, huge_line, 3000);
     ck_assert(is_ok(&res));
 
-    // Verify buffer grew with multiple doublings
+    // Verify buffer grew with multiple doublings (3000 bytes + 1 null = 3001)
     ck_assert_uint_eq(sb->count, 1);
-    ck_assert_uint_eq(sb->buffer_used, 3000);
+    ck_assert_uint_eq(sb->buffer_used, 3001);  // 3000 + 1 for null terminator
     ck_assert_uint_ge(sb->buffer_capacity, 4096);  // 1024 → 2048 → 4096
 
     talloc_free(ctx);
@@ -260,14 +244,12 @@ START_TEST(test_scrollback_append_invalid_utf8)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // Create a line with invalid UTF-8 sequence
     // 0xFF is not a valid UTF-8 start byte
     const char invalid_utf8[] = "Hello\xFFWorld";
-    res = ik_scrollback_append_line(sb, invalid_utf8, 11);
+    res_t res = ik_scrollback_append_line(sb, invalid_utf8, 11);
 
     // Should succeed but treat invalid byte as width 1
     ck_assert(is_ok(&res));
@@ -284,14 +266,12 @@ START_TEST(test_scrollback_append_control_chars)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // Append line with control characters
     // NULL (0x00), backspace (0x08), ESC (0x1B) all have negative width from utf8proc
     const char control_line[] = "Hello\x00\x08\x1BWorld";
-    res = ik_scrollback_append_line(sb, control_line, 14);
+    res_t res = ik_scrollback_append_line(sb, control_line, 14);
 
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(sb->count, 1);
@@ -307,13 +287,11 @@ START_TEST(test_scrollback_append_trailing_newline)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // "A\n" should be 2 physical rows (A + empty line)
     const char *line = "A\n";
-    res = ik_scrollback_append_line(sb, line, 2);
+    res_t res = ik_scrollback_append_line(sb, line, 2);
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(sb->layouts[0].physical_lines, 2);
@@ -327,13 +305,11 @@ START_TEST(test_scrollback_append_just_newline)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // "\n" should be 1 physical row (one empty line)
     const char *line = "\n";
-    res = ik_scrollback_append_line(sb, line, 1);
+    res_t res = ik_scrollback_append_line(sb, line, 1);
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(sb->layouts[0].physical_lines, 1);
@@ -347,13 +323,11 @@ START_TEST(test_scrollback_append_multiple_newlines)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // "\n\n" should be 2 physical rows (two empty lines)
     const char *line = "\n\n";
-    res = ik_scrollback_append_line(sb, line, 2);
+    res_t res = ik_scrollback_append_line(sb, line, 2);
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(sb->layouts[0].physical_lines, 2);
@@ -367,13 +341,11 @@ START_TEST(test_scrollback_append_content_multiple_newlines)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // "A\n\n" should be 3 physical rows (A + two empty lines)
     const char *line = "A\n\n";
-    res = ik_scrollback_append_line(sb, line, 3);
+    res_t res = ik_scrollback_append_line(sb, line, 3);
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(sb->layouts[0].physical_lines, 3);
@@ -387,13 +359,11 @@ START_TEST(test_scrollback_append_newline_control_char)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // "A\n\x00" should be 1 physical row (control char has width 0, no trailing line)
     const char line[] = "A\n\x00";
-    res = ik_scrollback_append_line(sb, line, 3);
+    res_t res = ik_scrollback_append_line(sb, line, 3);
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(sb->layouts[0].physical_lines, 1);

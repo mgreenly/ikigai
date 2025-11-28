@@ -171,7 +171,7 @@ PANIC() calls create branches that lead to `abort()`. These should be marked wit
 
 ```c
 // OOM check - exclude branch
-void *ptr = ik_talloc_zero_wrapper(ctx, size);
+void *ptr = talloc_zero_(ctx, size);
 if (ptr == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
 // Logic error - exclude entire line

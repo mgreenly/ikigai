@@ -16,8 +16,8 @@ START_TEST(test_repl_process_action_char) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -29,10 +29,8 @@ START_TEST(test_repl_process_action_char) {
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 1);
     ck_assert_int_eq(text[0], 'a');
 
@@ -53,8 +51,8 @@ START_TEST(test_repl_process_action_newline)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
     ck_assert(is_ok(&res));
@@ -71,10 +69,8 @@ START_TEST(test_repl_process_action_newline)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 3);
     ck_assert_int_eq(text[0], 'h');
     ck_assert_int_eq(text[1], 'i');
@@ -90,8 +86,8 @@ START_TEST(test_repl_process_action_backspace)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     res = ik_input_buffer_insert_codepoint(input_buf, 'a');
     ck_assert(is_ok(&res));
@@ -110,10 +106,8 @@ START_TEST(test_repl_process_action_backspace)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 2);
     ck_assert_int_eq(text[0], 'a');
     ck_assert_int_eq(text[1], 'b');
@@ -128,8 +122,8 @@ START_TEST(test_repl_process_action_delete)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     res = ik_input_buffer_insert_codepoint(input_buf, 'a');
     ck_assert(is_ok(&res));
@@ -153,10 +147,8 @@ START_TEST(test_repl_process_action_delete)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 2);
     ck_assert_int_eq(text[0], 'a');
     ck_assert_int_eq(text[1], 'c');
@@ -171,8 +163,8 @@ START_TEST(test_repl_process_action_backspace_at_start)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -183,10 +175,8 @@ START_TEST(test_repl_process_action_backspace_at_start)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    (void)ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 0);
 
     talloc_free(ctx);
@@ -199,8 +189,8 @@ START_TEST(test_repl_process_action_delete_at_end)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     res = ik_input_buffer_insert_codepoint(input_buf, 'a');
     ck_assert(is_ok(&res));
@@ -216,10 +206,8 @@ START_TEST(test_repl_process_action_delete_at_end)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buf, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buf, &len);
     ck_assert_uint_eq(len, 2);
     ck_assert_int_eq(text[0], 'a');
     ck_assert_int_eq(text[1], 'b');

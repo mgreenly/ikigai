@@ -6,24 +6,20 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /* Test: Create input_buffer */
 START_TEST(test_create) {
     void *ctx = talloc_new(NULL);
-    ik_input_buffer_t *input_buffer = NULL;
 
     /* Create input_buffer */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    ik_input_buffer_t *input_buffer = ik_input_buffer_create(ctx);
     ck_assert_ptr_nonnull(input_buffer);
 
     /* Verify text buffer is empty */
-    char *text = NULL;
     size_t len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &text, &len);
-    ck_assert(is_ok(&res));
+    (void)ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 0);
 
     /* Verify cursor at position 0 */
@@ -36,9 +32,8 @@ END_TEST
 START_TEST(test_get_text)
 {
     void *ctx = talloc_new(NULL);
-    ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    ik_input_buffer_t *input_buffer = ik_input_buffer_create(ctx);
 
     /* Manually add some data */
     const uint8_t test_data[] = {'h', 'e', 'l', 'l', 'o'};
@@ -47,10 +42,8 @@ START_TEST(test_get_text)
     }
 
     /* Get text */
-    char *text = NULL;
     size_t len = 0;
-    res_t res = ik_input_buffer_get_text(input_buffer, &text, &len);
-    ck_assert(is_ok(&res));
+    const char *text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 5);
     ck_assert_mem_eq(text, "hello", 5);
 
@@ -62,9 +55,8 @@ END_TEST
 START_TEST(test_clear)
 {
     void *ctx = talloc_new(NULL);
-    ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    ik_input_buffer_t *input_buffer = ik_input_buffer_create(ctx);
 
     /* Manually add some data to test clearing */
     const uint8_t test_data[] = {'h', 'e', 'l', 'l', 'o'};
@@ -77,9 +69,8 @@ START_TEST(test_clear)
     ik_input_buffer_clear(input_buffer);
 
     /* Verify empty */
-    char *text = NULL;
     size_t len = 0;
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    (void)ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 0);
 
     /* Verify cursor at 0 */
@@ -89,42 +80,16 @@ START_TEST(test_clear)
 }
 
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL parameter assertions */
-START_TEST(test_create_null_input_buffer_out_asserts)
+START_TEST(test_get_text_null_input_buffer_asserts)
 {
     void *ctx = talloc_new(NULL);
-
-    /* input_buffer_out cannot be NULL - should abort */
-    ik_input_buffer_create(ctx, NULL);
-
-    talloc_free(ctx);
-}
-
-END_TEST START_TEST(test_get_text_null_input_buffer_asserts)
-{
-    void *ctx = talloc_new(NULL);
-    ik_input_buffer_t *input_buffer = NULL;
-    char *text = NULL;
     size_t len = 0;
-
-    ik_input_buffer_create(ctx, &input_buffer);
 
     /* input_buffer cannot be NULL */
-    ik_input_buffer_get_text(NULL, &text, &len);
-
-    talloc_free(ctx);
-}
-
-END_TEST START_TEST(test_get_text_null_text_out_asserts)
-{
-    void *ctx = talloc_new(NULL);
-    ik_input_buffer_t *input_buffer = NULL;
-    size_t len = 0;
-
-    ik_input_buffer_create(ctx, &input_buffer);
-
-    /* text_out cannot be NULL */
-    ik_input_buffer_get_text(input_buffer, NULL, &len);
+    ik_input_buffer_get_text(NULL, &len);
 
     talloc_free(ctx);
 }
@@ -132,13 +97,11 @@ END_TEST START_TEST(test_get_text_null_text_out_asserts)
 END_TEST START_TEST(test_get_text_null_len_out_asserts)
 {
     void *ctx = talloc_new(NULL);
-    ik_input_buffer_t *input_buffer = NULL;
-    char *text = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    ik_input_buffer_t *input_buffer = ik_input_buffer_create(ctx);
 
     /* len_out cannot be NULL */
-    ik_input_buffer_get_text(input_buffer, &text, NULL);
+    ik_input_buffer_get_text(input_buffer, NULL);
 
     talloc_free(ctx);
 }
@@ -150,28 +113,29 @@ END_TEST START_TEST(test_clear_null_input_buffer_asserts)
 }
 
 END_TEST
+#endif
 
 static Suite *input_buffer_create_suite(void)
 {
     Suite *s = suite_create("Input Buffer Create");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_create);
     tcase_add_test(tc_core, test_get_text);
     tcase_add_test(tc_core, test_clear);
 
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
-    tcase_add_test_raise_signal(tc_assertions, test_create_null_input_buffer_out_asserts, SIGABRT);
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_get_text_null_input_buffer_asserts, SIGABRT);
-    tcase_add_test_raise_signal(tc_assertions, test_get_text_null_text_out_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_get_text_null_len_out_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_clear_null_input_buffer_asserts, SIGABRT);
+    suite_add_tcase(s, tc_assertions);
+#endif
 
     suite_add_tcase(s, tc_core);
-    suite_add_tcase(s, tc_assertions);
     return s;
 }
 

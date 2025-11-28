@@ -21,7 +21,7 @@
  *
  * @param buf Format buffer
  * @param indent Indentation level (number of spaces)
- * @param type Type name (e.g., "ik_input_buffer_t", "ik_cursor_t")
+ * @param type Type name (e.g., "ik_input_buffer_t", "ik_input_buffer_cursor_t")
  * @param ptr Pointer to structure
  */
 void ik_pp_header(ik_format_buffer_t *buf, int32_t indent, const char *type, const void *ptr);

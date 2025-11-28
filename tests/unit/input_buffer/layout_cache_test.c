@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /* Test: Initial state - no layout cached */
@@ -15,8 +15,7 @@ START_TEST(test_initial_state) {
     ik_input_buffer_t *input_buffer = NULL;
 
     /* Create input_buffer */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Initial state: layout should be dirty, physical_lines should be 0 */
     ck_assert_int_eq(input_buffer->layout_dirty, 1);
@@ -33,7 +32,7 @@ START_TEST(test_ensure_layout_initial)
     ik_input_buffer_t *input_buffer = NULL;
     int32_t terminal_width = 80;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Add single-line text (no wrapping) */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -61,7 +60,7 @@ START_TEST(test_ensure_layout_clean)
     ik_input_buffer_t *input_buffer = NULL;
     int32_t terminal_width = 80;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
     ik_input_buffer_insert_codepoint(input_buffer, 'i');
 
@@ -87,7 +86,7 @@ START_TEST(test_ensure_layout_resize)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Add text that will wrap differently at different widths */
     const char *text = "This is a long line that will wrap at different terminal widths";
@@ -118,7 +117,7 @@ START_TEST(test_invalidate_layout)
     ik_input_buffer_t *input_buffer = NULL;
     int32_t terminal_width = 80;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
     ik_input_buffer_insert_codepoint(input_buffer, 'i');
 
@@ -141,7 +140,7 @@ START_TEST(test_get_physical_lines)
     ik_input_buffer_t *input_buffer = NULL;
     int32_t terminal_width = 80;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
     ik_input_buffer_insert_codepoint(input_buffer, 'i');
 
@@ -164,7 +163,7 @@ START_TEST(test_layout_empty)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Ensure layout for empty input_buffer */
     ik_input_buffer_ensure_layout(input_buffer, 80);
@@ -180,7 +179,7 @@ START_TEST(test_layout_single_line_no_wrap)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Add short text */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -199,7 +198,7 @@ START_TEST(test_layout_single_line_wrap)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Add text that wraps at width 10: "hello world" = 11 chars, wraps to 2 lines */
     const char *text = "hello world";
@@ -220,7 +219,7 @@ START_TEST(test_layout_multiline)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Add 3 logical lines */
     ik_input_buffer_insert_codepoint(input_buffer, 'l');
@@ -254,7 +253,7 @@ START_TEST(test_layout_multiline_wrap)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Line 1: "hello world" (11 chars, wraps to 2 physical at width 10) */
     const char *line1 = "hello world";
@@ -280,7 +279,7 @@ START_TEST(test_layout_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Add UTF-8 content: "你好" (2 wide chars = 4 display width) */
     ik_input_buffer_insert_codepoint(input_buffer, 0x4F60);  /* 你 */
@@ -303,7 +302,7 @@ START_TEST(test_text_modification_invalidates_layout)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
     ik_input_buffer_insert_codepoint(input_buffer, 'i');
 
@@ -342,7 +341,7 @@ START_TEST(test_layout_empty_lines)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Add 3 newlines: "\n\n\n" creates 4 lines (3 terminated + 1 after last) */
     ik_input_buffer_insert_newline(input_buffer);
@@ -362,7 +361,7 @@ START_TEST(test_layout_zero_width)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Add zero-width space (U+200B) */
     ik_input_buffer_insert_codepoint(input_buffer, 0x200B);
@@ -375,6 +374,8 @@ START_TEST(test_layout_zero_width)
 }
 
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL parameter assertions */
 START_TEST(test_ensure_layout_null_asserts)
 {
@@ -395,6 +396,7 @@ END_TEST START_TEST(test_get_physical_lines_null_asserts)
 }
 
 END_TEST
+#endif
 
 static Suite *input_buffer_layout_cache_suite(void)
 {
@@ -420,13 +422,16 @@ static Suite *input_buffer_layout_cache_suite(void)
     tcase_add_test(tc_core, test_layout_empty_lines);
     tcase_add_test(tc_core, test_layout_zero_width);
 
+    suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
     tcase_add_test_raise_signal(tc_assertions, test_ensure_layout_null_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_invalidate_layout_null_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_get_physical_lines_null_asserts, SIGABRT);
-
-    suite_add_tcase(s, tc_core);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

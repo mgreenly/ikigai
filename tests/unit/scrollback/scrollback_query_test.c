@@ -11,9 +11,7 @@
 START_TEST(test_scrollback_get_line_count_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     ck_assert_uint_eq(ik_scrollback_get_line_count(sb), 0);
 
@@ -25,11 +23,9 @@ START_TEST(test_scrollback_get_line_count_with_lines)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
-    res = ik_scrollback_append_line(sb, "line 1", 6);
+    res_t res = ik_scrollback_append_line(sb, "line 1", 6);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(ik_scrollback_get_line_count(sb), 1);
 
@@ -46,9 +42,7 @@ START_TEST(test_scrollback_get_total_physical_lines_empty)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     ck_assert_uint_eq(ik_scrollback_get_total_physical_lines(sb), 0);
 
@@ -61,11 +55,9 @@ START_TEST(test_scrollback_get_total_physical_lines_single)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
-    res = ik_scrollback_append_line(sb, "short", 5);
+    res_t res = ik_scrollback_append_line(sb, "short", 5);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(ik_scrollback_get_total_physical_lines(sb), 1);
 
@@ -82,16 +74,14 @@ START_TEST(test_scrollback_get_total_physical_lines_wrapping)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 40, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 40);
 
     // 80 chars will wrap to 2 physical lines at width 40
     char long_line[81];
     memset(long_line, 'a', 80);
     long_line[80] = '\0';
 
-    res = ik_scrollback_append_line(sb, long_line, 80);
+    res_t res = ik_scrollback_append_line(sb, long_line, 80);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(ik_scrollback_get_total_physical_lines(sb), 2);
 
@@ -104,14 +94,12 @@ START_TEST(test_scrollback_get_line_text_valid)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     const char *line1 = "first line";
     const char *line2 = "second line";
 
-    res = ik_scrollback_append_line(sb, line1, strlen(line1));
+    res_t res = ik_scrollback_append_line(sb, line1, strlen(line1));
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(sb, line2, strlen(line2));
     ck_assert(is_ok(&res));
@@ -139,11 +127,9 @@ START_TEST(test_scrollback_get_line_text_invalid)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
-    res = ik_scrollback_append_line(sb, "line", 4);
+    res_t res = ik_scrollback_append_line(sb, "line", 4);
     ck_assert(is_ok(&res));
 
     // Try to get line at index 1 (only line 0 exists)
@@ -161,11 +147,9 @@ START_TEST(test_scrollback_find_line_single)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
-    res = ik_scrollback_append_line(sb, "line 0", 6);
+    res_t res = ik_scrollback_append_line(sb, "line 0", 6);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(sb, "line 1", 6);
     ck_assert(is_ok(&res));
@@ -200,12 +184,10 @@ START_TEST(test_scrollback_find_line_wrapping)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 40, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 40);
 
     // First line: short (1 physical line)
-    res = ik_scrollback_append_line(sb, "short", 5);
+    res_t res = ik_scrollback_append_line(sb, "short", 5);
     ck_assert(is_ok(&res));
 
     // Second line: 80 chars (2 physical lines at width 40)
@@ -255,11 +237,9 @@ START_TEST(test_scrollback_find_line_out_of_range)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
-    res = ik_scrollback_append_line(sb, "line", 4);
+    res_t res = ik_scrollback_append_line(sb, "line", 4);
     ck_assert(is_ok(&res));
 
     // Try to find line at physical row 1 (only row 0 exists)

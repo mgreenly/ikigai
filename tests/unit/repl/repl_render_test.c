@@ -1,29 +1,39 @@
 /**
  * @file repl_render_test.c
- * @brief Unit tests for REPL render_frame function
+ * @brief Unit tests for REPL render_frame function (basic rendering)
  */
 
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
 #include <string.h>
+#include <stdio.h>
 #include "../../../src/repl.h"
 #include "../../../src/render.h"
+#include "../../../src/layer.h"
+#include "../../../src/layer_wrappers.h"
+#include "../../../src/byte_array.h"
 #include "../../test_utils.h"
 
 // Mock write tracking
 static int32_t mock_write_calls = 0;
 static char mock_write_buffer[4096];
 static size_t mock_write_buffer_len = 0;
+static bool mock_write_should_fail = false;
 
 // Mock write wrapper declaration
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
+ssize_t posix_write_(int fd, const void *buf, size_t count);
 
 // Mock write wrapper for testing
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+ssize_t posix_write_(int fd, const void *buf, size_t count)
 {
     (void)fd;
     mock_write_calls++;
+
+    if (mock_write_should_fail) {
+        return -1;  // Simulate write failure
+    }
+
     if (mock_write_buffer_len + count < sizeof(mock_write_buffer)) {
         memcpy(mock_write_buffer + mock_write_buffer_len, buf, count);
         mock_write_buffer_len += count;
@@ -37,8 +47,8 @@ START_TEST(test_repl_render_frame_empty_input_buffer) {
 
     // Manually construct REPL context components
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     ik_render_ctx_t *render = NULL;
     res = ik_render_create(ctx, 24, 80, 1, &render);  // Mock terminal: 24x80, fd=1
@@ -50,9 +60,7 @@ START_TEST(test_repl_render_frame_empty_input_buffer) {
     term->screen_cols = 80;
 
     // Create scrollback (required by ik_repl_render_frame)
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     // Create minimal REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -85,8 +93,8 @@ START_TEST(test_repl_render_frame_multiline)
 
     // Manually construct REPL context components
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert multi-line text
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -110,9 +118,7 @@ START_TEST(test_repl_render_frame_multiline)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -140,8 +146,8 @@ START_TEST(test_repl_render_frame_cursor_positions)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert text: "hello"
     const char *text = "hello";
@@ -158,9 +164,7 @@ START_TEST(test_repl_render_frame_cursor_positions)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -214,8 +218,8 @@ START_TEST(test_repl_render_frame_utf8)
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    res_t res;
+    input_buf = ik_input_buffer_create(ctx);
 
     // Insert UTF-8 emoji
     res = ik_input_buffer_insert_codepoint(input_buf, 0x1F600);  // 😀
@@ -229,9 +233,7 @@ START_TEST(test_repl_render_frame_utf8)
     term->screen_rows = 24;
     term->screen_cols = 80;
 
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -250,6 +252,8 @@ START_TEST(test_repl_render_frame_utf8)
 }
 
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL parameter assertions */
 START_TEST(test_repl_render_frame_null_repl_asserts)
 {
@@ -258,25 +262,29 @@ START_TEST(test_repl_render_frame_null_repl_asserts)
 }
 
 END_TEST
+#endif
 
 static Suite *repl_render_suite(void)
 {
     Suite *s = suite_create("REPL_Render");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
-    /* Normal tests */
+    /* Basic rendering tests */
     tcase_add_test(tc_core, test_repl_render_frame_empty_input_buffer);
     tcase_add_test(tc_core, test_repl_render_frame_multiline);
     tcase_add_test(tc_core, test_repl_render_frame_cursor_positions);
     tcase_add_test(tc_core, test_repl_render_frame_utf8);
 
-    /* Assertion tests */
-    tcase_add_test_raise_signal(tc_assertions, test_repl_render_frame_null_repl_asserts, SIGABRT);
-
     suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+    /* Assertion tests */
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_add_test_raise_signal(tc_assertions, test_repl_render_frame_null_repl_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

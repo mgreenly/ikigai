@@ -1,0 +1,10 @@
+# Helgrind suppression file for ikigai
+
+# libp11-kit false positives - mutex_destroy in library cleanup
+{
+   libp11kit_mutex_destroy
+   Helgrind:Misc
+   fun:mutex_destroy_WRK
+   obj:*/libp11-kit.so.*
+   ...
+}

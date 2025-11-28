@@ -12,6 +12,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/terminal.h"
 #include "../../../src/wrapper.h"
+#include "../../test_utils.h"
 
 // Forward declaration for suite function
 static Suite *repl_resize_suite(void);
@@ -22,37 +23,37 @@ static int mock_screen_cols = 80;
 static bool mock_ioctl_should_fail = false;
 
 // Forward declarations for wrapper functions
-int ik_open_wrapper(const char *pathname, int flags);
-int ik_close_wrapper(int fd);
-int ik_tcgetattr_wrapper(int fd, struct termios *termios_p);
-int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p);
-int ik_tcflush_wrapper(int fd, int queue_selector);
-int ik_ioctl_wrapper(int fd, unsigned long request, void *argp);
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
-ssize_t ik_read_wrapper(int fd, void *buf, size_t count);
+int posix_open_(const char *pathname, int flags);
+int posix_close_(int fd);
+int posix_tcgetattr_(int fd, struct termios *termios_p);
+int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p);
+int posix_tcflush_(int fd, int queue_selector);
+int posix_ioctl_(int fd, unsigned long request, void *argp);
+ssize_t posix_write_(int fd, const void *buf, size_t count);
+ssize_t posix_read_(int fd, void *buf, size_t count);
 
 // Mock wrapper functions for terminal operations
-int ik_open_wrapper(const char *pathname, int flags)
+int posix_open_(const char *pathname, int flags)
 {
     (void)pathname;
     (void)flags;
     return 3;  // Return valid fd
 }
 
-int ik_close_wrapper(int fd)
+int posix_close_(int fd)
 {
     (void)fd;
     return 0;
 }
 
-int ik_tcgetattr_wrapper(int fd, struct termios *termios_p)
+int posix_tcgetattr_(int fd, struct termios *termios_p)
 {
     (void)fd;
     (void)termios_p;
     return 0;
 }
 
-int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p)
+int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p)
 {
     (void)fd;
     (void)optional_actions;
@@ -60,14 +61,14 @@ int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *ter
     return 0;
 }
 
-int ik_tcflush_wrapper(int fd, int queue_selector)
+int posix_tcflush_(int fd, int queue_selector)
 {
     (void)fd;
     (void)queue_selector;
     return 0;
 }
 
-int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
+int posix_ioctl_(int fd, unsigned long request, void *argp)
 {
     (void)fd;
     (void)request;
@@ -82,14 +83,14 @@ int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
     return 0;
 }
 
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+ssize_t posix_write_(int fd, const void *buf, size_t count)
 {
     (void)fd;
     (void)buf;
     return (ssize_t)count;
 }
 
-ssize_t ik_read_wrapper(int fd, void *buf, size_t count)
+ssize_t posix_read_(int fd, void *buf, size_t count)
 {
     (void)fd;
     (void)buf;
@@ -104,7 +105,8 @@ START_TEST(test_resize_updates_terminal_dimensions) {
 
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
 
@@ -135,7 +137,8 @@ START_TEST(test_resize_invalidates_scrollback_layout)
 
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&result));
 
     // Add a long line that will wrap differently at different widths
@@ -173,7 +176,8 @@ START_TEST(test_resize_handles_ioctl_failure)
 
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&result));
 
     // Make ioctl fail
@@ -198,7 +202,8 @@ START_TEST(test_sigwinch_handler_installed)
 
     // Create REPL context (which installs SIGWINCH handler)
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&result));
 
     // Get current SIGWINCH handler

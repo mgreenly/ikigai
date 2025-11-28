@@ -21,23 +21,23 @@
 #include "../../test_utils.h"
 
 // Forward declarations
-int ik_open_wrapper(const char *pathname, int flags);
-int ik_ioctl_wrapper(int fd, unsigned long request, void *argp);
-int ik_close_wrapper(int fd);
-int ik_tcgetattr_wrapper(int fd, struct termios *p);
-int ik_tcsetattr_wrapper(int fd, int o, const struct termios *p);
-int ik_tcflush_wrapper(int fd, int q);
-ssize_t ik_write_wrapper(int fd, const void *b, size_t c);
-ssize_t ik_read_wrapper(int fd, void *b, size_t c);
+int posix_open_(const char *pathname, int flags);
+int posix_ioctl_(int fd, unsigned long request, void *argp);
+int posix_close_(int fd);
+int posix_tcgetattr_(int fd, struct termios *p);
+int posix_tcsetattr_(int fd, int o, const struct termios *p);
+int posix_tcflush_(int fd, int q);
+ssize_t posix_write_(int fd, const void *b, size_t c);
+ssize_t posix_read_(int fd, void *b, size_t c);
 
 // Mock wrapper function implementations
-int ik_open_wrapper(const char *pathname, int flags)
+int posix_open_(const char *pathname, int flags)
 {
     (void)pathname; (void)flags;
     return 99;
 }
 
-int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
+int posix_ioctl_(int fd, unsigned long request, void *argp)
 {
     (void)fd; (void)request;
     struct winsize *ws = (struct winsize *)argp;
@@ -46,32 +46,32 @@ int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
     return 0;
 }
 
-int ik_close_wrapper(int fd)
+int posix_close_(int fd)
 {
     (void)fd; return 0;
 }
 
-int ik_tcgetattr_wrapper(int fd, struct termios *p)
+int posix_tcgetattr_(int fd, struct termios *p)
 {
     (void)fd; (void)p; return 0;
 }
 
-int ik_tcsetattr_wrapper(int fd, int o, const struct termios *p)
+int posix_tcsetattr_(int fd, int o, const struct termios *p)
 {
     (void)fd; (void)o; (void)p; return 0;
 }
 
-int ik_tcflush_wrapper(int fd, int q)
+int posix_tcflush_(int fd, int q)
 {
     (void)fd; (void)q; return 0;
 }
 
-ssize_t ik_write_wrapper(int fd, const void *b, size_t c)
+ssize_t posix_write_(int fd, const void *b, size_t c)
 {
     (void)fd; (void)b; return (ssize_t)c;
 }
 
-ssize_t ik_read_wrapper(int fd, void *b, size_t c)
+ssize_t posix_read_(int fd, void *b, size_t c)
 {
     (void)fd; (void)b; (void)c; return 0;
 }
@@ -79,7 +79,8 @@ ssize_t ik_read_wrapper(int fd, void *b, size_t c)
 // Helper: Create REPL with scrollback and set viewport offset
 static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offset)
 {
-    res_t res = ik_repl_init(ctx, repl_out);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, repl_out);
     ck_assert(is_ok(&res));
     for (int32_t i = 0; i < 50; i++) {
         char buf[32];

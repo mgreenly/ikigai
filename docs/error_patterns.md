@@ -32,6 +32,7 @@
   - [Pattern 4: Per-Request Context](#pattern-4-per-request-context)
 
 ### Related Documentation
+- **[return_values.md](return_values.md)** - Complete guide to function return patterns and how to use them
 - **[error_handling.md](error_handling.md)** - Core philosophy and mechanisms
 - **[error_testing.md](error_testing.md)** - Testing strategy and coverage requirements
 
@@ -289,7 +290,7 @@ res_t parse_port(TALLOC_CTX *ctx, const char *str) {
     if (port < 1024 || port > 65535)
         return ERR(ctx, OUT_OF_RANGE, "Port out of range: %ld", port);
 
-    int *result = ik_talloc_wrapper(ctx, int);
+    int *result = talloc_zero_(ctx, int);
     if (!result) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     *result = (int)port;
     return OK(result);

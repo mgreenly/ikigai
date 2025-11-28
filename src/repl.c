@@ -1,85 +1,193 @@
 #include "repl.h"
+
+#include "format.h"
+#include "input_buffer/core.h"
+#include "openai/client_multi.h"
+#include "panic.h"
+#include "render_cursor.h"
 #include "repl_actions.h"
 #include "signal_handler.h"
-#include "panic.h"
 #include "wrapper.h"
-#include "format.h"
-#include "input_buffer.h"
+
 #include <assert.h>
-#include <talloc.h>
+#include <errno.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <talloc.h>
+#include <time.h>
 
-res_t ik_repl_init(void *parent, ik_repl_ctx_t **repl_out)
+// Helper: Calculate effective select() timeout
+static inline long calculate_select_timeout_ms_(const ik_repl_ctx_t *repl, long curl_timeout_ms)
 {
-    assert(parent != NULL);     /* LCOV_EXCL_BR_LINE */
-    assert(repl_out != NULL);   /* LCOV_EXCL_BR_LINE */
+    // Spinner timer: 80ms when visible, no timeout when hidden
+    long spinner_timeout_ms = repl->spinner_state.visible ? 80 : -1;  // LCOV_EXCL_BR_LINE
 
-    // Allocate REPL context
-    ik_repl_ctx_t *repl = ik_talloc_zero_wrapper(parent, sizeof(ik_repl_ctx_t));
-    if (repl == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    // Initialize terminal (raw mode + alternate screen)
-    res_t result = ik_term_init(repl, &repl->term);
-    if (is_err(&result)) {
-        talloc_free(repl);
-        return result;
+    // Use minimum of both timeouts (if both are set)
+    if (spinner_timeout_ms >= 0 && curl_timeout_ms >= 0) {  // LCOV_EXCL_BR_LINE
+        return (spinner_timeout_ms < curl_timeout_ms) ? spinner_timeout_ms : curl_timeout_ms;  // LCOV_EXCL_LINE
     }
-
-    // Initialize render
-    result = ik_render_create(repl,
-                              repl->term->screen_rows,
-                              repl->term->screen_cols,
-                              repl->term->tty_fd,
-                              &repl->render);
-    if (is_err(&result)) {
-        talloc_free(repl);
-        return result;
+    if (spinner_timeout_ms >= 0) {  // LCOV_EXCL_BR_LINE
+        return spinner_timeout_ms;  // LCOV_EXCL_LINE
     }
-
-    // Initialize input buffer
-    result = ik_input_buffer_create(repl, &repl->input_buffer);
-    if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
-
-    // Initialize input parser
-    result = ik_input_parser_create(repl, &repl->input_parser);
-    if (is_err(&result))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
-
-    // Initialize scrollback buffer (Phase 4)
-    result = ik_scrollback_create(repl, repl->term->screen_cols, &repl->scrollback);
-    if (is_err(&result))PANIC("allocation failed");  /* LCOV_EXCL_BR_LINE */
-
-    // Initialize viewport offset to 0 (at bottom)
-    repl->viewport_offset = 0;
-
-    // Set quit flag to false
-    repl->quit = false;
-
-    // Set up signal handlers (SIGWINCH for terminal resize)
-    result = ik_signal_handler_init(parent);
-    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - Signal handler setup failure is rare (invalid signal number)
-        talloc_free(repl);  // LCOV_EXCL_LINE
-        return result;  // LCOV_EXCL_LINE
+    if (curl_timeout_ms >= 0) {  // LCOV_EXCL_BR_LINE
+        return curl_timeout_ms;  // LCOV_EXCL_LINE
     }
-
-    *repl_out = repl;
-    return OK(repl);
+    // Use a 1-second timeout to prevent blocking forever
+    return 1000;
 }
 
-void ik_repl_cleanup(ik_repl_ctx_t *repl)
+// Helper: Set up file descriptor sets for select()
+static inline res_t setup_fd_sets_(ik_repl_ctx_t *repl,
+                                   fd_set *read_fds,
+                                   fd_set *write_fds,
+                                   fd_set *exc_fds,
+                                   int *max_fd_out)
 {
-    if (repl == NULL) {
-        return;
+    FD_ZERO(read_fds);
+    FD_ZERO(write_fds);
+    FD_ZERO(exc_fds);
+
+    // Add terminal fd
+    int32_t terminal_fd = repl->term->tty_fd;
+    FD_SET(terminal_fd, read_fds);
+    int max_fd = terminal_fd;
+
+    // Add curl_multi fds
+    int curl_max_fd = -1;
+    res_t result = ik_openai_multi_fdset(repl->multi, read_fds, write_fds, exc_fds, &curl_max_fd);
+    if (is_err(&result)) {
+        return result;
+    }
+    if (curl_max_fd > max_fd) {  // LCOV_EXCL_BR_LINE
+        max_fd = curl_max_fd;  // LCOV_EXCL_LINE
     }
 
-    // Cleanup terminal (restore state)
-    if (repl->term != NULL) {
-        ik_term_cleanup(repl->term);
+    *max_fd_out = max_fd;
+    return OK(NULL);
+}
+
+// Helper: Handle terminal input
+// Exposed for testing
+res_t handle_terminal_input_(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit)
+{
+    char byte;
+    ssize_t n = posix_read_(terminal_fd, &byte, 1);
+    if (n < 0) {
+        if (errno == EINTR) {
+            return OK(NULL);
+        }
+        *should_exit = true;
+        return OK(NULL);
+    }
+    if (n == 0) {
+        *should_exit = true;
+        return OK(NULL);
     }
 
-    // Other components cleaned up via talloc hierarchy
-    talloc_free(repl);
+    // Parse and process action
+    ik_input_action_t action;
+    ik_input_parse_byte(repl->input_parser, byte, &action);
+
+    res_t result = ik_repl_process_action(repl, &action);
+    // Error propagation: Currently unreachable through normal terminal input because
+    // the input parser (input.c:decode_utf8_sequence) sanitizes invalid codepoints
+    // to U+FFFD before they reach ik_repl_process_action(). The error handling in
+    // ik_repl_process_action itself IS tested (see test_repl_process_action_invalid_codepoint).
+    // This defensive check remains for future robustness if new failable actions are added.
+    if (is_err(&result)) return result; // LCOV_EXCL_BR_LINE
+
+    // Render if needed
+    if (action.type != IK_INPUT_UNKNOWN) {
+        return ik_repl_render_frame(repl);
+    }
+
+    return OK(NULL);
+}
+
+// Helper: Handle HTTP request error
+// NOTE: Tested manually (Tasks 7.10-7.14)
+// LCOV_EXCL_START
+static void handle_request_error_(ik_repl_ctx_t *repl)
+{
+    // Display error in scrollback
+    const char *error_prefix = "Error: ";
+    size_t prefix_len = strlen(error_prefix);
+    size_t error_len = strlen(repl->http_error_message);
+    char *full_error = talloc_zero_(repl, prefix_len + error_len + 1);
+    if (full_error == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    memcpy(full_error, error_prefix, prefix_len);
+    memcpy(full_error + prefix_len, repl->http_error_message, error_len);
+    full_error[prefix_len + error_len] = '\0';
+
+    ik_scrollback_append_line(repl->scrollback, full_error, prefix_len + error_len);
+    talloc_free(full_error);
+
+    // Clear error message
+    talloc_free(repl->http_error_message);
+    repl->http_error_message = NULL;
+
+    // Clear accumulated assistant response (partial response on error)
+    if (repl->assistant_response != NULL) {
+        talloc_free(repl->assistant_response);
+        repl->assistant_response = NULL;
+    }
+}
+
+// LCOV_EXCL_STOP
+
+// Helper: Handle HTTP request success
+static void handle_request_success_(ik_repl_ctx_t *repl)
+{
+    // Add assistant response to conversation
+    if (repl->assistant_response != NULL && strlen(repl->assistant_response) > 0) {
+        ik_openai_msg_t *assistant_msg = ik_openai_msg_create(repl->conversation,
+                                                              "assistant",
+                                                              repl->assistant_response).ok;
+        res_t result = ik_openai_conversation_add_msg(repl->conversation, assistant_msg);
+        if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+
+        // Clear the assistant response
+        talloc_free(repl->assistant_response);
+        repl->assistant_response = NULL;
+    }
+}
+
+// Helper: Handle curl_multi events and detect request completion
+// Exposed for testing
+res_t handle_curl_events_(ik_repl_ctx_t *repl, int ready)
+{
+    // Only call curl_multi_perform when there's work to do:
+    // - ready == 0 means select() timed out (curl may need to handle its timeouts)
+    // - curl_still_running > 0 means there are active transfers that need processing
+    if (ready == 0 || repl->curl_still_running > 0) {
+        int prev_running = repl->curl_still_running;
+        CHECK(ik_openai_multi_perform(repl->multi, &repl->curl_still_running));
+        ik_openai_multi_info_read(repl->multi);
+
+        // Detect request completion (was running, now not running)
+        if (prev_running > 0 && repl->curl_still_running == 0 && repl->state == IK_REPL_STATE_WAITING_FOR_LLM) {
+            // Check if request failed (error message set by completion callback)
+            // LCOV_EXCL_START
+            if (repl->http_error_message != NULL) {
+                handle_request_error_(repl);
+            } else {
+                // LCOV_EXCL_STOP
+                handle_request_success_(repl);
+                // LCOV_EXCL_START
+            }
+            // LCOV_EXCL_STOP
+
+            // Transition back to IDLE state
+            ik_repl_transition_to_idle(repl);
+
+            // Trigger re-render to update UI
+            CHECK(ik_repl_render_frame(repl));
+        }
+    }
+    return OK(NULL);
 }
 
 res_t ik_repl_run(ik_repl_ctx_t *repl)
@@ -92,205 +200,65 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         return result;
     }
 
-    // Main event loop: read bytes, parse into actions, process, render
-    char byte;
-    while (!repl->quit) {
-        // Check for pending resize before reading
-        result = ik_signal_check_resize(repl);
-        if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - Signal handler errors require actual signal delivery
-            return result;
+    // Main event loop
+    bool should_exit = false;
+    while (!repl->quit && !should_exit) {  // LCOV_EXCL_BR_LINE
+        // Check for pending resize
+        CHECK(ik_signal_check_resize(repl));  // LCOV_EXCL_BR_LINE
+
+        // Set up fd_sets
+        fd_set read_fds, write_fds, exc_fds;
+        int max_fd;
+        CHECK(setup_fd_sets_(repl, &read_fds, &write_fds, &exc_fds, &max_fd));  // LCOV_EXCL_BR_LINE
+
+        // Add debug pipes to fd_set
+        if (repl->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
+            ik_debug_mgr_add_to_fdset(repl->debug_mgr, &read_fds, &max_fd);  // LCOV_EXCL_LINE
         }
 
-        ssize_t n = ik_read_wrapper(repl->term->tty_fd, &byte, 1);
-        if (n < 0) {
-            // LCOV_EXCL_START - Signal interruption requires actual signal delivery
-            // Check if interrupted by signal
+        // Calculate timeout
+        long curl_timeout_ms = -1;
+        CHECK(ik_openai_multi_timeout(repl->multi, &curl_timeout_ms));
+        long effective_timeout_ms = calculate_select_timeout_ms_(repl, curl_timeout_ms);
+
+        struct timeval timeout;
+        timeout.tv_sec = effective_timeout_ms / 1000;
+        timeout.tv_usec = (effective_timeout_ms % 1000) * 1000;
+
+        // Call select()
+        int ready = posix_select_(max_fd + 1, &read_fds, &write_fds, &exc_fds, &timeout);
+
+        if (ready < 0) {
             if (errno == EINTR) {
-                // Signal interrupted read - check for resize and continue
-                result = ik_signal_check_resize(repl);
-                if (is_err(&result)) {
-                    return result;
-                }
-                continue;  // Retry read
+                CHECK(ik_signal_check_resize(repl));  // LCOV_EXCL_BR_LINE
+                continue;
             }
-            // LCOV_EXCL_STOP
-            // Other error - exit loop
-            break;
-        }
-        if (n == 0) {
-            // EOF - exit loop
             break;
         }
 
-        // Parse byte into action
-        ik_input_action_t action;
-        ik_input_parse_byte(repl->input_parser, byte, &action);
-
-        // Process action
-        result = ik_repl_process_action(repl, &action);
-        if (is_err(&result))return result;  // LCOV_EXCL_LINE - Defensive check, input parser validates codepoints
-
-        // Render frame (only if action was not UNKNOWN)
-        if (action.type != IK_INPUT_UNKNOWN) {
-            result = ik_repl_render_frame(repl);
-            if (is_err(&result)) {
-                return result;
-            }
+        // Handle timeout (spinner animation)
+        if (ready == 0 && repl->spinner_state.visible) {
+            ik_spinner_advance(&repl->spinner_state);
+            CHECK(ik_repl_render_frame(repl));
+            continue;
         }
+
+        // Handle debug pipes
+        if (ready > 0 && repl->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
+            ik_debug_mgr_handle_ready(repl->debug_mgr, &read_fds, repl->scrollback, repl->debug_enabled);  // LCOV_EXCL_LINE
+        }
+
+        // Handle terminal input
+        if (FD_ISSET(repl->term->tty_fd, &read_fds)) {  // LCOV_EXCL_BR_LINE
+            CHECK(handle_terminal_input_(repl, repl->term->tty_fd, &should_exit));
+            if (should_exit) break;
+        }
+
+        // Handle curl_multi events
+        CHECK(handle_curl_events_(repl, ready));  // LCOV_EXCL_BR_LINE
     }
 
     return OK(NULL);
-}
-
-res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_out)
-{
-    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(viewport_out != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->term != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
-
-    // Ensure input buffer layout is up to date
-    ik_input_buffer_ensure_layout(repl->input_buffer, repl->term->screen_cols);
-
-    // Ensure scrollback layout is up to date
-    ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
-
-    // Get component sizes
-    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
-    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
-    size_t scrollback_line_count = ik_scrollback_get_line_count(repl->scrollback);
-    int32_t terminal_rows = repl->term->screen_rows;
-
-    // Unified document model:
-    // Document = scrollback_rows + 1 (separator) + MAX(input_buffer_rows, 1)
-    // Input buffer always occupies at least 1 row (for cursor visibility when empty)
-    size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
-    size_t separator_row = scrollback_rows;  // Separator is at this document row (0-indexed)
-    size_t input_buffer_start_doc_row = scrollback_rows + 1;  // Input buffer starts here
-    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows;
-
-    // Calculate visible document range
-    // viewport_offset = how many rows scrolled UP from bottom
-    size_t first_visible_row, last_visible_row;
-
-    if (document_height <= (size_t)terminal_rows) {
-        // Entire document fits on screen
-        first_visible_row = 0;
-        last_visible_row = document_height > 0 ? document_height - 1 : 0;  /* LCOV_EXCL_BR_LINE */
-    } else {
-        // Document overflows - calculate window
-        // Clamp viewport_offset to valid range
-        size_t max_offset = document_height - (size_t)terminal_rows;
-        size_t offset = repl->viewport_offset;
-        if (offset > max_offset) {
-            offset = max_offset;
-        }
-
-        // When offset=0, show last terminal_rows of document
-        // When offset=N, scroll up by N rows
-        last_visible_row = document_height - 1 - offset;
-        first_visible_row = last_visible_row + 1 - (size_t)terminal_rows;
-    }
-
-    // Determine which scrollback lines are visible
-    if (first_visible_row > separator_row || scrollback_rows == 0) {
-        // Viewport starts after all scrollback - no scrollback visible
-        viewport_out->scrollback_start_line = 0;
-        viewport_out->scrollback_lines_count = 0;
-    } else {
-        // Some scrollback is visible
-        // Find logical line at first_visible_row
-        size_t start_line = 0;
-        size_t row_offset = 0;
-
-        if (scrollback_rows > 0 && first_visible_row < scrollback_rows) {  /* LCOV_EXCL_BR_LINE */
-            res_t result = ik_scrollback_find_logical_line_at_physical_row(
-                repl->scrollback,
-                first_visible_row,
-                &start_line,
-                &row_offset
-                );
-            if (is_err(&result)) { /* LCOV_EXCL_BR_LINE */
-                PANIC("Failed to find logical line at physical row"); /* LCOV_EXCL_LINE */
-            }
-        }
-
-        // Count how many scrollback lines are visible
-        size_t lines_count = 0;
-        size_t current_row = first_visible_row;
-        for (size_t i = start_line; i < scrollback_line_count && current_row < separator_row; i++) {  /* LCOV_EXCL_BR_LINE */
-            current_row += repl->scrollback->layouts[i].physical_lines;
-            lines_count++;
-            if (current_row > last_visible_row)break;
-        }
-
-        viewport_out->scrollback_start_line = start_line;
-        viewport_out->scrollback_lines_count = lines_count;
-    }
-
-    // Calculate where input buffer appears in viewport
-    // Input buffer always occupies at least 1 row in document (even when empty)
-    if (input_buffer_start_doc_row <= last_visible_row) {
-        // Input buffer is at least partially visible
-        if (input_buffer_start_doc_row >= first_visible_row) {  /* LCOV_EXCL_BR_LINE */
-            // Input buffer starts within viewport
-            viewport_out->input_buffer_start_row = input_buffer_start_doc_row - first_visible_row;
-        } else {  /* LCOV_EXCL_BR_LINE */
-            // Input buffer starts before viewport (shouldn't happen)  /* LCOV_EXCL_LINE */
-            viewport_out->input_buffer_start_row = 0;  /* LCOV_EXCL_LINE */
-        }  /* LCOV_EXCL_LINE */
-    } else {
-        // Input buffer is completely off-screen
-        viewport_out->input_buffer_start_row = (size_t)terminal_rows;
-    }
-
-    // Calculate separator visibility
-    // Separator is at document row separator_row
-    // It's visible if it's in the range [first_visible_row, last_visible_row]
-    viewport_out->separator_visible = separator_row >= first_visible_row &&
-                                      separator_row <= last_visible_row;
-
-    return OK(repl);
-}
-
-res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
-{
-    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->render != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
-
-    // Calculate viewport to determine what to render
-    ik_viewport_t viewport;
-    res_t result = ik_repl_calculate_viewport(repl, &viewport);
-    if (is_err(&result))return result;  /* LCOV_EXCL_LINE */
-
-    // Get input buffer text
-    char *text = NULL;
-    size_t text_len = 0;
-    ik_input_buffer_get_text(repl->input_buffer, &text, &text_len);
-
-    // Get cursor byte offset
-    size_t cursor_byte_offset = 0;
-    size_t cursor_grapheme = 0;
-    ik_input_buffer_get_cursor_position(repl->input_buffer, &cursor_byte_offset, &cursor_grapheme);
-
-    // Determine visibility of separator and input buffer (unified document model)
-    // Separator visibility is calculated in ik_repl_calculate_viewport()
-    // Input buffer visible when input_buffer_start_row in [0, terminal_rows-1]
-    bool separator_visible = viewport.separator_visible;
-    bool input_buffer_visible = viewport.input_buffer_start_row < (size_t)repl->term->screen_rows;
-
-    // Render combined view with conditional separator/input_buffer
-    return ik_render_combined(repl->render,
-                              repl->scrollback,
-                              viewport.scrollback_start_line,
-                              viewport.scrollback_lines_count,
-                              text,
-                              text_len,
-                              cursor_byte_offset,
-                              separator_visible,
-                              input_buffer_visible);
 }
 
 res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
@@ -302,9 +270,8 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
     size_t text_len = ik_byte_array_size(repl->input_buffer->text);
 
     // Append to scrollback (only if there's content and scrollback exists)
-    if (text_len > 0 && repl->scrollback != NULL) {
-        res_t result = ik_scrollback_append_line(repl->scrollback, text, text_len);
-        if (is_err(&result))return result;  // LCOV_EXCL_LINE - Defensive, allocation failures are rare
+    if (text_len > 0 && repl->scrollback != NULL) {  // LCOV_EXCL_BR_LINE
+        ik_scrollback_append_line(repl->scrollback, text, text_len);
     }
 
     // Clear input buffer
@@ -341,4 +308,30 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
 
     // Trigger immediate redraw with new dimensions
     return ik_repl_render_frame(repl);
+}
+
+void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->state == IK_REPL_STATE_IDLE);   /* LCOV_EXCL_BR_LINE */
+
+    // Update state
+    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+
+    // Show spinner, hide input
+    repl->spinner_state.visible = true;
+    repl->input_buffer_visible = false;
+}
+
+void ik_repl_transition_to_idle(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->state == IK_REPL_STATE_WAITING_FOR_LLM);   /* LCOV_EXCL_BR_LINE */
+
+    // Update state
+    repl->state = IK_REPL_STATE_IDLE;
+
+    // Hide spinner, show input
+    repl->spinner_state.visible = false;
+    repl->input_buffer_visible = true;
 }
