@@ -12,6 +12,7 @@
 #include <talloc.h>
 #include <curl/curl.h>
 #include <sys/select.h>
+#include <stdarg.h>
 #include <string.h>
 
 /* Test context */
@@ -24,7 +25,9 @@ static bool fail_curl_multi_add_handle = false;
 static bool fail_curl_multi_perform = false;
 static bool fail_curl_multi_fdset = false;
 static bool fail_curl_multi_timeout = false;
+static bool fail_snprintf = false;
 static CURLMsg *mock_curl_msg = NULL;
+static long mock_http_response_code = 0;
 
 /* Callback capture state for testing http_write_callback */
 typedef size_t (*curl_write_callback)(char *data, size_t size, size_t nmemb, void *userdata);
@@ -44,7 +47,9 @@ static void setup(void)
     fail_curl_multi_perform = false;
     fail_curl_multi_fdset = false;
     fail_curl_multi_timeout = false;
+    fail_snprintf = false;
     mock_curl_msg = NULL;
+    mock_http_response_code = 0;
     g_write_callback = NULL;
     g_write_data = NULL;
     mock_response_data = NULL;
@@ -158,6 +163,40 @@ CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
 
     /* Call real curl_easy_setopt */
     return curl_easy_setopt(curl, opt, val);
+}
+
+/* Override curl_easy_getinfo_ to inject mock HTTP response code */
+#undef curl_easy_getinfo_
+CURLcode curl_easy_getinfo_(CURL *curl, CURLINFO info, ...);
+CURLcode curl_easy_getinfo_(CURL *curl, CURLINFO info, ...)
+{
+    va_list args;
+    va_start(args, info);
+
+    if (info == CURLINFO_RESPONSE_CODE) {
+        long *response_code_ptr = va_arg(args, long *);
+        *response_code_ptr = mock_http_response_code;
+        va_end(args);
+        return CURLE_OK;
+    }
+
+    /* For other info types, call real curl_easy_getinfo */
+    void *param = va_arg(args, void *);
+    va_end(args);
+    return curl_easy_getinfo(curl, info, param);
+}
+
+/* Override snprintf_ to inject failures */
+int snprintf_(char *str, size_t size, const char *format, ...)
+{
+    if (fail_snprintf) {
+        return -1;
+    }
+    va_list ap;
+    va_start(ap, format);
+    int ret = vsnprintf(str, size, format, ap);
+    va_end(ap);
+    return ret;
 }
 
 /* Test callback that returns an error */

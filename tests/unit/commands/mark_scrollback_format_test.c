@@ -1,0 +1,279 @@
+/**
+ * @file mark_scrollback_format_test.c
+ * @brief Tests for rewind scrollback formatting (no role prefixes, system message included)
+ *
+ * Bug fix verification:
+ * - Messages should NOT have "You:" or "Assistant:" prefixes after rewind
+ * - System message from config should be rendered first
+ */
+
+#include <check.h>
+#include <string.h>
+#include <talloc.h>
+
+#include "../../../src/config.h"
+#include "../../../src/marks.h"
+#include "../../../src/openai/client.h"
+#include "../../../src/repl.h"
+#include "../../../src/scrollback.h"
+#include "../../test_utils.h"
+
+// Test fixture
+static TALLOC_CTX *ctx;
+static ik_repl_ctx_t *repl;
+static ik_cfg_t *cfg;
+
+/**
+ * Create a REPL context with conversation and config for testing
+ */
+static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
+{
+    ik_scrollback_t *scrollback = ik_scrollback_create(parent, 80);
+    ck_assert_ptr_nonnull(scrollback);
+
+    res_t res = ik_openai_conversation_create(parent);
+    ck_assert(is_ok(&res));
+    ik_openai_conversation_t *conv = res.ok;
+    ck_assert_ptr_nonnull(conv);
+
+    ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
+    ck_assert_ptr_nonnull(r);
+    r->scrollback = scrollback;
+    r->conversation = conv;
+    r->marks = NULL;
+    r->mark_count = 0;
+
+    return r;
+}
+
+// Helper to get scrollback line text as null-terminated string
+static const char *get_line_text(ik_scrollback_t *scrollback, size_t index)
+{
+    const char *text;
+    size_t len;
+    res_t res = ik_scrollback_get_line_text(scrollback, index, &text, &len);
+    ck_assert(is_ok(&res));
+    return text;
+}
+
+static void setup(void)
+{
+    ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create config with system message
+    cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant for testing.");
+
+    repl = create_test_repl_with_config(ctx);
+    ck_assert_ptr_nonnull(repl);
+    repl->cfg = cfg;
+}
+
+static void teardown(void)
+{
+    talloc_free(ctx);
+}
+
+// Test: Rewind should render messages without "You:" and "Assistant:" prefixes
+START_TEST(test_rewind_no_role_prefixes) {
+    // Add a user message
+    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "what is 2 + 2");
+    ck_assert(is_ok(&msg_res));
+    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    ck_assert(is_ok(&msg_res));
+
+    // Add an assistant response
+    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "2 + 2 = 4");
+    ck_assert(is_ok(&msg_res));
+    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    ck_assert(is_ok(&msg_res));
+
+    // Create a mark
+    res_t mark_res = ik_mark_create(repl, "qux");
+    ck_assert(is_ok(&mark_res));
+
+    // Add another exchange
+    msg_res = ik_openai_msg_create(repl->conversation, "user", "what is 3 + 3");
+    ck_assert(is_ok(&msg_res));
+    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    ck_assert(is_ok(&msg_res));
+
+    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "3 + 3 = 6");
+    ck_assert(is_ok(&msg_res));
+    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    ck_assert(is_ok(&msg_res));
+
+    // Rewind to mark
+    ik_mark_t *target_mark = NULL;
+    res_t find_res = ik_mark_find(repl, "qux", &target_mark);
+    ck_assert(is_ok(&find_res));
+
+    res_t rewind_res = ik_mark_rewind_to_mark(repl, target_mark);
+    ck_assert(is_ok(&rewind_res));
+
+    // Check scrollback content - should NOT have "You:" or "Assistant:" prefixes
+    // Line 0: system message
+    // Line 1: user message (no prefix)
+    // Line 2: assistant message (no prefix)
+    // Line 3: /mark qux
+
+    // Get scrollback line count
+    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    ck_assert_uint_eq(line_count, 4);
+
+    // Get lines and verify content
+    const char *line0 = get_line_text(repl->scrollback, 0);
+    const char *line1 = get_line_text(repl->scrollback, 1);
+    const char *line2 = get_line_text(repl->scrollback, 2);
+    const char *line3 = get_line_text(repl->scrollback, 3);
+
+    // Verify system message is first
+    ck_assert_str_eq(line0, "You are a helpful assistant for testing.");
+
+    // Verify user message has no "You:" prefix
+    ck_assert_str_eq(line1, "what is 2 + 2");
+
+    // Verify assistant message has no "Assistant:" prefix
+    ck_assert_str_eq(line2, "2 + 2 = 4");
+
+    // Verify mark indicator
+    ck_assert_str_eq(line3, "/mark qux");
+}
+END_TEST
+// Test: Rewind should include system message from config
+START_TEST(test_rewind_includes_system_message)
+{
+    // Add a user message
+    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "Hello");
+    ck_assert(is_ok(&msg_res));
+    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    ck_assert(is_ok(&msg_res));
+
+    // Create a mark
+    res_t mark_res = ik_mark_create(repl, "test");
+    ck_assert(is_ok(&mark_res));
+
+    // Add more content
+    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "World");
+    ck_assert(is_ok(&msg_res));
+    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    ck_assert(is_ok(&msg_res));
+
+    // Rewind
+    ik_mark_t *target_mark = NULL;
+    res_t find_res = ik_mark_find(repl, "test", &target_mark);
+    ck_assert(is_ok(&find_res));
+
+    res_t rewind_res = ik_mark_rewind_to_mark(repl, target_mark);
+    ck_assert(is_ok(&rewind_res));
+
+    // Verify system message is first line
+    const char *line0 = get_line_text(repl->scrollback, 0);
+    ck_assert_str_eq(line0, "You are a helpful assistant for testing.");
+}
+
+END_TEST
+// Test: Rewind without system message configured
+START_TEST(test_rewind_without_system_message)
+{
+    // Remove system message from config
+    talloc_free(cfg->openai_system_message);
+    cfg->openai_system_message = NULL;
+
+    // Add a user message
+    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "Hello");
+    ck_assert(is_ok(&msg_res));
+    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    ck_assert(is_ok(&msg_res));
+
+    // Create a mark
+    res_t mark_res = ik_mark_create(repl, "test");
+    ck_assert(is_ok(&mark_res));
+
+    // Add more content
+    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "World");
+    ck_assert(is_ok(&msg_res));
+    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    ck_assert(is_ok(&msg_res));
+
+    // Rewind
+    ik_mark_t *target_mark = NULL;
+    res_t find_res = ik_mark_find(repl, "test", &target_mark);
+    ck_assert(is_ok(&find_res));
+
+    res_t rewind_res = ik_mark_rewind_to_mark(repl, target_mark);
+    ck_assert(is_ok(&rewind_res));
+
+    // First line should be user message (no system message)
+    const char *line0 = get_line_text(repl->scrollback, 0);
+    ck_assert_str_eq(line0, "Hello");
+}
+
+END_TEST
+// Test: Rewind with NULL config
+START_TEST(test_rewind_with_null_config)
+{
+    // Set config to NULL
+    repl->cfg = NULL;
+
+    // Add a user message
+    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "Test message");
+    ck_assert(is_ok(&msg_res));
+    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    ck_assert(is_ok(&msg_res));
+
+    // Create a mark
+    res_t mark_res = ik_mark_create(repl, "test");
+    ck_assert(is_ok(&mark_res));
+
+    // Add more content
+    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "Response");
+    ck_assert(is_ok(&msg_res));
+    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    ck_assert(is_ok(&msg_res));
+
+    // Rewind should succeed even without config
+    ik_mark_t *target_mark = NULL;
+    res_t find_res = ik_mark_find(repl, "test", &target_mark);
+    ck_assert(is_ok(&find_res));
+
+    res_t rewind_res = ik_mark_rewind_to_mark(repl, target_mark);
+    ck_assert(is_ok(&rewind_res));
+
+    // First line should be user message (no system message since no config)
+    const char *line0 = get_line_text(repl->scrollback, 0);
+    ck_assert_str_eq(line0, "Test message");
+}
+
+END_TEST
+
+static Suite *mark_scrollback_format_suite(void)
+{
+    Suite *s = suite_create("Mark Scrollback Format");
+    TCase *tc = tcase_create("scrollback_format");
+
+    tcase_add_checked_fixture(tc, setup, teardown);
+
+    tcase_add_test(tc, test_rewind_no_role_prefixes);
+    tcase_add_test(tc, test_rewind_includes_system_message);
+    tcase_add_test(tc, test_rewind_without_system_message);
+    tcase_add_test(tc, test_rewind_with_null_config);
+
+    suite_add_tcase(s, tc);
+    return s;
+}
+
+int main(void)
+{
+    int32_t number_failed;
+    Suite *s = mark_scrollback_format_suite();
+    SRunner *sr = srunner_create(s);
+
+    srunner_run_all(sr, CK_NORMAL);
+    number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (number_failed == 0) ? 0 : 1;
+}

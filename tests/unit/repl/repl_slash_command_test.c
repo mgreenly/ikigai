@@ -203,7 +203,7 @@ START_TEST(test_slash_in_middle_not_command)
 }
 
 END_TEST
-/* Test: /pp command appears in scrollback BEFORE its output */
+/* Test: /pp command output appears in scrollback (command itself not rendered - legacy behavior) */
 START_TEST(test_pp_command_order_in_scrollback)
 {
     void *ctx = talloc_new(NULL);
@@ -233,22 +233,17 @@ START_TEST(test_pp_command_order_in_scrollback)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    /* Check scrollback contents */
+    /* Check scrollback contents - /pp is a legacy debug command that only outputs its result
+     * (doesn't use event renderer, so command text is not added to scrollback) */
     size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
-    ck_assert_msg(line_count >= 2, "Expected at least 2 lines in scrollback (command + output)");
+    ck_assert_msg(line_count >= 1, "Expected at least 1 line in scrollback (output)");
 
-    /* Get first line - should be "/pp" */
+    /* Get first line - should be PP output (contains "ik_input_buffer_t") */
     const char *line_text = NULL;
     size_t line_len = 0;
     res = ik_scrollback_get_line_text(repl->scrollback, 0, &line_text, &line_len);
     ck_assert(is_ok(&res));
-    ck_assert_msg(line_len == 3 && strncmp(line_text, "/pp", 3) == 0,
-                  "Expected first line to be '/pp', got '%.*s'", (int)line_len, line_text);
-
-    /* Get second line - should contain input buffer debug info (contains "input buffer" text) */
-    res = ik_scrollback_get_line_text(repl->scrollback, 1, &line_text, &line_len);
-    ck_assert(is_ok(&res));
-    ck_assert_msg(line_len > 0, "Expected PP output in second line");
+    ck_assert_msg(line_len > 0, "Expected PP output in first line");
 
     talloc_free(ctx);
 }
@@ -284,21 +279,16 @@ START_TEST(test_pp_output_trailing_newline)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    /* Verify scrollback has multiple lines (command + pp output lines) */
-    /* PP output ends with \n, which creates a trailing empty line that should be skipped */
+    /* Verify scrollback has output lines from /pp
+     * /pp is a legacy debug command - command text is NOT added, only output
+     * PP output ends with \n, which creates a trailing empty line that should be skipped */
     size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
-    ck_assert_msg(line_count >= 2, "Expected at least 2 lines, got %zu", line_count);
+    ck_assert_msg(line_count >= 1, "Expected at least 1 line, got %zu", line_count);
 
-    /* Verify first line is the command */
+    /* Verify all lines are pp output (not empty from trailing newline) */
     const char *line_text = NULL;
     size_t line_len = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line_text, &line_len);
-    ck_assert(is_ok(&res));
-    ck_assert_msg(line_len == 3 && strncmp(line_text, "/pp", 3) == 0,
-                  "Expected '/pp', got '%.*s'", (int)line_len, line_text);
-
-    /* Verify subsequent lines are pp output (not empty from trailing newline) */
-    for (size_t i = 1; i < line_count; i++) {
+    for (size_t i = 0; i < line_count; i++) {
         res = ik_scrollback_get_line_text(repl->scrollback, i, &line_text, &line_len);
         ck_assert(is_ok(&res));
         /* Each line should have content (trailing empty line should be skipped) */

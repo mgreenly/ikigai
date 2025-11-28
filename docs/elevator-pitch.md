@@ -1,0 +1,3 @@
+# Ikigai Elevator Pitch
+
+Ikigai is a platform for building truly autonomous AI agents that work continuously, not chatbots that wait for prompts. Developers use a terminal interface to write TypeScript agents that pull tasks from PostgreSQL queues, execute work independently, and communicate through mailboxes, no message brokers or API complexity required, because everything coordinates through the database, you can add web dashboards, mobile apps, or enterprise integrations later without changing your agents. We're turning the database into an agent platform, starting with the developer tools that make building autonomous agents feel native instead of bolted-on.

@@ -159,7 +159,7 @@ typedef struct err {
     err_code_t code;
     const char *file;
     int32_t line;
-    char message[128];
+    char message[256];
 } err_t;
 ```
 

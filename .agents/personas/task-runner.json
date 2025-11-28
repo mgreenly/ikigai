@@ -1,0 +1,12 @@
+[
+  "default",
+  "task-system",
+  "create-tasks",
+  "tdd",
+  "style",
+  "naming",
+  "coverage",
+  "execute-task-auto",
+  "execute-next-task",
+  "git"
+]

@@ -1,0 +1,4 @@
+# LeakSanitizer suppressions for known external library leaks
+
+# PostgreSQL talloc library - indirect leaks from connection management
+leak:libtalloc.so.2

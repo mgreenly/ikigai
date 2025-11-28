@@ -1,0 +1,10 @@
+[
+  "default",
+  "tdd",
+  "style",
+  "naming",
+  "quality",
+  "coverage",
+  "zero-debt",
+  "git"
+]

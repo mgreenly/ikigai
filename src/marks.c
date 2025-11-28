@@ -1,9 +1,11 @@
 #include "marks.h"
 
+#include "event_render.h"
 #include "openai/client.h"
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "wrapper.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -15,25 +17,26 @@
  * Generate ISO 8601 timestamp for current time
  *
  * @param parent  Talloc context
- * @return        ISO 8601 timestamp string (e.g., "2025-01-15T10:30:45Z")
+ * @return        Result containing ISO 8601 timestamp string (e.g., "2025-01-15T10:30:45Z")
  */
-static char *get_iso8601_timestamp(void *parent)
+static res_t get_iso8601_timestamp(void *parent)
 {
     time_t now = time(NULL);
-    struct tm *tm_utc = gmtime(&now);
-    if (tm_utc == NULL) {  /* LCOV_EXCL_BR_LINE */
-        PANIC("gmtime failed");  // LCOV_EXCL_LINE
+    struct tm *tm_utc = gmtime_(&now);
+    if (tm_utc == NULL) {
+        return ERR(parent, IO, "gmtime failed to convert timestamp");
     }
 
     char *timestamp = talloc_array(parent, char, 32);
     if (timestamp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    size_t len = strftime(timestamp, 32, "%Y-%m-%dT%H:%M:%SZ", tm_utc);
-    if (len == 0) {  /* LCOV_EXCL_BR_LINE */
-        PANIC("strftime failed");  // LCOV_EXCL_LINE
+    size_t len = strftime_(timestamp, 32, "%Y-%m-%dT%H:%M:%SZ", tm_utc);
+    if (len == 0) {
+        talloc_free(timestamp);
+        return ERR(parent, IO, "strftime failed to format timestamp");
     }
 
-    return timestamp;
+    return OK(timestamp);
 }
 
 res_t ik_mark_create(ik_repl_ctx_t *repl, const char *label)
@@ -56,8 +59,14 @@ res_t ik_mark_create(ik_repl_ctx_t *repl, const char *label)
         mark->label = NULL;
     }
 
-    // Generate timestamp
-    mark->timestamp = get_iso8601_timestamp(mark);
+    // Generate timestamp - allocate on repl context so error survives if mark is freed
+    res_t ts_res = get_iso8601_timestamp(repl);
+    if (is_err(&ts_res)) {
+        talloc_free(mark);
+        return ts_res;
+    }
+    // Steal timestamp to mark context
+    mark->timestamp = talloc_steal(mark, ts_res.ok);
 
     // Add mark to marks array
     size_t new_count = repl->mark_count + 1;
@@ -71,19 +80,18 @@ res_t ik_mark_create(ik_repl_ctx_t *repl, const char *label)
     // Reparent mark to marks array
     talloc_steal(repl->marks, mark);
 
-    // Add visual indicator to scrollback
-    char *mark_indicator;
+    // Render mark event to scrollback (identical to replay)
+    char *data_json;
     if (label != NULL) {
-        mark_indicator = talloc_asprintf(NULL, "─── Mark: %s ───", label);
+        data_json = talloc_asprintf(repl, "{\"label\":\"%s\"}", label);
     } else {
-        mark_indicator = talloc_strdup(NULL, "─── Mark ───");
+        data_json = talloc_strdup(repl, "{}");
     }
-    if (mark_indicator == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (data_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    size_t mark_len = strlen(mark_indicator);
-    res_t result = ik_scrollback_append_line(repl->scrollback, mark_indicator, mark_len);
-    talloc_free(mark_indicator);
-    if (is_err(&result)) return result; /* LCOV_EXCL_BR_LINE */
+    res_t result = ik_event_render(repl->scrollback, "mark", NULL, data_json);
+    talloc_free(data_json);
+    if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
 
     return OK(NULL);
 }
@@ -116,15 +124,12 @@ res_t ik_mark_find(ik_repl_ctx_t *repl, const char *label, ik_mark_t **mark_out)
     return ERR(repl, INVALID_ARG, "Mark not found: %s", label);
 }
 
-res_t ik_mark_rewind_to(ik_repl_ctx_t *repl, const char *label)
+res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
 {
     assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
-    // label can be NULL to rewind to most recent mark
+    assert(target_mark != NULL);  /* LCOV_EXCL_BR_LINE */
 
-    // Find the target mark
-    ik_mark_t *target_mark;
-    res_t result = ik_mark_find(repl, label, &target_mark);
-    if (is_err(&result)) return result;
+    res_t result;
 
     // Truncate conversation to mark position
     // Free messages after the mark position
@@ -133,7 +138,7 @@ res_t ik_mark_rewind_to(ik_repl_ctx_t *repl, const char *label)
     }
     repl->conversation->message_count = target_mark->message_index;
 
-    // Remove marks at and after the target position
+    // Remove marks after the target position (but keep the target mark itself)
     size_t target_index = 0;
     bool found = false;
     for (size_t i = 0; i < repl->mark_count; i++) {  /* LCOV_EXCL_BR_LINE */
@@ -146,65 +151,60 @@ res_t ik_mark_rewind_to(ik_repl_ctx_t *repl, const char *label)
     assert(found);  /* LCOV_EXCL_BR_LINE */
     (void)found;  // Used only in assert (compiled out in release builds)
 
-    // Free marks from target onwards
-    for (size_t i = target_index; i < repl->mark_count; i++) {
+    // Free marks after target (keep target mark)
+    for (size_t i = target_index + 1; i < repl->mark_count; i++) {
         talloc_free(repl->marks[i]);
     }
-    repl->mark_count = target_index;
+    repl->mark_count = target_index + 1;
 
     // Rebuild scrollback from remaining conversation
     ik_scrollback_clear(repl->scrollback);
 
+    // Render system message first (if configured)
+    if (repl->cfg != NULL && repl->cfg->openai_system_message != NULL) {
+        result = ik_event_render(repl->scrollback, "system", repl->cfg->openai_system_message, "{}");
+        if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
+    }
+
+    // Render conversation messages using event renderer (no role prefixes)
     for (size_t i = 0; i < repl->conversation->message_count; i++) {
         ik_openai_msg_t *msg = repl->conversation->messages[i];
-
-        // Format message with role prefix
-        char *formatted;
-        if (strcmp(msg->role, "user") == 0) {
-            formatted = talloc_asprintf(NULL, "You: %s", msg->content);
-        } else if (strcmp(msg->role, "assistant") == 0) {  /* LCOV_EXCL_BR_LINE */
-            formatted = talloc_asprintf(NULL, "Assistant: %s", msg->content);
-        } else {  // LCOV_EXCL_LINE
-            formatted = talloc_strdup(NULL, msg->content);  // LCOV_EXCL_LINE
-        }  // LCOV_EXCL_LINE
-        if (formatted == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        size_t formatted_len = strlen(formatted);
-        result = ik_scrollback_append_line(repl->scrollback, formatted, formatted_len);
-        talloc_free(formatted);
-        if (is_err(&result)) return result; /* LCOV_EXCL_BR_LINE */
+        result = ik_event_render(repl->scrollback, msg->role, msg->content, "{}");
+        if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
     }
 
-    // Re-add mark indicators for remaining marks
-    for (size_t i = 0; i < repl->mark_count; i++) {  // LCOV_EXCL_LINE
-        ik_mark_t *mark = repl->marks[i];  // LCOV_EXCL_LINE
-        char *mark_indicator;  // LCOV_EXCL_LINE
-        if (mark->label != NULL) {  // LCOV_EXCL_LINE
-            mark_indicator = talloc_asprintf(NULL, "─── Mark: %s ───", mark->label);  // LCOV_EXCL_LINE
-        } else {  // LCOV_EXCL_LINE
-            mark_indicator = talloc_strdup(NULL, "─── Mark ───");  // LCOV_EXCL_LINE
-        }  // LCOV_EXCL_LINE
-        if (mark_indicator == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
+    // Re-add mark indicators for remaining marks (including the target mark)
+    for (size_t i = 0; i < repl->mark_count; i++) {
+        ik_mark_t *mark = repl->marks[i];
+        char *data_json;
+        if (mark->label != NULL) {
+            data_json = talloc_asprintf(NULL, "{\"label\":\"%s\"}", mark->label);
+        } else {
+            data_json = talloc_strdup(NULL, "{}");
+        }
+        if (data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-        size_t mark_len = strlen(mark_indicator);  // LCOV_EXCL_LINE
-        result = ik_scrollback_append_line(repl->scrollback, mark_indicator, mark_len);  // LCOV_EXCL_LINE
-        talloc_free(mark_indicator);  // LCOV_EXCL_LINE
-        if (is_err(&result)) return result;  // LCOV_EXCL_LINE
-    }  // LCOV_EXCL_LINE
-
-    // Add rewind indicator
-    char *rewind_indicator;
-    if (label != NULL) {
-        rewind_indicator = talloc_asprintf(NULL, "─── Rewound to: %s ───", label);
-    } else {
-        rewind_indicator = talloc_strdup(NULL, "─── Rewound to last mark ───");
+        result = ik_event_render(repl->scrollback, "mark", NULL, data_json);
+        talloc_free(data_json);
+        if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
     }
-    if (rewind_indicator == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    size_t rewind_len = strlen(rewind_indicator);
-    result = ik_scrollback_append_line(repl->scrollback, rewind_indicator, rewind_len);
-    talloc_free(rewind_indicator);
-    if (is_err(&result)) return result; /* LCOV_EXCL_BR_LINE */
+    // Rewind events don't render anything visible to scrollback
+    // (The visual state is simply: conversation + marks after rewind)
 
     return OK(NULL);
+}
+
+res_t ik_mark_rewind_to(ik_repl_ctx_t *repl, const char *label)
+{
+    assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
+    // label can be NULL to rewind to most recent mark
+
+    // Find the target mark
+    ik_mark_t *target_mark;
+    res_t result = ik_mark_find(repl, label, &target_mark);
+    if (is_err(&result)) return result;
+
+    // Rewind to the found mark
+    return ik_mark_rewind_to_mark(repl, target_mark);
 }

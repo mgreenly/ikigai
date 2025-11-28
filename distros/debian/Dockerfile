@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     uuid-dev \
     libb64-dev \
     libutf8proc-dev \
+    libpq-dev \
+    postgresql-client \
     lcov \
     valgrind \
     git \

@@ -5,21 +5,24 @@
 
 #include "commands.h"
 
+#include "commands_mark.h"
+#include "db/message.h"
+#include "event_render.h"
 #include "marks.h"
 #include "openai/client.h"
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "wrapper.h"
 
 #include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
-// Forward declarations of command handlers (to be implemented in later tasks)
+// Forward declarations of command handlers
 static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args);
-static res_t cmd_mark(void *ctx, ik_repl_ctx_t *repl, const char *args);
-static res_t cmd_rewind(void *ctx, ik_repl_ctx_t *repl, const char *args);
 static res_t cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args);
 static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args);
 static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args);
@@ -29,8 +32,8 @@ static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args);
 static const ik_command_t commands[] = {
     {"clear", "Clear scrollback, session messages, and marks", cmd_clear},
     {"mark", "Create a checkpoint for rollback (usage: /mark [label])",
-     cmd_mark},
-    {"rewind", "Rollback to a checkpoint (usage: /rewind [label])", cmd_rewind},
+     ik_cmd_mark},
+    {"rewind", "Rollback to a checkpoint (usage: /rewind [label])", ik_cmd_rewind},
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},
@@ -137,47 +140,52 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
         repl->mark_count = 0;
     }
 
-    return OK(NULL);
-}
+    // Persist clear event to database (Integration Point 3)
+    if (repl->db_ctx != NULL && repl->current_session_id > 0) {
+        res_t db_res = ik_db_message_insert(repl->db_ctx, repl->current_session_id,
+                                            "clear", NULL, NULL);
+        if (is_err(&db_res)) {
+            // Log error but don't crash - memory state is authoritative
+            if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
+                fprintf(repl->db_debug_pipe->write_end,
+                        "Warning: Failed to persist clear event to database: %s\n",
+                        error_message(db_res.err));
+            }
+            talloc_free(db_res.err);
+        }
 
-static res_t cmd_mark(void *ctx, ik_repl_ctx_t *repl, const char *args)
-{
-    assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
-    assert(repl != NULL);     // LCOV_EXCL_BR_LINE
-    (void)ctx;
-
-    // Parse optional label from args
-    // Note: dispatcher ensures args is either NULL or points to non-empty string
-    const char *label = args;
-
-    // Create the mark
-    res_t result = ik_mark_create(repl, label);
-    if (is_err(&result)) {  /* LCOV_EXCL_BR_LINE */
-        return result;  // LCOV_EXCL_LINE
+        // Write system message if configured (matching new session creation pattern)
+        if (repl->cfg->openai_system_message != NULL) {
+            res_t system_res = ik_db_message_insert(
+                repl->db_ctx,
+                repl->current_session_id,
+                "system",
+                repl->cfg->openai_system_message,
+                "{}"
+                );
+            if (is_err(&system_res)) {
+                // Log error but don't crash - memory state is authoritative
+                if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
+                    fprintf(repl->db_debug_pipe->write_end,
+                            "Warning: Failed to persist system message to database: %s\n",
+                            error_message(system_res.err));
+                }
+                talloc_free(system_res.err);
+            }
+        }
     }
 
-    return OK(NULL);
-}
-
-static res_t cmd_rewind(void *ctx, ik_repl_ctx_t *repl, const char *args)
-{
-    assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
-    assert(repl != NULL);     // LCOV_EXCL_BR_LINE
-    (void)ctx;
-
-    // Parse optional label from args
-    // Note: dispatcher ensures args is either NULL or points to non-empty string
-    const char *label = args;
-
-    // Rewind to the mark
-    res_t result = ik_mark_rewind_to(repl, label);
-    if (is_err(&result)) {
-        // Show error message in scrollback
-        char *err_msg = talloc_asprintf(ctx, "Error: %s", result.err->msg);
-        if (err_msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        ik_scrollback_append_line(repl->scrollback, err_msg, strlen(err_msg));
-        talloc_free(err_msg);
-        return OK(NULL);  // Don't propagate error, just show it
+    // Add system message to scrollback using event renderer (consistent with replay)
+    if (repl->cfg != NULL && repl->cfg->openai_system_message != NULL) {
+        res_t render_res = ik_event_render(
+            repl->scrollback,
+            "system",
+            repl->cfg->openai_system_message,
+            "{}"
+            );
+        if (is_err(&render_res)) {
+            return render_res;
+        }
     }
 
     return OK(NULL);

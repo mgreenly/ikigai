@@ -3,7 +3,7 @@
 [![CI](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml/badge.svg)](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml)
 
 
-An experiment to build a Linux focused, multi-model, coding agent with RAG accessible permanent memory.
+An experiment to build a Linux focused, terminal based coding agent with hierarchical sub-agents, RAG accessible permanent memory, progressive tool discovery and a dynamic sliding context window.
 
 Why?  Because I want to and no one can stop me!
 
@@ -11,13 +11,13 @@ See [docs/](docs/README.md/) for design and implementation details.
 
 ## Install
 
-**Platform**: The build system runs natively on Debian 13 (Trixie), other distributions may have dependency issues.  If you're brave you can check out the distros/ folder for distro specific builds but it's to early in the project's life-cycle for me to officially support those yet.
-
-**Development Note**: This project uses trunk-based development on `main`. For building or running ikigai, always check out the latest release tag for a stable version.
+**Platform**: The build system runs natively on Debian 13 (Trixie), other distributions may have library dependency issues.  If you're brave you can check out the distros/ folder for distro specific builds but it's to early in the project's life-cycle for me to officially support those.
 
 **Clone**:
 ```text
-git clone https://github.com/mgreenly/ikigai.git && cd ikigai && git checkout v0.2.0
+git clone https://github.com/mgreenly/ikigai.git
+cd ikigai
+git checkout rel-02
 ```
 
 **Install**:
@@ -29,7 +29,6 @@ make install BUILD=release PREFIX=$HOME/.local
 ```text
 make uninstall PREFIX=$HOME/.local
 ```
-
 ## The Story
 
 Right or wrong Google gives this definition of **Ikigai**

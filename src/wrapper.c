@@ -60,6 +60,11 @@ MOCKABLE bool yyjson_mut_write_file_(const char *path, const yyjson_mut_doc *doc
     return yyjson_mut_write_file(path, doc, flg, allocator, err);
 }
 
+MOCKABLE yyjson_doc *yyjson_read_(const char *dat, size_t len, yyjson_read_flag flg)
+{
+    return yyjson_read(dat, len, flg);
+}
+
 MOCKABLE yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
 {
     return yyjson_doc_get_root(doc);
@@ -164,6 +169,36 @@ MOCKABLE FILE *posix_fdopen_(int fd, const char *mode)
     return fdopen(fd, mode);
 }
 
+MOCKABLE size_t fread_(void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+    return fread(ptr, size, nmemb, stream);
+}
+
+MOCKABLE FILE *fopen_(const char *pathname, const char *mode)
+{
+    return fopen(pathname, mode);
+}
+
+MOCKABLE int fseek_(FILE *stream, long offset, int whence)
+{
+    return fseek(stream, offset, whence);
+}
+
+MOCKABLE long ftell_(FILE *stream)
+{
+    return ftell(stream);
+}
+
+MOCKABLE int fclose_(FILE *stream)
+{
+    return fclose(stream);
+}
+
+MOCKABLE DIR *opendir_(const char *name)
+{
+    return opendir(name);
+}
+
 // ============================================================================
 // libcurl wrappers - debug/test builds only
 // ============================================================================
@@ -203,6 +238,15 @@ MOCKABLE void curl_slist_free_all_(struct curl_slist *list)
 MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
 {
     return curl_easy_setopt(curl, opt, val);
+}
+
+MOCKABLE CURLcode curl_easy_getinfo_(CURL *curl, CURLINFO info, ...)
+{
+    va_list args;
+    va_start(args, info);
+    void *param = va_arg(args, void *);
+    va_end(args);
+    return curl_easy_getinfo(curl, info, param);
 }
 
 MOCKABLE CURLM *curl_multi_init_(void)
@@ -250,6 +294,103 @@ MOCKABLE CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue)
 MOCKABLE const char *curl_multi_strerror_(CURLMcode code)
 {
     return curl_multi_strerror(code);
+}
+
+// ============================================================================
+// PostgreSQL wrappers - debug/test builds only
+// ============================================================================
+
+#include <libpq-fe.h>
+
+MOCKABLE PGresult *pq_exec_(PGconn *conn, const char *command)
+{
+    return PQexec(conn, command);
+}
+
+MOCKABLE char *PQgetvalue_(const PGresult *res, int row_number, int column_number)
+{
+    return PQgetvalue(res, row_number, column_number);
+}
+
+MOCKABLE PGresult *pq_exec_params_(PGconn *conn,
+                                   const char *command,
+                                   int nParams,
+                                   const Oid *paramTypes,
+                                   const char *const *paramValues,
+                                   const int *paramLengths,
+                                   const int *paramFormats,
+                                   int resultFormat)
+{
+    return PQexecParams(conn, command, nParams, paramTypes, paramValues, paramLengths, paramFormats, resultFormat);
+}
+
+// ============================================================================
+// C standard library wrappers - debug/test builds only
+// ============================================================================
+
+#include <stdarg.h>
+#include <time.h>
+
+MOCKABLE int vsnprintf_(char *str, size_t size, const char *format, va_list ap)
+{
+    return vsnprintf(str, size, format, ap);
+}
+
+MOCKABLE int snprintf_(char *str, size_t size, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    int result = vsnprintf(str, size, format, ap);
+    va_end(ap);
+    return result;
+}
+
+MOCKABLE struct tm *gmtime_(const time_t *timep)
+{
+    return gmtime(timep);
+}
+
+MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct tm *tm)
+{
+    // Suppress format-nonliteral warning - format string comes from caller
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    return strftime(s, max, format, tm);
+#pragma GCC diagnostic pop
+}
+
+// ============================================================================
+// Internal ikigai function wrappers for testing - debug/test builds only
+// ============================================================================
+
+#include "db/connection.h"
+#include "db/message.h"
+#include "repl/session_restore.h"
+#include "config.h"
+#include "scrollback.h"
+
+MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
+{
+    return ik_db_init(mem_ctx, conn_str, (ik_db_ctx_t **)out_ctx);
+}
+
+MOCKABLE res_t ik_db_message_insert_(void *db,
+                                     int64_t session_id,
+                                     const char *kind,
+                                     const char *content,
+                                     const char *data_json)
+{
+    return ik_db_message_insert((ik_db_ctx_t *)db, session_id, kind, content, data_json);
+}
+
+MOCKABLE res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg)
+{
+    return ik_repl_restore_session((ik_repl_ctx_t *)repl, (ik_db_ctx_t *)db_ctx, (ik_cfg_t *)cfg);
+}
+
+MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length)
+{
+    return ik_scrollback_append_line((ik_scrollback_t *)scrollback, text, length);
 }
 
 // LCOV_EXCL_STOP

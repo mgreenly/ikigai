@@ -11,6 +11,7 @@
 #include "config.h"
 #include "openai/client.h"
 #include "debug_pipe.h"
+#include "db/connection.h"
 #include <stdbool.h>
 #include <inttypes.h>
 
@@ -70,6 +71,9 @@ typedef struct ik_repl_ctx_t {
     char *assistant_response;                     // Accumulated assistant response (during streaming)
     char *streaming_line_buffer;                  // Buffer for incomplete line during streaming
     char *http_error_message;                     // HTTP error message (if request failed)
+    char *response_model;                         // Model name from SSE stream (for database persistence)
+    char *response_finish_reason;                 // Finish reason from SSE stream (for database persistence)
+    int32_t response_completion_tokens;           // Completion token count from SSE stream (for database persistence)
 
     // Checkpoint management (Phase 1.7)
     ik_mark_t **marks;                            // Array of conversation marks
@@ -78,7 +82,12 @@ typedef struct ik_repl_ctx_t {
     // Debug pipes
     ik_debug_pipe_manager_t *debug_mgr;
     ik_debug_pipe_t *openai_debug_pipe;
+    ik_debug_pipe_t *db_debug_pipe;
     bool debug_enabled;
+
+    // Database session (v0.3.0)
+    ik_db_ctx_t *db_ctx;             // Database connection context
+    int64_t current_session_id;       // Current active session ID (0 if none)
 } ik_repl_ctx_t;
 
 // Initialize REPL context
@@ -107,5 +116,6 @@ void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl);
 void ik_repl_transition_to_idle(ik_repl_ctx_t *repl);
 
 // Internal helper functions (exposed for testing)
-res_t handle_curl_events_(ik_repl_ctx_t *repl, int ready);
-res_t handle_terminal_input_(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit);
+res_t handle_curl_events(ik_repl_ctx_t *repl, int ready);
+res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit);
+void handle_request_success(ik_repl_ctx_t *repl);

@@ -30,7 +30,7 @@ typedef struct err {
     err_code_t code;
     const char *file;
     int32_t line;
-    char msg[128];
+    char msg[256];
 } err_t;
 ```
 

@@ -2,7 +2,7 @@
 
 This document describes the core architecture for ikigai v1.0: a desktop terminal client with LLM integration, local tool execution, and PostgreSQL-backed conversation memory.
 
-## Current State (v0.1.0)
+## Current State (rel-01)
 
 ### Implemented: REPL Foundation
 

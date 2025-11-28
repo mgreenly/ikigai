@@ -1,4 +1,5 @@
 #include "openai/http_handler.h"
+#include "openai/http_handler_internal.h"
 
 #include "openai/sse_parser.h"
 #include "wrapper.h"
@@ -34,21 +35,18 @@ typedef struct {
  * Extract finish_reason from SSE event
  *
  * Parses the raw SSE event JSON to extract choices[0].finish_reason if present.
+ * Exposed via http_handler_internal.h for unit testing.
  *
  * @param event  Raw SSE event string (with "data: " prefix)
  * @return       Finish reason string or NULL if not present
  */
-static char *extract_finish_reason(void *parent, const char *event) {
+char *ik_openai_http_extract_finish_reason(void *parent, const char *event) {
     assert(event != NULL); // LCOV_EXCL_BR_LINE
 
-    /* Check for "data: " prefix
-     * Note: This path is unreachable in practice because ik_openai_parse_sse_event()
-     * returns ERR for events without "data: " prefix, causing http_write_callback
-     * to skip calling extract_finish_reason(). Kept as defensive programming.
-     */
+    /* Check for "data: " prefix */
     const char *data_prefix = "data: ";
-    if (strncmp(event, data_prefix, strlen(data_prefix)) != 0) { // LCOV_EXCL_BR_LINE
-        return NULL; // LCOV_EXCL_LINE
+    if (strncmp(event, data_prefix, strlen(data_prefix)) != 0) {
+        return NULL;
     }
 
     /* Get JSON payload */
@@ -59,44 +57,34 @@ static char *extract_finish_reason(void *parent, const char *event) {
         return NULL;
     }
 
-    /* Parse JSON
-     * Note: Invalid JSON is unreachable because ik_openai_parse_sse_event() returns ERR
-     * for malformed JSON, preventing extract_finish_reason() from being called.
-     */
+    /* Parse JSON */
     yyjson_doc *doc = yyjson_read(json_str, strlen(json_str), 0);
-    if (!doc) { // LCOV_EXCL_BR_LINE
-        return NULL; // LCOV_EXCL_LINE
+    if (!doc) {
+        return NULL;
     }
 
-    /* Validate root is an object
-     * Note: Non-object root is unreachable because ik_openai_parse_sse_event() returns ERR
-     * for non-object roots, preventing extract_finish_reason() from being called.
-     */
+    /* Validate root is an object */
     yyjson_val *root = yyjson_doc_get_root(doc);
-    if (!root || !yyjson_is_obj(root)) { // LCOV_EXCL_BR_LINE
+    if (!root || !yyjson_is_obj(root)) { // LCOV_EXCL_BR_LINE - yyjson_doc_get_root never returns NULL for valid doc
         yyjson_doc_free(doc);
-        return NULL; // LCOV_EXCL_LINE
+        return NULL;
     }
 
-    /* Extract choices[0].finish_reason
-     * Note: Certain branch combinations in this compound condition are covered by tests,
-     * but LCOV reports some sub-branches as uncovered due to short-circuit evaluation.
-     * The primary paths (choices exists+valid, or choices missing/invalid) are fully tested.
-     */
+    /* Extract choices[0].finish_reason */
     yyjson_val *choices = yyjson_obj_get(root, "choices");
-    if (!choices || !yyjson_is_arr(choices) || yyjson_arr_size(choices) == 0) { // LCOV_EXCL_BR_LINE
+    if (!choices || !yyjson_is_arr(choices) || yyjson_arr_size(choices) == 0) {
         yyjson_doc_free(doc);
         return NULL;
     }
 
     yyjson_val *choice0 = yyjson_arr_get(choices, 0);
-    if (!choice0 || !yyjson_is_obj(choice0)) { // LCOV_EXCL_BR_LINE
+    if (!choice0 || !yyjson_is_obj(choice0)) { // LCOV_EXCL_BR_LINE - yyjson_arr_get never returns NULL for valid non-empty array
         yyjson_doc_free(doc);
         return NULL;
     }
 
     yyjson_val *finish_reason_val = yyjson_obj_get(choice0, "finish_reason");
-    if (!finish_reason_val || !yyjson_is_str(finish_reason_val)) { // LCOV_EXCL_BR_LINE
+    if (!finish_reason_val || !yyjson_is_str(finish_reason_val)) {
         yyjson_doc_free(doc);
         return NULL;
     }
@@ -171,7 +159,7 @@ static size_t http_write_callback(char *data, size_t size, size_t nmemb, void *u
 
         /* Extract finish_reason if present */
         if (ctx->finish_reason == NULL) {
-            char *finish_reason = extract_finish_reason(ctx->parser, event);
+            char *finish_reason = ik_openai_http_extract_finish_reason(ctx->parser, event);
             if (finish_reason != NULL) {
                 ctx->finish_reason = finish_reason;
             }
@@ -229,7 +217,7 @@ res_t ik_openai_http_post(void *parent, const char *url, const char *api_key,
 
     char auth_header[256];
     int32_t written = snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", api_key);
-    if (written < 0 || (size_t)written >= sizeof(auth_header)) { // LCOV_EXCL_BR_LINE
+    if (written < 0 || (size_t)written >= sizeof(auth_header)) { // LCOV_EXCL_BR_LINE - snprintf rarely returns < 0
         curl_easy_cleanup_(curl);
         curl_slist_free_all_(headers);
         return ERR(parent, INVALID_ARG, "API key too long");
@@ -251,8 +239,8 @@ res_t ik_openai_http_post(void *parent, const char *url, const char *api_key,
     }
 
     /* Defensive check: callback errors should already be caught by CURLE_WRITE_ERROR above */
-    if (write_ctx->has_error) { // LCOV_EXCL_BR_LINE
-        return ERR(parent, IO, "Error processing response stream"); // LCOV_EXCL_LINE
+    if (write_ctx->has_error) {
+        return ERR(parent, IO, "Error processing response stream");
     }
 
     /* Create response structure */

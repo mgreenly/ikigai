@@ -36,6 +36,9 @@ typedef struct {
     int32_t http_code;            /* HTTP response code (0 if network error) */
     int32_t curl_code;            /* CURLcode (CURLE_OK on success) */
     char *error_message;          /* Human-readable error message (or NULL on success) */
+    char *model;                  /* Model name from SSE response (or NULL) */
+    char *finish_reason;          /* Finish reason from SSE response (or NULL) */
+    int32_t completion_tokens;    /* Completion token count from SSE response (0 if not present) */
 } ik_http_completion_t;
 
 /**

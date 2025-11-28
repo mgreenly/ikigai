@@ -11,6 +11,9 @@
 #include <stdarg.h>
 #include <talloc.h>
 
+// Forward declaration of vsnprintf_ wrapper (defined in wrapper.h)
+int vsnprintf_(char *str, size_t size, const char *format, va_list ap);
+
 // Error codes - start empty, add as needed during Phase 1
 typedef enum {
     OK = 0,
@@ -18,6 +21,9 @@ typedef enum {
     ERR_OUT_OF_RANGE,
     ERR_IO,                  // File operations, config loading
     ERR_PARSE,               // JSON/protocol parsing
+    ERR_DB_CONNECT,          // Database connection failures
+    ERR_DB_MIGRATE,          // Database migration failures
+    ERR_OUT_OF_MEMORY,       // Memory allocation failures
 } err_code_t;
 
 // Error with context and embedded message buffer
@@ -26,7 +32,7 @@ typedef struct err {
     err_code_t code;
     const char *file;
     int32_t line;
-    char msg[128];
+    char msg[256];
 } err_t;
 
 // Result type - stack-allocated, zero overhead for success case
@@ -97,10 +103,10 @@ static inline err_t *_make_error(TALLOC_CTX *ctx,
 
     va_list args;
     va_start(args, fmt);
-    int32_t written = vsnprintf(err->msg, sizeof(err->msg), fmt, args);
+    int32_t written = vsnprintf_(err->msg, sizeof(err->msg), fmt, args);
     va_end(args);
-    if (written < 0) PANIC("vsnprintf failed in error message formatting");   // LCOV_EXCL_LINE
-    if ((size_t)written >= sizeof(err->msg)) PANIC("error message truncated");   // LCOV_EXCL_LINE
+    if (written < 0) PANIC("vsnprintf failed in error message formatting");  // LCOV_EXCL_BR_LINE - vsnprintf failure in error creation can't be tested without circular dependency
+    // Note: vsnprintf truncates gracefully if message exceeds buffer size
 
     return err;
 }
@@ -145,6 +151,10 @@ static inline const char *error_code_str(err_code_t code)
             return "IO error";
         case ERR_PARSE:
             return "Parse error";
+        case ERR_DB_CONNECT:
+            return "Database connection error";
+        case ERR_DB_MIGRATE:
+            return "Database migration error";
         default: // LCOV_EXCL_LINE
             PANIC("Invalid error code"); // LCOV_EXCL_LINE
     }
