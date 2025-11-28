@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build Docker image
+      run: docker build -f distros/debian/Dockerfile -t ikigai-ci .
+
+    - name: Show tool versions
+      run: |
+        docker run --rm ikigai-ci bash -c "lcov --version"
+        docker run --rm ikigai-ci bash -c "gcc --version | head -1"
+
+    - name: Run CI checks
+      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make install-deps && make ci"
