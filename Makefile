@@ -587,13 +587,13 @@ coverage:
 	@echo "Coverage report saved to $(COVERAGE_DIR)/summary.txt"
 	@echo ""
 	@echo "Checking coverage thresholds (lines, functions, branches: $(COVERAGE_THRESHOLD)%)..."
-	@lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors deprecated \
-		--fail-under-lines $(COVERAGE_THRESHOLD) \
-		--fail-under-branches $(COVERAGE_THRESHOLD) 2>&1 | \
-		grep -E "(Failed|Coverage report saved)" || true
-	@if lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors deprecated \
-		--fail-under-lines $(COVERAGE_THRESHOLD) \
-		--fail-under-branches $(COVERAGE_THRESHOLD) >/dev/null 2>&1; then \
+	@LINE_COV=$$(grep "lines\.\.\.\.\.\.\." $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
+	FUNC_COV=$$(grep "functions\.\." $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
+	BRANCH_COV=$$(grep "branches\.\.\." $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
+	echo "  Lines: $${LINE_COV}%, Functions: $${FUNC_COV}%, Branches: $${BRANCH_COV}%"; \
+	if [ "$$(echo "$$LINE_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ] && \
+	   [ "$$(echo "$$FUNC_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ] && \
+	   [ "$$(echo "$$BRANCH_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ]; then \
 		echo "✓ All coverage thresholds met ($(COVERAGE_THRESHOLD)%)"; \
 	else \
 		echo "✗ Coverage below $(COVERAGE_THRESHOLD)% threshold"; \
