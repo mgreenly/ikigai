@@ -3,11 +3,17 @@
 
 #include <talloc.h>
 #include "config.h"
+#include "../src/db/connection.h"
+#include "../src/error.h"
 
 // Test utilities for ikigai test suite
 
 // ========== Wrapper Function Overrides ==========
 // These override the weak symbols in src/wrapper.c for testing
+
+// Mocking controls for talloc_realloc_
+extern int ik_test_talloc_realloc_fail_on_call;  // -1 = don't fail, >= 0 = fail on this call
+extern int ik_test_talloc_realloc_call_count;
 
 void *talloc_zero_(TALLOC_CTX *ctx, size_t size);
 char *talloc_strdup_(TALLOC_CTX *ctx, const char *str);
@@ -22,5 +28,132 @@ ik_cfg_t *ik_test_create_config(TALLOC_CTX *ctx);
 // ========== File I/O Helpers ==========
 // Load a file into a talloc-allocated string
 char *load_file_to_string(TALLOC_CTX *ctx, const char *path);
+
+// ========== Database Test Utilities ==========
+// Per-file database isolation for parallel test execution
+//
+// Usage Pattern A (most tests - with migrations, transaction isolation):
+//   static const char *DB_NAME;
+//   static ik_db_ctx_t *db;
+//   static TALLOC_CTX *test_ctx;
+//
+//   // Suite setup (once per file)
+//   DB_NAME = ik_test_db_name(NULL, __FILE__);
+//   ik_test_db_create(DB_NAME);
+//   ik_test_db_migrate(NULL, DB_NAME);
+//
+//   // Per-test setup
+//   test_ctx = talloc_new(NULL);
+//   ik_test_db_connect(test_ctx, DB_NAME, &db);
+//   ik_test_db_begin(db);
+//
+//   // Per-test teardown
+//   ik_test_db_rollback(db);
+//   talloc_free(test_ctx);
+//
+//   // Suite teardown (once per file)
+//   ik_test_db_destroy(DB_NAME);
+//
+// Usage Pattern B (migration tests - empty DB, no migrations):
+//   DB_NAME = ik_test_db_name(NULL, __FILE__);
+//   ik_test_db_create(DB_NAME);  // No migrate call
+//   // ... test migration logic ...
+//   ik_test_db_destroy(DB_NAME);
+
+/**
+ * Derive database name from source file path
+ *
+ * Extracts the base filename (without extension) and prefixes with "ikigai_test_".
+ * Example: "tests/unit/db/session_test.c" → "ikigai_test_session_test"
+ *
+ * @param ctx Talloc context for allocation (can be NULL for static lifetime)
+ * @param file_path Source file path (typically __FILE__)
+ * @return Database name string
+ */
+const char *ik_test_db_name(TALLOC_CTX *ctx, const char *file_path);
+
+/**
+ * Build connection string for test database
+ *
+ * Respects PGHOST environment variable (defaults to localhost if not set).
+ * Example: "ikigai_test_foo" → "postgresql://ikigai:ikigai@postgres/ikigai_test_foo"
+ *
+ * @param buf Buffer to write connection string to
+ * @param bufsize Size of buffer
+ * @param db_name Database name
+ */
+void ik_test_db_conn_str(char *buf, size_t bufsize, const char *db_name);
+
+/**
+ * Create test database (drops if exists)
+ *
+ * Connects to PostgreSQL default database and issues DROP/CREATE.
+ * Idempotent - safe to call regardless of previous state.
+ *
+ * @param db_name Database name to create
+ * @return OK on success, ERR on failure
+ */
+res_t ik_test_db_create(const char *db_name);
+
+/**
+ * Run migrations on test database
+ *
+ * Applies all migrations from ./migrations/ directory.
+ *
+ * @param ctx Talloc context for temporary allocations
+ * @param db_name Database name to migrate
+ * @return OK on success, ERR on failure
+ */
+res_t ik_test_db_migrate(TALLOC_CTX *ctx, const char *db_name);
+
+/**
+ * Open connection to test database (no migrations)
+ *
+ * Creates a raw connection without running migrations.
+ * Use this after ik_test_db_create() and optionally ik_test_db_migrate().
+ *
+ * @param ctx Talloc context for db_ctx allocation
+ * @param db_name Database name to connect to
+ * @param out Output parameter for database context
+ * @return OK on success, ERR on failure
+ */
+res_t ik_test_db_connect(TALLOC_CTX *ctx, const char *db_name, ik_db_ctx_t **out);
+
+/**
+ * Begin transaction (for test isolation within a file)
+ *
+ * @param db Database context
+ * @return OK on success, ERR on failure
+ */
+res_t ik_test_db_begin(ik_db_ctx_t *db);
+
+/**
+ * Rollback transaction (discard test changes)
+ *
+ * @param db Database context
+ * @return OK on success, ERR on failure
+ */
+res_t ik_test_db_rollback(ik_db_ctx_t *db);
+
+/**
+ * Truncate all application tables
+ *
+ * Resets sessions and messages tables. Use when transaction isolation
+ * is not suitable (e.g., testing commit behavior).
+ *
+ * @param db Database context
+ * @return OK on success, ERR on failure
+ */
+res_t ik_test_db_truncate_all(ik_db_ctx_t *db);
+
+/**
+ * Drop test database completely
+ *
+ * Should be called as last action of test file.
+ *
+ * @param db_name Database name to destroy
+ * @return OK on success, ERR on failure
+ */
+res_t ik_test_db_destroy(const char *db_name);
 
 #endif // IK_TEST_UTILS_H

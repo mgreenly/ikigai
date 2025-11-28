@@ -4,24 +4,13 @@ This documentation is primarily for AI agents and secondarily for humans.
 
 ## Project Overview
 
-**Ikigai** is a Linux-focused, multi-model coding agent with RAG-accessible permanent memory, written in C.
+**Ikigai** is a Linux-focused, multi-model coding agent with permanent memory, written in C.
 
 A desktop terminal application that combines:
 - Direct LLM API integration (OpenAI, Anthropic, Google, X.AI)
 - Local tool execution (file operations, shell commands, code analysis)
 - PostgreSQL-backed conversation history with full-text search
 - Terminal UI with direct rendering and scrollback
-
-**Current status**: v1.0-alpha - REPL terminal and OpenAI streaming integration complete. Ready for database integration.
-
-## v1.0 Vision
-
-**Desktop terminal client** with:
-- **Terminal UI**: Direct terminal rendering with scrollback, multi-line input, and clean UX
-- **LLM Integration**: Streaming responses from multiple providers (OpenAI, Anthropic, Google, X.AI)
-- **Local Tool Execution**: File operations, shell commands, code analysis (full trust model)
-- **Database Integration**: PostgreSQL for persistent conversation history and RAG memory
-- **RAG-based Memory**: Conversation search and context retrieval across all past interactions
 
 ## Quick Start
 
@@ -38,14 +27,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 ### Architecture & Design
 - **[architecture.md](architecture.md)** - System architecture, dependencies, and design principles
 - **[decisions/](decisions/)** - Architecture Decision Records (ADRs) for key design choices
-- **[repl/](repl/)** - REPL terminal interface documentation (v0.1.0 - complete)
-
-#### v1.0 Architecture Documentation
-- **[v1-architecture.md](v1-architecture.md)** - v1.0 core architecture: scrollback as context window, three-layer model
-- **[v1-llm-integration.md](v1-llm-integration.md)** - HTTP client design, streaming responses, event loop integration
-- **[v1-database-design.md](v1-database-design.md)** - PostgreSQL schema, persistence strategy, session management
-- **[v1-conversation-management.md](v1-conversation-management.md)** - Message lifecycle, slash commands, /mark and /rewind
-- **[v1-implementation-roadmap.md](v1-implementation-roadmap.md)** - Phase-by-phase implementation plan with dependencies
+- **[repl/](repl/)** - REPL terminal interface documentation (rel-01 - complete)
 
 ### Development Standards
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
@@ -61,80 +43,61 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - **[build-system.md](build-system.md)** - Build system, quality gates, testing infrastructure, multi-distro support
 - **[lcov_exclusion_strategy.md](lcov_exclusion_strategy.md)** - Coverage exclusion guidelines
 
+### Agent Tools & Automation
+- **[agent-scripts.md](agent-scripts.md)** - Script-based tools architecture (vs MCP), JSON output contract, discovery workflow
+- **[task-system.md](task-system.md)** - Hierarchical task execution system architecture and API reference
+- **[task-system-guide.md](task-system-guide.md)** - Task system usage guide with workflows, templates, and examples
+
 ### Internal Analysis
 - **[memory_usage_analysis.md](memory_usage_analysis.md)** - Memory usage analysis and optimization notes
+- **[considerations.md](considerations.md)** - Candidate features and changes to consider for the future
 - **[../fix.md](../fix.md)** - Known issues and technical debt
 
 ## Roadmap to v1.0
 
-### ✅ Completed: REPL Terminal Foundation (v0.1.0)
+**Architecture Overview**:
+- **[v1-architecture.md](v1-architecture.md)** - v1.0 core architecture: scrollback as context window, three-layer model
+- **[v1-implementation-roadmap.md](v1-implementation-roadmap.md)** - Phase-by-phase implementation plan with dependencies
 
-**Released**: 2025-11-16
+### rel-01: REPL Terminal Foundation
 
-Production-ready terminal interface with:
+**Objective**: Production-ready terminal interface with direct rendering and UTF-8 support
+
+**Tasks**:
 - Direct terminal rendering (single write per frame)
 - UTF-8 support (emoji, CJK, combining characters)
 - Multi-line input with readline-style shortcuts
 - Scrollback buffer with O(1) arithmetic reflow
 - Viewport scrolling (Page Up/Down, auto-scroll)
-- 100% test coverage (1,807 lines, 131 functions, 600 branches)
+- 100% test coverage
 
-See [repl/README.md](repl/README.md) for detailed documentation.
-
-### ✅ Completed: LLM Integration (Phase 1)
-
-**Released**: 2025-11-22
+### rel-02: LLM Integration
 
 **Objective**: Stream LLM responses directly to the terminal
 
-**Completed**:
-- ✅ OpenAI API client with libcurl streaming
-- ✅ Display AI responses in scrollback as chunks arrive
-- ✅ Basic conversation flow (user input → API call → streamed response)
-- ✅ Status indicators (loading spinner, error handling)
-- ✅ Layer architecture (scrollback, spinner, separator, input)
-- ✅ Slash commands (/clear, /mark, /rewind, /help, /model, /system)
-- ✅ In-memory conversation state with checkpoint/rollback
-- ✅ Mock verification test suite
+**Tasks**:
+- OpenAI API client with libcurl streaming
+- Display AI responses in scrollback as chunks arrive
+- Basic conversation flow (user input → API call → streamed response)
+- Status indicators (loading spinner, error handling)
+- Layer architecture (scrollback, spinner, separator, input)
+- Slash commands (/clear, /mark, /rewind, /help, /model, /system)
+- In-memory conversation state with checkpoint/rollback
+- Mock verification test suite
 
-**Configuration** (in `~/.config/ikigai/config.json`):
-- `openai_api_key` - Your OpenAI API key
-- `openai_model` - Model to use (default: "gpt-5-mini")
-- `openai_temperature` - Temperature parameter (default: 1.0)
-- `openai_max_completion_tokens` - Max response tokens (default: 4096)
-- `openai_system_message` - Optional system message (default: null)
+### v0.3.0: Database Integration (PostgreSQL)
 
-**Mock Verification**:
-To verify that test fixtures match real OpenAI API responses:
-```bash
-OPENAI_API_KEY=sk-... make verify-mocks
-```
-
-This runs integration tests against the real API to ensure fixtures stay current. Only needed when API format changes.
-
-**Dependencies**: yyjson (complete), libcurl (added)
-
-### Future: Layer Architecture Refinement
-
-**Objective**: Remove adapter layer and integrate components directly with layer cake
+**Objective**: Persistent conversation history with optional database mode
 
 **Tasks**:
-- Remove `layer_wrappers.c` adapter abstraction
-- Update scrollback, separator, and input components to implement layer interface directly
-- Consolidate layer creation logic into REPL initialization
-- Reduce indirection and simplify layer management
-
-**Rationale**: The adapter pattern in `layer_wrappers.c` was useful for prototyping but adds unnecessary indirection. Direct implementation of the layer interface by UI components will simplify the codebase.
-
-### Future: Database Integration (PostgreSQL)
-
-**Objective**: Persistent conversation history with RAG memory
-
-**Tasks**:
-- PostgreSQL schema for conversations and messages
-- Persistent conversation history
-- Full-text search across past conversations (tool-based)
-- RAG memory access patterns
+- PostgreSQL schema with event stream model
+- Automatic migration system (runs on startup)
+- Session lifecycle with active detection (Model B)
+- Message persistence at 5 integration points
+- Replay algorithm for state reconstruction
+- Integration testing with transaction isolation
+- Session restoration on launch
+- Memory-only fallback mode
 
 ### Future: Local Tool Execution
 
@@ -157,6 +120,18 @@ This runs integration tests against the real API to ensure fixtures stay current
 - Provider switching via config or runtime command
 - Unified conversation format
 
+### Future: Layer Architecture Refinement
+
+**Objective**: Remove adapter layer and integrate components directly with layer cake
+
+**Tasks**:
+- Remove `layer_wrappers.c` adapter abstraction
+- Update scrollback, separator, and input components to implement layer interface directly
+- Consolidate layer creation logic into REPL initialization
+- Reduce indirection and simplify layer management
+
+**Rationale**: The adapter pattern in `layer_wrappers.c` was useful for prototyping but adds unnecessary indirection. Direct implementation of the layer interface by UI components will simplify the codebase.
+
 ### Future: Enhanced Terminal UI
 
 **Objective**: Polish the user experience
@@ -166,6 +141,21 @@ This runs integration tests against the real API to ensure fixtures stay current
 - External editor integration ($EDITOR)
 - Command history and session management
 - Rich formatting and themes
+
+### Future: Code Organization and Module Cleanup
+
+**Objective**: Refactor codebase structure for better organization and maintainability
+
+**Tasks**:
+- Reorganize source into subfolder-per-module structure
+- Consolidate to one public header (*.h) per module/subfolder
+- Standardize naming conventions across all modules
+- Remove code redundancies and duplications
+- Reorganize and consolidate test structure
+- Improve module boundaries and interfaces
+- Clean up internal module organization
+
+**Rationale**: This is the standard refactoring cycle before each major release. As features are added throughout development, technical debt accumulates and module boundaries become less clear. A dedicated refactoring phase before release ensures the codebase is clean, well-organized, and maintainable for the next development cycle.
 
 ## v2.0 Vision
 

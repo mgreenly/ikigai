@@ -39,9 +39,12 @@ res_t ik_format_appendf(ik_format_buffer_t *buf, const char *fmt, ...)
     // First pass: determine required size
     va_list args_copy;
     va_copy(args_copy, args);
-    int32_t needed = vsnprintf(NULL, 0, fmt, args_copy);
+    int32_t needed = vsnprintf_(NULL, 0, fmt, args_copy);
     va_end(args_copy);
-    if (needed < 0) PANIC("vsnprintf size calculation failed");   // LCOV_EXCL_LINE
+    if (needed < 0) {
+        va_end(args);
+        return ERR(buf->parent, IO, "vsnprintf size calculation failed");
+    }
 
     // Allocate temporary buffer
     size_t buf_size = (size_t)needed + 1;  // +1 for null terminator
@@ -49,10 +52,16 @@ res_t ik_format_appendf(ik_format_buffer_t *buf, const char *fmt, ...)
     if (temp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Second pass: format into buffer
-    int32_t written = vsnprintf(temp, buf_size, fmt, args);
+    int32_t written = vsnprintf_(temp, buf_size, fmt, args);
     va_end(args);
-    if (written < 0) PANIC("vsnprintf formatting failed");   // LCOV_EXCL_LINE
-    if ((size_t)written >= buf_size) PANIC("vsnprintf truncated");   // LCOV_EXCL_LINE
+    if (written < 0) {
+        talloc_free(temp);
+        return ERR(buf->parent, IO, "vsnprintf formatting failed");
+    }
+    if ((size_t)written >= buf_size) {
+        talloc_free(temp);
+        return ERR(buf->parent, IO, "vsnprintf truncated output");
+    }
 
     // Append formatted string (excluding null terminator)
     for (int32_t i = 0; i < written; i++) {

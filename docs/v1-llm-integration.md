@@ -86,7 +86,7 @@ void on_llm_complete(void *user_data) {
 
 ## Event Loop Integration
 
-### Current Pattern (v0.1.0)
+### Current Pattern (rel-01)
 
 ```c
 while (!repl->quit) {

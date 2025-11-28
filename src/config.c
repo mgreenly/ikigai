@@ -127,6 +127,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     yyjson_val *system_message = yyjson_obj_get_(root, "openai_system_message");
     yyjson_val *address = yyjson_obj_get_(root, "listen_address");
     yyjson_val *port = yyjson_obj_get_(root, "listen_port");
+    yyjson_val *db_conn_str = yyjson_obj_get_(root, "db_connection_string");
 
     // validate openai_api_key
     if (!api_key) {
@@ -199,6 +200,11 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     }
     uint16_t port_value = (uint16_t)port_raw;
 
+    // validate db_connection_string (optional)
+    if (db_conn_str && !yyjson_is_str(db_conn_str)) {
+        return ERR(ctx, PARSE, "Invalid type for db_connection_string");
+    }
+
     // copy values to config
     cfg->openai_api_key = talloc_strdup(cfg, yyjson_get_str_(api_key));
     cfg->openai_model = talloc_strdup(cfg, yyjson_get_str_(model));
@@ -211,6 +217,17 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     }
     cfg->listen_address = talloc_strdup(cfg, yyjson_get_str_(address));
     cfg->listen_port = port_value;
+    if (db_conn_str) {
+        const char *db_conn_str_value = yyjson_get_str_(db_conn_str);
+        // Treat empty string as NULL (memory-only mode)
+        if (db_conn_str_value && db_conn_str_value[0] != '\0') {
+            cfg->db_connection_string = talloc_strdup(cfg, db_conn_str_value);
+        } else {
+            cfg->db_connection_string = NULL;
+        }
+    } else {
+        cfg->db_connection_string = NULL;
+    }
 
     // no cleanup required talloc frees everything when ctx is freed
     return OK(cfg);

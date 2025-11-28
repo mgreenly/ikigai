@@ -4,6 +4,7 @@
  */
 
 #include "scrollback.h"
+#include "error.h"
 #include "panic.h"
 #include "wrapper.h"
 #include <assert.h>
@@ -59,19 +60,25 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
         // Grow text_offsets
         size_t *new_offsets = talloc_realloc_(
             scrollback, scrollback->text_offsets, sizeof(size_t) * new_capacity);
-        if (new_offsets == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (new_offsets == NULL) {     // LCOV_EXCL_BR_LINE
+            return ERR(scrollback, OUT_OF_MEMORY, "Failed to reallocate text_offsets");
+        }
         scrollback->text_offsets = new_offsets;
 
         // Grow text_lengths
         size_t *new_lengths = talloc_realloc_(
             scrollback, scrollback->text_lengths, sizeof(size_t) * new_capacity);
-        if (new_lengths == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (new_lengths == NULL) {     // LCOV_EXCL_BR_LINE
+            return ERR(scrollback, OUT_OF_MEMORY, "Failed to reallocate text_lengths");
+        }
         scrollback->text_lengths = new_lengths;
 
         // Grow layouts
         ik_line_layout_t *new_layouts = talloc_realloc_(
             scrollback, scrollback->layouts, sizeof(ik_line_layout_t) * new_capacity);
-        if (new_layouts == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (new_layouts == NULL) {     // LCOV_EXCL_BR_LINE
+            return ERR(scrollback, OUT_OF_MEMORY, "Failed to reallocate layouts");
+        }
         scrollback->layouts = new_layouts;
 
         scrollback->capacity = new_capacity;
@@ -87,7 +94,9 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
 
         char *new_buffer = talloc_realloc_(
             scrollback, scrollback->text_buffer, new_buffer_capacity);
-        if (new_buffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (new_buffer == NULL) {     // LCOV_EXCL_BR_LINE
+            return ERR(scrollback, OUT_OF_MEMORY, "Failed to reallocate text_buffer");
+        }
         scrollback->text_buffer = new_buffer;
         scrollback->buffer_capacity = new_buffer_capacity;
     }
@@ -307,7 +316,7 @@ res_t ik_scrollback_find_logical_line_at_physical_row(
 
     // Scan through lines to find which one contains physical_row
     size_t current_row = 0;
-    for (size_t i = 0; i < scrollback->count; i++) {  // LCOV_EXCL_BR_LINE
+    for (size_t i = 0; i < scrollback->count; i++) {
         size_t line_physical_lines = scrollback->layouts[i].physical_lines;
 
         // Check if physical_row falls within this line
@@ -321,7 +330,7 @@ res_t ik_scrollback_find_logical_line_at_physical_row(
     }
 
     // Should never reach here if physical_row is in range
-    return ERR(scrollback, OUT_OF_RANGE, "Failed to find line for physical row %zu",  // LCOV_EXCL_LINE
+    return ERR(scrollback, OUT_OF_RANGE, "Failed to find line for physical row %zu",
                physical_row);
 }
 

@@ -1,0 +1,71 @@
+#ifndef IK_DB_CONNECTION_H
+#define IK_DB_CONNECTION_H
+
+#include "../error.h"
+#include <libpq-fe.h>
+#include <talloc.h>
+
+/**
+ * Database context - manages PostgreSQL connection
+ *
+ * Lifecycle:
+ * - Created by ik_db_init() as child of caller's talloc context
+ * - Destructor automatically calls PQfinish() on conn
+ * - Free with talloc_free() on parent context
+ */
+typedef struct {
+    PGconn *conn;  // PostgreSQL connection handle
+} ik_db_ctx_t;
+
+/**
+ * Initialize database connection
+ *
+ * Creates a new database context and establishes connection to PostgreSQL
+ * using the provided connection string. Runs migrations from default directory.
+ *
+ * Connection string format:
+ *   postgresql://[user[:password]@][host][:port][/dbname]
+ *
+ * Examples:
+ *   postgresql://localhost
+ *   postgresql://localhost/mydb
+ *   postgresql://user:pass@localhost:5432/mydb
+ *
+ * Memory management:
+ * - db_ctx allocated as child of mem_ctx
+ * - Talloc destructor registered to call PQfinish()
+ * - Single talloc_free(mem_ctx) cleans up everything
+ *
+ * @param mem_ctx Talloc context for allocations (must not be NULL)
+ * @param conn_str PostgreSQL connection string (must not be NULL or empty)
+ * @param out_ctx Output parameter for database context (must not be NULL)
+ * @return OK with db_ctx on success, ERR on failure
+ *
+ * Error codes:
+ * - ERR_INVALID_ARG: NULL or invalid parameters
+ * - ERR_DB_CONNECT: Connection failed (network, auth, etc.)
+ * - ERR_DB_MIGRATE: Migration failed
+ */
+res_t ik_db_init(TALLOC_CTX *mem_ctx, const char *conn_str, ik_db_ctx_t **out_ctx);
+
+/**
+ * Initialize database connection with custom migrations directory
+ *
+ * Like ik_db_init(), but allows specifying a custom migrations directory.
+ * Useful for testing migration failure scenarios.
+ *
+ * @param mem_ctx Talloc context for allocations (must not be NULL)
+ * @param conn_str PostgreSQL connection string (must not be NULL or empty)
+ * @param migrations_dir Path to migrations directory (must not be NULL)
+ * @param out_ctx Output parameter for database context (must not be NULL)
+ * @return OK with db_ctx on success, ERR on failure
+ *
+ * Error codes:
+ * - ERR_INVALID_ARG: NULL or invalid parameters
+ * - ERR_DB_CONNECT: Connection failed (network, auth, etc.)
+ * - ERR_DB_MIGRATE: Migration failed
+ * - ERR_IO: Cannot read migrations directory
+ */
+res_t ik_db_init_with_migrations(TALLOC_CTX *mem_ctx, const char *conn_str, const char *migrations_dir, ik_db_ctx_t **out_ctx);
+
+#endif // IK_DB_CONNECTION_H

@@ -6,11 +6,13 @@
 #include "wrapper.h"
 #include "format.h"
 #include "commands.h"
+#include "db/message.h"
 #include "input_buffer/core.h"
 #include "openai/client.h"
 #include "openai/client_multi.h"
 #include <assert.h>
 #include <talloc.h>
+#include <stdio.h>
 #include <string.h>
 
 /**
@@ -106,10 +108,18 @@ static res_t handle_newline_action_(ik_repl_ctx_t *repl)
         command_text[text_len] = '\0';
     }
 
-    // Always submit line to scrollback first (so command appears before output)
-    ik_repl_submit_line(repl);
+    // If it's a slash command, just clear input buffer (event renderer handles scrollback)
+    // If not a slash command, submit to scrollback (regular messages)
+    if (is_slash_command) {
+        // Clear input buffer and reset viewport (but don't add to scrollback)
+        ik_input_buffer_clear(repl->input_buffer);
+        repl->viewport_offset = 0;
+    } else {
+        // Regular message: submit line to scrollback
+        ik_repl_submit_line(repl);
+    }
 
-    // If it was a slash command, handle it now (after input buffer text is in scrollback)
+    // If it was a slash command, handle it now (event renderer adds to scrollback)
     if (is_slash_command) {
         // Check for legacy /pp command (internal debug command)
         if (strncmp(command_text + 1, "pp", 2) == 0) {
@@ -136,6 +146,29 @@ static res_t handle_newline_action_(ik_repl_ctx_t *repl)
         ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", message_text).ok;
         res_t result = ik_openai_conversation_add_msg(repl->conversation, user_msg);
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+
+        // Persist user message to database (Integration Point 1)
+        if (repl->db_ctx != NULL && repl->current_session_id > 0) {
+            // Build data JSON with current LLM parameters
+            char *data_json = talloc_asprintf(repl,
+                                              "{\"model\":\"%s\",\"temperature\":%.2f,\"max_completion_tokens\":%d}",
+                                              repl->cfg->openai_model,
+                                              repl->cfg->openai_temperature,
+                                              repl->cfg->openai_max_completion_tokens);
+
+            res_t db_res = ik_db_message_insert(repl->db_ctx, repl->current_session_id,
+                                                "user", message_text, data_json);
+            if (is_err(&db_res)) {
+                // Log error but don't crash - memory state is authoritative
+                if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
+                    fprintf(repl->db_debug_pipe->write_end,
+                            "Warning: Failed to persist user message to database: %s\n",
+                            error_message(db_res.err));
+                }
+                talloc_free(db_res.err);
+            }
+            talloc_free(data_json);
+        }
 
         // Clear previous assistant response (prepare for new response)
         if (repl->assistant_response != NULL) {

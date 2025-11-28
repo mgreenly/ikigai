@@ -5,7 +5,72 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2025-11-22
+## [rel-03] - 2025-11-28
+
+### Added
+
+#### Database Integration (Complete)
+- **PostgreSQL backend**: Full libpq integration for persistent conversation storage
+- **Session management**: Create, restore, and manage sessions across application restarts
+- **Message persistence**: Store and retrieve user/assistant messages with complete metadata
+- **Replay system**: Core algorithm for conversation playback with mark/rewind support
+- **Mark/Rewind implementation**: Checkpoint conversation state and restore to any mark
+- **Migration system**: Automated database schema versioning with migration files
+- **Error handling**: Comprehensive database error handling with res_t pattern
+
+#### Event-Based Rendering
+- **Unified render path**: Consistent rendering for both live streaming and replay modes
+- **Event system**: Clean separation between data events and display logic
+- **Replay display**: Seamless playback of historical conversations with proper formatting
+
+#### Agent Task System
+- **Hierarchical tasks**: Multi-level task execution with sub-agent optimization
+- **Personas**: Composable skill sets (coverage, developer, task-runner, task-strategist, security, meta)
+- **Manifest system**: Automated skill and persona discovery with .claude symlinks
+- **Task state tracking**: Persistent task status with verification workflow
+- **Agent scripts**: Deno-based tooling with standardized JSON output format
+
+### Changed
+
+#### Code Quality & Testing
+- **Test coverage**: Maintained 100% coverage (4,061 lines, 257 functions, 1,466 branches)
+- **Database testing**: Comprehensive integration tests with per-file database isolation
+- **MOCKABLE wrappers**: Enhanced mocking infrastructure for database function testing
+- **Test utilities**: Added configurable PostgreSQL connection helpers (PGHOST support)
+- **Error injection**: Complete coverage of database error paths
+
+#### Bug Fixes
+- **Bug 9**: Fixed database error dangling pointer crash in error handling
+- **Bug 8**: Fixed mark stack rebuild on session restoration for checkpoint recovery
+- **Bug 7**: Fixed /clear command to properly display system message after clearing
+- **Defensive checks**: Added NULL validation for db_connection_string in configuration
+
+#### Code Organization
+- **Agent system**: Reorganized .agents/prompts to .agents/skills for clarity
+- **Documentation**: Restructured docs to reflect v0.3.0 database integration
+- **Naming**: Updated to release numbering (rel-XX) from semantic versioning
+
+### Development
+
+#### Testing & Quality Gates
+- **Docker Compose**: Local distro-check with PostgreSQL service for isolated testing
+- **GitHub CI**: PostgreSQL service container integration for automated testing
+- **PGHOST support**: Environment-based database host configuration
+- **Build system**: Enhanced Makefile targets for docker-compose workflows
+
+#### Documentation
+- **Design documentation**: Comprehensive product vision and multi-agent architecture
+- **Task system docs**: Complete documentation of hierarchical task execution
+- **Protocol comparison**: Anthropic vs OpenAI streaming protocol documentation
+- **Database ADRs**: Architecture decisions for PostgreSQL integration patterns
+
+### Technical Metrics
+- **Changes**: 246 files modified, +33,029/-6,446 lines
+- **Commits**: 71 commits over development cycle
+- **Test coverage**: 100% lines, functions, and branches
+- **Code quality**: All lint, format, and sanitizer checks pass
+
+## [rel-02] - 2025-11-22
 
 ### Added
 
@@ -71,7 +136,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test coverage**: 100% lines, functions, and branches
 - **Code quality**: All lint, format, and sanitizer checks pass
 
-## [0.1.0] - 2025-11-16
+## [rel-01] - 2025-11-16
 
 ### Added
 
@@ -117,5 +182,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
-[0.2.0]: https://github.com/mgreenly/ikigai/releases/tag/v0.2.0
-[0.1.0]: https://github.com/mgreenly/ikigai/releases/tag/v0.1.0
+[rel-03]: https://github.com/mgreenly/ikigai/releases/tag/rel-03
+[rel-02]: https://github.com/mgreenly/ikigai/releases/tag/rel-02
+[rel-01]: https://github.com/mgreenly/ikigai/releases/tag/rel-01

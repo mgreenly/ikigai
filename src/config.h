@@ -13,6 +13,7 @@ typedef struct {
     char *openai_system_message;
     char *listen_address;
     uint16_t listen_port;
+    char *db_connection_string;
 } ik_cfg_t;
 
 res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);

@@ -328,7 +328,7 @@ START_TEST(test_handle_terminal_input_success)
     mock_input_pos = 0;
 
     bool should_exit = false;
-    res = handle_terminal_input_(repl, 0, &should_exit);
+    res = handle_terminal_input(repl, 0, &should_exit);
     ck_assert(is_ok(&res));
     ck_assert(!should_exit);
 

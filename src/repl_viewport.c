@@ -98,13 +98,14 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     // Input buffer always occupies at least 1 row in document (even when empty)
     if (input_buffer_start_doc_row <= last_visible_row) {
         // Input buffer is at least partially visible
-        if (input_buffer_start_doc_row >= first_visible_row) {  /* LCOV_EXCL_BR_LINE */
+        if (input_buffer_start_doc_row >= first_visible_row) {
             // Input buffer starts within viewport
             viewport_out->input_buffer_start_row = input_buffer_start_doc_row - first_visible_row;
-        } else {  /* LCOV_EXCL_BR_LINE */
-            // Input buffer starts before viewport (shouldn't happen)  /* LCOV_EXCL_LINE */
-            viewport_out->input_buffer_start_row = 0;  /* LCOV_EXCL_LINE */
-        }  /* LCOV_EXCL_LINE */
+        } else {
+            // Input buffer starts before viewport
+            // This can occur when scrolling with a large input buffer
+            viewport_out->input_buffer_start_row = 0;
+        }
     } else {
         // Input buffer is completely off-screen
         viewport_out->input_buffer_start_row = (size_t)terminal_rows;

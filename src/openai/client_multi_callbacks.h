@@ -19,6 +19,9 @@ typedef struct {
     char *complete_response;             /* Accumulated complete response */
     size_t response_len;                 /* Length of complete response */
     bool has_error;                      /* Whether an error occurred */
+    char *model;                         /* Model name from SSE stream */
+    char *finish_reason;                 /* Finish reason from SSE stream */
+    int32_t completion_tokens;           /* Completion token count from SSE stream */
 } http_write_ctx_t;
 
 /**

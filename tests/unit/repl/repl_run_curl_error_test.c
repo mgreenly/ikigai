@@ -92,7 +92,7 @@ START_TEST(test_repl_run_curl_multi_perform_error)
     mock_curl_multi_perform_should_fail = true;
 
     // Call handle_curl_events_ directly to test error handling
-    res = handle_curl_events_(repl, 1);
+    res = handle_curl_events(repl, 1);
     ck_assert(is_err(&res));  // Should propagate error from curl_multi_perform
 
     // Reset mock

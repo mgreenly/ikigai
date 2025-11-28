@@ -1,0 +1,13 @@
+[
+  "coverage",
+  "default",
+  "git",
+  "lcov",
+  "mocking",
+  "naming",
+  "quality",
+  "style",
+  "tdd",
+  "testability",
+  "zero-debt"
+]

@@ -1,0 +1,1 @@
+BEGIN; CREATE TABLE auto_test (id INT); UPDATE schema_metadata SET schema_version = 999; COMMIT;

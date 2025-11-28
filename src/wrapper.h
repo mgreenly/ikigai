@@ -8,6 +8,7 @@
 #ifndef IK_WRAPPER_H
 #define IK_WRAPPER_H
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -93,6 +94,11 @@ MOCKABLE bool yyjson_mut_write_file_(const char *path, const yyjson_mut_doc *doc
     return yyjson_mut_write_file(path, doc, flg, allocator, err);
 }
 
+MOCKABLE yyjson_doc *yyjson_read_(const char *dat, size_t len, yyjson_read_flag flg)
+{
+    return yyjson_read(dat, len, flg);
+}
+
 MOCKABLE yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
 {
     return yyjson_doc_get_root(doc);
@@ -124,6 +130,7 @@ MOCKABLE bool yyjson_mut_write_file_(const char *path,
                                      yyjson_write_flag flg,
                                      const yyjson_alc *allocator,
                                      yyjson_write_err *err);
+MOCKABLE yyjson_doc *yyjson_read_(const char *dat, size_t len, yyjson_read_flag flg);
 MOCKABLE yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc);
 MOCKABLE yyjson_val *yyjson_obj_get_(yyjson_val *obj, const char *key);
 MOCKABLE int64_t yyjson_get_sint_(yyjson_val *val);
@@ -236,7 +243,7 @@ MOCKABLE void curl_slist_free_all_(struct curl_slist *list);
 MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val);
 
 // curl_easy_getinfo wrapper - variadic function
-#define curl_easy_getinfo_(curl, info, ...) curl_easy_getinfo(curl, info, __VA_ARGS__)
+MOCKABLE CURLcode curl_easy_getinfo_(CURL *curl, CURLINFO info, ...);
 
 MOCKABLE CURLM *curl_multi_init_(void);
 MOCKABLE CURLMcode curl_multi_cleanup_(CURLM *multi);
@@ -251,6 +258,24 @@ MOCKABLE CURLMcode curl_multi_fdset_(CURLM *multi,
 MOCKABLE CURLMcode curl_multi_timeout_(CURLM *multi, long *timeout);
 MOCKABLE CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue);
 MOCKABLE const char *curl_multi_strerror_(CURLMcode code);
+#endif
+
+// ============================================================================
+// PostgreSQL libpq wrappers
+// ============================================================================
+
+#include <libpq-fe.h>
+
+#ifdef NDEBUG
+// Release build: inline definitions for zero overhead
+MOCKABLE char *PQgetvalue_(const PGresult *res, int row_number, int column_number)
+{
+    return PQgetvalue(res, row_number, column_number);
+}
+
+#else
+// Debug/test build: weak symbol declarations
+MOCKABLE char *PQgetvalue_(const PGresult *res, int row_number, int column_number);
 #endif
 
 // ============================================================================
@@ -341,6 +366,36 @@ MOCKABLE FILE *posix_fdopen_(int fd, const char *mode)
     return fdopen(fd, mode);
 }
 
+MOCKABLE size_t fread_(void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+    return fread(ptr, size, nmemb, stream);
+}
+
+MOCKABLE FILE *fopen_(const char *pathname, const char *mode)
+{
+    return fopen(pathname, mode);
+}
+
+MOCKABLE int fseek_(FILE *stream, long offset, int whence)
+{
+    return fseek(stream, offset, whence);
+}
+
+MOCKABLE long ftell_(FILE *stream)
+{
+    return ftell(stream);
+}
+
+MOCKABLE int fclose_(FILE *stream)
+{
+    return fclose(stream);
+}
+
+MOCKABLE DIR *opendir_(const char *name)
+{
+    return opendir(name);
+}
+
 #else
 // Debug/test build: weak symbol declarations
 MOCKABLE int posix_open_(const char *pathname, int flags);
@@ -358,6 +413,143 @@ MOCKABLE int posix_sigaction_(int signum, const struct sigaction *act, struct si
 MOCKABLE int posix_pipe_(int pipefd[2]);
 MOCKABLE int posix_fcntl_(int fd, int cmd, int arg);
 MOCKABLE FILE *posix_fdopen_(int fd, const char *mode);
+MOCKABLE size_t fread_(void *ptr, size_t size, size_t nmemb, FILE *stream);
+MOCKABLE FILE *fopen_(const char *pathname, const char *mode);
+MOCKABLE int fseek_(FILE *stream, long offset, int whence);
+MOCKABLE long ftell_(FILE *stream);
+MOCKABLE int fclose_(FILE *stream);
+MOCKABLE DIR *opendir_(const char *name);
+#endif
+
+// ============================================================================
+// PostgreSQL wrappers
+// ============================================================================
+
+#ifdef NDEBUG
+// Release build: inline definitions for zero overhead
+#include <libpq-fe.h>
+
+MOCKABLE PGresult *pq_exec_(PGconn *conn, const char *command)
+{
+    return PQexec(conn, command);
+}
+
+MOCKABLE PGresult *pq_exec_params_(PGconn *conn,
+                                   const char *command,
+                                   int nParams,
+                                   const Oid *paramTypes,
+                                   const char *const *paramValues,
+                                   const int *paramLengths,
+                                   const int *paramFormats,
+                                   int resultFormat)
+{
+    return PQexecParams(conn, command, nParams, paramTypes, paramValues, paramLengths, paramFormats, resultFormat);
+}
+
+#else
+// Debug/test build: weak symbol declarations
+#include <libpq-fe.h>
+
+MOCKABLE PGresult *pq_exec_(PGconn *conn, const char *command);
+MOCKABLE PGresult *pq_exec_params_(PGconn *conn,
+                                   const char *command,
+                                   int nParams,
+                                   const Oid *paramTypes,
+                                   const char *const *paramValues,
+                                   const int *paramLengths,
+                                   const int *paramFormats,
+                                   int resultFormat);
+#endif
+
+// ============================================================================
+// C standard library wrappers
+// ============================================================================
+
+#include <stdarg.h>
+#include <time.h>
+
+#ifdef NDEBUG
+// Release build: inline definitions for zero overhead
+MOCKABLE int vsnprintf_(char *str, size_t size, const char *format, va_list ap)
+{
+    return vsnprintf(str, size, format, ap);
+}
+
+MOCKABLE int snprintf_(char *str, size_t size, const char *format, ...)
+{
+    va_list ap; va_start(ap, format);
+    int result = vsnprintf(str, size, format, ap);
+    va_end(ap); return result;
+}
+
+MOCKABLE struct tm *gmtime_(const time_t *timep)
+{
+    return gmtime(timep);
+}
+
+MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct tm *tm)
+{
+    return strftime(s, max, format, tm);
+}
+
+#else
+// Debug/test build: weak symbol declarations
+MOCKABLE int vsnprintf_(char *str, size_t size, const char *format, va_list ap);
+MOCKABLE int snprintf_(char *str, size_t size, const char *format, ...);
+MOCKABLE struct tm *gmtime_(const time_t *timep);
+MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct tm *tm);
+#endif
+
+// ============================================================================
+// Internal ikigai function wrappers for testing
+// ============================================================================
+
+#ifdef NDEBUG
+// Release build: Call through to actual functions
+#include "db/connection.h"
+#include "db/message.h"
+#include "repl/session_restore.h"
+#include "config.h"
+#include "scrollback.h"
+
+MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, ik_db_ctx_t **out_ctx)
+{
+    return ik_db_init(mem_ctx, conn_str, out_ctx);
+}
+
+MOCKABLE res_t ik_db_message_insert_(ik_db_ctx_t *db,
+                                     int64_t session_id,
+                                     const char *kind,
+                                     const char *content,
+                                     const char *data_json)
+{
+    return ik_db_message_insert(db, session_id, kind, content, data_json);
+}
+
+MOCKABLE res_t ik_repl_restore_session_(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, void *cfg)
+{
+    return ik_repl_restore_session(repl, db_ctx, (ik_cfg_t *)cfg);
+}
+
+MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length)
+{
+    return ik_scrollback_append_line((ik_scrollback_t *)scrollback, text, length);
+}
+
+#else
+// Debug/test build: weak symbol declarations
+// Note: These use void* because the actual types are defined in headers that may
+// not be included when wrapper.h is processed
+#include "error.h"
+
+MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx);
+MOCKABLE res_t ik_db_message_insert_(void *db,
+                                     int64_t session_id,
+                                     const char *kind,
+                                     const char *content,
+                                     const char *data_json);
+MOCKABLE res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg);
+MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length);
 #endif
 
 #endif // IK_WRAPPER_H

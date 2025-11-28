@@ -252,8 +252,8 @@ START_TEST(test_rewind_to_mark)
     // Verify conversation was truncated to 2 messages
     ck_assert_uint_eq(repl->conversation->message_count, 2);
 
-    // Verify mark was removed
-    ck_assert_uint_eq(repl->mark_count, 0);
+    // Verify mark was preserved (Bug 7 fix: marks are reusable)
+    ck_assert_uint_eq(repl->mark_count, 1);
 }
 
 END_TEST
@@ -319,8 +319,8 @@ START_TEST(test_rewind_to_middle_mark)
 
     // Verify conversation truncated to position of second mark
     ck_assert_uint_eq(repl->conversation->message_count, 2);
-    // Verify marks truncated (should have removed second and third)
-    ck_assert_uint_eq(repl->mark_count, 1);
+    // Verify marks truncated (should have kept first and second, removed third)
+    ck_assert_uint_eq(repl->mark_count, 2);
 }
 
 END_TEST
