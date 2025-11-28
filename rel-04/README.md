@@ -67,16 +67,32 @@ Configuration setting `max_tool_turns` with default of 50.
 
 Prevents runaway tool loops while allowing substantial autonomous work.
 
+### Tool Result Format
+
+All tool results use a consistent JSON envelope:
+
+| Tool | Success Format | Notes |
+|------|----------------|-------|
+| `glob` | `{"output": "file1\nfile2", "count": N}` | `count` = number of matches |
+| `file_read` | `{"output": "contents..."}` | Raw file contents in output |
+| `grep` | `{"output": "file:line: match", "count": N}` | `count` = number of matches |
+| `file_write` | `{"output": "Wrote N bytes to path", "bytes": N}` | `bytes` = bytes written |
+| `bash` | `{"output": "stdout/stderr", "exit_code": N}` | Always includes exit code |
+| Error | `{"error": "message"}` | Any tool can return error |
+
+For loop limits, add to the result:
+```json
+{"output": "...", "count": 1, "limit_reached": true, "limit_message": "Tool call limit reached (3). Stopping tool loop."}
+```
+
 ### Error Handling
 
-Return error text to LLM as tool result, let it decide recovery strategy.
+Return errors in JSON format, let LLM decide recovery strategy.
 
 Example:
+```json
+{"error": "File not found: /path/to/missing.txt"}
 ```
-Error: File not found: /path/to/missing.txt
-```
-
-Simple text errors - no complex JSON structures for tool results.
 
 ### Security Model
 

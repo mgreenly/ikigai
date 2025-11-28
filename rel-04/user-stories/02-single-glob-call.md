@@ -90,10 +90,8 @@ I found the following C files in src/:
 
 ### Tool Result A
 
-```text
-src/main.c
-src/config.c
-src/repl.c
+```json
+{"output": "src/main.c\nsrc/config.c\nsrc/repl.c", "count": 3}
 ```
 
 ### Request B
@@ -104,7 +102,7 @@ src/repl.c
   "messages": [
     {"role": "user", "content": "Find all C files in src/"},
     {"role": "assistant", "tool_calls": [{"id": "call_abc123", "type": "function", "function": {"name": "glob", "arguments": "{\"pattern\": \"*.c\", \"path\": \"src/\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_abc123", "content": "src/main.c\nsrc/config.c\nsrc/repl.c"}
+    {"role": "tool", "tool_call_id": "call_abc123", "content": "{\"output\": \"src/main.c\\nsrc/config.c\\nsrc/repl.c\", \"count\": 3}"}
   ],
   "tools": ["...same as Request A..."],
   "tool_choice": "auto",
