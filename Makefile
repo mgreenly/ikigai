@@ -587,9 +587,9 @@ coverage:
 	@echo "Coverage report saved to $(COVERAGE_DIR)/summary.txt"
 	@echo ""
 	@echo "Checking coverage thresholds (lines, functions, branches: $(COVERAGE_THRESHOLD)%)..."
-	@LINE_COV=$$(grep "lines\.\.\.\.\.\.\." $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
-	FUNC_COV=$$(grep "functions\.\." $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
-	BRANCH_COV=$$(grep "branches\.\.\." $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
+	@LINE_COV=$$(grep "lines\.\.*:" $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
+	FUNC_COV=$$(grep "functions\.\.*:" $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
+	BRANCH_COV=$$(grep "branches\.\.*:" $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
 	echo "  Lines: $${LINE_COV}%, Functions: $${FUNC_COV}%, Branches: $${BRANCH_COV}%"; \
 	if [ "$$(echo "$$LINE_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ] && \
 	   [ "$$(echo "$$FUNC_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ] && \
