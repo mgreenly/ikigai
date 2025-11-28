@@ -29,6 +29,10 @@ START_TEST(test_config_full_flow) {
     ik_cfg_t *cfg1 = result1.ok;
     ck_assert_ptr_nonnull(cfg1);
     ck_assert_str_eq(cfg1->openai_api_key, "YOUR_API_KEY_HERE");
+    ck_assert_str_eq(cfg1->openai_model, "gpt-5-mini");
+    ck_assert(cfg1->openai_temperature >= 0.99 && cfg1->openai_temperature <= 1.01);
+    ck_assert_int_eq(cfg1->openai_max_completion_tokens, 4096);
+    ck_assert_ptr_null(cfg1->openai_system_message);
     ck_assert_str_eq(cfg1->listen_address, "127.0.0.1");
     ck_assert_int_eq(cfg1->listen_port, 1984);
 
@@ -44,6 +48,10 @@ START_TEST(test_config_full_flow) {
     ik_cfg_t *cfg2 = result2.ok;
     ck_assert_ptr_nonnull(cfg2);
     ck_assert_str_eq(cfg2->openai_api_key, "YOUR_API_KEY_HERE");
+    ck_assert_str_eq(cfg2->openai_model, "gpt-5-mini");
+    ck_assert(cfg2->openai_temperature >= 0.99 && cfg2->openai_temperature <= 1.01);
+    ck_assert_int_eq(cfg2->openai_max_completion_tokens, 4096);
+    ck_assert_ptr_null(cfg2->openai_system_message);
     ck_assert_str_eq(cfg2->listen_address, "127.0.0.1");
     ck_assert_int_eq(cfg2->listen_port, 1984);
 
@@ -52,6 +60,10 @@ START_TEST(test_config_full_flow) {
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n");
     fprintf(f, "  \"openai_api_key\": \"custom_key_123\",\n");
+    fprintf(f, "  \"openai_model\": \"gpt-3.5-turbo\",\n");
+    fprintf(f, "  \"openai_temperature\": 1.5,\n");
+    fprintf(f, "  \"openai_max_completion_tokens\": 2048,\n");
+    fprintf(f, "  \"openai_system_message\": \"You are a helpful assistant\",\n");
     fprintf(f, "  \"listen_address\": \"0.0.0.0\",\n");
     fprintf(f, "  \"listen_port\": 3000\n");
     fprintf(f, "}\n");
@@ -64,6 +76,10 @@ START_TEST(test_config_full_flow) {
     ik_cfg_t *cfg3 = result3.ok;
     ck_assert_ptr_nonnull(cfg3);
     ck_assert_str_eq(cfg3->openai_api_key, "custom_key_123");
+    ck_assert_str_eq(cfg3->openai_model, "gpt-3.5-turbo");
+    ck_assert(cfg3->openai_temperature >= 1.49 && cfg3->openai_temperature <= 1.51);
+    ck_assert_int_eq(cfg3->openai_max_completion_tokens, 2048);
+    ck_assert_str_eq(cfg3->openai_system_message, "You are a helpful assistant");
     ck_assert_str_eq(cfg3->listen_address, "0.0.0.0");
     ck_assert_int_eq(cfg3->listen_port, 3000);
 
@@ -76,9 +92,9 @@ END_TEST
 
 // Mock for yyjson_mut_write_file failure
 static bool mock_write_failure = false;
-bool ik_yyjson_mut_write_file_wrapper(const char *path, const yyjson_mut_doc *doc,
-                                      yyjson_write_flag flg, const yyjson_alc *alc,
-                                      yyjson_write_err *err)
+bool yyjson_mut_write_file_(const char *path, const yyjson_mut_doc *doc,
+                            yyjson_write_flag flg, const yyjson_alc *alc,
+                            yyjson_write_err *err)
 {
     if (mock_write_failure) {
         if (err) {
@@ -124,8 +140,8 @@ END_TEST
 
 // Mock for yyjson_read_file failure
 static bool mock_read_failure = false;
-yyjson_doc *ik_yyjson_read_file_wrapper(const char *path, yyjson_read_flag flg,
-                                        const yyjson_alc *alc, yyjson_read_err *err)
+yyjson_doc *yyjson_read_file_(const char *path, yyjson_read_flag flg,
+                              const yyjson_alc *alc, yyjson_read_err *err)
 {
     if (mock_read_failure) {
         if (err) {
@@ -213,7 +229,7 @@ END_TEST
 
 // Mock for yyjson_doc_get_root returning NULL
 static bool mock_doc_get_root_null = false;
-yyjson_val *ik_yyjson_doc_get_root_wrapper(yyjson_doc *doc)
+yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
 {
     if (mock_doc_get_root_null) {
         return NULL;

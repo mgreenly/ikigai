@@ -10,17 +10,16 @@ Desktop AI coding agent with local tool execution and persistent conversation hi
 
 ## Dependencies
 
-### Current Libraries (Phase 4 - REPL Complete)
-- **jansson** - JSON for config parsing (will migrate to yyjson during LLM integration)
-- **libb64** - Base64 encoding for identifiers
+### Current Libraries (v0.1.0 - REPL Complete)
+- **yyjson** - JSON parsing with talloc integration (vendored, migration from jansson complete)
 - **talloc** - Hierarchical pool-based memory allocator ([why?](decisions/talloc-memory-management.md))
-- **libuuid** - RFC 4122 UUID generation (util-linux)
 - **libutf8proc** - UTF-8 text processing and Unicode normalization
-- **pthread** - POSIX threads (required by check framework)
+- **pthread** - POSIX threads (required by logger and check framework)
 - **check** - Unit testing framework
+- **libb64** - Base64 encoding (linked, not yet actively used)
+- **libuuid** - RFC 4122 UUID generation (linked, not yet actively used)
 
-### Next Phase (LLM Integration)
-- **yyjson** - JSON serialization with talloc integration (replacing jansson)
+### Next Phase (OpenAI Integration)
 - **libcurl** - HTTP client for streaming LLM APIs
 
 ### Future Libraries
@@ -80,7 +79,7 @@ Target platform: Debian 13 (Trixie)
 
 ### Completed: REPL Terminal Foundation ✅
 
-**Status**: Phase 4 complete (2025-11-14) - Full REPL with scrollback, viewport scrolling, and 100% test coverage.
+**Status**: v0.1.0 released (2025-11-16) - Full REPL with scrollback, viewport scrolling, and 100% test coverage.
 
 Implemented:
 - Terminal initialization (raw mode, direct rendering)
@@ -89,7 +88,7 @@ Implemented:
 - Viewport scrolling (Page Up/Down, auto-scroll on submit)
 - Rendering pipeline (single framebuffer write per frame)
 - Pretty-print infrastructure (format module, pp functions)
-- Config module integration
+- Config module (yyjson-based, currently loading scrollback_lines setting)
 
 **Deliverable**: Production-ready REPL with direct terminal rendering. Foundation ready for streaming AI responses.
 
@@ -111,8 +110,8 @@ Store conversation history locally with PostgreSQL. ([why PostgreSQL?](decisions
 
 Features:
 - PostgreSQL schema for conversations and messages
-- Save/load conversation history
-- Full-text search across past conversations
+- Persistent conversation history
+- Full-text search across past conversations (tool-based)
 - RAG memory access patterns
 
 ### Future: Multi-LLM Support
@@ -132,7 +131,7 @@ Enable file operations and shell execution.
 
 Features:
 - Tool interface design
-- File read/write/search
+- File operations (read/write)
 - Shell command execution
 - Code analysis (tree-sitter)
 - Results flow back to conversation
@@ -152,7 +151,7 @@ Features:
 
 Client loads configuration from `~/.ikigai/config.json`:
 
-**Initial (REPL Terminal)**:
+**Current (v0.1.0 - REPL Terminal)**:
 ```json
 {
   "terminal": {
@@ -161,7 +160,9 @@ Client loads configuration from `~/.ikigai/config.json`:
 }
 ```
 
-**With OpenAI Integration**:
+Config module exists and can parse additional fields (e.g., `openai_api_key`, `listen_address`, `listen_port`), but only `terminal.scrollback_lines` is actively used. Other fields are legacy from previous architecture or placeholders for future features.
+
+**Future (OpenAI Integration)**:
 ```json
 {
   "terminal": {

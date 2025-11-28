@@ -1,14 +1,9 @@
-# Why Link Seams for External Library Mocking?
+# Weak Symbol Wrappers for Mocking
 
-**Decision**: Wrap external library calls (talloc, jansson, etc.) in MOCKABLE functions that are weak symbols in debug/test builds and inline in release builds.
+**Decision**: Wrap external library calls and system calls in MOCKABLE functions that are weak symbols in debug builds and inlined in release builds.
 
-**Rationale**:
-- **Comprehensive testing**: Enables injection of allocation failures (OOM), parse failures, and other error conditions that are difficult to trigger naturally
-- **Zero overhead in production**: Release builds (`make release` with `-DNDEBUG`) inline wrappers completely—no function call overhead, no symbols in binary
-- **Industry-standard pattern**: Known as "link seams" (Michael Feathers) or "test seams," used by Linux kernel (KUnit) and other C projects
-- **Conditional compilation**: Single codebase supports both test hooks and production performance
+## Implementation
 
-**Implementation**:
 ```c
 // wrapper.h
 #ifdef NDEBUG
@@ -17,40 +12,103 @@
 #define MOCKABLE __attribute__((weak))  // Debug: overridable by tests
 #endif
 
-// Debug build: wrapper.c compiles weak symbol implementations
-// Release build: wrapper.c is empty, functions defined inline in header
-
-MOCKABLE void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size);
+// Wrappers for system calls and libraries
+MOCKABLE int posix_select_(int nfds, fd_set *readfds, ...);
+MOCKABLE void *talloc_zero_(TALLOC_CTX *ctx, size_t size);
+MOCKABLE CURLM *curl_multi_init_(void);
 ```
 
-**Testing example**:
+Production code calls wrappers:
 ```c
-// Test can override wrapper to inject OOM
-void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size) {
-    return NULL;  // Simulate allocation failure
+int ready = posix_select_(max_fd + 1, &read_fds, &write_fds, &exc_fds, &timeout);
+```
+
+Tests override weak symbols:
+```c
+// test.c
+int posix_select_(int nfds, fd_set *readfds, ...) {
+    return 1;  // Mock: always ready
 }
 ```
 
-**Build modes**:
-- `make all` / `make check`: Debug build with weak symbols (testable)
-- `make release`: `-O3 -DNDEBUG`, wrappers inlined (zero overhead)
+## Why Not GNU `--wrap`?
 
-**Verification**:
-- Debug: `nm build/wrapper.o` shows `W ik_talloc_*_wrapper` (weak symbols)
-- Release: `nm build/wrapper.o` shows no wrapper symbols (inlined away)
+Most Linux C projects use the GNU linker's `--wrap` flag for mocking:
 
-**Design choice**: All external library wrappers live in single `wrapper.c/wrapper.h` file, organized by library (talloc, jansson, etc.). Most libraries only have 3-6 functions we call, so consolidation keeps the codebase simple.
+```bash
+# Production code calls select() directly
+gcc -Wl,--wrap=select test.c
 
-**Alternative considered**: GNU linker `--wrap` flag. Rejected because:
-- Requires linker flags for every wrapped function
-- Less transparent (magic happening at link time)
-- Conditional compilation is more explicit and easier to understand
+# Test provides __wrap_select()
+int __wrap_select(...) { return 1; }
+```
 
-**Trade-offs**:
-- **Pro**: Enables testing of unreachable error paths (OOM, parse failures)
-- **Pro**: Zero production overhead with conditional compilation
-- **Pro**: Simple, explicit pattern easy to extend
-- **Con**: Slight code indirection (but MOCKABLE macro makes intent clear)
-- **Con**: Wrapper functions need maintenance when adding new library calls (but this is rare)
+We rejected `--wrap` for three reasons:
 
-**Scaling**: As new libraries are integrated, add their wrappers to `wrapper.c` in clearly marked sections. This centralizes all external dependencies in one place for easy auditing and testing.
+1. **macOS incompatible**: macOS's `ld` doesn't support `--wrap`, limiting portability
+2. **LTO bugs**: `--wrap` has known issues with Link Time Optimization—the linker may inline or eliminate wrapped symbols before applying `--wrap`, breaking mocks
+3. **Implicit**: Wrapper indirection happens at link time with no visible marker in source code
+
+## Rationale
+
+**Testing benefits**:
+- Inject allocation failures (OOM)
+- Simulate system call errors (`select()` returning -1, `EINTR`, etc.)
+- Mock curl multi-handle behavior
+- Test error paths unreachable in normal execution
+
+**Cross-platform**:
+- Works on Linux, macOS, BSD (weak symbols are standard)
+- No LTO compatibility issues
+- Future-proof for any platform with weak symbol support
+
+**Explicit**:
+- `posix_*_()` and `curl_*_()` naming makes mockable calls greppable
+- Developers immediately see what's testable
+- MOCKABLE macro documents intent
+
+**Zero overhead**:
+- Release builds (`-O2 -DNDEBUG`) inline wrappers completely
+- No function call overhead, no symbols in binary
+- Verify: `nm build/wrapper.o` shows no wrapper symbols in release
+
+## Design
+
+All wrappers live in `wrapper.c`/`wrapper.h`, organized by library:
+- talloc wrappers
+- yyjson wrappers
+- libcurl wrappers
+- POSIX system call wrappers
+
+This centralizes external dependencies for easy auditing.
+
+## Build Modes
+
+- `make all`/`make check`: Debug build with weak symbols (testable)
+- `make release`: `-O2 -DNDEBUG`, wrappers inlined (zero overhead)
+
+## Trade-offs
+
+**Pros**:
+- Enables comprehensive error path testing
+- Zero production overhead
+- Cross-platform (Linux, macOS, BSD)
+- Explicit, greppable wrapper names
+- No LTO issues
+- Industry-standard pattern (link seams)
+
+**Cons**:
+- Requires `_` suffix throughout production code
+- Wrapper layer adds slight indirection in debug builds
+- Wrapper functions need maintenance when adding new library calls (rare)
+
+## Alternatives Considered
+
+- **GNU `--wrap`**: Clean production code but Linux-only, LTO-incompatible, implicit
+- **LD_PRELOAD**: Runtime-only, fragile, not suitable for unit tests
+- **Function pointers**: Requires major refactoring, runtime overhead
+- **CMock/CMocka**: External framework dependency, build complexity
+
+## Scaling
+
+As new libraries are integrated, add wrappers to `wrapper.c` in clearly marked sections. Most libraries only need 3-6 function wrappers.

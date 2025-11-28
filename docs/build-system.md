@@ -69,9 +69,18 @@ With MOCKABLE seams (see below), most error paths can be tested. OOM branches ar
 make lint
 ```
 
-Uses the `complexity` tool to enforce cyclomatic complexity threshold of 15.
+Enforces multiple code quality metrics:
 
-Functions exceeding this threshold must be refactored.
+1. **Cyclomatic complexity**: threshold of 15 (uses `complexity` tool)
+   - Functions exceeding this threshold must be refactored
+2. **Nesting depth**: maximum 5 levels
+   - Excessive nesting makes code hard to understand
+3. **File line counts**: maximum 500 lines per file
+   - Applies to source files (`src/*.c`, `src/*.h`)
+   - Applies to test files (`tests/unit/*/*.c`, `tests/integration/*.c`)
+   - Applies to documentation files (`docs/*.md`, `docs/*/*.md`)
+
+Files exceeding these thresholds must be refactored or split.
 
 ### Release Build
 
@@ -92,7 +101,7 @@ All external library calls are wrapped to enable testing in debug builds.
 
 ### What are link seams?
 
-All external library calls (talloc, jansson, uuid, b64) are wrapped in functions marked `MOCKABLE`:
+All external library calls (talloc, yyjson, uuid, b64, POSIX) are wrapped in functions marked `MOCKABLE`:
 
 ```c
 // wrapper.h
@@ -102,7 +111,7 @@ All external library calls (talloc, jansson, uuid, b64) are wrapped in functions
 #define MOCKABLE __attribute__((weak))  // Debug: overridable by tests
 #endif
 
-MOCKABLE void *ik_talloc_zero_wrapper(TALLOC_CTX *ctx, size_t size);
+MOCKABLE void *talloc_zero_(TALLOC_CTX *ctx, size_t size);
 ```
 
 In **debug builds**, these are weak symbols—tests can override them for non-OOM testing.
@@ -124,7 +133,7 @@ Building for multiple Linux distributions is handled via Docker.
 
 ### Supported distributions
 
-Current: **Arch Linux**, **Debian Trixie**, and **Fedora** (latest)
+Current: **Arch Linux**, **Debian**, and **Fedora**
 
 Each distribution has:
 - `distros/<distro>/Dockerfile` - Build environment
@@ -156,7 +165,7 @@ Some libraries aren't available on all distros, or we want to avoid version conf
 The Makefile supports selective static linking:
 
 ```make
-CLIENT_LIBS ?= -ltalloc -ljansson -luuid -lb64 -lpthread -lutf8proc
+CLIENT_LIBS ?= -ltalloc -luuid -lb64 -lpthread -lutf8proc
 CLIENT_STATIC_LIBS ?=
 ```
 
@@ -227,11 +236,11 @@ Five build modes for different purposes:
 
 | Mode | Use Case | Flags |
 |------|----------|-------|
-| `debug` | Default development | `-O0 -g3 -DDEBUG` |
+| `debug` | Default development | `-O0 -g3 -fno-omit-frame-pointer -DDEBUG` |
 | `release` | Production | `-O2 -g -DNDEBUG -D_FORTIFY_SOURCE=2` |
 | `sanitize` | ASan + UBSan | `debug + -fsanitize=address,undefined` |
 | `tsan` | ThreadSanitizer | `debug + -fsanitize=thread` |
-| `valgrind` | Valgrind runs | `-O0 -g3 -fno-omit-frame-pointer` |
+| `valgrind` | Valgrind runs | `-O0 -g3 -fno-omit-frame-pointer -DDEBUG` |
 
 Note: All modes include `-Werror` (warnings as errors) in the base warning flags.
 
@@ -294,7 +303,7 @@ Verification:
 # Debug: wrapper functions are weak symbols
 make BUILD=debug
 nm build/wrapper.o | grep ik_talloc
-# Shows: W ik_talloc_zero_wrapper
+# Shows: W talloc_zero_
 
 # Release: wrappers inlined, no symbols
 make BUILD=release
@@ -349,7 +358,7 @@ The build system provides:
 - **19 warning flags** at compile time
 - **4 dynamic analysis tools** (ASan/UBSan, TSan, Valgrind Memcheck, Helgrind)
 - **100% coverage threshold** enforced
-- **Complexity gating** (threshold: 15)
+- **Code quality metrics** (complexity ≤15, nesting ≤5, files ≤500 lines)
 - **MOCKABLE seams** for testing error paths
-- **Multi-distro validation** (Debian, Fedora)
+- **Multi-distro validation** (Arch, Debian, Fedora)
 - **Fast, terse tools** for quick iteration

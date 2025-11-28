@@ -1,7 +1,5 @@
 # Why JSON-Based Projection with Dual Format Output?
 
-**Decision**: Use JSON (via json-c) as the intermediate representation for record projections, with direct serialization to both JSON and YAML formats.
-
 ## Context
 
 The application needs to:
@@ -11,7 +9,9 @@ The application needs to:
 - Filters are known at compile time (fixed, predetermined views)
 - Records have moderate complexity with moderate nesting
 
-## Decision
+**Decision**: Use JSON (via json-c) as the intermediate representation for record projections, with direct serialization to both JSON and YAML formats.
+
+## Implementation
 
 Implement a two-layer architecture:
 
@@ -28,7 +28,7 @@ void print_json(FILE* out, json_object* obj, bool pretty);
 void print_yaml(FILE* out, json_object* obj);
 ```
 
-## Rationale
+**Rationale**:
 
 ### Why Build Filtered Subsets Directly?
 - **Memory efficiency**: Building 500-line records just to display 20 lines wastes memory
@@ -87,7 +87,7 @@ json_object_put(view);  // Cleanup
 ./ikigai show client 123 --json | jq .   # Pipe to tools
 ```
 
-## Alternatives Considered
+**Alternatives Considered**:
 
 ### 1. Build Full Record → Filter with jq
 ```c
@@ -135,7 +135,7 @@ Field* record_to_summary(const Record* r);
 - Reinventing json-c
 - More complex than using established library
 
-## Trade-offs
+**Trade-offs**:
 
 ### Pros
 ✅ **Efficient**: One-pass, build only needed fields

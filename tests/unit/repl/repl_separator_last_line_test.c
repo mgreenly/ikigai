@@ -14,7 +14,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /**
@@ -37,21 +37,19 @@ START_TEST(test_separator_as_last_visible_line) {
 
     // Terminal: 10 rows x 80 cols
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 10;
     term->screen_cols = 80;
 
     // Create input buffer (1 line)
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     res = ik_input_buffer_insert_codepoint(input_buf, 'w');
     ck_assert(is_ok(&res));
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 5 short lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     for (int32_t i = 0; i < 5; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "scrollback%" PRId32, i);
@@ -147,21 +145,19 @@ START_TEST(test_separator_last_row_input_buffer_offscreen)
 
     // Terminal: 10 rows
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 10;
     term->screen_cols = 80;
 
     // Create input buffer
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     res = ik_input_buffer_insert_codepoint(input_buf, 'w');
     ck_assert(is_ok(&res));
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 19 lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     for (int32_t i = 0; i < 19; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "line%" PRId32, i);

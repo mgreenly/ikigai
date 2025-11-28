@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /* Test: Cursor up - basic */
@@ -14,7 +14,7 @@ START_TEST(test_cursor_up_basic) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "line1\nline2\nline3" */
     ik_input_buffer_insert_codepoint(input_buffer, 'l');
@@ -45,10 +45,9 @@ START_TEST(test_cursor_up_basic) {
 
     /* Move cursor to start of line2 (byte 6, after first newline) */
     input_buffer->cursor_byte_offset = 6;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 6);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 6);
 
     /* Move up - should go to start of line1 (byte 0) */
     res = ik_input_buffer_cursor_up(input_buffer);
@@ -70,7 +69,7 @@ START_TEST(test_cursor_up_from_first_line)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello\nworld" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -87,10 +86,9 @@ START_TEST(test_cursor_up_from_first_line)
 
     /* Move to position 2 (middle of first line) */
     input_buffer->cursor_byte_offset = 2;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 2);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 2);
 
     /* Move up - should be no-op (already on first line) */
     res_t res = ik_input_buffer_cursor_up(input_buffer);
@@ -114,7 +112,7 @@ START_TEST(test_cursor_up_column_preservation)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abcde\nfghij" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -131,10 +129,9 @@ START_TEST(test_cursor_up_column_preservation)
 
     /* Move to position 9 (column 3 of second line: after 'h') */
     input_buffer->cursor_byte_offset = 9;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 9);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 9);
 
     /* Move up - should go to column 3 of first line (after 'c') */
     res_t res = ik_input_buffer_cursor_up(input_buffer);
@@ -158,7 +155,7 @@ START_TEST(test_cursor_up_shorter_line)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "ab\nabcdef" (first line shorter) */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -173,10 +170,9 @@ START_TEST(test_cursor_up_shorter_line)
 
     /* Move to position 7 (column 4 of second line: after 'd') */
     input_buffer->cursor_byte_offset = 7;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 7);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 7);
 
     /* Move up - should go to end of first line (byte 2, after 'b') */
     res_t res = ik_input_buffer_cursor_up(input_buffer);
@@ -200,7 +196,7 @@ START_TEST(test_cursor_up_empty_line)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "\nabc" (first line empty) */
     ik_input_buffer_insert_newline(input_buffer);
@@ -210,10 +206,9 @@ START_TEST(test_cursor_up_empty_line)
 
     /* Move to position 2 (column 1 of second line: after 'a') */
     input_buffer->cursor_byte_offset = 2;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 2);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 2);
 
     /* Move up - should go to start of first line (byte 0) */
     res_t res = ik_input_buffer_cursor_up(input_buffer);
@@ -237,7 +232,7 @@ START_TEST(test_cursor_up_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "aé中🎉\ndefg" (2-byte, 3-byte, 4-byte UTF-8) */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');          // 1 byte
@@ -253,10 +248,9 @@ START_TEST(test_cursor_up_utf8)
     /* Move to position 15 (column 4 of second line: after 'g') */
     // Text is: a(1) + é(2) + 中(3) + 🎉(4) + \n(1) + d(1) + e(1) + f(1) + g(1) = byte 15
     input_buffer->cursor_byte_offset = 15;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 15);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 15);
 
     /* Move up - should go to column 4 of first line (after 🎉, byte 10) */
     // Line 1: a(1) + é(2) + 中(3) + 🎉(4) = byte 10, grapheme 4
@@ -274,19 +268,19 @@ START_TEST(test_cursor_up_utf8)
     talloc_free(ctx);
 }
 
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: Cursor up - NULL input_buffer asserts */
 START_TEST(test_cursor_up_null_input_buffer_asserts) {
     ik_input_buffer_cursor_up(NULL);
 }
 
 END_TEST
+#endif
 
 static Suite *input_buffer_cursor_up_suite(void)
 {
     Suite *s = suite_create("Input Buffer Cursor Up");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_cursor_up_basic);
@@ -296,11 +290,16 @@ static Suite *input_buffer_cursor_up_suite(void)
     tcase_add_test(tc_core, test_cursor_up_empty_line);
     tcase_add_test(tc_core, test_cursor_up_utf8);
 
-    /* Assertion tests */
-    tcase_add_test_raise_signal(tc_assertions, test_cursor_up_null_input_buffer_asserts, SIGABRT);
-
     suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+    /* Assertion tests */
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_add_test_raise_signal(tc_assertions, test_cursor_up_null_input_buffer_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

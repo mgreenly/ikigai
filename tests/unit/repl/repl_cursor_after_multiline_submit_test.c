@@ -26,12 +26,9 @@ static ik_repl_ctx_t *create_test_repl(void *ctx)
     ck_assert(is_ok(&res));
 
     ik_input_buffer_t *input_buf = NULL;
-    res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
 
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, term->screen_cols, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, term->screen_cols);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->term = term;

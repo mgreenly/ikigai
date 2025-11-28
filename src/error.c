@@ -6,5 +6,5 @@
 void *talloc_zero_for_error(TALLOC_CTX *ctx, size_t size)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
-    return ik_talloc_zero_wrapper(ctx, size);
+    return talloc_zero_(ctx, size);
 }

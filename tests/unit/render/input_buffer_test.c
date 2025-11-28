@@ -17,9 +17,9 @@ static ssize_t mock_write_return = 0;
 static bool mock_write_should_fail = false;
 
 // Mock wrapper declaration
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
+ssize_t posix_write_(int fd, const void *buf, size_t count);
 
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+ssize_t posix_write_(int fd, const void *buf, size_t count)
 {
     (void)fd; // Unused in mock
 
@@ -308,7 +308,7 @@ START_TEST(test_render_input_buffer_invalid_utf8)
 
 END_TEST
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: NULL ctx asserts
 START_TEST(test_render_input_buffer_null_ctx_asserts)
 {
@@ -352,7 +352,7 @@ static Suite *input_buffer_suite(void)
     tcase_add_test(tc_core, test_render_input_buffer_write_failure);
     tcase_add_test(tc_core, test_render_input_buffer_invalid_utf8);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     tcase_add_test_raise_signal(tc_core, test_render_input_buffer_null_ctx_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_core, test_render_input_buffer_null_text_asserts, SIGABRT);
 #endif

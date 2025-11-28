@@ -89,7 +89,7 @@ static inline err_t *_make_error(TALLOC_CTX *ctx,
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(fmt != NULL); // LCOV_EXCL_BR_LINE
     err_t *err = talloc_zero_for_error(ctx, sizeof(err_t));
-    if (err == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (err == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     err->code = code;
     err->file = file;
@@ -99,8 +99,8 @@ static inline err_t *_make_error(TALLOC_CTX *ctx,
     va_start(args, fmt);
     int32_t written = vsnprintf(err->msg, sizeof(err->msg), fmt, args);
     va_end(args);
-    if (written < 0)PANIC("vsnprintf failed in error message formatting");    // LCOV_EXCL_LINE
-    if ((size_t)written >= sizeof(err->msg))PANIC("error message truncated");    // LCOV_EXCL_LINE
+    if (written < 0) PANIC("vsnprintf failed in error message formatting");   // LCOV_EXCL_LINE
+    if ((size_t)written >= sizeof(err->msg)) PANIC("error message truncated");   // LCOV_EXCL_LINE
 
     return err;
 }

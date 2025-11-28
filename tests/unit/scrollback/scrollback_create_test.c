@@ -12,12 +12,10 @@
 /* Test: Create scrollback buffer */
 START_TEST(test_scrollback_create) {
     void *ctx = talloc_new(NULL);
-    ik_scrollback_t *scrollback = NULL;
     int32_t terminal_width = 80;
 
     /* Create scrollback */
-    res_t res = ik_scrollback_create(ctx, terminal_width, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, terminal_width);
     ck_assert_ptr_nonnull(scrollback);
 
     /* Verify initial state */
@@ -31,47 +29,40 @@ START_TEST(test_scrollback_create) {
     talloc_free(ctx);
 }
 END_TEST
-/* Test: NULL parameter assertions */
-START_TEST(test_scrollback_create_null_scrollback_out_asserts)
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+/* Test: Invalid width assertion */
+START_TEST(test_scrollback_create_invalid_width_asserts)
 {
     void *ctx = talloc_new(NULL);
-    int32_t terminal_width = 80;
-
-    /* scrollback_out cannot be NULL - should abort */
-    ik_scrollback_create(ctx, terminal_width, NULL);
-
-    talloc_free(ctx);
-}
-
-END_TEST START_TEST(test_scrollback_create_invalid_width_asserts)
-{
-    void *ctx = talloc_new(NULL);
-    ik_scrollback_t *scrollback = NULL;
 
     /* terminal_width must be > 0 - should abort */
-    ik_scrollback_create(ctx, 0, &scrollback);
+    ik_scrollback_create(ctx, 0);
 
     talloc_free(ctx);
 }
 
 END_TEST
+#endif
 
 static Suite *scrollback_create_suite(void)
 {
     Suite *s = suite_create("Scrollback Create");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_scrollback_create);
 
-    /* Assertion tests */
-    tcase_add_test_raise_signal(tc_assertions, test_scrollback_create_null_scrollback_out_asserts, SIGABRT);
-    tcase_add_test_raise_signal(tc_assertions, test_scrollback_create_invalid_width_asserts, SIGABRT);
-
     suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+    /* Assertion tests */
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_add_test_raise_signal(tc_assertions, test_scrollback_create_invalid_width_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

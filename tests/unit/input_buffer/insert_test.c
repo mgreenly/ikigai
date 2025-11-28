@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /* Test: Insert ASCII character */
@@ -14,16 +14,15 @@ START_TEST(test_insert_ascii) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert 'a' */
     res_t res = ik_input_buffer_insert_codepoint(input_buffer, 'a');
     ck_assert(is_ok(&res));
 
     /* Verify text is "a" */
-    char *text = NULL;
     size_t len = 0;
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 1);
     ck_assert_mem_eq(text, "a", 1);
 
@@ -35,7 +34,7 @@ START_TEST(test_insert_ascii) {
     ck_assert(is_ok(&res));
 
     /* Verify text is "ab" */
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 2);
     ck_assert_mem_eq(text, "ab", 2);
 
@@ -52,16 +51,15 @@ START_TEST(test_insert_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert é (U+00E9) - 2-byte UTF-8 sequence */
     res_t res = ik_input_buffer_insert_codepoint(input_buffer, 0x00E9);
     ck_assert(is_ok(&res));
 
     /* Verify correct UTF-8 encoding: C3 A9 */
-    char *text = NULL;
     size_t len = 0;
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 2);
     ck_assert_uint_eq((uint8_t)text[0], 0xC3);
     ck_assert_uint_eq((uint8_t)text[1], 0xA9);
@@ -72,7 +70,7 @@ START_TEST(test_insert_utf8)
     ck_assert(is_ok(&res));
 
     /* Verify correct UTF-8 encoding: F0 9F 8E 89 */
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 6);
     ck_assert_uint_eq((uint8_t)text[2], 0xF0);
     ck_assert_uint_eq((uint8_t)text[3], 0x9F);
@@ -90,16 +88,15 @@ START_TEST(test_insert_utf8_3byte)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert ☃ (U+2603) - 3-byte UTF-8 sequence */
     res_t res = ik_input_buffer_insert_codepoint(input_buffer, 0x2603);
     ck_assert(is_ok(&res));
 
     /* Verify correct UTF-8 encoding: E2 98 83 */
-    char *text = NULL;
     size_t len = 0;
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 3);
     ck_assert_uint_eq((uint8_t)text[0], 0xE2);
     ck_assert_uint_eq((uint8_t)text[1], 0x98);
@@ -116,7 +113,7 @@ START_TEST(test_insert_middle)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "ab" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -130,9 +127,8 @@ START_TEST(test_insert_middle)
     ck_assert(is_ok(&res));
 
     /* Verify text is "axb" */
-    char *text = NULL;
     size_t len = 0;
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 3);
     ck_assert_mem_eq(text, "axb", 3);
 
@@ -149,16 +145,15 @@ START_TEST(test_insert_invalid_codepoint)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Try to insert codepoint > U+10FFFF (invalid) */
     res_t res = ik_input_buffer_insert_codepoint(input_buffer, 0x110000);
     ck_assert(is_err(&res));
 
     /* Verify text buffer is still empty */
-    char *text = NULL;
     size_t len = 0;
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    (void)ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 0);
 
     /* Verify cursor still at 0 */
@@ -174,7 +169,7 @@ START_TEST(test_insert_newline)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -195,9 +190,8 @@ START_TEST(test_insert_newline)
     ik_input_buffer_insert_codepoint(input_buffer, 'd');
 
     /* Verify text is "hello\nworld" */
-    char *text = NULL;
     size_t len = 0;
-    ik_input_buffer_get_text(input_buffer, &text, &len);
+    const char *text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 11);
     ck_assert_mem_eq(text, "hello\nworld", 11);
 

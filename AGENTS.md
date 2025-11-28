@@ -4,9 +4,6 @@ docs/README.md provides an overview of the project.
 
 ## Core Principles
 
-**0. NEVER**
-1. Never change LCOV_EXCL_COVERAGE"
-
 **1. Test-Driven Development (TDD)**
 
 **ABSOLUTE RULE: NEVER WRITE CODE BEFORE YOU HAVE A TEST THAT NEEDS IT**
@@ -80,20 +77,6 @@ When discussing improvements:
 
 ## Quality Standards
 
-**Pre-Commit Requirements**
-
-BEFORE creating ANY commit (mandatory, no exceptions):
-
-1. `make fmt` - Format code
-2. `make check` - ALL tests pass (100%)
-3. `make lint` - ALL complexity/file size checks pass
-4. `make coverage` - ALL metrics (lines, functions, branches) at 100.0%
-5. `make check-dynamic` - ALL sanitizer checks pass (ASan, UBSan, TSan)
-
-If ANY check fails: fix ALL issues, re-run ALL checks, repeat until everything passes.
-
-**Never commit with ANY known issue - even "pre-existing" or "in another file".**
-
 **Coverage Requirements**
 
 **CRITICAL: 100% coverage of Lines, Functions, and Branches for the ENTIRE codebase.**
@@ -103,23 +86,22 @@ The requirement is ABSOLUTE:
 - A single uncovered line or branch in ANY file blocks ALL commits
 - Fix ALL gaps before committing
 
-Finding coverage gaps:
-- `grep "^DA:" coverage/coverage.info | grep ",0$"` - uncovered lines
-- `grep "^BRDA:" coverage/coverage.info | grep ",0$"` - uncovered branches
-
-Coverage files:
-- `coverage/coverage.info` - primary data source (parse with grep)
-- `coverage/summary.txt` - human-readable summary
-- Do NOT generate HTML reports (slow and unnecessary)
-
-Coverage exclusions (LCOV markers):
-- `LCOV_EXCL_START` / `LCOV_EXCL_STOP` - exclude blocks
-- `LCOV_EXCL_LINE` - exclude specific lines
-- `LCOV_EXCL_BR_LINE` - exclude branch coverage
-
-**Never use exclusions without explicit user permission.**
+**Never use coverage exclusions without explicit user permission.**
 
 Coverage philosophy: Gaps are learning opportunities showing where design can improve. Fix the design, don't silence the messenger.
+
+**Coverage Exclusion Policy**
+
+`LCOV_EXCL_BR_LINE` is ONLY permitted for:
+1. Asserts on invariants (compiled out in production builds)
+2. PANIC lines asserting invariants (unconditionally terminate)
+
+NEVER use `LCOV_EXCL_BR_LINE` for:
+- Defensive programming
+- Library error returns
+- Any code path reachable at runtime
+
+All runtime-reachable branches require actual test coverage. If a library can return an error, write tests that trigger that error. Coverage exclusions are not a substitute for testing.
 
 ## Code Style
 
@@ -144,54 +126,3 @@ int32_t count = 42;
 uint64_t size = 1024;
 printf("Count: %" PRId32 ", Size: %" PRIu64 "\n", count, size);
 ```
-
-**Naming Conventions:**
-
-All public symbols follow: `ik_MODULE_THING`
-- `ik_` - namespace prefix
-- `MODULE` - single word (config, protocol, openai, handler)
-- `THING` - descriptive name with approved abbreviations
-
-Examples:
-- `ik_cfg_load()` - function
-- `ik_protocol_msg_t` - type
-- `ik_httpd_shutdown` - global variable
-
-Borrowed pointers use `_ref` suffix:
-- `cfg_ref` - caller owns
-- `manager_ref` - libulfius owns
-
-Internal static symbols don't need `ik_` prefix.
-
-See [docs/naming.md](docs/naming.md) for complete conventions and approved abbreviations.
-
-## Test Execution
-
-**Default**: Tests run in parallel (configured via `.envrc`):
-- `MAKE_JOBS=32` - up to 32 concurrent tests
-- `PARALLEL=1` - all 4 check-dynamic subtargets in parallel
-
-**When you need clear debug output** (serialize execution):
-```bash
-MAKE_JOBS=1 PARALLEL=0 make check
-MAKE_JOBS=1 make check-valgrind
-```
-
-**Best practice**: Test individual files during development, run full suite before commits.
-
-Example:
-```bash
-make build/tests/unit/array/basic_test && ./build/tests/unit/array/basic_test
-```
-
-## Git Configuration
-
-- **Remote**: origin (github.com:mgreenly/ikigai.git)
-- **Primary branch**: main
-- **Upstream**: github/main
-
-**Commit Policy:**
-
-Do NOT include attributions:
-- No "Co-Authored-By: Claude <noreply@anthropic.com>"
-- No "🤖 Generated with [Claude Code](https://claude.com/claude-code)"

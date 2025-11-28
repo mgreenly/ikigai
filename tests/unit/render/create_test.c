@@ -71,7 +71,7 @@ START_TEST(test_render_create_negative_rows)
 
 END_TEST
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: ik_render_create with NULL parent asserts
 START_TEST(test_render_create_null_parent_asserts)
 {
@@ -103,7 +103,7 @@ static Suite *create_suite(void)
     tcase_add_test(tc_core, test_render_create_invalid_cols);
     tcase_add_test(tc_core, test_render_create_negative_rows);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     tcase_add_test_raise_signal(tc_core, test_render_create_null_parent_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_core, test_render_create_null_ctx_out_asserts, SIGABRT);
 #endif

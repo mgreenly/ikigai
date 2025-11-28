@@ -11,12 +11,10 @@
 START_TEST(test_scrollback_ensure_layout_no_change) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // Append some lines
-    res = ik_scrollback_append_line(sb, "Line 1", 6);
+    res_t res = ik_scrollback_append_line(sb, "Line 1", 6);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(sb, "Line 2", 6);
     ck_assert(is_ok(&res));
@@ -44,9 +42,7 @@ START_TEST(test_scrollback_ensure_layout_resize)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // Append a line that will wrap at different widths
     // 120 chars will be:
@@ -56,7 +52,7 @@ START_TEST(test_scrollback_ensure_layout_resize)
     memset(long_line, 'a', 120);
     long_line[120] = '\0';
 
-    res = ik_scrollback_append_line(sb, long_line, 120);
+    res_t res = ik_scrollback_append_line(sb, long_line, 120);
     ck_assert(is_ok(&res));
 
     // Verify initial layout at width 80
@@ -83,12 +79,10 @@ START_TEST(test_scrollback_ensure_layout_multiple_lines)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 40, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 40);
 
     // Append lines of various lengths
-    res = ik_scrollback_append_line(sb, "Short", 5);  // 1 line at any width
+    res_t res = ik_scrollback_append_line(sb, "Short", 5);  // 1 line at any width
     ck_assert(is_ok(&res));
 
     char medium[61];
@@ -129,9 +123,7 @@ START_TEST(test_scrollback_ensure_layout_empty)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     ck_assert_uint_eq(sb->count, 0);
     ck_assert_int_eq(sb->cached_width, 80);
@@ -153,12 +145,10 @@ START_TEST(test_scrollback_ensure_layout_with_empty_lines)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    ik_scrollback_t *sb = NULL;
-    res_t res = ik_scrollback_create(ctx, 80, &sb);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // Append empty line
-    res = ik_scrollback_append_line(sb, "", 0);
+    res_t res = ik_scrollback_append_line(sb, "", 0);
     ck_assert(is_ok(&res));
 
     // Verify empty line takes 1 physical line at width 80

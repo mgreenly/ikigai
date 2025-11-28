@@ -86,7 +86,7 @@ START_TEST(test_array_append_with_growth)
 
 END_TEST
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion: append with NULL array
 START_TEST(test_array_append_null_array_asserts)
 {
@@ -123,7 +123,7 @@ static Suite *array_append_suite(void)
     tcase_add_test(tc_core, test_array_append_no_growth);
     tcase_add_test(tc_core, test_array_append_with_growth);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     // Assertion tests - only in debug builds
     TCase *tc_assertions = tcase_create("Assertions");
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind

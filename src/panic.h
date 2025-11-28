@@ -45,7 +45,7 @@ void ik_talloc_abort_handler(const char *reason);
  * Should be used sparingly (~1-2 per 1000 LOC).
  *
  * Example:
- *   ptr = ik_talloc_zero_wrapper(ctx, size);
+ *   ptr = talloc_zero_(ctx, size);
  *   if (ptr == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
  */
 #define PANIC(msg) ik_panic_impl((msg), __FILE__, __LINE__)

@@ -6,7 +6,7 @@
 - [Philosophy: Three Mechanisms for Three Problems](#philosophy-three-mechanisms-for-three-problems)
   - [1. Result Types - Expected Runtime Errors](#1-result-types---expected-runtime-errors)
   - [2. Assertions - Development-Time Contracts](#2-assertions---development-time-contracts)
-  - [3. FATAL() - Unrecoverable Logic Errors](#3-fatal---unrecoverable-logic-errors)
+  - [3. PANIC() - Unrecoverable Logic Errors](#3-fatal---unrecoverable-logic-errors)
 
 ### Result Types
 - [Result Types - Core API](#result-types---core-api)
@@ -28,6 +28,7 @@
 - [Summary](#summary)
 
 ### Related Documentation
+- **[return_values.md](return_values.md)** - Complete guide to function return patterns and how to use them
 - **[error_patterns.md](error_patterns.md)** - Detailed patterns, best practices, and usage examples
 - **[error_testing.md](error_testing.md)** - Testing strategy and coverage requirements
 
@@ -115,7 +116,7 @@ void ik_array_delete(ik_array_t *array, size_t index) {
 **Examples:**
 ```c
 // Out of memory - always PANIC
-void *ptr = ik_talloc_zero_wrapper(ctx, size);
+void *ptr = talloc_zero_(ctx, size);
 if (ptr == NULL) PANIC("Out of memory");
 
 // Data corruption detected
@@ -299,7 +300,7 @@ res_t ik_array_create(TALLOC_CTX *ctx, size_t element_size, size_t increment) {
     assert(ctx != NULL);                // LCOV_EXCL_BR_LINE
     assert(element_size > 0);           // LCOV_EXCL_BR_LINE
 
-    ik_array_t *array = ik_talloc_zero_wrapper(ctx, sizeof(ik_array_t));
+    ik_array_t *array = talloc_zero_(ctx, sizeof(ik_array_t));
     if (!array) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     array->size = 0;
@@ -342,7 +343,7 @@ The implementation handles terminal restoration and provides async-signal-safe e
 
 **1. Out of memory (most common):**
 ```c
-void *ptr = ik_talloc_zero_wrapper(ctx, size);
+void *ptr = talloc_zero_(ctx, size);
 if (ptr == NULL) {
     PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 }

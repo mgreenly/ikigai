@@ -88,12 +88,12 @@ if (!root) {  // LCOV_EXCL_LINE - "logically impossible"
 **Correct Pattern**: Wrap vendor functions and test both paths
 ```c
 // GOOD: Wrappers allow testing both success and failure
-yyjson_doc *doc = ik_yyjson_read_file_wrapper(...);
+yyjson_doc *doc = yyjson_read_file_(...);
 if (!doc) {
     return ERR(ctx, PARSE, "Failed to parse");
 }
 
-yyjson_val *root = ik_yyjson_doc_get_root_wrapper(doc);
+yyjson_val *root = yyjson_doc_get_root_(doc);
 if (!root) {  // Tested via mock in test
     return ERR(ctx, PARSE, "No root");
 }

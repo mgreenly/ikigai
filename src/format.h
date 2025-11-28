@@ -18,7 +18,7 @@ typedef struct ik_format_buffer_t {
 } ik_format_buffer_t;
 
 // Create format buffer
-res_t ik_format_buffer_create(void *parent, ik_format_buffer_t **buf_out);
+ik_format_buffer_t *ik_format_buffer_create(void *parent);
 
 // Append formatted string (like sprintf)
 res_t ik_format_appendf(ik_format_buffer_t *buf, const char *fmt, ...);

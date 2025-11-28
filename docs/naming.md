@@ -158,11 +158,24 @@ void ik_handler_websocket_msg_cb(struct _u_websocket_manager *ws_mgr,
 
 ## Special Conventions
 
-**Borrowed pointers** use `_ref` suffix:
+**Raw pointers into buffers** use `_ptr` suffix:
 ```c
-ik_cfg_t *cfg_ref;      // Borrowed, caller owns
-ik_handler_t *handler;  // Owned by this struct
+bool *visible_ptr;         // Raw pointer to external bool storage
+const char **text_ptr;     // Raw pointer to external string pointer
+size_t *len_ptr;           // Raw pointer to external size storage
+
+// Talloc handles don't need suffix - context ownership is clear
+ik_cfg_t *cfg;             // Talloc handle (context-owned)
+ik_handler_t *handler;     // Talloc handle (context-owned)
 ```
+
+The `_ptr` suffix specifically indicates **pointers into buffers** - raw memory pointers that aren't talloc-allocated handles, but rather point into the internal storage of another object. These pointers:
+- Are not independent talloc objects
+- Cannot be reparented
+- Have lifetimes tied to their parent object
+- Represent raw memory access, not handle manipulation
+
+In talloc, everything is context-owned and nothing is explicitly freed, so there's no meaningful "owned vs borrowed" distinction at the variable level. The `_ptr` suffix highlights when you're working with raw pointers versus talloc handles.
 
 **Global variables** use `g_` prefix:
 ```c
@@ -174,6 +187,41 @@ extern volatile sig_atomic_t g_httpd_shutdown;
 static void parse_handshake(const char *json) { ... }
 static sse_parser_t *sse_parser_create(TALLOC_CTX *ctx) { ... }
 ```
+
+## External Library Wrappers
+
+**IMPORTANT**: External library wrappers do NOT use the `ik_` prefix.
+
+These wrappers exist solely as link seams for testing (see `docs/decisions/link-seams-mocking.md`). They are not ikigai-authored APIs, but thin testability shims around external code.
+
+### Library Wrappers (talloc, yyjson)
+
+Use **trailing underscore** (`_`):
+```c
+talloc_zero_(ctx, size)           // wraps talloc_zero_size()
+talloc_strdup_(ctx, str)          // wraps talloc_strdup()
+yyjson_read_file_(path, flg, ...)  // wraps yyjson_read_file()
+```
+
+**Rationale**: The trailing `_` signals "this is the library function, with a testability seam". It clearly indicates these are not ikigai APIs while remaining close to the original function names.
+
+### POSIX System Call Wrappers
+
+Use **`posix_` prefix + trailing underscore**:
+```c
+posix_open_(pathname, flags)      // wraps open()
+posix_write_(fd, buf, count)      // wraps write()
+posix_stat_(pathname, statbuf)    // wraps stat()
+```
+
+**Rationale**: Generic POSIX names like `open` and `write` need context. The `posix_` prefix clarifies these are system call wrappers, while the trailing `_` maintains the "seam" signal.
+
+### Build Behavior
+
+- **Release builds** (`NDEBUG`): Wrappers are `static inline` - zero overhead, no symbols in binary
+- **Debug/test builds**: Wrappers are `weak` symbols that tests can override to inject failures
+
+All wrappers are marked with the `MOCKABLE` macro which expands to the appropriate linkage.
 
 ## Rationale
 

@@ -1,0 +1,129 @@
+// REPL HTTP callback handlers implementation
+#include "repl_callbacks.h"
+#include "repl.h"
+#include "repl_actions.h"
+#include "panic.h"
+#include <assert.h>
+#include <talloc.h>
+#include <string.h>
+
+/**
+ * @brief Streaming callback for OpenAI API responses
+ *
+ * Called for each content chunk received during streaming.
+ * Appends the chunk to the scrollback buffer.
+ *
+ * @param chunk   Content chunk (null-terminated string)
+ * @param ctx     REPL context pointer
+ * @return        OK(NULL) to continue, ERR(...) to abort
+ */
+res_t ik_repl_streaming_callback(const char *chunk, void *ctx)
+{
+    assert(chunk != NULL);  /* LCOV_EXCL_BR_LINE */
+    assert(ctx != NULL);    /* LCOV_EXCL_BR_LINE */
+
+    ik_repl_ctx_t *repl = (ik_repl_ctx_t *)ctx;
+    size_t chunk_len = strlen(chunk);
+
+    // Accumulate complete response for adding to conversation later
+    if (repl->assistant_response == NULL) {
+        repl->assistant_response = talloc_strdup(repl, chunk);
+    } else {
+        repl->assistant_response = talloc_strdup_append(repl->assistant_response, chunk);
+    }
+    if (repl->assistant_response == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Handle streaming display with line buffering
+    // Accumulate chunks until we hit a newline, then flush to scrollback
+    size_t start = 0;
+    for (size_t i = 0; i < chunk_len; i++) {
+        if (chunk[i] == '\n') {
+            // Flush buffered line (if any) plus characters up to newline
+            size_t prefix_len = i - start;  // Characters before newline in this segment
+            if (repl->streaming_line_buffer != NULL) {
+                // Append prefix to buffer
+                size_t buffer_len = strlen(repl->streaming_line_buffer);
+                size_t total_len = buffer_len + prefix_len;
+                char *line = talloc_size(repl, total_len + 1);
+                if (line == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                memcpy(line, repl->streaming_line_buffer, buffer_len);
+                memcpy(line + buffer_len, chunk + start, prefix_len);
+                line[total_len] = '\0';
+
+                ik_scrollback_append_line(repl->scrollback, line, total_len);
+                talloc_free(line);
+                talloc_free(repl->streaming_line_buffer);
+                repl->streaming_line_buffer = NULL;
+            } else if (prefix_len > 0) {
+                // No buffer, just flush the prefix
+                ik_scrollback_append_line(repl->scrollback, chunk + start, prefix_len);
+            } else {
+                // Empty line (just a newline)
+                ik_scrollback_append_line(repl->scrollback, "", 0);
+            }
+
+            // Start next segment after newline
+            start = i + 1;
+        }
+    }
+
+    // Buffer any remaining characters (no newline found)
+    if (start < chunk_len) {
+        size_t remaining_len = chunk_len - start;
+        if (repl->streaming_line_buffer == NULL) {
+            repl->streaming_line_buffer = talloc_strndup(repl, chunk + start, remaining_len);
+        } else {
+            repl->streaming_line_buffer = talloc_strndup_append_buffer(repl->streaming_line_buffer,
+                                                                       chunk + start,
+                                                                       remaining_len);
+        }
+        if (repl->streaming_line_buffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    return OK(NULL);
+}
+
+/**
+ * @brief Completion callback for HTTP requests
+ *
+ * Called when an HTTP request completes (success or failure).
+ * Stores error information in REPL context for display by completion handler.
+ *
+ * NOTE: This function is tested manually (see Tasks 7.10-7.14 in tasks.md)
+ *
+ * @param completion   Completion information (status, error message)
+ * @param ctx          REPL context pointer
+ * @return             OK(NULL) on success, ERR(...) on failure
+ */
+// LCOV_EXCL_START
+res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, void *ctx)
+{
+    assert(completion != NULL);  /* LCOV_EXCL_BR_LINE */
+    assert(ctx != NULL);         /* LCOV_EXCL_BR_LINE */
+
+    ik_repl_ctx_t *repl = (ik_repl_ctx_t *)ctx;
+
+    // Flush any remaining buffered line content (streaming ended without final newline)
+    if (repl->streaming_line_buffer != NULL) {
+        size_t buffer_len = strlen(repl->streaming_line_buffer);
+        ik_scrollback_append_line(repl->scrollback, repl->streaming_line_buffer, buffer_len);
+        talloc_free(repl->streaming_line_buffer);
+        repl->streaming_line_buffer = NULL;
+    }
+
+    // Clear any previous error
+    if (repl->http_error_message != NULL) {
+        talloc_free(repl->http_error_message);
+        repl->http_error_message = NULL;
+    }
+
+    // Store error message if request failed
+    if (completion->type != IK_HTTP_SUCCESS && completion->error_message != NULL) {
+        repl->http_error_message = talloc_strdup(repl, completion->error_message);
+        if (repl->http_error_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    return OK(NULL);
+}
+
+// LCOV_EXCL_STOP

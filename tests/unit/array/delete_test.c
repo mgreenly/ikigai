@@ -216,7 +216,7 @@ START_TEST(test_array_repeated_insert_delete_same_position)
 
 END_TEST
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion: delete with invalid index
 START_TEST(test_array_delete_invalid_index_asserts)
 {
@@ -249,7 +249,7 @@ static Suite *array_delete_suite(void)
     tcase_add_test(tc_core, test_array_interleaved_insert_delete_stress);
     tcase_add_test(tc_core, test_array_repeated_insert_delete_same_position);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     // Assertion tests - only in debug builds
     TCase *tc_assertions = tcase_create("Assertions");
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind

@@ -56,6 +56,7 @@ static void finish_stderr_capture(void)
 
 // Test: ik_log_info outputs to stdout with correct format
 START_TEST(test_logger_info_stdout) {
+    ik_log_reset_timestamp_check();
     setenv("JOURNAL_STREAM", "8:12345", 1);
     setup_stdout_capture();
     ik_log_info("test message");
@@ -69,6 +70,7 @@ END_TEST
 // Test: ik_log_debug outputs to stdout with correct format
 START_TEST(test_logger_debug_stdout)
 {
+    ik_log_reset_timestamp_check();
     setenv("JOURNAL_STREAM", "8:12345", 1);
     setup_stdout_capture();
     ik_log_debug("debug message");
@@ -82,6 +84,7 @@ END_TEST
 // Test: ik_log_warn outputs to stdout with correct format
 START_TEST(test_logger_warn_stdout)
 {
+    ik_log_reset_timestamp_check();
     setenv("JOURNAL_STREAM", "8:12345", 1);
     setup_stdout_capture();
     ik_log_warn("warning message");
@@ -95,6 +98,7 @@ END_TEST
 // Test: ik_log_error outputs to stderr with correct format
 START_TEST(test_logger_error_stderr)
 {
+    ik_log_reset_timestamp_check();
     setenv("JOURNAL_STREAM", "8:12345", 1);
     setup_stderr_capture();
     ik_log_error("error message");
@@ -108,6 +112,7 @@ END_TEST
 // Test: printf-style formatting works correctly
 START_TEST(test_logger_formatting)
 {
+    ik_log_reset_timestamp_check();
     setenv("JOURNAL_STREAM", "8:12345", 1);
     setup_stdout_capture();
     ik_log_info("value=%d string=%s", 42, "test");
@@ -121,6 +126,7 @@ END_TEST
 // Test: Multiple format specifiers work
 START_TEST(test_logger_multiple_formats)
 {
+    ik_log_reset_timestamp_check();
     setenv("JOURNAL_STREAM", "8:12345", 1);
     setup_stderr_capture();
     ik_log_error("error %d: %s (code 0x%x)", 123, "failure", 0xAB);

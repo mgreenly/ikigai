@@ -13,7 +13,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /**
@@ -27,21 +27,19 @@ START_TEST(test_separator_with_wrapped_lines) {
 
     // Terminal: 10 rows x 80 cols
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 10;
     term->screen_cols = 80;
 
     // Create input buffer
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     res = ik_input_buffer_insert_codepoint(input_buf, 'w');
     ck_assert(is_ok(&res));
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with lines that wrap (each line is 81+ chars to force wrapping)
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     // Each line is exactly 81 characters (wraps to 2 physical rows)
     for (int32_t i = 0; i < 30; i++) {

@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /* Test: kill_to_line_end basic operation */
@@ -14,7 +14,7 @@ START_TEST(test_kill_to_line_end_basic) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello world" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -46,10 +46,8 @@ START_TEST(test_kill_to_line_end_basic) {
     ck_assert(is_ok(&res));
 
     /* Assert: text is "hello ", cursor unchanged */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 6);
     ck_assert_mem_eq(result_text, "hello ", 6);
 
@@ -68,7 +66,7 @@ START_TEST(test_kill_to_line_end_at_newline)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello\nworld" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -99,10 +97,8 @@ START_TEST(test_kill_to_line_end_at_newline)
     ck_assert(is_ok(&res));
 
     /* Assert: text is "hello\nworld", cursor unchanged (newline not deleted) */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 11); /* "hello\nworld" */
     ck_assert_mem_eq(result_text, "hello\nworld", 11);
 
@@ -122,7 +118,7 @@ START_TEST(test_kill_to_line_end_already_at_end)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "hello" */
     ik_input_buffer_insert_codepoint(input_buffer, 'h');
@@ -142,10 +138,8 @@ START_TEST(test_kill_to_line_end_already_at_end)
     ck_assert(is_ok(&res));
 
     /* Assert: text unchanged */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 5);
     ck_assert_mem_eq(result_text, "hello", 5);
 
@@ -165,7 +159,7 @@ START_TEST(test_kill_to_line_end_multiline)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "line1\nline2\nline3" */
     ik_input_buffer_insert_codepoint(input_buffer, 'l');
@@ -204,10 +198,8 @@ START_TEST(test_kill_to_line_end_multiline)
     ck_assert(is_ok(&res));
 
     /* Assert: text is "line1\nli\nline3", cursor unchanged */
-    char *result_text = NULL;
     size_t result_len = 0;
-    res = ik_input_buffer_get_text(input_buffer, &result_text, &result_len);
-    ck_assert(is_ok(&res));
+    const char *result_text = ik_input_buffer_get_text(input_buffer, &result_len);
     ck_assert_uint_eq(result_len, 14); /* "line1\nli\nline3" */
     ck_assert_mem_eq(result_text, "line1\nli\nline3", 14);
 
@@ -221,6 +213,8 @@ START_TEST(test_kill_to_line_end_multiline)
 }
 
 END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL input_buffer should assert */
 START_TEST(test_kill_to_line_end_null_input_buffer_asserts)
 {
@@ -229,13 +223,12 @@ START_TEST(test_kill_to_line_end_null_input_buffer_asserts)
 }
 
 END_TEST
+#endif
 
 static Suite *input_buffer_kill_to_line_end_suite(void)
 {
     Suite *s = suite_create("Input Buffer Kill To Line End");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_kill_to_line_end_basic);
@@ -243,11 +236,16 @@ static Suite *input_buffer_kill_to_line_end_suite(void)
     tcase_add_test(tc_core, test_kill_to_line_end_already_at_end);
     tcase_add_test(tc_core, test_kill_to_line_end_multiline);
 
-    /* Assertion tests */
-    tcase_add_test_raise_signal(tc_assertions, test_kill_to_line_end_null_input_buffer_asserts, SIGABRT);
-
     suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+    /* Assertion tests */
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_add_test_raise_signal(tc_assertions, test_kill_to_line_end_null_input_buffer_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

@@ -6,7 +6,7 @@
 #include <check.h>
 #include <string.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../../src/format.h"
 #include "../../test_utils.h"
 
@@ -17,12 +17,10 @@ START_TEST(test_pp_input_buffer_empty) {
     ik_format_buffer_t *buf = NULL;
 
     /* Create empty input_buffer */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -32,7 +30,7 @@ START_TEST(test_pp_input_buffer_empty) {
     ck_assert_ptr_nonnull(output);
     ck_assert_ptr_nonnull(strstr(output, "ik_input_buffer_t @"));
     ck_assert_ptr_nonnull(strstr(output, "text_len: 0"));
-    ck_assert_ptr_nonnull(strstr(output, "ik_cursor_t @"));
+    ck_assert_ptr_nonnull(strstr(output, "ik_input_buffer_cursor_t @"));
     ck_assert_ptr_nonnull(strstr(output, "byte_offset: 0"));
     ck_assert_ptr_nonnull(strstr(output, "grapheme_offset: 0"));
     ck_assert_ptr_nonnull(strstr(output, "target_column: 0"));
@@ -48,8 +46,8 @@ START_TEST(test_pp_input_buffer_single_line)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer and add text */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
+    res_t res;
 
     res = ik_input_buffer_insert_codepoint(input_buffer, 'H');
     ck_assert(is_ok(&res));
@@ -57,8 +55,7 @@ START_TEST(test_pp_input_buffer_single_line)
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -83,8 +80,8 @@ START_TEST(test_pp_input_buffer_multiline)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer with multi-line text */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
+    res_t res;
 
     res = ik_input_buffer_insert_codepoint(input_buffer, 'L');
     ck_assert(is_ok(&res));
@@ -98,8 +95,7 @@ START_TEST(test_pp_input_buffer_multiline)
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -124,15 +120,14 @@ START_TEST(test_pp_input_buffer_utf8)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer with UTF-8 emoji */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
+    res_t res;
 
     res = ik_input_buffer_insert_codepoint(input_buffer, 0x1F600); // 😀
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -156,12 +151,10 @@ START_TEST(test_pp_input_buffer_indented)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print with 4-space indent */
     ik_pp_input_buffer(input_buffer, buf, 4);
@@ -184,7 +177,7 @@ START_TEST(test_pp_input_buffer_indented)
                       "Line not properly indented: %.20s", line);
         /* Move to next line */
         line = strchr(line, '\n');
-        if (line)line++;
+        if (line) line++;
     }
 
     talloc_free(ctx);
@@ -199,8 +192,8 @@ START_TEST(test_pp_input_buffer_cursor_middle)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer with text and cursor in middle */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
+    res_t res;
 
     res = ik_input_buffer_insert_codepoint(input_buffer, 'a');
     ck_assert(is_ok(&res));
@@ -216,8 +209,7 @@ START_TEST(test_pp_input_buffer_cursor_middle)
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -241,15 +233,13 @@ START_TEST(test_pp_input_buffer_target_column)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Set target_column manually (simulating multi-line navigation) */
     input_buffer->target_column = 5;
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);
@@ -271,8 +261,8 @@ START_TEST(test_pp_input_buffer_special_chars)
     ik_format_buffer_t *buf = NULL;
 
     /* Create input_buffer */
-    res_t res = ik_input_buffer_create(ctx, &input_buffer);
-    ck_assert(is_ok(&res));
+    input_buffer = ik_input_buffer_create(ctx);
+    res_t res;
 
     /* Manually insert text with special characters (bypassing validation) */
     /* Test: \r (carriage return) */
@@ -300,8 +290,7 @@ START_TEST(test_pp_input_buffer_special_chars)
     ck_assert(is_ok(&res));
 
     /* Create format buffer */
-    res = ik_format_buffer_create(ctx, &buf);
-    ck_assert(is_ok(&res));
+    buf = ik_format_buffer_create(ctx);
 
     /* Pretty-print the input_buffer */
     ik_pp_input_buffer(input_buffer, buf, 0);

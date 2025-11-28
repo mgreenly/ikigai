@@ -15,7 +15,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /**
@@ -34,21 +34,19 @@ START_TEST(test_separator_scrolls_offscreen) {
 
     // Create terminal context (10 rows)
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 10;
     term->screen_cols = 80;
 
     // Create input buffer with single line
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     res = ik_input_buffer_insert_codepoint(input_buf, 'x');
     ck_assert(is_ok(&res));
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 50 lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     for (int32_t i = 0; i < 50; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "scrollback line %" PRId32, i);
@@ -130,13 +128,13 @@ START_TEST(test_input_buffer_scrolls_offscreen)
 
     // Create terminal context (10 rows)
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 10;
     term->screen_cols = 80;
 
     // Create input buffer with distinctive content
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     const char *input_buf_content = "input buffer_MARKER_TEXT";
     for (size_t i = 0; i < strlen(input_buf_content); i++) {
         res = ik_input_buffer_insert_codepoint(input_buf, (uint32_t)(unsigned char)input_buf_content[i]);
@@ -145,9 +143,7 @@ START_TEST(test_input_buffer_scrolls_offscreen)
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 50 lines
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     for (int32_t i = 0; i < 50; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "line%" PRId32, i);  // Intentionally different from input buffer
@@ -210,21 +206,19 @@ START_TEST(test_scrollback_adjacent_to_separator)
 
     // Create terminal context (20 rows - enough to show some scrollback + separator + input buffer)
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    res_t res;
     term->screen_rows = 20;
     term->screen_cols = 80;
 
     // Create input buffer (1 line)
     ik_input_buffer_t *input_buf = NULL;
-    res_t res = ik_input_buffer_create(ctx, &input_buf);
-    ck_assert(is_ok(&res));
+    input_buf = ik_input_buffer_create(ctx);
     res = ik_input_buffer_insert_codepoint(input_buf, 'w');
     ck_assert(is_ok(&res));
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // Create scrollback with 10 lines, last line has distinctive marker
-    ik_scrollback_t *scrollback = NULL;
-    res = ik_scrollback_create(ctx, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     for (int32_t i = 0; i < 9; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "line %" PRId32, i);

@@ -145,6 +145,10 @@ END_TEST START_TEST(test_config_auto_create_defaults)
 
     // Verify default values
     ck_assert_str_eq(cfg->openai_api_key, "YOUR_API_KEY_HERE");
+    ck_assert_str_eq(cfg->openai_model, "gpt-5-mini");
+    ck_assert(cfg->openai_temperature >= 0.99 && cfg->openai_temperature <= 1.01);
+    ck_assert_int_eq(cfg->openai_max_completion_tokens, 4096);
+    ck_assert_ptr_null(cfg->openai_system_message);
     ck_assert_str_eq(cfg->listen_address, "127.0.0.1");
     ck_assert_int_eq(cfg->listen_port, 1984);
 
@@ -189,7 +193,8 @@ END_TEST START_TEST(test_config_memory_cleanup)
 
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\"openai_api_key\": \"test_key\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 8080}");
+    fprintf(f,
+            "{\"openai_api_key\": \"test_key\", \"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 8080}");
     fclose(f);
 
     // Load config

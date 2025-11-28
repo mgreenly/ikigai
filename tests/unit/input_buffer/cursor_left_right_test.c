@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /* Test: Cursor left - ASCII */
@@ -14,7 +14,7 @@ START_TEST(test_cursor_left_ascii) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abc" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -52,7 +52,7 @@ START_TEST(test_cursor_left_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "a" + é (2 bytes) + "b" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -91,7 +91,7 @@ START_TEST(test_cursor_left_at_start)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Move left at start - should be no-op */
     res_t res = ik_input_buffer_cursor_left(input_buffer);
@@ -115,7 +115,7 @@ START_TEST(test_cursor_right_ascii)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "abc" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -124,10 +124,9 @@ START_TEST(test_cursor_right_ascii)
 
     /* Move to start */
     input_buffer->cursor_byte_offset = 0;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 0);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 0);
 
     /* Move right */
     res_t res = ik_input_buffer_cursor_right(input_buffer);
@@ -151,7 +150,7 @@ START_TEST(test_cursor_right_utf8)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "a" + 🎉 (4 bytes) */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -159,10 +158,9 @@ START_TEST(test_cursor_right_utf8)
 
     /* Move to start */
     input_buffer->cursor_byte_offset = 0;
-    char *text;
     size_t text_len;
-    ik_input_buffer_get_text(input_buffer, &text, &text_len);
-    ik_cursor_set_position(input_buffer->cursor, text, text_len, 0);
+    const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 0);
 
     /* Move right (skip 'a') */
     res_t res = ik_input_buffer_cursor_right(input_buffer);
@@ -196,7 +194,7 @@ START_TEST(test_cursor_right_at_end)
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
-    ik_input_buffer_create(ctx, &input_buffer);
+    input_buffer = ik_input_buffer_create(ctx);
 
     /* Insert "a" */
     ik_input_buffer_insert_codepoint(input_buffer, 'a');
@@ -216,7 +214,10 @@ START_TEST(test_cursor_right_at_end)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_cursor_left_null_input_buffer_asserts)
+END_TEST
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
+START_TEST(test_cursor_left_null_input_buffer_asserts)
 {
     /* input_buffer cannot be NULL - should abort */
     ik_input_buffer_cursor_left(NULL);
@@ -229,13 +230,12 @@ END_TEST START_TEST(test_cursor_right_null_input_buffer_asserts)
 }
 
 END_TEST
+#endif
 
 static Suite *input_buffer_cursor_left_right_suite(void)
 {
     Suite *s = suite_create("Input Buffer Cursor Left/Right");
     TCase *tc_core = tcase_create("Core");
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     /* Normal tests */
     tcase_add_test(tc_core, test_cursor_left_ascii);
@@ -245,12 +245,17 @@ static Suite *input_buffer_cursor_left_right_suite(void)
     tcase_add_test(tc_core, test_cursor_right_utf8);
     tcase_add_test(tc_core, test_cursor_right_at_end);
 
+    suite_add_tcase(s, tc_core);
+
+#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
+    TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_cursor_left_null_input_buffer_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_cursor_right_null_input_buffer_asserts, SIGABRT);
-
-    suite_add_tcase(s, tc_core);
     suite_add_tcase(s, tc_assertions);
+#endif
+
     return s;
 }
 

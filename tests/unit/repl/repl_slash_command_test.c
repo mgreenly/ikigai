@@ -8,7 +8,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
-#include "../../../src/input_buffer.h"
+#include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
 
 /* Test: /pp command clears input buffer after execution */
@@ -17,16 +17,15 @@ START_TEST(test_pp_command_clears_input_buffer) {
     ik_repl_ctx_t *repl = NULL;
 
     /* Create REPL without initializing terminal */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
-    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
-    ck_assert(is_ok(&res));
+    repl->input_buffer = ik_input_buffer_create(repl);
+    res_t res;
 
     /* Create scrollback (needed for submit_line) */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
-    ck_assert(is_ok(&res));
+    repl->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "/pp" command */
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -63,16 +62,15 @@ START_TEST(test_pp_command_with_args)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create REPL without initializing terminal */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
-    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
-    ck_assert(is_ok(&res));
+    repl->input_buffer = ik_input_buffer_create(repl);
+    res_t res;
 
     /* Create scrollback (needed for submit_line) */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
-    ck_assert(is_ok(&res));
+    repl->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "/pp input buffer" command */
     const char *cmd = "/pp input_buffer";
@@ -102,12 +100,15 @@ START_TEST(test_unknown_slash_command)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create REPL without initializing terminal */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
-    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
-    ck_assert(is_ok(&res));
+    repl->input_buffer = ik_input_buffer_create(repl);
+    res_t res;
+
+    /* Create scrollback (needed for error messages) */
+    repl->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "/unknown" command */
     const char *cmd = "/unknown";
@@ -137,16 +138,15 @@ START_TEST(test_empty_input_buffer_newline)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create REPL without initializing terminal */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
-    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
-    ck_assert(is_ok(&res));
+    repl->input_buffer = ik_input_buffer_create(repl);
+    res_t res;
 
     /* Create scrollback (needed for submit_line) */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
-    ck_assert(is_ok(&res));
+    repl->scrollback = ik_scrollback_create(repl, 80);
 
     /* input buffer is empty, press NEWLINE */
     ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
@@ -168,16 +168,15 @@ START_TEST(test_slash_in_middle_not_command)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create REPL without initializing terminal */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
-    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
-    ck_assert(is_ok(&res));
+    repl->input_buffer = ik_input_buffer_create(repl);
+    res_t res;
 
     /* Create scrollback (needed for submit_line) */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
-    ck_assert(is_ok(&res));
+    repl->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "hello" */
     const char *text = "hello";
@@ -211,16 +210,15 @@ START_TEST(test_pp_command_order_in_scrollback)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create minimal REPL context */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
-    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
-    ck_assert(is_ok(&res));
+    repl->input_buffer = ik_input_buffer_create(repl);
+    res_t res;
 
     /* Create scrollback */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
-    ck_assert(is_ok(&res));
+    repl->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "/pp" command */
     const char *cmd = "/pp";
@@ -263,16 +261,15 @@ START_TEST(test_pp_output_trailing_newline)
     ik_repl_ctx_t *repl = NULL;
 
     /* Create minimal REPL context */
-    repl = ik_talloc_zero_wrapper(ctx, sizeof(ik_repl_ctx_t));
+    repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
     /* Create input buffer */
-    res_t res = ik_input_buffer_create(repl, &repl->input_buffer);
-    ck_assert(is_ok(&res));
+    repl->input_buffer = ik_input_buffer_create(repl);
+    res_t res;
 
     /* Create scrollback */
-    res = ik_scrollback_create(repl, 80, &repl->scrollback);
-    ck_assert(is_ok(&res));
+    repl->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "/pp" command */
     const char *cmd = "/pp";

@@ -6,14 +6,13 @@
 #include "wrapper.h"
 
 // Create input parser
-res_t ik_input_parser_create(void *parent, ik_input_parser_t **parser_out)
+ik_input_parser_t *ik_input_parser_create(void *parent)
 {
-    assert(parent != NULL);      // LCOV_EXCL_BR_LINE
-    assert(parser_out != NULL);  // LCOV_EXCL_BR_LINE
+    assert(parent != NULL);  // LCOV_EXCL_BR_LINE
 
     // Allocate parser
-    ik_input_parser_t *parser = ik_talloc_zero_wrapper(parent, sizeof(ik_input_parser_t));
-    if (parser == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    ik_input_parser_t *parser = talloc_zero_(parent, sizeof(ik_input_parser_t));
+    if (parser == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Initialize fields (talloc_zero already set to 0, but be explicit)
     parser->esc_len = 0;
@@ -22,8 +21,7 @@ res_t ik_input_parser_create(void *parent, ik_input_parser_t **parser_out)
     parser->utf8_expected = 0;
     parser->in_utf8 = false;
 
-    *parser_out = parser;
-    return OK(parser);
+    return parser;
 }
 
 // Helper to reset escape sequence state

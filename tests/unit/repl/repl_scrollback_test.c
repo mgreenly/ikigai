@@ -16,24 +16,24 @@
 #include "../../test_utils.h"
 
 // Forward declarations for wrapper functions
-int ik_open_wrapper(const char *pathname, int flags);
-int ik_ioctl_wrapper(int fd, unsigned long request, void *argp);
-int ik_close_wrapper(int fd);
-int ik_tcgetattr_wrapper(int fd, struct termios *termios_p);
-int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p);
-int ik_tcflush_wrapper(int fd, int queue_selector);
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count);
-ssize_t ik_read_wrapper(int fd, void *buf, size_t count);
+int posix_open_(const char *pathname, int flags);
+int posix_ioctl_(int fd, unsigned long request, void *argp);
+int posix_close_(int fd);
+int posix_tcgetattr_(int fd, struct termios *termios_p);
+int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p);
+int posix_tcflush_(int fd, int queue_selector);
+ssize_t posix_write_(int fd, const void *buf, size_t count);
+ssize_t posix_read_(int fd, void *buf, size_t count);
 
 // Mock wrapper functions for terminal operations (required for ik_repl_init)
-int ik_open_wrapper(const char *pathname, int flags)
+int posix_open_(const char *pathname, int flags)
 {
     (void)pathname;
     (void)flags;
     return 99;  // Dummy fd
 }
 
-int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
+int posix_ioctl_(int fd, unsigned long request, void *argp)
 {
     (void)fd;
     (void)request;
@@ -43,20 +43,20 @@ int ik_ioctl_wrapper(int fd, unsigned long request, void *argp)
     return 0;
 }
 
-int ik_close_wrapper(int fd)
+int posix_close_(int fd)
 {
     (void)fd;
     return 0;
 }
 
-int ik_tcgetattr_wrapper(int fd, struct termios *termios_p)
+int posix_tcgetattr_(int fd, struct termios *termios_p)
 {
     (void)fd;
     (void)termios_p;
     return 0;
 }
 
-int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *termios_p)
+int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p)
 {
     (void)fd;
     (void)optional_actions;
@@ -64,21 +64,21 @@ int ik_tcsetattr_wrapper(int fd, int optional_actions, const struct termios *ter
     return 0;
 }
 
-int ik_tcflush_wrapper(int fd, int queue_selector)
+int posix_tcflush_(int fd, int queue_selector)
 {
     (void)fd;
     (void)queue_selector;
     return 0;
 }
 
-ssize_t ik_write_wrapper(int fd, const void *buf, size_t count)
+ssize_t posix_write_(int fd, const void *buf, size_t count)
 {
     (void)fd;
     (void)buf;
     return (ssize_t)count;
 }
 
-ssize_t ik_read_wrapper(int fd, void *buf, size_t count)
+ssize_t posix_read_(int fd, void *buf, size_t count)
 {
     (void)fd;
     (void)buf;
@@ -95,9 +95,7 @@ START_TEST(test_repl_context_with_scrollback) {
     ck_assert_ptr_nonnull(repl);
 
     // Create scrollback with terminal width of 80
-    ik_scrollback_t *scrollback = NULL;
-    res_t res = ik_scrollback_create(repl, 80, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(repl, 80);
     ck_assert_ptr_nonnull(scrollback);
 
     // Assign to REPL context
@@ -132,9 +130,7 @@ START_TEST(test_repl_scrollback_terminal_width)
     repl->term = term;
 
     // Create scrollback with terminal width
-    ik_scrollback_t *scrollback = NULL;
-    res_t res = ik_scrollback_create(repl, term->screen_cols, &scrollback);
-    ck_assert(is_ok(&res));
+    ik_scrollback_t *scrollback = ik_scrollback_create(repl, term->screen_cols);
     ck_assert_ptr_nonnull(scrollback);
 
     repl->scrollback = scrollback;
@@ -155,7 +151,8 @@ START_TEST(test_page_down_scrolling)
 
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&res));
 
     // Start scrolled up (viewport_offset = 48, i.e., 2 pages up)
@@ -181,7 +178,8 @@ START_TEST(test_page_down_at_bottom)
 
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&res));
 
     // Start at bottom (viewport_offset = 0)
@@ -207,7 +205,8 @@ START_TEST(test_page_down_small_offset)
 
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&res));
 
     // Start with small offset (less than screen_rows)
@@ -233,7 +232,8 @@ START_TEST(test_page_up_scrolling)
 
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&res));
 
     // Add some lines to scrollback to have content to scroll through
@@ -267,7 +267,8 @@ START_TEST(test_page_up_empty_scrollback)
 
     // Setup REPL with empty scrollback
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&res));
 
     // Verify scrollback is empty
@@ -296,7 +297,8 @@ START_TEST(test_page_up_clamping)
 
     // Setup REPL with scrollback (terminal is 24 rows from ik_repl_init)
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&res));
 
     // Add enough lines to overflow terminal (30 lines > 24 terminal rows)
@@ -341,7 +343,8 @@ START_TEST(test_submit_line_to_scrollback)
 
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&res));
 
     // Add some text to input buffer
@@ -378,7 +381,8 @@ START_TEST(test_submit_line_auto_scroll)
 
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&res));
 
     // Scroll up (viewport_offset > 0)
@@ -411,7 +415,8 @@ START_TEST(test_submit_empty_line)
 
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, &repl);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
     ck_assert(is_ok(&res));
 
     // Verify input buffer is empty
