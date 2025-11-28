@@ -84,9 +84,8 @@ I found the issue. In parser.c, the `parse_token` function was missing a null ch
 
 ### Tool Result A
 
-```text
-parser.c:45: if (token == NULL) return ERR_INVALID;
-parser.c:67: if (result == NULL) return ERR_ALLOC;
+```json
+{"output": "parser.c:45: if (token == NULL) return ERR_INVALID;\nparser.c:67: if (result == NULL) return ERR_ALLOC;", "count": 2}
 ```
 
 ### Request B
@@ -97,7 +96,7 @@ parser.c:67: if (result == NULL) return ERR_ALLOC;
   "messages": [
     {"role": "user", "content": "Find where we handle null pointers in parser.c and add a missing check"},
     {"role": "assistant", "tool_calls": [{"id": "call_grep1", "type": "function", "function": {"name": "grep", "arguments": "{\"pattern\": \"NULL\", \"path\": \"parser.c\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_grep1", "content": "parser.c:45: if (token == NULL) return ERR_INVALID;\nparser.c:67: if (result == NULL) return ERR_ALLOC;"}
+    {"role": "tool", "tool_call_id": "call_grep1", "content": "{\"output\": \"parser.c:45: if (token == NULL) return ERR_INVALID;\\nparser.c:67: if (result == NULL) return ERR_ALLOC;\", \"count\": 2}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",
@@ -129,15 +128,8 @@ parser.c:67: if (result == NULL) return ERR_ALLOC;
 
 ### Tool Result B
 
-```text
-#include "parser.h"
-
-Token *parse_token(const char *input) {
-    int len = strlen(input);  // BUG: no null check
-    Token *t = malloc(sizeof(Token));
-    if (t == NULL) return NULL;
-    // ... rest of function
-}
+```json
+{"output": "#include \"parser.h\"\n\nToken *parse_token(const char *input) {\n    int len = strlen(input);  // BUG: no null check\n    Token *t = malloc(sizeof(Token));\n    if (t == NULL) return NULL;\n    // ... rest of function\n}"}
 ```
 
 ### Request C
@@ -148,7 +140,7 @@ Token *parse_token(const char *input) {
   "messages": [
     "...previous messages...",
     {"role": "assistant", "tool_calls": [{"id": "call_read1", "type": "function", "function": {"name": "file_read", "arguments": "{\"path\": \"parser.c\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_read1", "content": "#include \"parser.h\"\n\nToken *parse_token(const char *input) {\n    int len = strlen(input);  // BUG: no null check\n    Token *t = malloc(sizeof(Token));\n    if (t == NULL) return NULL;\n    // ... rest of function\n}"}
+    {"role": "tool", "tool_call_id": "call_read1", "content": "{\"output\": \"#include \\\"parser.h\\\"\\n\\nToken *parse_token(const char *input) {\\n    int len = strlen(input);  // BUG: no null check\\n    Token *t = malloc(sizeof(Token));\\n    if (t == NULL) return NULL;\\n    // ... rest of function\\n}\"}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",
@@ -180,8 +172,8 @@ Token *parse_token(const char *input) {
 
 ### Tool Result C
 
-```text
-Wrote 215 bytes to parser.c
+```json
+{"output": "Wrote 215 bytes to parser.c", "bytes": 215}
 ```
 
 ### Request D
@@ -192,7 +184,7 @@ Wrote 215 bytes to parser.c
   "messages": [
     "...previous messages...",
     {"role": "assistant", "tool_calls": [{"id": "call_write1", "type": "function", "function": {"name": "file_write", "arguments": "..."}}]},
-    {"role": "tool", "tool_call_id": "call_write1", "content": "Wrote 215 bytes to parser.c"}
+    {"role": "tool", "tool_call_id": "call_write1", "content": "{\"output\": \"Wrote 215 bytes to parser.c\", \"bytes\": 215}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",

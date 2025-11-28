@@ -78,8 +78,8 @@ You're on the `main` branch.
 
 ### Tool Result A
 
-```text
-main
+```json
+{"output": "main", "exit_code": 0}
 ```
 
 ### Request B
@@ -90,7 +90,7 @@ main
   "messages": [
     {"role": "user", "content": "What's the current git branch?"},
     {"role": "assistant", "tool_calls": [{"id": "call_bash1", "type": "function", "function": {"name": "bash", "arguments": "{\"command\": \"git branch --show-current\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_bash1", "content": "main"}
+    {"role": "tool", "tool_call_id": "call_bash1", "content": "{\"output\": \"main\", \"exit_code\": 0}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",

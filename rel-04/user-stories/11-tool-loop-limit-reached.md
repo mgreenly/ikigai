@@ -86,8 +86,8 @@ I was searching through files but reached the tool call limit (3 calls). I found
 
 ### Tool Result A
 
-```text
-src/main.c:12: log_error("Failed to initialize");
+```json
+{"output": "src/main.c:12: log_error(\"Failed to initialize\");", "count": 1}
 ```
 
 ### Response B
@@ -114,8 +114,8 @@ src/main.c:12: log_error("Failed to initialize");
 
 ### Tool Result B
 
-```text
-src/config.c:45: return CONFIG_ERROR;
+```json
+{"output": "src/config.c:45: return CONFIG_ERROR;", "count": 1}
 ```
 
 ### Response C
@@ -142,10 +142,8 @@ src/config.c:45: return CONFIG_ERROR;
 
 ### Tool Result C
 
-```text
-src/parser.c:78: parse_error(line, col);
-
-[System: Tool call limit reached (3). Stopping tool loop.]
+```json
+{"output": "src/parser.c:78: parse_error(line, col);", "count": 1, "limit_reached": true, "limit_message": "Tool call limit reached (3). Stopping tool loop."}
 ```
 
 ### Request D
@@ -156,11 +154,11 @@ src/parser.c:78: parse_error(line, col);
   "messages": [
     {"role": "user", "content": "Keep searching for errors in every file"},
     {"role": "assistant", "tool_calls": [{"id": "call_grep1", "type": "function", "function": {"name": "grep", "arguments": "{\"pattern\": \"error\", \"path\": \"src/main.c\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_grep1", "content": "src/main.c:12: log_error(\"Failed to initialize\");"},
+    {"role": "tool", "tool_call_id": "call_grep1", "content": "{\"output\": \"src/main.c:12: log_error(\\\"Failed to initialize\\\");\", \"count\": 1}"},
     {"role": "assistant", "tool_calls": [{"id": "call_grep2", "type": "function", "function": {"name": "grep", "arguments": "{\"pattern\": \"error\", \"path\": \"src/config.c\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_grep2", "content": "src/config.c:45: return CONFIG_ERROR;"},
+    {"role": "tool", "tool_call_id": "call_grep2", "content": "{\"output\": \"src/config.c:45: return CONFIG_ERROR;\", \"count\": 1}"},
     {"role": "assistant", "tool_calls": [{"id": "call_grep3", "type": "function", "function": {"name": "grep", "arguments": "{\"pattern\": \"error\", \"path\": \"src/parser.c\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_grep3", "content": "src/parser.c:78: parse_error(line, col);\n\n[System: Tool call limit reached (3). Stopping tool loop.]"}
+    {"role": "tool", "tool_call_id": "call_grep3", "content": "{\"output\": \"src/parser.c:78: parse_error(line, col);\", \"count\": 1, \"limit_reached\": true, \"limit_message\": \"Tool call limit reached (3). Stopping tool loop.\"}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "none",

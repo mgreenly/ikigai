@@ -95,8 +95,8 @@ I found config.json. Here are its contents:
 
 ### Tool Result A
 
-```text
-config.json
+```json
+{"output": "config.json", "count": 1}
 ```
 
 ### Request B
@@ -107,7 +107,7 @@ config.json
   "messages": [
     {"role": "user", "content": "Find the config file and show me what's in it"},
     {"role": "assistant", "tool_calls": [{"id": "call_glob1", "type": "function", "function": {"name": "glob", "arguments": "{\"pattern\": \"config.*\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_glob1", "content": "config.json"}
+    {"role": "tool", "tool_call_id": "call_glob1", "content": "{\"output\": \"config.json\", \"count\": 1}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",
@@ -139,11 +139,8 @@ config.json
 
 ### Tool Result B
 
-```text
-{
-  "debug": true,
-  "port": 8080
-}
+```json
+{"output": "{\n  \"debug\": true,\n  \"port\": 8080\n}"}
 ```
 
 ### Request C
@@ -154,9 +151,9 @@ config.json
   "messages": [
     {"role": "user", "content": "Find the config file and show me what's in it"},
     {"role": "assistant", "tool_calls": [{"id": "call_glob1", "type": "function", "function": {"name": "glob", "arguments": "{\"pattern\": \"config.*\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_glob1", "content": "config.json"},
+    {"role": "tool", "tool_call_id": "call_glob1", "content": "{\"output\": \"config.json\", \"count\": 1}"},
     {"role": "assistant", "tool_calls": [{"id": "call_read1", "type": "function", "function": {"name": "file_read", "arguments": "{\"path\": \"config.json\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_read1", "content": "{\n  \"debug\": true,\n  \"port\": 8080\n}"}
+    {"role": "tool", "tool_call_id": "call_read1", "content": "{\"output\": \"{\\n  \\\"debug\\\": true,\\n  \\\"port\\\": 8080\\n}\"}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",

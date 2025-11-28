@@ -84,10 +84,8 @@ A simple example project.
 
 ### Tool Result A
 
-```text
-# My Project
-
-A simple example project.
+```json
+{"output": "# My Project\n\nA simple example project."}
 ```
 
 ### Request B
@@ -98,7 +96,7 @@ A simple example project.
   "messages": [
     {"role": "user", "content": "Show me the contents of README.md"},
     {"role": "assistant", "tool_calls": [{"id": "call_def456", "type": "function", "function": {"name": "file_read", "arguments": "{\"path\": \"README.md\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_def456", "content": "# My Project\n\nA simple example project."}
+    {"role": "tool", "tool_call_id": "call_def456", "content": "{\"output\": \"# My Project\\n\\nA simple example project.\"}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",

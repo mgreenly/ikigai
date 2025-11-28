@@ -78,8 +78,8 @@ Done! I've created notes.txt with your message.
 
 ### Tool Result A
 
-```text
-Wrote 20 bytes to notes.txt
+```json
+{"output": "Wrote 20 bytes to notes.txt", "bytes": 20}
 ```
 
 ### Request B
@@ -90,7 +90,7 @@ Wrote 20 bytes to notes.txt
   "messages": [
     {"role": "user", "content": "Create a file called notes.txt with \"Remember to refactor\""},
     {"role": "assistant", "tool_calls": [{"id": "call_write1", "type": "function", "function": {"name": "file_write", "arguments": "{\"path\": \"notes.txt\", \"content\": \"Remember to refactor\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_write1", "content": "Wrote 20 bytes to notes.txt"}
+    {"role": "tool", "tool_call_id": "call_write1", "content": "{\"output\": \"Wrote 20 bytes to notes.txt\", \"bytes\": 20}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",

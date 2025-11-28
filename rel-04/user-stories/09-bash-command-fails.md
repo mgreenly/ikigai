@@ -78,12 +78,8 @@ The compilation failed. GCC reported an undefined reference to `process_input`. 
 
 ### Tool Result A
 
-```text
-/usr/bin/ld: /tmp/ccABC123.o: in function `main':
-main.c:(.text+0x15): undefined reference to `process_input'
-collect2: error: ld returned 1 exit status
-
-Exit code: 1
+```json
+{"output": "/usr/bin/ld: /tmp/ccABC123.o: in function `main':\nmain.c:(.text+0x15): undefined reference to `process_input'\ncollect2: error: ld returned 1 exit status", "exit_code": 1}
 ```
 
 ### Request B
@@ -94,7 +90,7 @@ Exit code: 1
   "messages": [
     {"role": "user", "content": "Compile the project with gcc main.c"},
     {"role": "assistant", "tool_calls": [{"id": "call_bash1", "type": "function", "function": {"name": "bash", "arguments": "{\"command\": \"gcc main.c\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_bash1", "content": "/usr/bin/ld: /tmp/ccABC123.o: in function `main':\nmain.c:(.text+0x15): undefined reference to `process_input'\ncollect2: error: ld returned 1 exit status\n\nExit code: 1"}
+    {"role": "tool", "tool_call_id": "call_bash1", "content": "{\"output\": \"/usr/bin/ld: /tmp/ccABC123.o: in function `main':\\nmain.c:(.text+0x15): undefined reference to `process_input'\\ncollect2: error: ld returned 1 exit status\", \"exit_code\": 1}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",
