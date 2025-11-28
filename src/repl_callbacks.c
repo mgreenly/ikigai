@@ -89,13 +89,10 @@ res_t ik_repl_streaming_callback(const char *chunk, void *ctx)
  * Called when an HTTP request completes (success or failure).
  * Stores error information in REPL context for display by completion handler.
  *
- * NOTE: This function is tested manually (see Tasks 7.10-7.14 in tasks.md)
- *
  * @param completion   Completion information (status, error message)
  * @param ctx          REPL context pointer
  * @return             OK(NULL) on success, ERR(...) on failure
  */
-// LCOV_EXCL_START
 res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, void *ctx)
 {
     assert(completion != NULL);  /* LCOV_EXCL_BR_LINE */
@@ -123,7 +120,30 @@ res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, v
         if (repl->http_error_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
 
+    // Store response metadata for database persistence (on success only)
+    if (completion->type == IK_HTTP_SUCCESS) {
+        // Clear previous metadata
+        if (repl->response_model != NULL) {
+            talloc_free(repl->response_model);
+            repl->response_model = NULL;
+        }
+        if (repl->response_finish_reason != NULL) {
+            talloc_free(repl->response_finish_reason);
+            repl->response_finish_reason = NULL;
+        }
+        repl->response_completion_tokens = 0;
+
+        // Store new metadata
+        if (completion->model != NULL) {
+            repl->response_model = talloc_strdup(repl, completion->model);
+            if (repl->response_model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
+        if (completion->finish_reason != NULL) {
+            repl->response_finish_reason = talloc_strdup(repl, completion->finish_reason);
+            if (repl->response_finish_reason == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
+        repl->response_completion_tokens = completion->completion_tokens;
+    }
+
     return OK(NULL);
 }
-
-// LCOV_EXCL_STOP

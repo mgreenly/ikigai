@@ -150,7 +150,7 @@ START_TEST(test_dispatch_mark_with_args)
     res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "─── Mark: checkpoint1 ───");
+    ck_assert_str_eq(line, "/mark checkpoint1");
 }
 
 END_TEST

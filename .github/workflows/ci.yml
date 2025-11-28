@@ -10,31 +10,62 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ikigai
+          POSTGRES_PASSWORD: ikigai
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
     - uses: actions/checkout@v4
 
-    - name: Build Docker image
-      run: docker build -f distros/debian/Dockerfile -t ikigai-ci .
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          uncrustify \
+          complexity \
+          check \
+          libtalloc-dev \
+          libulfius-dev \
+          libcurl4-gnutls-dev \
+          uuid-dev \
+          libb64-dev \
+          libutf8proc-dev \
+          libpq-dev \
+          postgresql-client \
+          lcov \
+          valgrind
 
     - name: Show tool versions
       run: |
-        docker run --rm ikigai-ci bash -c "lcov --version"
-        docker run --rm ikigai-ci bash -c "gcc --version | head -1"
+        lcov --version
+        gcc --version | head -1
 
-    - name: Install dependencies
-      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make install-deps"
+    - name: Install vendored dependencies
+      run: make install-deps
 
     - name: Check file sizes
-      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make filesize"
+      run: make filesize
 
     - name: Check complexity
-      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make complexity"
+      run: make complexity
 
     - name: Run tests with coverage
-      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make coverage"
+      run: make coverage
 
     - name: Run AddressSanitizer tests
-      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make check-sanitize"
+      run: make check-sanitize
 
     - name: Run ThreadSanitizer tests
-      run: docker run --rm -v "$(pwd)":/workspace ikigai-ci bash -c "make check-tsan"
+      run: make check-tsan

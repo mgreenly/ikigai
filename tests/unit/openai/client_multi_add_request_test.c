@@ -153,6 +153,39 @@ END_TEST START_TEST(test_multi_add_request_api_key_too_long)
     ck_assert_int_eq(add_res.err->code, ERR_INVALID_ARG);
 }
 
+END_TEST START_TEST(test_multi_add_request_snprintf_error)
+{
+    /* Create multi-handle */
+    res_t multi_res = ik_openai_multi_create(ctx);
+    ck_assert(!multi_res.is_err);
+    ik_openai_multi_t *multi = multi_res.ok;
+
+    /* Create conversation */
+    res_t conv_res = ik_openai_conversation_create(ctx);
+    ck_assert(!conv_res.is_err);
+    ik_openai_conversation_t *conv = conv_res.ok;
+
+    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
+    ck_assert(!msg_res.is_err);
+    ik_openai_conversation_add_msg(conv, msg_res.ok);
+
+    /* Create config */
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
+    cfg->openai_model = talloc_strdup(cfg, "gpt-4");
+    cfg->openai_temperature = 0.7;
+    cfg->openai_max_completion_tokens = 1000;
+
+    /* Mock snprintf_ to fail */
+    fail_snprintf = true;
+
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, NULL);
+    ck_assert(add_res.is_err);
+    ck_assert_int_eq(add_res.err->code, ERR_INVALID_ARG);
+
+    fail_snprintf = false;
+}
+
 END_TEST START_TEST(test_multi_add_request_success)
 {
     /* Create multi-handle */
@@ -262,6 +295,7 @@ static Suite *client_multi_add_request_suite(void)
     tcase_add_test(tc_add, test_multi_add_request_empty_api_key);
     tcase_add_test(tc_add, test_multi_add_request_curl_easy_init_failure);
     tcase_add_test(tc_add, test_multi_add_request_api_key_too_long);
+    tcase_add_test(tc_add, test_multi_add_request_snprintf_error);
     tcase_add_test(tc_add, test_multi_add_request_success);
     tcase_add_test(tc_add, test_multi_add_request_curl_multi_add_handle_failure);
     tcase_add_test(tc_add, test_multi_destructor_with_active_requests);

@@ -1,7 +1,10 @@
 // REPL initialization and cleanup
 #include "repl.h"
 
+#include "repl/session_restore.h"
 #include "config.h"
+#include "db/connection.h"
+#include "db/session.h"
 #include "openai/client.h"
 #include "openai/client_multi.h"
 #include "panic.h"
@@ -119,7 +122,28 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
     // Debug pipe manager
     repl->debug_mgr = TRY(ik_debug_mgr_create(repl));  // LCOV_EXCL_BR_LINE
     repl->openai_debug_pipe = TRY(ik_debug_mgr_add_pipe(repl->debug_mgr, "[openai]"));  // LCOV_EXCL_BR_LINE
+    repl->db_debug_pipe = TRY(ik_debug_mgr_add_pipe(repl->debug_mgr, "[db]"));  // LCOV_EXCL_BR_LINE
     repl->debug_enabled = false;
+
+    // Initialize database connection (v0.3.0)
+    repl->db_ctx = NULL;
+    repl->current_session_id = 0;
+
+    // If database connection string is configured, connect and manage session
+    if (cfg->db_connection_string != NULL) {
+        result = ik_db_init_(repl, cfg->db_connection_string, (void **)&repl->db_ctx);
+        if (is_err(&result)) {
+            talloc_free(repl);
+            return result;
+        }
+
+        // Restore session (create new or resume existing, with replay)
+        result = ik_repl_restore_session_(repl, repl->db_ctx, cfg);
+        if (is_err(&result)) {
+            talloc_free(repl);
+            return result;
+        }
+    }
 
     // Set up signal handlers (SIGWINCH for terminal resize)
     result = ik_signal_handler_init(parent);

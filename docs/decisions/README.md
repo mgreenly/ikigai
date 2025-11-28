@@ -17,6 +17,10 @@ This directory contains architecture decision records (ADRs) documenting key des
 
 - [json-yaml-projection.md](json-yaml-projection.md) - Why JSON-Based Projection with Dual Format Output
 
+## Platform Components
+
+- [fresh-webapp-framework.md](fresh-webapp-framework.md) - Why Fresh for Webapp Framework
+
 ---
 
 Each ADR follows a consistent format:

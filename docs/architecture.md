@@ -10,19 +10,18 @@ Desktop AI coding agent with local tool execution and persistent conversation hi
 
 ## Dependencies
 
-### Current Libraries (v0.1.0 - REPL Complete)
+### Current Libraries (rel-02 - OpenAI Integration Complete)
 - **yyjson** - JSON parsing with talloc integration (vendored, migration from jansson complete)
 - **talloc** - Hierarchical pool-based memory allocator ([why?](decisions/talloc-memory-management.md))
 - **libutf8proc** - UTF-8 text processing and Unicode normalization
+- **libcurl** - HTTP client for streaming LLM APIs
 - **pthread** - POSIX threads (required by logger and check framework)
 - **check** - Unit testing framework
 - **libb64** - Base64 encoding (linked, not yet actively used)
 - **libuuid** - RFC 4122 UUID generation (linked, not yet actively used)
 
-### Next Phase (OpenAI Integration)
-- **libcurl** - HTTP client for streaming LLM APIs
-
 ### Future Libraries
+- **libexpat** - SAX XML parser for reading Anthropic API tool call responses (stream-oriented, read-only)
 - **libpq** - PostgreSQL C client library (database integration)
 - **libpcre2** - Perl-compatible regex library for text processing
 - **libtree-sitter** - Incremental parsing library for code analysis
@@ -79,7 +78,7 @@ Target platform: Debian 13 (Trixie)
 
 ### Completed: REPL Terminal Foundation ✅
 
-**Status**: v0.1.0 released (2025-11-16) - Full REPL with scrollback, viewport scrolling, and 100% test coverage.
+**Status**: rel-01 released (2025-11-16) - Full REPL with scrollback, viewport scrolling, and 100% test coverage.
 
 Implemented:
 - Terminal initialization (raw mode, direct rendering)
@@ -94,15 +93,23 @@ Implemented:
 
 See [repl/README.md](repl/README.md) for detailed design and [plan.md](../plan.md) for implementation phases.
 
-### Next: OpenAI Integration
+### Completed: OpenAI Integration ✅
 
-Add streaming LLM responses to the REPL. ([why OpenAI format?](decisions/openai-api-format.md))
+**Status**: rel-02 released (2025-11-22) - Streaming LLM responses with full conversation management.
 
-Features:
-- OpenAI API client (libcurl + streaming)
-- Send prompts, display streaming responses
-- Show spinner/status while waiting
-- Append chunks to scrollback as they arrive
+([why OpenAI format?](decisions/openai-api-format.md))
+
+Implemented:
+- OpenAI API client with libcurl streaming
+- Display AI responses in scrollback as chunks arrive
+- Basic conversation flow (user input → API call → streamed response)
+- Status indicators (loading spinner, error handling)
+- Layer architecture (scrollback, spinner, separator, input)
+- Slash commands (/clear, /mark, /rewind, /help, /model, /system)
+- In-memory conversation state with checkpoint/rollback
+- Mock verification test suite
+
+**Deliverable**: Full conversational AI agent with streaming responses and conversation management. Foundation ready for database persistence.
 
 ### Future: Database Persistence
 
@@ -149,47 +156,54 @@ Features:
 
 ## Configuration
 
-Client loads configuration from `~/.ikigai/config.json`:
+Client loads configuration from `~/.config/ikigai/config.json`.
 
-**Current (v0.1.0 - REPL Terminal)**:
+If the config file doesn't exist, a default configuration is created automatically on first run.
+
+**Current (rel-02 - OpenAI Integration)**:
 ```json
 {
-  "terminal": {
-    "scrollback_lines": 10000
-  }
+  "openai_api_key": "YOUR_API_KEY_HERE",
+  "openai_model": "gpt-5-mini",
+  "openai_temperature": 1.0,
+  "openai_max_completion_tokens": 4096,
+  "openai_system_message": null,
+  "listen_address": "127.0.0.1",
+  "listen_port": 1984
 }
 ```
 
-Config module exists and can parse additional fields (e.g., `openai_api_key`, `listen_address`, `listen_port`), but only `terminal.scrollback_lines` is actively used. Other fields are legacy from previous architecture or placeholders for future features.
+**Configuration Fields**:
+- `openai_api_key` - Your OpenAI API key (required for LLM functionality)
+- `openai_model` - Model to use (default: "gpt-5-mini")
+- `openai_temperature` - Temperature parameter (default: 1.0)
+- `openai_max_completion_tokens` - Max response tokens (default: 4096)
+- `openai_system_message` - Optional system message (default: null)
+- `listen_address` - Legacy field from previous architecture (not currently used)
+- `listen_port` - Legacy field from previous architecture (not currently used)
 
-**Future (OpenAI Integration)**:
+**Future (Multi-LLM Support)**:
+
+Additional provider fields will be added for Anthropic, Google, and X.AI:
 ```json
 {
-  "terminal": {
-    "scrollback_lines": 10000
-  },
-  "llm": {
-    "default_provider": "openai",
-    "openai_api_key": "sk-..."
-  }
+  "openai_api_key": "sk-...",
+  "openai_model": "gpt-5-mini",
+  "anthropic_api_key": "sk-ant-...",
+  "anthropic_model": "claude-sonnet-4.5",
+  "google_api_key": "...",
+  "google_model": "gemini-2.0-flash",
+  "default_provider": "openai"
 }
 ```
 
-**With Multi-LLM Support**:
+**Future (Database Integration)**:
+
+PostgreSQL connection settings will be added:
 ```json
 {
-  "terminal": {
-    "scrollback_lines": 10000
-  },
-  "llm": {
-    "default_provider": "openai",
-    "openai_api_key": "sk-...",
-    "anthropic_api_key": "sk-ant-...",
-    "google_api_key": "..."
-  },
-  "database": {
-    "connection_string": "postgresql://localhost/ikigai"
-  }
+  "openai_api_key": "sk-...",
+  "database_connection_string": "postgresql://localhost/ikigai"
 }
 ```
 
