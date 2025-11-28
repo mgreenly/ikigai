@@ -1,0 +1,22 @@
+Source: ikigai
+Section: net
+Priority: optional
+Maintainer: Michael Greenly <mgreenly@example.com>
+Build-Depends: debhelper-compat (= 13),
+               build-essential,
+               libtalloc-dev,
+               libulfius-dev,
+               libcurl4-gnutls-dev,
+               uuid-dev,
+               libb64-dev,
+               libutf8proc-dev,
+               check
+Standards-Version: 4.6.0
+Homepage: https://github.com/mgreenly/ikigai
+
+Package: ikigai
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Ikigai client and server
+ Ikigai provides both a client (ikigai) and server (ikigai-server)
+ for network communication and task management.

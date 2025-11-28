@@ -1,0 +1,131 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract version from src/version.h
+      id: get_version
+      run: |
+        VERSION=$(grep '#define IK_VERSION "' src/version.h | cut -d'"' -f2)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Extracted version: $VERSION"
+        if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+          echo "Error: Version must be in format X.Y.Z (e.g., 0.1.0)"
+          echo "Found: $VERSION"
+          exit 1
+        fi
+
+    - name: Build and CI test Debian
+      id: debian_ci
+      continue-on-error: true
+      run: |
+        echo "=== Building Debian image ==="
+        docker build -f distros/debian/Dockerfile -t ikigai-ci-debian .
+        echo "=== Running Debian CI ==="
+        docker run --rm --user $(id -u):$(id -g) -v "$(pwd)":/workspace ikigai-ci-debian bash -c "make ci"
+
+    - name: Build and CI test Fedora
+      id: fedora_ci
+      continue-on-error: true
+      run: |
+        echo "=== Building Fedora image ==="
+        docker build -f distros/fedora/Dockerfile -t ikigai-ci-fedora .
+        echo "=== Running Fedora CI ==="
+        docker run --rm --user $(id -u):$(id -g) -v "$(pwd)":/workspace ikigai-ci-fedora bash -c "make ci"
+
+    - name: Build and CI test Arch
+      id: arch_ci
+      continue-on-error: true
+      run: |
+        echo "=== Building Arch image ==="
+        docker build -f distros/arch/Dockerfile -t ikigai-ci-arch .
+        echo "=== Running Arch CI ==="
+        docker run --rm --user $(id -u):$(id -g) -v "$(pwd)":/workspace ikigai-ci-arch bash -c "make ci"
+
+    - name: Create source tarball
+      if: steps.debian_ci.outcome == 'success' || steps.fedora_ci.outcome == 'success' || steps.arch_ci.outcome == 'success'
+      run: |
+        echo "=== Creating source tarball for packaging ==="
+        docker run --rm --user $(id -u):$(id -g) -v "$(pwd)":/workspace ikigai-ci-debian bash -c "make dist"
+
+    - name: Package Debian
+      if: steps.debian_ci.outcome == 'success'
+      run: |
+        echo "=== Building Debian package ==="
+        docker run --rm --user $(id -u):$(id -g) -v "$(pwd)":/workspace ikigai-ci-debian bash -c "distros/debian/package.sh"
+
+    - name: Package Fedora
+      if: steps.fedora_ci.outcome == 'success'
+      run: |
+        echo "=== Building Fedora package ==="
+        docker run --rm --user $(id -u):$(id -g) -v "$(pwd)":/workspace ikigai-ci-fedora bash -c "distros/fedora/package.sh"
+
+    - name: Package Arch
+      if: steps.arch_ci.outcome == 'success'
+      run: |
+        echo "=== Building Arch package ==="
+        docker run --rm --user $(id -u):$(id -g) -v "$(pwd)":/workspace ikigai-ci-arch bash -c "distros/arch/package.sh"
+
+    - name: Check build results
+      run: |
+        echo "=== Build Results ==="
+        echo "Debian CI: ${{ steps.debian_ci.outcome }}"
+        echo "Fedora CI: ${{ steps.fedora_ci.outcome }}"
+        echo "Arch CI: ${{ steps.arch_ci.outcome }}"
+        echo ""
+        echo "=== Available packages ==="
+        ls -lh distros/dist/ 2>/dev/null || echo "No packages built"
+
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.get_version.outputs.version }}
+        name: Release v${{ steps.get_version.outputs.version }}
+        body: |
+          ## ikigai v${{ steps.get_version.outputs.version }}
+
+          ### Installation
+
+          **Debian/Ubuntu:**
+          ```bash
+          curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai_${{ steps.get_version.outputs.version }}_amd64.deb
+          sudo dpkg -i ikigai_${{ steps.get_version.outputs.version }}_amd64.deb
+          ```
+
+          **Fedora/RHEL:**
+          ```bash
+          curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai-${{ steps.get_version.outputs.version }}-1.x86_64.rpm
+          sudo rpm -i ikigai-${{ steps.get_version.outputs.version }}-1.x86_64.rpm
+          ```
+
+          **Arch Linux:**
+          ```bash
+          curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/ikigai-${{ steps.get_version.outputs.version }}-1-x86_64.pkg.tar.zst
+          sudo pacman -U ikigai-${{ steps.get_version.outputs.version }}-1-x86_64.pkg.tar.zst
+          ```
+
+          ### What's Changed
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+        files: |
+          distros/dist/*.deb
+          distros/dist/*.rpm
+          distros/dist/*.pkg.tar.zst
+        draft: false
+        prerelease: ${{ inputs.prerelease }}
+        fail_on_unmatched_files: false
