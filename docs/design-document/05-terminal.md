@@ -65,7 +65,7 @@ The complexity of Linux users, systemd units, PostgreSQL roles, file permissions
 
 ## Technical Implementation
 
-Ikigai Terminal is installed on the developer's local machine—not on production servers.
+Ikigai Terminal is installed on the developer's local machine, not on production servers.
 
 - Written in C for performance and stability as a long-running terminal application
 - Direct terminal rendering with UTF-8 support
@@ -76,4 +76,4 @@ Ikigai Terminal is installed on the developer's local machine—not on productio
 
 ---
 
-**Next**: [Runtime System](06-runtime.md) — the coordination infrastructure that agents use
+**Next**: [Runtime System](06-runtime.md), the coordination infrastructure that agents use

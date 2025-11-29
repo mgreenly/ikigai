@@ -6,7 +6,7 @@
 
 ## Git-Based Deployment
 
-Deployment is a shallow git clone to a specific tag. No build step, no artifact pipeline—Deno runs TypeScript directly.
+Deployment is a shallow git clone to a specific tag. No build step, no artifact pipeline. Deno runs TypeScript directly.
 
 ```
 /opt/ikigai/agents.d/
@@ -54,7 +54,7 @@ When developer says "deploy monitoring-agent v1.2.0":
 
 ## Rollback
 
-Rollback is instant—just change the symlink:
+Rollback is instant. Just change the symlink:
 
 ```bash
 ln -sfn v1.1.0 /opt/ikigai/agents.d/monitoring-agent/current

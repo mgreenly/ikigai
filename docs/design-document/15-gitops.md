@@ -92,4 +92,4 @@ committed to git and applied via webhook.
 
 ---
 
-**Next**: [Part VII: Reference](16-appendix.md) — terminology, open questions, and future considerations.
+**Next**: [Part VII: Reference](16-appendix.md), terminology, open questions, and future considerations.

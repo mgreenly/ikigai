@@ -6,7 +6,7 @@
 
 ## Purpose
 
-The runtime system provides platform services that agents and webapps consume: task queues, mailboxes, storage, caching, pub/sub, and telemetry. Agents import `@ikigai/platform` and use its APIs—they're built for Ikigai, but they don't need to know which database their queue lives in.
+The runtime system provides platform services that agents and webapps consume: task queues, mailboxes, storage, caching, pub/sub, and telemetry. Agents import `@ikigai/platform` and use its APIs. They're built for Ikigai, but they don't need to know which database their queue lives in.
 
 ```typescript
 import { Platform } from "@ikigai/platform";
@@ -23,7 +23,7 @@ The platform package is the API contract. Backend implementations are configurat
 
 ## Configurable Backends
 
-Each platform service can be configured independently in `ikigai.conf`. The default configuration uses PostgreSQL for everything—one dependency that handles all services adequately for most deployments.
+Each platform service can be configured independently in `ikigai.conf`. The default configuration uses PostgreSQL for everything, one dependency that handles all services adequately for most deployments.
 
 ```
 # Default configuration - PostgreSQL for everything
@@ -38,9 +38,9 @@ telemetry = postgres
 
 ### Why PostgreSQL as Default
 
-PostgreSQL handles queues, pub/sub, caching, and storage in one place. This isn't just convenience—it enables things that are difficult with separate services:
+PostgreSQL handles queues, pub/sub, caching, and storage in one place. This isn't just convenience; it enables things that are difficult with separate services:
 
-- **Transactional integrity across operations**: Claim a task, write results, send a message—all in one transaction. If the agent crashes mid-operation, everything rolls back cleanly. This consistency is hard to achieve when tasks live in RabbitMQ, results in Postgres, and messages in Redis.
+- **Transactional integrity across operations**: Claim a task, write results, send a message, all in one transaction. If the agent crashes mid-operation, everything rolls back cleanly. This consistency is hard to achieve when tasks live in RabbitMQ, results in Postgres, and messages in Redis.
 - **Single backup target**: One database to snapshot, replicate, and restore.
 - **No network hops**: On a single server, everything moves through Unix sockets. Latency is measured in microseconds.
 - **LISTEN/NOTIFY** enables real-time coordination without polling
@@ -48,7 +48,7 @@ PostgreSQL handles queues, pub/sub, caching, and storage in one place. This isn'
 - **pgvector extension** enables semantic search and RAG capabilities
 - **Mature tooling** for backup, replication, monitoring
 
-PostgreSQL is not a specialized message queue or time-series database. But for typical agent deployments, it handles all these roles well—and "good enough in one place" beats "optimal in six places you have to operate separately."
+PostgreSQL is not a specialized message queue or time-series database. But for typical agent deployments, it handles all these roles well, and "good enough in one place" beats "optimal in six places you have to operate separately."
 
 ---
 
@@ -75,7 +75,7 @@ Supported backends (current and planned):
 | mailboxes | postgres | redis, nats |
 | cache | postgres | redis |
 | pubsub | postgres | redis, nats |
-| storage | postgres | — |
+| storage | postgres | - |
 | telemetry | postgres | timescaledb, influxdb |
 
 **Agent code doesn't change.** The platform configuration does.
@@ -125,7 +125,7 @@ RETURNING *;
 
 ### Mailboxes
 
-Agents communicate through mailboxes. A mailbox is a named destination for messages with a single consumer—the agent that owns the mailbox. This follows the actor model: each agent has its own mailbox, and messages are delivered point-to-point.
+Agents communicate through mailboxes. A mailbox is a named destination for messages with a single consumer, the agent that owns the mailbox. This follows the actor model: each agent has its own mailbox, and messages are delivered point-to-point.
 
 ```sql
 CREATE TABLE mailbox (
@@ -194,4 +194,4 @@ This avoids polling while keeping operational simplicity. Other backends would u
 
 ---
 
-**Next**: [Autonomous Agents](07-agents.md) — the long-running processes that consume these services
+**Next**: [Autonomous Agents](07-agents.md), the long-running processes that consume these services

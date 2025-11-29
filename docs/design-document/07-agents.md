@@ -1,12 +1,12 @@
 # Pillar 3: Autonomous Agents
 
-> This is the third of [four pillars](02-architecture.md). Agents are what you build—long-running processes that use the [Runtime](06-runtime.md) to coordinate.
+> This is the third of [four pillars](02-architecture.md). Agents are what you build, long-running processes that use the [Runtime](06-runtime.md) to coordinate.
 
 ---
 
 ## Purpose
 
-Autonomous agents are the core of what you build with Ikigai. They are long-running TypeScript processes that watch for what matters, synthesize information, and act when conditions are right—operating continuously without human intervention except when encountering genuine uncertainty.
+Autonomous agents are the core of what you build with Ikigai. They are long-running TypeScript processes that watch for what matters, synthesize information, and act when conditions are right, operating continuously without human intervention except when encountering genuine uncertainty.
 
 ---
 
@@ -105,7 +105,7 @@ Agent health is verified using an Erlang-inspired supervision model: the platfor
 
 **Development**: Developer writes agent locally in `~/project/agents.d/monitoring-agent/`. Same structure as production.
 
-**Testing**: Developer runs `deno task test` or asks Ikigai to run the agent locally. On Linux, the agent connects to natively installed runtime services (PostgreSQL, etc.)—the same tools used in production. Ikigai is a Linux-first platform; native Linux development is the official path.
+**Testing**: Developer runs `deno task test` or asks Ikigai to run the agent locally. On Linux, the agent connects to natively installed runtime services (PostgreSQL, etc.), the same tools used in production. Ikigai is a Linux-first platform; native Linux development is the official path.
 
 **Deployment**: Developer says "deploy monitoring-agent v1.2.0". Ikigai:
 1. On first deploy: creates Linux user, PostgreSQL role, directories
@@ -264,4 +264,4 @@ RestartSec=5
 
 ---
 
-**Next**: [Web Portal](08-web-portal.md) — browser-based access to the platform
+**Next**: [Web Portal](08-web-portal.md), browser-based access to the platform

@@ -69,7 +69,7 @@ Web users authenticate with Linux credentials. The authentication flow:
 4. Session cookie is issued to the browser
 5. Subsequent requests include the cookie; backend validates against PostgreSQL
 
-This maintains the "identity is Linux users" principle—web users are Linux users authenticating through a browser instead of SSH.
+This maintains the "identity is Linux users" principle. Web users are Linux users authenticating through a browser instead of SSH.
 
 ---
 
@@ -100,7 +100,7 @@ Each webapp is a Fresh application with versioned directories (shallow git clone
         └── ...
 ```
 
-No `current` symlink—nginx configuration directly controls which versions are served.
+No `current` symlink. Nginx configuration directly controls which versions are served.
 
 ---
 
@@ -232,7 +232,7 @@ Rollback is just changing the traffic split back.
 | `/admin/` | `admin` | Derived from webapp name |
 | `/api/` | Backend API | Proxied to Deno service |
 
-The root path (`/`) serves a platform-provided dashboard by default. This is replaceable—any webapp can be configured as the root.
+The root path (`/`) serves a platform-provided dashboard by default. This is replaceable. Any webapp can be configured as the root.
 
 ---
 

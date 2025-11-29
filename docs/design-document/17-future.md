@@ -6,7 +6,7 @@
 
 ## Multi-Server Deployment
 
-The default deployment is single-server—everything on one host, vertically scaled. The architecture supports multi-server deployment when needed:
+The default deployment is single-server, everything on one host, vertically scaled. The architecture supports multi-server deployment when needed:
 
 - **Agent placement**: Which server runs which agent?
 - **Runtime access**: All servers connect to shared runtime services (centralized or replicated)
