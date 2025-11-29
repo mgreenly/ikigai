@@ -68,6 +68,8 @@ assert(ptr != NULL);                    // LCOV_EXCL_BR_LINE
 if (!ptr) PANIC("Invariant violated");  // LCOV_EXCL_BR_LINE
 ```
 
+**Important:** These markers are NOT reliably honored inside `static` functions. See `style.md` "Avoid Static Functions" rule - inline code instead of using static helpers.
+
 ### Never Exclude
 
 - Runtime error handling

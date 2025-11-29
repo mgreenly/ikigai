@@ -53,6 +53,31 @@ Example:
 
 Rationale: Project headers before system headers catches non-self-contained headers early.
 
+### Avoid Static Functions
+
+Do not use `static` helper functions in implementation files. Instead, inline the code directly.
+
+**Why:** LCOV exclusion markers (`LCOV_EXCL_BR_LINE`) on PANIC/assert calls inside static functions are not reliably honored, breaking 100% branch coverage requirements.
+
+**Exception:** MOCKABLE wrapper functions (see `wrapper.h`) - these use static functions by design for the mocking interface.
+
+**Instead of:**
+```c
+static yyjson_mut_val *build_param(yyjson_mut_doc *doc, const char *desc)
+{
+    yyjson_mut_val *p = yyjson_mut_obj(doc);
+    if (p == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE - NOT HONORED!
+    return p;
+}
+```
+
+**Do:**
+```c
+// Inline the code at each call site
+yyjson_mut_val *p = yyjson_mut_obj(doc);
+if (p == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE - works
+```
+
 ### Test Code Style
 
 Always add a blank line between END_TEST and START_TEST.
