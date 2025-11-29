@@ -35,7 +35,7 @@ model: sonnet
 
 ## Pre-conditions
 - `make check` passes
-- Task `grep-schema.md` completed (grep schema exists in tool-all-schemas)
+- grep schema exists (from tool-all-schemas)
 - `ik_tool_exec_glob()` and `ik_tool_exec_file_read()` exist as reference implementations
 - Multi-tool conversation loop works (Story 04 completed)
 
@@ -58,12 +58,13 @@ Implement grep tool execution. Given a pattern, optional glob filter, and option
    - Optional glob parameter filters files (e.g., "*.c" only searches C files)
    - Optional path parameter limits search to specific directory
 2. Create test fixture directory with known files and content for predictable results
-3. Run `make check` - expect compile failure
+3. Add declaration to `src/tool.h`:
+   - `ik_tool_exec_grep(void *parent, const char *arguments)` returning `res_t`
+4. Add stub in `src/tool.c`: `return OK("{\"output\": \"\", \"count\": 0}");` (always empty)
+5. Run `make check` - expect assertion failure (tests with fixtures expect actual grep matches)
 
 ### Green
-1. Add to `src/tool.h`:
-   - Declare `ik_tool_exec_grep(void *parent, const char *arguments)` returning `res_t`
-2. Implement in `src/tool.c`:
+1. Replace stub in `src/tool.c` with implementation:
    - Parse arguments JSON to extract pattern, glob (optional), path (optional)
    - Implement file search logic:
      - If glob provided, use it to filter files (integrate with glob functionality)

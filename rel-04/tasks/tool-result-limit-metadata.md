@@ -22,10 +22,10 @@ model: sonnet
 - rel-04/tasks/tool-result-msg.md
 
 ### Pre-read Source (patterns)
-- src/openai/client.h (extend ik_openai_msg_t for tool_call_id)
+- src/openai/client.h (ik_openai_msg_t with tool_call_id, tool message creation)
 - src/openai/client.c (JSON serialization with yyjson pattern)
-- src/tools/tool.h (tool result structures)
-- src/openai/message.h (message construction)
+- src/tool.h (tool execution functions)
+- src/tool.c (JSON result building pattern)
 
 ### Pre-read Tests (patterns)
 - tests/unit/openai/client_structures_test.c (testing patterns for message structures)
@@ -47,39 +47,38 @@ This metadata is added to the JSON content of the tool result message so the mod
 ## TDD Cycle
 
 ### Red
-1. Add test to tool result message test suite:
-   - Create tool result with normal output
-   - Call function to add limit metadata (e.g., `ik_tool_result_set_limit_reached(result, 3)`)
-   - Serialize to JSON
-   - Verify JSON contains:
-     - Original output/count fields
+1. Add test to tool test suite (e.g., `tests/unit/tool/tool_limit_test.c`):
+   - Create a tool result JSON string (e.g., `{"output": "file.c", "count": 1}`)
+   - Call function to add limit metadata: `ik_tool_result_add_limit_metadata(parent, result_json, max_tool_turns)`
+   - Parse returned JSON and verify it contains:
+     - Original `"output"` and `"count"` fields preserved
      - `"limit_reached": true`
      - `"limit_message": "Tool call limit reached (3). Stopping tool loop."`
-2. Run `make check` - expect compile failure (function doesn't exist)
+2. Add declaration to `src/tool.h`:
+   - `char *ik_tool_result_add_limit_metadata(void *parent, const char *result_json, int max_tool_turns)`
+3. Add stub in `src/tool.c`: `return talloc_strdup(parent, result_json);` (returns unchanged)
+4. Run `make check` - expect assertion failure (tests expect limit metadata fields)
 
 ### Green
-1. Locate tool result structure (e.g., `ik_tool_result_t` in src/tools/tool.h)
-2. Add fields for limit tracking:
-   - `bool limit_reached`
-   - `char *limit_message` (or use fixed buffer if appropriate)
-3. Implement function to set limit metadata:
-   - `ik_tool_result_set_limit_reached(result, max_iterations)`
-   - Sets `limit_reached = true`
-   - Generates message: "Tool call limit reached (%d). Stopping tool loop."
-4. Update JSON serialization to include these fields when present
-5. Run `make check` - expect pass
+1. Replace stub in `src/tool.c` with implementation:
+   - Parse input JSON with yyjson
+   - Create mutable copy of the JSON object
+   - Add `"limit_reached": true` field
+   - Add `"limit_message"` field with formatted message
+   - Serialize back to JSON string
+   - Return new JSON string (talloc'd to parent)
+3. Run `make check` - expect pass
 
 ### Refactor
-1. Ensure proper memory management for limit_message
-2. Consider if limit fields should be optional (only serialized if limit_reached is true)
-3. Check if existing result cleanup functions need updates
-4. Verify naming consistency with project conventions
-5. Run `make check` - verify still green
+1. Ensure proper yyjson memory cleanup
+2. Handle edge cases (malformed input JSON, NULL inputs)
+3. Verify naming consistency with project conventions
+4. Run `make check` - verify still green
 
 ## Post-conditions
 - `make check` passes
 - `make lint && make coverage` passes
-- Tool results can include limit_reached and limit_message fields
-- JSON serialization includes metadata when limit is reached
+- `ik_tool_result_add_limit_metadata()` function adds limit fields to JSON result
+- Original JSON fields are preserved when metadata is added
 - Normal tool results (without limit) work unchanged
 - 100% test coverage for new code

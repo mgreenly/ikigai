@@ -30,7 +30,15 @@ model: sonnet
 - Task `tool-choice-serialize.md` completed
 - `ik_tool_choice_serialize()` works for all 4 modes
 - Request builder exists from Story 01 (task: request-with-tools.md)
-- Request builder currently hardcodes `tool_choice: "auto"`
+- Request builder currently has conditional logic for tool_choice (Story 11: tool-choice-none-on-limit.md)
+
+## Refactoring Context
+
+**This task refactors Story 11 code**: Task `tool-choice-none-on-limit.md` implemented tool_choice handling using hardcoded string literals (`"auto"`, `"none"`) and conditional logic based on `limit_reached` state. This was intentional to complete Story 11 with minimal dependencies.
+
+**Now we clean it up**: With the proper `ik_tool_choice_t` type available, this task replaces that conditional logic with a cleaner parameter-based approach. The caller decides which tool_choice to use and passes it explicitly.
+
+This follows the TDD pattern: "Make it work, then make it right."
 
 ## Task
 Modify the request builder to accept an `ik_tool_choice_t` parameter instead of hardcoding "auto" or conditionally using "none".

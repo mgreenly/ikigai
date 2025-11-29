@@ -31,11 +31,12 @@ model: sonnet
 - tests/integration/openai_mock_verification_test.c (API mocking pattern)
 - tests/unit/openai/client_http_mock_test.c (mock response creation)
 - tests/test_utils.h (database test utilities)
-- tests/unit/tool/test_bash_execute.c (unit tests for error cases)
+- tests/unit/tool/ (bash unit tests created by task bash-execute.md)
 
 ## Pre-conditions
 - `make check` passes
 - All tasks from Stories 01-08 completed
+- Task `db-tool-persist.md` completed (tool messages persist to database)
 - `ik_tool_exec_bash()` exists and handles command failures
 - Tool result messages support non-zero exit codes
 - Conversation loop handles tool results with failed commands
@@ -52,6 +53,8 @@ Create an end-to-end integration test that verifies bash command failures flow c
 7. All messages persist to database correctly
 
 This test verifies that the error handling implemented in bash-execute.md works correctly end-to-end.
+
+**Note**: This is a verification test. The functionality is implemented in earlier tasks. If previous tasks are complete, the test should pass. If it fails, identify and fix gaps in the implementation.
 
 ## TDD Cycle
 

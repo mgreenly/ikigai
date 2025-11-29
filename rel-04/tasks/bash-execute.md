@@ -34,7 +34,8 @@ model: sonnet
 - `make check` passes
 - `ik_tool_call_t` struct exists
 - `ik_tool_build_bash_schema()` exists
-- Tasks `file-write-execute.md` and `conversation-tool-loop.md` completed
+- Task `file-write-execute.md` completed
+- Task `tool-loop-continuation.md` completed (conversation loop works)
 
 ## Task
 Implement bash tool execution. Given a command string, execute it via shell and return stdout and exit code as JSON matching the expected format:
@@ -52,12 +53,13 @@ Implement bash tool execution. Given a command string, execute it via shell and 
    - Failed command returns non-zero exit code
    - Command with no output returns `{"output": "", "exit_code": 0}`
    - Invalid/unsafe command patterns are handled appropriately
-2. Run `make check` - expect compile failure
+2. Add declaration to `src/tool.h`:
+   - `ik_tool_exec_bash(void *parent, const char *arguments)` returning `res_t`
+3. Add stub in `src/tool.c`: `return OK("{\"output\": \"\", \"exit_code\": -1}");`
+4. Run `make check` - expect assertion failure (tests expect command execution with exit_code 0)
 
 ### Green
-1. Add to `src/tool.h`:
-   - Declare `ik_tool_exec_bash(void *parent, const char *arguments)` returning `res_t`
-2. Implement in `src/tool.c`:
+1. Replace stub in `src/tool.c` with implementation:
    - Parse arguments JSON to extract command string
    - Use popen() to execute command and capture stdout
    - Capture exit code with pclose()

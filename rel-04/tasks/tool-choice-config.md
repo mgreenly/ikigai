@@ -32,7 +32,7 @@ model: sonnet
 
 ## Pre-conditions
 - `make check` passes
-- Task `replay-tool-messages.md` completed (Story 12)
+- Task `replay-tool-e2e.md` completed (Story 12)
 - Request serialization currently hardcodes `tool_choice: "auto"` (Story 01)
 - Loop limit logic can set `tool_choice: "none"` (Story 11)
 
@@ -46,22 +46,27 @@ This will be used by the request builder to serialize the correct tool_choice va
 ## TDD Cycle
 
 ### Red
-1. Create tests/unit/test_tool_choice_config.c:
+1. Create tests/unit/openai/test_tool_choice.c:
    - Test creating tool_choice for "auto" mode
    - Test creating tool_choice for "none" mode
    - Test creating tool_choice for "required" mode
    - Test creating tool_choice for specific tool (e.g., "glob")
    - Test serializing each to JSON string
-2. Run `make check` - expect compile failure (type doesn't exist)
-
-### Green
-1. Create src/openai/tool_choice.h with:
+2. Create src/openai/tool_choice.h with:
    - Enum for mode: `IK_TOOL_CHOICE_AUTO`, `IK_TOOL_CHOICE_NONE`, `IK_TOOL_CHOICE_REQUIRED`, `IK_TOOL_CHOICE_SPECIFIC`
    - Struct `ik_tool_choice_t` with mode and optional tool name
-   - Functions: `ik_tool_choice_auto()`, `ik_tool_choice_none()`, `ik_tool_choice_required()`, `ik_tool_choice_specific(const char* tool_name)`
-2. Create src/openai/tool_choice.c with implementations
-3. Update Makefile to compile new files
-4. Run `make check` - expect pass
+   - Function declarations
+3. Create src/openai/tool_choice.c with stubs:
+   - All functions return struct with mode set to `IK_TOOL_CHOICE_AUTO` (incorrect for none/required/specific tests)
+4. Run `make check` - expect assertion failure (tests for none/required/specific expect different modes)
+
+### Green
+1. Replace stubs in src/openai/tool_choice.c with correct implementations:
+   - `ik_tool_choice_auto()` returns struct with `IK_TOOL_CHOICE_AUTO`
+   - `ik_tool_choice_none()` returns struct with `IK_TOOL_CHOICE_NONE`
+   - `ik_tool_choice_required()` returns struct with `IK_TOOL_CHOICE_REQUIRED`
+   - `ik_tool_choice_specific()` returns struct with `IK_TOOL_CHOICE_SPECIFIC` and tool name
+2. Run `make check` - expect pass
 
 ### Refactor
 1. Consider if tool_choice should have a destroy function (depends on ownership of tool_name)

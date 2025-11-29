@@ -42,7 +42,7 @@ Implement JSON serialization for `ik_tool_choice_t` that outputs:
 ## TDD Cycle
 
 ### Red
-1. Add tests to tests/unit/test_tool_choice_config.c:
+1. Add tests to tests/unit/openai/test_tool_choice.c:
    - Serialize auto mode → verify JSON is string "auto"
    - Serialize none mode → verify JSON is string "none"
    - Serialize required mode → verify JSON is string "required"

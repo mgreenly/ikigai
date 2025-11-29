@@ -52,11 +52,12 @@ Create `ik_tool_build_all(yyjson_mut_doc *doc)` that returns a yyjson_mut_val* a
    - Third element has "function.name": "grep"
    - Fourth element has "function.name": "file_write"
    - Fifth element has "function.name": "bash"
-2. Run `make check` - expect compile failure
+2. Add `ik_tool_build_all()` declaration to `src/tool.h`
+3. Add stub in `src/tool.c`: `return NULL;`
+4. Run `make check` - expect assertion failure (returns NULL, test expects valid array)
 
 ### Green
-1. Add `ik_tool_build_all()` declaration to src/tool.h
-2. Implement in src/tool.c:
+1. Replace stub in `src/tool.c` with implementation:
    - Create yyjson array
    - Call each schema builder function
    - Add each result to array

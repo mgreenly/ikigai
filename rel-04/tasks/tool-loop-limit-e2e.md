@@ -30,7 +30,7 @@ model: sonnet
 - `make check` passes
 - Task `tool-choice-none-on-limit.md` completed
 - All components for limit handling implemented:
-  - MAX_TOOL_ITERATIONS config exists
+  - MAX_TOOL_TURNS config exists
   - Loop counter tracks iterations
   - Limit metadata added to tool results
   - tool_choice set to "none" when limit reached
@@ -47,6 +47,8 @@ Create an end-to-end integration test that verifies the complete tool loop limit
 8. Model provides summary response with finish_reason: "stop"
 9. All messages persisted to database
 10. Scrollback displays final response
+
+**Note**: This is a verification test. The functionality is implemented in earlier tasks. If previous tasks are complete, the test should pass. If it fails, identify and fix gaps in the implementation.
 
 ## TDD Cycle
 
@@ -72,7 +74,7 @@ Create an end-to-end integration test that verifies the complete tool loop limit
 1. Wire together all limit handling components in conversation loop:
    - Initialize counter
    - Increment after each tool execution
-   - Detect when counter == MAX_TOOL_ITERATIONS
+   - Detect when counter == MAX_TOOL_TURNS
    - Add limit metadata to tool result
    - Set tool_choice to "none" in next request
    - Ensure loop terminates after final response

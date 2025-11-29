@@ -32,7 +32,7 @@ model: sonnet
 
 ## Pre-conditions
 - `make check` passes
-- Task `file-read-schema.md` completed
+- Task `tool-all-schemas.md` completed (provides `ik_tool_build_file_read_schema()`)
 - `ik_tool_exec_glob()` exists as reference implementation
 
 ## Task
@@ -52,12 +52,13 @@ Implement file_read tool execution. Given a file path, read the file contents an
    - Unreadable file (permission denied) returns error
    - Empty file returns `{"output": ""}`
 2. Create test fixture files with known contents for predictable results
-3. Run `make check` - expect compile failure
+3. Add declaration to `src/tool.h`:
+   - `ik_tool_exec_file_read(void *parent, const char *arguments)` returning `res_t`
+4. Add stub in `src/tool.c`: `return OK("{\"output\": \"\"}");` (always empty)
+5. Run `make check` - expect assertion failure (tests with fixtures expect actual file contents)
 
 ### Green
-1. Add to `src/tool.h`:
-   - Declare `ik_tool_exec_file_read(void *parent, const char *arguments)` returning `res_t`
-2. Implement in `src/tool.c`:
+1. Replace stub in `src/tool.c` with implementation:
    - Parse arguments JSON to extract path
    - Use fopen() to open the file for reading
    - Read entire file contents (handle large files appropriately)

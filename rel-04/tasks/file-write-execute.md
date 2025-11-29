@@ -56,12 +56,13 @@ Implement file_write tool execution. Given a file path and content, write the co
    - Writing empty content creates empty file with `{"output": "Wrote 0 bytes to filename", "bytes": 0}`
    - Overwriting existing file works correctly
 2. Create test fixture directory for file operations
-3. Run `make check` - expect compile failure
+3. Add declaration to `src/tool.h`:
+   - `ik_tool_exec_file_write(void *parent, const char *arguments)` returning `res_t`
+4. Add stub in `src/tool.c`: `return OK("{\"output\": \"Not implemented\", \"bytes\": 0}");`
+5. Run `make check` - expect assertion failure (tests expect actual file write and byte count)
 
 ### Green
-1. Add to `src/tool.h`:
-   - Declare `ik_tool_exec_file_write(void *parent, const char *arguments)` returning `res_t`
-2. Implement in `src/tool.c`:
+1. Replace stub in `src/tool.c` with implementation:
    - Parse arguments JSON to extract path and content
    - Use fopen() to open the file for writing (mode "w")
    - Write content using fwrite() or fputs()

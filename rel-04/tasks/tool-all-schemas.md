@@ -61,15 +61,16 @@ Add 4 more schema builder functions following the same pattern as glob:
 4. Add tests for `ik_tool_build_bash_schema()`:
    - Has "name": "bash"
    - Has "command" parameter (required)
-5. Run `make check` - expect compile failures
+5. Add all 4 function declarations to `src/tool.h`
+6. Add stubs in `src/tool.c` for each function: `return NULL;`
+7. Run `make check` - expect assertion failures (return NULL, tests expect valid schemas)
 
 ### Green
-1. Implement `ik_tool_build_file_read_schema()` in src/tool.c
-2. Implement `ik_tool_build_grep_schema()` in src/tool.c
-3. Implement `ik_tool_build_file_write_schema()` in src/tool.c
-4. Implement `ik_tool_build_bash_schema()` in src/tool.c
-5. Add declarations to src/tool.h
-6. Run `make check` - expect pass
+1. Replace stub for `ik_tool_build_file_read_schema()` with implementation
+2. Replace stub for `ik_tool_build_grep_schema()` with implementation
+3. Replace stub for `ik_tool_build_file_write_schema()` with implementation
+4. Replace stub for `ik_tool_build_bash_schema()` with implementation
+5. Run `make check` - expect pass
 
 ### Refactor
 1. Extract common patterns if duplication is excessive

@@ -37,19 +37,22 @@ Create `src/tool.h` and `src/tool.c` with a function `ik_tool_build_glob_schema(
 ## TDD Cycle
 
 ### Red
-1. Create `tests/unit/tool/test_tool.c` (new test directory)
-2. Write test that calls `ik_tool_build_glob_schema()` and verifies:
+1. Create `tests/unit/tool/` directory if it doesn't exist
+2. Create `tests/unit/tool/test_tool.c`
+3. Write test that calls `ik_tool_build_glob_schema()` and verifies:
    - Returns non-NULL yyjson_mut_val*
    - Has "type": "function"
    - Has "function" object with "name": "glob"
    - Has "description" field
    - Has "parameters" with correct structure (type, properties, required)
-3. Add test file to Makefile/build system
-4. Run `make check` - expect compile failure (function doesn't exist)
+4. Add test file to Makefile/build system
+5. Create `src/tool.h` with function declaration
+6. Create `src/tool.c` with stub: `return NULL;`
+7. Add source files to build system
+8. Run `make check` - expect assertion failure (returns NULL, test expects valid schema)
 
 ### Green
-1. Create `src/tool.h` with function declaration
-2. Create `src/tool.c` with implementation using yyjson to build:
+1. Replace stub in `src/tool.c` with implementation using yyjson to build:
    ```json
    {
      "type": "function",
@@ -67,8 +70,7 @@ Create `src/tool.h` and `src/tool.c` with a function `ik_tool_build_glob_schema(
      }
    }
    ```
-3. Add source files to build system
-4. Run `make check` - expect pass
+2. Run `make check` - expect pass
 
 ### Refactor
 1. Ensure function follows ik_ prefix convention

@@ -4,7 +4,7 @@
 User story: 13-tool-choice-required
 
 ## Agent
-model: haiku
+model: sonnet
 
 ### Pre-read Skills
 - .agents/skills/tdd.md
@@ -27,7 +27,7 @@ model: haiku
 - tests/unit/openai/client_http_mock_test.c (curl mocking pattern)
 - tests/integration/openai_mock_verification_test.c (OpenAI API mock setup pattern)
 - tests/integration/message_integration_test.c (integration test structure with setup/teardown)
-- tests/e2e/test_tool_choice_none.c (similar test structure)
+- tests/integration/test_tool_choice_none.c (similar test structure)
 
 ## Pre-conditions
 - `make check` passes
@@ -43,10 +43,12 @@ Create an end-to-end test that verifies `tool_choice: "required"` works correctl
 4. Tool executes and returns results
 5. Model summarizes results
 
+**Note**: This is a verification test. The functionality is implemented in earlier tasks. If previous tasks are complete, the test should pass. If it fails, identify and fix gaps in the implementation.
+
 ## TDD Cycle
 
 ### Red
-1. Create tests/e2e/test_tool_choice_required.c:
+1. Create tests/integration/test_tool_choice_required.c:
    - Configure request to use tool_choice required
    - Mock OpenAI API to return tool call response (model must use tool)
    - Send user message "Find all C files in src/"

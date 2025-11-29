@@ -50,12 +50,13 @@ typedef struct {
    - Test `ik_tool_call_create()` returns non-NULL
    - Test fields are set correctly (id, name, arguments)
    - Test NULL parent works (talloc root context)
-2. Run `make check` - expect compile failure (function doesn't exist)
+2. Add `ik_tool_call_t` typedef to `src/tool.h`
+3. Add `ik_tool_call_create()` declaration to `src/tool.h`
+4. Add stub in `src/tool.c`: `return NULL;`
+5. Run `make check` - expect assertion failure (returns NULL, test expects valid struct)
 
 ### Green
-1. Add `ik_tool_call_t` typedef to `src/tool.h`
-2. Add `ik_tool_call_create(void *parent, const char *id, const char *name, const char *arguments)` declaration
-3. Implement in `src/tool.c`:
+1. Replace stub in `src/tool.c` with implementation:
    - Allocate struct with talloc
    - Copy strings with talloc_strdup (owned by struct)
    - Return pointer

@@ -33,7 +33,7 @@ model: haiku
 ## Pre-conditions
 - `make check` passes
 - Conversation tool loop integration works
-- Task `conversation-tool-loop.md` completed
+- Task `tool-loop-continuation.md` completed
 
 ## Task
 Display tool calls and results in the scrollback buffer. The user story walkthrough says:
@@ -58,10 +58,12 @@ Design a clear, readable format for tool activity. Example:
    - Format tool result produces expected string
    - Handles empty results gracefully
    - Handles long file lists (truncation or scrolling)
-2. Run `make check` - expect compile failure
+2. Add formatting function declarations to appropriate header
+3. Add stubs that return empty strings or NULL
+4. Run `make check` - expect assertion failure (tests expect formatted output)
 
 ### Green
-1. Add formatting functions:
+1. Replace stubs with implementations:
    - `ik_format_tool_call(void *parent, const ik_tool_call_t *call)` - returns display string
    - `ik_format_tool_result(void *parent, const char *tool_name, const char *result_json)` - returns display string
 2. Integrate into scrollback:

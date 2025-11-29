@@ -31,11 +31,12 @@ model: sonnet
 - tests/integration/message_integration_test.c (integration test patterns with database)
 - tests/unit/repl/handle_request_error_test.c (error handling in conversation flow)
 - tests/integration/openai_mock_verification_test.c (mock setup patterns for OpenAI responses)
-- tests/unit/tool/test_file_read_execute.c (unit tests for error cases)
+- tests/unit/tool/ (file_read unit tests created by task file-read-execute.md)
 
 ## Pre-conditions
 - `make check` passes
 - All tasks from Stories 01-07 completed
+- Task `db-tool-persist.md` completed (tool messages persist to database)
 - `ik_tool_exec_file_read()` exists and handles file not found errors
 - Tool result messages support error content
 - Conversation loop handles tool errors
@@ -51,7 +52,9 @@ Create an end-to-end integration test that verifies file not found errors flow c
 6. Model responds with helpful error explanation
 7. All messages persist to database correctly
 
-This test verifies that the error handling implemented in previous tasks (file-read-execute.md, conversation-tool-loop.md) works correctly end-to-end.
+This test verifies that the error handling implemented in previous tasks (file-read-execute.md, tool-loop-continuation.md) works correctly end-to-end.
+
+**Note**: This is a verification test. The functionality is implemented in earlier tasks. If previous tasks are complete, the test should pass. If it fails, identify and fix gaps in the implementation.
 
 ## TDD Cycle
 
