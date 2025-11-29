@@ -2,7 +2,7 @@
 
 ## Story 01: Simple Greeting (No Tools)
 
-- tool-glob-schema.md
+- ~~tool-glob-schema.md~~ ✅
 - tool-all-schemas.md
 - tool-build-array.md
 - request-with-tools.md
