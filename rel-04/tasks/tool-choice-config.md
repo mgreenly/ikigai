@@ -1,0 +1,61 @@
+# Task: Add tool_choice Configuration Type
+
+## Target
+User story: 13-tool-choice-auto, 13-tool-choice-none, 13-tool-choice-required, 13-tool-choice-specific
+
+## Agent
+model: sonnet
+
+## Pre-conditions
+- `make check` passes
+- Task `replay-tool-messages.md` completed (Story 12)
+- Request serialization currently hardcodes `tool_choice: "auto"` (Story 01)
+- Loop limit logic can set `tool_choice: "none"` (Story 11)
+
+## Context
+Read before starting:
+- src/openai/client.h or src/openai/request.h (request structure)
+- rel-04/user-stories/13-tool-choice-auto.md (string value "auto")
+- rel-04/user-stories/13-tool-choice-none.md (string value "none")
+- rel-04/user-stories/13-tool-choice-required.md (string value "required")
+- rel-04/user-stories/13-tool-choice-specific.md (object value with type and function.name)
+
+## Task
+Create a configuration type that can represent all valid `tool_choice` values:
+1. String modes: "auto", "none", "required"
+2. Specific tool object: `{"type": "function", "function": {"name": "glob"}}`
+
+This will be used by the request builder to serialize the correct tool_choice value.
+
+## TDD Cycle
+
+### Red
+1. Create tests/unit/test_tool_choice_config.c:
+   - Test creating tool_choice for "auto" mode
+   - Test creating tool_choice for "none" mode
+   - Test creating tool_choice for "required" mode
+   - Test creating tool_choice for specific tool (e.g., "glob")
+   - Test serializing each to JSON string
+2. Run `make check` - expect compile failure (type doesn't exist)
+
+### Green
+1. Create src/openai/tool_choice.h with:
+   - Enum for mode: `IK_TOOL_CHOICE_AUTO`, `IK_TOOL_CHOICE_NONE`, `IK_TOOL_CHOICE_REQUIRED`, `IK_TOOL_CHOICE_SPECIFIC`
+   - Struct `ik_tool_choice_t` with mode and optional tool name
+   - Functions: `ik_tool_choice_auto()`, `ik_tool_choice_none()`, `ik_tool_choice_required()`, `ik_tool_choice_specific(const char* tool_name)`
+2. Create src/openai/tool_choice.c with implementations
+3. Update Makefile to compile new files
+4. Run `make check` - expect pass
+
+### Refactor
+1. Consider if tool_choice should have a destroy function (depends on ownership of tool_name)
+2. Ensure naming matches docs/naming.md conventions
+3. Verify struct is small enough to pass by value or needs pointer passing
+4. Run `make check` - verify still green
+
+## Post-conditions
+- `make check` passes
+- `make lint && make coverage` passes
+- `ik_tool_choice_t` type exists with mode enum and tool name
+- Helper functions create tool_choice values for all 4 modes
+- 100% test coverage for new code
