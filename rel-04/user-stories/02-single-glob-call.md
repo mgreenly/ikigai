@@ -91,7 +91,7 @@ I found the following C files in src/:
 ### Tool Result A
 
 ```json
-{"output": "src/main.c\nsrc/config.c\nsrc/repl.c", "count": 3}
+{"success": true, "data": {"output": "src/main.c\nsrc/config.c\nsrc/repl.c", "count": 3}}
 ```
 
 ### Request B
@@ -102,7 +102,7 @@ I found the following C files in src/:
   "messages": [
     {"role": "user", "content": "Find all C files in src/"},
     {"role": "assistant", "tool_calls": [{"id": "call_abc123", "type": "function", "function": {"name": "glob", "arguments": "{\"pattern\": \"*.c\", \"path\": \"src/\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_abc123", "content": "{\"output\": \"src/main.c\\nsrc/config.c\\nsrc/repl.c\", \"count\": 3}"}
+    {"role": "tool", "tool_call_id": "call_abc123", "content": "{\"success\": true, \"data\": {\"output\": \"src/main.c\\nsrc/config.c\\nsrc/repl.c\", \"count\": 3}}"}
   ],
   "tools": ["...same as Request A..."],
   "tool_choice": "auto",

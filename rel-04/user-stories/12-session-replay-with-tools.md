@@ -49,7 +49,7 @@ Earlier I read config.json, which contained your debug and port settings.
 ```
 Event 1: {type: "user_message", content: "Show me config.json"}
 Event 2: {type: "tool_call", tool: "file_read", args: {path: "config.json"}, call_id: "call_xyz"}
-Event 3: {type: "tool_result", call_id: "call_xyz", content: "{\"output\": \"{\\\"debug\\\": true, \\\"port\\\": 8080}\"}"}
+Event 3: {type: "tool_result", call_id: "call_xyz", content: "{\"success\": true, \"data\": {\"output\": \"{\\\"debug\\\": true, \\\"port\\\": 8080}\"}}"}
 Event 4: {type: "assistant_message", content: "Here's config.json with your debug and port settings."}
 ```
 
@@ -61,7 +61,7 @@ Event 4: {type: "assistant_message", content: "Here's config.json with your debu
   "messages": [
     {"role": "user", "content": "Show me config.json"},
     {"role": "assistant", "tool_calls": [{"id": "call_xyz", "type": "function", "function": {"name": "file_read", "arguments": "{\"path\": \"config.json\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_xyz", "content": "{\"output\": \"{\\\"debug\\\": true, \\\"port\\\": 8080}\"}"},
+    {"role": "tool", "tool_call_id": "call_xyz", "content": "{\"success\": true, \"data\": {\"output\": \"{\\\"debug\\\": true, \\\"port\\\": 8080}\"}}"},
     {"role": "assistant", "content": "Here's config.json with your debug and port settings."},
     {"role": "user", "content": "What file did you read earlier?"}
   ],

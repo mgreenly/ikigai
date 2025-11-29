@@ -82,7 +82,7 @@ I found TODO comments in the following locations:
 ### Tool Result A
 
 ```json
-{"output": "src/main.c:42: // TODO: add error handling\nsrc/repl.c:15: // TODO: implement history", "count": 2}
+{"success": true, "data": {"output": "src/main.c:42: // TODO: add error handling\nsrc/repl.c:15: // TODO: implement history", "count": 2}}
 ```
 
 ### Request B
@@ -93,7 +93,7 @@ I found TODO comments in the following locations:
   "messages": [
     {"role": "user", "content": "Search for TODO comments in the C files"},
     {"role": "assistant", "tool_calls": [{"id": "call_grep1", "type": "function", "function": {"name": "grep", "arguments": "{\"pattern\": \"TODO\", \"glob\": \"*.c\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_grep1", "content": "{\"output\": \"src/main.c:42: // TODO: add error handling\\nsrc/repl.c:15: // TODO: implement history\", \"count\": 2}"}
+    {"role": "tool", "tool_call_id": "call_grep1", "content": "{\"success\": true, \"data\": {\"output\": \"src/main.c:42: // TODO: add error handling\\nsrc/repl.c:15: // TODO: implement history\", \"count\": 2}}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",

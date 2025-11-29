@@ -96,7 +96,7 @@ I found config.json. Here are its contents:
 ### Tool Result A
 
 ```json
-{"output": "config.json", "count": 1}
+{"success": true, "data": {"output": "config.json", "count": 1}}
 ```
 
 ### Request B
@@ -107,7 +107,7 @@ I found config.json. Here are its contents:
   "messages": [
     {"role": "user", "content": "Find the config file and show me what's in it"},
     {"role": "assistant", "tool_calls": [{"id": "call_glob1", "type": "function", "function": {"name": "glob", "arguments": "{\"pattern\": \"config.*\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_glob1", "content": "{\"output\": \"config.json\", \"count\": 1}"}
+    {"role": "tool", "tool_call_id": "call_glob1", "content": "{\"success\": true, \"data\": {\"output\": \"config.json\", \"count\": 1}}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",
@@ -140,7 +140,7 @@ I found config.json. Here are its contents:
 ### Tool Result B
 
 ```json
-{"output": "{\n  \"debug\": true,\n  \"port\": 8080\n}"}
+{"success": true, "data": {"output": "{\n  \"debug\": true,\n  \"port\": 8080\n}"}}
 ```
 
 ### Request C
@@ -153,7 +153,7 @@ I found config.json. Here are its contents:
     {"role": "assistant", "tool_calls": [{"id": "call_glob1", "type": "function", "function": {"name": "glob", "arguments": "{\"pattern\": \"config.*\"}"}}]},
     {"role": "tool", "tool_call_id": "call_glob1", "content": "{\"output\": \"config.json\", \"count\": 1}"},
     {"role": "assistant", "tool_calls": [{"id": "call_read1", "type": "function", "function": {"name": "file_read", "arguments": "{\"path\": \"config.json\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_read1", "content": "{\"output\": \"{\\n  \\\"debug\\\": true,\\n  \\\"port\\\": 8080\\n}\"}"}
+    {"role": "tool", "tool_call_id": "call_read1", "content": "{\"success\": true, \"data\": {\"output\": \"{\\n  \\\"debug\\\": true,\\n  \\\"port\\\": 8080\\n}\"}}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",

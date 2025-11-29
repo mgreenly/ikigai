@@ -20,6 +20,8 @@ model: sonnet
 - docs/error_patterns.md
 - docs/error_testing.md
 - rel-04/user-stories/06-file-write.md (user story - see Tool Result A for expected format)
+- rel-04/docs/tool-result-format.md
+- rel-04/docs/tool_use.md
 
 ### Pre-read Source (patterns)
 - src/config.c (yyjson JSON building pattern)
@@ -42,7 +44,7 @@ model: sonnet
 Implement file_write tool execution. Given a file path and content, write the content to the file and return a success message as JSON matching the expected format:
 
 ```json
-{"output": "Wrote 20 bytes to notes.txt", "bytes": 20}
+{"success": true, "data": {"output": "Wrote 20 bytes to notes.txt", "bytes": 20}}
 ```
 
 ## TDD Cycle
@@ -50,27 +52,27 @@ Implement file_write tool execution. Given a file path and content, write the co
 ### Red
 1. Add tests to `tests/unit/tool/test_tool.c` or create `tests/unit/tool/test_file_write_execute.c`:
    - `ik_tool_exec_file_write()` with path and content writes file successfully
-   - Result is valid JSON with "output" and "bytes" fields
+   - Result is valid JSON with envelope format: `{"success": true, "data": {"output": "...", "bytes": N}}`
    - Verify file was actually created with correct contents
-   - Writing to read-only location returns error
-   - Writing empty content creates empty file with `{"output": "Wrote 0 bytes to filename", "bytes": 0}`
+   - Writing to read-only location returns error: `{"success": false, "error": "Permission denied: path"}`
+   - Writing empty content creates empty file with `{"success": true, "data": {"output": "Wrote 0 bytes to filename", "bytes": 0}}`
    - Overwriting existing file works correctly
 2. Create test fixture directory for file operations
 3. Add declaration to `src/tool.h`:
-   - `ik_tool_exec_file_write(void *parent, const char *arguments)` returning `res_t`
-4. Add stub in `src/tool.c`: `return OK("{\"output\": \"Not implemented\", \"bytes\": 0}");`
+   - `ik_tool_exec_file_write(void *parent, const char *path, const char *content)` returning `res_t`
+   - Note: dispatcher handles JSON argument parsing and calls this with extracted parameters
+4. Add stub in `src/tool.c`: `return OK("{\"success\": true, \"data\": {\"output\": \"Not implemented\", \"bytes\": 0}}");`
 5. Run `make check` - expect assertion failure (tests expect actual file write and byte count)
 
 ### Green
 1. Replace stub in `src/tool.c` with implementation:
-   - Parse arguments JSON to extract path and content
    - Use fopen() to open the file for writing (mode "w")
    - Write content using fwrite() or fputs()
    - Count bytes written
-   - Build result JSON with yyjson: `{"output": "Wrote N bytes to filename", "bytes": N}`
-   - Handle file errors (EACCES, ENOSPC, etc.)
-3. Update tool execution dispatcher to route "file_write" to this function
-4. Run `make check` - expect pass
+   - Build result JSON with yyjson in envelope format: `{"success": true, "data": {"output": "Wrote N bytes to filename", "bytes": N}}`
+   - Handle file errors (EACCES, ENOSPC, etc.) and return error envelope: `{"success": false, "error": "message"}`
+   - Note: `path` and `content` parameters are already extracted by dispatcher
+2. Run `make check` - expect pass
 
 ### Refactor
 1. Ensure file handle is properly closed (fclose)

@@ -18,6 +18,8 @@ model: sonnet
 - docs/return_values.md
 - docs/error_handling.md
 - rel-04/user-stories/02-single-glob-call.md (user story: see Tool Result A for expected format)
+- rel-04/docs/tool-result-format.md
+- rel-04/docs/tool_use.md
 
 ### Pre-read Source (patterns)
 - src/config.c (JSON building with yyjson_mut, error patterns)
@@ -41,7 +43,7 @@ model: sonnet
 Implement glob tool execution. Given a pattern and optional path, execute glob and return results as JSON matching the expected format:
 
 ```json
-{"output": "src/main.c\nsrc/config.c\nsrc/repl.c", "count": 3}
+{"success": true, "data": {"output": "src/main.c\nsrc/config.c\nsrc/repl.c", "count": 3}}
 ```
 
 ## TDD Cycle
@@ -49,22 +51,22 @@ Implement glob tool execution. Given a pattern and optional path, execute glob a
 ### Red
 1. Add tests to `tests/unit/tool/test_tool.c` or create `tests/unit/tool/test_glob_execute.c`:
    - `ik_tool_exec_glob()` with pattern "*.c" in test directory returns matches
-   - Result is valid JSON with "output" and "count" fields
-   - Empty result returns `{"output": "", "count": 0}`
-   - Invalid pattern returns error
+   - Result is valid JSON with envelope format: `{"success": true, "data": {"output": "...", "count": N}}`
+   - Empty result returns `{"success": true, "data": {"output": "", "count": 0}}`
+   - Invalid pattern returns error: `{"success": false, "error": "message"}`
 2. Create a test fixture directory with known files for predictable results
    - **Fixture Convention**: Each test should create its own unique temp directory (e.g., using `mkdtemp()` or test-specific subdirectory under `/tmp/ikigai-test-XXXXXX`) to ensure test isolation and prevent interference if parallel execution is enabled. For read-only fixtures, use shared `tests/fixtures/` directory.
 3. Add declaration to `src/tool.h`:
    - `ik_tool_exec_glob(void *parent, const char *pattern, const char *path)` returning `res_t`
-4. Add stub in `src/tool.c`: `return OK("{\"output\": \"\", \"count\": 0}");` (always empty)
+4. Add stub in `src/tool.c`: `return OK("{\"success\": true, \"data\": {\"output\": \"\", \"count\": 0}}");` (always empty)
 5. Run `make check` - expect assertion failure (tests with fixtures expect actual file matches)
 
 ### Green
 1. Replace stub in `src/tool.c` with implementation:
    - Parse arguments JSON to extract pattern and path
    - Use POSIX glob() to find matching files
-   - Build result JSON with yyjson
-   - Handle glob errors (GLOB_NOMATCH, GLOB_NOSPACE, etc.)
+   - Build result JSON with yyjson in envelope format: `{"success": true, "data": {"output": "...", "count": N}}`
+   - Handle glob errors (GLOB_NOMATCH, GLOB_NOSPACE, etc.) and return error envelope: `{"success": false, "error": "message"}`
 3. Run `make check` - expect pass
 
 ### Refactor

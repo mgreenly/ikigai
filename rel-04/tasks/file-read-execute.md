@@ -17,6 +17,8 @@ model: sonnet
 - docs/return_values.md
 - docs/naming.md
 - rel-04/user-stories/03-single-file-read.md (user story - see Tool Result A for expected format)
+- rel-04/docs/tool-result-format.md
+- rel-04/docs/tool_use.md
 
 ### Pre-read Source (patterns)
 - src/db/migration.c (read_file_contents function shows file I/O pattern with fopen/fread/fseek)
@@ -39,7 +41,7 @@ model: sonnet
 Implement file_read tool execution. Given a file path, read the file contents and return them as JSON matching the expected format:
 
 ```json
-{"output": "# My Project\n\nA simple example project."}
+{"success": true, "data": {"output": "# My Project\n\nA simple example project."}}
 ```
 
 ## TDD Cycle
@@ -47,25 +49,24 @@ Implement file_read tool execution. Given a file path, read the file contents an
 ### Red
 1. Add tests to `tests/unit/tool/test_tool.c` or create `tests/unit/tool/test_file_read_execute.c`:
    - `ik_tool_exec_file_read()` with valid path returns file contents
-   - Result is valid JSON with "output" field containing file contents
-   - Non-existent file returns error
-   - Unreadable file (permission denied) returns error
-   - Empty file returns `{"output": ""}`
+   - Result is valid JSON with envelope format: `{"success": true, "data": {"output": "contents"}}`
+   - Non-existent file returns error: `{"success": false, "error": "File not found: path"}`
+   - Unreadable file (permission denied) returns error: `{"success": false, "error": "Permission denied: path"}`
+   - Empty file returns `{"success": true, "data": {"output": ""}}`
 2. Create test fixture files with known contents for predictable results
 3. Add declaration to `src/tool.h`:
-   - `ik_tool_exec_file_read(void *parent, const char *arguments)` returning `res_t`
-4. Add stub in `src/tool.c`: `return OK("{\"output\": \"\"}");` (always empty)
+   - `ik_tool_exec_file_read(void *parent, const char *path)` returning `res_t`
+   - Note: The dispatcher handles JSON parsing and extracts the path parameter
+4. Add stub in `src/tool.c`: `return OK("{\"success\": true, \"data\": {\"output\": \"\"}}");` (always empty)
 5. Run `make check` - expect assertion failure (tests with fixtures expect actual file contents)
 
 ### Green
 1. Replace stub in `src/tool.c` with implementation:
-   - Parse arguments JSON to extract path
-   - Use fopen() to open the file for reading
+   - Use fopen() to open the file for reading (path parameter is already extracted by dispatcher)
    - Read entire file contents (handle large files appropriately)
-   - Build result JSON with yyjson: `{"output": "contents"}`
-   - Handle file errors (ENOENT, EACCES, etc.)
-3. Update tool execution dispatcher to route "file_read" to this function
-4. Run `make check` - expect pass
+   - Build result JSON with yyjson in envelope format: `{"success": true, "data": {"output": "contents"}}`
+   - Handle file errors (ENOENT, EACCES, etc.) and return error envelope: `{"success": false, "error": "message"}`
+2. Run `make check` - expect pass
 
 ### Refactor
 1. Ensure file handle is properly closed (fclose)

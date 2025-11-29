@@ -8,14 +8,58 @@ Enable file operations, shell commands, and search capabilities through LLM tool
 
 ### Internal Representation
 
-Design an internal `ik_tool_call_t` struct that can support multiple LLM providers in the future:
+Design internal structures that support multiple LLM providers:
 - OpenAI (implementing now)
 - Anthropic (future)
 - Google (future)
 - Meta (future)
 - X.AI (future)
 
-For rel-04, only OpenAI tool calling is implemented, but the internal structures are designed for future multi-provider support.
+For rel-04, only OpenAI API is implemented, but internal structures are provider-agnostic.
+
+### Canonical Message Format
+
+The in-memory conversation uses a **canonical format** that is provider-agnostic. This format closely mirrors the database storage format, using a `kind` discriminator:
+
+```c
+typedef struct {
+    char *kind;        // "system", "user", "assistant", "tool_call", "tool_result"
+    char *content;     // Human-readable text (NULL for tool_call)
+    char *data_json;   // Structured data (NULL for text-only messages)
+} ik_msg_t;
+```
+
+**Message kinds and their data:**
+
+| kind | content | data_json |
+|------|---------|-----------|
+| `system` | System prompt text | NULL |
+| `user` | User input text | NULL |
+| `assistant` | Response text | NULL |
+| `tool_call` | Human-readable summary | `{id, type, function: {name, arguments}}` |
+| `tool_result` | Human-readable summary | `{tool_call_id, output, success}` |
+
+**Why canonical format?**
+
+1. **Provider independence**: Each AI provider has different wire formats
+   - OpenAI: `role: "assistant"` with `tool_calls` array
+   - Anthropic: `role: "assistant"` with `tool_use` content blocks
+   - Future providers may differ further
+
+2. **Single source of truth**: Memory and database use the same structure
+
+3. **Clean serialization boundary**: Provider modules convert canonical → wire format
+
+**Conversation in memory:**
+
+```c
+typedef struct {
+    ik_msg_t **messages;
+    size_t count;
+} ik_conversation_t;
+```
+
+The `repl->conversation` holds canonical messages. When making an API request, the provider-specific serializer (e.g., `ik_openai_serialize_request()`) transforms canonical messages to the wire format.
 
 ### Tools
 
@@ -49,73 +93,59 @@ Explicit event model:
 
 This provides a complete audit trail matching exactly what was received and executed.
 
-### Message Transformation (Replay to API)
+**Independence**: These two events are completely independent - no transactional coupling. Each event is persisted separately. If one fails, it does not affect the other. Memory is authoritative during a session; the database is an event log for session restore. Orphaned events (e.g., tool_call without tool_result due to crash) are rare edge cases that the model can recover from gracefully.
 
-A critical aspect of the replay system is transforming messages from database storage format to OpenAI API request format.
+### Message Transformation (Canonical to Wire Format)
 
-#### Database Storage Format
+The canonical message format is provider-agnostic. Each provider module transforms canonical messages to its wire format during API request serialization.
 
-Tool messages are stored in the database with specific `kind` values:
+#### Canonical Format (In-Memory and Database)
 
-- `kind: "tool_call"` - Stores the assistant's request to execute a tool
-  - Contains `data_json` field with tool call details (function name, arguments, tool_call_id)
-  - Represents what the LLM requested to execute
-
-- `kind: "tool_result"` - Stores the execution result
-  - Contains `data_json` field with tool output and tool_call_id reference
-  - Represents what the tool execution returned
-
-#### API Request Format
-
-When replaying a session, these database messages must be transformed to match the OpenAI API format:
-
-1. **tool_call → assistant message with tool_calls array**
-   ```
-   Database: {kind: "tool_call", data_json: {tool_calls: [...]}}
-
-   OpenAI API: {
-     role: "assistant",
-     tool_calls: [
-       {
-         id: "call_abc123",
-         type: "function",
-         function: {name: "glob", arguments: "{\"pattern\":\"*.c\"}"}
-       }
-     ]
-   }
-   ```
-
-2. **tool_result → tool message with tool_call_id**
-   ```
-   Database: {kind: "tool_result", data_json: {tool_call_id: "call_abc123", content: "..."}}
-
-   OpenAI API: {
-     role: "tool",
-     tool_call_id: "call_abc123",
-     content: "{\"output\":\"file1.c\\nfile2.c\",\"count\":2}"
-   }
-   ```
-
-#### Transformation Logic
-
-The replay system implements this transformation in `src/db/replay.c`:
+Messages use a `kind` discriminator with optional `data_json`:
 
 ```
-if (kind == "tool_call"):
-    Extract tool_calls array from data_json
-    Create message with:
-        role: "assistant"
-        tool_calls: [...array from data_json...]
-
-else if (kind == "tool_result"):
-    Extract tool_call_id and content from data_json
-    Create message with:
-        role: "tool"
-        tool_call_id: "..." (from data_json)
-        content: "..." (from data_json)
+{kind: "tool_call", content: "glob(...)", data_json: {id, type, function: {name, arguments}}}
+{kind: "tool_result", content: "3 files", data_json: {tool_call_id, output, success}}
 ```
 
-This ensures that when a session is restored, the conversation history is correctly reconstructed in the format expected by the OpenAI API, allowing the conversation to continue seamlessly from where it left off.
+#### Provider-Specific Wire Formats
+
+**OpenAI** transforms canonical messages as follows:
+
+| Canonical kind | OpenAI wire format |
+|----------------|-------------------|
+| `system` | `{role: "system", content: "..."}` |
+| `user` | `{role: "user", content: "..."}` |
+| `assistant` | `{role: "assistant", content: "..."}` |
+| `tool_call` | `{role: "assistant", tool_calls: [...]}` |
+| `tool_result` | `{role: "tool", tool_call_id: "...", content: "..."}` |
+
+**Anthropic** (future) would transform differently:
+
+| Canonical kind | Anthropic wire format |
+|----------------|----------------------|
+| `system` | Separate `system` parameter |
+| `user` | `{role: "user", content: [...]}` |
+| `assistant` | `{role: "assistant", content: [...]}` |
+| `tool_call` | `{role: "assistant", content: [{type: "tool_use", ...}]}` |
+| `tool_result` | `{role: "user", content: [{type: "tool_result", ...}]}` |
+
+#### Serialization Boundary
+
+Transformation happens in provider-specific serializers:
+
+```c
+// OpenAI serializer transforms canonical → OpenAI JSON
+char *ik_openai_serialize_request(void *parent, ik_conversation_t *conv, ...);
+
+// Future: Anthropic serializer transforms canonical → Anthropic JSON
+char *ik_anthropic_serialize_request(void *parent, ik_conversation_t *conv, ...);
+```
+
+This design ensures:
+1. **Single conversation format** in memory and database
+2. **Provider isolation** - wire format details contained in provider modules
+3. **Easy multi-provider support** - add new serializer, no core changes
 
 #### data_json Schema for Tool Messages
 

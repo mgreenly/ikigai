@@ -19,6 +19,8 @@ model: sonnet
 - docs/error_testing.md
 - rel-04/user-stories/07-bash-command.md (user story - see Tool Result A for expected format)
 - rel-04/tasks/glob-execute.md (related task - similar execution pattern)
+- rel-04/docs/tool-result-format.md
+- rel-04/docs/tool_use.md
 
 ### Pre-read Source (patterns)
 - src/config.c (JSON building with yyjson and talloc allocator)
@@ -41,30 +43,33 @@ model: sonnet
 Implement bash tool execution. Given a command string, execute it via shell and return stdout and exit code as JSON matching the expected format:
 
 ```json
-{"output": "main", "exit_code": 0}
+{"success": true, "data": {"output": "main", "exit_code": 0}}
 ```
+
+Note: For bash execution, the exit_code is included in the data field. A non-zero exit code does NOT indicate a tool error - the tool successfully executed the command. Tool errors (like being unable to execute popen) should use the error envelope: `{"success": false, "error": "message"}`
 
 ## TDD Cycle
 
 ### Red
 1. Add tests to `tests/unit/tool/test_tool.c` or create `tests/unit/tool/test_bash_execute.c`:
    - `ik_tool_exec_bash()` with command "echo test" returns output and exit code 0
-   - Result is valid JSON with "output" and "exit_code" fields
-   - Failed command returns non-zero exit code
-   - Command with no output returns `{"output": "", "exit_code": 0}`
-   - Invalid/unsafe command patterns are handled appropriately
+   - Result is valid JSON with envelope format: `{"success": true, "data": {"output": "...", "exit_code": 0}}`
+   - Failed command returns non-zero exit code: `{"success": true, "data": {"output": "...", "exit_code": N}}`
+   - Command with no output returns `{"success": true, "data": {"output": "", "exit_code": 0}}`
+   - Execution errors (popen fails) return error envelope: `{"success": false, "error": "message"}`
 2. Add declaration to `src/tool.h`:
-   - `ik_tool_exec_bash(void *parent, const char *arguments)` returning `res_t`
-3. Add stub in `src/tool.c`: `return OK("{\"output\": \"\", \"exit_code\": -1}");`
+   - `ik_tool_exec_bash(void *parent, const char *command)` returning `res_t`
+   - Note: The dispatcher handles JSON parsing to extract the command string
+3. Add stub in `src/tool.c`: `return OK("{\"success\": true, \"data\": {\"output\": \"\", \"exit_code\": -1}}");`
 4. Run `make check` - expect assertion failure (tests expect command execution with exit_code 0)
 
 ### Green
 1. Replace stub in `src/tool.c` with implementation:
-   - Parse arguments JSON to extract command string
    - Use popen() to execute command and capture stdout
    - Capture exit code with pclose()
-   - Build result JSON with yyjson
-   - Handle execution errors (command not found, permission denied, etc.)
+   - Build result JSON with yyjson in envelope format: `{"success": true, "data": {"output": "...", "exit_code": N}}`
+   - Handle execution errors (popen fails) and return error envelope: `{"success": false, "error": "message"}`
+   - Note: Non-zero exit codes from the command itself should still be wrapped in the success envelope with the exit_code field
 3. Run `make check` - expect pass
 
 ### Refactor

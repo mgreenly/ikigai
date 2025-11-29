@@ -79,7 +79,7 @@ I couldn't find that file. `missing.txt` doesn't exist in the current directory.
 ### Tool Result A
 
 ```json
-{"error": "File not found: missing.txt"}
+{"success": false, "error": "File not found: missing.txt"}
 ```
 
 ### Request B
@@ -90,7 +90,7 @@ I couldn't find that file. `missing.txt` doesn't exist in the current directory.
   "messages": [
     {"role": "user", "content": "Show me missing.txt"},
     {"role": "assistant", "tool_calls": [{"id": "call_read1", "type": "function", "function": {"name": "file_read", "arguments": "{\"path\": \"missing.txt\"}"}}]},
-    {"role": "tool", "tool_call_id": "call_read1", "content": "{\"error\": \"File not found: missing.txt\"}"}
+    {"role": "tool", "tool_call_id": "call_read1", "content": "{\"success\": false, \"error\": \"File not found: missing.txt\"}"}
   ],
   "tools": ["...standard tools array..."],
   "tool_choice": "auto",
