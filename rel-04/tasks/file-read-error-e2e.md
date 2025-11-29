@@ -6,19 +6,39 @@ User story: 08-file-not-found-error
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/mocking.md
+- .agents/skills/database.md
+- .agents/skills/testability.md
+- .agents/skills/quality.md
+
+### Pre-read Docs
+- docs/error_handling.md
+- docs/error_patterns.md
+- docs/error_testing.md
+- docs/return_values.md
+- rel-04/user-stories/08-file-not-found-error.md (user story - full walkthrough)
+
+### Pre-read Source (patterns)
+- src/repl_actions.c (tool execution flow handling)
+- src/openai/client.c (response handling/finish_reason)
+- src/db/message.c (message persistence)
+- src/wrapper.h (mocking patterns for file I/O)
+- src/tool.c (file_read error handling implementation)
+
+### Pre-read Tests (patterns)
+- tests/integration/message_integration_test.c (integration test patterns with database)
+- tests/unit/repl/handle_request_error_test.c (error handling in conversation flow)
+- tests/integration/openai_mock_verification_test.c (mock setup patterns for OpenAI responses)
+- tests/unit/tool/test_file_read_execute.c (unit tests for error cases)
+
 ## Pre-conditions
 - `make check` passes
 - All tasks from Stories 01-07 completed
 - `ik_tool_exec_file_read()` exists and handles file not found errors
 - Tool result messages support error content
 - Conversation loop handles tool errors
-
-## Context
-Read before starting:
-- rel-04/user-stories/08-file-not-found-error.md (full walkthrough)
-- src/tool.c (file_read error handling implementation)
-- tests/unit/tool/test_file_read_execute.c (unit tests for error cases)
-- tests/integration/ (existing integration test patterns)
 
 ## Task
 Create an end-to-end integration test that verifies file not found errors flow correctly through the entire system:

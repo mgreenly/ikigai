@@ -6,17 +6,33 @@ User story: 03-single-file-read
 ## Agent
 model: haiku
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/naming.md
+- .agents/skills/coverage.md
+- .agents/skills/testability.md
+
+### Pre-read Docs
+- docs/naming.md
+- docs/memory.md
+- docs/return_values.md
+- docs/architecture.md
+- rel-04/user-stories/03-single-file-read.md (user story for file_read schema)
+
+### Pre-read Source (patterns)
+- src/openai/client.c (JSON schema building with yyjson)
+- src/config.c (yyjson usage patterns)
+- src/tool.h (existing schema functions)
+- src/tool.c (how glob schema is defined)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_sse_test.c (yyjson test patterns)
+- tests/unit/config/config_test.c (talloc context setup in tests)
+
 ## Pre-conditions
 - `make check` passes
 - Task `db-tool-persist.md` completed (Story 02 complete)
 - `ik_tool_schema_create()` exists in `src/tool.h`
-
-## Context
-Read before starting:
-- docs/naming.md (ik_module_function conventions)
-- src/tool.h (existing schema functions)
-- src/tool.c (how glob schema is defined)
-- rel-04/user-stories/03-single-file-read.md (see Request A for file_read schema)
 
 ## Task
 Add file_read tool schema to the tools array. The schema must match the format expected by OpenAI API.

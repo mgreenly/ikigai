@@ -6,16 +6,35 @@ User story: 13-tool-choice-none
 ## Agent
 model: haiku
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/testability.md
+- .agents/skills/mocking.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+- .agents/skills/default.md
+
+### Pre-read Docs
+- docs/error_handling.md
+- docs/architecture.md
+- rel-04/user-stories/13-tool-choice-none.md
+- rel-04/tasks/tool-loop-limit-e2e.md
+
+### Pre-read Source (patterns)
+- src/openai/client.c (request creation and serialization patterns)
+- src/openai/client_multi_request.c (how requests are assembled and sent with curl)
+- src/wrapper.h (MOCKABLE pattern for mocking external dependencies)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_multi_test_common.h (comprehensive mocking infrastructure for curl and callbacks)
+- tests/unit/openai/client_multi_add_request_test.c (testing patterns for request creation with mocked dependencies)
+- tests/integration/openai_mock_verification_test.c (integration test setup and stream callback patterns)
+- tests/e2e/ (existing e2e test structure)
+
 ## Pre-conditions
 - `make check` passes
 - Task `tool-choice-auto-e2e.md` completed
 - Auto mode e2e test passes
-
-## Context
-Read before starting:
-- rel-04/user-stories/13-tool-choice-none.md (expected behavior)
-- tests/e2e/ directory (existing e2e test structure)
-- rel-04/tasks/tool-loop-limit-e2e.md (none mode used at limit)
 
 ## Task
 Create an end-to-end test that verifies `tool_choice: "none"` works correctly:

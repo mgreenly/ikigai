@@ -6,17 +6,33 @@ User story: 13-tool-choice-auto
 ## Agent
 model: haiku
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/mocking.md
+- .agents/skills/testability.md
+- .agents/skills/quality.md
+
+### Pre-read Docs
+- docs/architecture.md
+- docs/error_handling.md
+- docs/error_testing.md
+- rel-04/user-stories/13-tool-choice-auto.md
+- rel-04/tasks/tool-loop-limit-e2e.md
+
+### Pre-read Source (patterns)
+- src/openai/client.c (OpenAI request building and tool_choice handling)
+- src/openai/sse_parser.h (SSE response parsing patterns)
+
+### Pre-read Tests (patterns)
+- tests/integration/openai_mock_verification_test.c (mock OpenAI API response patterns)
+- tests/integration/message_integration_test.c (integration test structure and database setup patterns)
+- tests/e2e/ (existing e2e test structure)
+
 ## Pre-conditions
 - `make check` passes
 - Task `request-with-tool-choice-param.md` completed
 - Request builder accepts tool_choice parameter
 - All existing stories (01-12) still pass
-
-## Context
-Read before starting:
-- rel-04/user-stories/13-tool-choice-auto.md (expected behavior)
-- tests/e2e/ directory (existing e2e test structure)
-- rel-04/tasks/tool-loop-limit-e2e.md (example e2e test format)
 
 ## Task
 Create an end-to-end test that verifies `tool_choice: "auto"` works correctly:

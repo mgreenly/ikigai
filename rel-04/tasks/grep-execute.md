@@ -6,20 +6,38 @@ User story: 05-grep-search
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/coverage.md
+- .agents/skills/mocking.md
+- .agents/skills/testability.md
+
+### Pre-read Docs
+- docs/memory.md
+- docs/return_values.md
+- docs/error_handling.md
+- docs/error_patterns.md
+- docs/architecture.md
+- rel-04/user-stories/05-grep-search.md (user story - see Tool Result A for expected format)
+
+### Pre-read Source (patterns)
+- src/config.c (JSON building with yyjson)
+- src/json_allocator.c (JSON memory management)
+- src/error.c (error handling patterns)
+- src/wrapper.c (file I/O wrappers)
+- src/tool.h (existing tool execution)
+- src/tool.c (glob and file_read execution as reference)
+
+### Pre-read Tests (patterns)
+- tests/unit/error/error_test.c (Result type testing patterns)
+- tests/unit/db/zzz_migration_fopen_test.c (file I/O test patterns with mocking)
+- tests/integration/config_integration_test.c (yyjson testing patterns)
+
 ## Pre-conditions
 - `make check` passes
 - Task `grep-schema.md` completed (grep schema exists in tool-all-schemas)
 - `ik_tool_exec_glob()` and `ik_tool_exec_file_read()` exist as reference implementations
 - Multi-tool conversation loop works (Story 04 completed)
-
-## Context
-Read before starting:
-- docs/memory.md (talloc patterns)
-- docs/return_values.md (Result types)
-- src/tool.h (existing tool execution)
-- src/tool.c (glob and file_read execution as reference)
-- rel-04/user-stories/05-grep-search.md (see Tool Result A for expected format)
-- man 1 grep (for understanding grep functionality)
 
 ## Task
 Implement grep tool execution. Given a pattern, optional glob filter, and optional path, search for pattern matches in files and return results as JSON matching the expected format:

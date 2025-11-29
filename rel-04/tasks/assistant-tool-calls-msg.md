@@ -6,17 +6,32 @@ User story: 02-single-glob-call
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/testability.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+- .agents/skills/naming.md
+
+### Pre-read Docs
+- docs/memory.md
+- docs/naming.md
+- docs/error_patterns.md
+- docs/LCOV_EXCLUSIONS.md
+- rel-04/user-stories/02-single-glob-call.md (user story - see Request B for assistant message format)
+
+### Pre-read Source (patterns)
+- src/openai/client.h (extend ik_openai_msg_t struct definition)
+- src/openai/client.c (ik_openai_serialize_request with yyjson mutation patterns and message iteration)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_structures_test.c (serialization test patterns, yyjson value parsing assertions, talloc context setup)
+
 ## Pre-conditions
 - `make check` passes
 - `ik_tool_call_t` struct exists
 - Tool result message can be created
 - Task `tool-result-msg.md` completed
-
-## Context
-Read before starting:
-- src/openai/client.h (message structures)
-- src/openai/client.c (serialization with yyjson)
-- rel-04/user-stories/02-single-glob-call.md (see Request B for assistant message format)
 
 ## Task
 Enable serialization of assistant messages that contain tool_calls (no content). Request B shows:

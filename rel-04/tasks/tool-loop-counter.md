@@ -6,17 +6,35 @@ User story: 11-tool-loop-limit-reached
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/mocking.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+- .agents/skills/testability.md
+- .agents/skills/naming.md
+
+### Pre-read Docs
+- docs/architecture.md
+- docs/v1-conversation-management.md
+- docs/naming.md
+- rel-04/tasks/multi-tool-loop.md (related task: existing loop structure)
+- rel-04/user-stories/11-tool-loop-limit-reached.md (user story: walkthrough steps 1-10)
+
+### Pre-read Source (patterns)
+- src/repl.c or src/repl_actions.c (conversation loop implementation)
+- src/repl.h (REPL context structure for counter variable)
+- src/repl_callbacks.c (finish_reason metadata handling)
+
+### Pre-read Tests (patterns)
+- tests/unit/repl/handle_request_success_test.c (test patterns for conversation loop)
+- tests/unit/repl/repl_http_completion_callback_test.c (API response handling patterns)
+
 ## Pre-conditions
 - `make check` passes
 - Task `tool-loop-limit-config.md` completed
 - MAX_TOOL_ITERATIONS constant exists
 - Multi-tool conversation loop works (Story 04)
-
-## Context
-Read before starting:
-- src/repl.c or src/repl_actions.c (conversation loop implementation)
-- rel-04/tasks/multi-tool-loop.md (existing loop structure)
-- rel-04/user-stories/11-tool-loop-limit-reached.md (see walkthrough steps 1-10)
 
 ## Task
 Add iteration counting to the conversation loop. Track how many times tool calls have been executed in the current loop and detect when the MAX_TOOL_ITERATIONS limit is reached.

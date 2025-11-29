@@ -6,19 +6,31 @@ User story: 13-tool-choice-auto, 13-tool-choice-none, 13-tool-choice-required, 1
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/testability.md
+- .agents/skills/quality.md
+
+### Pre-read Docs
+- docs/architecture.md
+- rel-04/tasks/request-with-tools.md
+- rel-04/tasks/tool-choice-none-on-limit.md
+
+### Pre-read Source (patterns)
+- src/openai/client.c (ik_openai_serialize_request function with yyjson patterns)
+- src/openai/request.c (alternative request builder location)
+- src/openai/client.h (ik_openai_request_t structure definition)
+- src/openai/tool_choice.h (tool_choice type and serialize function)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_structures_test.c (JSON serialization tests with yyjson parsing and verification patterns)
+
 ## Pre-conditions
 - `make check` passes
 - Task `tool-choice-serialize.md` completed
 - `ik_tool_choice_serialize()` works for all 4 modes
 - Request builder exists from Story 01 (task: request-with-tools.md)
 - Request builder currently hardcodes `tool_choice: "auto"`
-
-## Context
-Read before starting:
-- src/openai/client.c or src/openai/request.c (request builder function)
-- src/openai/tool_choice.h (tool_choice type and serialize function)
-- rel-04/tasks/request-with-tools.md (original implementation)
-- rel-04/tasks/tool-choice-none-on-limit.md (Story 11's conditional logic)
 
 ## Task
 Modify the request builder to accept an `ik_tool_choice_t` parameter instead of hardcoding "auto" or conditionally using "none".

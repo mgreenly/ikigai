@@ -6,17 +6,37 @@ User story: 01-simple-greeting-no-tools
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/naming.md
+- .agents/skills/coverage.md
+- .agents/skills/style.md
+- .agents/skills/quality.md
+- .agents/skills/testability.md
+- .agents/skills/mocking.md
+
+### Pre-read Docs
+- docs/naming.md
+- docs/memory.md
+- docs/return_values.md
+- docs/architecture.md
+- rel-04/user-stories/01-simple-greeting-no-tools.md (see all 5 tool schemas in Request A)
+
+### Pre-read Source (patterns)
+- src/openai/client.c (JSON building with yyjson_mut_* functions)
+- src/config.c (yyjson JSON building examples with nested objects)
+- src/tool.h (existing glob function)
+- src/tool.c (existing implementation pattern)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_structures_test.c (test structure with setup/teardown, check framework assertions)
+- tests/test_utils.h (test helper functions and patterns)
+- tests/unit/tool/test_tool.c (existing test pattern)
+
 ## Pre-conditions
 - `make check` passes
 - `ik_tool_build_glob_schema()` exists and works in `src/tool.c`
 - Task `tool-glob-schema.md` completed successfully
-
-## Context
-Read before starting:
-- src/tool.h (existing glob function)
-- src/tool.c (existing implementation pattern)
-- tests/unit/tool/test_tool.c (existing test pattern)
-- rel-04/user-stories/01-simple-greeting-no-tools.md (see all 5 tool schemas in Request A)
 
 ## Task
 Add 4 more schema builder functions following the same pattern as glob:

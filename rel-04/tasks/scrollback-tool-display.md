@@ -6,17 +6,34 @@ User story: 02-single-glob-call
 ## Agent
 model: haiku
 
+### Pre-read Docs
+- rel-04/user-stories/02-single-glob-call.md (walkthrough steps 5 and 8)
+
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/testability.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+- .agents/skills/mocking.md
+- .agents/skills/style.md
+
+### Pre-read Source (patterns)
+- src/scrollback.c (scrollback buffer append patterns)
+- src/scrollback.h (scrollback API and line structure)
+- src/format.c (formatting buffer implementation patterns)
+- src/format.h (format buffer API)
+- src/repl.c (where tool display integration occurs)
+- src/repl_actions.c (display logic)
+
+### Pre-read Tests (patterns)
+- tests/unit/format/format_basic_test.c (buffer creation, append, formatting patterns)
+- tests/unit/scrollback/scrollback_append_test.c (line append and layout patterns)
+- tests/unit/commands/mark_scrollback_format_test.c (scrollback formatting with multi-line output patterns)
+
 ## Pre-conditions
 - `make check` passes
 - Conversation tool loop integration works
 - Task `conversation-tool-loop.md` completed
-
-## Context
-Read before starting:
-- src/scrollback.c (scrollback buffer handling)
-- src/repl.c or src/repl_actions.c (display logic)
-- src/format.c (text formatting if exists)
-- rel-04/user-stories/02-single-glob-call.md (walkthrough steps 5 and 8)
 
 ## Task
 Display tool calls and results in the scrollback buffer. The user story walkthrough says:

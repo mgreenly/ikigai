@@ -6,19 +6,33 @@ User story: 13-tool-choice-auto, 13-tool-choice-none, 13-tool-choice-required, 1
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+
+### Pre-read Docs
+- docs/naming.md
+- docs/error_handling.md
+- docs/LCOV_EXCLUSIONS.md
+- rel-04/user-stories/13-tool-choice-auto.md
+- rel-04/user-stories/13-tool-choice-none.md
+- rel-04/user-stories/13-tool-choice-required.md
+- rel-04/user-stories/13-tool-choice-specific.md
+
+### Pre-read Source (patterns)
+- src/openai/tool_choice.h (tool_choice configuration type)
+- src/openai/client.c (JSON serialization pattern with yyjson_mut_* functions)
+- src/config.c (example of struct serialization to JSON)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_structures_test.c (pattern for testing OpenAI data structures)
+- tests/unit/openai/client_sse_test.c (pattern for testing with yyjson and talloc context)
+
 ## Pre-conditions
 - `make check` passes
 - Task `tool-choice-config.md` completed
 - `ik_tool_choice_t` type exists with all 4 modes
-
-## Context
-Read before starting:
-- src/openai/tool_choice.h (tool_choice configuration type)
-- src/openai/client.c (existing JSON serialization using yyjson)
-- rel-04/user-stories/13-tool-choice-auto.md (expect `"tool_choice": "auto"`)
-- rel-04/user-stories/13-tool-choice-none.md (expect `"tool_choice": "none"`)
-- rel-04/user-stories/13-tool-choice-required.md (expect `"tool_choice": "required"`)
-- rel-04/user-stories/13-tool-choice-specific.md (expect `"tool_choice": {"type": "function", "function": {"name": "glob"}}`)
 
 ## Task
 Implement JSON serialization for `ik_tool_choice_t` that outputs:

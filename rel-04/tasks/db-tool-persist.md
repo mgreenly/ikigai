@@ -6,17 +6,31 @@ User story: 02-single-glob-call
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/database.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+
+### Pre-read Docs
+- docs/v1-database-design.md
+- docs/decisions/json-yaml-projection.md
+- rel-04/user-stories/02-single-glob-call.md (step 12: "All messages persisted to database")
+
+### Pre-read Source (patterns)
+- src/db/message.c (existing VALID_KINDS array pattern to extend)
+- src/db/message.h (ik_db_message_insert API to preserve)
+- src/db/connection.h (database context types)
+
+### Pre-read Tests (patterns)
+- tests/unit/db/message_test.c (unit test structure for message kinds)
+- tests/unit/db/message_kind_validation_test.c (validates kind strings)
+- tests/integration/db/message_insert_test.c (integration tests showing JSONB data_json handling)
+
 ## Pre-conditions
 - `make check` passes
 - Tool display in scrollback works
 - Task `scrollback-tool-display.md` completed
-
-## Context
-Read before starting:
-- src/db/message.h (message persistence API)
-- src/db/message.c (implementation)
-- docs/decisions/ (any ADRs on message schema)
-- rel-04/user-stories/02-single-glob-call.md (step 12: "All messages persisted to database")
 
 ## Task
 Extend message persistence to handle tool-related events. Currently supported kinds:

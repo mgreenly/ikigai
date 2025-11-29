@@ -6,18 +6,37 @@ User story: 11-tool-loop-limit-reached
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+- .agents/skills/naming.md
+- .agents/skills/testability.md
+- .agents/skills/mocking.md
+
+### Pre-read Docs
+- docs/error_handling.md
+- docs/naming.md
+- docs/memory+error_handling.md
+- rel-04/user-stories/11-tool-loop-limit-reached.md
+- rel-04/tasks/request-with-tools.md
+
+### Pre-read Source (patterns)
+- src/openai/client.c (request serialization and tool_choice handling)
+- src/openai/client.h (request structure definition)
+- src/repl.c (conversation loop that detects limit reached)
+- src/repl_actions.c (request handling in loop)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_structures_test.c (existing serialization tests showing JSON verification patterns)
+- tests/unit/openai/client_multi_add_request_test.c (request building test patterns)
+- tests/unit/repl/handle_request_success_test.c (request handling integration test patterns)
+
 ## Pre-conditions
 - `make check` passes
 - Task `tool-result-limit-metadata.md` completed
 - Tool result includes limit metadata when limit is reached
 - Request builder works (Story 01: request-with-tools.md completed)
-
-## Context
-Read before starting:
-- src/openai/client.c or src/openai/request.c (request construction)
-- src/repl.c or src/repl_actions.c (conversation loop)
-- rel-04/user-stories/11-tool-loop-limit-reached.md (see Request D)
-- rel-04/tasks/request-with-tools.md (existing request builder)
 
 ## Task
 When the tool iteration limit is reached, the final API request must set `tool_choice: "none"` to force the model to respond with text instead of making more tool calls.

@@ -6,20 +6,35 @@ User story: 07-bash-command
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/quality.md
+- .agents/skills/testability.md
+- .agents/skills/coverage.md
+
+### Pre-read Docs
+- docs/memory.md
+- docs/return_values.md
+- docs/error_handling.md
+- docs/error_testing.md
+- rel-04/user-stories/07-bash-command.md (user story - see Tool Result A for expected format)
+- rel-04/tasks/glob-execute.md (related task - similar execution pattern)
+
+### Pre-read Source (patterns)
+- src/config.c (JSON building with yyjson and talloc allocator)
+- src/error.h (res_t pattern and error creation)
+- src/wrapper.c (system call patterns and wrappers)
+- src/tool.h (existing tool module)
+
+### Pre-read Tests (patterns)
+- tests/integration/config_integration_test.c (test setup, talloc contexts, file operations)
+- tests/integration/db/error_handling_test.c (error result handling patterns)
+
 ## Pre-conditions
 - `make check` passes
 - `ik_tool_call_t` struct exists
 - `ik_tool_build_bash_schema()` exists
 - Tasks `file-write-execute.md` and `conversation-tool-loop.md` completed
-
-## Context
-Read before starting:
-- docs/memory.md (talloc patterns)
-- docs/return_values.md (Result types)
-- src/tool.h (existing tool module)
-- rel-04/user-stories/07-bash-command.md (see Tool Result A for expected format)
-- rel-04/tasks/glob-execute.md (similar execution pattern)
-- man 3 popen (executing shell commands)
 
 ## Task
 Implement bash tool execution. Given a command string, execute it via shell and return stdout and exit code as JSON matching the expected format:

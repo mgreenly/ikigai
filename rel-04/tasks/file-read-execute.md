@@ -6,19 +6,34 @@ User story: 03-single-file-read
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/testability.md
+- .agents/skills/quality.md
+- .agents/skills/naming.md
+
+### Pre-read Docs
+- docs/memory.md
+- docs/return_values.md
+- docs/naming.md
+- rel-04/user-stories/03-single-file-read.md (user story - see Tool Result A for expected format)
+
+### Pre-read Source (patterns)
+- src/db/migration.c (read_file_contents function shows file I/O pattern with fopen/fread/fseek)
+- src/wrapper.h (file I/O wrappers: fopen_, fread_, fclose_, fseek_, ftell_)
+- src/config.c (yyjson JSON building example)
+- src/error.h (res_t type definition)
+- src/tool.h (existing tool execution)
+- src/tool.c (glob execution as reference)
+
+### Pre-read Tests (patterns)
+- tests/unit/config/config_test.c (file I/O testing with fopen/fclose and talloc)
+- tests/unit/db/zzz_migration_errors_test.c (file operation error handling patterns)
+
 ## Pre-conditions
 - `make check` passes
 - Task `file-read-schema.md` completed
 - `ik_tool_exec_glob()` exists as reference implementation
-
-## Context
-Read before starting:
-- docs/memory.md (talloc patterns)
-- docs/return_values.md (Result types)
-- src/tool.h (existing tool execution)
-- src/tool.c (glob execution as reference)
-- rel-04/user-stories/03-single-file-read.md (see Tool Result A for expected format)
-- man 3 fopen, fread (file I/O functions)
 
 ## Task
 Implement file_read tool execution. Given a file path, read the file contents and return them as JSON matching the expected format:

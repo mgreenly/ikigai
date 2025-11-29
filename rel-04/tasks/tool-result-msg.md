@@ -6,16 +6,31 @@ User story: 02-single-glob-call
 ## Agent
 model: haiku
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/naming.md
+- .agents/skills/coverage.md
+- .agents/skills/testability.md
+- .agents/skills/quality.md
+
+### Pre-read Docs
+- docs/memory.md
+- docs/error_handling.md
+- docs/return_values.md
+- docs/architecture.md
+- rel-04/user-stories/02-single-glob-call.md (see Request B for tool message format)
+
+### Pre-read Source (patterns)
+- src/openai/client.h (message structure patterns)
+- src/openai/client.c (message creation and memory management with talloc)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_structures_test.c (message creation tests, TDD test patterns, talloc hierarchy verification)
+
 ## Pre-conditions
 - `make check` passes
 - `ik_tool_exec_glob()` exists and returns JSON result
 - Task `glob-execute.md` completed
-
-## Context
-Read before starting:
-- src/openai/client.h (ik_openai_msg_t structure)
-- src/openai/client.c (message handling)
-- rel-04/user-stories/02-single-glob-call.md (see Request B for tool message format)
 
 ## Task
 Create a tool result message that can be added to conversation for Request B. The message format from the user story:

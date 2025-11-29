@@ -6,19 +6,38 @@ User story: 04-glob-then-read-file
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/mocking.md
+- .agents/skills/testability.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+
+### Pre-read Docs
+- docs/v1-llm-integration.md
+- docs/anthropic_streaming_protocol.md
+- docs/v1-database-design.md
+- docs/error_handling.md
+- rel-04/user-stories/04-glob-then-read-file.md (user story - see full walkthrough)
+- rel-04/tasks/conversation-tool-loop.md (previous task - conversation loop implementation)
+
+### Pre-read Source (patterns)
+- src/repl.c (handle_request_success function, finish_reason storage)
+- src/repl_actions.c (conversation loop - alternative location)
+- src/repl_callbacks.c (streaming callback patterns)
+- src/openai/client.c (API request/response handling)
+- src/openai/client_multi.c (multi-handle API request patterns)
+
+### Pre-read Tests (patterns)
+- tests/integration/message_integration_test.c (message persistence patterns, database setup/teardown)
+- tests/integration/repl_test.c (REPL testing patterns with mocked terminal/HTTP)
+
 ## Pre-conditions
 - `make check` passes
 - Single tool call works (Story 02: glob execution)
 - File read tool works (Story 03: file_read execution)
 - Task `conversation-tool-loop.md` completed
 - Task `file-read-execute.md` completed
-
-## Context
-Read before starting:
-- src/repl.c or src/repl_actions.c (conversation loop)
-- src/openai/client.c (API request/response handling)
-- rel-04/user-stories/04-glob-then-read-file.md (see full walkthrough)
-- rel-04/tasks/conversation-tool-loop.md (previous implementation)
 
 ## Task
 Extend the conversation loop to automatically continue when finish_reason is "tool_calls". The loop should:

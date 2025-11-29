@@ -6,20 +6,37 @@ User story: 06-file-write
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/testability.md
+- .agents/skills/quality.md
+- .agents/skills/style.md
+- .agents/skills/naming.md
+- .agents/skills/coverage.md
+
+### Pre-read Docs
+- docs/memory.md
+- docs/return_values.md
+- docs/error_patterns.md
+- docs/error_testing.md
+- rel-04/user-stories/06-file-write.md (user story - see Tool Result A for expected format)
+
+### Pre-read Source (patterns)
+- src/config.c (yyjson JSON building pattern)
+- src/error.h (Result type and error handling)
+- src/wrapper.h (malloc/file I/O seams for testing)
+- src/tool.h (existing tool execution)
+- src/tool.c (glob, file_read, grep execution as reference)
+
+### Pre-read Tests (patterns)
+- tests/unit/array/basic_test.c (TDD pattern with talloc)
+- tests/unit/config/config_test.c (file I/O and JSON testing pattern)
+
 ## Pre-conditions
 - `make check` passes
 - Task `grep-execute.md` completed (Story 05)
 - `ik_tool_exec_glob()`, `ik_tool_exec_file_read()`, `ik_tool_exec_grep()` exist as reference implementations
 - file_write schema exists (from tool-all-schemas)
-
-## Context
-Read before starting:
-- docs/memory.md (talloc patterns)
-- docs/return_values.md (Result types)
-- src/tool.h (existing tool execution)
-- src/tool.c (glob, file_read, grep execution as reference)
-- rel-04/user-stories/06-file-write.md (see Tool Result A for expected format)
-- man 3 fopen, fwrite (file I/O functions)
 
 ## Task
 Implement file_write tool execution. Given a file path and content, write the content to the file and return a success message as JSON matching the expected format:
