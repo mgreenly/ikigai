@@ -49,6 +49,125 @@ Explicit event model:
 
 This provides a complete audit trail matching exactly what was received and executed.
 
+### Message Transformation (Replay to API)
+
+A critical aspect of the replay system is transforming messages from database storage format to OpenAI API request format.
+
+#### Database Storage Format
+
+Tool messages are stored in the database with specific `kind` values:
+
+- `kind: "tool_call"` - Stores the assistant's request to execute a tool
+  - Contains `data_json` field with tool call details (function name, arguments, tool_call_id)
+  - Represents what the LLM requested to execute
+
+- `kind: "tool_result"` - Stores the execution result
+  - Contains `data_json` field with tool output and tool_call_id reference
+  - Represents what the tool execution returned
+
+#### API Request Format
+
+When replaying a session, these database messages must be transformed to match the OpenAI API format:
+
+1. **tool_call → assistant message with tool_calls array**
+   ```
+   Database: {kind: "tool_call", data_json: {tool_calls: [...]}}
+
+   OpenAI API: {
+     role: "assistant",
+     tool_calls: [
+       {
+         id: "call_abc123",
+         type: "function",
+         function: {name: "glob", arguments: "{\"pattern\":\"*.c\"}"}
+       }
+     ]
+   }
+   ```
+
+2. **tool_result → tool message with tool_call_id**
+   ```
+   Database: {kind: "tool_result", data_json: {tool_call_id: "call_abc123", content: "..."}}
+
+   OpenAI API: {
+     role: "tool",
+     tool_call_id: "call_abc123",
+     content: "{\"output\":\"file1.c\\nfile2.c\",\"count\":2}"
+   }
+   ```
+
+#### Transformation Logic
+
+The replay system implements this transformation in `src/db/replay.c`:
+
+```
+if (kind == "tool_call"):
+    Extract tool_calls array from data_json
+    Create message with:
+        role: "assistant"
+        tool_calls: [...array from data_json...]
+
+else if (kind == "tool_result"):
+    Extract tool_call_id and content from data_json
+    Create message with:
+        role: "tool"
+        tool_call_id: "..." (from data_json)
+        content: "..." (from data_json)
+```
+
+This ensures that when a session is restored, the conversation history is correctly reconstructed in the format expected by the OpenAI API, allowing the conversation to continue seamlessly from where it left off.
+
+#### data_json Schema for Tool Messages
+
+The database stores messages with two key fields:
+- `content` - Human-readable summary (for display in scrollback)
+- `data_json` - Structured data (JSONB field for API reconstruction)
+
+**For kind: "tool_call"**
+
+```json
+{
+  "id": "call_abc123",           // OpenAI tool call ID
+  "type": "function",            // Always "function" for now
+  "function": {
+    "name": "glob",              // Tool name
+    "arguments": "{...}"         // JSON string of arguments
+  }
+}
+```
+
+**For kind: "tool_result"**
+
+```json
+{
+  "tool_call_id": "call_abc123", // Matches the tool_call id
+  "name": "glob",                // Tool name (for display)
+  "output": "...",               // Tool output string OR full result JSON
+  "success": true                // Whether execution succeeded
+}
+```
+
+**Example: Complete message storage**
+
+Tool call message:
+```
+kind: "tool_call"
+content: "glob(pattern=\"*.c\", path=\"src/\")"  <- human readable
+data_json: {"id": "call_abc123", "type": "function", "function": {"name": "glob", "arguments": "{\"pattern\":\"*.c\",\"path\":\"src/\"}"}}
+```
+
+Tool result message:
+```
+kind: "tool_result"
+content: "3 files found"                         <- human readable
+data_json: {"tool_call_id": "call_abc123", "name": "glob", "output": "{\"output\":\"file1.c\\nfile2.c\\nfile3.c\",\"count\":3}", "success": true}
+```
+
+This separation ensures:
+- The `content` field provides immediate human-readable context when viewing the scrollback
+- The `data_json` field preserves all structured information needed to reconstruct API requests during replay
+- Tool execution results can be displayed simply (via `content`) or processed programmatically (via `data_json`)
+
 ### Display
 
 Show full transparency in scrollback:
@@ -63,9 +182,11 @@ Show full transparency in scrollback:
 
 ### Loop Limits
 
-Configuration setting `max_tool_turns` with default of 50.
+Configuration setting `max_tool_turns` with production default of 50.
 
 Prevents runaway tool loops while allowing substantial autonomous work.
+
+Note: Testing may use lower values (e.g., 3) to easily verify limit behavior.
 
 ### Tool Result Format
 
@@ -109,11 +230,21 @@ Tools are statically defined and always available. Dynamic tool configuration de
 
 ### Out of Scope
 
-- Tree-sitter code analysis (future release)
-- Parallel tool execution
-- Tool confirmation prompts
-- Guardrails/sandboxing
-- Multi-provider support (designed for, not implemented)
+The following limitations are known and explicitly deferred for rel-04:
+
+1. **Streaming tool argument accumulation** - Tool arguments must arrive in a single SSE chunk. Arguments that stream across multiple chunks are not accumulated. The real OpenAI API can stream large arguments across chunks, but we defer this complexity to a future release.
+
+2. **Parallel tool calls** - OpenAI can return multiple tool_calls in a single response (index: 0, 1, 2...). For rel-04, we only handle sequential single tool calls. Parallel execution is deferred.
+
+3. **Bash command timeout** - Bash execution is blocking with no timeout mechanism. Commands that hang will block indefinitely. (Note: This should be addressed in safety configuration, but the limitation is acknowledged here.)
+
+4. **Guardrails and sandboxing** - Full trust model. No command filtering, path restrictions, or sandboxing. The user sees exactly what tool calls are executed, and it's the user's machine and responsibility.
+
+5. **Multi-provider support** - Only OpenAI API is implemented. Anthropic, Google, and other providers are deferred to future releases (though internal structures are designed to support them).
+
+6. **Tree-sitter code analysis** - Advanced code parsing and analysis capabilities are deferred to a future release.
+
+7. **Tool confirmation prompts** - No interactive confirmation before tool execution. All tool calls are executed automatically.
 
 ## Testing Strategy
 
@@ -122,4 +253,7 @@ Real filesystem operations in test fixtures.
 ## Configuration
 
 New config fields:
-- `max_tool_turns` (int, default: 50) - Maximum tool call iterations per turn
+- `max_tool_turns` (int, default: 50) - Maximum tool call iterations per turn. Prevents runaway tool loops.
+- `max_output_size` (int, default: 1048576) - Maximum output size in bytes (1MB) for all tool results. Output is truncated with indicator if exceeded. Applies uniformly to glob, file_read, grep, and bash output.
+
+Note: These limits protect against accidental runaway operations even in the full-trust model. They provide basic safety boundaries without restricting legitimate use cases.

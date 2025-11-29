@@ -4,7 +4,7 @@
 User story: 13-tool-choice-auto
 
 ## Agent
-model: haiku
+model: sonnet
 
 ### Pre-read Skills
 - .agents/skills/tdd.md
@@ -26,7 +26,7 @@ model: haiku
 ### Pre-read Tests (patterns)
 - tests/integration/openai_mock_verification_test.c (mock OpenAI API response patterns)
 - tests/integration/message_integration_test.c (integration test structure and database setup patterns)
-- tests/e2e/ (existing e2e test structure)
+- tests/integration/ (existing e2e test structure)
 
 ## Pre-conditions
 - `make check` passes
@@ -43,10 +43,12 @@ Create an end-to-end test that verifies `tool_choice: "auto"` works correctly:
 
 This is the default mode and should already work from Stories 01-02.
 
+**Note**: This is a verification test. The functionality is implemented in earlier tasks. If previous tasks are complete, the test should pass. If it fails, identify and fix gaps in the implementation.
+
 ## TDD Cycle
 
 ### Red
-1. Create tests/e2e/test_tool_choice_auto.c:
+1. Create tests/integration/test_tool_choice_auto.c:
    - Mock OpenAI API to return tool call response
    - Send user message "Find all C files in src/"
    - Verify outgoing request has `"tool_choice": "auto"`

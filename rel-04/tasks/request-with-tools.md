@@ -27,7 +27,6 @@ model: sonnet
 
 ### Pre-read Tests (patterns)
 - tests/unit/openai/client_structures_test.c (JSON serialization test patterns using yyjson parsing)
-- tests/unit/openai/test_client.c (existing serialization tests)
 
 ## Pre-conditions
 - `make check` passes
@@ -44,7 +43,7 @@ This completes story-01 - requests will now include tools, allowing the model to
 ## TDD Cycle
 
 ### Red
-1. Add/modify test in tests/unit/openai/test_client.c for serialization:
+1. Add/modify test in tests/unit/openai/client_structures_test.c for serialization:
    - Serialize a request
    - Parse the resulting JSON
    - Verify `tools` key exists and is an array

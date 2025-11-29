@@ -54,17 +54,17 @@ Use the `data_json` field to store structured tool data (id, name, arguments, re
 
 ### Green
 1. Update `src/db/message.c`:
-   - Add "tool_call" and "tool_result" to valid kinds
+   - Add "tool_call" to the VALID_KINDS array (after "assistant")
+   - Add "tool_result" to the VALID_KINDS array (after "tool_call")
 2. Integrate persistence into conversation flow:
    - After parsing tool calls, persist with kind "tool_call"
    - After executing tool, persist with kind "tool_result"
-   - Store tool details in data_json field
+   - Store tool details in data_json field using schema from README.md
 3. Run `make check` - expect pass
 
 ### Refactor
 1. Consider if tool_call content should be the formatted display string or raw JSON
-2. Ensure replay can reconstruct tool state (for session restore)
-3. Run `make check` - verify still green
+2. Run `make check` - verify still green
 
 ## Post-conditions
 - `make check` passes
@@ -73,3 +73,4 @@ Use the `data_json` field to store structured tool data (id, name, arguments, re
 - data_json contains structured tool information
 - 100% test coverage for new code
 - Story 02 is complete: single glob call works end-to-end with persistence
+- Note: db-tool-replay.md follows immediately to complete the tool replay feature

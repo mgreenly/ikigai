@@ -32,23 +32,26 @@ model: sonnet
 
 ## Pre-conditions
 - `make check` passes
-- Task `tool-loop-limit-config.md` completed
-- MAX_TOOL_ITERATIONS constant exists
+- Task `tool-config-fields.md` completed (Story 02)
+- `ik_cfg_t` has `max_tool_turns` field accessible via `repl->cfg`
 - Multi-tool conversation loop works (Story 04)
 
 ## Task
-Add iteration counting to the conversation loop. Track how many times tool calls have been executed in the current loop and detect when the MAX_TOOL_ITERATIONS limit is reached.
+Add iteration counting to the conversation loop. Track how many times tool calls have been executed in the current loop and detect when the `max_tool_turns` config limit is reached.
 
 The counter should:
 1. Initialize to 0 at the start of handling a user request
 2. Increment each time finish_reason is "tool_calls" and tools are executed
 3. Be checked before sending the next API request
-4. Trigger limit-reached behavior when counter reaches MAX_TOOL_ITERATIONS
+4. Trigger limit-reached behavior when counter reaches `repl->cfg->max_tool_turns`
+
+IMPORTANT: The counter must be scoped to the entire user request/conversation turn, NOT to an inner loop function. It needs to persist across multiple API round-trips within a single user request to accurately count the total number of tool call iterations.
 
 ## TDD Cycle
 
 ### Red
 1. Add integration test to existing conversation loop test suite:
+   - Use test config with `max_tool_turns` set to 3 for easy verification
    - Mock API sequence with 4 tool_calls responses (exceeds limit of 3)
    - Verify first 3 tool calls execute normally
    - Verify 4th tool call is NOT sent
@@ -57,10 +60,14 @@ The counter should:
 
 ### Green
 1. Locate conversation loop in repl.c or repl_actions.c
-2. Add local counter variable (e.g., `int tool_iteration = 0`)
+2. Add counter variable scoped to the user request handler (e.g., `int tool_iteration = 0`)
+   - NOTE: Counter must be scoped to the ENTIRE user request/conversation turn
+   - It should persist across ALL iterations of the tool loop
+   - It counts the total number of tool call rounds in the current request
+   - DO NOT scope it to the inner loop function - it must survive across multiple API round-trips
 3. Initialize counter to 0 at start of request handling
-4. Increment counter after each tool execution
-5. Add check: `if (tool_iteration >= MAX_TOOL_ITERATIONS)`
+4. Increment counter after each tool execution (each time finish_reason is "tool_calls")
+5. Add check: `if (tool_iteration >= repl->cfg->max_tool_turns)` before sending next API request
 6. Run `make check` - expect pass
 
 ### Refactor
@@ -74,6 +81,6 @@ The counter should:
 - `make check` passes
 - `make lint && make coverage` passes
 - Conversation loop tracks tool call iterations
-- Loop detects when MAX_TOOL_ITERATIONS is reached
+- Loop detects when `repl->cfg->max_tool_turns` limit is reached
 - Counter resets for each new user request
 - 100% test coverage for new code

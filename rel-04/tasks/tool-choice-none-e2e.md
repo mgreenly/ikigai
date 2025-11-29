@@ -4,7 +4,7 @@
 User story: 13-tool-choice-none
 
 ## Agent
-model: haiku
+model: sonnet
 
 ### Pre-read Skills
 - .agents/skills/tdd.md
@@ -29,7 +29,7 @@ model: haiku
 - tests/unit/openai/client_multi_test_common.h (comprehensive mocking infrastructure for curl and callbacks)
 - tests/unit/openai/client_multi_add_request_test.c (testing patterns for request creation with mocked dependencies)
 - tests/integration/openai_mock_verification_test.c (integration test setup and stream callback patterns)
-- tests/e2e/ (existing e2e test structure)
+- tests/integration/ (existing e2e test structure)
 
 ## Pre-conditions
 - `make check` passes
@@ -45,10 +45,12 @@ Create an end-to-end test that verifies `tool_choice: "none"` works correctly:
 
 Note: This requires a way to set tool_choice for a request. This might be a command-line flag, config setting, or test-only API.
 
+**Note**: This is a verification test. The functionality is implemented in earlier tasks. If previous tasks are complete, the test should pass. If it fails, identify and fix gaps in the implementation.
+
 ## TDD Cycle
 
 ### Red
-1. Create tests/e2e/test_tool_choice_none.c:
+1. Create tests/integration/test_tool_choice_none.c:
    - Configure request to use tool_choice none
    - Mock OpenAI API to return text-only response (no tool_calls)
    - Send user message "Find all C files in src/"

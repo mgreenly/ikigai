@@ -52,14 +52,14 @@ Note: Tool call arguments stream in chunks across multiple deltas. For Story 02,
    - Extracts arguments correctly
    - Returns NULL for delta with only content (no tool_calls)
    - Handles finish_reason: "tool_calls" detection
-3. Run `make check` - expect compile failure
-
-### Green
-1. Add to `src/openai/sse_parser.h`:
+3. Add to `src/openai/sse_parser.h`:
    - Include tool.h
    - Declare `ik_openai_parse_tool_calls(void *parent, const char *event)` returning `res_t`
-   - Result contains array of `ik_tool_call_t*` or NULL if no tool calls
-2. Implement in `src/openai/sse_parser.c`:
+4. Add stub in `src/openai/sse_parser.c`: `return OK(NULL);` (always returns no tool calls)
+5. Run `make check` - expect assertion failure (tests expect extracted tool calls)
+
+### Green
+1. Replace stub in `src/openai/sse_parser.c` with implementation:
    - Check for tool_calls in delta object
    - Extract id, function.name, function.arguments
    - Create ik_tool_call_t for each tool call

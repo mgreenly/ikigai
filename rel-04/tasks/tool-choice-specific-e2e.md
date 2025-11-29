@@ -27,8 +27,8 @@ model: sonnet
 - tests/unit/openai/client_http_mock_test.c (curl mocking pattern for fake responses)
 - tests/integration/openai_mock_verification_test.c (stream callback and response accumulation)
 - tests/unit/openai/client_multi_write_callback_test.c (SSE response handling)
-- tests/e2e/ (existing e2e test structure)
-- tests/e2e/test_tool_choice_required.c (similar test structure)
+- tests/integration/ (existing e2e test structure)
+- tests/integration/test_tool_choice_required.c (similar test structure)
 
 ## Pre-conditions
 - `make check` passes
@@ -46,10 +46,12 @@ Create an end-to-end test that verifies `tool_choice: {"type": "function", "func
 
 This is more complex than the string modes because the JSON structure is an object.
 
+**Note**: This is a verification test. The functionality is implemented in earlier tasks. If previous tasks are complete, the test should pass. If it fails, identify and fix gaps in the implementation.
+
 ## TDD Cycle
 
 ### Red
-1. Create tests/e2e/test_tool_choice_specific.c:
+1. Create tests/integration/test_tool_choice_specific.c:
    - Configure request to use tool_choice specific "glob"
    - Mock OpenAI API to return glob tool call (model must use this tool)
    - Send user message "Find all C files in src/"

@@ -34,6 +34,8 @@ model: sonnet
 - `make check` passes
 - `ik_tool_call_t` struct exists
 - Task `parse-tool-calls.md` completed
+- Task `tool-argument-parser.md` completed
+- Task `tool-output-limit.md` completed (truncation utility for large outputs)
 
 ## Task
 Implement glob tool execution. Given a pattern and optional path, execute glob and return results as JSON matching the expected format:
@@ -51,12 +53,14 @@ Implement glob tool execution. Given a pattern and optional path, execute glob a
    - Empty result returns `{"output": "", "count": 0}`
    - Invalid pattern returns error
 2. Create a test fixture directory with known files for predictable results
-3. Run `make check` - expect compile failure
+   - **Fixture Convention**: Each test should create its own unique temp directory (e.g., using `mkdtemp()` or test-specific subdirectory under `/tmp/ikigai-test-XXXXXX`) to ensure test isolation and prevent interference if parallel execution is enabled. For read-only fixtures, use shared `tests/fixtures/` directory.
+3. Add declaration to `src/tool.h`:
+   - `ik_tool_exec_glob(void *parent, const char *pattern, const char *path)` returning `res_t`
+4. Add stub in `src/tool.c`: `return OK("{\"output\": \"\", \"count\": 0}");` (always empty)
+5. Run `make check` - expect assertion failure (tests with fixtures expect actual file matches)
 
 ### Green
-1. Add to `src/tool.h`:
-   - Declare `ik_tool_exec_glob(void *parent, const char *pattern, const char *path)` returning `res_t`
-2. Implement in `src/tool.c`:
+1. Replace stub in `src/tool.c` with implementation:
    - Parse arguments JSON to extract pattern and path
    - Use POSIX glob() to find matching files
    - Build result JSON with yyjson

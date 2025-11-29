@@ -49,14 +49,15 @@ This requires extending or creating a new message type since `ik_openai_msg_t` o
    - Message has role "tool"
    - Message has tool_call_id field
    - Message has content field with result JSON
-2. Run `make check` - expect compile failure
-
-### Green
-1. Add to `src/openai/client.h`:
+2. Add to `src/openai/client.h`:
    - Either extend `ik_openai_msg_t` with optional `tool_call_id` field
    - Or create `ik_openai_tool_msg_t` struct
    - Declare `ik_openai_tool_msg_create(void *parent, const char *tool_call_id, const char *content)`
-2. Implement in `src/openai/client.c`:
+3. Add stub in `src/openai/client.c`: `return NULL;`
+4. Run `make check` - expect assertion failure (returns NULL, test expects valid message)
+
+### Green
+1. Replace stub in `src/openai/client.c` with implementation:
    - Allocate message struct
    - Set role to "tool"
    - Copy tool_call_id and content

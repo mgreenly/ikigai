@@ -43,6 +43,14 @@ When the tool iteration limit is reached, the final API request must set `tool_c
 
 Normal requests use `tool_choice: "auto"`. After reaching the limit and adding the limit metadata to the tool result, the next (and final) request should explicitly set `tool_choice: "none"`.
 
+## Implementation Note
+
+**Temporary Implementation**: This task uses hardcoded string literals (`"auto"`, `"none"`) for tool_choice values. This is intentional to complete Story 11 with minimal dependencies.
+
+**Future Refactoring**: Story 13 (task `request-with-tool-choice-param.md`) will introduce the proper `ik_tool_choice_t` type and refactor this code to use `ik_tool_choice_auto()` and `ik_tool_choice_none()` functions. The conditional logic implemented here will be replaced with a parameter-based approach.
+
+This follows the TDD pattern: "Make it work, then make it right."
+
 ## TDD Cycle
 
 ### Red

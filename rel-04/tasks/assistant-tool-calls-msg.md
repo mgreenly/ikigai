@@ -53,13 +53,16 @@ This requires:
    - Verify JSON has "role": "assistant"
    - Verify JSON has "tool_calls" array (not "content")
    - Verify tool_calls[0] has id, type, function.name, function.arguments
-2. Run `make check` - expect compile failure or test failure
+2. Extend `src/openai/client.h`:
+   - Add tool_calls field to message struct (or create variant)
+   - Add declaration for function to create assistant message with tool_calls
+3. Add stub in `src/openai/client.c`:
+   - Function creates message but sets tool_calls to NULL
+   - Serialization ignores tool_calls (outputs "content" only)
+4. Run `make check` - expect assertion failure (tests expect "tool_calls" array in serialized JSON)
 
 ### Green
-1. Extend message handling in `src/openai/client.h`:
-   - Add tool_calls field to message struct (or create variant)
-   - Add function to create assistant message with tool_calls
-2. Update serialization in `src/openai/client.c`:
+1. Replace stub in `src/openai/client.c` with implementation:
    - Detect if message has tool_calls
    - Serialize tool_calls array instead of content when present
 3. Run `make check` - expect pass

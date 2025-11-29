@@ -19,7 +19,7 @@ model: sonnet
 - docs/v1-database-design.md
 - docs/error_handling.md
 - rel-04/user-stories/04-glob-then-read-file.md (user story - see full walkthrough)
-- rel-04/tasks/conversation-tool-loop.md (previous task - conversation loop implementation)
+- rel-04/tasks/tool-loop-continuation.md (previous task - conversation loop implementation)
 
 ### Pre-read Source (patterns)
 - src/repl.c (handle_request_success function, finish_reason storage)
@@ -36,7 +36,7 @@ model: sonnet
 - `make check` passes
 - Single tool call works (Story 02: glob execution)
 - File read tool works (Story 03: file_read execution)
-- Task `conversation-tool-loop.md` completed
+- Task `tool-loop-continuation.md` completed
 - Task `file-read-execute.md` completed
 
 ## Task
