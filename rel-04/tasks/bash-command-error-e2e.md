@@ -6,20 +6,39 @@ User story: 09-bash-command-fails
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/mocking.md
+- .agents/skills/database.md
+- .agents/skills/testability.md
+
+### Pre-read Docs
+- docs/error_handling.md
+- docs/error_testing.md
+- docs/error_patterns.md
+- docs/memory.md
+- rel-04/user-stories/09-bash-command-fails.md (user story)
+- rel-04/tasks/file-read-error-e2e.md (similar E2E test pattern)
+
+### Pre-read Source (patterns)
+- src/repl.h (conversation loop)
+- src/repl_actions.h (tool integration)
+- src/repl_callbacks.h (response handling)
+- src/tool.c (bash error handling implementation)
+
+### Pre-read Tests (patterns)
+- tests/integration/message_integration_test.c (database persistence pattern)
+- tests/integration/openai_mock_verification_test.c (API mocking pattern)
+- tests/unit/openai/client_http_mock_test.c (mock response creation)
+- tests/test_utils.h (database test utilities)
+- tests/unit/tool/test_bash_execute.c (unit tests for error cases)
+
 ## Pre-conditions
 - `make check` passes
 - All tasks from Stories 01-08 completed
 - `ik_tool_exec_bash()` exists and handles command failures
 - Tool result messages support non-zero exit codes
 - Conversation loop handles tool results with failed commands
-
-## Context
-Read before starting:
-- rel-04/user-stories/09-bash-command-fails.md (full walkthrough)
-- src/tool.c (bash error handling implementation)
-- tests/unit/tool/test_bash_execute.c (unit tests for error cases)
-- rel-04/tasks/file-read-error-e2e.md (similar E2E test pattern)
-- tests/integration/ (existing integration test patterns)
 
 ## Task
 Create an end-to-end integration test that verifies bash command failures flow correctly through the entire system:

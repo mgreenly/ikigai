@@ -6,18 +6,36 @@ User story: 11-tool-loop-limit-reached
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/naming.md
+- .agents/skills/coverage.md
+- .agents/skills/testability.md
+- .agents/skills/style.md
+- .agents/skills/quality.md
+
+### Pre-read Docs
+- docs/architecture.md
+- docs/memory.md
+- docs/error_handling.md
+- rel-04/user-stories/11-tool-loop-limit-reached.md
+- rel-04/tasks/tool-result-msg.md
+
+### Pre-read Source (patterns)
+- src/openai/client.h (extend ik_openai_msg_t for tool_call_id)
+- src/openai/client.c (JSON serialization with yyjson pattern)
+- src/tools/tool.h (tool result structures)
+- src/openai/message.h (message construction)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_structures_test.c (testing patterns for message structures)
+- tests/unit/openai/client_http_mock_test.c (mocking and result handling)
+
 ## Pre-conditions
 - `make check` passes
 - Task `tool-loop-counter.md` completed
 - Conversation loop detects when limit is reached
 - Tool result messages work (Story 02: tool-result-msg.md completed)
-
-## Context
-Read before starting:
-- src/tools/tool.h (tool result structures)
-- src/openai/message.h or src/openai/client.c (message construction)
-- rel-04/user-stories/11-tool-loop-limit-reached.md (see Tool Result C example)
-- rel-04/tasks/tool-result-msg.md (existing tool result implementation)
 
 ## Task
 When the tool iteration limit is reached, add metadata to the tool result message. The result should include:

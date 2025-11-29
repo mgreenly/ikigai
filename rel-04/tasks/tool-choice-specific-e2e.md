@@ -6,17 +6,35 @@ User story: 13-tool-choice-specific
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/mocking.md
+- .agents/skills/coverage.md
+- .agents/skills/testability.md
+
+### Pre-read Docs
+- docs/architecture.md
+- docs/error_handling.md
+- docs/anthropic_streaming_protocol.md
+- rel-04/user-stories/13-tool-choice-specific.md
+
+### Pre-read Source (patterns)
+- src/openai/client.c (JSON serialization pattern with yyjson_mut_obj)
+- src/openai/client_multi_request.c (request building and HTTP setup)
+- src/openai/http_handler.c (HTTP handler patterns)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_http_mock_test.c (curl mocking pattern for fake responses)
+- tests/integration/openai_mock_verification_test.c (stream callback and response accumulation)
+- tests/unit/openai/client_multi_write_callback_test.c (SSE response handling)
+- tests/e2e/ (existing e2e test structure)
+- tests/e2e/test_tool_choice_required.c (similar test structure)
+
 ## Pre-conditions
 - `make check` passes
 - Task `tool-choice-required-e2e.md` completed
 - Required mode e2e test passes
 - Configuration mechanism for tool_choice exists
-
-## Context
-Read before starting:
-- rel-04/user-stories/13-tool-choice-specific.md (expected behavior)
-- tests/e2e/ directory (existing e2e test structure)
-- tests/e2e/test_tool_choice_required.c (similar test structure)
 
 ## Task
 Create an end-to-end test that verifies `tool_choice: {"type": "function", "function": {"name": "glob"}}` works correctly:

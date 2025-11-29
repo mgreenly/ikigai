@@ -6,17 +6,32 @@ User story: 02-single-glob-call
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/testability.md
+- .agents/skills/mocking.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+
+### Pre-read Docs
+- docs/error_handling.md
+- docs/error_patterns.md
+- docs/naming.md
+- docs/memory.md
+- rel-04/user-stories/02-single-glob-call.md (user story - see Response A for tool_calls format)
+
+### Pre-read Source (patterns)
+- src/openai/sse_parser.c (JSON extraction with yyjson, error handling, wrapper functions)
+- src/openai/sse_parser.h (API design for SSE parsing, result types)
+- src/tool.h (ik_tool_call_t struct)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_sse_test.c (SSE parser test patterns, talloc usage, fixture setup/teardown)
+
 ## Pre-conditions
 - `make check` passes
 - `ik_tool_call_t` struct exists in `src/tool.h`
 - Task `tool-call-struct.md` completed
-
-## Context
-Read before starting:
-- src/openai/sse_parser.h (existing SSE parsing)
-- src/openai/sse_parser.c (implementation patterns)
-- src/tool.h (ik_tool_call_t struct)
-- rel-04/user-stories/02-single-glob-call.md (see Response A for tool_calls format)
 
 ## Task
 Extend SSE parsing to detect and extract tool_calls from response deltas. The parser must:

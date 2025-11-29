@@ -6,17 +6,30 @@ User story: 02-single-glob-call
 ## Agent
 model: haiku
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/naming.md
+- .agents/skills/coverage.md
+- .agents/skills/testability.md
+
+### Pre-read Docs
+- docs/naming.md
+- docs/memory.md
+- rel-04/user-stories/02-single-glob-call.md (see Response A for tool_calls format)
+
+### Pre-read Source (patterns)
+- src/array.h (simple struct typedef with create function)
+- src/config.h (struct with char* fields)
+- src/tool.h (existing tool module)
+
+### Pre-read Tests (patterns)
+- tests/unit/array/basic_test.c (test structure pattern)
+- tests/unit/config/basic_test.c (struct field testing pattern)
+
 ## Pre-conditions
 - `make check` passes
 - Task `request-with-tools.md` completed (Story 01 complete)
 - `src/tool.h` and `src/tool.c` exist with schema functions
-
-## Context
-Read before starting:
-- docs/memory.md (talloc patterns)
-- docs/naming.md (ik_module_function conventions)
-- src/tool.h (existing tool module)
-- rel-04/user-stories/02-single-glob-call.md (see Response A for tool_calls format)
 
 ## Task
 Define `ik_tool_call_t` struct to hold a parsed tool call. This struct will store the id, function name, and arguments extracted from the API response.

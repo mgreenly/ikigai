@@ -6,16 +6,33 @@ User story: 11-tool-loop-limit-reached
 ## Agent
 model: haiku
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/naming.md
+- .agents/skills/quality.md
+- .agents/skills/coverage.md
+
+### Pre-read Docs
+- docs/architecture.md
+- docs/naming.md
+- docs/build-system.md
+- docs/opus/architecture.md (system design)
+- rel-04/user-stories/11-tool-loop-limit-reached.md (full user story)
+
+### Pre-read Source (patterns)
+- src/config.h (configuration pattern with typedef struct)
+- src/main.c (application configuration)
+- src/repl.h (REPL state and conversation context)
+- src/openai/client.h (conversation message structure)
+
+### Pre-read Tests (patterns)
+- tests/unit/config/config_test.c (how to test config values with ck_assert)
+- tests/integration/config_integration_test.c (integration test patterns for configuration)
+
 ## Pre-conditions
 - `make check` passes
 - Multi-tool conversation loop works (Story 04: multi-tool-loop.md completed)
 - Conversation loop auto-continues until finish_reason is "stop"
-
-## Context
-Read before starting:
-- src/config.h or src/main.c (application configuration)
-- docs/opus/architecture.md (system design)
-- rel-04/user-stories/11-tool-loop-limit-reached.md (full user story)
 
 ## Task
 Add a configurable limit for maximum tool call iterations in a single user request. This prevents infinite loops when the model makes repeated tool calls.

@@ -6,18 +6,34 @@ User story: 02-single-glob-call
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+- .agents/skills/mocking.md
+- .agents/skills/naming.md
+
+### Pre-read Docs
+- docs/memory.md
+- docs/return_values.md
+- docs/error_handling.md
+- rel-04/user-stories/02-single-glob-call.md (user story: see Tool Result A for expected format)
+
+### Pre-read Source (patterns)
+- src/config.c (JSON building with yyjson_mut, error patterns)
+- src/openai/sse_parser.c (talloc and yyjson usage)
+- src/json_allocator.h (talloc-based JSON allocation)
+- src/error.h (res_t, OK/ERR macros)
+- src/tool.h (existing tool module)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_structures_test.c (talloc test patterns, setup/teardown)
+- tests/unit/openai/client_http_sse_streaming_test.c (mocking weak symbols, test fixtures)
+
 ## Pre-conditions
 - `make check` passes
 - `ik_tool_call_t` struct exists
 - Task `parse-tool-calls.md` completed
-
-## Context
-Read before starting:
-- docs/memory.md (talloc patterns)
-- docs/return_values.md (Result types)
-- src/tool.h (existing tool module)
-- rel-04/user-stories/02-single-glob-call.md (see Tool Result A for expected format)
-- man 3 glob (POSIX glob function)
 
 ## Task
 Implement glob tool execution. Given a pattern and optional path, execute glob and return results as JSON matching the expected format:

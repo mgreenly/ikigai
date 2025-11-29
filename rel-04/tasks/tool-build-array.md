@@ -6,6 +6,27 @@ User story: 01-simple-greeting-no-tools
 ## Agent
 model: haiku
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/coverage.md
+- .agents/skills/naming.md
+
+### Pre-read Docs
+- docs/memory.md
+- docs/return_values.md
+- docs/naming.md
+- docs/architecture.md
+- rel-04/user-stories/01-simple-greeting-no-tools.md (see complete tools array in Request A)
+
+### Pre-read Source (patterns)
+- src/config.c (yyjson_mut_doc/arr/obj patterns for building JSON structures)
+- src/tool.h (existing functions)
+- src/tool.c (existing implementation)
+
+### Pre-read Tests (patterns)
+- tests/unit/config/basic_test.c (testing patterns with yyjson and talloc)
+- tests/unit/tool/test_tool.c (existing test patterns)
+
 ## Pre-conditions
 - `make check` passes
 - All 5 tool schema functions exist in `src/tool.c`:
@@ -15,13 +36,6 @@ model: haiku
   - `ik_tool_build_file_write_schema()`
   - `ik_tool_build_bash_schema()`
 - Task `tool-all-schemas.md` completed successfully
-
-## Context
-Read before starting:
-- src/tool.h (existing functions)
-- src/tool.c (existing implementation)
-- tests/unit/tool/test_tool.c (existing test patterns)
-- rel-04/user-stories/01-simple-greeting-no-tools.md (see complete tools array in Request A)
 
 ## Task
 Create `ik_tool_build_all(yyjson_mut_doc *doc)` that returns a yyjson_mut_val* array containing all 5 tool schemas. This is the function that will be called from request serialization.

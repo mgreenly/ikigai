@@ -6,17 +6,34 @@ User story: 13-tool-choice-required
 ## Agent
 model: haiku
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/mocking.md
+- .agents/skills/testability.md
+- .agents/skills/quality.md
+- .agents/skills/coverage.md
+
+### Pre-read Docs
+- docs/architecture.md
+- docs/error_testing.md
+- rel-04/user-stories/13-tool-choice-required.md
+
+### Pre-read Source (patterns)
+- src/openai/client.h (request structure and functions)
+- src/openai/client_multi_request.c (request building pattern with mocking)
+- src/wrapper.h (MOCKABLE pattern for curl overrides)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_http_mock_test.c (curl mocking pattern)
+- tests/integration/openai_mock_verification_test.c (OpenAI API mock setup pattern)
+- tests/integration/message_integration_test.c (integration test structure with setup/teardown)
+- tests/e2e/test_tool_choice_none.c (similar test structure)
+
 ## Pre-conditions
 - `make check` passes
 - Task `tool-choice-none-e2e.md` completed
 - None mode e2e test passes
 - Configuration mechanism for tool_choice exists
-
-## Context
-Read before starting:
-- rel-04/user-stories/13-tool-choice-required.md (expected behavior)
-- tests/e2e/ directory (existing e2e test structure)
-- tests/e2e/test_tool_choice_none.c (similar test structure)
 
 ## Task
 Create an end-to-end test that verifies `tool_choice: "required"` works correctly:

@@ -6,17 +6,30 @@ User story: 01-simple-greeting-no-tools
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/naming.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+- .agents/skills/style.md
+
+### Pre-read Docs
+- docs/memory.md
+- docs/return_values.md
+- docs/naming.md
+- rel-04/user-stories/01-simple-greeting-no-tools.md (user story - see expected JSON format)
+
+### Pre-read Source (patterns)
+- src/openai/client.c (yyjson JSON building patterns)
+- src/config.c (yyjson initialization and object/array creation)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_structures_test.c (talloc/yyjson test setup patterns)
+- tests/unit/layer/basic_test.c (unit test structure with setup/teardown)
+
 ## Pre-conditions
 - `make check` passes
 - No existing tool module in src/
-
-## Context
-Read before starting:
-- docs/memory.md (talloc patterns)
-- docs/return_values.md (Result types)
-- docs/naming.md (ik_module_function conventions)
-- src/openai/client.c (understand request serialization with yyjson)
-- rel-04/user-stories/01-simple-greeting-no-tools.md (see expected JSON format)
 
 ## Task
 Create `src/tool.h` and `src/tool.c` with a function `ik_tool_build_glob_schema(yyjson_mut_doc *doc)` that builds the JSON schema for the glob tool. This is a focused first step - build one tool's schema correctly, test it thoroughly, then add the others.

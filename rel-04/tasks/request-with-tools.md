@@ -6,18 +6,33 @@ User story: 01-simple-greeting-no-tools
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/coverage.md
+- .agents/skills/quality.md
+- .agents/skills/style.md
+- .agents/skills/naming.md
+- .agents/skills/testability.md
+
+### Pre-read Docs
+- docs/naming.md
+- docs/architecture.md
+- rel-04/user-stories/01-simple-greeting-no-tools.md (user story - see Request A for expected format)
+
+### Pre-read Source (patterns)
+- src/openai/client.c (serialize_request implementation with yyjson usage)
+- src/openai/client.h (request structure)
+- src/error.h (error handling patterns)
+- src/tool.h (tools array function)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_structures_test.c (JSON serialization test patterns using yyjson parsing)
+- tests/unit/openai/test_client.c (existing serialization tests)
+
 ## Pre-conditions
 - `make check` passes
 - `ik_tool_build_all()` exists and works in `src/tool.c`
 - Task `tool-build-array.md` completed successfully
-
-## Context
-Read before starting:
-- src/openai/client.c (existing `ik_openai_serialize_request()` function)
-- src/openai/client.h (request structure)
-- src/tool.h (tools array function)
-- tests/unit/openai/test_client.c (existing serialization tests)
-- rel-04/user-stories/01-simple-greeting-no-tools.md (see Request A for expected format)
 
 ## Task
 Modify `ik_openai_serialize_request()` to include:

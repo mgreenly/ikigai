@@ -6,6 +6,33 @@ User story: 02-single-glob-call
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/mocking.md
+- .agents/skills/testability.md
+- .agents/skills/naming.md
+- .agents/skills/quality.md
+
+### Pre-read Docs
+- docs/memory.md
+- docs/return_values.md
+- docs/error_handling.md
+- rel-04/user-stories/02-single-glob-call.md (user story - full walkthrough)
+
+### Pre-read Source (patterns)
+- src/openai/client_multi_callbacks.c (finish_reason extraction pattern)
+- src/repl_callbacks.c (streaming callback and completion handling)
+- src/repl.h (REPL context structure and assistant_response field)
+- src/openai/client_multi.h (completion callback typedef and ik_http_completion_t structure)
+- src/openai/client.c (conversation management and message handling)
+- src/repl.c or src/repl_actions.c (conversation handling)
+- src/openai/sse_parser.c (response parsing)
+
+### Pre-read Tests (patterns)
+- tests/unit/repl/repl_http_completion_callback_test.c (completion callback testing pattern)
+- tests/unit/openai/client_http_sse_streaming_test.c (SSE streaming and callback testing pattern)
+- tests/integration/repl_test.c (end-to-end REPL integration testing)
+
 ## Pre-conditions
 - `make check` passes
 - Tool call parsing works (`ik_openai_parse_tool_calls`)
@@ -13,13 +40,6 @@ model: sonnet
 - Tool result message works
 - Assistant tool_calls message serialization works
 - Task `assistant-tool-calls-msg.md` completed
-
-## Context
-Read before starting:
-- src/repl.c or src/repl_actions.c (conversation handling)
-- src/openai/client.c (API interaction)
-- src/openai/sse_parser.c (response parsing)
-- rel-04/user-stories/02-single-glob-call.md (full walkthrough)
 
 ## Task
 Integrate tool execution into the conversation flow:

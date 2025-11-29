@@ -6,19 +6,35 @@ User story: 13-tool-choice-auto, 13-tool-choice-none, 13-tool-choice-required, 1
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/naming.md
+- .agents/skills/quality.md
+- .agents/skills/coverage.md
+
+### Pre-read Docs
+- docs/naming.md
+- docs/architecture.md
+- rel-04/user-stories/13-tool-choice-auto.md
+- rel-04/user-stories/13-tool-choice-none.md
+- rel-04/user-stories/13-tool-choice-required.md
+- rel-04/user-stories/13-tool-choice-specific.md
+
+### Pre-read Source (patterns)
+- src/openai/client.h (request structure reference)
+- src/openai/client.c (JSON serialization pattern using yyjson)
+- src/error.h (enum + struct pattern reference)
+- src/config.h (simple struct with helper functions)
+
+### Pre-read Tests (patterns)
+- tests/unit/config/basic_test.c (struct creation and field testing pattern)
+- tests/unit/error/error_test.c (enum + error handling pattern)
+
 ## Pre-conditions
 - `make check` passes
 - Task `replay-tool-messages.md` completed (Story 12)
 - Request serialization currently hardcodes `tool_choice: "auto"` (Story 01)
 - Loop limit logic can set `tool_choice: "none"` (Story 11)
-
-## Context
-Read before starting:
-- src/openai/client.h or src/openai/request.h (request structure)
-- rel-04/user-stories/13-tool-choice-auto.md (string value "auto")
-- rel-04/user-stories/13-tool-choice-none.md (string value "none")
-- rel-04/user-stories/13-tool-choice-required.md (string value "required")
-- rel-04/user-stories/13-tool-choice-specific.md (object value with type and function.name)
 
 ## Task
 Create a configuration type that can represent all valid `tool_choice` values:

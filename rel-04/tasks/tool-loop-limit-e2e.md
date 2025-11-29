@@ -6,6 +6,26 @@ User story: 11-tool-loop-limit-reached
 ## Agent
 model: sonnet
 
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/mocking.md
+- .agents/skills/database.md
+
+### Pre-read Docs
+- docs/v1-conversation-management.md
+- docs/v1-llm-integration.md
+- rel-04/user-stories/11-tool-loop-limit-reached.md
+
+### Pre-read Source (patterns)
+- src/repl.c (conversation loop handling)
+- src/openai/client.c (API request handling)
+
+### Pre-read Tests (patterns)
+- tests/integration/message_integration_test.c (integration test patterns)
+- tests/unit/repl/repl_run_basic_test.c (repl mocking patterns)
+- rel-04/tasks/file-read-error-e2e.md (example e2e test structure)
+- rel-04/tasks/bash-command-error-e2e.md (example e2e test structure)
+
 ## Pre-conditions
 - `make check` passes
 - Task `tool-choice-none-on-limit.md` completed
@@ -14,13 +34,6 @@ model: sonnet
   - Loop counter tracks iterations
   - Limit metadata added to tool results
   - tool_choice set to "none" when limit reached
-
-## Context
-Read before starting:
-- rel-04/user-stories/11-tool-loop-limit-reached.md (complete walkthrough)
-- tests/integration/ (existing integration test patterns)
-- rel-04/tasks/file-read-error-e2e.md (example e2e test structure)
-- rel-04/tasks/bash-command-error-e2e.md (example e2e test structure)
 
 ## Task
 Create an end-to-end integration test that verifies the complete tool loop limit behavior:
