@@ -38,14 +38,17 @@ telemetry = postgres
 
 ### Why PostgreSQL as Default
 
-- **Single dependency** for all services—simple operations
-- **ACID transactions** ensure reliable task claiming and message delivery
+PostgreSQL handles queues, pub/sub, caching, and storage in one place. This isn't just convenience—it enables things that are difficult with separate services:
+
+- **Transactional integrity across operations**: Claim a task, write results, send a message—all in one transaction. If the agent crashes mid-operation, everything rolls back cleanly. This consistency is hard to achieve when tasks live in RabbitMQ, results in Postgres, and messages in Redis.
+- **Single backup target**: One database to snapshot, replicate, and restore.
+- **No network hops**: On a single server, everything moves through Unix sockets. Latency is measured in microseconds.
 - **LISTEN/NOTIFY** enables real-time coordination without polling
 - **Full-text search** for querying conversation history and logs
 - **pgvector extension** enables semantic search and RAG capabilities
 - **Mature tooling** for backup, replication, monitoring
 
-PostgreSQL is not a specialized message queue or time-series database, but for the scale of typical autonomous agent deployments (tens to hundreds of agents), it handles all these roles adequately while dramatically simplifying operations.
+PostgreSQL is not a specialized message queue or time-series database. But for typical agent deployments, it handles all these roles well—and "good enough in one place" beats "optimal in six places you have to operate separately."
 
 ---
 
