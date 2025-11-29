@@ -4,7 +4,7 @@ Ikigai is infrastructure you own.
 
 A small team creating intelligent agents can have the effectiveness of a much larger group. Developers build agents that monitor what matters, process information at scales humans can't sustain, and decide when to act.
 
-Ikigai handles the infrastructure so you can focus on the development of your agents.
+Ikigai handles the infrastructure so you can focus on the development of your agents. The gap between "I built a thing" and "the team uses the thing" is nearly zero - no separate production infrastructure, no handoff to ops, no elaborate deployment pipeline. The prototype is the production system for your scale.
 
 ```
 apt install ikigai
@@ -19,6 +19,16 @@ From there, you have a complete platform for autonomous agents. Your agents run 
 That single command gives you task queues, mailboxes, pub/sub, storage, caching, telemetry, and process management. No separate message broker, no cache cluster, no container orchestrator. PostgreSQL and systemd handle what other stacks spread across half a dozen services.
 
 You can add specialized backends later if you need them. But the defaults handle everything, and they work together because they were chosen to work together.
+
+---
+
+## From Notebook to Production
+
+Think of Ikigai as Jupyter Notebooks for continuous AI agents.
+
+Jupyter lets a developer explore data interactively, then share that notebook with colleagues who can run it themselves. The exploration environment and the sharing environment are the same thing. There's no "productionizing" step.
+
+Ikigai does the same for agents. Develop locally, deploy to the platform, and your team can use what you built. The development environment, the testing environment, and the production environment are the same Linux box running the same services. What works on your machine works for your users because it's the same machine.
 
 ---
 
@@ -75,6 +85,8 @@ Small teams (typically 2-10 engineers) who:
 - Prefer to own their infrastructure rather than rent it
 - Value opinionated tools that work out of the box
 
+The scale is internal platforms and power-user tools, not consumer SaaS. Think dozens to hundreds of users, not millions. A research group's analysis pipeline. A company's internal automation suite. A consultancy's client-facing tools. Production-grade reliability without the complexity of horizontal scaling.
+
 Not a low-code drag-and-drop builder. Not a chatbot framework. A platform for engineers who treat their agents as strategic capabilities, not just automations.
 
 ---
@@ -99,4 +111,4 @@ Ikigai provides these pieces as a cohesive platform, opinionated choices that wo
 
 Start with one server. A modern Linux machine with fast storage and enough RAM can handle hundreds of concurrent agents. On a single box, there are no network partitions, no distributed consensus, no eventual consistency. Just processes talking through local sockets and a shared database.
 
-Most teams never need more than this. When you do, the architecture supports scaling out without fundamental changes. But preserve the simplicity of a single server as long as you can. It makes everything easier to operate, debug, and reason about.
+Most teams never need more than this. When you do, the architecture supports scaling out without fundamental changes. But preserve the simplicity of a single server as long as you can. It makes everything easier to operate, debug, and reason about. One person can maintain it. That's the point.
