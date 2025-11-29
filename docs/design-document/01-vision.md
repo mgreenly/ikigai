@@ -2,9 +2,9 @@
 
 Ikigai is infrastructure you own.
 
-A small team with well-orchestrated AI agents can have the awareness and reach of a much larger organization. Agents that watch for what matters to your goals, synthesize information you couldn't process alone, and act on your behalf when conditions are right. Whether you're building a business, pursuing research, or working toward any mission—agents extend what a small group of people can realistically pay attention to.
+A small team creating intelligent agents can have the effectiveness of a much larger group. Developers build agents that monitor what matters, process information at scales humans can't sustain, and decide when to act.
 
-The platform handles the infrastructure so you can focus on the interesting problems: what should your agents watch for, what patterns matter, what actions should they take, how do they coordinate.
+Ikigai handles the infrastructure so you can focus on the development of your agents.
 
 ```
 apt install ikigai
