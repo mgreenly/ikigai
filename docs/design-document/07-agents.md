@@ -6,7 +6,7 @@
 
 ## Purpose
 
-Autonomous agents are the product developers build using Ikigai. They are long-running TypeScript processes that execute tasks independently, communicate through mailboxes, and operate without human intervention except when encountering genuine uncertainty.
+Autonomous agents are the core of what you build with Ikigai. They are long-running TypeScript processes that watch for what matters, synthesize information, and act when conditions are right—operating continuously without human intervention except when encountering genuine uncertainty.
 
 ---
 

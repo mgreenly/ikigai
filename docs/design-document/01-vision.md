@@ -2,13 +2,15 @@
 
 Ikigai is infrastructure you own.
 
-Cloud platforms (AWS Bedrock, Azure AI, GCP Vertex) offer managed agent services but lock you into their ecosystems and pricing. SaaS providers offer simplified deployment but own your runtime. Ikigai takes a different path: open-source infrastructure that runs on any Linux system.
+A small team with well-orchestrated AI agents can have the awareness and reach of a much larger organization. Agents that watch for what matters to your goals, synthesize information you couldn't process alone, and act on your behalf when conditions are right. Whether you're building a business, pursuing research, or working toward any mission—agents extend what a small group of people can realistically pay attention to.
+
+The platform handles the infrastructure so you can focus on the interesting problems: what should your agents watch for, what patterns matter, what actions should they take, how do they coordinate.
 
 ```
 apt install ikigai
 ```
 
-From there, you have a complete platform for autonomous agents—no cloud account, no API keys to a middleman, no per-agent fees. Your agents run on your servers, coordinated by your runtime, storing data in your databases.
+From there, you have a complete platform for autonomous agents. Your agents run on your servers, with direct access to the models you choose—your API keys, your usage, your costs. No middleman between you and the LLM.
 
 ---
 
@@ -47,9 +49,15 @@ This isn't a limitation—it's a deliberate choice that eliminates entire catego
 
 ## Target User
 
-**Power developers building sophisticated autonomous AI systems.**
+**Developers who want to build and operate agents they fully control.**
 
-Not a low-code drag-and-drop builder. Not a chatbot framework. A platform for engineers who want full control over their agent infrastructure.
+Small teams—typically 2-10 engineers—who:
+- Have a mission and understand AI can extend their reach
+- Want agents running reliably, 24/7, without babysitting
+- Prefer to own their infrastructure rather than rent it
+- Value opinionated tools that work out of the box
+
+Not a low-code drag-and-drop builder. Not a chatbot framework. A platform for engineers who treat their agents as strategic capabilities, not just automations.
 
 ---
 
@@ -61,6 +69,8 @@ The platform's future is shaped by its community. New runtime backends, agent te
 
 ## Ambitious Scope
 
-Ikigai aims to be the foundation for the most sophisticated autonomous AI systems. The goal isn't simplicity for its own sake—it's removing accidental complexity so developers can focus on the hard problems: agent intelligence, multi-agent coordination, and system reliability.
+Ikigai aims to be the foundation for sophisticated autonomous AI systems. The goal isn't simplicity for its own sake—it's removing accidental complexity so developers can focus on the hard problems: what their agents should pay attention to, how they reason about what they find, how they coordinate, and when they should act.
 
-Every autonomous agent system needs the same foundational pieces: task queues, message passing, identity management, secrets handling, deployment pipelines, process supervision, telemetry, and operational tooling. Today, developers rebuild these from scratch for each project, or cobble them together from disparate tools that weren't designed to work together. Ikigai provides these common pieces as a cohesive platform, battle-tested and ready to use. Developers start at the interesting problems—what their agents do, how they reason, how they coordinate—instead of spending months on infrastructure that adds no unique value to their system.
+Every autonomous agent system needs the same foundational pieces: task queues, message passing, identity management, secrets handling, deployment pipelines, process supervision, telemetry, and operational tooling. Today, developers rebuild these from scratch for each project, or cobble them together from disparate tools that weren't designed to work together.
+
+Ikigai provides these pieces as a cohesive platform—opinionated choices that work well together out of the box. Start with one server. Most teams never need more. When you do, the architecture supports scaling out without fundamental changes.
