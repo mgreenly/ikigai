@@ -1,6 +1,6 @@
 # Vision
 
-Ikigai is infrastructure you own.
+Build an agent. Deploy it. Your team uses it. That's the whole workflow.
 
 A small team creating intelligent agents can have the effectiveness of a much larger group. Developers build agents that monitor what matters, process information at scales humans can't sustain, and decide when to act.
 
