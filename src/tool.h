@@ -177,6 +177,20 @@ res_t ik_tool_exec_file_read(void *parent, const char *path);
 // @return res_t containing JSON string (owned by parent) or error
 res_t ik_tool_exec_grep(void *parent, const char *pattern, const char *glob, const char *path);
 
+// Execute file_write tool to write content to a file.
+//
+// Writes the given content to a file at the specified path. Creates the file
+// if it doesn't exist, or overwrites it if it does.
+// Returns a JSON string in envelope format:
+// - Success: {"success": true, "data": {"output": "Wrote 20 bytes to filename", "bytes": 20}}
+// - Error: {"success": false, "error": "Permission denied: path"} or other errors
+//
+// @param parent Parent talloc context for result allocation
+// @param path Path to file to write (required)
+// @param content Content to write to file (required)
+// @return res_t containing JSON string (owned by parent) or error
+res_t ik_tool_exec_file_write(void *parent, const char *path, const char *content);
+
 // Dispatch tool calls by name to appropriate execution function.
 //
 // Parses the JSON arguments string, extracts tool-specific parameters,

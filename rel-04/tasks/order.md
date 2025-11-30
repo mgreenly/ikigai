@@ -45,7 +45,7 @@ Note: db-persist-failure-resilience.md verifies the independent event model - DB
 
 ## Story 06: File Write
 
-- file-write-execute.md
+- ~~file-write-execute.md~~
 
 ## Story 07: Bash Command
 

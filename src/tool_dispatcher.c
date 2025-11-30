@@ -97,9 +97,24 @@ res_t ik_tool_dispatch(void *parent, const char *tool_name, const char *argument
         return ik_tool_exec_grep(parent, pattern, glob, path);
     }
 
+    // Handle file_write tool
     if (strcmp(tool_name, "file_write") == 0) {
-        char *error_json = ik_tool_dispatch_build_error(parent, "Tool not implemented: file_write");
-        return OK(error_json);
+        // Extract required "path" parameter
+        char *path = ik_tool_arg_get_string(parent, arguments, "path");
+        if (path == NULL) {
+            char *error_json = ik_tool_dispatch_build_error(parent, "Missing required parameter: path");
+            return OK(error_json);
+        }
+
+        // Extract required "content" parameter
+        char *content = ik_tool_arg_get_string(parent, arguments, "content");
+        if (content == NULL) {
+            char *error_json = ik_tool_dispatch_build_error(parent, "Missing required parameter: content");
+            return OK(error_json);
+        }
+
+        // Call ik_tool_exec_file_write and return its result
+        return ik_tool_exec_file_write(parent, path, content);
     }
 
     if (strcmp(tool_name, "bash") == 0) {
