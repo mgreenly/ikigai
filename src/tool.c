@@ -1,8 +1,10 @@
 #include "tool.h"
 
 #include "panic.h"
+#include "wrapper.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
