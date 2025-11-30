@@ -70,7 +70,7 @@ Note: The `max_tool_turns` config field was added in Story 02 (tool-config-field
 - ~~tool-loop-counter.md~~
 - ~~tool-result-limit-metadata.md~~
 - ~~tool-choice-none-on-limit.md~~  *(uses hardcoded strings; refactored in Story 13)*
-- tool-loop-limit-e2e.md
+- ~~tool-loop-limit-e2e.md~~
 
 ## Story 12: Session Replay E2E Verification
 
