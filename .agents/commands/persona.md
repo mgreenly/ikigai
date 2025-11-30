@@ -14,11 +14,11 @@ Load a persona (composite skill set) from `.agents/personas/`.
 - `task-strategist` - For high-level task planning aligned with project phases
 
 **Persona JSON format:** Array of skill names/paths (without .md extension):
-```json
-["default", "tdd", "patterns/factory", "patterns/strategy"]
+```
+["default", "skill-a", "skill-b", "subdir/skill-c"]
 ```
 
-Skills can reference subfolders like `patterns/observer` for organized skill libraries.
+Skills can reference subfolders for organized skill libraries.
 
 **Action:** Read the persona JSON file and load all listed skills.
 
