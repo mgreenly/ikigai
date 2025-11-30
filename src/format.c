@@ -141,3 +141,38 @@ size_t ik_format_get_length(ik_format_buffer_t *buf)
     }
     return len;
 }
+
+const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
+{
+    assert(parent != NULL);  // LCOV_EXCL_BR_LINE
+    assert(call != NULL);    // LCOV_EXCL_BR_LINE
+
+    ik_format_buffer_t *buf = ik_format_buffer_create(parent);
+    if (buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Format: [tool] tool_name(arguments_json)
+    res_t res = ik_format_appendf(buf, "[tool] %s(%s)", call->name, call->arguments);
+    if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+
+    return ik_format_get_string(buf);
+}
+
+const char *ik_format_tool_result(void *parent, const char *tool_name, const char *result_json)
+{
+    assert(parent != NULL);    // LCOV_EXCL_BR_LINE
+    assert(tool_name != NULL); // LCOV_EXCL_BR_LINE
+
+    ik_format_buffer_t *buf = ik_format_buffer_create(parent);
+    if (buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Format: [result] tool_name: result_json
+    if (result_json == NULL) {
+        res_t res = ik_format_appendf(buf, "[result] %s: (null)", tool_name);
+        if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+    } else {
+        res_t res = ik_format_appendf(buf, "[result] %s: %s", tool_name, result_json);
+        if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+    }
+
+    return ik_format_get_string(buf);
+}

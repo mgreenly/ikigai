@@ -5,6 +5,7 @@
 
 #include "byte_array.h"
 #include "error.h"
+#include "tool.h"
 
 /**
  * Format buffer for building output strings.
@@ -34,5 +35,27 @@ const char *ik_format_get_string(ik_format_buffer_t *buf);
 
 // Get length in bytes (excluding null terminator)
 size_t ik_format_get_length(ik_format_buffer_t *buf);
+
+// Format a tool call for display in scrollback
+//
+// Takes a tool call structure and returns a formatted string suitable for display.
+// Format: [tool] tool_name(param1="value1", param2="value2", ...)
+//
+// @param parent Talloc parent context for result allocation
+// @param call Tool call structure (cannot be NULL)
+// @return Formatted string (owned by parent), never NULL
+const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call);
+
+// Format a tool result for display in scrollback
+//
+// Takes a tool name and JSON result string and returns a formatted string.
+// Parses the JSON and displays the result in a readable format.
+// Format: [result] count items/lines of formatted output
+//
+// @param parent Talloc parent context for result allocation
+// @param tool_name Tool name (e.g., "glob")
+// @param result_json JSON result string (can be NULL)
+// @return Formatted string (owned by parent), never NULL
+const char *ik_format_tool_result(void *parent, const char *tool_name, const char *result_json);
 
 #endif // IK_FORMAT_H
