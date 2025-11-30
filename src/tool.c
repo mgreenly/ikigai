@@ -3,6 +3,8 @@
 #include "panic.h"
 
 #include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
 ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx,
                                     const char *id,
@@ -281,4 +283,47 @@ yyjson_mut_val *ik_tool_build_all(yyjson_mut_doc *doc)
     }
 
     return arr;
+}
+
+char *ik_tool_truncate_output(void *parent, const char *output, size_t max_size)
+{
+    // If output is NULL, return NULL
+    if (output == NULL) {
+        return NULL;
+    }
+
+    size_t output_len = strlen(output);
+
+    // If output length <= max_size, return talloc_strdup of output
+    if (output_len <= max_size) {
+        return talloc_strdup(parent, output);
+    }
+
+    // Output is over limit, truncate and add indicator
+    // Allocate space for truncated content + indicator
+    // "[Output truncated: showing first X of Y bytes]"
+    char *truncated = talloc_array(parent, char, (unsigned int)(max_size + 200));
+    if (truncated == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Copy first max_size bytes
+    strncpy(truncated, output, max_size);
+    truncated[max_size] = '\0';
+
+    // Append indicator
+    char indicator[200];
+    int written = snprintf(indicator, sizeof(indicator),
+                          "[Output truncated: showing first %zu of %zu bytes]",
+                          max_size, output_len);
+    if (written < 0 || written >= (int)sizeof(indicator)) { // LCOV_EXCL_BR_LINE
+        PANIC("Indicator formatting failed"); // LCOV_EXCL_LINE
+    }
+
+    // Resize the result to accommodate both truncated content and indicator
+    size_t new_size = max_size + strlen(indicator) + 1;
+    truncated = talloc_realloc(parent, truncated, char, (unsigned int)new_size);
+    if (truncated == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    strcat(truncated, indicator);
+
+    return truncated;
 }

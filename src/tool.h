@@ -99,4 +99,20 @@ yyjson_mut_val *ik_tool_build_bash_schema(yyjson_mut_doc *doc);
 // @return Pointer to the array object (owned by doc), or NULL on error
 yyjson_mut_val *ik_tool_build_all(yyjson_mut_doc *doc);
 
+// Truncate output if it exceeds max_size limit.
+//
+// If output is NULL, returns NULL.
+// If output length is <= max_size, returns talloc_strdup of output.
+// If output length is > max_size, truncates to max_size and appends
+// a truncation indicator: "[Output truncated: showing first X of Y bytes]"
+//
+// The returned string is allocated on the provided parent context.
+// Caller owns the returned string.
+//
+// @param parent Parent talloc context for result allocation
+// @param output Output string to potentially truncate (can be NULL)
+// @param max_size Maximum size in bytes before truncation
+// @return Truncated or copied output string (owned by parent), or NULL if output is NULL
+char *ik_tool_truncate_output(void *parent, const char *output, size_t max_size);
+
 #endif // IK_TOOL_H
