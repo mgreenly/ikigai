@@ -163,6 +163,20 @@ res_t ik_tool_exec_glob(void *parent, const char *pattern, const char *path);
 // @return res_t containing JSON string (owned by parent) or error
 res_t ik_tool_exec_file_read(void *parent, const char *path);
 
+// Execute grep tool to search for a pattern in files.
+//
+// Searches for pattern matches in files and returns results with line numbers.
+// Returns a JSON string in envelope format:
+// - Success: {"success": true, "data": {"output": "file.c:42: matching line", "count": 1}}
+// - Error: {"success": false, "error": "error message"}
+//
+// @param parent Parent talloc context for result allocation
+// @param pattern Search pattern (required)
+// @param glob Optional file pattern filter (e.g., "*.c"), may be NULL
+// @param path Optional base directory to search in, may be NULL for current directory
+// @return res_t containing JSON string (owned by parent) or error
+res_t ik_tool_exec_grep(void *parent, const char *pattern, const char *glob, const char *path);
+
 // Dispatch tool calls by name to appropriate execution function.
 //
 // Parses the JSON arguments string, extracts tool-specific parameters,

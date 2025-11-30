@@ -41,7 +41,7 @@ Note: db-persist-failure-resilience.md verifies the independent event model - DB
 
 ## Story 05: Grep Search
 
-- grep-execute.md
+- ~~grep-execute.md~~
 
 ## Story 06: File Write
 

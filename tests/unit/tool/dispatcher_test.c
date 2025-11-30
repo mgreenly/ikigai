@@ -199,10 +199,10 @@ END_TEST START_TEST(test_dispatch_empty_tool_name)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_unimplemented_file_read)
+END_TEST START_TEST(test_dispatch_file_read_not_found)
 {
-    // file_read tool should return "not implemented" error
-    const char *arguments = "{\"path\": \"/etc/hosts\"}";
+    // file_read tool should return error when file doesn't exist
+    const char *arguments = "{\"path\": \"/nonexistent/file/that/does/not/exist\"}";
     res_t res = ik_tool_dispatch(ctx, "file_read", arguments);
 
     ck_assert(!res.is_err);
@@ -218,15 +218,15 @@ END_TEST START_TEST(test_dispatch_unimplemented_file_read)
     ck_assert_ptr_nonnull(error);
 
     const char *error_msg = yyjson_get_str(error);
-    ck_assert_str_eq(error_msg, "Tool not implemented: file_read");
+    ck_assert(strstr(error_msg, "not found") != NULL || strstr(error_msg, "No such file") != NULL);
 
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_unimplemented_grep)
+END_TEST START_TEST(test_dispatch_grep_with_matches)
 {
-    // grep tool should return "not implemented" error
-    const char *arguments = "{\"pattern\": \"TODO\"}";
+    // grep tool should work and find matches
+    const char *arguments = "{\"pattern\": \"test\"}";
     res_t res = ik_tool_dispatch(ctx, "grep", arguments);
 
     ck_assert(!res.is_err);
@@ -238,11 +238,9 @@ END_TEST START_TEST(test_dispatch_unimplemented_grep)
     ck_assert_ptr_nonnull(doc);
 
     yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    ck_assert_ptr_nonnull(error);
-
-    const char *error_msg = yyjson_get_str(error);
-    ck_assert_str_eq(error_msg, "Tool not implemented: grep");
+    yyjson_val *success = yyjson_obj_get(root, "success");
+    ck_assert_ptr_nonnull(success);
+    ck_assert(yyjson_get_bool(success) == true);
 
     yyjson_doc_free(doc);
 }
@@ -393,9 +391,11 @@ static Suite *dispatcher_suite(void)
     tcase_add_test(tc_dispatch, test_dispatch_null_tool_name);
     tcase_add_test(tc_dispatch, test_dispatch_empty_tool_name);
 
+    // Implemented tools tests
+    tcase_add_test(tc_dispatch, test_dispatch_file_read_not_found);
+    tcase_add_test(tc_dispatch, test_dispatch_grep_with_matches);
+
     // Unimplemented tools tests
-    tcase_add_test(tc_dispatch, test_dispatch_unimplemented_file_read);
-    tcase_add_test(tc_dispatch, test_dispatch_unimplemented_grep);
     tcase_add_test(tc_dispatch, test_dispatch_unimplemented_file_write);
     tcase_add_test(tc_dispatch, test_dispatch_unimplemented_bash);
 

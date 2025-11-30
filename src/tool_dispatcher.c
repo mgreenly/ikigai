@@ -67,15 +67,34 @@ res_t ik_tool_dispatch(void *parent, const char *tool_name, const char *argument
         return ik_tool_exec_glob(parent, pattern, path);
     }
 
-    // Handle unimplemented tools: file_read, grep, file_write, bash
+    // Handle file_read tool
     if (strcmp(tool_name, "file_read") == 0) {
-        char *error_json = ik_tool_dispatch_build_error(parent, "Tool not implemented: file_read");
-        return OK(error_json);
+        // Extract required "path" parameter
+        char *path = ik_tool_arg_get_string(parent, arguments, "path");
+        if (path == NULL) {
+            char *error_json = ik_tool_dispatch_build_error(parent, "Missing required parameter: path");
+            return OK(error_json);
+        }
+
+        // Call ik_tool_exec_file_read and return its result
+        return ik_tool_exec_file_read(parent, path);
     }
 
+    // Handle grep tool
     if (strcmp(tool_name, "grep") == 0) {
-        char *error_json = ik_tool_dispatch_build_error(parent, "Tool not implemented: grep");
-        return OK(error_json);
+        // Extract required "pattern" parameter
+        char *pattern = ik_tool_arg_get_string(parent, arguments, "pattern");
+        if (pattern == NULL) {
+            char *error_json = ik_tool_dispatch_build_error(parent, "Missing required parameter: pattern");
+            return OK(error_json);
+        }
+
+        // Extract optional "glob" and "path" parameters
+        char *glob = ik_tool_arg_get_string(parent, arguments, "glob");
+        char *path = ik_tool_arg_get_string(parent, arguments, "path");
+
+        // Call ik_tool_exec_grep and return its result
+        return ik_tool_exec_grep(parent, pattern, glob, path);
     }
 
     if (strcmp(tool_name, "file_write") == 0) {
