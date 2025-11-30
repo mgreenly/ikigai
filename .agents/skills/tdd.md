@@ -1,22 +1,21 @@
 # Test-Driven Development
 
 ## Description
-Strict TDD methodology and Red/Green/Verify cycle for ikigai development.
+TDD methodology for development phase. Focus on testing what you build.
 
 ## Details
 
-**ABSOLUTE RULE: NEVER WRITE CODE BEFORE YOU HAVE A TEST THAT NEEDS IT**
+**Core principle: Write tests for the code you write.**
 
-Follow strict Red/Green/Verify cycle:
+Follow Red/Green/Verify cycle:
 
 ### 1. Red: Write a failing test first
 
 - Write the test code that calls the new function
 - Add function declaration to header file
 - Add stub implementation that compiles but does nothing (e.g., `return OK(NULL);`)
-- **IMPORTANT**: A compilation error is NOT a failing test - you need a stub that compiles and runs
-- Verify the test actually fails with assertion failures (e.g., wrong output)
-- NO CODE exists until a test demands it
+- A compilation error is NOT a failing test - you need a stub that compiles and runs
+- Verify the test actually fails with assertion failures
 
 ### 2. Green: Write minimal code to make the test pass
 
@@ -24,19 +23,23 @@ Follow strict Red/Green/Verify cycle:
 - STOP immediately when the test passes
 - DO NOT write "helper functions" before they're called
 - DO NOT write code "because you'll need it later"
-- DO NOT refactor for complexity until `make lint` actually fails
 
 ### 3. Verify: Run quality checks
 
 - `make check` - All tests must pass
 - `make lint` - Code complexity under threshold
 
-**WARNING**: Writing code before tests wastes tokens, time, and money by:
-- Generating premature code
-- Debugging unnecessary coverage gaps
-- Reverting unused code
-- Violating the core methodology
+## Development Phase Focus
 
-**The test MUST come first. No exceptions.**
+**Test what you build.** During development:
+
+- Write tests for the happy path
+- Write tests for obvious error cases
+- Cover the main functionality thoroughly
+- Keep momentum - don't get stuck on edge cases
+
+**Coverage gaps are OK during development.** They will be closed in a dedicated coverage phase before release.
+
+**The test should come first** - but don't let perfect coverage slow down feature development.
 
 If writing a helper function, ask: "Does a passing test call this right now?" If no, DELETE IT.

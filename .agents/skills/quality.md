@@ -1,32 +1,24 @@
 # Quality
 
 ## Description
-Load testing, coverage, and quality requirements for ikigai.
+Testing and quality requirements for development phase. Focus on high coverage.
 
 ## Pre-Commit Requirements
 
-BEFORE creating ANY commit (mandatory, no exceptions):
+Before creating commits:
 
 1. `make fmt` - Format code
-2. `make check` - ALL tests pass (100%)
-3. `make lint` - ALL complexity/file size checks pass
-4. `make coverage` - ALL metrics (lines, functions, branches) at 100.0%
-5. `make check-dynamic` - ALL sanitizer checks pass (ASan, UBSan, TSan)
-
-If ANY check fails: fix ALL issues, re-run ALL checks, repeat until everything passes.
-
-Never commit with ANY known issue - even "pre-existing" or "in another file".
+2. `make check` - All tests pass
+3. `make lint` - Complexity/file size checks pass
 
 ## Test Execution
 
 **By Default**: Tests run in parallel, with 24 parallel tests on this machine.
 - `MAKE_JOBS=24` - up to 24 concurrent tests
-- `PARALLEL=1` - all 4 check-dynamic subtargets in parallel
 
 **When you need clear debug output** (serialize execution):
 ```bash
-PARALLEL=0 MAKE_JOBS=1 PARALLEL=0 make check
-PARALLEL=0 MAKE_JOBS=1 make check-valgrind
+PARALLEL=0 MAKE_JOBS=1 make check
 ```
 
 **Best practice**: Test individual files during development, run full suite before commits.
@@ -48,8 +40,11 @@ make BUILD={debug|release|sanitize|tsan|coverage}
 - `tsan` - Thread sanitizer
 - `coverage` - Code coverage analysis
 
-## Quality Gates
+## Development Phase Focus
 
-- Use `make check` to verify tests while working on code changes
-- Use `make lint && make coverage` before commits - 100% coverage is MANDATORY
-- **CRITICAL**: Never run multiple `make` commands simultaneously. Different targets use incompatible compiler flags and will corrupt the build.
+- Aim for high test coverage of new code
+- Test the happy path and obvious error cases
+- Coverage gaps will be closed in a dedicated coverage phase
+- Don't let coverage metrics slow down feature development
+
+**CRITICAL**: Never run multiple `make` commands simultaneously. Different targets use incompatible compiler flags and will corrupt the build.
