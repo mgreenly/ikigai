@@ -80,7 +80,7 @@ Note: The core replay functionality for tool messages is implemented in Story 02
 
 ## Story 13: Tool Choice Control (4 variants: auto, none, required, specific)
 
-- tool-choice-config.md
+- ~~tool-choice-config.md~~
 - tool-choice-serialize.md
 - request-with-tool-choice-param.md  *(refactors Story 11's hardcoded tool_choice)*
 - tool-choice-auto-e2e.md
