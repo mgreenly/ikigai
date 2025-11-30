@@ -15,7 +15,7 @@
 - ~~parse-tool-calls.md~~
 - ~~tool-argument-parser.md~~
 - ~~glob-execute.md~~
-- tool-dispatcher.md
+- ~~tool-dispatcher.md~~
 - tool-result-msg.md
 - assistant-tool-calls-msg.md
 - tool-loop-finish-detection.md

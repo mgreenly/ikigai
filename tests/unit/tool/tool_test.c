@@ -297,7 +297,8 @@ START_TEST(test_tool_build_all)
 
 END_TEST
 // Test: ik_tool_call_create returns non-NULL struct
-START_TEST(test_tool_call_create_returns_nonnull) {
+START_TEST(test_tool_call_create_returns_nonnull)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_abc123", "glob", "{\"pattern\": \"*.c\"}");
 
     ck_assert_ptr_nonnull(call);
@@ -305,9 +306,11 @@ START_TEST(test_tool_call_create_returns_nonnull) {
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
+
 END_TEST
 // Test: ik_tool_call_create sets id correctly
-START_TEST(test_tool_call_create_sets_id) {
+START_TEST(test_tool_call_create_sets_id)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_abc123", "glob", "{\"pattern\": \"*.c\"}");
 
     ck_assert_ptr_nonnull(call);
@@ -317,9 +320,11 @@ START_TEST(test_tool_call_create_sets_id) {
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
+
 END_TEST
 // Test: ik_tool_call_create sets name correctly
-START_TEST(test_tool_call_create_sets_name) {
+START_TEST(test_tool_call_create_sets_name)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_abc123", "glob", "{\"pattern\": \"*.c\"}");
 
     ck_assert_ptr_nonnull(call);
@@ -329,9 +334,11 @@ START_TEST(test_tool_call_create_sets_name) {
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
+
 END_TEST
 // Test: ik_tool_call_create sets arguments correctly
-START_TEST(test_tool_call_create_sets_arguments) {
+START_TEST(test_tool_call_create_sets_arguments)
+{
     const char *args = "{\"pattern\": \"*.c\", \"path\": \"src/\"}";
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_abc123", "glob", args);
 
@@ -342,9 +349,11 @@ START_TEST(test_tool_call_create_sets_arguments) {
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
+
 END_TEST
 // Test: ik_tool_call_create works with NULL parent context (talloc root)
-START_TEST(test_tool_call_create_null_parent) {
+START_TEST(test_tool_call_create_null_parent)
+{
     ik_tool_call_t *call = ik_tool_call_create(NULL, "call_xyz", "file_read", "{\"path\": \"/tmp/test\"}");
 
     ck_assert_ptr_nonnull(call);
@@ -354,43 +363,43 @@ START_TEST(test_tool_call_create_null_parent) {
 
     talloc_free(call);
 }
-END_TEST
 
-START_TEST(test_tool_truncate_output_null) {
+END_TEST START_TEST(test_tool_truncate_output_null)
+{
     ck_assert_ptr_null(ik_tool_truncate_output(ctx, NULL, 1024));
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
-START_TEST(test_tool_truncate_output_empty) {
+END_TEST START_TEST(test_tool_truncate_output_empty)
+{
     char *result = ik_tool_truncate_output(ctx, "", 1024);
     ck_assert_ptr_nonnull(result);
     ck_assert_str_eq(result, "");
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
-START_TEST(test_tool_truncate_output_under_limit) {
+END_TEST START_TEST(test_tool_truncate_output_under_limit)
+{
     char *result = ik_tool_truncate_output(ctx, "Hello, World!", 100);
     ck_assert_ptr_nonnull(result);
     ck_assert_str_eq(result, "Hello, World!");
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
-START_TEST(test_tool_truncate_output_at_limit) {
+END_TEST START_TEST(test_tool_truncate_output_at_limit)
+{
     char *result = ik_tool_truncate_output(ctx, "12345", 5);
     ck_assert_ptr_nonnull(result);
     ck_assert_str_eq(result, "12345");
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
-START_TEST(test_tool_truncate_output_over_limit) {
+END_TEST START_TEST(test_tool_truncate_output_over_limit)
+{
     const char *output = "This is a very long string that exceeds the limit";
     char *result = ik_tool_truncate_output(ctx, output, 10);
     ck_assert_ptr_nonnull(result);
@@ -400,15 +409,16 @@ START_TEST(test_tool_truncate_output_over_limit) {
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
-START_TEST(test_tool_truncate_output_zero_limit) {
+END_TEST START_TEST(test_tool_truncate_output_zero_limit)
+{
     char *result = ik_tool_truncate_output(ctx, "test", 0);
     ck_assert_ptr_nonnull(result);
     ck_assert(strstr(result, "[Output truncated:") != NULL);
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
+
 END_TEST
 
 // Test suite

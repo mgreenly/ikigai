@@ -363,9 +363,7 @@ END_TEST START_TEST(test_get_message_at_index_valid)
     ck_assert_str_eq(msg->content, "Test");
 }
 
-END_TEST
-
-START_TEST(test_serialize_with_tools_and_tool_choice)
+END_TEST START_TEST(test_serialize_with_tools_and_tool_choice)
 {
     /* Create test config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);

@@ -8,8 +8,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-START_TEST(test_config_with_valid_max_tool_turns)
-{
+START_TEST(test_config_with_valid_max_tool_turns) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -43,9 +42,7 @@ START_TEST(test_config_with_valid_max_tool_turns)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
-
-START_TEST(test_config_missing_max_tool_turns)
+END_TEST START_TEST(test_config_missing_max_tool_turns)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -74,9 +71,8 @@ START_TEST(test_config_missing_max_tool_turns)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_config_missing_max_output_size)
+END_TEST START_TEST(test_config_missing_max_output_size)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -105,9 +101,8 @@ START_TEST(test_config_missing_max_output_size)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_config_max_tool_turns_out_of_range_low)
+END_TEST START_TEST(test_config_max_tool_turns_out_of_range_low)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -137,9 +132,8 @@ START_TEST(test_config_max_tool_turns_out_of_range_low)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_config_max_tool_turns_out_of_range_high)
+END_TEST START_TEST(test_config_max_tool_turns_out_of_range_high)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -169,9 +163,8 @@ START_TEST(test_config_max_tool_turns_out_of_range_high)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_config_max_output_size_out_of_range_low)
+END_TEST START_TEST(test_config_max_output_size_out_of_range_low)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -201,9 +194,8 @@ START_TEST(test_config_max_output_size_out_of_range_low)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_config_max_output_size_out_of_range_high)
+END_TEST START_TEST(test_config_max_output_size_out_of_range_high)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -233,6 +225,7 @@ START_TEST(test_config_max_output_size_out_of_range_high)
     unlink(test_config);
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *tool_limits_suite(void)

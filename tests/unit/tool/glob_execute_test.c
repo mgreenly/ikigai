@@ -95,9 +95,8 @@ START_TEST(test_glob_exec_with_matches) {
     unlink(file3);
     rmdir(dir);
 }
-END_TEST
-
-START_TEST(test_glob_exec_no_matches) {
+END_TEST START_TEST(test_glob_exec_no_matches)
+{
     // Create temporary test directory with no matching files
     char test_dir[] = "/tmp/ikigai-glob-test-XXXXXX";
     char *dir = mkdtemp(test_dir);
@@ -139,9 +138,9 @@ START_TEST(test_glob_exec_no_matches) {
     unlink(file1);
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_glob_exec_no_matches_treated_as_success) {
+END_TEST START_TEST(test_glob_exec_no_matches_treated_as_success)
+{
     // POSIX glob treats patterns like "[unclosed" as literal patterns that don't match
     // This is not an error - just no matches
     res_t res = ik_tool_exec_glob(ctx, "[unclosed", "/tmp");
@@ -168,9 +167,9 @@ START_TEST(test_glob_exec_no_matches_treated_as_success) {
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_glob_exec_with_null_path) {
+END_TEST START_TEST(test_glob_exec_with_null_path)
+{
     // Test with NULL path - should use pattern as-is
     // Create a temp file in /tmp
     char tmpfile[] = "/tmp/ikigai-test-XXXXXX.txt";
@@ -203,9 +202,9 @@ START_TEST(test_glob_exec_with_null_path) {
     yyjson_doc_free(doc);
     unlink(tmpfile);
 }
-END_TEST
 
-START_TEST(test_glob_exec_with_empty_path) {
+END_TEST START_TEST(test_glob_exec_with_empty_path)
+{
     // Test with empty path - should use pattern as-is
     char test_dir[] = "/tmp/ikigai-glob-test-XXXXXX";
     char *dir = mkdtemp(test_dir);
@@ -247,9 +246,9 @@ START_TEST(test_glob_exec_with_empty_path) {
     unlink(file1);
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_glob_exec_multiple_files_output_format) {
+END_TEST START_TEST(test_glob_exec_multiple_files_output_format)
+{
     // Test that multiple files are separated by newlines
     char test_dir[] = "/tmp/ikigai-glob-test-XXXXXX";
     char *dir = mkdtemp(test_dir);
@@ -304,6 +303,7 @@ START_TEST(test_glob_exec_multiple_files_output_format) {
     unlink(file3);
     rmdir(dir);
 }
+
 END_TEST
 
 // Test suite

@@ -23,10 +23,7 @@ typedef struct {
 // @param name Function name string
 // @param arguments JSON arguments string
 // @return Pointer to new tool call struct (owned by ctx), or NULL on OOM
-ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx,
-                                    const char *id,
-                                    const char *name,
-                                    const char *arguments);
+ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx, const char *id, const char *name, const char *arguments);
 
 // Helper function to add a string parameter to properties object.
 //
@@ -153,5 +150,31 @@ bool ik_tool_arg_get_int(const char *arguments_json, const char *key, int *out_v
 // @param path Base directory to search in (can be NULL for current directory)
 // @return res_t containing JSON string (owned by parent) or error
 res_t ik_tool_exec_glob(void *parent, const char *pattern, const char *path);
+
+// Dispatch tool calls by name to appropriate execution function.
+//
+// Parses the JSON arguments string, extracts tool-specific parameters,
+// validates required parameters, and calls the appropriate tool execution
+// function. Returns result as JSON string (not res_t error).
+//
+// For glob tool:
+// - Extracts "pattern" (required) and "path" (optional) from arguments
+// - Calls ik_tool_exec_glob with typed parameters
+// - Returns result from glob execution unchanged
+//
+// For unimplemented tools (file_read, grep, file_write, bash):
+// - Returns error JSON: {"error": "Tool not implemented: <name>"}
+//
+// Error handling:
+// - Invalid JSON arguments: {"error": "Invalid JSON arguments"}
+// - Missing required parameter: {"error": "Missing required parameter: <param>"}
+// - Unknown tool: {"error": "Unknown tool: <name>"}
+// - NULL or empty tool_name: {"error": "Unknown tool: ..."}
+//
+// @param parent Parent talloc context for result allocation
+// @param tool_name Tool function name (e.g., "glob", "file_read")
+// @param arguments JSON string of tool arguments
+// @return res_t containing JSON string (owned by parent)
+res_t ik_tool_dispatch(void *parent, const char *tool_name, const char *arguments);
 
 #endif // IK_TOOL_H

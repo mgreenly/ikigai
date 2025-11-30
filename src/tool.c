@@ -314,8 +314,8 @@ char *ik_tool_truncate_output(void *parent, const char *output, size_t max_size)
     // Append indicator
     char indicator[200];
     int written = snprintf(indicator, sizeof(indicator),
-                          "[Output truncated: showing first %zu of %zu bytes]",
-                          max_size, output_len);
+                           "[Output truncated: showing first %zu of %zu bytes]",
+                           max_size, output_len);
     if (written < 0 || written >= (int)sizeof(indicator)) { // LCOV_EXCL_BR_LINE
         PANIC("Indicator formatting failed"); // LCOV_EXCL_LINE
     }
