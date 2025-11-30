@@ -53,7 +53,7 @@ Note: db-persist-failure-resilience.md verifies the independent event model - DB
 
 ## Story 08: File Not Found Error
 
-- file-read-error-e2e.md
+- ~~file-read-error-e2e.md~~
 
 ## Story 09: Bash Command Fails
 
