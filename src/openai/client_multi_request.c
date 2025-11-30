@@ -2,6 +2,7 @@
 
 #include "openai/client.h"
 #include "openai/sse_parser.h"
+#include "openai/tool_choice.h"
 #include "error.h"
 #include "panic.h"
 #include "wrapper.h"
@@ -42,7 +43,8 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
     ik_openai_request_t *request = ik_openai_request_create(multi, cfg, conv);
 
     // Serialize request to JSON with tool_choice based on limit_reached
-    char *json_body = ik_openai_serialize_request(multi, request, limit_reached);
+    ik_tool_choice_t tool_choice = limit_reached ? ik_tool_choice_none() : ik_tool_choice_auto();
+    char *json_body = ik_openai_serialize_request(multi, request, tool_choice);
 
     // Create active request context
     active_request_t *active_req = talloc_zero(multi, active_request_t);

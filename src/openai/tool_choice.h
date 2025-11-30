@@ -2,6 +2,7 @@
 #define IK_OPENAI_TOOL_CHOICE_H
 
 #include <talloc.h>
+#include "vendor/yyjson/yyjson.h"
 
 /**
  * Tool choice mode enum
@@ -63,5 +64,19 @@ ik_tool_choice_t ik_tool_choice_required(void);
  * @return           tool_choice value
  */
 ik_tool_choice_t ik_tool_choice_specific(void *parent, const char *tool_name);
+
+/**
+ * Serialize tool_choice to JSON
+ *
+ * Adds a tool_choice field to the given JSON object.
+ * - AUTO/NONE/REQUIRED modes serialize as string values
+ * - SPECIFIC mode serializes as object: {"type": "function", "function": {"name": "<tool_name>"}}
+ *
+ * @param doc     yyjson mutable document
+ * @param obj     yyjson mutable object to add tool_choice field to
+ * @param key     JSON key name (typically "tool_choice")
+ * @param choice  Tool choice configuration to serialize
+ */
+void ik_tool_choice_serialize(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key, ik_tool_choice_t choice);
 
 #endif /* IK_OPENAI_TOOL_CHOICE_H */

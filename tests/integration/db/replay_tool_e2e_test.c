@@ -16,6 +16,7 @@
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../../src/openai/client.h"
+#include "../../../src/openai/tool_choice.h"
 #include "../../../src/config.h"
 #include "../../test_utils.h"
 #include "../../../src/vendor/yyjson/yyjson.h"
@@ -284,7 +285,8 @@ START_TEST(test_tool_conversation_e2e)
 
     // Create request and serialize to JSON
     ik_openai_request_t *request = ik_openai_request_create(replay_ctx, cfg, conv);
-    char *json_str = ik_openai_serialize_request(replay_ctx, request, false);
+    ik_tool_choice_t choice = ik_tool_choice_auto();
+    char *json_str = ik_openai_serialize_request(replay_ctx, request, choice);
     ck_assert(json_str != NULL);
 
     // Parse serialized JSON and verify structure

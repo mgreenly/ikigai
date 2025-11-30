@@ -3,6 +3,7 @@
 #include "error.h"
 #include "json_allocator.h"
 #include "openai/http_handler.h"
+#include "openai/tool_choice.h"
 #include "tool.h"
 #include "wrapper.h"
 
@@ -128,7 +129,7 @@ ik_openai_response_t *ik_openai_response_create(void *parent) {
  * JSON serialization
  */
 
-char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *request, bool limit_reached) {
+char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *request, ik_tool_choice_t tool_choice) {
     assert(request != NULL); // LCOV_EXCL_BR_LINE
     assert(request->conv != NULL); // LCOV_EXCL_BR_LINE
 
@@ -298,11 +299,8 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
         PANIC("Failed to add tools array to JSON"); // LCOV_EXCL_LINE
     }
 
-    /* Add tool_choice field - "none" when limit reached, "auto" otherwise */
-    const char *tool_choice_value = limit_reached ? "none" : "auto";
-    if (!yyjson_mut_obj_add_str(doc, root, "tool_choice", tool_choice_value)) { // LCOV_EXCL_BR_LINE
-        PANIC("Failed to add tool_choice field to JSON"); // LCOV_EXCL_LINE
-    }
+    /* Add tool_choice field using serializer */
+    ik_tool_choice_serialize(doc, root, "tool_choice", tool_choice);
 
     /* Add stream field */
     if (!yyjson_mut_obj_add_bool(doc, root, "stream", request->stream)) { // LCOV_EXCL_BR_LINE
@@ -353,8 +351,9 @@ res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
     /* Create request */
     ik_openai_request_t *request = ik_openai_request_create(parent, cfg, conv);
 
-    /* Serialize request to JSON (limit_reached=false for synchronous chat) */
-    char *json_body = ik_openai_serialize_request(parent, request, false);
+    /* Serialize request to JSON with auto tool_choice */
+    ik_tool_choice_t tool_choice = ik_tool_choice_auto();
+    char *json_body = ik_openai_serialize_request(parent, request, tool_choice);
 
     /* Perform HTTP POST */
     const char *url = "https://api.openai.com/v1/chat/completions";

@@ -2,6 +2,7 @@
 #include <talloc.h>
 #include <string.h>
 #include "openai/client.h"
+#include "openai/tool_choice.h"
 #include "vendor/yyjson/yyjson.h"
 
 /* Test fixtures */
@@ -181,8 +182,9 @@ START_TEST(test_serialize_tool_call_message) {
     req->max_completion_tokens = 100;
     req->stream = false;
 
-    /* Serialize request with limit_reached=false (normal request) */
-    char *json = ik_openai_serialize_request(ctx, req, false);
+    /* Serialize request with tool_choice auto */
+    ik_tool_choice_t choice = ik_tool_choice_auto();
+    char *json = ik_openai_serialize_request(ctx, req, choice);
     ck_assert_ptr_nonnull(json);
 
     /* Parse serialized JSON */
@@ -270,7 +272,8 @@ START_TEST(test_serialize_mixed_messages) {
     req->max_completion_tokens = 100;
     req->stream = false;
 
-    char *json = ik_openai_serialize_request(ctx, req, false);
+    ik_tool_choice_t choice = ik_tool_choice_auto();
+    char *json = ik_openai_serialize_request(ctx, req, choice);
     ck_assert_ptr_nonnull(json);
 
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);

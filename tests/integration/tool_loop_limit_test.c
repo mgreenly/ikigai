@@ -19,6 +19,7 @@
 #include "../../src/error.h"
 #include "../../src/msg.h"
 #include "../../src/openai/client.h"
+#include "../../src/openai/tool_choice.h"
 #include "../../src/tool.h"
 #include "../test_utils.h"
 
@@ -314,13 +315,15 @@ START_TEST(test_request_serialization_with_tool_choice)
     ik_openai_conversation_add_msg(conv, msg_res.ok);
     ik_openai_request_t *request = ik_openai_request_create(ctx, cfg, conv);
 
-    char *json_normal = ik_openai_serialize_request(ctx, request, false);
+    ik_tool_choice_t choice_auto = ik_tool_choice_auto();
+    char *json_normal = ik_openai_serialize_request(ctx, request, choice_auto);
     yyjson_doc *doc_normal = yyjson_read(json_normal, strlen(json_normal), 0);
     yyjson_val *choice_normal = yyjson_obj_get(yyjson_doc_get_root(doc_normal), "tool_choice");
     ck_assert_str_eq(yyjson_get_str(choice_normal), "auto");
     yyjson_doc_free(doc_normal);
 
-    char *json_limit = ik_openai_serialize_request(ctx, request, true);
+    ik_tool_choice_t choice_none = ik_tool_choice_none();
+    char *json_limit = ik_openai_serialize_request(ctx, request, choice_none);
     yyjson_doc *doc_limit = yyjson_read(json_limit, strlen(json_limit), 0);
     yyjson_val *choice_limit = yyjson_obj_get(yyjson_doc_get_root(doc_limit), "tool_choice");
     ck_assert_str_eq(yyjson_get_str(choice_limit), "none");

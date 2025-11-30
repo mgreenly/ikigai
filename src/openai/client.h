@@ -4,6 +4,7 @@
 #include "error.h"
 #include "config.h"
 #include "openai/sse_parser.h"
+#include "openai/tool_choice.h"
 #include "vendor/yyjson/yyjson.h"
 #include <stddef.h>
 #include <stdbool.h>
@@ -183,10 +184,10 @@ ik_openai_response_t *ik_openai_response_create(void *parent);
  *
  * @param parent         Talloc context parent (or NULL)
  * @param request        Request to serialize
- * @param limit_reached  If true, set tool_choice to "none"; otherwise "auto"
+ * @param tool_choice    Tool choice configuration (auto, none, required, or specific)
  * @return               JSON string
  */
-char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *request, bool limit_reached);
+char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *request, ik_tool_choice_t tool_choice);
 
 /*
  * HTTP client
