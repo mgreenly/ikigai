@@ -2,3 +2,8 @@
 
 # PostgreSQL talloc library - indirect leaks from connection management
 leak:libtalloc.so.2
+
+# Check framework - internal allocations that persist for test runner lifetime
+# The check library uses emalloc for internal structures that are not freed
+# before program exit, but this is expected behavior for the test framework
+leak:emalloc

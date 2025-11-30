@@ -3,6 +3,7 @@
 
 #include "openai/client.h"
 #include "error.h"
+#include "tool.h"
 
 /**
  * HTTP response structure
@@ -12,6 +13,7 @@
 typedef struct {
     char *content;          /* Complete response content */
     char *finish_reason;    /* Finish reason (may be NULL) */
+    ik_tool_call_t *tool_call; /* Tool call if present (NULL otherwise) */
 } ik_openai_http_response_t;
 
 /**

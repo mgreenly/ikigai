@@ -4,6 +4,7 @@
 #include "error.h"
 #include "openai/sse_parser.h"
 #include "openai/client.h"
+#include "tool.h"
 #include <stddef.h>
 #include <stdbool.h>
 
@@ -22,6 +23,7 @@ typedef struct {
     char *model;                         /* Model name from SSE stream */
     char *finish_reason;                 /* Finish reason from SSE stream */
     int32_t completion_tokens;           /* Completion token count from SSE stream */
+    ik_tool_call_t *tool_call;           /* Tool call if present (NULL otherwise) */
 } http_write_ctx_t;
 
 /**

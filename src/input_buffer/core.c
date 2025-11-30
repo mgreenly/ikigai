@@ -32,17 +32,12 @@ ik_input_buffer_t *ik_input_buffer_create(void *parent)
 
 const char *ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, size_t *len_out)
 {
-    assert(input_buffer != NULL);     /* LCOV_EXCL_BR_LINE */
-    assert(len_out != NULL);  /* LCOV_EXCL_BR_LINE */
-
     *len_out = ik_byte_array_size(input_buffer->text);
     return (const char *)input_buffer->text->data;
 }
 
 void ik_input_buffer_clear(ik_input_buffer_t *input_buffer)
 {
-    assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
-
     ik_byte_array_clear(input_buffer->text);
     input_buffer->cursor_byte_offset = 0;
     input_buffer->target_column = 0;

@@ -31,15 +31,16 @@
  * - "rewind": Render nothing (result shown elsewhere)
  * - "clear": Render nothing (clears scrollback)
  *
- * @param scrollback  Scrollback buffer to render to (must not be NULL)
- * @param kind        Event kind string (must be valid kind)
+ * @param scrollback  Scrollback buffer to render to
+ * @param kind        Event kind string
  * @param content     Event content (may be NULL for mark/rewind/clear)
  * @param data_json   JSON data string (may be NULL)
- * @return            OK on success, ERR on failure
+ * @return            OK on success, ERR on failure (invalid parameters or unknown kind)
  *
- * Preconditions:
- * - scrollback != NULL
- * - kind must be one of: user, assistant, system, mark, rewind, clear
+ * Error conditions:
+ * - Returns ERR if scrollback is NULL
+ * - Returns ERR if kind is NULL
+ * - Returns ERR if kind is not a recognized event type
  */
 res_t ik_event_render(ik_scrollback_t *scrollback, const char *kind, const char *content, const char *data_json);
 

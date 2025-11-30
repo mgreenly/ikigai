@@ -283,6 +283,21 @@ END_TEST START_TEST(test_parse_tool_calls_arguments_not_string)
     ck_assert_ptr_null(res.ok);
 }
 
+END_TEST START_TEST(test_parse_tool_calls_streaming_chunk_without_id_and_name)
+{
+    /* Subsequent streaming chunk: has arguments but no id or name */
+    const char *event =
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"more args\"}}]}}]}";
+    res_t res = ik_openai_parse_tool_calls(ctx, event);
+    ck_assert(!res.is_err);
+    ck_assert_ptr_nonnull(res.ok);
+
+    ik_tool_call_t *tool_call = (ik_tool_call_t *)res.ok;
+    ck_assert_str_eq(tool_call->id, "");
+    ck_assert_str_eq(tool_call->name, "");
+    ck_assert_str_eq(tool_call->arguments, "more args");
+}
+
 END_TEST
 
 /*
@@ -323,6 +338,7 @@ static Suite *openai_tool_calls_suite(void)
     tcase_add_test(tc_tool_calls, test_parse_tool_calls_function_not_object);
     tcase_add_test(tc_tool_calls, test_parse_tool_calls_function_name_not_string);
     tcase_add_test(tc_tool_calls, test_parse_tool_calls_arguments_not_string);
+    tcase_add_test(tc_tool_calls, test_parse_tool_calls_streaming_chunk_without_id_and_name);
     suite_add_tcase(s, tc_tool_calls);
 
     return s;

@@ -4,6 +4,7 @@
 #include "error.h"
 #include "config.h"
 #include "openai/client.h"
+#include "tool.h"
 #include <sys/select.h>
 
 /**
@@ -39,6 +40,7 @@ typedef struct {
     char *model;                  /* Model name from SSE response (or NULL) */
     char *finish_reason;          /* Finish reason from SSE response (or NULL) */
     int32_t completion_tokens;    /* Completion token count from SSE response (0 if not present) */
+    ik_tool_call_t *tool_call;    /* Tool call if present (or NULL) */
 } ik_http_completion_t;
 
 /**

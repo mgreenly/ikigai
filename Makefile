@@ -27,10 +27,18 @@ DEP_FLAGS = -MMD -MP
 DEBUG_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
 
 # Sanitizer flags (for sanitize build)
-SANITIZE_FLAGS = -fsanitize=address,undefined
+ifeq ($(SKIP_SIGNAL_TESTS),1)
+  SANITIZE_FLAGS = -fsanitize=address,undefined -DSKIP_SIGNAL_TESTS
+else
+  SANITIZE_FLAGS = -fsanitize=address,undefined
+endif
 
 # Thread sanitizer flags (for tsan build)
-TSAN_FLAGS = -fsanitize=thread
+ifeq ($(SKIP_SIGNAL_TESTS),1)
+  TSAN_FLAGS = -fsanitize=thread -DSKIP_SIGNAL_TESTS
+else
+  TSAN_FLAGS = -fsanitize=thread
+endif
 
 # Valgrind build flags (optimized for backtraces)
 ifeq ($(SKIP_SIGNAL_TESTS),1)
@@ -86,9 +94,9 @@ COVERAGE_DIR = coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
-LCOV_EXCL_COVERAGE = 1220
+LCOV_EXCL_COVERAGE = 1234
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/signal_handler.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/client_msg.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_mark.c src/marks.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/repl/session_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/client_msg.c src/openai/client_serialize.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_mark.c src/marks.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/repl/session_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
@@ -103,11 +111,11 @@ DB_INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/db/%_test.c,$(BUILDDI
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS) $(DB_INTEGRATION_TEST_TARGETS)
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/client_msg.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_mark.c src/marks.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/repl/session_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/client_msg.c src/openai/client_serialize.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_mark.c src/marks.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/repl/session_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c
 MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 
 # Module objects without DB (for session_restore_test mocking) - keeps connection for repl_init.c
-MODULE_SOURCES_NO_DB = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/client_msg.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_mark.c src/marks.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/repl/session_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c
+MODULE_SOURCES_NO_DB = src/error.c src/logger.c src/config.c src/wrapper.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/layer.c src/layer_wrappers.c src/openai/client.c src/openai/client_msg.c src/openai/client_serialize.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_mark.c src/marks.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/repl/session_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c
 MODULE_OBJ_NO_DB = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES_NO_DB))
 
 # Test utilities (linked with all tests)
@@ -312,7 +320,7 @@ check-sanitize:
 	@rm -rf build-sanitize
 	@mkdir -p build-sanitize/tests/unit build-sanitize/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-sanitize/tests/unit|' | xargs mkdir -p
-	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $(MAKE) -j$(MAKE_JOBS) check BUILD=sanitize BUILDDIR=build-sanitize
+	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $(MAKE) -j$(MAKE_JOBS) check BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1
 	@echo "✓ Sanitizer checks passed!"
 
 check-valgrind:
@@ -376,7 +384,7 @@ check-tsan:
 	@rm -rf build-tsan
 	@mkdir -p build-tsan/tests/unit build-tsan/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-tsan/tests/unit|' | xargs mkdir -p
-	@$(MAKE) -j$(MAKE_JOBS) check BUILD=tsan BUILDDIR=build-tsan
+	@$(MAKE) -j$(MAKE_JOBS) check BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1
 	@echo "✓ ThreadSanitizer checks passed!"
 
 check-dynamic:

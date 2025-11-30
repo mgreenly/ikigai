@@ -165,6 +165,9 @@ CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
 
 /*
  * Test: SSE streaming response with finish_reason
+ *
+ * Note: finish_reason is not stored in canonical format (ik_openai_msg_t).
+ * This test verifies that responses with finish_reason are properly converted.
  */
 START_TEST(test_http_callback_with_finish_reason) {
     /* Create configuration */
@@ -200,13 +203,13 @@ START_TEST(test_http_callback_with_finish_reason) {
     res_t result = ik_openai_chat_create(ctx, cfg, conv, NULL, NULL);
     ck_assert(!result.is_err);
 
-    /* Verify response content and finish_reason */
-    ik_openai_response_t *resp = result.ok;
-    ck_assert_ptr_nonnull(resp);
-    ck_assert_ptr_nonnull(resp->content);
-    ck_assert_str_eq(resp->content, "Hello World");
-    ck_assert_ptr_nonnull(resp->finish_reason);
-    ck_assert_str_eq(resp->finish_reason, "stop");
+    /* Verify canonical message was created with content */
+    ik_openai_msg_t *response_msg = result.ok;
+    ck_assert_ptr_nonnull(response_msg);
+    ck_assert_ptr_nonnull(response_msg->role);
+    ck_assert_str_eq(response_msg->role, "assistant");
+    ck_assert_ptr_nonnull(response_msg->content);
+    ck_assert_str_eq(response_msg->content, "Hello World");
 }
 
 END_TEST
@@ -246,12 +249,13 @@ START_TEST(test_http_callback_without_finish_reason)
     res_t result = ik_openai_chat_create(ctx, cfg, conv, NULL, NULL);
     ck_assert(!result.is_err);
 
-    /* Verify response content, finish_reason should be NULL */
-    ik_openai_response_t *resp = result.ok;
-    ck_assert_ptr_nonnull(resp);
-    ck_assert_ptr_nonnull(resp->content);
-    ck_assert_str_eq(resp->content, "Hello");
-    ck_assert_ptr_null(resp->finish_reason);
+    /* Verify canonical message was created with content */
+    ik_openai_msg_t *response_msg = result.ok;
+    ck_assert_ptr_nonnull(response_msg);
+    ck_assert_ptr_nonnull(response_msg->role);
+    ck_assert_str_eq(response_msg->role, "assistant");
+    ck_assert_ptr_nonnull(response_msg->content);
+    ck_assert_str_eq(response_msg->content, "Hello");
 }
 
 END_TEST
@@ -295,11 +299,13 @@ START_TEST(test_http_callback_malformed_finish_reason)
     res_t result = ik_openai_chat_create(ctx, cfg, conv, NULL, NULL);
     ck_assert(!result.is_err);
 
-    /* Verify response content (should have at least the valid content) */
-    ik_openai_response_t *resp = result.ok;
-    ck_assert_ptr_nonnull(resp);
-    ck_assert_ptr_nonnull(resp->content);
-    ck_assert_str_eq(resp->content, "Hi");
+    /* Verify canonical message was created (should have at least the valid content) */
+    ik_openai_msg_t *response_msg = result.ok;
+    ck_assert_ptr_nonnull(response_msg);
+    ck_assert_ptr_nonnull(response_msg->role);
+    ck_assert_str_eq(response_msg->role, "assistant");
+    ck_assert_ptr_nonnull(response_msg->content);
+    ck_assert_str_eq(response_msg->content, "Hi");
 }
 
 END_TEST
@@ -347,12 +353,12 @@ START_TEST(test_http_callback_finish_reason_edge_cases)
     res_t result = ik_openai_chat_create(ctx, cfg, conv, NULL, NULL);
     ck_assert(!result.is_err);
 
-    /* Verify response */
-    ik_openai_response_t *resp = result.ok;
-    ck_assert_ptr_nonnull(resp);
-    ck_assert_ptr_nonnull(resp->content);
-    ck_assert_ptr_nonnull(resp->finish_reason);
-    ck_assert_str_eq(resp->finish_reason, "stop");
+    /* Verify canonical message was created */
+    ik_openai_msg_t *response_msg = result.ok;
+    ck_assert_ptr_nonnull(response_msg);
+    ck_assert_ptr_nonnull(response_msg->role);
+    ck_assert_str_eq(response_msg->role, "assistant");
+    ck_assert_ptr_nonnull(response_msg->content);
 }
 
 END_TEST

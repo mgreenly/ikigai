@@ -11,6 +11,7 @@
 #include "config.h"
 #include "openai/client.h"
 #include "debug_pipe.h"
+#include "tool.h"
 #include "db/connection.h"
 #include <stdbool.h>
 #include <inttypes.h>
@@ -91,6 +92,9 @@ typedef struct ik_repl_ctx_t {
 
     // Tool loop iteration tracking (Story 11)
     int32_t tool_iteration_count;     // Number of tool call iterations in current request
+
+    // Pending tool call (Story 02)
+    ik_tool_call_t *pending_tool_call; // Tool call awaiting execution (NULL if none)
 } ik_repl_ctx_t;
 
 // Initialize REPL context
@@ -122,6 +126,9 @@ void ik_repl_transition_to_idle(ik_repl_ctx_t *repl);
 res_t handle_curl_events(ik_repl_ctx_t *repl, int ready);
 res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit);
 void handle_request_success(ik_repl_ctx_t *repl);
+
+// Tool execution helper (exposed to reduce complexity in handle_request_success)
+void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl);
 
 // Tool loop decision function (Phase 2: Story 02)
 bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl);

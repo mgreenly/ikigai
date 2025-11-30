@@ -2,6 +2,7 @@
 #include "openai/http_handler_internal.h"
 
 #include "openai/sse_parser.h"
+#include "tool.h"
 #include "wrapper.h"
 
 #include <assert.h>
@@ -29,6 +30,7 @@ typedef struct {
     size_t response_len;                 /* Length of complete response */
     char *finish_reason;                 /* Finish reason from stream */
     bool has_error;                      /* Whether an error occurred */
+    ik_tool_call_t *tool_call;           /* Tool call if present (NULL otherwise) */
 } http_write_ctx_t;
 
 /*
@@ -155,6 +157,28 @@ static size_t http_write_callback(char *data, size_t size, size_t nmemb, void *u
             }
 
             talloc_free(content);
+        } else {
+            /* No content - check for tool calls */
+            res_t tool_res = ik_openai_parse_tool_calls(ctx->parser, event);
+            /* Note: tool_res can only be OK here because parse_sse_event already
+             * validated the same invariants (data prefix, JSON parsing, root is object).
+             * If parse_sse_event returned OK, parse_tool_calls will also return OK.
+             */
+            assert(is_ok(&tool_res)); // LCOV_EXCL_BR_LINE
+            if (tool_res.ok != NULL) {
+                ik_tool_call_t *tc = tool_res.ok;
+                if (ctx->tool_call == NULL) {
+                    /* First tool call chunk - take ownership */
+                    ctx->tool_call = talloc_steal(ctx->parser, tc);
+                } else {
+                    /* Accumulate arguments for streaming case */
+                    ctx->tool_call->arguments = talloc_strdup_append(ctx->tool_call->arguments, tc->arguments);
+                    if (ctx->tool_call->arguments == NULL) {  // LCOV_EXCL_BR_LINE
+                        PANIC("Failed to accumulate tool call arguments");  // LCOV_EXCL_LINE
+                    }
+                    talloc_free(tc);
+                }
+            }
         }
 
         /* Extract finish_reason if present */
@@ -261,6 +285,13 @@ res_t ik_openai_http_post(void *parent, const char *url, const char *api_key,
         http_resp->finish_reason = talloc_steal(http_resp, write_ctx->finish_reason);
     } else {
         http_resp->finish_reason = NULL;
+    }
+
+    /* Transfer tool_call */
+    if (write_ctx->tool_call != NULL) {
+        http_resp->tool_call = talloc_steal(http_resp, write_ctx->tool_call);
+    } else {
+        http_resp->tool_call = NULL;
     }
 
     return OK(http_resp);

@@ -295,13 +295,14 @@ START_TEST(test_tool_choice_specific_end_to_end)
                                tool_result_msg->data_json);
     ck_assert(!res.is_err);
 
-    yyjson_doc_free(result_doc);
-
     // Step 6: Model provides final formatted response (now using auto mode)
     // In real flow, this would be sent to OpenAI with tool_result in conversation
     const char *assistant_response = talloc_asprintf(test_ctx,
                                                      "I found the following C files in src/:\n\n%s",
                                                      output_str);
+
+    // Free result_doc after we're done using output_str
+    yyjson_doc_free(result_doc);
 
     res = ik_db_message_insert(db, session_id, "assistant", assistant_response,
                                "{\"model\": \"gpt-4o-mini\", \"finish_reason\": \"stop\"}");

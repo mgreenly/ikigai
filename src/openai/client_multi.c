@@ -124,6 +124,7 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                     completion.model = NULL;
                     completion.finish_reason = NULL;
                     completion.completion_tokens = 0;
+                    completion.tool_call = NULL;
 
                     if (curl_result == CURLE_OK) {
                         /* Get HTTP response code */
@@ -144,6 +145,11 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                                 completion.finish_reason = talloc_steal(multi, completed->write_ctx->finish_reason);
                             }
                             completion.completion_tokens = completed->write_ctx->completion_tokens;
+                            if (completed->write_ctx->tool_call != NULL) {
+                                completion.tool_call = talloc_steal(multi, completed->write_ctx->tool_call);
+                            } else {
+                                completion.tool_call = NULL;
+                            }
                         } else if (response_code >= 400 && response_code < 500) {
                             completion.type = IK_HTTP_CLIENT_ERROR;
                             completion.error_message = talloc_asprintf(multi,
@@ -180,6 +186,9 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                             if (completion.finish_reason != NULL) {
                                 talloc_free(completion.finish_reason);
                             }
+                            if (completion.tool_call != NULL) {
+                                talloc_free(completion.tool_call);
+                            }
                             /* Clean up curl handles */
                             curl_multi_remove_handle_(multi->multi_handle, easy_handle);
                             curl_easy_cleanup_(easy_handle);
@@ -205,6 +214,9 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                     }
                     if (completion.finish_reason != NULL) {
                         talloc_free(completion.finish_reason);
+                    }
+                    if (completion.tool_call != NULL) {
+                        talloc_free(completion.tool_call);
                     }
 
                     /* Clean up curl handles */

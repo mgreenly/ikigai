@@ -155,6 +155,8 @@ static inline const char *error_code_str(err_code_t code)
             return "Database connection error";
         case ERR_DB_MIGRATE:
             return "Database migration error";
+        case ERR_OUT_OF_MEMORY:
+            return "Out of memory";
         default: // LCOV_EXCL_LINE
             PANIC("Invalid error code"); // LCOV_EXCL_LINE
     }

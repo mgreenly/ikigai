@@ -4,7 +4,6 @@
  */
 
 #include <check.h>
-#include <signal.h>
 #include <string.h>
 #include <talloc.h>
 #include "../../../src/event_render.h"
@@ -318,25 +317,22 @@ START_TEST(test_render_mark_label_not_string)
 
 END_TEST
 
-#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
-// Test: NULL scrollback assertion
-START_TEST(test_render_null_scrollback_asserts)
-{
-    ik_event_render(NULL, "user", "content", NULL);
-}
-
-END_TEST
-// Test: NULL kind assertion
-START_TEST(test_render_null_kind_asserts)
+// Test: NULL kind returns error
+START_TEST(test_render_null_kind_returns_error)
 {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    ik_event_render(scrollback, NULL, "content", NULL);
+
+    res_t result = ik_event_render(scrollback, NULL, "content", NULL);
+    ck_assert(is_err(&result));
+    ck_assert_ptr_nonnull(strstr(error_message(result.err), "kind"));
+    ck_assert_ptr_nonnull(strstr(error_message(result.err), "cannot be NULL"));
+    talloc_free(result.err);
+
     talloc_free(ctx);
 }
 
 END_TEST
-#endif
 
 static Suite *event_render_basic_suite(void)
 {
@@ -370,13 +366,9 @@ static Suite *event_render_basic_suite(void)
     tcase_add_test(tc_render, test_render_mark_label_not_string);
     suite_add_tcase(s, tc_render);
 
-#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_add_test_raise_signal(tc_assertions, test_render_null_scrollback_asserts, SIGABRT);
-    tcase_add_test_raise_signal(tc_assertions, test_render_null_kind_asserts, SIGABRT);
-    suite_add_tcase(s, tc_assertions);
-#endif
+    TCase *tc_errors = tcase_create("Error Handling");
+    tcase_add_test(tc_errors, test_render_null_kind_returns_error);
+    suite_add_tcase(s, tc_errors);
 
     return s;
 }

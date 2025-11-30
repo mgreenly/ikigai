@@ -357,16 +357,16 @@ char *ik_tool_result_add_limit_metadata(void *parent, const char *result_json, i
 
     char msg[256];
     int n = snprintf(msg, sizeof(msg), "Tool call limit reached (%d). Stopping tool loop.", (int)max_tool_turns);
-    if (n < 0 || n >= (int)sizeof(msg)) PANIC("Limit message formatting failed");  // LCOV_EXCL_BR_LINE
+    if (n < 0 || n >= (int)sizeof(msg)) PANIC("Format failed");  // LCOV_EXCL_BR_LINE
 
     if (!yyjson_mut_obj_add_str(mut_doc, mut_root, "limit_message", msg)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     size_t len = 0;
-    const char *json_str = yyjson_mut_write(mut_doc, 0, &len);
+    char *json_str = (char *)yyjson_mut_write(mut_doc, 0, &len);
     if (json_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
     char *result = talloc_strdup(parent, json_str);
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    free(json_str);  // LCOV_EXCL_BR_LINE
 
     yyjson_doc_free(doc);
     yyjson_mut_doc_free(mut_doc);

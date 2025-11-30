@@ -18,7 +18,7 @@
  */
 static size_t calculate_display_width(const char *text, size_t len)
 {
-    if (text == NULL || len == 0)return 0;  // LCOV_EXCL_LINE - defensive: text is never NULL when len > 0
+    if (text == NULL || len == 0) return 0;  // LCOV_EXCL_LINE - defensive: text is never NULL when len > 0
 
     size_t display_width = 0;
     size_t pos = 0;

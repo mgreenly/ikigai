@@ -267,13 +267,12 @@ res_t ik_openai_parse_tool_calls(void *parent, const char *event) {
         return OK(NULL);
     }
 
-    /* Extract id */
+    /* Extract id (optional for streaming chunks - may be absent in subsequent chunks) */
     yyjson_val *id_val = yyjson_obj_get(tool_call, "id");
-    if (!id_val || !yyjson_is_str(id_val)) {
-        yyjson_doc_free(doc);
-        return OK(NULL);
+    bool has_id = (id_val != NULL);
+    if (has_id) {
+        has_id = yyjson_is_str(id_val);
     }
-    const char *id_str = yyjson_get_str_wrapper(id_val);
 
     /* Extract function object */
     yyjson_val *function = yyjson_obj_get(tool_call, "function");
@@ -282,13 +281,30 @@ res_t ik_openai_parse_tool_calls(void *parent, const char *event) {
         return OK(NULL);
     }
 
-    /* Extract function.name */
+    /* Extract function.name (optional for streaming chunks - may be absent in subsequent chunks) */
     yyjson_val *name_val = yyjson_obj_get(function, "name");
-    if (!name_val || !yyjson_is_str(name_val)) {
+    bool has_name = (name_val != NULL);
+    if (has_name) {
+        has_name = yyjson_is_str(name_val);
+    }
+
+    /* For streaming: id and name must both be present OR both be absent */
+    /* First chunk: has both id and name. Subsequent chunks: has neither. */
+    if (has_id != has_name) {
+        /* Malformed: has one but not the other */
         yyjson_doc_free(doc);
         return OK(NULL);
     }
-    const char *name_str = yyjson_get_str_wrapper(name_val);
+
+    const char *id_str;
+    const char *name_str;
+    if (has_id) {
+        id_str = yyjson_get_str_wrapper(id_val);
+        name_str = yyjson_get_str_wrapper(name_val);
+    } else {
+        id_str = "";
+        name_str = "";
+    }
 
     /* Extract function.arguments */
     yyjson_val *arguments_val = yyjson_obj_get(function, "arguments");

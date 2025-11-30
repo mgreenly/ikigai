@@ -2,7 +2,6 @@
 
 #include "db/message.h"
 #include "event_render.h"
-#include "format.h"
 #include "input_buffer/core.h"
 #include "openai/client_multi.h"
 #include "panic.h"
@@ -98,11 +97,7 @@ res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_e
     ik_input_parse_byte(repl->input_parser, byte, &action);
 
     res_t result = ik_repl_process_action(repl, &action);
-    // Error propagation: Currently unreachable through normal terminal input because
-    // the input parser (input.c:decode_utf8_sequence) sanitizes invalid codepoints
-    // to U+FFFD before they reach ik_repl_process_action(). The error handling in
-    // ik_repl_process_action itself IS tested (see test_repl_process_action_invalid_codepoint).
-    // This defensive check remains for future robustness if new failable actions are added.
+    // Unreachable: input parser sanitizes codepoints. (See test_repl_process_action_invalid_codepoint)
     if (is_err(&result)) return result; // LCOV_EXCL_BR_LINE
 
     // Render if needed
@@ -196,6 +191,11 @@ void handle_request_success(ik_repl_ctx_t *repl)
     if (repl->assistant_response != NULL) {
         talloc_free(repl->assistant_response);
         repl->assistant_response = NULL;
+    }
+
+    // Execute pending tool call if present
+    if (repl->pending_tool_call != NULL) {
+        ik_repl_execute_pending_tool(repl);
     }
 
     // Check if we should continue the tool loop

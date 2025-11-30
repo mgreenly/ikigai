@@ -116,6 +116,21 @@ ik_openai_msg_t *ik_openai_msg_create_tool_call(void *parent,
                                                   const char *arguments,
                                                   const char *content);
 
+/**
+ * Create a canonical tool_result message
+ *
+ * Creates a message with role="tool_result" that will be transformed to OpenAI's
+ * role="tool" format during serialization.
+ *
+ * @param parent        Talloc context parent (or NULL)
+ * @param tool_call_id  ID of the tool call this result is for (e.g., "call_abc123")
+ * @param content       Tool result content (JSON string with result data)
+ * @return              Created message (panics on OOM)
+ */
+ik_openai_msg_t *ik_openai_msg_create_tool_result(void *parent,
+                                                    const char *tool_call_id,
+                                                    const char *content);
+
 /*
  * Conversation functions
  */
@@ -196,12 +211,16 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
 /**
  * Send a chat completion request with streaming
  *
+ * Returns canonical message format (ik_openai_msg_t*).
+ * - For tool calls: role="tool_call", data_json contains structured data, content has human-readable summary
+ * - For text responses: role="assistant", content has response text
+ *
  * @param parent      Talloc context parent (or NULL)
  * @param cfg         Configuration with API key, model, etc.
  * @param conv        Conversation to send
  * @param stream_cb   Callback for streaming chunks (or NULL for no streaming)
  * @param cb_ctx      Context pointer passed to callback
- * @return            OK(response) or ERR(...)
+ * @return            OK(ik_openai_msg_t*) or ERR(...)
  */
 res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
                              ik_openai_conversation_t *conv,
@@ -212,5 +231,35 @@ res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
  */
 
 ik_openai_msg_t *get_message_at_index(ik_openai_msg_t **messages, size_t idx);
+
+/*
+ * Message serialization helpers (in client_serialize.c)
+ */
+
+/**
+ * Serialize a tool_call message to OpenAI wire format
+ *
+ * Transforms canonical role="tool_call" to role="assistant" + tool_calls array.
+ *
+ * @param doc      yyjson mutable document
+ * @param msg_obj  Message object to populate
+ * @param msg      Message with role="tool_call"
+ * @param parent   Talloc context for temporary allocations
+ */
+void ik_openai_serialize_tool_call_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
+                                        const ik_openai_msg_t *msg, void *parent);
+
+/**
+ * Serialize a tool_result message to OpenAI wire format
+ *
+ * Transforms canonical role="tool_result" to role="tool" + tool_call_id + content.
+ *
+ * @param doc      yyjson mutable document
+ * @param msg_obj  Message object to populate
+ * @param msg      Message with role="tool_result"
+ * @param parent   Talloc context for temporary allocations
+ */
+void ik_openai_serialize_tool_result_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
+                                          const ik_openai_msg_t *msg, void *parent);
 
 #endif /* IK_OPENAI_CLIENT_H */

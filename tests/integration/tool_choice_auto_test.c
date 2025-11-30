@@ -258,6 +258,8 @@ START_TEST(test_tool_choice_auto_end_to_end)
     }
 
     const char *output_str = output ? yyjson_get_str(output) : "";
+    // Copy output_str before freeing result_doc to avoid use-after-free
+    char *output_str_copy = talloc_strdup(test_ctx, output_str);
     char *content = talloc_asprintf(test_ctx, "%d file(s) found", count);
 
     ik_message_t *tool_result_msg = ik_msg_create_tool_result(
@@ -270,20 +272,21 @@ START_TEST(test_tool_choice_auto_end_to_end)
         );
     ck_assert_ptr_nonnull(tool_result_msg);
 
+    // Free result_doc before any further assertions
+    yyjson_doc_free(result_doc);
+
     // Step 5: Persist tool_result message to database
     res = ik_db_message_insert(db, session_id, "tool_result",
                                tool_result_msg->content,
                                tool_result_msg->data_json);
     ck_assert(!res.is_err);
 
-    yyjson_doc_free(result_doc);
-
     // Step 6: Model provides final formatted response
     // In real flow, this would be sent to OpenAI with tool_result in conversation
     const char *assistant_response = talloc_asprintf(test_ctx,
                                                      "I found %d C files in src/: %s",
                                                      count,
-                                                     output_str);
+                                                     output_str_copy);
 
     res = ik_db_message_insert(db, session_id, "assistant", assistant_response,
                                "{\"model\": \"gpt-4o-mini\", \"finish_reason\": \"stop\"}");

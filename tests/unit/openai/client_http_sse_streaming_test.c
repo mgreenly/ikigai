@@ -199,11 +199,13 @@ START_TEST(test_http_callback_with_sse_streaming) {
     res_t result = ik_openai_chat_create(ctx, cfg, conv, NULL, NULL);
     ck_assert(!result.is_err);
 
-    /* Verify response content was accumulated from SSE events */
-    ik_openai_response_t *resp = result.ok;
-    ck_assert_ptr_nonnull(resp);
-    ck_assert_ptr_nonnull(resp->content);
-    ck_assert_str_eq(resp->content, "Hello World");
+    /* Verify canonical message was created with accumulated content */
+    ik_openai_msg_t *response_msg = result.ok;
+    ck_assert_ptr_nonnull(response_msg);
+    ck_assert_ptr_nonnull(response_msg->role);
+    ck_assert_str_eq(response_msg->role, "assistant");
+    ck_assert_ptr_nonnull(response_msg->content);
+    ck_assert_str_eq(response_msg->content, "Hello World");
 }
 
 END_TEST
@@ -240,10 +242,12 @@ START_TEST(test_http_callback_empty_response)
     res_t result = ik_openai_chat_create(ctx, cfg, conv, NULL, NULL);
     ck_assert(!result.is_err);
 
-    /* Verify response was created even with empty content */
-    ik_openai_response_t *resp = result.ok;
-    ck_assert_ptr_nonnull(resp);
-    ck_assert_ptr_nonnull(resp->content);
+    /* Verify canonical message was created even with empty content */
+    ik_openai_msg_t *response_msg = result.ok;
+    ck_assert_ptr_nonnull(response_msg);
+    ck_assert_ptr_nonnull(response_msg->role);
+    ck_assert_str_eq(response_msg->role, "assistant");
+    ck_assert_ptr_nonnull(response_msg->content);
 }
 
 END_TEST
@@ -284,8 +288,8 @@ START_TEST(test_http_callback_sse_parser_feed_error)
 
     /* Parser may or may not fail on incomplete data - either is acceptable */
     if (!result.is_err) {
-        ik_openai_response_t *resp = result.ok;
-        ck_assert_ptr_nonnull(resp);
+        ik_openai_msg_t *response_msg = result.ok;
+        ck_assert_ptr_nonnull(response_msg);
     }
 }
 
@@ -331,8 +335,8 @@ START_TEST(test_http_callback_sse_parse_error)
         ck_assert(result.is_err);
     } else {
         /* Or it may succeed with partial data */
-        ik_openai_response_t *resp = result.ok;
-        ck_assert_ptr_nonnull(resp);
+        ik_openai_msg_t *response_msg = result.ok;
+        ck_assert_ptr_nonnull(response_msg);
     }
 }
 

@@ -104,7 +104,12 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
                       const char *data_json)
 {
     assert(scrollback != NULL); // LCOV_EXCL_BR_LINE
-    assert(kind != NULL);       // LCOV_EXCL_BR_LINE
+
+    // Validate kind parameter - return error instead of asserting
+    // This allows callers to handle invalid kinds gracefully
+    if (kind == NULL) { // LCOV_EXCL_START
+        return ERR(scrollback, INVALID_ARG, "kind parameter cannot be NULL");
+    } // LCOV_EXCL_STOP
 
     // Handle each event kind
     if (strcmp(kind, "user") == 0 ||
