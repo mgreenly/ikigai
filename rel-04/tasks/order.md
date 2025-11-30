@@ -22,7 +22,7 @@
 - ~~tool-loop-state-mutation.md~~
 - ~~tool-loop-continuation.md~~
 - ~~scrollback-tool-display.md~~
-- db-tool-persist.md
+- ~~db-tool-persist.md~~
 - db-persist-failure-resilience.md
 - db-tool-replay.md
 - conversation-rebuild.md

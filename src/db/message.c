@@ -19,6 +19,8 @@ static const char *VALID_KINDS[] = {
     "system",
     "user",
     "assistant",
+    "tool_call",
+    "tool_result",
     "mark",
     "rewind",
     NULL
