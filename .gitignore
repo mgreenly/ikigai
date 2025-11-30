@@ -16,3 +16,6 @@ tags
 **/*.d
 **/*.info
 coverage_html/
+
+# Claude Code session logs
+.agents/logs/**/*
