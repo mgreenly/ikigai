@@ -97,6 +97,25 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
             }
         }
 
+        // TODO: Rebuild conversation from replay context for LLM context
+        // This will provide full conversation history to the LLM after restart.
+        // For each message in replay_ctx:
+        //   1. Call ik_msg_from_db() to convert DB format to canonical format
+        //   2. If result is non-NULL, add to repl->conversation (once canonical conversation exists)
+        //   3. Skip non-conversation kinds (clear, mark, rewind) which return NULL
+        //
+        // Example code (when ik_conversation_t is integrated):
+        //   for (size_t i = 0; i < replay_ctx->count; i++) {
+        //       res_t msg_res = ik_msg_from_db(repl, replay_ctx->messages[i]);
+        //       if (is_err(&msg_res)) {
+        //           talloc_free(tmp);
+        //           return msg_res;
+        //       }
+        //       if (msg_res.ok != NULL) {
+        //           // Add msg_res.ok to canonical conversation
+        //       }
+        //   }
+
         talloc_free(tmp);
         return OK(repl);
     } else {

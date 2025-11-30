@@ -25,7 +25,7 @@
 - ~~db-tool-persist.md~~
 - ~~db-persist-failure-resilience.md~~
 - ~~db-tool-replay.md~~
-- conversation-rebuild.md
+- ~~conversation-rebuild.md~~
 
 Note: conversation-tool-loop.md was split into three focused tasks (tool-loop-finish-detection, tool-loop-state-mutation, tool-loop-continuation) for better separation of concerns.
 
