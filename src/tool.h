@@ -233,4 +233,19 @@ res_t ik_tool_exec_bash(void *parent, const char *command);
 // @return res_t containing JSON string (owned by parent)
 res_t ik_tool_dispatch(void *parent, const char *tool_name, const char *arguments);
 
+// Add limit metadata to tool result JSON.
+//
+// Takes a tool result JSON string and adds two fields:
+// - "limit_reached": true
+// - "limit_message": "Tool call limit reached (N). Stopping tool loop."
+//
+// This function is used when the tool loop iteration limit is reached to
+// inform the model why the loop is stopping.
+//
+// @param parent Parent talloc context for result allocation
+// @param result_json JSON string of tool result (can be NULL)
+// @param max_tool_turns Maximum number of tool turns (used in message)
+// @return Modified JSON string with limit metadata (owned by parent), or NULL if result_json is NULL or malformed
+char *ik_tool_result_add_limit_metadata(void *parent, const char *result_json, int32_t max_tool_turns);
+
 #endif // IK_TOOL_H

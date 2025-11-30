@@ -329,3 +329,48 @@ char *ik_tool_truncate_output(void *parent, const char *output, size_t max_size)
 
     return truncated;
 }
+
+char *ik_tool_result_add_limit_metadata(void *parent, const char *result_json, int32_t max_tool_turns)
+{
+    if (result_json == NULL) {
+        return NULL;
+    }
+
+    yyjson_doc *doc = yyjson_read(result_json, strlen(result_json), 0);
+    if (doc == NULL) {
+        return NULL;
+    }
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    if (root == NULL || !yyjson_is_obj(root)) {
+        yyjson_doc_free(doc);
+        return NULL;
+    }
+
+    yyjson_mut_doc *mut_doc = yyjson_mut_doc_new(NULL);
+    if (mut_doc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_val *mut_root = yyjson_val_mut_copy(mut_doc, root);
+    if (mut_root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    yyjson_mut_doc_set_root(mut_doc, mut_root);
+
+    if (!yyjson_mut_obj_add_bool(mut_doc, mut_root, "limit_reached", true)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    char msg[256];
+    int n = snprintf(msg, sizeof(msg), "Tool call limit reached (%d). Stopping tool loop.", (int)max_tool_turns);
+    if (n < 0 || n >= (int)sizeof(msg)) PANIC("Limit message formatting failed");  // LCOV_EXCL_BR_LINE
+
+    if (!yyjson_mut_obj_add_str(mut_doc, mut_root, "limit_message", msg)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    size_t len = 0;
+    const char *json_str = yyjson_mut_write(mut_doc, 0, &len);
+    if (json_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    char *result = talloc_strdup(parent, json_str);
+    if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    yyjson_doc_free(doc);
+    yyjson_mut_doc_free(mut_doc);
+
+    return result;
+}

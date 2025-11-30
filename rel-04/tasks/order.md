@@ -68,7 +68,7 @@ No new tasks needed. The multi-tool conversation loop implemented in Story 04 (m
 Note: The `max_tool_turns` config field was added in Story 02 (tool-config-fields.md).
 
 - ~~tool-loop-counter.md~~
-- tool-result-limit-metadata.md
+- ~~tool-result-limit-metadata.md~~
 - tool-choice-none-on-limit.md  *(uses hardcoded strings; refactored in Story 13)*
 - tool-loop-limit-e2e.md
 
