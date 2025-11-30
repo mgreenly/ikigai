@@ -21,12 +21,15 @@
 /**
  * OpenAI message structure
  *
- * Represents a single message in a conversation (user, assistant, or system).
- * Follows OpenAI Chat API message format.
+ * Represents a single message in a conversation (user, assistant, system, or tool_call).
+ * For text messages, only role and content are used.
+ * For tool_call messages, role="tool_call", content is human-readable summary,
+ * and data_json contains structured tool call data.
  */
 typedef struct {
-    char *role;      /* "user", "assistant", or "system" */
-    char *content;   /* Message text content */
+    char *role;       /* "user", "assistant", "system", or "tool_call" */
+    char *content;    /* Message text content or human-readable summary */
+    char *data_json;  /* Structured data for tool_call messages (NULL for text messages) */
 } ik_openai_msg_t;
 
 /**
@@ -90,6 +93,27 @@ typedef res_t (*ik_openai_stream_cb_t)(const char *chunk, void *ctx);
  * @return        OK(message) or ERR(...)
  */
 res_t ik_openai_msg_create(void *parent, const char *role, const char *content);
+
+/**
+ * Create a canonical tool_call message
+ *
+ * Creates a message with role="tool_call" that will be transformed to OpenAI's
+ * role="assistant" + tool_calls array format during serialization.
+ *
+ * @param parent      Talloc context parent (or NULL)
+ * @param id          Tool call ID (e.g., "call_abc123")
+ * @param type        Tool type (always "function" for now)
+ * @param name        Function name (e.g., "glob", "file_read")
+ * @param arguments   Function arguments as JSON string
+ * @param content     Human-readable summary (e.g., "glob(pattern=\"*.c\")")
+ * @return            Created message (panics on OOM)
+ */
+ik_openai_msg_t *ik_openai_msg_create_tool_call(void *parent,
+                                                  const char *id,
+                                                  const char *type,
+                                                  const char *name,
+                                                  const char *arguments,
+                                                  const char *content);
 
 /*
  * Conversation functions

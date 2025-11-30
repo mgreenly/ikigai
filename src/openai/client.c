@@ -28,32 +28,6 @@ ik_openai_msg_t *get_message_at_index(ik_openai_msg_t **messages, size_t idx)
 }
 
 /*
- * Message functions
- */
-
-res_t ik_openai_msg_create(void *parent, const char *role, const char *content) {
-    assert(role != NULL); // LCOV_EXCL_BR_LINE
-    assert(content != NULL); // LCOV_EXCL_BR_LINE
-
-    ik_openai_msg_t *msg = talloc_zero(parent, ik_openai_msg_t);
-    if (!msg) { // LCOV_EXCL_BR_LINE
-        PANIC("Failed to allocate message"); // LCOV_EXCL_LINE
-    }
-
-    msg->role = talloc_strdup(msg, role);
-    if (!msg->role) { // LCOV_EXCL_BR_LINE
-        PANIC("Failed to allocate role string"); // LCOV_EXCL_LINE
-    }
-
-    msg->content = talloc_strdup(msg, content);
-    if (!msg->content) { // LCOV_EXCL_BR_LINE
-        PANIC("Failed to allocate content string"); // LCOV_EXCL_LINE
-    }
-
-    return OK(msg);
-}
-
-/*
  * Conversation functions
  */
 
@@ -185,12 +159,130 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
         yyjson_mut_val *msg_obj = yyjson_mut_arr_add_obj(doc, messages_arr);
         if (msg_obj == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-        /* Add role and content fields */
-        if (!yyjson_mut_obj_add_str(doc, msg_obj, "role", msg->role)) { // LCOV_EXCL_BR_LINE
-            PANIC("Failed to add role field to message"); // LCOV_EXCL_LINE
-        }
-        if (!yyjson_mut_obj_add_str(doc, msg_obj, "content", msg->content)) { // LCOV_EXCL_BR_LINE
-            PANIC("Failed to add content field to message"); // LCOV_EXCL_LINE
+        /* Check if this is a tool_call message */
+        if (strcmp(msg->role, "tool_call") == 0) {
+            /* Transform canonical tool_call to OpenAI wire format */
+            /* OpenAI expects role="assistant" with tool_calls array */
+            if (!yyjson_mut_obj_add_str(doc, msg_obj, "role", "assistant")) { // LCOV_EXCL_BR_LINE
+                PANIC("Failed to add role field to message"); // LCOV_EXCL_LINE
+            }
+
+            /* Ensure data_json exists */
+            if (!msg->data_json) PANIC("tool_call message missing data_json"); // LCOV_EXCL_BR_LINE
+
+            /* Parse data_json to extract tool call details */
+            /* Use a temporary talloc context for copying strings */
+            TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+            if (!tmp_ctx) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+            yyjson_doc *data_doc = yyjson_read(msg->data_json, strlen(msg->data_json), 0);
+            if (!data_doc) { // LCOV_EXCL_BR_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Failed to parse tool call data_json"); // LCOV_EXCL_LINE
+            }
+
+            yyjson_val *data_root = yyjson_doc_get_root(data_doc);
+            if (!data_root || !yyjson_is_obj(data_root)) { // LCOV_EXCL_BR_LINE
+                yyjson_doc_free(data_doc); // LCOV_EXCL_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Invalid tool call data_json structure"); // LCOV_EXCL_LINE
+            }
+
+            /* Extract tool call fields and copy to talloc strings */
+            const char *call_id_src = yyjson_get_str(yyjson_obj_get(data_root, "id")); // LCOV_EXCL_BR_LINE
+            const char *call_type_src = yyjson_get_str(yyjson_obj_get(data_root, "type")); // LCOV_EXCL_BR_LINE
+            yyjson_val *function_val = yyjson_obj_get(data_root, "function");
+
+            if (!call_id_src || !call_type_src || !function_val || !yyjson_is_obj(function_val)) { // LCOV_EXCL_BR_LINE
+                yyjson_doc_free(data_doc); // LCOV_EXCL_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Missing required fields in tool call data_json"); // LCOV_EXCL_LINE
+            }
+
+            const char *func_name_src = yyjson_get_str(yyjson_obj_get(function_val, "name")); // LCOV_EXCL_BR_LINE
+            const char *func_args_src = yyjson_get_str(yyjson_obj_get(function_val, "arguments")); // LCOV_EXCL_BR_LINE
+
+            if (!func_name_src || !func_args_src) { // LCOV_EXCL_BR_LINE
+                yyjson_doc_free(data_doc); // LCOV_EXCL_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Missing function fields in tool call data_json"); // LCOV_EXCL_LINE
+            }
+
+            /* Copy strings to tmp_ctx so they survive yyjson_doc_free */
+            char *call_id = talloc_strdup(tmp_ctx, call_id_src);
+            char *call_type = talloc_strdup(tmp_ctx, call_type_src);
+            char *func_name = talloc_strdup(tmp_ctx, func_name_src);
+            char *func_args = talloc_strdup(tmp_ctx, func_args_src);
+
+            /* Free data_doc now that we've copied the strings */
+            yyjson_doc_free(data_doc);
+
+            if (!call_id || !call_type || !func_name || !func_args) { // LCOV_EXCL_BR_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Out of memory copying tool call strings"); // LCOV_EXCL_LINE
+            }
+
+            /* Create tool_calls array */
+            yyjson_mut_val *tool_calls_arr = yyjson_mut_arr(doc);
+            if (tool_calls_arr == NULL) { // LCOV_EXCL_BR_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Out of memory"); // LCOV_EXCL_LINE
+            }
+
+            /* Create tool call object */
+            yyjson_mut_val *tool_call_obj = yyjson_mut_arr_add_obj(doc, tool_calls_arr);
+            if (tool_call_obj == NULL) { // LCOV_EXCL_BR_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Out of memory"); // LCOV_EXCL_LINE
+            }
+
+            /* Add tool call fields */
+            if (!yyjson_mut_obj_add_str(doc, tool_call_obj, "id", call_id)) { // LCOV_EXCL_BR_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Failed to add id to tool call"); // LCOV_EXCL_LINE
+            }
+            if (!yyjson_mut_obj_add_str(doc, tool_call_obj, "type", call_type)) { // LCOV_EXCL_BR_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Failed to add type to tool call"); // LCOV_EXCL_LINE
+            }
+
+            /* Create function object in tool call */
+            yyjson_mut_val *func_obj = yyjson_mut_obj(doc);
+            if (func_obj == NULL) { // LCOV_EXCL_BR_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Out of memory"); // LCOV_EXCL_LINE
+            }
+
+            if (!yyjson_mut_obj_add_str(doc, func_obj, "name", func_name)) { // LCOV_EXCL_BR_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Failed to add function name"); // LCOV_EXCL_LINE
+            }
+            if (!yyjson_mut_obj_add_str(doc, func_obj, "arguments", func_args)) { // LCOV_EXCL_BR_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Failed to add function arguments"); // LCOV_EXCL_LINE
+            }
+
+            if (!yyjson_mut_obj_add_val(doc, tool_call_obj, "function", func_obj)) { // LCOV_EXCL_BR_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Failed to add function to tool call"); // LCOV_EXCL_LINE
+            }
+
+            /* Add tool_calls array to message */
+            if (!yyjson_mut_obj_add_val(doc, msg_obj, "tool_calls", tool_calls_arr)) { // LCOV_EXCL_BR_LINE
+                talloc_free(tmp_ctx); // LCOV_EXCL_LINE
+                PANIC("Failed to add tool_calls array to message"); // LCOV_EXCL_LINE
+            }
+
+            /* Clean up tmp_ctx (strings are now copied into doc) */
+            talloc_free(tmp_ctx);
+        } else {
+            /* Regular text message */
+            if (!yyjson_mut_obj_add_str(doc, msg_obj, "role", msg->role)) { // LCOV_EXCL_BR_LINE
+                PANIC("Failed to add role field to message"); // LCOV_EXCL_LINE
+            }
+            if (!yyjson_mut_obj_add_str(doc, msg_obj, "content", msg->content)) { // LCOV_EXCL_BR_LINE
+                PANIC("Failed to add content field to message"); // LCOV_EXCL_LINE
+            }
         }
     }
 

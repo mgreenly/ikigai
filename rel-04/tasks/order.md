@@ -17,7 +17,7 @@
 - ~~glob-execute.md~~
 - ~~tool-dispatcher.md~~
 - ~~tool-result-msg.md~~
-- assistant-tool-calls-msg.md
+- ~~assistant-tool-calls-msg.md~~
 - tool-loop-finish-detection.md
 - tool-loop-state-mutation.md
 - tool-loop-continuation.md
