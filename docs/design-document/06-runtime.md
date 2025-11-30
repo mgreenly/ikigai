@@ -371,6 +371,69 @@ This unified observability means:
 - Track costs: "Which agent is using the most tokens?"
 - Audit: "What did any part of the system send to LLMs?"
 
+### Memory and Context
+
+Agents control their own context window, just as developers do in the Terminal. The daemon exposes both high-level conveniences (equivalent to Terminal commands like `/mark` and `/rewind`) and low-level APIs for direct control.
+
+**High-level API** (Terminal-equivalent operations):
+
+```typescript
+// Mark a restoration point
+const mark = await platform.context.mark("before-analysis");
+
+// Rewind to a previous mark
+await platform.context.rewind(mark);
+
+// Exclude an exchange from future context
+await platform.context.exclude(response.id);
+
+// Summarize older history to save context space
+await platform.context.summarize({ olderThan: "1h" });
+```
+
+**Low-level API** (direct control):
+
+```typescript
+// Memory blocks - named, persistent context sections
+await platform.memory.blocks.create({
+    label: "working_state",
+    value: "Currently processing batch #1234",
+    limit: 2000,
+});
+
+await platform.memory.blocks.update("working_state", {
+    value: "Batch #1234 complete, 47 items processed",
+});
+
+const block = await platform.memory.blocks.get("working_state");
+
+// Conversation history management
+const messages = await platform.conversation.list({ limit: 50 });
+await platform.conversation.delete(messageId);
+
+// Sliding window configuration
+await platform.context.window.resize(16000);  // tokens
+await platform.context.window.strategy("summarize");  // or "truncate"
+```
+
+**LLM-accessible tools** for self-managing context:
+
+```typescript
+await platform.prompt({
+    messages: [...],
+    tools: {
+        platform: [
+            "memory_read",      // Read a memory block
+            "memory_write",     // Update a memory block
+            "context_mark",     // Save a restoration point
+            "context_exclude",  // Remove an exchange from future context
+        ]
+    }
+});
+```
+
+This layered approach means agents can use simple operations for common cases, or drop to low-level APIs when they need precise control over their context and memory.
+
 ---
 
 **Next**: [Autonomous Agents](07-agents.md), the long-running processes that consume these services

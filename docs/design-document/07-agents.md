@@ -240,6 +240,43 @@ const response = await platform.prompt({
 });
 ```
 
+### Memory and Context Control
+
+Agents control their own context window using the same primitives available to developers in the Terminal. The API provides two layers: high-level operations for common tasks and low-level access for precise control.
+
+```typescript
+// High-level: mark and rewind (like Terminal's /mark and /rewind)
+const checkpoint = await platform.context.mark("before-experiment");
+
+// ... try something that might pollute context ...
+
+await platform.context.rewind(checkpoint);  // Roll back if needed
+
+// Exclude specific exchanges from future context
+await platform.context.exclude(response.id);
+
+// Low-level: direct memory block management
+await platform.memory.blocks.create({
+    label: "task_state",
+    value: JSON.stringify({ processed: 0, errors: [] }),
+});
+
+// Update as work progresses
+await platform.memory.blocks.update("task_state", {
+    value: JSON.stringify({ processed: 47, errors: ["item-23"] }),
+});
+
+// LLM can also manage its own memory via tools
+await platform.prompt({
+    messages: [{ role: "user", content: "Update your working memory with what you learned." }],
+    tools: {
+        platform: ["memory_read", "memory_write"],
+    },
+});
+```
+
+The full memory and context API is documented in the [Runtime System](06-runtime.md#memory-and-context).
+
 ### Why Platform-Mediated LLM Access?
 
 Agents could call LLM providers directly. Using the daemon instead provides:
