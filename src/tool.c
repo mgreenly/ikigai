@@ -4,6 +4,32 @@
 
 #include <assert.h>
 
+ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx,
+                                    const char *id,
+                                    const char *name,
+                                    const char *arguments)
+{
+    assert(id != NULL); // LCOV_EXCL_BR_LINE
+    assert(name != NULL); // LCOV_EXCL_BR_LINE
+    assert(arguments != NULL); // LCOV_EXCL_BR_LINE
+
+    // Allocate struct on provided context (or talloc root if ctx is NULL)
+    ik_tool_call_t *call = talloc(ctx, ik_tool_call_t);
+    if (call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Copy strings as children of the struct
+    call->id = talloc_strdup(call, id);
+    if (call->id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    call->name = talloc_strdup(call, name);
+    if (call->name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    call->arguments = talloc_strdup(call, arguments);
+    if (call->arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    return call;
+}
+
 void ik_tool_add_string_param(yyjson_mut_doc *doc,
                               yyjson_mut_val *properties,
                               const char *name,

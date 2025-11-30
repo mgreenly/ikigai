@@ -10,30 +10,38 @@ Tasks are the smallest independently testable units of work. Each task is handed
 
 ## Directory Structure
 
+Tasks live in a `tasks/` subdirectory relative to the working tree root:
+
 ```
-rel-04/
-  tasks/
-    order.md              # manifest - defines execution sequence
-    glob-struct.md        # semantic names, not numbered
-    glob-registry.md
-    glob-execute.md
-    ...
+tasks/
+  order.md              # manifest - defines execution sequence
+  glob-struct.md        # semantic names, not numbered
+  glob-registry.md
+  glob-execute.md
+  ...
 ```
 
 ## Manifest Format
 
-`order.md` is a simple list of filenames, one per line:
+`order.md` organizes tasks by user story, with completed tasks marked:
 
 ```markdown
 # Task Order
 
-glob-struct.md
-glob-registry.md
-glob-execute.md
-request-serialize.md
+## Story 01: Feature Name
+
+- ~~completed-task.md~~ ✅
+- ~~another-done.md~~ ✅
+- next-pending-task.md
+- future-task.md
+
+## Story 02: Another Feature
+
+- first-task.md
+- second-task.md
 ```
 
-Reordering = edit this file, not rename task files.
+Tasks execute strictly top-to-bottom. Reordering = edit this file, not rename task files.
 
 ## Task File Format
 
@@ -51,6 +59,29 @@ model: [sonnet|haiku|opus]
 
 Use `haiku` for straightforward tasks, `sonnet` for moderate complexity, `opus` for complex architectural work.
 
+### Pre-read Sections
+
+Sub-agents start with blank context. List everything they need:
+
+```markdown
+### Pre-read Skills
+- .agents/skills/tdd.md
+- .agents/skills/coverage.md
+
+### Pre-read Docs
+- docs/naming.md
+- docs/architecture.md
+
+### Pre-read Source (patterns)
+- src/openai/client.c (serialize_request implementation)
+- src/error.h (error handling patterns)
+
+### Pre-read Tests (patterns)
+- tests/unit/openai/client_structures_test.c (JSON test patterns)
+```
+
+Keep context minimal - only what's needed for this specific task.
+
 ### Pre-conditions
 
 What must be true before this task runs:
@@ -59,22 +90,8 @@ What must be true before this task runs:
 ## Pre-conditions
 - `make check` passes
 - `ik_tool_call_t` struct exists in `src/tools/tool.h`
-- No existing glob implementation
+- Task `previous-task.md` completed successfully
 ```
-
-### Context
-
-Explicit list of files to read. Sub-agents start with blank context:
-
-```markdown
-## Context
-Read before starting:
-- docs/memory.md (ownership patterns)
-- docs/return_values.md (Result types)
-- src/tools/tool.h (existing types)
-```
-
-Keep context minimal - only what's needed for this specific task.
 
 ### Task Description
 
@@ -119,6 +136,24 @@ What must be true after this task completes:
 - `ik_tool_registry_t` exists with create/add/lookup functions
 - 100% test coverage for new code
 ```
+
+## Supervisor Workflow
+
+A supervisor agent coordinates task execution:
+
+1. Read the next incomplete task from `order.md`
+2. Launch sub-agent with the model specified in the task file
+3. Wait for sub-agent to complete
+4. Launch verification sub-agent to confirm post-conditions
+5. If verification passes:
+   - Mark task done in order.md: `- ~~task-name.md~~ ✅`
+   - Commit changes
+   - Move to next task
+6. If verification fails:
+   - Re-run sub-agent if it made progress
+   - If stuck, report to user and wait
+
+The supervisor does NOT run code or tests directly - sub-agents do all implementation work.
 
 ## Rules
 

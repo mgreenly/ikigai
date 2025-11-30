@@ -5,11 +5,11 @@
 - ~~tool-glob-schema.md~~
 - ~~tool-all-schemas.md~~
 - ~~tool-build-array.md~~
-- ~~request-with-tools.md~~ ✅
+- ~~request-with-tools.md~~
 
 ## Story 02: Single Glob Call
 
-- tool-call-struct.md
+- ~~tool-call-struct.md~~
 - tool-config-fields.md
 - tool-output-limit.md
 - parse-tool-calls.md
