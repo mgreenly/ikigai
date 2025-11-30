@@ -57,7 +57,7 @@ Note: db-persist-failure-resilience.md verifies the independent event model - DB
 
 ## Story 09: Bash Command Fails
 
-- bash-command-error-e2e.md
+- ~~bash-command-error-e2e.md~~
 
 ## Story 10: Multi-Turn Tool Loop
 

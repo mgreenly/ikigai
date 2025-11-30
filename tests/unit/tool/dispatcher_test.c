@@ -253,10 +253,10 @@ END_TEST
 
 END_TEST
 
-START_TEST(test_dispatch_unimplemented_bash)
+START_TEST(test_dispatch_bash_success)
 {
-    // bash tool should return "not implemented" error
-    const char *arguments = "{\"command\": \"ls\"}";
+    // bash tool should execute successfully
+    const char *arguments = "{\"command\": \"echo test\"}";
     res_t res = ik_tool_dispatch(ctx, "bash", arguments);
 
     ck_assert(!res.is_err);
@@ -268,16 +268,55 @@ START_TEST(test_dispatch_unimplemented_bash)
     ck_assert_ptr_nonnull(doc);
 
     yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    ck_assert_ptr_nonnull(error);
 
-    const char *error_msg = yyjson_get_str(error);
-    ck_assert_str_eq(error_msg, "Tool not implemented: bash");
+    // Verify success: true
+    yyjson_val *success = yyjson_obj_get(root, "success");
+    ck_assert_ptr_nonnull(success);
+    ck_assert(yyjson_get_bool(success) == true);
+
+    // Verify data object exists
+    yyjson_val *data = yyjson_obj_get(root, "data");
+    ck_assert_ptr_nonnull(data);
+
+    // Verify output contains "test"
+    yyjson_val *output = yyjson_obj_get(data, "output");
+    ck_assert_ptr_nonnull(output);
+    const char *output_str = yyjson_get_str(output);
+    ck_assert(strstr(output_str, "test") != NULL);
+
+    // Verify exit_code is 0
+    yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
+    ck_assert_ptr_nonnull(exit_code);
+    ck_assert_int_eq(yyjson_get_int(exit_code), 0);
 
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_error_format_single_field)
+END_TEST
+
+START_TEST(test_dispatch_bash_missing_command)
+{
+    // bash tool with missing "command" parameter should return error
+    const char *arguments = "{}";
+    res_t res = ik_tool_dispatch(ctx, "bash", arguments);
+
+    ck_assert(!res.is_err);
+
+    char *json = res.ok;
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    yyjson_val *error = yyjson_obj_get(root, "error");
+    ck_assert_ptr_nonnull(error);
+    const char *error_msg = yyjson_get_str(error);
+    ck_assert_str_eq(error_msg, "Missing required parameter: command");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_dispatch_error_format_single_field)
 {
     // Verify error JSON has only "error" field (as per spec)
     const char *arguments = "{\"pattern\": \"*.c\"}";
@@ -432,8 +471,9 @@ static Suite *dispatcher_suite(void)
     tcase_add_test(tc_dispatch, test_dispatch_file_write_missing_path);
     tcase_add_test(tc_dispatch, test_dispatch_file_write_missing_content);
 
-    // Unimplemented tools tests
-    tcase_add_test(tc_dispatch, test_dispatch_unimplemented_bash);
+    // Bash tool tests
+    tcase_add_test(tc_dispatch, test_dispatch_bash_success);
+    tcase_add_test(tc_dispatch, test_dispatch_bash_missing_command);
 
     // Error format tests
     tcase_add_test(tc_dispatch, test_dispatch_error_format_single_field);

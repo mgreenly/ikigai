@@ -117,9 +117,17 @@ res_t ik_tool_dispatch(void *parent, const char *tool_name, const char *argument
         return ik_tool_exec_file_write(parent, path, content);
     }
 
+    // Handle bash tool
     if (strcmp(tool_name, "bash") == 0) {
-        char *error_json = ik_tool_dispatch_build_error(parent, "Tool not implemented: bash");
-        return OK(error_json);
+        // Extract required "command" parameter
+        char *command = ik_tool_arg_get_string(parent, arguments, "command");
+        if (command == NULL) {
+            char *error_json = ik_tool_dispatch_build_error(parent, "Missing required parameter: command");
+            return OK(error_json);
+        }
+
+        // Call ik_tool_exec_bash and return its result
+        return ik_tool_exec_bash(parent, command);
     }
 
     // Unknown tool name
