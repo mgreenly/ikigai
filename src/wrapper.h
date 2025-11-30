@@ -396,6 +396,16 @@ MOCKABLE int fclose_(FILE *stream)
     return fclose(stream);
 }
 
+MOCKABLE FILE *popen_(const char *command, const char *mode)
+{
+    return popen(command, mode);
+}
+
+MOCKABLE int pclose_(FILE *stream)
+{
+    return pclose(stream);
+}
+
 MOCKABLE DIR *opendir_(const char *name)
 {
     return opendir(name);
@@ -424,6 +434,8 @@ MOCKABLE FILE *fopen_(const char *pathname, const char *mode);
 MOCKABLE int fseek_(FILE *stream, long offset, int whence);
 MOCKABLE long ftell_(FILE *stream);
 MOCKABLE int fclose_(FILE *stream);
+MOCKABLE FILE *popen_(const char *command, const char *mode);
+MOCKABLE int pclose_(FILE *stream);
 MOCKABLE DIR *opendir_(const char *name);
 #endif
 

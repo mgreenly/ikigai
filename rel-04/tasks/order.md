@@ -49,7 +49,7 @@ Note: db-persist-failure-resilience.md verifies the independent event model - DB
 
 ## Story 07: Bash Command
 
-- bash-execute.md
+- ~~bash-execute.md~~
 
 ## Story 08: File Not Found Error
 

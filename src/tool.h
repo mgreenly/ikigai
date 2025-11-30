@@ -191,6 +191,22 @@ res_t ik_tool_exec_grep(void *parent, const char *pattern, const char *glob, con
 // @return res_t containing JSON string (owned by parent) or error
 res_t ik_tool_exec_file_write(void *parent, const char *path, const char *content);
 
+// Execute bash tool to run a shell command.
+//
+// Executes the given command via shell and captures stdout and exit code.
+// Returns a JSON string in envelope format:
+// - Success: {"success": true, "data": {"output": "command output", "exit_code": 0}}
+// - Error: {"success": false, "error": "Failed to execute command"} (when popen fails)
+//
+// Note: A non-zero exit code from the command is NOT an error - it's a successful
+// tool execution with the exit code in the data field. Only popen failures result
+// in the error envelope.
+//
+// @param parent Parent talloc context for result allocation
+// @param command Shell command to execute (required)
+// @return res_t containing JSON string (owned by parent)
+res_t ik_tool_exec_bash(void *parent, const char *command);
+
 // Dispatch tool calls by name to appropriate execution function.
 //
 // Parses the JSON arguments string, extracts tool-specific parameters,
