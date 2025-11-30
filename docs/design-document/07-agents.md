@@ -8,6 +8,8 @@
 
 Autonomous agents are the core of what you build with Ikigai. They are long-running TypeScript processes that watch for what matters, synthesize information, and act when conditions are right, operating continuously without human intervention except when encountering genuine uncertainty.
 
+Agents consume runtime services for coordination (queues, mailboxes) and for intelligence (LLM access via the [Ikigai Daemon](06-runtime.md#ikigai-daemon)). They're platform-native citizens with access to the same capabilities developers use through the Terminal.
+
 ---
 
 ## Runtime Environment
@@ -71,13 +73,21 @@ monitoring-agent/
         "mailboxes": ["ops-alerts"]
     },
 
+    "llm": {
+        "models": ["haiku", "sonnet"],
+        "max_tokens_per_request": 4096,
+        "max_tokens_per_hour": 100000,
+        "platform_tools": ["query_telemetry", "send_message"],
+        "allow_custom_tools": true
+    },
+
     "lifecycle": {
         "shutdown_timeout_seconds": 30
     }
 }
 ```
 
-The manifest declares everything the platform needs to run the agent correctly: permissions, queue subscriptions, and mailbox access.
+The manifest declares everything the platform needs to run the agent correctly: Deno permissions, queue subscriptions, mailbox access, and LLM capabilities.
 
 ### Health Checking
 
@@ -158,6 +168,90 @@ while (running) {
 ```
 
 This architecture enables true autonomy: agents respond to multiple signal types, work continuously, and only involve humans when necessary.
+
+---
+
+## LLM Access
+
+Agents access LLM capabilities through the [Ikigai Daemon](06-runtime.md#ikigai-daemon), using the same `@ikigai/platform` package they use for queues and mailboxes.
+
+### Basic Usage
+
+```typescript
+import { Platform } from "@ikigai/platform";
+
+const platform = await Platform.connect();
+
+// Simple prompt
+const response = await platform.prompt({
+    model: "sonnet-4.5",
+    messages: [
+        { role: "user", content: "Summarize this error log..." }
+    ],
+});
+
+console.log(response.message.content);
+```
+
+### Using Platform Tools
+
+Agents can give the LLM access to platform operations:
+
+```typescript
+const response = await platform.prompt({
+    model: "sonnet-4.5",
+    messages: [{
+        role: "user",
+        content: `I found these anomalies: ${anomalies}.
+                  Check recent telemetry and decide if we should alert.`
+    }],
+    tools: {
+        platform: ["query_telemetry", "send_message"],
+    },
+});
+
+// The LLM might:
+// 1. Call query_telemetry to check error rates
+// 2. Decide based on the data
+// 3. Call send_message to alert if needed
+```
+
+The daemon executes tool calls with proper permissions and transactions. Agents express intent; the platform handles execution.
+
+### Conversation Threading
+
+For multi-turn reasoning:
+
+```typescript
+const thread = await platform.threads.create({
+    context: "Analyzing support ticket batch"
+});
+
+// First pass: categorize
+await platform.prompt({
+    thread: thread.id,
+    messages: [{ role: "user", content: "Categorize these tickets..." }],
+});
+
+// Second pass: prioritize (has context from first pass)
+const response = await platform.prompt({
+    thread: thread.id,
+    messages: [{ role: "user", content: "Now prioritize by urgency." }],
+});
+```
+
+### Why Platform-Mediated LLM Access?
+
+Agents could call LLM providers directly. Using the daemon instead provides:
+
+1. **Unified observability**: All LLM calls (developer + agent) in one place
+2. **Centralized keys**: API keys stored once, not per-agent
+3. **Platform tools**: LLMs can operate the platform (create tasks, send messages)
+4. **Permission enforcement**: Limits on models, tokens, tools per agent
+5. **Cost tracking**: Attribute usage to specific agents and tasks
+6. **Conversation management**: Threading, history, context optimization handled centrally
+
+The same `libikigai` that powers the Terminal powers agent LLM access. Improvements benefit both.
 
 ---
 
