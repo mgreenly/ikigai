@@ -3,6 +3,7 @@
 #include "error.h"
 #include "json_allocator.h"
 #include "openai/http_handler.h"
+#include "tool.h"
 #include "wrapper.h"
 
 #include <assert.h>
@@ -198,6 +199,23 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
         PANIC("Failed to add messages array to JSON"); // LCOV_EXCL_LINE
     }
 
+    /* Build and add tools array */
+    yyjson_mut_val *tools_arr = ik_tool_build_all(doc);
+    if (tools_arr == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_val(doc, root, "tools", tools_arr)) { // LCOV_EXCL_BR_LINE
+        PANIC("Failed to add tools array to JSON"); // LCOV_EXCL_LINE
+    }
+
+    /* Add tool_choice field */
+    if (!yyjson_mut_obj_add_str(doc, root, "tool_choice", "auto")) { // LCOV_EXCL_BR_LINE
+        PANIC("Failed to add tool_choice field to JSON"); // LCOV_EXCL_LINE
+    }
+
+    /* Add stream field */
+    if (!yyjson_mut_obj_add_bool(doc, root, "stream", request->stream)) { // LCOV_EXCL_BR_LINE
+        PANIC("Failed to add stream field to JSON"); // LCOV_EXCL_LINE
+    }
+
     /* Add temperature field */
     if (!yyjson_mut_obj_add_real(doc, root, "temperature", request->temperature)) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to add temperature field to JSON"); // LCOV_EXCL_LINE
@@ -206,11 +224,6 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
     /* Add max_completion_tokens field */
     if (!yyjson_mut_obj_add_int(doc, root, "max_completion_tokens", (int64_t)request->max_completion_tokens)) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to add max_completion_tokens field to JSON"); // LCOV_EXCL_LINE
-    }
-
-    /* Add stream field */
-    if (!yyjson_mut_obj_add_bool(doc, root, "stream", request->stream)) { // LCOV_EXCL_BR_LINE
-        PANIC("Failed to add stream field to JSON"); // LCOV_EXCL_LINE
     }
 
     /* Serialize to JSON string */

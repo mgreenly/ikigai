@@ -365,6 +365,56 @@ END_TEST START_TEST(test_get_message_at_index_valid)
 
 END_TEST
 
+START_TEST(test_serialize_with_tools_and_tool_choice)
+{
+    /* Create test config */
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
+    cfg->openai_temperature = 1.0;
+    cfg->openai_max_completion_tokens = 4096;
+
+    /* Create conversation with one message */
+    res_t conv_res = ik_openai_conversation_create(ctx);
+    ck_assert(!conv_res.is_err);
+    ik_openai_conversation_t *conv = conv_res.ok;
+
+    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
+    ck_assert(!msg_res.is_err);
+    ik_openai_conversation_add_msg(conv, msg_res.ok);
+
+    /* Create request */
+    ik_openai_request_t *req = ik_openai_request_create(ctx, cfg, conv);
+    ck_assert_ptr_nonnull(req);
+
+    /* Serialize */
+    char *json = ik_openai_serialize_request(ctx, req);
+    ck_assert_ptr_nonnull(json);
+
+    /* Parse JSON to verify structure */
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert(yyjson_is_obj(root));
+
+    /* Verify tools array exists and is an array */
+    yyjson_val *tools = yyjson_obj_get(root, "tools");
+    ck_assert_ptr_nonnull(tools);
+    ck_assert(yyjson_is_arr(tools));
+
+    /* Verify tools array has 5 elements */
+    ck_assert_uint_eq(yyjson_arr_size(tools), 5);
+
+    /* Verify tool_choice field exists with value "auto" */
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "auto");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
 /*
  * Test suite
  */
@@ -400,6 +450,7 @@ static Suite *openai_structures_suite(void)
     tcase_add_checked_fixture(tc_json, setup, teardown);
     tcase_add_test(tc_json, test_serialize_empty_conversation);
     tcase_add_test(tc_json, test_serialize_with_messages);
+    tcase_add_test(tc_json, test_serialize_with_tools_and_tool_choice);
     suite_add_tcase(s, tc_json);
 
     TCase *tc_wrappers = tcase_create("Wrapper Functions");
