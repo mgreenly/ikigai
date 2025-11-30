@@ -2,6 +2,7 @@
 #define IK_TOOL_H
 
 #include <talloc.h>
+#include "error.h"
 #include "vendor/yyjson/yyjson.h"
 
 // Represents a parsed tool call from the API response
@@ -139,5 +140,18 @@ char *ik_tool_arg_get_string(void *parent, const char *arguments_json, const cha
 //         false if key not found, arguments_json is NULL, out_value is NULL,
 //         JSON is malformed, or value is wrong type
 bool ik_tool_arg_get_int(const char *arguments_json, const char *key, int *out_value);
+
+// Execute glob tool to find files matching a pattern.
+//
+// Uses POSIX glob() to find files matching the given pattern in the specified path.
+// Returns a JSON string in envelope format:
+// - Success: {"success": true, "data": {"output": "file1\nfile2", "count": 2}}
+// - Error: {"success": false, "error": "error message"}
+//
+// @param parent Parent talloc context for result allocation
+// @param pattern Glob pattern (e.g., "*.c", "src/**/*.h")
+// @param path Base directory to search in (can be NULL for current directory)
+// @return res_t containing JSON string (owned by parent) or error
+res_t ik_tool_exec_glob(void *parent, const char *pattern, const char *path);
 
 #endif // IK_TOOL_H
