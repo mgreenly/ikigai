@@ -82,6 +82,7 @@ res_t ik_openai_multi_create(void *parent);
  * @param completion_cb  Callback for request completion (or NULL)
  * @param completion_ctx Context pointer passed to completion callback
  * @param debug_output   FILE* for debug output (request/response details), or NULL
+ * @param limit_reached  If true, set tool_choice to "none"; otherwise "auto"
  * @return               OK(NULL) or ERR(...)
  */
 res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
@@ -91,7 +92,8 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
                                    void *stream_ctx,
                                    ik_http_completion_cb_t completion_cb,
                                    void *completion_ctx,
-                                   FILE *debug_output);
+                                   FILE *debug_output,
+                                   bool limit_reached);
 
 /**
  * Perform non-blocking I/O operations

@@ -188,12 +188,12 @@ static res_t handle_newline_action_(ik_repl_ctx_t *repl)
         // Transition to WAITING_FOR_LLM state (shows spinner, hides input)
         ik_repl_transition_to_waiting_for_llm(repl);
 
-        // Initiate non-blocking API request
+        // Initiate non-blocking API request (first request, so limit_reached=false)
         FILE *debug_out = repl->debug_enabled ? repl->openai_debug_pipe->write_end : NULL;
         result = ik_openai_multi_add_request(repl->multi, repl->cfg, repl->conversation,
                                              ik_repl_streaming_callback, repl,
                                              ik_repl_http_completion_callback, repl,
-                                             debug_out);
+                                             debug_out, false);
         if (is_err(&result)) {
             // If request fails, display error and transition back to IDLE
             const char *err_msg = error_message(result.err);

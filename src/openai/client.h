@@ -181,11 +181,12 @@ ik_openai_response_t *ik_openai_response_create(void *parent);
  *
  * Panics on out-of-memory.
  *
- * @param parent   Talloc context parent (or NULL)
- * @param request  Request to serialize
- * @return         JSON string
+ * @param parent         Talloc context parent (or NULL)
+ * @param request        Request to serialize
+ * @param limit_reached  If true, set tool_choice to "none"; otherwise "auto"
+ * @return               JSON string
  */
-char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *request);
+char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *request, bool limit_reached);
 
 /*
  * HTTP client

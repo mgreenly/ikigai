@@ -23,7 +23,8 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
                                    void *stream_ctx,
                                    ik_http_completion_cb_t completion_cb,
                                    void *completion_ctx,
-                                   FILE *debug_output) {
+                                   FILE *debug_output,
+                                   bool limit_reached) {
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);  // LCOV_EXCL_BR_LINE
     assert(conv != NULL);  // LCOV_EXCL_BR_LINE
@@ -40,8 +41,8 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
     // Create request
     ik_openai_request_t *request = ik_openai_request_create(multi, cfg, conv);
 
-    // Serialize request to JSON
-    char *json_body = ik_openai_serialize_request(multi, request);
+    // Serialize request to JSON with tool_choice based on limit_reached
+    char *json_body = ik_openai_serialize_request(multi, request, limit_reached);
 
     // Create active request context
     active_request_t *active_req = talloc_zero(multi, active_request_t);

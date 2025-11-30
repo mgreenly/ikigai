@@ -210,11 +210,14 @@ void handle_request_success(ik_repl_ctx_t *repl)
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
 {
     // finish_reason is "tool_calls" - submit follow-up request
+    // Check if we've reached the limit (iteration count is incremented BEFORE this call)
+    bool limit_reached = (repl->cfg != NULL && repl->tool_iteration_count >= repl->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
+
     FILE *debug_out = repl->debug_enabled ? repl->openai_debug_pipe->write_end : NULL;  // LCOV_EXCL_BR_LINE
     res_t result = ik_openai_multi_add_request(repl->multi, repl->cfg, repl->conversation,
                                                ik_repl_streaming_callback, repl,
                                                ik_repl_http_completion_callback, repl,
-                                               debug_out);
+                                               debug_out, limit_reached);
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
         // If request fails, display error and transition to IDLE
         const char *err_msg = error_message(result.err);  // LCOV_EXCL_LINE

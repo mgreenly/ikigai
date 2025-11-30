@@ -181,8 +181,8 @@ START_TEST(test_serialize_tool_call_message) {
     req->max_completion_tokens = 100;
     req->stream = false;
 
-    /* Serialize request */
-    char *json = ik_openai_serialize_request(ctx, req);
+    /* Serialize request with limit_reached=false (normal request) */
+    char *json = ik_openai_serialize_request(ctx, req, false);
     ck_assert_ptr_nonnull(json);
 
     /* Parse serialized JSON */
@@ -270,7 +270,7 @@ START_TEST(test_serialize_mixed_messages) {
     req->max_completion_tokens = 100;
     req->stream = false;
 
-    char *json = ik_openai_serialize_request(ctx, req);
+    char *json = ik_openai_serialize_request(ctx, req, false);
     ck_assert_ptr_nonnull(json);
 
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);

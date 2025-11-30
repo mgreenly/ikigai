@@ -128,7 +128,7 @@ ik_openai_response_t *ik_openai_response_create(void *parent) {
  * JSON serialization
  */
 
-char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *request) {
+char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *request, bool limit_reached) {
     assert(request != NULL); // LCOV_EXCL_BR_LINE
     assert(request->conv != NULL); // LCOV_EXCL_BR_LINE
 
@@ -298,8 +298,9 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
         PANIC("Failed to add tools array to JSON"); // LCOV_EXCL_LINE
     }
 
-    /* Add tool_choice field */
-    if (!yyjson_mut_obj_add_str(doc, root, "tool_choice", "auto")) { // LCOV_EXCL_BR_LINE
+    /* Add tool_choice field - "none" when limit reached, "auto" otherwise */
+    const char *tool_choice_value = limit_reached ? "none" : "auto";
+    if (!yyjson_mut_obj_add_str(doc, root, "tool_choice", tool_choice_value)) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to add tool_choice field to JSON"); // LCOV_EXCL_LINE
     }
 
@@ -352,8 +353,8 @@ res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
     /* Create request */
     ik_openai_request_t *request = ik_openai_request_create(parent, cfg, conv);
 
-    /* Serialize request to JSON */
-    char *json_body = ik_openai_serialize_request(parent, request);
+    /* Serialize request to JSON (limit_reached=false for synchronous chat) */
+    char *json_body = ik_openai_serialize_request(parent, request, false);
 
     /* Perform HTTP POST */
     const char *url = "https://api.openai.com/v1/chat/completions";
