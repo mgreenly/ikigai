@@ -8,6 +8,7 @@
 #include "panic.h"
 #include "render_cursor.h"
 #include "repl_actions.h"
+#include "repl_callbacks.h"
 #include "signal_handler.h"
 #include "wrapper.h"
 
@@ -20,6 +21,9 @@
 #include <sys/time.h>
 #include <talloc.h>
 #include <time.h>
+
+// Forward declarations
+static void submit_tool_loop_continuation(ik_repl_ctx_t *repl);
 
 // Helper: Calculate effective select() timeout
 static inline long calculate_select_timeout_ms(const ik_repl_ctx_t *repl, long curl_timeout_ms)
@@ -140,7 +144,7 @@ static void handle_request_error(ik_repl_ctx_t *repl)
 // Exposed for testing
 void handle_request_success(ik_repl_ctx_t *repl)
 {
-    // Add assistant response to conversation
+    // Add assistant response to conversation (only if non-empty)
     if (repl->assistant_response != NULL && strlen(repl->assistant_response) > 0) {
         ik_openai_msg_t *assistant_msg = ik_openai_msg_create(repl->conversation,
                                                               "assistant",
@@ -186,10 +190,39 @@ void handle_request_success(ik_repl_ctx_t *repl)
             }
             talloc_free(data_json);
         }
+    }
 
-        // Clear the assistant response
+    // Clear the assistant response (whether empty or not)
+    if (repl->assistant_response != NULL) {
         talloc_free(repl->assistant_response);
         repl->assistant_response = NULL;
+    }
+
+    // Check if we should continue the tool loop
+    if (ik_repl_should_continue_tool_loop(repl)) {
+        submit_tool_loop_continuation(repl);
+    }
+}
+
+// Helper: Submit follow-up request for tool loop continuation
+static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
+{
+    // finish_reason is "tool_calls" - submit follow-up request
+    FILE *debug_out = repl->debug_enabled ? repl->openai_debug_pipe->write_end : NULL;  // LCOV_EXCL_BR_LINE
+    res_t result = ik_openai_multi_add_request(repl->multi, repl->cfg, repl->conversation,
+                                               ik_repl_streaming_callback, repl,
+                                               ik_repl_http_completion_callback, repl,
+                                               debug_out);
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
+        // If request fails, display error and transition to IDLE
+        const char *err_msg = error_message(result.err);  // LCOV_EXCL_LINE
+        ik_scrollback_append_line(repl->scrollback, err_msg, strlen(err_msg));  // LCOV_EXCL_LINE
+        ik_repl_transition_to_idle(repl);  // LCOV_EXCL_LINE
+        talloc_free(result.err);  // LCOV_EXCL_LINE
+    } else {
+        // Set curl_still_running to 1 so the event loop will call curl_multi_perform
+        repl->curl_still_running = 1;
+        // Keep state as WAITING_FOR_LLM (don't transition to IDLE)
     }
 }
 

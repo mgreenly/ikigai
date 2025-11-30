@@ -20,7 +20,7 @@
 - ~~assistant-tool-calls-msg.md~~
 - ~~tool-loop-finish-detection.md~~
 - ~~tool-loop-state-mutation.md~~
-- tool-loop-continuation.md
+- ~~tool-loop-continuation.md~~
 - scrollback-tool-display.md
 - db-tool-persist.md
 - db-persist-failure-resilience.md
