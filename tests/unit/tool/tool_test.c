@@ -232,6 +232,72 @@ START_TEST(test_tool_build_bash_schema_structure)
 }
 
 END_TEST
+// Test: ik_tool_build_all returns array with all 5 tools
+START_TEST(test_tool_build_all)
+{
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_mut_val *arr = ik_tool_build_all(doc);
+
+    // Verify returns non-NULL
+    ck_assert_ptr_nonnull(arr);
+
+    // Verify is array
+    ck_assert(yyjson_mut_is_arr(arr));
+
+    // Verify has exactly 5 elements
+    ck_assert_uint_eq(yyjson_mut_arr_size(arr), 5);
+
+    // Verify first element has "function.name": "glob"
+    yyjson_mut_val *first = yyjson_mut_arr_get(arr, 0);
+    ck_assert_ptr_nonnull(first);
+    yyjson_mut_val *function = yyjson_mut_obj_get(first, "function");
+    ck_assert_ptr_nonnull(function);
+    yyjson_mut_val *name = yyjson_mut_obj_get(function, "name");
+    ck_assert_ptr_nonnull(name);
+    ck_assert_str_eq(yyjson_mut_get_str(name), "glob");
+
+    // Verify second element has "function.name": "file_read"
+    yyjson_mut_val *second = yyjson_mut_arr_get(arr, 1);
+    ck_assert_ptr_nonnull(second);
+    function = yyjson_mut_obj_get(second, "function");
+    ck_assert_ptr_nonnull(function);
+    name = yyjson_mut_obj_get(function, "name");
+    ck_assert_ptr_nonnull(name);
+    ck_assert_str_eq(yyjson_mut_get_str(name), "file_read");
+
+    // Verify third element has "function.name": "grep"
+    yyjson_mut_val *third = yyjson_mut_arr_get(arr, 2);
+    ck_assert_ptr_nonnull(third);
+    function = yyjson_mut_obj_get(third, "function");
+    ck_assert_ptr_nonnull(function);
+    name = yyjson_mut_obj_get(function, "name");
+    ck_assert_ptr_nonnull(name);
+    ck_assert_str_eq(yyjson_mut_get_str(name), "grep");
+
+    // Verify fourth element has "function.name": "file_write"
+    yyjson_mut_val *fourth = yyjson_mut_arr_get(arr, 3);
+    ck_assert_ptr_nonnull(fourth);
+    function = yyjson_mut_obj_get(fourth, "function");
+    ck_assert_ptr_nonnull(function);
+    name = yyjson_mut_obj_get(function, "name");
+    ck_assert_ptr_nonnull(name);
+    ck_assert_str_eq(yyjson_mut_get_str(name), "file_write");
+
+    // Verify fifth element has "function.name": "bash"
+    yyjson_mut_val *fifth = yyjson_mut_arr_get(arr, 4);
+    ck_assert_ptr_nonnull(fifth);
+    function = yyjson_mut_obj_get(fifth, "function");
+    ck_assert_ptr_nonnull(function);
+    name = yyjson_mut_obj_get(function, "name");
+    ck_assert_ptr_nonnull(name);
+    ck_assert_str_eq(yyjson_mut_get_str(name), "bash");
+
+    yyjson_mut_doc_free(doc);
+}
+
+END_TEST
 
 // Test suite
 static Suite *tool_suite(void)
@@ -267,6 +333,11 @@ static Suite *tool_suite(void)
     tcase_add_checked_fixture(tc_bash, setup, teardown);
     tcase_add_test(tc_bash, test_tool_build_bash_schema_structure);
     suite_add_tcase(s, tc_bash);
+
+    TCase *tc_all = tcase_create("Build All");
+    tcase_add_checked_fixture(tc_all, setup, teardown);
+    tcase_add_test(tc_all, test_tool_build_all);
+    suite_add_tcase(s, tc_all);
 
     return s;
 }

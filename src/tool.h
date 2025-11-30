@@ -62,4 +62,17 @@ yyjson_mut_val *ik_tool_build_file_write_schema(yyjson_mut_doc *doc);
 // @return Pointer to the schema object (owned by doc), or NULL on error
 yyjson_mut_val *ik_tool_build_bash_schema(yyjson_mut_doc *doc);
 
+// Build array containing all 5 tool schemas.
+//
+// Creates a JSON array containing all tool schemas in order:
+// 1. glob
+// 2. file_read
+// 3. grep
+// 4. file_write
+// 5. bash
+//
+// @param doc The yyjson mutable document to build the array in
+// @return Pointer to the array object (owned by doc), or NULL on error
+yyjson_mut_val *ik_tool_build_all(yyjson_mut_doc *doc);
+
 #endif // IK_TOOL_H

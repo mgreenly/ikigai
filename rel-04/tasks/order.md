@@ -4,7 +4,7 @@
 
 - ~~tool-glob-schema.md~~ ✅
 - ~~tool-all-schemas.md~~ ✅
-- tool-build-array.md
+- ~~tool-build-array.md~~ ✅
 - request-with-tools.md
 
 ## Story 02: Single Glob Call
