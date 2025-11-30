@@ -216,6 +216,116 @@ START_TEST(test_tool_loop_with_empty_content)
 END_TEST
 
 /*
+ * Test: Multi-tool scenario (glob → file_read → response)
+ *
+ * This test simulates the complete Story 04 flow:
+ * 1. User message: "Find config file and show contents"
+ * 2. Response A: assistant calls glob tool (finish_reason: "tool_calls")
+ * 3. Tool result added to conversation
+ * 4. Response B: assistant calls file_read tool (finish_reason: "tool_calls")
+ * 5. Tool result added to conversation
+ * 6. Response C: assistant provides final text (finish_reason: "stop")
+ *
+ * Expected conversation after all iterations:
+ * - user: "Find config file and show contents"
+ * - assistant: "" (tool call content, may be empty)
+ * - tool: glob result
+ * - assistant: "" (tool call content, may be empty)
+ * - tool: file_read result
+ * - assistant: "I found config.json..."
+ *
+ * Total: 6 messages (1 user + 5 assistant/tool messages)
+ */
+START_TEST(test_multi_tool_scenario_glob_then_file_read)
+{
+    /* Initial state: User asks to find and read config file */
+    ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user",
+                                                      "Find config file and show contents").ok;
+    ik_openai_conversation_add_msg(repl->conversation, user_msg);
+
+    /* Verify initial state: 1 message (user) */
+    ck_assert_uint_eq(repl->conversation->message_count, 1);
+
+    /* ===== First iteration: glob tool call ===== */
+    /* Response A: finish_reason = "tool_calls", empty content (tool call only) */
+    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->assistant_response = talloc_strdup(repl, "");
+    repl->response_model = talloc_strdup(repl, "gpt-4");
+    repl->response_completion_tokens = 10;
+
+    handle_request_success(repl);
+
+    /* Verify: Still in WAITING_FOR_LLM state (loop continues) */
+    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->curl_still_running, 1);
+
+    /* Simulate tool execution: Add tool result to conversation */
+    /* In real scenario, tool dispatcher would add this */
+    ik_openai_msg_t *tool_result_1 = ik_openai_msg_create(repl->conversation, "tool",
+                                                           "{\"output\":\"config.json\"}").ok;
+    ik_openai_conversation_add_msg(repl->conversation, tool_result_1);
+
+    /* Verify: 2 messages now (user + tool result) */
+    /* Note: Empty assistant response was not added (strlen == 0) */
+    ck_assert_uint_eq(repl->conversation->message_count, 2);
+
+    /* Reset for next iteration */
+    talloc_free(repl->response_finish_reason);
+    repl->curl_still_running = 0;
+
+    /* ===== Second iteration: file_read tool call ===== */
+    /* Response B: finish_reason = "tool_calls", empty content (tool call only) */
+    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->assistant_response = talloc_strdup(repl, "");
+    repl->response_model = talloc_strdup(repl, "gpt-4");
+    repl->response_completion_tokens = 15;
+
+    handle_request_success(repl);
+
+    /* Verify: Still in WAITING_FOR_LLM state (loop continues) */
+    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->curl_still_running, 1);
+
+    /* Simulate tool execution: Add second tool result to conversation */
+    ik_openai_msg_t *tool_result_2 = ik_openai_msg_create(repl->conversation, "tool",
+                                                           "{\"output\":\"{\\\"debug\\\":true}\"}").ok;
+    ik_openai_conversation_add_msg(repl->conversation, tool_result_2);
+
+    /* Verify: 3 messages now (user + 2 tool results) */
+    ck_assert_uint_eq(repl->conversation->message_count, 3);
+
+    /* Reset for final iteration */
+    talloc_free(repl->response_finish_reason);
+    repl->curl_still_running = 0;
+
+    /* ===== Final iteration: text response ===== */
+    /* Response C: finish_reason = "stop", final text content */
+    repl->response_finish_reason = talloc_strdup(repl, "stop");
+    repl->assistant_response = talloc_strdup(repl, "I found config.json with debug:true");
+    repl->response_model = talloc_strdup(repl, "gpt-4");
+    repl->response_completion_tokens = 20;
+
+    handle_request_success(repl);
+
+    /* Verify: Loop stops (no new request initiated) */
+    ck_assert_int_eq(repl->curl_still_running, 0);
+
+    /* Verify final conversation state: 4 messages total */
+    /* - user: "Find config file and show contents"
+     * - tool: glob result
+     * - tool: file_read result
+     * - assistant: "I found config.json with debug:true"
+     */
+    ck_assert_uint_eq(repl->conversation->message_count, 4);
+
+    /* Verify last message is assistant with final content */
+    ck_assert_str_eq(repl->conversation->messages[3]->role, "assistant");
+    ck_assert_str_eq(repl->conversation->messages[3]->content,
+                     "I found config.json with debug:true");
+}
+END_TEST
+
+/*
  * Test suite
  */
 static Suite *repl_tool_loop_integration_suite(void)
@@ -229,6 +339,7 @@ static Suite *repl_tool_loop_integration_suite(void)
     tcase_add_test(tc_core, test_handle_request_success_with_null_finish_reason);
     tcase_add_test(tc_core, test_multiple_tool_loop_iterations);
     tcase_add_test(tc_core, test_tool_loop_with_empty_content);
+    tcase_add_test(tc_core, test_multi_tool_scenario_glob_then_file_read);
     suite_add_tcase(s, tc_core);
 
     return s;

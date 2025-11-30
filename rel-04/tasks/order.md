@@ -37,7 +37,7 @@ Note: db-persist-failure-resilience.md verifies the independent event model - DB
 
 ## Story 04: Glob Then Read File
 
-- multi-tool-loop.md
+- ~~multi-tool-loop.md~~
 
 ## Story 05: Grep Search
 
