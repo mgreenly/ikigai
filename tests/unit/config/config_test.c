@@ -46,6 +46,8 @@ START_TEST(test_config_with_db_connection_string) {
             "  \"openai_system_message\": null,\n"
             "  \"listen_address\": \"127.0.0.1\",\n"
             "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
             "  \"db_connection_string\": \"postgresql://localhost/ikigai\"\n"
             "}\n");
     fclose(f);
@@ -82,7 +84,9 @@ END_TEST START_TEST(test_config_without_db_connection_string)
             "  \"openai_max_completion_tokens\": 4096,\n"
             "  \"openai_system_message\": null,\n"
             "  \"listen_address\": \"127.0.0.1\",\n"
-            "  \"listen_port\": 1984\n"
+            "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576\n"
             "}\n");
     fclose(f);
 
@@ -119,6 +123,8 @@ END_TEST START_TEST(test_config_with_full_connection_string)
             "  \"openai_system_message\": null,\n"
             "  \"listen_address\": \"127.0.0.1\",\n"
             "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
             "  \"db_connection_string\": \"postgresql://user:pass@localhost:5432/ikigai\"\n"
             "}\n");
     fclose(f);
@@ -157,6 +163,8 @@ END_TEST START_TEST(test_config_with_unix_socket_connection_string)
             "  \"openai_system_message\": null,\n"
             "  \"listen_address\": \"127.0.0.1\",\n"
             "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
             "  \"db_connection_string\": \"postgresql:///ikigai?host=/var/run/postgresql\"\n"
             "}\n");
     fclose(f);
@@ -195,6 +203,8 @@ END_TEST START_TEST(test_config_with_empty_db_connection_string)
             "  \"openai_system_message\": null,\n"
             "  \"listen_address\": \"127.0.0.1\",\n"
             "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
             "  \"db_connection_string\": \"\"\n"
             "}\n");
     fclose(f);
@@ -232,6 +242,8 @@ END_TEST START_TEST(test_config_with_invalid_db_connection_string_type)
             "  \"openai_system_message\": null,\n"
             "  \"listen_address\": \"127.0.0.1\",\n"
             "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
             "  \"db_connection_string\": 12345\n"
             "}\n");
     fclose(f);
@@ -286,6 +298,8 @@ END_TEST START_TEST(test_config_with_db_connection_string_null_value)
             "  \"openai_system_message\": null,\n"
             "  \"listen_address\": \"127.0.0.1\",\n"
             "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
             "  \"db_connection_string\": \"postgresql://localhost/ikigai\"\n"
             "}\n");
     fclose(f);

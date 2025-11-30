@@ -10,7 +10,7 @@
 ## Story 02: Single Glob Call
 
 - ~~tool-call-struct.md~~
-- tool-config-fields.md
+- ~~tool-config-fields.md~~
 - tool-output-limit.md
 - parse-tool-calls.md
 - tool-argument-parser.md

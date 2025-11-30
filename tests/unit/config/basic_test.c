@@ -194,7 +194,7 @@ END_TEST START_TEST(test_config_memory_cleanup)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test_key\", \"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 8080}");
+            "{\"openai_api_key\": \"test_key\", \"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 8080, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f);
 
     // Load config
