@@ -74,7 +74,7 @@ Note: The `max_tool_turns` config field was added in Story 02 (tool-config-field
 
 ## Story 12: Session Replay E2E Verification
 
-- replay-tool-e2e.md
+- ~~replay-tool-e2e.md~~
 
 Note: The core replay functionality for tool messages is implemented in Story 02 (db-tool-replay.md and conversation-rebuild.md). Story 12 provides end-to-end verification that a full tool conversation can be persisted, the application restarted, and the session correctly restored with the model maintaining context.
 
