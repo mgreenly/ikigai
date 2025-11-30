@@ -182,6 +182,9 @@ static res_t handle_newline_action_(ik_repl_ctx_t *repl)
             repl->streaming_line_buffer = NULL;
         }
 
+        // Reset tool iteration counter (start of new user request)
+        repl->tool_iteration_count = 0;
+
         // Transition to WAITING_FOR_LLM state (shows spinner, hides input)
         ik_repl_transition_to_waiting_for_llm(repl);
 

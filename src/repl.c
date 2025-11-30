@@ -200,6 +200,8 @@ void handle_request_success(ik_repl_ctx_t *repl)
 
     // Check if we should continue the tool loop
     if (ik_repl_should_continue_tool_loop(repl)) {
+        // Increment tool iteration counter
+        repl->tool_iteration_count++;
         submit_tool_loop_continuation(repl);
     }
 }
@@ -424,5 +426,14 @@ bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl)
         return false;
     }
 
-    return strcmp(repl->response_finish_reason, "tool_calls") == 0;
+    if (strcmp(repl->response_finish_reason, "tool_calls") != 0) {
+        return false;
+    }
+
+    /* Check if we've reached the tool iteration limit (if config is available) */
+    if (repl->cfg != NULL && repl->tool_iteration_count >= repl->cfg->max_tool_turns) {
+        return false;
+    }
+
+    return true;
 }

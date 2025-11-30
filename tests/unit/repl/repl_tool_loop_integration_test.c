@@ -46,6 +46,7 @@ static void setup(void)
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
+    cfg->max_tool_turns = 50;  // Default limit for tool loop iterations
     repl->cfg = cfg;
 
     repl->scrollback = ik_scrollback_create(repl, 80);
@@ -57,6 +58,7 @@ static void setup(void)
     repl->response_completion_tokens = 0;
     repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
     repl->curl_still_running = 0;
+    repl->tool_iteration_count = 0;  // Initialize tool loop counter
 }
 
 static void teardown(void)
