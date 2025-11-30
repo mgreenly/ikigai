@@ -286,6 +286,18 @@ START_TEST(test_extract_finish_reason_empty_string)
 }
 
 END_TEST
+/*
+ * Test: Valid finish_reason "tool_calls"
+ */
+START_TEST(test_extract_finish_reason_valid_tool_calls)
+{
+    const char *event = "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}";
+    char *result = ik_openai_http_extract_finish_reason(ctx, event);
+    ck_assert_ptr_nonnull(result);
+    ck_assert_str_eq(result, "tool_calls");
+}
+
+END_TEST
 
 /*
  * Test suite
@@ -320,6 +332,7 @@ static Suite *http_handler_extract_finish_reason_suite(void)
     tcase_add_test(tc_valid, test_extract_finish_reason_valid_length);
     tcase_add_test(tc_valid, test_extract_finish_reason_with_content);
     tcase_add_test(tc_valid, test_extract_finish_reason_empty_string);
+    tcase_add_test(tc_valid, test_extract_finish_reason_valid_tool_calls);
     suite_add_tcase(s, tc_valid);
 
     return s;

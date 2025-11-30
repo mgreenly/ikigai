@@ -119,3 +119,6 @@ void ik_repl_transition_to_idle(ik_repl_ctx_t *repl);
 res_t handle_curl_events(ik_repl_ctx_t *repl, int ready);
 res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit);
 void handle_request_success(ik_repl_ctx_t *repl);
+
+// Tool loop decision function (Phase 2: Story 02)
+bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl);

@@ -381,3 +381,15 @@ void ik_repl_transition_to_idle(ik_repl_ctx_t *repl)
     repl->spinner_state.visible = false;
     repl->input_buffer_visible = true;
 }
+
+bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
+
+    /* Check if finish_reason is "tool_calls" */
+    if (repl->response_finish_reason == NULL) {
+        return false;
+    }
+
+    return strcmp(repl->response_finish_reason, "tool_calls") == 0;
+}
