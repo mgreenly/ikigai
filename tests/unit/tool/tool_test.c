@@ -20,101 +20,217 @@ static void teardown(void)
     ctx = NULL;
 }
 
-// Test: ik_tool_build_glob_schema returns non-NULL and has correct structure
-START_TEST(test_tool_build_glob_schema_structure) {
+// Helper: Verify basic schema structure
+static void verify_schema_basics(yyjson_mut_val *schema, const char *expected_name)
+{
+    ck_assert_ptr_nonnull(schema);
+
+    yyjson_mut_val *type = yyjson_mut_obj_get(schema, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_mut_get_str(type), "function");
+
+    yyjson_mut_val *function = yyjson_mut_obj_get(schema, "function");
+    ck_assert_ptr_nonnull(function);
+
+    yyjson_mut_val *name = yyjson_mut_obj_get(function, "name");
+    ck_assert_ptr_nonnull(name);
+    ck_assert_str_eq(yyjson_mut_get_str(name), expected_name);
+
+    yyjson_mut_val *description = yyjson_mut_obj_get(function, "description");
+    ck_assert_ptr_nonnull(description);
+}
+
+// Helper: Get parameters object from schema
+static yyjson_mut_val *get_parameters(yyjson_mut_val *schema)
+{
+    yyjson_mut_val *function = yyjson_mut_obj_get(schema, "function");
+    ck_assert_ptr_nonnull(function);
+
+    yyjson_mut_val *parameters = yyjson_mut_obj_get(function, "parameters");
+    ck_assert_ptr_nonnull(parameters);
+
+    yyjson_mut_val *params_type = yyjson_mut_obj_get(parameters, "type");
+    ck_assert_ptr_nonnull(params_type);
+    ck_assert_str_eq(yyjson_mut_get_str(params_type), "object");
+
+    return parameters;
+}
+
+// Helper: Verify string parameter exists
+static void verify_string_param(yyjson_mut_val *properties, const char *param_name)
+{
+    yyjson_mut_val *param = yyjson_mut_obj_get(properties, param_name);
+    ck_assert_ptr_nonnull(param);
+
+    yyjson_mut_val *type = yyjson_mut_obj_get(param, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_mut_get_str(type), "string");
+
+    yyjson_mut_val *description = yyjson_mut_obj_get(param, "description");
+    ck_assert_ptr_nonnull(description);
+}
+
+// Helper: Verify required array
+static void verify_required(yyjson_mut_val *parameters, const char *required_params[], size_t count)
+{
+    yyjson_mut_val *required = yyjson_mut_obj_get(parameters, "required");
+    ck_assert_ptr_nonnull(required);
+    ck_assert(yyjson_mut_is_arr(required));
+    ck_assert_uint_eq(yyjson_mut_arr_size(required), count);
+
+    for (size_t i = 0; i < count; i++) {
+        yyjson_mut_val *item = yyjson_mut_arr_get(required, i);
+        ck_assert_ptr_nonnull(item);
+        ck_assert_str_eq(yyjson_mut_get_str(item), required_params[i]);
+    }
+}
+
+// Test: ik_tool_add_string_param adds parameter correctly
+START_TEST(test_tool_add_string_param) {
     // Create yyjson document
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     ck_assert_ptr_nonnull(doc);
 
+    // Create properties object
+    yyjson_mut_val *properties = yyjson_mut_obj(doc);
+    ck_assert_ptr_nonnull(properties);
+
     // Call function under test
-    yyjson_mut_val *schema = ik_tool_build_glob_schema(doc);
+    ik_tool_add_string_param(doc, properties, "test_param", "Test description");
 
-    // Verify returns non-NULL
-    ck_assert_ptr_nonnull(schema);
+    // Verify parameter was added
+    yyjson_mut_val *param = yyjson_mut_obj_get(properties, "test_param");
+    ck_assert_ptr_nonnull(param);
+    ck_assert(yyjson_mut_is_obj(param));
 
-    // Verify "type": "function"
-    yyjson_mut_val *type = yyjson_mut_obj_get(schema, "type");
+    // Verify type field
+    yyjson_mut_val *type = yyjson_mut_obj_get(param, "type");
     ck_assert_ptr_nonnull(type);
     ck_assert(yyjson_mut_is_str(type));
-    ck_assert_str_eq(yyjson_mut_get_str(type), "function");
+    ck_assert_str_eq(yyjson_mut_get_str(type), "string");
 
-    // Verify "function" object exists
-    yyjson_mut_val *function = yyjson_mut_obj_get(schema, "function");
-    ck_assert_ptr_nonnull(function);
-    ck_assert(yyjson_mut_is_obj(function));
-
-    // Verify "function.name": "glob"
-    yyjson_mut_val *name = yyjson_mut_obj_get(function, "name");
-    ck_assert_ptr_nonnull(name);
-    ck_assert(yyjson_mut_is_str(name));
-    ck_assert_str_eq(yyjson_mut_get_str(name), "glob");
-
-    // Verify "function.description" exists
-    yyjson_mut_val *description = yyjson_mut_obj_get(function, "description");
+    // Verify description field
+    yyjson_mut_val *description = yyjson_mut_obj_get(param, "description");
     ck_assert_ptr_nonnull(description);
     ck_assert(yyjson_mut_is_str(description));
-
-    // Verify "function.parameters" exists
-    yyjson_mut_val *parameters = yyjson_mut_obj_get(function, "parameters");
-    ck_assert_ptr_nonnull(parameters);
-    ck_assert(yyjson_mut_is_obj(parameters));
-
-    // Verify "function.parameters.type": "object"
-    yyjson_mut_val *params_type = yyjson_mut_obj_get(parameters, "type");
-    ck_assert_ptr_nonnull(params_type);
-    ck_assert(yyjson_mut_is_str(params_type));
-    ck_assert_str_eq(yyjson_mut_get_str(params_type), "object");
-
-    // Verify "function.parameters.properties" exists
-    yyjson_mut_val *properties = yyjson_mut_obj_get(parameters, "properties");
-    ck_assert_ptr_nonnull(properties);
-    ck_assert(yyjson_mut_is_obj(properties));
-
-    // Verify "function.parameters.properties.pattern" exists
-    yyjson_mut_val *pattern = yyjson_mut_obj_get(properties, "pattern");
-    ck_assert_ptr_nonnull(pattern);
-    ck_assert(yyjson_mut_is_obj(pattern));
-
-    // Verify "function.parameters.properties.pattern.type": "string"
-    yyjson_mut_val *pattern_type = yyjson_mut_obj_get(pattern, "type");
-    ck_assert_ptr_nonnull(pattern_type);
-    ck_assert(yyjson_mut_is_str(pattern_type));
-    ck_assert_str_eq(yyjson_mut_get_str(pattern_type), "string");
-
-    // Verify "function.parameters.properties.pattern.description" exists
-    yyjson_mut_val *pattern_desc = yyjson_mut_obj_get(pattern, "description");
-    ck_assert_ptr_nonnull(pattern_desc);
-    ck_assert(yyjson_mut_is_str(pattern_desc));
-
-    // Verify "function.parameters.properties.path" exists
-    yyjson_mut_val *path = yyjson_mut_obj_get(properties, "path");
-    ck_assert_ptr_nonnull(path);
-    ck_assert(yyjson_mut_is_obj(path));
-
-    // Verify "function.parameters.properties.path.type": "string"
-    yyjson_mut_val *path_type = yyjson_mut_obj_get(path, "type");
-    ck_assert_ptr_nonnull(path_type);
-    ck_assert(yyjson_mut_is_str(path_type));
-    ck_assert_str_eq(yyjson_mut_get_str(path_type), "string");
-
-    // Verify "function.parameters.properties.path.description" exists
-    yyjson_mut_val *path_desc = yyjson_mut_obj_get(path, "description");
-    ck_assert_ptr_nonnull(path_desc);
-    ck_assert(yyjson_mut_is_str(path_desc));
-
-    // Verify "function.parameters.required" exists and is array with ["pattern"]
-    yyjson_mut_val *required = yyjson_mut_obj_get(parameters, "required");
-    ck_assert_ptr_nonnull(required);
-    ck_assert(yyjson_mut_is_arr(required));
-    ck_assert_uint_eq(yyjson_mut_arr_size(required), 1);
-
-    yyjson_mut_val *required_0 = yyjson_mut_arr_get(required, 0);
-    ck_assert_ptr_nonnull(required_0);
-    ck_assert(yyjson_mut_is_str(required_0));
-    ck_assert_str_eq(yyjson_mut_get_str(required_0), "pattern");
+    ck_assert_str_eq(yyjson_mut_get_str(description), "Test description");
 
     yyjson_mut_doc_free(doc);
 }
+END_TEST
+// Test: ik_tool_build_glob_schema returns non-NULL and has correct structure
+START_TEST(test_tool_build_glob_schema_structure)
+{
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_mut_val *schema = ik_tool_build_glob_schema(doc);
+    verify_schema_basics(schema, "glob");
+
+    yyjson_mut_val *parameters = get_parameters(schema);
+    yyjson_mut_val *properties = yyjson_mut_obj_get(parameters, "properties");
+    ck_assert_ptr_nonnull(properties);
+
+    verify_string_param(properties, "pattern");
+    verify_string_param(properties, "path");
+
+    const char *required_params[] = {"pattern"};
+    verify_required(parameters, required_params, 1);
+
+    yyjson_mut_doc_free(doc);
+}
+
+END_TEST
+// Test: ik_tool_build_file_read_schema returns non-NULL and has correct structure
+START_TEST(test_tool_build_file_read_schema_structure)
+{
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_mut_val *schema = ik_tool_build_file_read_schema(doc);
+    verify_schema_basics(schema, "file_read");
+
+    yyjson_mut_val *parameters = get_parameters(schema);
+    yyjson_mut_val *properties = yyjson_mut_obj_get(parameters, "properties");
+    ck_assert_ptr_nonnull(properties);
+
+    verify_string_param(properties, "path");
+
+    const char *required_params[] = {"path"};
+    verify_required(parameters, required_params, 1);
+
+    yyjson_mut_doc_free(doc);
+}
+
+END_TEST
+// Test: ik_tool_build_grep_schema returns non-NULL and has correct structure
+START_TEST(test_tool_build_grep_schema_structure)
+{
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_mut_val *schema = ik_tool_build_grep_schema(doc);
+    verify_schema_basics(schema, "grep");
+
+    yyjson_mut_val *parameters = get_parameters(schema);
+    yyjson_mut_val *properties = yyjson_mut_obj_get(parameters, "properties");
+    ck_assert_ptr_nonnull(properties);
+
+    verify_string_param(properties, "pattern");
+    verify_string_param(properties, "path");
+    verify_string_param(properties, "glob");
+
+    const char *required_params[] = {"pattern"};
+    verify_required(parameters, required_params, 1);
+
+    yyjson_mut_doc_free(doc);
+}
+
+END_TEST
+// Test: ik_tool_build_file_write_schema returns non-NULL and has correct structure
+START_TEST(test_tool_build_file_write_schema_structure)
+{
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_mut_val *schema = ik_tool_build_file_write_schema(doc);
+    verify_schema_basics(schema, "file_write");
+
+    yyjson_mut_val *parameters = get_parameters(schema);
+    yyjson_mut_val *properties = yyjson_mut_obj_get(parameters, "properties");
+    ck_assert_ptr_nonnull(properties);
+
+    verify_string_param(properties, "path");
+    verify_string_param(properties, "content");
+
+    const char *required_params[] = {"path", "content"};
+    verify_required(parameters, required_params, 2);
+
+    yyjson_mut_doc_free(doc);
+}
+
+END_TEST
+// Test: ik_tool_build_bash_schema returns non-NULL and has correct structure
+START_TEST(test_tool_build_bash_schema_structure)
+{
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_mut_val *schema = ik_tool_build_bash_schema(doc);
+    verify_schema_basics(schema, "bash");
+
+    yyjson_mut_val *parameters = get_parameters(schema);
+    yyjson_mut_val *properties = yyjson_mut_obj_get(parameters, "properties");
+    ck_assert_ptr_nonnull(properties);
+
+    verify_string_param(properties, "command");
+
+    const char *required_params[] = {"command"};
+    verify_required(parameters, required_params, 1);
+
+    yyjson_mut_doc_free(doc);
+}
+
 END_TEST
 
 // Test suite
@@ -122,10 +238,35 @@ static Suite *tool_suite(void)
 {
     Suite *s = suite_create("Tool");
 
+    TCase *tc_helper = tcase_create("Helper Functions");
+    tcase_add_checked_fixture(tc_helper, setup, teardown);
+    tcase_add_test(tc_helper, test_tool_add_string_param);
+    suite_add_tcase(s, tc_helper);
+
     TCase *tc_glob = tcase_create("Glob Schema");
     tcase_add_checked_fixture(tc_glob, setup, teardown);
     tcase_add_test(tc_glob, test_tool_build_glob_schema_structure);
     suite_add_tcase(s, tc_glob);
+
+    TCase *tc_file_read = tcase_create("File Read Schema");
+    tcase_add_checked_fixture(tc_file_read, setup, teardown);
+    tcase_add_test(tc_file_read, test_tool_build_file_read_schema_structure);
+    suite_add_tcase(s, tc_file_read);
+
+    TCase *tc_grep = tcase_create("Grep Schema");
+    tcase_add_checked_fixture(tc_grep, setup, teardown);
+    tcase_add_test(tc_grep, test_tool_build_grep_schema_structure);
+    suite_add_tcase(s, tc_grep);
+
+    TCase *tc_file_write = tcase_create("File Write Schema");
+    tcase_add_checked_fixture(tc_file_write, setup, teardown);
+    tcase_add_test(tc_file_write, test_tool_build_file_write_schema_structure);
+    suite_add_tcase(s, tc_file_write);
+
+    TCase *tc_bash = tcase_create("Bash Schema");
+    tcase_add_checked_fixture(tc_bash, setup, teardown);
+    tcase_add_test(tc_bash, test_tool_build_bash_schema_structure);
+    suite_add_tcase(s, tc_bash);
 
     return s;
 }
