@@ -86,4 +86,4 @@ Note: The core replay functionality for tool messages is implemented in Story 02
 - ~~tool-choice-auto-e2e.md~~
 - ~~tool-choice-none-e2e.md~~
 - ~~tool-choice-required-e2e.md~~
-- tool-choice-specific-e2e.md
+- ~~tool-choice-specific-e2e.md~~
