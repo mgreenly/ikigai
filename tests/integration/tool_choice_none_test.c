@@ -130,8 +130,7 @@ static void test_teardown(void)
  * Verify that ik_openai_serialize_request includes "tool_choice": "none"
  * when using ik_tool_choice_none().
  */
-START_TEST(test_request_has_tool_choice_none)
-{
+START_TEST(test_request_has_tool_choice_none) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create minimal config
@@ -184,7 +183,6 @@ START_TEST(test_request_has_tool_choice_none)
     talloc_free(ctx);
 }
 END_TEST
-
 // ========== Test: End-to-end none tool choice flow ==========
 
 /**
@@ -278,8 +276,8 @@ START_TEST(test_tool_choice_none_end_to_end)
     yyjson_doc_free(data_doc);
     PQclear(assistant_result);
 }
-END_TEST
 
+END_TEST
 // ========== Test: Verify none constructor ==========
 
 /**
@@ -291,6 +289,7 @@ START_TEST(test_tool_choice_none_constructor)
     ck_assert_int_eq(choice.mode, IK_TOOL_CHOICE_NONE);
     ck_assert_ptr_null(choice.tool_name);
 }
+
 END_TEST
 
 // ========== Test Suite ==========

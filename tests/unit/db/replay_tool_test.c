@@ -124,7 +124,8 @@ START_TEST(test_replay_tool_call_message) {
     ck_assert(is_ok(&res));
 
     // Insert tool_call message with data_json
-    const char *tool_call_data = "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}";
+    const char *tool_call_data =
+        "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}";
     res = ik_db_message_insert(db, session_id, "tool_call", "glob(pattern=\"*.c\")", tool_call_data);
     ck_assert(is_ok(&res));
 
@@ -147,9 +148,9 @@ START_TEST(test_replay_tool_call_message) {
     ck_assert(strstr(context->messages[1]->data_json, "glob") != NULL);
 }
 END_TEST
-
 // Test: Replay session with tool_result, verify in context
-START_TEST(test_replay_tool_result_message) {
+START_TEST(test_replay_tool_result_message)
+{
     SKIP_IF_NO_DB();
 
     // Insert clear first
@@ -157,7 +158,8 @@ START_TEST(test_replay_tool_result_message) {
     ck_assert(is_ok(&res));
 
     // Insert tool_result message with data_json
-    const char *tool_result_data = "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"file1.c\\nfile2.c\",\"success\":true}";
+    const char *tool_result_data =
+        "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"file1.c\\nfile2.c\",\"success\":true}";
     res = ik_db_message_insert(db, session_id, "tool_result", "2 files found", tool_result_data);
     ck_assert(is_ok(&res));
 
@@ -176,10 +178,11 @@ START_TEST(test_replay_tool_result_message) {
     ck_assert(strstr(context->messages[0]->data_json, "call_abc123") != NULL);
     ck_assert(strstr(context->messages[0]->data_json, "glob") != NULL);
 }
-END_TEST
 
+END_TEST
 // Test: User → tool_call → tool_result → assistant sequence
-START_TEST(test_replay_full_tool_conversation) {
+START_TEST(test_replay_full_tool_conversation)
+{
     SKIP_IF_NO_DB();
 
     // Insert clear first
@@ -191,12 +194,14 @@ START_TEST(test_replay_full_tool_conversation) {
     ck_assert(is_ok(&res));
 
     // Insert tool_call
-    const char *tool_call_data = "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}";
+    const char *tool_call_data =
+        "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}";
     res = ik_db_message_insert(db, session_id, "tool_call", "glob(pattern=\"*.c\")", tool_call_data);
     ck_assert(is_ok(&res));
 
     // Insert tool_result
-    const char *tool_result_data = "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"file1.c\\nfile2.c\",\"success\":true}";
+    const char *tool_result_data =
+        "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"file1.c\\nfile2.c\",\"success\":true}";
     res = ik_db_message_insert(db, session_id, "tool_result", "2 files found", tool_result_data);
     ck_assert(is_ok(&res));
 
@@ -217,10 +222,11 @@ START_TEST(test_replay_full_tool_conversation) {
     ck_assert_str_eq(context->messages[2]->kind, "tool_result");
     ck_assert_str_eq(context->messages[3]->kind, "assistant");
 }
-END_TEST
 
+END_TEST
 // Test: Verify data_json is preserved for serialization
-START_TEST(test_replay_tool_message_preserves_data_json) {
+START_TEST(test_replay_tool_message_preserves_data_json)
+{
     SKIP_IF_NO_DB();
 
     // Insert clear first
@@ -228,7 +234,8 @@ START_TEST(test_replay_tool_message_preserves_data_json) {
     ck_assert(is_ok(&res));
 
     // Insert tool_call with complex data_json
-    const char *complex_data = "{\"id\":\"call_xyz\",\"type\":\"function\",\"function\":{\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"TODO\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
+    const char *complex_data =
+        "{\"id\":\"call_xyz\",\"type\":\"function\",\"function\":{\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"TODO\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
     res = ik_db_message_insert(db, session_id, "tool_call", "grep(pattern=\"TODO\", path=\"src/\")", complex_data);
     ck_assert(is_ok(&res));
 
@@ -246,10 +253,11 @@ START_TEST(test_replay_tool_message_preserves_data_json) {
     ck_assert(strstr(context->messages[0]->data_json, "grep") != NULL);
     ck_assert(strstr(context->messages[0]->data_json, "TODO") != NULL);
 }
-END_TEST
 
+END_TEST
 // Test: Session with multiple tool call/result pairs
-START_TEST(test_replay_multiple_tool_calls) {
+START_TEST(test_replay_multiple_tool_calls)
+{
     SKIP_IF_NO_DB();
 
     // Insert clear first
@@ -257,20 +265,24 @@ START_TEST(test_replay_multiple_tool_calls) {
     ck_assert(is_ok(&res));
 
     // First tool call/result pair
-    const char *tool_call_data_1 = "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}";
+    const char *tool_call_data_1 =
+        "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}";
     res = ik_db_message_insert(db, session_id, "tool_call", "glob(pattern=\"*.c\")", tool_call_data_1);
     ck_assert(is_ok(&res));
 
-    const char *tool_result_data_1 = "{\"tool_call_id\":\"call_1\",\"name\":\"glob\",\"output\":\"file1.c\",\"success\":true}";
+    const char *tool_result_data_1 =
+        "{\"tool_call_id\":\"call_1\",\"name\":\"glob\",\"output\":\"file1.c\",\"success\":true}";
     res = ik_db_message_insert(db, session_id, "tool_result", "1 file found", tool_result_data_1);
     ck_assert(is_ok(&res));
 
     // Second tool call/result pair
-    const char *tool_call_data_2 = "{\"id\":\"call_2\",\"type\":\"function\",\"function\":{\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"TODO\\\"}\"}}";
+    const char *tool_call_data_2 =
+        "{\"id\":\"call_2\",\"type\":\"function\",\"function\":{\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"TODO\\\"}\"}}";
     res = ik_db_message_insert(db, session_id, "tool_call", "grep(pattern=\"TODO\")", tool_call_data_2);
     ck_assert(is_ok(&res));
 
-    const char *tool_result_data_2 = "{\"tool_call_id\":\"call_2\",\"name\":\"grep\",\"output\":\"src/main.c:10: TODO\",\"success\":true}";
+    const char *tool_result_data_2 =
+        "{\"tool_call_id\":\"call_2\",\"name\":\"grep\",\"output\":\"src/main.c:10: TODO\",\"success\":true}";
     res = ik_db_message_insert(db, session_id, "tool_result", "1 match found", tool_result_data_2);
     ck_assert(is_ok(&res));
 
@@ -299,6 +311,7 @@ START_TEST(test_replay_multiple_tool_calls) {
     ck_assert_ptr_nonnull(context->messages[3]->data_json);
     ck_assert(strstr(context->messages[3]->data_json, "call_2") != NULL);
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

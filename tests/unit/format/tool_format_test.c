@@ -26,8 +26,7 @@ static void teardown(void)
 }
 
 // Test: Format simple tool call with basic arguments
-START_TEST(test_format_tool_call_glob_basic)
-{
+START_TEST(test_format_tool_call_glob_basic) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_123", "glob", "{\"pattern\": \"*.c\", \"path\": \"src/\"}");
     ck_assert_ptr_nonnull(call);
 
@@ -40,11 +39,11 @@ START_TEST(test_format_tool_call_glob_basic)
     ck_assert(strlen(formatted) > 0);
 }
 END_TEST
-
 // Test: Format tool result with list of files
 START_TEST(test_format_tool_result_glob_files)
 {
-    const char *result = "{\"success\": true, \"data\": {\"output\": \"src/main.c\\nsrc/config.c\\nsrc/repl.c\", \"count\": 3}}";
+    const char *result =
+        "{\"success\": true, \"data\": {\"output\": \"src/main.c\\nsrc/config.c\\nsrc/repl.c\", \"count\": 3}}";
 
     const char *formatted = ik_format_tool_result(ctx, "glob", result);
     ck_assert_ptr_nonnull(formatted);
@@ -53,8 +52,8 @@ START_TEST(test_format_tool_result_glob_files)
     ck_assert(strstr(formatted, "main.c") != NULL || strstr(formatted, "3") != NULL);
     ck_assert(strlen(formatted) > 0);
 }
-END_TEST
 
+END_TEST
 // Test: Format tool call with only required parameters
 START_TEST(test_format_tool_call_minimal)
 {
@@ -68,8 +67,8 @@ START_TEST(test_format_tool_call_minimal)
     ck_assert(strstr(formatted, "glob") != NULL);
     ck_assert(strlen(formatted) > 0);
 }
-END_TEST
 
+END_TEST
 // Test: Format empty tool result
 START_TEST(test_format_tool_result_empty)
 {
@@ -81,8 +80,8 @@ START_TEST(test_format_tool_result_empty)
     // Should handle empty result gracefully
     ck_assert(strlen(formatted) > 0);
 }
-END_TEST
 
+END_TEST
 // Test: Format tool result with NULL result_json
 START_TEST(test_format_tool_result_null_result)
 {
@@ -94,8 +93,8 @@ START_TEST(test_format_tool_result_null_result)
     ck_assert(strstr(formatted, "(null)") != NULL);
     ck_assert(strlen(formatted) > 0);
 }
-END_TEST
 
+END_TEST
 // Test: Format tool call with special characters in arguments
 START_TEST(test_format_tool_call_special_chars)
 {
@@ -110,13 +109,14 @@ START_TEST(test_format_tool_call_special_chars)
     ck_assert(strstr(formatted, "grep") != NULL);
     ck_assert(strlen(formatted) > 0);
 }
-END_TEST
 
+END_TEST
 // Test: Format tool result with large output (truncation handling)
 START_TEST(test_format_tool_result_large_output)
 {
     // Create a moderately large output string
-    const char *large_result = "{\"success\": true, \"data\": {\"output\": \"file1\\nfile2\\nfile3\\nfile4\\nfile5\\nfile6\\nfile7\\nfile8\\nfile9\\nfile10\", \"count\": 10}}";
+    const char *large_result =
+        "{\"success\": true, \"data\": {\"output\": \"file1\\nfile2\\nfile3\\nfile4\\nfile5\\nfile6\\nfile7\\nfile8\\nfile9\\nfile10\", \"count\": 10}}";
 
     const char *formatted = ik_format_tool_result(ctx, "glob", large_result);
     ck_assert_ptr_nonnull(formatted);
@@ -124,8 +124,8 @@ START_TEST(test_format_tool_result_large_output)
     // Should handle large output gracefully
     ck_assert(strlen(formatted) > 0);
 }
-END_TEST
 
+END_TEST
 // Test: Format tool call preserves tool name
 START_TEST(test_format_tool_call_preserves_name)
 {
@@ -138,8 +138,8 @@ START_TEST(test_format_tool_call_preserves_name)
     // Should contain the tool name exactly
     ck_assert(strstr(formatted, "file_read") != NULL);
 }
-END_TEST
 
+END_TEST
 // Test: Format tool result preserves tool name
 START_TEST(test_format_tool_result_preserves_name)
 {
@@ -151,8 +151,8 @@ START_TEST(test_format_tool_result_preserves_name)
     // Result should be formatted successfully
     ck_assert(strlen(formatted) > 0);
 }
-END_TEST
 
+END_TEST
 // Test: Format tool call with different tool names
 START_TEST(test_format_tool_call_different_names)
 {
@@ -164,8 +164,8 @@ START_TEST(test_format_tool_call_different_names)
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "bash") != NULL);
 }
-END_TEST
 
+END_TEST
 // Test: Format tool result for different tool
 START_TEST(test_format_tool_result_bash_tool)
 {
@@ -175,6 +175,7 @@ START_TEST(test_format_tool_result_bash_tool)
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "bash") != NULL);
 }
+
 END_TEST
 
 static Suite *tool_format_suite(void)

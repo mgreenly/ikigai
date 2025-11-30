@@ -8,7 +8,6 @@
 #include "../../../src/error.h"
 #include "../../../src/tool.h"
 
-// Test fixtures
 static TALLOC_CTX *ctx = NULL;
 
 static void setup(void)
@@ -22,30 +21,21 @@ static void teardown(void)
     ctx = NULL;
 }
 
-// ============================================================================
-// ik_tool_dispatch tests
-// ============================================================================
-
 START_TEST(test_dispatch_glob_with_valid_json) {
-    // Dispatch to glob tool with valid pattern argument
     const char *arguments = "{\"pattern\": \"*.c\", \"path\": \"/tmp\"}";
     res_t res = ik_tool_dispatch(ctx, "glob", arguments);
 
-    // Should succeed
     ck_assert(!res.is_err);
 
-    // Result should be JSON string
     char *json = res.ok;
     ck_assert_ptr_nonnull(json);
 
-    // Parse result to verify it's valid JSON from glob
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
 
     yyjson_val *root = yyjson_doc_get_root(doc);
     ck_assert(yyjson_is_obj(root));
 
-    // Should have success field from glob result
     yyjson_val *success = yyjson_obj_get(root, "success");
     ck_assert_ptr_nonnull(success);
     ck_assert(yyjson_is_bool(success));
@@ -54,16 +44,13 @@ START_TEST(test_dispatch_glob_with_valid_json) {
 }
 END_TEST START_TEST(test_dispatch_glob_returns_exec_result)
 {
-    // Verify that dispatch returns the exact result from ik_tool_exec_glob
     const char *arguments = "{\"pattern\": \"*.json\"}";
     res_t dispatch_res = ik_tool_dispatch(ctx, "glob", arguments);
 
     ck_assert(!dispatch_res.is_err);
-
     char *dispatch_json = dispatch_res.ok;
     ck_assert_ptr_nonnull(dispatch_json);
 
-    // Result should be valid JSON with success field from glob
     yyjson_doc *doc = yyjson_read(dispatch_json, strlen(dispatch_json), 0);
     ck_assert_ptr_nonnull(doc);
 
@@ -76,13 +63,10 @@ END_TEST START_TEST(test_dispatch_glob_returns_exec_result)
 
 END_TEST START_TEST(test_dispatch_invalid_json_arguments)
 {
-    // Invalid JSON should return error JSON
     const char *arguments = "{invalid json";
     res_t res = ik_tool_dispatch(ctx, "glob", arguments);
 
     ck_assert(!res.is_err);
-
-    // Result should be error JSON with single "error" field
     char *json = res.ok;
     ck_assert_ptr_nonnull(json);
 
@@ -104,13 +88,10 @@ END_TEST START_TEST(test_dispatch_invalid_json_arguments)
 
 END_TEST START_TEST(test_dispatch_glob_missing_required_pattern)
 {
-    // Missing required "pattern" parameter should return error JSON
     const char *arguments = "{\"path\": \"/tmp\"}";
     res_t res = ik_tool_dispatch(ctx, "glob", arguments);
 
     ck_assert(!res.is_err);
-
-    // Result should be error JSON
     char *json = res.ok;
     ck_assert_ptr_nonnull(json);
 
@@ -129,13 +110,10 @@ END_TEST START_TEST(test_dispatch_glob_missing_required_pattern)
 
 END_TEST START_TEST(test_dispatch_unknown_tool)
 {
-    // Unknown tool name should return error JSON
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, "unknown_tool", arguments);
 
     ck_assert(!res.is_err);
-
-    // Result should be error JSON
     char *json = res.ok;
     ck_assert_ptr_nonnull(json);
 
@@ -154,13 +132,10 @@ END_TEST START_TEST(test_dispatch_unknown_tool)
 
 END_TEST START_TEST(test_dispatch_null_tool_name)
 {
-    // NULL tool_name should return error JSON
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, NULL, arguments);
 
     ck_assert(!res.is_err);
-
-    // Result should be error JSON
     char *json = res.ok;
     ck_assert_ptr_nonnull(json);
 
@@ -172,7 +147,6 @@ END_TEST START_TEST(test_dispatch_null_tool_name)
     ck_assert_ptr_nonnull(error);
 
     const char *error_msg = yyjson_get_str(error);
-    // Should indicate NULL or empty tool name
     ck_assert(strstr(error_msg, "Unknown tool") != NULL || strstr(error_msg, "tool") != NULL);
 
     yyjson_doc_free(doc);
@@ -180,13 +154,10 @@ END_TEST START_TEST(test_dispatch_null_tool_name)
 
 END_TEST START_TEST(test_dispatch_empty_tool_name)
 {
-    // Empty tool_name should return error JSON
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, "", arguments);
 
     ck_assert(!res.is_err);
-
-    // Result should be error JSON
     char *json = res.ok;
     ck_assert_ptr_nonnull(json);
 
@@ -200,9 +171,29 @@ END_TEST START_TEST(test_dispatch_empty_tool_name)
     yyjson_doc_free(doc);
 }
 
+END_TEST START_TEST(test_dispatch_file_read_missing_path)
+{
+
+    const char *arguments = "{}";
+    res_t res = ik_tool_dispatch(ctx, "file_read", arguments);
+
+    ck_assert(!res.is_err);
+
+    char *json = res.ok;
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    yyjson_val *error = yyjson_obj_get(root, "error");
+    ck_assert_ptr_nonnull(error);
+    const char *error_msg = yyjson_get_str(error);
+    ck_assert_str_eq(error_msg, "Missing required parameter: path");
+
+    yyjson_doc_free(doc);
+}
+
 END_TEST START_TEST(test_dispatch_file_read_not_found)
 {
-    // file_read tool should return error when file doesn't exist
+
     const char *arguments = "{\"path\": \"/nonexistent/file/that/does/not/exist\"}";
     res_t res = ik_tool_dispatch(ctx, "file_read", arguments);
 
@@ -224,9 +215,29 @@ END_TEST START_TEST(test_dispatch_file_read_not_found)
     yyjson_doc_free(doc);
 }
 
+END_TEST START_TEST(test_dispatch_grep_missing_pattern)
+{
+
+    const char *arguments = "{}";
+    res_t res = ik_tool_dispatch(ctx, "grep", arguments);
+
+    ck_assert(!res.is_err);
+
+    char *json = res.ok;
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    yyjson_val *error = yyjson_obj_get(root, "error");
+    ck_assert_ptr_nonnull(error);
+    const char *error_msg = yyjson_get_str(error);
+    ck_assert_str_eq(error_msg, "Missing required parameter: pattern");
+
+    yyjson_doc_free(doc);
+}
+
 END_TEST START_TEST(test_dispatch_grep_with_matches)
 {
-    // grep tool should work and find matches
+
     const char *arguments = "{\"pattern\": \"test\"}";
     res_t res = ik_tool_dispatch(ctx, "grep", arguments);
 
@@ -248,14 +259,12 @@ END_TEST START_TEST(test_dispatch_grep_with_matches)
 
 END_TEST
 
-// TODO: Fix segfault in test_dispatch_file_write - disabled for now
-// Test was causing segfault, need to debug basename() usage in tool_file_write.c
 
-END_TEST
 
-START_TEST(test_dispatch_bash_success)
+
+END_TEST START_TEST(test_dispatch_bash_success)
 {
-    // bash tool should execute successfully
+
     const char *arguments = "{\"command\": \"echo test\"}";
     res_t res = ik_tool_dispatch(ctx, "bash", arguments);
 
@@ -269,22 +278,22 @@ START_TEST(test_dispatch_bash_success)
 
     yyjson_val *root = yyjson_doc_get_root(doc);
 
-    // Verify success: true
+
     yyjson_val *success = yyjson_obj_get(root, "success");
     ck_assert_ptr_nonnull(success);
     ck_assert(yyjson_get_bool(success) == true);
 
-    // Verify data object exists
+
     yyjson_val *data = yyjson_obj_get(root, "data");
     ck_assert_ptr_nonnull(data);
 
-    // Verify output contains "test"
+
     yyjson_val *output = yyjson_obj_get(data, "output");
     ck_assert_ptr_nonnull(output);
     const char *output_str = yyjson_get_str(output);
     ck_assert(strstr(output_str, "test") != NULL);
 
-    // Verify exit_code is 0
+
     yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
     ck_assert_ptr_nonnull(exit_code);
     ck_assert_int_eq(yyjson_get_int(exit_code), 0);
@@ -292,11 +301,9 @@ START_TEST(test_dispatch_bash_success)
     yyjson_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_dispatch_bash_missing_command)
+END_TEST START_TEST(test_dispatch_bash_missing_command)
 {
-    // bash tool with missing "command" parameter should return error
+
     const char *arguments = "{}";
     res_t res = ik_tool_dispatch(ctx, "bash", arguments);
 
@@ -314,11 +321,9 @@ START_TEST(test_dispatch_bash_missing_command)
     yyjson_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_dispatch_error_format_single_field)
+END_TEST START_TEST(test_dispatch_error_format_single_field)
 {
-    // Verify error JSON has only "error" field (as per spec)
+
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, "nonexistent", arguments);
 
@@ -328,7 +333,7 @@ START_TEST(test_dispatch_error_format_single_field)
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);
 
-    // Verify only "error" field exists
+
     yyjson_obj_iter iter = yyjson_obj_iter_with(root);
     yyjson_val *key = NULL;
     int field_count = 0;
@@ -344,7 +349,7 @@ START_TEST(test_dispatch_error_format_single_field)
 
 END_TEST START_TEST(test_dispatch_glob_with_null_path)
 {
-    // Glob with NULL path should still work (passed to exec_glob)
+
     const char *arguments = "{\"pattern\": \"Makefile\"}";
     res_t res = ik_tool_dispatch(ctx, "glob", arguments);
 
@@ -353,7 +358,7 @@ END_TEST START_TEST(test_dispatch_glob_with_null_path)
     char *json = res.ok;
     ck_assert_ptr_nonnull(json);
 
-    // Should return valid glob result JSON
+
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
 
@@ -366,7 +371,7 @@ END_TEST START_TEST(test_dispatch_glob_with_null_path)
 
 END_TEST START_TEST(test_dispatch_null_arguments)
 {
-    // NULL arguments should be handled gracefully
+
     res_t res = ik_tool_dispatch(ctx, "glob", NULL);
 
     ck_assert(!res.is_err);
@@ -374,7 +379,7 @@ END_TEST START_TEST(test_dispatch_null_arguments)
     char *json = res.ok;
     ck_assert_ptr_nonnull(json);
 
-    // Should return error JSON (missing required pattern parameter)
+
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
 
@@ -393,7 +398,6 @@ END_TEST START_TEST(test_dispatch_null_arguments)
 
 END_TEST
 
-// Test: file_write missing path parameter
 START_TEST(test_dispatch_file_write_missing_path)
 {
     const char *arguments = "{\"content\": \"test\"}";
@@ -417,7 +421,6 @@ START_TEST(test_dispatch_file_write_missing_path)
 
 END_TEST
 
-// Test: file_write missing content parameter
 START_TEST(test_dispatch_file_write_missing_content)
 {
     const char *arguments = "{\"path\": \"/tmp/test\"}";
@@ -441,7 +444,45 @@ START_TEST(test_dispatch_file_write_missing_content)
 
 END_TEST
 
-// Test suite
+START_TEST(test_dispatch_file_write_success)
+{
+
+    char test_file[] = "/tmp/ikigai-dispatcher-file-write-test-XXXXXX";
+    int fd = mkstemp(test_file);
+    ck_assert(fd >= 0);
+    close(fd);
+    unlink(test_file);
+
+
+    char arguments[512];
+    snprintf(arguments, sizeof(arguments),
+             "{\"path\": \"%s\", \"content\": \"test content\"}",
+             test_file);
+
+    res_t res = ik_tool_dispatch(ctx, "file_write", arguments);
+
+    ck_assert(!res.is_err);
+
+    char *json = res.ok;
+    ck_assert_ptr_nonnull(json);
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *success = yyjson_obj_get(root, "success");
+    ck_assert_ptr_nonnull(success);
+    ck_assert(yyjson_get_bool(success) == true);
+
+    yyjson_doc_free(doc);
+
+
+    unlink(test_file);
+}
+
+END_TEST
+
+
 static Suite *dispatcher_suite(void)
 {
     Suite *s = suite_create("Tool Dispatcher");
@@ -449,12 +490,12 @@ static Suite *dispatcher_suite(void)
     TCase *tc_dispatch = tcase_create("Dispatcher");
     tcase_add_checked_fixture(tc_dispatch, setup, teardown);
 
-    // Glob tests
+
     tcase_add_test(tc_dispatch, test_dispatch_glob_with_valid_json);
     tcase_add_test(tc_dispatch, test_dispatch_glob_returns_exec_result);
     tcase_add_test(tc_dispatch, test_dispatch_glob_with_null_path);
 
-    // Error handling tests
+
     tcase_add_test(tc_dispatch, test_dispatch_null_arguments);
     tcase_add_test(tc_dispatch, test_dispatch_invalid_json_arguments);
     tcase_add_test(tc_dispatch, test_dispatch_glob_missing_required_pattern);
@@ -462,20 +503,22 @@ static Suite *dispatcher_suite(void)
     tcase_add_test(tc_dispatch, test_dispatch_null_tool_name);
     tcase_add_test(tc_dispatch, test_dispatch_empty_tool_name);
 
-    // Implemented tools tests
+
+    tcase_add_test(tc_dispatch, test_dispatch_file_read_missing_path);
     tcase_add_test(tc_dispatch, test_dispatch_file_read_not_found);
+    tcase_add_test(tc_dispatch, test_dispatch_grep_missing_pattern);
     tcase_add_test(tc_dispatch, test_dispatch_grep_with_matches);
 
-    // File write tests
-    // tcase_add_test(tc_dispatch, test_dispatch_file_write);  // TEMPORARILY DISABLED - segfault
+
     tcase_add_test(tc_dispatch, test_dispatch_file_write_missing_path);
     tcase_add_test(tc_dispatch, test_dispatch_file_write_missing_content);
+    tcase_add_test(tc_dispatch, test_dispatch_file_write_success);
 
-    // Bash tool tests
+
     tcase_add_test(tc_dispatch, test_dispatch_bash_success);
     tcase_add_test(tc_dispatch, test_dispatch_bash_missing_command);
 
-    // Error format tests
+
     tcase_add_test(tc_dispatch, test_dispatch_error_format_single_field);
 
     suite_add_tcase(s, tc_dispatch);

@@ -47,13 +47,11 @@ static void teardown(void)
 /*
  * Test: Counter initializes to 0 at start of request
  */
-START_TEST(test_counter_initializes_to_zero)
-{
+START_TEST(test_counter_initializes_to_zero) {
     /* Counter should be 0 after setup */
     ck_assert_int_eq(repl->tool_iteration_count, 0);
 }
 END_TEST
-
 /*
  * Test: Counter increments after tool execution
  */
@@ -76,8 +74,8 @@ START_TEST(test_counter_increments_after_tool_execution)
     repl->tool_iteration_count++;
     ck_assert_int_eq(repl->tool_iteration_count, 3);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Should continue when under limit
  */
@@ -91,8 +89,8 @@ START_TEST(test_should_continue_when_under_limit)
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
     ck_assert(should_continue);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Should NOT continue when at limit
  */
@@ -106,8 +104,8 @@ START_TEST(test_should_not_continue_when_at_limit)
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
     ck_assert(!should_continue);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Should NOT continue when over limit
  */
@@ -121,8 +119,8 @@ START_TEST(test_should_not_continue_when_over_limit)
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
     ck_assert(!should_continue);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Should NOT continue when finish_reason is not "tool_calls" even if under limit
  */
@@ -136,8 +134,8 @@ START_TEST(test_should_not_continue_when_finish_reason_is_stop)
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
     ck_assert(!should_continue);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Should continue at exactly limit-1
  */
@@ -152,8 +150,8 @@ START_TEST(test_should_continue_at_limit_minus_one)
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
     ck_assert(should_continue);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Zero limit means no tool calls allowed
  */
@@ -168,8 +166,8 @@ START_TEST(test_zero_limit_means_no_tool_calls)
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
     ck_assert(!should_continue);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Negative limit (edge case - should treat as 0 or error)
  */
@@ -184,6 +182,7 @@ START_TEST(test_negative_limit)
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
     ck_assert(!should_continue);
 }
+
 END_TEST
 
 /*

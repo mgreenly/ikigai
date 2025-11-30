@@ -44,8 +44,7 @@ static void teardown(void)
 /*
  * Test: Add user message, then tool_call message to conversation
  */
-START_TEST(test_add_tool_call_message_to_conversation)
-{
+START_TEST(test_add_tool_call_message_to_conversation) {
     /* Add a user message first */
     ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Find all C files").ok;
     res_t res = ik_openai_conversation_add_msg(repl->conversation, user_msg);
@@ -64,7 +63,7 @@ START_TEST(test_add_tool_call_message_to_conversation)
         "glob",                             /* name */
         "{\"pattern\":\"*.c\"}",            /* arguments */
         "glob(pattern=\"*.c\")"             /* content (human-readable) */
-    );
+        );
 
     /* Add tool_call message to conversation */
     res = ik_openai_conversation_add_msg(repl->conversation, tool_call_msg);
@@ -83,7 +82,6 @@ START_TEST(test_add_tool_call_message_to_conversation)
     ck_assert_ptr_nonnull(repl->conversation->messages[1]->data_json);
 }
 END_TEST
-
 /*
  * Test: Execute glob tool and add tool_result message
  */
@@ -100,7 +98,7 @@ START_TEST(test_execute_tool_and_add_result_message)
         "glob",
         "{\"pattern\":\"*.c\"}",
         "glob(pattern=\"*.c\")"
-    );
+        );
     ik_openai_conversation_add_msg(repl->conversation, tool_call_msg);
 
     /* Execute the tool dispatcher */
@@ -115,15 +113,15 @@ START_TEST(test_execute_tool_and_add_result_message)
      *   data_json: structured result data
      */
     char *data_json = talloc_asprintf(ctx,
-        "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":%s,\"success\":true}",
-        tool_output
-    );
+                                      "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":%s,\"success\":true}",
+                                      tool_output
+                                      );
 
     ik_openai_msg_t *tool_result_msg = ik_openai_msg_create(
         repl->conversation,
         "tool_result",
         "Files found: src/main.c, src/config.c"  /* human-readable summary */
-    ).ok;
+        ).ok;
     tool_result_msg->data_json = talloc_steal(tool_result_msg, data_json);
 
     /* Add tool_result message to conversation */
@@ -142,8 +140,8 @@ START_TEST(test_execute_tool_and_add_result_message)
     ck_assert_str_eq(repl->conversation->messages[2]->content, "Files found: src/main.c, src/config.c");
     ck_assert_ptr_nonnull(repl->conversation->messages[2]->data_json);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Verify message ordering is preserved
  */
@@ -163,14 +161,14 @@ START_TEST(test_message_ordering_preserved)
         "glob",
         "{\"pattern\":\"*\"}",
         "glob(pattern=\"*\")"
-    );
+        );
     ik_openai_conversation_add_msg(repl->conversation, tool_call_msg);
 
     /* 3. Tool result message */
     ik_openai_msg_t *tool_result_msg = ik_openai_msg_create(repl->conversation, "tool_result", "Found 3 files").ok;
     tool_result_msg->data_json = talloc_strdup(tool_result_msg,
-        "{\"tool_call_id\":\"call_123\",\"name\":\"glob\",\"output\":\"{}\",\"success\":true}"
-    );
+                                               "{\"tool_call_id\":\"call_123\",\"name\":\"glob\",\"output\":\"{}\",\"success\":true}"
+                                               );
     ik_openai_conversation_add_msg(repl->conversation, tool_result_msg);
 
     /* Verify ordering is preserved */
@@ -179,6 +177,7 @@ START_TEST(test_message_ordering_preserved)
     ck_assert_str_eq(repl->conversation->messages[1]->role, "tool_call");
     ck_assert_str_eq(repl->conversation->messages[2]->role, "tool_result");
 }
+
 END_TEST
 
 /*

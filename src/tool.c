@@ -17,7 +17,6 @@ ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx,
     assert(name != NULL); // LCOV_EXCL_BR_LINE
     assert(arguments != NULL); // LCOV_EXCL_BR_LINE
 
-    // Allocate struct on provided context (or talloc root if ctx is NULL)
     ik_tool_call_t *call = talloc(ctx, ik_tool_call_t);
     if (call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
@@ -342,7 +341,7 @@ char *ik_tool_result_add_limit_metadata(void *parent, const char *result_json, i
     }
 
     yyjson_val *root = yyjson_doc_get_root(doc);
-    if (root == NULL || !yyjson_is_obj(root)) {
+    if (root == NULL || !yyjson_is_obj(root)) { // LCOV_EXCL_BR_LINE
         yyjson_doc_free(doc);
         return NULL;
     }

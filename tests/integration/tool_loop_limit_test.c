@@ -150,8 +150,7 @@ static int count_messages(ik_db_ctx_t *db_ctx, int64_t sid, const char *kind)
     return count;
 }
 
-START_TEST(test_tool_result_add_limit_metadata)
-{
+START_TEST(test_tool_result_add_limit_metadata) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *result_json = "{\"output\": \"found errors\", \"count\": 3}";
     int32_t max_tool_turns = 3;
@@ -175,9 +174,7 @@ START_TEST(test_tool_result_add_limit_metadata)
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
-END_TEST
-
-START_TEST(test_tool_loop_limit_end_to_end)
+END_TEST START_TEST(test_tool_loop_limit_end_to_end)
 {
     SKIP_IF_NO_DB();
 
@@ -190,8 +187,10 @@ START_TEST(test_tool_loop_limit_end_to_end)
     const char *tool_arguments_1 = "{\"pattern\": \"error\", \"path\": \"src/main.c\"}";
 
     char *tool_call_data_1 = talloc_asprintf(test_ctx,
-        "{\"id\": \"%s\", \"type\": \"function\", \"function\": {\"name\": \"%s\", \"arguments\": %s}}",
-        tool_call_id_1, tool_name, tool_arguments_1);
+                                             "{\"id\": \"%s\", \"type\": \"function\", \"function\": {\"name\": \"%s\", \"arguments\": %s}}",
+                                             tool_call_id_1,
+                                             tool_name,
+                                             tool_arguments_1);
 
     res = ik_db_message_insert(db, session_id, "tool_call", NULL, tool_call_data_1);
     ck_assert(!res.is_err);
@@ -204,7 +203,7 @@ START_TEST(test_tool_loop_limit_end_to_end)
         tool_result_1,
         true,
         "Found 1 match"
-    );
+        );
     ck_assert_ptr_nonnull(tool_result_msg_1);
 
     res = ik_db_message_insert(db, session_id, "tool_result",
@@ -214,8 +213,10 @@ START_TEST(test_tool_loop_limit_end_to_end)
 
     const char *tool_call_id_2 = "call_grep2";
     char *tool_call_data_2 = talloc_asprintf(test_ctx,
-        "{\"id\": \"%s\", \"type\": \"function\", \"function\": {\"name\": \"%s\", \"arguments\": "
-        "{\"pattern\": \"error\", \"path\": \"src/config.c\"}}}", tool_call_id_2, tool_name);
+                                             "{\"id\": \"%s\", \"type\": \"function\", \"function\": {\"name\": \"%s\", \"arguments\": "
+                                             "{\"pattern\": \"error\", \"path\": \"src/config.c\"}}}",
+                                             tool_call_id_2,
+                                             tool_name);
 
     res = ik_db_message_insert(db, session_id, "tool_call", NULL, tool_call_data_2);
     ck_assert(!res.is_err);
@@ -229,7 +230,7 @@ START_TEST(test_tool_loop_limit_end_to_end)
         tool_result_2,
         true,
         "Found 1 match"
-    );
+        );
 
     res = ik_db_message_insert(db, session_id, "tool_result",
                                tool_result_msg_2->content,
@@ -238,8 +239,10 @@ START_TEST(test_tool_loop_limit_end_to_end)
 
     const char *tool_call_id_3 = "call_grep3";
     char *tool_call_data_3 = talloc_asprintf(test_ctx,
-        "{\"id\": \"%s\", \"type\": \"function\", \"function\": {\"name\": \"%s\", \"arguments\": "
-        "{\"pattern\": \"error\", \"path\": \"src/parser.c\"}}}", tool_call_id_3, tool_name);
+                                             "{\"id\": \"%s\", \"type\": \"function\", \"function\": {\"name\": \"%s\", \"arguments\": "
+                                             "{\"pattern\": \"error\", \"path\": \"src/parser.c\"}}}",
+                                             tool_call_id_3,
+                                             tool_name);
 
     res = ik_db_message_insert(db, session_id, "tool_call", NULL, tool_call_data_3);
     ck_assert(!res.is_err);
@@ -263,23 +266,26 @@ START_TEST(test_tool_loop_limit_end_to_end)
         tool_result_3_with_limit,
         true,
         "Found 1 match (limit reached)"
-    );
+        );
 
     res = ik_db_message_insert(db, session_id, "tool_result",
                                tool_result_msg_3->content,
                                tool_result_msg_3->data_json);
     ck_assert(!res.is_err);
 
-    res = ik_db_message_insert(db, session_id, "assistant",
-        "I searched but reached the tool call limit (3 calls). Found errors in main.c, config.c, parser.c.",
-        "{\"model\": \"gpt-4o-mini\", \"finish_reason\": \"stop\"}");
+    res = ik_db_message_insert(db,
+                               session_id,
+                               "assistant",
+                               "I searched but reached the tool call limit (3 calls). Found errors in main.c, config.c, parser.c.",
+                               "{\"model\": \"gpt-4o-mini\", \"finish_reason\": \"stop\"}");
     ck_assert(!res.is_err);
     ck_assert_int_eq(count_messages(db, session_id, NULL), 8);
     ck_assert_int_eq(count_messages(db, session_id, "user"), 1);
     ck_assert_int_eq(count_messages(db, session_id, "tool_call"), 3);
     ck_assert_int_eq(count_messages(db, session_id, "tool_result"), 3);
     ck_assert_int_eq(count_messages(db, session_id, "assistant"), 1);
-    const char *query = "SELECT data FROM messages WHERE session_id = $1 AND kind = 'tool_result' ORDER BY id DESC LIMIT 1";
+    const char *query =
+        "SELECT data FROM messages WHERE session_id = $1 AND kind = 'tool_result' ORDER BY id DESC LIMIT 1";
     char *session_id_str = talloc_asprintf(test_ctx, "%lld", (long long)session_id);
     const char *params[] = {session_id_str};
 
@@ -297,9 +303,8 @@ START_TEST(test_tool_loop_limit_end_to_end)
     yyjson_doc_free(data_doc);
     PQclear(result);
 }
-END_TEST
 
-START_TEST(test_request_serialization_with_tool_choice)
+END_TEST START_TEST(test_request_serialization_with_tool_choice)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -330,6 +335,7 @@ START_TEST(test_request_serialization_with_tool_choice)
     yyjson_doc_free(doc_limit);
     talloc_free(ctx);
 }
+
 END_TEST
 
 // ========== Test Suite ==========

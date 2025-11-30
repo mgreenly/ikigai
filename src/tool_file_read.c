@@ -63,7 +63,7 @@ res_t ik_tool_exec_file_read(void *parent, const char *path)
     if (fseek_(f, 0, SEEK_END) != 0) {
         fclose_(f);
         char *error_json = talloc_asprintf(parent,
-            "{\"success\": false, \"error\": \"Cannot seek file: %s\"}", path);
+                                           "{\"success\": false, \"error\": \"Cannot seek file: %s\"}", path);
         if (error_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         return OK(error_json);
     }
@@ -72,7 +72,7 @@ res_t ik_tool_exec_file_read(void *parent, const char *path)
     if (size < 0) {
         fclose_(f);
         char *error_json = talloc_asprintf(parent,
-            "{\"success\": false, \"error\": \"Cannot get file size: %s\"}", path);
+                                           "{\"success\": false, \"error\": \"Cannot get file size: %s\"}", path);
         if (error_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         return OK(error_json);
     }
@@ -80,7 +80,7 @@ res_t ik_tool_exec_file_read(void *parent, const char *path)
     if (fseek_(f, 0, SEEK_SET) != 0) {
         fclose_(f);
         char *error_json = talloc_asprintf(parent,
-            "{\"success\": false, \"error\": \"Cannot rewind file: %s\"}", path);
+                                           "{\"success\": false, \"error\": \"Cannot rewind file: %s\"}", path);
         if (error_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         return OK(error_json);
     }
@@ -99,7 +99,7 @@ res_t ik_tool_exec_file_read(void *parent, const char *path)
 
     if (bytes_read != file_size) {
         char *error_json = talloc_asprintf(parent,
-            "{\"success\": false, \"error\": \"Failed to read file: %s\"}", path);
+                                           "{\"success\": false, \"error\": \"Failed to read file: %s\"}", path);
         if (error_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         return OK(error_json);
     }

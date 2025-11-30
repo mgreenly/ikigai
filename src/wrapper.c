@@ -174,6 +174,11 @@ MOCKABLE size_t fread_(void *ptr, size_t size, size_t nmemb, FILE *stream)
     return fread(ptr, size, nmemb, stream);
 }
 
+MOCKABLE size_t fwrite_(const void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+    return fwrite(ptr, size, nmemb, stream);
+}
+
 MOCKABLE FILE *fopen_(const char *pathname, const char *mode)
 {
     return fopen(pathname, mode);

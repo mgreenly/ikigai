@@ -146,7 +146,7 @@ ik_message_t *ik_msg_create_tool_result(void *parent,
 
     // Convert to JSON string
     size_t len = 0;
-    const char *json_str = yyjson_mut_write(doc, 0, &len);
+    char *json_str = yyjson_mut_write(doc, 0, &len);
     if (!json_str) {  // LCOV_EXCL_BR_LINE
         yyjson_mut_doc_free(doc);  // LCOV_EXCL_LINE
         PANIC("Out of memory");  // LCOV_EXCL_LINE
@@ -155,9 +155,13 @@ ik_message_t *ik_msg_create_tool_result(void *parent,
     // Copy JSON string to message (child of msg)
     msg->data_json = talloc_strdup(msg, json_str);
     if (!msg->data_json) {  // LCOV_EXCL_BR_LINE
+        free(json_str);  // LCOV_EXCL_LINE
         yyjson_mut_doc_free(doc);  // LCOV_EXCL_LINE
         PANIC("Out of memory");  // LCOV_EXCL_LINE
     }
+
+    // Free the JSON string allocated by yyjson_mut_write
+    free(json_str);
 
     // Clean up yyjson document
     yyjson_mut_doc_free(doc);

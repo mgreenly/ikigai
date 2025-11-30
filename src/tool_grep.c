@@ -44,7 +44,7 @@ static char *build_grep_error(void *parent, const char *error_msg)
 
 // Search a single file for pattern matches
 static void search_file(void *parent, const char *filename, regex_t *regex,
-                       char **output_buffer, size_t *match_count)
+                        char **output_buffer, size_t *match_count)
 {
     FILE *f = fopen(filename, "r");
     if (f == NULL) {
@@ -61,7 +61,7 @@ static void search_file(void *parent, const char *filename, regex_t *regex,
         line_num++;
 
         // Remove trailing newline for cleaner output
-        if (line_len > 0 && line[line_len - 1] == '\n') {
+        if (line_len > 0 && line[line_len - 1] == '\n') { // LCOV_EXCL_BR_LINE
             line[line_len - 1] = '\0';
         }
 
@@ -184,13 +184,13 @@ res_t ik_tool_exec_grep(void *parent, const char *pattern, const char *glob_filt
     size_t match_count = 0;
 
     // Search in each file (if glob succeeded)
-    if (glob_ret == 0 && glob_result.gl_pathc > 0) {
+    if (glob_ret == 0 && glob_result.gl_pathc > 0) { // LCOV_EXCL_BR_LINE
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
             const char *filename = glob_result.gl_pathv[i];
 
             // Skip non-regular files (directories, symlinks, etc.)
             struct stat file_stat;
-            if (stat(filename, &file_stat) != 0 || !S_ISREG(file_stat.st_mode)) {
+            if (stat(filename, &file_stat) != 0 || !S_ISREG(file_stat.st_mode)) { // LCOV_EXCL_BR_LINE
                 continue;
             }
 

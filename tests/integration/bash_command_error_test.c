@@ -179,8 +179,7 @@ static char *get_message_content(ik_db_ctx_t *db_ctx, int64_t sid, const char *k
 }
 
 // Test 1: Tool execution returns non-zero exit code in JSON format
-START_TEST(test_bash_command_returns_error_exit_code)
-{
+START_TEST(test_bash_command_returns_error_exit_code) {
     SKIP_IF_NO_DB();
 
     // Execute a command that will fail (false command always returns 1)
@@ -215,7 +214,6 @@ START_TEST(test_bash_command_returns_error_exit_code)
     yyjson_doc_free(doc);
 }
 END_TEST
-
 // Test 2: Tool execution with command that produces error output
 START_TEST(test_bash_command_with_stderr_output)
 {
@@ -248,8 +246,8 @@ START_TEST(test_bash_command_with_stderr_output)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 // Test 3: Conversation with bash tool call and error result persists correctly
 START_TEST(test_bash_error_conversation_persistence)
 {
@@ -270,7 +268,7 @@ START_TEST(test_bash_error_conversation_persistence)
 
     // Persist user message to database
     res_t insert_res = ik_db_message_insert(db, session_id, "user",
-                                             "Compile the project with gcc main.c", NULL);
+                                            "Compile the project with gcc main.c", NULL);
     ck_assert(!insert_res.is_err);
 
     // Verify user message was persisted
@@ -286,7 +284,7 @@ START_TEST(test_bash_error_conversation_persistence)
         "bash",
         "{\"command\": \"gcc main.c\"}",
         "bash(command=\"gcc main.c\")"
-    );
+        );
     ck_assert_ptr_nonnull(tool_call_msg);
 
     add_res = ik_openai_conversation_add_msg(conv, tool_call_msg);
@@ -294,8 +292,8 @@ START_TEST(test_bash_error_conversation_persistence)
 
     // Persist assistant tool call to database
     insert_res = ik_db_message_insert(db, session_id, "assistant",
-                                       "bash(command=\"gcc main.c\")",
-                                       tool_call_msg->data_json);
+                                      "bash(command=\"gcc main.c\")",
+                                      tool_call_msg->data_json);
     ck_assert(!insert_res.is_err);
 
     // Step 3: Execute bash tool (this would fail with missing object files)
@@ -331,18 +329,19 @@ START_TEST(test_bash_error_conversation_persistence)
         tool_output,
         true,  // success = true (tool executed, even though command failed)
         "Command failed with non-zero exit code"
-    );
+        );
     ck_assert_ptr_nonnull(tool_result_msg);
 
     // Persist tool result to database
     insert_res = ik_db_message_insert(db, session_id, "tool_result",
-                                       tool_result_msg->content,
-                                       tool_result_msg->data_json);
+                                      tool_result_msg->content,
+                                      tool_result_msg->data_json);
     ck_assert(!insert_res.is_err);
 
     // Step 5: Model responds with explanation (simulated)
-    res_t assistant_msg_res = ik_openai_msg_create(test_ctx, "assistant",
-        "The compilation failed. GCC reported an error. The file does not exist.");
+    res_t assistant_msg_res = ik_openai_msg_create(test_ctx,
+                                                   "assistant",
+                                                   "The compilation failed. GCC reported an error. The file does not exist.");
     ck_assert(!assistant_msg_res.is_err);
     ik_openai_msg_t *assistant_msg = assistant_msg_res.ok;
 
@@ -351,7 +350,7 @@ START_TEST(test_bash_error_conversation_persistence)
 
     // Persist assistant response to database
     insert_res = ik_db_message_insert(db, session_id, "assistant",
-                                       assistant_msg->content, NULL);
+                                      assistant_msg->content, NULL);
     ck_assert(!insert_res.is_err);
 
     // Verify complete conversation was persisted
@@ -369,8 +368,8 @@ START_TEST(test_bash_error_conversation_persistence)
               strstr(tool_result_content, "exit") != NULL);
     free(tool_result_content);
 }
-END_TEST
 
+END_TEST
 // Test 4: Tool dispatcher handles bash tool correctly
 START_TEST(test_tool_dispatcher_bash_with_error)
 {
@@ -402,8 +401,8 @@ START_TEST(test_tool_dispatcher_bash_with_error)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 // Test 5: Multiple bash failures in sequence persist correctly
 START_TEST(test_multiple_bash_failures_persistence)
 {
@@ -430,18 +429,19 @@ START_TEST(test_multiple_bash_failures_persistence)
             tool_res.ok,
             true,
             "Command execution result"
-        );
+            );
         ck_assert_ptr_nonnull(tool_result_msg);
 
         res_t insert_res = ik_db_message_insert(db, session_id, "tool_result",
-                                                 tool_result_msg->content,
-                                                 tool_result_msg->data_json);
+                                                tool_result_msg->content,
+                                                tool_result_msg->data_json);
         ck_assert(!insert_res.is_err);
     }
 
     // Verify all tool results were persisted
     ck_assert_int_eq(count_messages(db, session_id, "tool_result"), 3);
 }
+
 END_TEST
 
 // Test suite

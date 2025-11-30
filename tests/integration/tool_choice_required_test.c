@@ -131,8 +131,7 @@ static void test_teardown(void)
  * Verify that ik_openai_serialize_request includes "tool_choice": "required"
  * when using ik_tool_choice_required().
  */
-START_TEST(test_request_has_tool_choice_required)
-{
+START_TEST(test_request_has_tool_choice_required) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create minimal config
@@ -185,7 +184,6 @@ START_TEST(test_request_has_tool_choice_required)
     talloc_free(ctx);
 }
 END_TEST
-
 // ========== Test: End-to-end required tool choice flow ==========
 
 /**
@@ -214,8 +212,10 @@ START_TEST(test_tool_choice_required_end_to_end)
 
     // Build tool_call message data_json
     char *tool_call_data = talloc_asprintf(test_ctx,
-        "{\"id\": \"%s\", \"type\": \"function\", \"function\": {\"name\": \"%s\", \"arguments\": %s}}",
-        tool_call_id, tool_name, tool_arguments);
+                                           "{\"id\": \"%s\", \"type\": \"function\", \"function\": {\"name\": \"%s\", \"arguments\": %s}}",
+                                           tool_call_id,
+                                           tool_name,
+                                           tool_arguments);
     ck_assert_ptr_nonnull(tool_call_data);
 
     // Persist tool_call message to database
@@ -269,7 +269,7 @@ START_TEST(test_tool_choice_required_end_to_end)
         tool_result_json,
         yyjson_get_bool(success),
         content
-    );
+        );
     ck_assert_ptr_nonnull(tool_result_msg);
 
     // Step 5: Persist tool_result message to database
@@ -283,8 +283,8 @@ START_TEST(test_tool_choice_required_end_to_end)
     // Step 6: Model provides final formatted response (now using auto mode)
     // In real flow, this would be sent to OpenAI with tool_result in conversation
     const char *assistant_response = talloc_asprintf(test_ctx,
-        "I found the following C files in src/:\n\n%s",
-        output_str);
+                                                     "I found the following C files in src/:\n\n%s",
+                                                     output_str);
 
     res = ik_db_message_insert(db, session_id, "assistant", assistant_response,
                                "{\"model\": \"gpt-4o-mini\", \"finish_reason\": \"stop\"}");
@@ -358,8 +358,8 @@ START_TEST(test_tool_choice_required_end_to_end)
     ck_assert_int_eq(tool_result_count, 1);  // Tool WAS executed
     PQclear(tool_result_result);
 }
-END_TEST
 
+END_TEST
 // ========== Test: Verify required constructor ==========
 
 /**
@@ -371,6 +371,7 @@ START_TEST(test_tool_choice_required_constructor)
     ck_assert_int_eq(choice.mode, IK_TOOL_CHOICE_REQUIRED);
     ck_assert_ptr_null(choice.tool_name);
 }
+
 END_TEST
 
 // ========== Test Suite ==========

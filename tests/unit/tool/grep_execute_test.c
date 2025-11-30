@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <talloc.h>
 #include <unistd.h>
 
@@ -99,9 +100,7 @@ START_TEST(test_grep_exec_with_matches) {
     unlink(file3);
     rmdir(dir);
 }
-END_TEST
-
-START_TEST(test_grep_exec_no_matches)
+END_TEST START_TEST(test_grep_exec_no_matches)
 {
     // Create temporary test directory with no matching content
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
@@ -145,9 +144,8 @@ START_TEST(test_grep_exec_no_matches)
     unlink(file1);
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_grep_exec_with_glob_filter)
+END_TEST START_TEST(test_grep_exec_with_glob_filter)
 {
     // Create temporary test directory
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
@@ -198,9 +196,8 @@ START_TEST(test_grep_exec_with_glob_filter)
     unlink(file2);
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_grep_exec_null_path_uses_cwd)
+END_TEST START_TEST(test_grep_exec_null_path_uses_cwd)
 {
     // Create a temp file in current directory
     char oldcwd[256];
@@ -242,9 +239,8 @@ START_TEST(test_grep_exec_null_path_uses_cwd)
     unlink(file_path);
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_grep_exec_multiline_match)
+END_TEST START_TEST(test_grep_exec_multiline_match)
 {
     // Test that line numbers are correct
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
@@ -284,6 +280,7 @@ START_TEST(test_grep_exec_multiline_match)
     unlink(file1);
     rmdir(dir);
 }
+
 END_TEST
 
 // Test suite

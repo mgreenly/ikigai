@@ -31,16 +31,15 @@ START_TEST(test_tool_call_message_create) {
         "glob",
         "{\"pattern\": \"*.c\", \"path\": \"src/\"}",
         "glob(pattern=\"*.c\", path=\"src/\")"
-    );
+        );
 
     ck_assert_ptr_nonnull(msg);
     ck_assert_str_eq(msg->role, "tool_call");
     ck_assert_str_eq(msg->content, "glob(pattern=\"*.c\", path=\"src/\")");
     ck_assert_ptr_nonnull(msg->data_json);
 }
-END_TEST
-
-START_TEST(test_tool_call_message_data_json_structure) {
+END_TEST START_TEST(test_tool_call_message_data_json_structure)
+{
     ik_openai_msg_t *msg = ik_openai_msg_create_tool_call(
         ctx,
         "call_xyz789",
@@ -48,7 +47,7 @@ START_TEST(test_tool_call_message_data_json_structure) {
         "file_read",
         "{\"path\": \"/etc/passwd\"}",
         "file_read(path=\"/etc/passwd\")"
-    );
+        );
 
     ck_assert_ptr_nonnull(msg->data_json);
 
@@ -81,9 +80,9 @@ START_TEST(test_tool_call_message_data_json_structure) {
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_tool_call_message_talloc_hierarchy) {
+END_TEST START_TEST(test_tool_call_message_talloc_hierarchy)
+{
     ik_openai_msg_t *msg = ik_openai_msg_create_tool_call(
         ctx,
         "call_test",
@@ -91,7 +90,7 @@ START_TEST(test_tool_call_message_talloc_hierarchy) {
         "test_func",
         "{}",
         "test()"
-    );
+        );
 
     /* Message should be child of ctx */
     ck_assert_ptr_eq(talloc_parent(msg), ctx);
@@ -101,9 +100,9 @@ START_TEST(test_tool_call_message_talloc_hierarchy) {
     ck_assert_ptr_eq(talloc_parent(msg->content), msg);
     ck_assert_ptr_eq(talloc_parent(msg->data_json), msg);
 }
-END_TEST
 
-START_TEST(test_tool_call_message_empty_arguments) {
+END_TEST START_TEST(test_tool_call_message_empty_arguments)
+{
     ik_openai_msg_t *msg = ik_openai_msg_create_tool_call(
         ctx,
         "call_empty",
@@ -111,7 +110,7 @@ START_TEST(test_tool_call_message_empty_arguments) {
         "no_args_func",
         "{}",
         "no_args_func()"
-    );
+        );
 
     ck_assert_ptr_nonnull(msg->data_json);
 
@@ -125,9 +124,9 @@ START_TEST(test_tool_call_message_empty_arguments) {
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_tool_call_message_complex_arguments) {
+END_TEST START_TEST(test_tool_call_message_complex_arguments)
+{
     const char *complex_args = "{\"nested\": {\"key\": \"value\"}, \"array\": [1, 2, 3]}";
     ik_openai_msg_t *msg = ik_openai_msg_create_tool_call(
         ctx,
@@ -136,7 +135,7 @@ START_TEST(test_tool_call_message_complex_arguments) {
         "complex_func",
         complex_args,
         "complex_func(nested={key=value}, array=[1, 2, 3])"
-    );
+        );
 
     ck_assert_ptr_nonnull(msg->data_json);
 
@@ -150,13 +149,14 @@ START_TEST(test_tool_call_message_complex_arguments) {
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 /*
  * Serialization tests for tool_call messages
  */
 
-START_TEST(test_serialize_tool_call_message) {
+START_TEST(test_serialize_tool_call_message)
+{
     /* Create conversation with tool_call message */
     res_t conv_res = ik_openai_conversation_create(ctx);
     ck_assert(!conv_res.is_err);
@@ -169,7 +169,7 @@ START_TEST(test_serialize_tool_call_message) {
         "glob",
         "{\"pattern\": \"*.c\"}",
         "glob(pattern=\"*.c\")"
-    );
+        );
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -232,9 +232,9 @@ START_TEST(test_serialize_tool_call_message) {
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_serialize_mixed_messages) {
+END_TEST START_TEST(test_serialize_mixed_messages)
+{
     /* Create conversation with both user and tool_call messages */
     res_t conv_res = ik_openai_conversation_create(ctx);
     ck_assert(!conv_res.is_err);
@@ -254,7 +254,7 @@ START_TEST(test_serialize_mixed_messages) {
         "glob",
         "{\"pattern\": \"*.c\", \"path\": \"src/\"}",
         "glob(pattern=\"*.c\", path=\"src/\")"
-    );
+        );
     res_t add_tool = ik_openai_conversation_add_msg(conv, tool_msg);
     ck_assert(!add_tool.is_err);
 
@@ -310,14 +310,14 @@ START_TEST(test_serialize_mixed_messages) {
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 /*
  * Test suite
  */
 
-static Suite *
-client_tool_call_suite(void)
+static Suite *client_tool_call_suite(void)
 {
     Suite *s = suite_create("OpenAI Tool Call Messages");
     TCase *tc_core = tcase_create("Core");
@@ -340,8 +340,7 @@ client_tool_call_suite(void)
     return s;
 }
 
-int
-main(void)
+int main(void)
 {
     Suite *s = client_tool_call_suite();
     SRunner *sr = srunner_create(s);

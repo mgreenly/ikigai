@@ -34,7 +34,8 @@ res_t ik_db_message_insert_(void *db,
                             int64_t session_id,
                             const char *kind,
                             const char *content,
-                            const char *data_json) {
+                            const char *data_json)
+{
     // Check if we should fail based on kind
     if (fail_all) {
         return ERR(db, IO, "Mock database error: all persists failing");
@@ -167,8 +168,7 @@ static void test_teardown(void)
  * - tool_result persist is attempted and succeeds
  * - Both messages are in conversation memory
  */
-START_TEST(test_tool_call_persist_fails_result_succeeds)
-{
+START_TEST(test_tool_call_persist_fails_result_succeeds) {
     SKIP_IF_NO_DB();
 
     // Set mock to fail tool_call persist
@@ -176,7 +176,8 @@ START_TEST(test_tool_call_persist_fails_result_succeeds)
 
     // Try to persist tool_call - should fail but be non-fatal
     const char *tool_call_content = "glob(pattern='*.c', path='src/')";
-    const char *tool_call_data = "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
+    const char *tool_call_data =
+        "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
 
     res_t res = ik_db_message_insert_(db, session_id, "tool_call", tool_call_content, tool_call_data);
 
@@ -188,7 +189,8 @@ START_TEST(test_tool_call_persist_fails_result_succeeds)
 
     // Now persist tool_result - should succeed
     const char *tool_result_content = "3 files found";
-    const char *tool_result_data = "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
+    const char *tool_result_data =
+        "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
 
     res = ik_db_message_insert_(db, session_id, "tool_result", tool_result_content, tool_result_data);
 
@@ -199,7 +201,6 @@ START_TEST(test_tool_call_persist_fails_result_succeeds)
     // This test verifies the persistence layer behavior only
 }
 END_TEST
-
 /*
  * Test: tool_result persist fails, tool_call persist succeeds
  *
@@ -219,7 +220,8 @@ START_TEST(test_tool_result_persist_fails_call_succeeds)
 
     // Persist tool_call - should succeed
     const char *tool_call_content = "glob(pattern='*.c', path='src/')";
-    const char *tool_call_data = "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
+    const char *tool_call_data =
+        "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
 
     res_t res = ik_db_message_insert_(db, session_id, "tool_call", tool_call_content, tool_call_data);
 
@@ -228,7 +230,8 @@ START_TEST(test_tool_result_persist_fails_call_succeeds)
 
     // Now try to persist tool_result - should fail
     const char *tool_result_content = "3 files found";
-    const char *tool_result_data = "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
+    const char *tool_result_data =
+        "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
 
     res = ik_db_message_insert_(db, session_id, "tool_result", tool_result_content, tool_result_data);
 
@@ -240,8 +243,8 @@ START_TEST(test_tool_result_persist_fails_call_succeeds)
 
     // Note: In real code, conversation memory would have both messages
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Both tool_call and tool_result persist fail
  *
@@ -260,7 +263,8 @@ START_TEST(test_both_persists_fail)
 
     // Try to persist tool_call - should fail
     const char *tool_call_content = "glob(pattern='*.c', path='src/')";
-    const char *tool_call_data = "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
+    const char *tool_call_data =
+        "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
 
     res_t res = ik_db_message_insert_(db, session_id, "tool_call", tool_call_content, tool_call_data);
 
@@ -271,7 +275,8 @@ START_TEST(test_both_persists_fail)
 
     // Try to persist tool_result - should also fail
     const char *tool_result_content = "3 files found";
-    const char *tool_result_data = "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
+    const char *tool_result_data =
+        "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
 
     res = ik_db_message_insert_(db, session_id, "tool_result", tool_result_content, tool_result_data);
 
@@ -283,8 +288,8 @@ START_TEST(test_both_persists_fail)
     // Note: In real code, conversation memory would have both messages
     // and the tool loop would continue
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Verify error returns proper error object (not crash)
  *
@@ -300,7 +305,8 @@ START_TEST(test_error_object_lifetime)
 
     // Persist tool_call - should fail
     const char *tool_call_content = "glob(pattern='*.c', path='src/')";
-    const char *tool_call_data = "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
+    const char *tool_call_data =
+        "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
 
     res_t res = ik_db_message_insert_(db, session_id, "tool_call", tool_call_content, tool_call_data);
 
@@ -316,6 +322,7 @@ START_TEST(test_error_object_lifetime)
     // Free error (should not crash)
     talloc_free(res.err);
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

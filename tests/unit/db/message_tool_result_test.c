@@ -23,8 +23,7 @@ static void teardown(void)
  * Basic creation tests
  */
 
-START_TEST(test_tool_result_message_create_returns_nonnull)
-{
+START_TEST(test_tool_result_message_create_returns_nonnull) {
     ik_message_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -32,12 +31,10 @@ START_TEST(test_tool_result_message_create_returns_nonnull)
         "src/main.c\nsrc/config.c\nsrc/repl.c",
         true,
         "3 files found"
-    );
+        );
     ck_assert_ptr_nonnull(msg);
 }
-END_TEST
-
-START_TEST(test_tool_result_message_kind_is_tool_result)
+END_TEST START_TEST(test_tool_result_message_kind_is_tool_result)
 {
     ik_message_t *msg = ik_msg_create_tool_result(
         ctx,
@@ -46,13 +43,12 @@ START_TEST(test_tool_result_message_kind_is_tool_result)
         "src/main.c\nsrc/config.c\nsrc/repl.c",
         true,
         "3 files found"
-    );
+        );
     ck_assert_ptr_nonnull(msg);
     ck_assert_str_eq(msg->kind, "tool_result");
 }
-END_TEST
 
-START_TEST(test_tool_result_message_content_is_summary)
+END_TEST START_TEST(test_tool_result_message_content_is_summary)
 {
     ik_message_t *msg = ik_msg_create_tool_result(
         ctx,
@@ -61,13 +57,12 @@ START_TEST(test_tool_result_message_content_is_summary)
         "src/main.c\nsrc/config.c\nsrc/repl.c",
         true,
         "3 files found"
-    );
+        );
     ck_assert_ptr_nonnull(msg);
     ck_assert_str_eq(msg->content, "3 files found");
 }
-END_TEST
 
-START_TEST(test_tool_result_message_data_json_contains_tool_call_id)
+END_TEST START_TEST(test_tool_result_message_data_json_contains_tool_call_id)
 {
     ik_message_t *msg = ik_msg_create_tool_result(
         ctx,
@@ -76,14 +71,13 @@ START_TEST(test_tool_result_message_data_json_contains_tool_call_id)
         "src/main.c\nsrc/config.c\nsrc/repl.c",
         true,
         "3 files found"
-    );
+        );
     ck_assert_ptr_nonnull(msg);
     ck_assert_ptr_nonnull(msg->data_json);
     ck_assert_ptr_nonnull(strstr(msg->data_json, "call_abc123"));
 }
-END_TEST
 
-START_TEST(test_tool_result_message_data_json_contains_name)
+END_TEST START_TEST(test_tool_result_message_data_json_contains_name)
 {
     ik_message_t *msg = ik_msg_create_tool_result(
         ctx,
@@ -92,14 +86,13 @@ START_TEST(test_tool_result_message_data_json_contains_name)
         "src/main.c\nsrc/config.c\nsrc/repl.c",
         true,
         "3 files found"
-    );
+        );
     ck_assert_ptr_nonnull(msg);
     ck_assert_ptr_nonnull(msg->data_json);
     ck_assert_ptr_nonnull(strstr(msg->data_json, "glob"));
 }
-END_TEST
 
-START_TEST(test_tool_result_message_data_json_contains_output)
+END_TEST START_TEST(test_tool_result_message_data_json_contains_output)
 {
     ik_message_t *msg = ik_msg_create_tool_result(
         ctx,
@@ -108,14 +101,13 @@ START_TEST(test_tool_result_message_data_json_contains_output)
         "src/main.c\nsrc/config.c\nsrc/repl.c",
         true,
         "3 files found"
-    );
+        );
     ck_assert_ptr_nonnull(msg);
     ck_assert_ptr_nonnull(msg->data_json);
     ck_assert_ptr_nonnull(strstr(msg->data_json, "src/main.c"));
 }
-END_TEST
 
-START_TEST(test_tool_result_message_data_json_contains_success)
+END_TEST START_TEST(test_tool_result_message_data_json_contains_success)
 {
     ik_message_t *msg = ik_msg_create_tool_result(
         ctx,
@@ -124,15 +116,15 @@ START_TEST(test_tool_result_message_data_json_contains_success)
         "src/main.c\nsrc/config.c\nsrc/repl.c",
         true,
         "3 files found"
-    );
+        );
     ck_assert_ptr_nonnull(msg);
     ck_assert_ptr_nonnull(msg->data_json);
     // Check for "success":true (allowing for variations in JSON formatting)
     ck_assert_ptr_nonnull(strstr(msg->data_json, "success"));
     ck_assert_ptr_nonnull(strstr(msg->data_json, "true"));
 }
-END_TEST
 
+END_TEST
 /*
  * Talloc hierarchy tests
  */
@@ -146,7 +138,7 @@ START_TEST(test_tool_result_message_talloc_hierarchy)
         "src/main.c\nsrc/config.c\nsrc/repl.c",
         true,
         "3 files found"
-    );
+        );
     ck_assert_ptr_nonnull(msg);
 
     /* Message should be child of ctx */
@@ -157,8 +149,8 @@ START_TEST(test_tool_result_message_talloc_hierarchy)
     ck_assert_ptr_eq(talloc_parent(msg->content), msg);
     ck_assert_ptr_eq(talloc_parent(msg->data_json), msg);
 }
-END_TEST
 
+END_TEST
 /*
  * Different content strings
  */
@@ -172,14 +164,13 @@ START_TEST(test_tool_result_message_with_different_summary)
         "file contents here",
         true,
         "File read successfully"
-    );
+        );
     ck_assert_ptr_nonnull(msg);
     ck_assert_str_eq(msg->content, "File read successfully");
     ck_assert_str_eq(msg->kind, "tool_result");
 }
-END_TEST
 
-START_TEST(test_tool_result_message_success_false)
+END_TEST START_TEST(test_tool_result_message_success_false)
 {
     ik_message_t *msg = ik_msg_create_tool_result(
         ctx,
@@ -188,12 +179,13 @@ START_TEST(test_tool_result_message_success_false)
         "Permission denied",
         false,
         "Command failed"
-    );
+        );
     ck_assert_ptr_nonnull(msg);
     ck_assert_str_eq(msg->content, "Command failed");
     ck_assert_ptr_nonnull(msg->data_json);
     ck_assert_ptr_nonnull(strstr(msg->data_json, "false"));
 }
+
 END_TEST
 
 /*

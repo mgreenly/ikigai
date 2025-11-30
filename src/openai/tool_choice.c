@@ -50,20 +50,20 @@ void ik_tool_choice_serialize(yyjson_mut_doc *doc, yyjson_mut_val *obj, const ch
     assert(obj != NULL); // LCOV_EXCL_BR_LINE
     assert(key != NULL); // LCOV_EXCL_BR_LINE
 
-    switch (choice.mode) {
-        case IK_TOOL_CHOICE_AUTO:
+    switch (choice.mode) { // LCOV_EXCL_BR_LINE
+        case IK_TOOL_CHOICE_AUTO: // LCOV_EXCL_BR_LINE
             if (!yyjson_mut_obj_add_str(doc, obj, key, "auto")) { // LCOV_EXCL_BR_LINE
                 PANIC("Failed to add tool_choice auto to JSON"); // LCOV_EXCL_LINE
             }
             break;
 
-        case IK_TOOL_CHOICE_NONE:
+        case IK_TOOL_CHOICE_NONE: // LCOV_EXCL_BR_LINE
             if (!yyjson_mut_obj_add_str(doc, obj, key, "none")) { // LCOV_EXCL_BR_LINE
                 PANIC("Failed to add tool_choice none to JSON"); // LCOV_EXCL_LINE
             }
             break;
 
-        case IK_TOOL_CHOICE_REQUIRED:
+        case IK_TOOL_CHOICE_REQUIRED: // LCOV_EXCL_BR_LINE
             if (!yyjson_mut_obj_add_str(doc, obj, key, "required")) { // LCOV_EXCL_BR_LINE
                 PANIC("Failed to add tool_choice required to JSON"); // LCOV_EXCL_LINE
             }

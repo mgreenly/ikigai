@@ -33,8 +33,7 @@ static void teardown(void)
 /*
  * Test: Should continue when finish_reason is "tool_calls"
  */
-START_TEST(test_should_continue_with_tool_calls)
-{
+START_TEST(test_should_continue_with_tool_calls) {
     /* Set finish_reason to "tool_calls" */
     repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
 

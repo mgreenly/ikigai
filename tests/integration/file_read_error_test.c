@@ -132,8 +132,7 @@ static void test_teardown(void)
  * Test the complete flow of file not found error handling.
  * This test simulates what happens when a user asks to read a non-existent file.
  */
-START_TEST(test_file_read_error_end_to_end)
-{
+START_TEST(test_file_read_error_end_to_end) {
     SKIP_IF_NO_DB();
 
     // Step 1: User message asking to read a non-existent file
@@ -149,8 +148,10 @@ START_TEST(test_file_read_error_end_to_end)
 
     // Build tool_call message data_json
     char *tool_call_data = talloc_asprintf(test_ctx,
-        "{\"id\": \"%s\", \"type\": \"function\", \"function\": {\"name\": \"%s\", \"arguments\": %s}}",
-        tool_call_id, tool_name, tool_arguments);
+                                           "{\"id\": \"%s\", \"type\": \"function\", \"function\": {\"name\": \"%s\", \"arguments\": %s}}",
+                                           tool_call_id,
+                                           tool_name,
+                                           tool_arguments);
     ck_assert_ptr_nonnull(tool_call_data);
 
     // Persist tool_call message to database
@@ -192,7 +193,7 @@ START_TEST(test_file_read_error_end_to_end)
         tool_result_json,
         false,  // success = false
         "File not found: missing.txt"
-    );
+        );
     ck_assert_ptr_nonnull(tool_result_msg);
 
     // Step 5: Persist tool_result message to database
@@ -285,7 +286,6 @@ START_TEST(test_file_read_error_end_to_end)
     PQclear(count_result);
 }
 END_TEST
-
 /**
  * Test that tool execution correctly handles file not found without crashing.
  * This is a simpler unit-style test within the integration suite.
@@ -320,6 +320,7 @@ START_TEST(test_tool_exec_file_read_handles_missing_file)
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
+
 END_TEST
 
 // ========== Test Suite ==========

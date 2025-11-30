@@ -88,9 +88,9 @@ START_TEST(test_file_write_exec_valid) {
     unlink(test_file);
 }
 END_TEST
-
 // Test: file_write with empty content creates empty file
-START_TEST(test_file_write_exec_empty_content) {
+START_TEST(test_file_write_exec_empty_content)
+{
     char test_file[] = "/tmp/ikigai-file-write-test-XXXXXX";
     int fd = mkstemp(test_file);
     ck_assert(fd >= 0);
@@ -134,10 +134,11 @@ START_TEST(test_file_write_exec_empty_content) {
     // Cleanup
     unlink(test_file);
 }
-END_TEST
 
+END_TEST
 // Test: file_write overwrites existing file
-START_TEST(test_file_write_exec_overwrite) {
+START_TEST(test_file_write_exec_overwrite)
+{
     char test_file[] = "/tmp/ikigai-file-write-test-XXXXXX";
     int fd = mkstemp(test_file);
     ck_assert(fd >= 0);
@@ -176,10 +177,11 @@ START_TEST(test_file_write_exec_overwrite) {
     // Cleanup
     unlink(test_file);
 }
-END_TEST
 
+END_TEST
 // Test: file_write to read-only location returns error
-START_TEST(test_file_write_exec_permission_denied) {
+START_TEST(test_file_write_exec_permission_denied)
+{
     const char *readonly_path = "/proc/version";  // Read-only system file
 
     const char *content = "This should fail";
@@ -206,10 +208,11 @@ START_TEST(test_file_write_exec_permission_denied) {
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 // Test: file_write with large content
-START_TEST(test_file_write_exec_large_content) {
+START_TEST(test_file_write_exec_large_content)
+{
     char test_file[] = "/tmp/ikigai-file-write-test-XXXXXX";
     int fd = mkstemp(test_file);
     ck_assert(fd >= 0);
@@ -247,10 +250,11 @@ START_TEST(test_file_write_exec_large_content) {
     // Cleanup
     unlink(test_file);
 }
-END_TEST
 
+END_TEST
 // Test: file_write with special characters
-START_TEST(test_file_write_exec_special_characters) {
+START_TEST(test_file_write_exec_special_characters)
+{
     char test_file[] = "/tmp/ikigai-file-write-test-XXXXXX";
     int fd = mkstemp(test_file);
     ck_assert(fd >= 0);
@@ -282,6 +286,7 @@ START_TEST(test_file_write_exec_special_characters) {
     // Cleanup
     unlink(test_file);
 }
+
 END_TEST
 
 // Mock fopen to fail with specific errno
@@ -318,9 +323,9 @@ START_TEST(test_file_write_exec_eacces_error) {
     mock_fopen_errno = 0;
 }
 END_TEST
-
 // Test: fopen error with ENOSPC
-START_TEST(test_file_write_exec_enospc_error) {
+START_TEST(test_file_write_exec_enospc_error)
+{
     const char *test_file = "/tmp/test";
 
     mock_fopen_errno = ENOSPC;
@@ -341,10 +346,11 @@ START_TEST(test_file_write_exec_enospc_error) {
     yyjson_doc_free(doc);
     mock_fopen_errno = 0;
 }
-END_TEST
 
+END_TEST
 // Test: fopen error with generic errno
-START_TEST(test_file_write_exec_generic_error) {
+START_TEST(test_file_write_exec_generic_error)
+{
     const char *test_file = "/tmp/test";
 
     mock_fopen_errno = ENOMEM;
@@ -365,6 +371,7 @@ START_TEST(test_file_write_exec_generic_error) {
     yyjson_doc_free(doc);
     mock_fopen_errno = 0;
 }
+
 END_TEST
 
 // Mock fwrite to fail

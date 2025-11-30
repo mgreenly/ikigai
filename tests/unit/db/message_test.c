@@ -315,7 +315,8 @@ START_TEST(test_db_message_insert_tool_call_event)
     SKIP_IF_NO_DB();
 
     const char *tool_call_content = "glob(pattern='*.c', path='src/')";
-    const char *data_json = "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
+    const char *data_json =
+        "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
 
     res_t res = ik_db_message_insert(db, session_id, "tool_call", tool_call_content, data_json);
     ck_assert(is_ok(&res));
@@ -345,7 +346,8 @@ START_TEST(test_db_message_insert_tool_result_event)
     SKIP_IF_NO_DB();
 
     const char *tool_result_content = "3 files found";
-    const char *data_json = "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
+    const char *data_json =
+        "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
 
     res_t res = ik_db_message_insert(db, session_id, "tool_result", tool_result_content, data_json);
     ck_assert(is_ok(&res));

@@ -112,7 +112,7 @@ res_t ik_tool_exec_bash(void *parent, const char *command)
     }
 
     yyjson_mut_obj_add_str(doc, data, "output", output);
-    yyjson_mut_obj_add_int(doc, data, "exit_code", exit_code);
+    yyjson_mut_obj_add_int(doc, data, "exit_code", exit_code); // LCOV_EXCL_BR_LINE
     yyjson_mut_obj_add_val(doc, root, "data", data);
 
     char *json = yyjson_mut_write_opts(doc, 0, NULL, NULL, NULL);

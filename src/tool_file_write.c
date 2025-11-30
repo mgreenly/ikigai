@@ -70,7 +70,7 @@ res_t ik_tool_exec_file_write(void *parent, const char *path, const char *conten
         if (bytes_written != content_len) {
             fclose_(f);
             char *error_json = talloc_asprintf(parent,
-                "{\"success\": false, \"error\": \"Failed to write file: %s\"}", path);
+                                               "{\"success\": false, \"error\": \"Failed to write file: %s\"}", path);
             if (error_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
             return OK(error_json);
         }

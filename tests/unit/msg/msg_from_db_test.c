@@ -30,8 +30,7 @@ static ik_message_t *create_test_db_msg(const char *kind, const char *content, c
     return msg;
 }
 
-START_TEST(test_msg_from_db_user)
-{
+START_TEST(test_msg_from_db_user) {
     ik_message_t *db_msg = create_test_db_msg("user", "Hello world", NULL);
 
     res_t res = ik_msg_from_db(test_ctx, db_msg);
@@ -43,9 +42,7 @@ START_TEST(test_msg_from_db_user)
     ck_assert_str_eq(msg->content, "Hello world");
     ck_assert_ptr_null(msg->data_json);
 }
-END_TEST
-
-START_TEST(test_msg_from_db_system)
+END_TEST START_TEST(test_msg_from_db_system)
 {
     ik_message_t *db_msg = create_test_db_msg("system", "You are a helpful assistant", NULL);
 
@@ -58,9 +55,8 @@ START_TEST(test_msg_from_db_system)
     ck_assert_str_eq(msg->content, "You are a helpful assistant");
     ck_assert_ptr_null(msg->data_json);
 }
-END_TEST
 
-START_TEST(test_msg_from_db_assistant)
+END_TEST START_TEST(test_msg_from_db_assistant)
 {
     ik_message_t *db_msg = create_test_db_msg("assistant", "I can help you with that", NULL);
 
@@ -73,11 +69,11 @@ START_TEST(test_msg_from_db_assistant)
     ck_assert_str_eq(msg->content, "I can help you with that");
     ck_assert_ptr_null(msg->data_json);
 }
-END_TEST
 
-START_TEST(test_msg_from_db_tool_call)
+END_TEST START_TEST(test_msg_from_db_tool_call)
 {
-    const char *data_json = "{\"id\":\"call_123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}";
+    const char *data_json =
+        "{\"id\":\"call_123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}";
     ik_message_t *db_msg = create_test_db_msg("tool_call", "glob(pattern=\"*.c\")", data_json);
 
     res_t res = ik_msg_from_db(test_ctx, db_msg);
@@ -89,9 +85,8 @@ START_TEST(test_msg_from_db_tool_call)
     ck_assert_str_eq(msg->content, "glob(pattern=\"*.c\")");
     ck_assert_str_eq(msg->data_json, data_json);
 }
-END_TEST
 
-START_TEST(test_msg_from_db_tool_result)
+END_TEST START_TEST(test_msg_from_db_tool_result)
 {
     const char *data_json = "{\"tool_call_id\":\"call_123\",\"content\":\"file1.c\\nfile2.c\"}";
     ik_message_t *db_msg = create_test_db_msg("tool_result", "file1.c\nfile2.c", data_json);
@@ -105,9 +100,8 @@ START_TEST(test_msg_from_db_tool_result)
     ck_assert_str_eq(msg->content, "file1.c\nfile2.c");
     ck_assert_str_eq(msg->data_json, data_json);
 }
-END_TEST
 
-START_TEST(test_msg_from_db_skip_clear)
+END_TEST START_TEST(test_msg_from_db_skip_clear)
 {
     ik_message_t *db_msg = create_test_db_msg("clear", NULL, "{}");
 
@@ -115,9 +109,8 @@ START_TEST(test_msg_from_db_skip_clear)
     ck_assert(!is_err(&res));
     ck_assert_ptr_null(res.ok);  // Should skip clear events
 }
-END_TEST
 
-START_TEST(test_msg_from_db_skip_mark)
+END_TEST START_TEST(test_msg_from_db_skip_mark)
 {
     ik_message_t *db_msg = create_test_db_msg("mark", NULL, "{\"label\":\"checkpoint\"}");
 
@@ -125,9 +118,8 @@ START_TEST(test_msg_from_db_skip_mark)
     ck_assert(!is_err(&res));
     ck_assert_ptr_null(res.ok);  // Should skip mark events
 }
-END_TEST
 
-START_TEST(test_msg_from_db_skip_rewind)
+END_TEST START_TEST(test_msg_from_db_skip_rewind)
 {
     ik_message_t *db_msg = create_test_db_msg("rewind", NULL, "{\"target_id\":123}");
 
@@ -135,9 +127,8 @@ START_TEST(test_msg_from_db_skip_rewind)
     ck_assert(!is_err(&res));
     ck_assert_ptr_null(res.ok);  // Should skip rewind events
 }
-END_TEST
 
-START_TEST(test_msg_from_db_null_content)
+END_TEST START_TEST(test_msg_from_db_null_content)
 {
     ik_message_t *db_msg = create_test_db_msg("user", NULL, NULL);
 
@@ -150,9 +141,8 @@ START_TEST(test_msg_from_db_null_content)
     ck_assert_ptr_null(msg->content);
     ck_assert_ptr_null(msg->data_json);
 }
-END_TEST
 
-START_TEST(test_msg_from_db_tool_call_null_data_json)
+END_TEST START_TEST(test_msg_from_db_tool_call_null_data_json)
 {
     ik_message_t *db_msg = create_test_db_msg("tool_call", "some content", NULL);
 
@@ -165,6 +155,7 @@ START_TEST(test_msg_from_db_tool_call_null_data_json)
     ck_assert_str_eq(msg->content, "some content");
     ck_assert_ptr_null(msg->data_json);
 }
+
 END_TEST
 
 static Suite *msg_from_db_suite(void)

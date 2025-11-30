@@ -64,9 +64,9 @@ START_TEST(test_bash_exec_echo_command) {
     yyjson_doc_free(doc);
 }
 END_TEST
-
 // Test: bash with command that returns non-zero exit code
-START_TEST(test_bash_exec_nonzero_exit) {
+START_TEST(test_bash_exec_nonzero_exit)
+{
     // Execute bash with false command (always returns 1)
     res_t res = ik_tool_exec_bash(ctx, "false");
     ck_assert(!res.is_err);
@@ -93,10 +93,11 @@ START_TEST(test_bash_exec_nonzero_exit) {
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 // Test: bash with command that has no output
-START_TEST(test_bash_exec_no_output) {
+START_TEST(test_bash_exec_no_output)
+{
     // Execute bash with true command (no output, exit 0)
     res_t res = ik_tool_exec_bash(ctx, "true");
     ck_assert(!res.is_err);
@@ -126,10 +127,11 @@ START_TEST(test_bash_exec_no_output) {
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 // Test: bash with multiline output
-START_TEST(test_bash_exec_multiline_output) {
+START_TEST(test_bash_exec_multiline_output)
+{
     // Execute bash with printf command
     res_t res = ik_tool_exec_bash(ctx, "printf 'line1\\nline2\\nline3'");
     ck_assert(!res.is_err);
@@ -155,10 +157,11 @@ START_TEST(test_bash_exec_multiline_output) {
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 // Test: bash with stderr output
-START_TEST(test_bash_exec_stderr_output) {
+START_TEST(test_bash_exec_stderr_output)
+{
     // Execute bash command that writes to stderr (redirect to stdout with 2>&1)
     res_t res = ik_tool_exec_bash(ctx, "echo error >&2");
     ck_assert(!res.is_err);
@@ -178,10 +181,11 @@ START_TEST(test_bash_exec_stderr_output) {
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 // Test: bash with special characters in output
-START_TEST(test_bash_exec_special_characters) {
+START_TEST(test_bash_exec_special_characters)
+{
     // Execute bash with special characters
     res_t res = ik_tool_exec_bash(ctx, "echo 'Hello World with quotes'");
     ck_assert(!res.is_err);
@@ -200,6 +204,7 @@ START_TEST(test_bash_exec_special_characters) {
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 // Mock popen to return NULL (simulating failure)
@@ -251,11 +256,12 @@ START_TEST(test_bash_exec_popen_failure) {
     mock_popen_should_fail = 0;
 }
 END_TEST
-
 // Test: bash with very long output (triggers buffer reallocation)
-START_TEST(test_bash_exec_long_output) {
+START_TEST(test_bash_exec_long_output)
+{
     // Execute bash that generates long output (more than 4096 bytes to trigger realloc)
-    res_t res = ik_tool_exec_bash(ctx, "seq 1 1000");
+    // seq 1 2000 produces about 7800 bytes, which will trigger reallocation
+    res_t res = ik_tool_exec_bash(ctx, "seq 1 2000");
     ck_assert(!res.is_err);
 
     char *json = res.ok;
@@ -271,17 +277,21 @@ START_TEST(test_bash_exec_long_output) {
 
     // Verify output contains first and last numbers
     ck_assert(strstr(output_str, "1") != NULL);
-    ck_assert(strstr(output_str, "1000") != NULL);
+    ck_assert(strstr(output_str, "2000") != NULL);
+
+    // Verify the output is long enough to have triggered reallocation
+    ck_assert(strlen(output_str) > 4096);
 
     yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
     ck_assert_int_eq(yyjson_get_int(exit_code), 0);
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 // Test: pclose failure returns exit code 127
-START_TEST(test_bash_exec_pclose_failure) {
+START_TEST(test_bash_exec_pclose_failure)
+{
     mock_pclose_should_fail = 1;
 
     res_t res = ik_tool_exec_bash(ctx, "echo test");
@@ -302,6 +312,7 @@ START_TEST(test_bash_exec_pclose_failure) {
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 // Test suite

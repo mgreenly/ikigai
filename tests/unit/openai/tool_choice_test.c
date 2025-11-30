@@ -28,9 +28,9 @@ START_TEST(test_tool_choice_auto) {
     talloc_free(ctx);
 }
 END_TEST
-
 // Test creating tool_choice for "none" mode
-START_TEST(test_tool_choice_none) {
+START_TEST(test_tool_choice_none)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_tool_choice_t choice = ik_tool_choice_none();
@@ -40,10 +40,11 @@ START_TEST(test_tool_choice_none) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test creating tool_choice for "required" mode
-START_TEST(test_tool_choice_required) {
+START_TEST(test_tool_choice_required)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_tool_choice_t choice = ik_tool_choice_required();
@@ -53,10 +54,11 @@ START_TEST(test_tool_choice_required) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test creating tool_choice for specific tool
-START_TEST(test_tool_choice_specific) {
+START_TEST(test_tool_choice_specific)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_tool_choice_t choice = ik_tool_choice_specific(ctx, "glob");
@@ -67,10 +69,11 @@ START_TEST(test_tool_choice_specific) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test serializing tool_choice auto mode to JSON
-START_TEST(test_serialize_tool_choice_auto) {
+START_TEST(test_serialize_tool_choice_auto)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create yyjson document with talloc allocator
@@ -108,10 +111,11 @@ START_TEST(test_serialize_tool_choice_auto) {
     free(json_str);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test serializing tool_choice none mode to JSON
-START_TEST(test_serialize_tool_choice_none) {
+START_TEST(test_serialize_tool_choice_none)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create yyjson document with talloc allocator
@@ -149,10 +153,11 @@ START_TEST(test_serialize_tool_choice_none) {
     free(json_str);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test serializing tool_choice required mode to JSON
-START_TEST(test_serialize_tool_choice_required) {
+START_TEST(test_serialize_tool_choice_required)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create yyjson document with talloc allocator
@@ -190,10 +195,11 @@ START_TEST(test_serialize_tool_choice_required) {
     free(json_str);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test serializing tool_choice specific tool mode to JSON
-START_TEST(test_serialize_tool_choice_specific) {
+START_TEST(test_serialize_tool_choice_specific)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create yyjson document with talloc allocator
@@ -247,10 +253,12 @@ START_TEST(test_serialize_tool_choice_specific) {
     free(json_str);
     talloc_free(ctx);
 }
+
 END_TEST
 
 // Test suite setup
-static Suite *tool_choice_suite(void) {
+static Suite *tool_choice_suite(void)
+{
     Suite *s;
     TCase *tc_core;
 
@@ -271,7 +279,8 @@ static Suite *tool_choice_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     int number_failed;
     Suite *s;
     SRunner *sr;

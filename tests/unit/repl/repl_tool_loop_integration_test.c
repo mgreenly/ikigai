@@ -72,8 +72,7 @@ static void teardown(void)
  * 2. NOT transition to IDLE state
  * 3. Submit a follow-up request
  */
-START_TEST(test_handle_request_success_with_tool_calls_continues_loop)
-{
+START_TEST(test_handle_request_success_with_tool_calls_continues_loop) {
     /* Simulate Response A: finish_reason = "tool_calls" */
     repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
     repl->response_model = talloc_strdup(repl, "gpt-4");
@@ -99,7 +98,6 @@ START_TEST(test_handle_request_success_with_tool_calls_continues_loop)
     ck_assert_ptr_null(repl->assistant_response);
 }
 END_TEST
-
 /*
  * Test: When finish_reason is "stop", handle_request_success should:
  * 1. Add assistant response to conversation
@@ -136,8 +134,8 @@ START_TEST(test_handle_request_success_with_stop_ends_loop)
     ck_assert_int_eq(repl->curl_still_running, 0);
     ck_assert_ptr_null(repl->assistant_response);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: When finish_reason is NULL, should not continue loop
  */
@@ -157,8 +155,8 @@ START_TEST(test_handle_request_success_with_null_finish_reason)
     /* Verify: curl_still_running should still be 0 (no new request) */
     ck_assert_int_eq(repl->curl_still_running, 0);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Multiple tool loop iterations
  */
@@ -190,8 +188,8 @@ START_TEST(test_multiple_tool_loop_iterations)
     /* Verify loop stops */
     ck_assert_int_eq(repl->curl_still_running, 0);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Tool loop with empty assistant response content
  */
@@ -215,8 +213,8 @@ START_TEST(test_tool_loop_with_empty_content)
     /* Verify: Follow-up request was initiated */
     ck_assert_int_eq(repl->curl_still_running, 1);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Multi-tool scenario (glob → file_read → response)
  *
@@ -242,7 +240,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
 {
     /* Initial state: User asks to find and read config file */
     ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user",
-                                                      "Find config file and show contents").ok;
+                                                     "Find config file and show contents").ok;
     ik_openai_conversation_add_msg(repl->conversation, user_msg);
 
     /* Verify initial state: 1 message (user) */
@@ -264,7 +262,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     /* Simulate tool execution: Add tool result to conversation */
     /* In real scenario, tool dispatcher would add this */
     ik_openai_msg_t *tool_result_1 = ik_openai_msg_create(repl->conversation, "tool",
-                                                           "{\"output\":\"config.json\"}").ok;
+                                                          "{\"output\":\"config.json\"}").ok;
     ik_openai_conversation_add_msg(repl->conversation, tool_result_1);
 
     /* Verify: 2 messages now (user + tool result) */
@@ -290,7 +288,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
 
     /* Simulate tool execution: Add second tool result to conversation */
     ik_openai_msg_t *tool_result_2 = ik_openai_msg_create(repl->conversation, "tool",
-                                                           "{\"output\":\"{\\\"debug\\\":true}\"}").ok;
+                                                          "{\"output\":\"{\\\"debug\\\":true}\"}").ok;
     ik_openai_conversation_add_msg(repl->conversation, tool_result_2);
 
     /* Verify: 3 messages now (user + 2 tool results) */
@@ -325,6 +323,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     ck_assert_str_eq(repl->conversation->messages[3]->content,
                      "I found config.json with debug:true");
 }
+
 END_TEST
 
 /*
