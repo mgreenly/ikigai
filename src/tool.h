@@ -151,6 +151,18 @@ bool ik_tool_arg_get_int(const char *arguments_json, const char *key, int *out_v
 // @return res_t containing JSON string (owned by parent) or error
 res_t ik_tool_exec_glob(void *parent, const char *pattern, const char *path);
 
+// Execute file_read tool to read contents of a file.
+//
+// Reads the entire contents of a file and returns it as a JSON string.
+// Returns a JSON string in envelope format:
+// - Success: {"success": true, "data": {"output": "file contents"}}
+// - Error: {"success": false, "error": "File not found: path"} or other errors
+//
+// @param parent Parent talloc context for result allocation
+// @param path Path to file to read
+// @return res_t containing JSON string (owned by parent) or error
+res_t ik_tool_exec_file_read(void *parent, const char *path);
+
 // Dispatch tool calls by name to appropriate execution function.
 //
 // Parses the JSON arguments string, extracts tool-specific parameters,

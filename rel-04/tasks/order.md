@@ -33,7 +33,7 @@ Note: db-persist-failure-resilience.md verifies the independent event model - DB
 
 ## Story 03: Single File Read
 
-- file-read-execute.md
+- ~~file-read-execute.md~~
 
 ## Story 04: Glob Then Read File
 
