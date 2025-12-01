@@ -33,6 +33,8 @@ Each file specifies:
 
 ## Workflow
 
+**IMPORTANT**: When working on a feature/release, ALWAYS read the `run.md` file first to understand your role and how to process the work.
+
 1. **User stories** define requirements with example transcripts
 2. **Tasks** are created from stories (smallest testable units)
 3. **Orchestrator** (run.md) supervises sub-agents executing tasks

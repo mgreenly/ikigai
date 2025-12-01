@@ -116,24 +116,35 @@ repl->tool_thread_ctx = NULL;
 repl->tool_thread_result = NULL;
 ```
 
-#### Step 5: Add cleanup for mutex
+#### Step 5: Add cleanup via talloc destructor
 
-Need to destroy mutex on REPL cleanup. Check if there's a destructor or cleanup function. If using talloc destructor:
+Need to destroy mutex on REPL cleanup. The destructor also handles Ctrl+C gracefully by joining any running thread before cleanup.
+
+Check if there's an existing destructor. If so, augment it. If not, create one:
 
 ```c
 static int repl_destructor(ik_repl_ctx_t *repl)
 {
+    // If tool thread is running, wait for it to finish before cleanup.
+    // This handles Ctrl+C gracefully - we don't cancel the thread or leave
+    // it orphaned. If a bash command is stuck, we wait (known limitation:
+    // "Bash command timeout - not implemented" in README Out of Scope).
+    // The alternative (pthread_cancel) risks leaving resources in bad state.
+    if (repl->tool_thread_running) {
+        pthread_join_(repl->tool_thread, NULL);
+    }
+
     pthread_mutex_destroy_(&repl->tool_thread_mutex);
     return 0;
 }
 ```
 
-And in init:
+And in init (after mutex init succeeds):
 ```c
 talloc_set_destructor(repl, repl_destructor);
 ```
 
-If no destructor exists yet, create one.
+**Design note:** The destructor is the single cleanup point for both normal exit and Ctrl+C. No special signal handler logic needed for the thread - when `talloc_free(repl)` is called (from any exit path), the destructor ensures the thread is joined before resources are freed.
 
 #### Step 6: Add state transition functions
 

@@ -96,10 +96,9 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
 
     /* Debug: Enable verbose curl output if debug pipe provided */
     if (debug_output != NULL) {
-        fprintf(debug_output, "[OpenAI Request]\n");
-        fprintf(debug_output, "URL: https://api.openai.com/v1/chat/completions\n");
-        fprintf(debug_output, "Content-Type: application/json\n");
-        fprintf(debug_output, "Body: %s\n", json_body);
+        fprintf(debug_output, ">> REQUEST\n");
+        fprintf(debug_output, ">> URL: https://api.openai.com/v1/chat/completions\n");
+        fprintf(debug_output, ">> Body: %s\n", json_body);
         fprintf(debug_output, "\n");
         fflush(debug_output);
 
