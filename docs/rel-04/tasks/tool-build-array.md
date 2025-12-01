@@ -7,6 +7,7 @@ User story: 01-simple-greeting-no-tools
 model: haiku
 
 ### Pre-read Skills
+- .agents/skills/default.md
 - .agents/skills/tdd.md
 - .agents/skills/coverage.md
 - .agents/skills/naming.md

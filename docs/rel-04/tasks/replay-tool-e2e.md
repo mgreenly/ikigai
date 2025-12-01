@@ -7,6 +7,7 @@ User story: 12-session-replay-with-tools
 model: sonnet
 
 ### Pre-read Skills
+- .agents/skills/default.md
 - .agents/skills/tdd.md
 - .agents/skills/database.md
 - .agents/skills/coverage.md

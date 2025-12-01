@@ -10,6 +10,7 @@ model: haiku
 - rel-04/user-stories/02-single-glob-call.md (walkthrough steps 5 and 8)
 
 ### Pre-read Skills
+- .agents/skills/default.md
 - .agents/skills/tdd.md
 - .agents/skills/testability.md
 - .agents/skills/coverage.md

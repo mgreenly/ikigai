@@ -7,6 +7,7 @@ User story: 02-single-glob-call
 model: haiku
 
 ### Pre-read Skills
+- .agents/skills/default.md
 - .agents/skills/tdd.md
 - .agents/skills/coverage.md
 - .agents/skills/quality.md

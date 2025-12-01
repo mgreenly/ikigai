@@ -7,6 +7,7 @@ User story: 02-single-glob-call (prerequisite for tool execution)
 model: haiku
 
 ### Pre-read Skills
+- .agents/skills/default.md
 - .agents/skills/tdd.md
 - .agents/skills/naming.md
 - .agents/skills/quality.md

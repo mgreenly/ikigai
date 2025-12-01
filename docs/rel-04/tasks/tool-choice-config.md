@@ -7,6 +7,7 @@ User story: 13-tool-choice-auto, 13-tool-choice-none, 13-tool-choice-required, 1
 model: sonnet
 
 ### Pre-read Skills
+- .agents/skills/default.md
 - .agents/skills/tdd.md
 - .agents/skills/naming.md
 - .agents/skills/quality.md

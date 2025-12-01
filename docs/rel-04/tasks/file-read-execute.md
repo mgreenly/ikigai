@@ -7,6 +7,7 @@ User story: 03-single-file-read
 model: sonnet
 
 ### Pre-read Skills
+- .agents/skills/default.md
 - .agents/skills/tdd.md
 - .agents/skills/testability.md
 - .agents/skills/quality.md

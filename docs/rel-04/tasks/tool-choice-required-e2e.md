@@ -7,6 +7,7 @@ User story: 13-tool-choice-required
 model: sonnet
 
 ### Pre-read Skills
+- .agents/skills/default.md
 - .agents/skills/tdd.md
 - .agents/skills/mocking.md
 - .agents/skills/testability.md

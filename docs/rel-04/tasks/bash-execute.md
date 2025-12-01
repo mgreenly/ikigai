@@ -7,6 +7,7 @@ User story: 07-bash-command
 model: sonnet
 
 ### Pre-read Skills
+- .agents/skills/default.md
 - .agents/skills/tdd.md
 - .agents/skills/quality.md
 - .agents/skills/testability.md
