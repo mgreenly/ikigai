@@ -1,5 +1,8 @@
 # Fix: Tool Thread Infrastructure
 
+## Agent
+model: sonnet
+
 ## Skills to Load
 
 Read these `.agents/skills/` files:

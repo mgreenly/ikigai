@@ -1,5 +1,8 @@
 # Fix: Debug Output Missing for Tool Loop Messages
 
+## Agent
+model: sonnet
+
 ## Skills to Load
 
 Read these `.agents/skills/` files:

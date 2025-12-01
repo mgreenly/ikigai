@@ -1,5 +1,8 @@
 # Fix: ik_openai_chat_create Return Type and Canonical Message Conversion
 
+## Agent
+model: sonnet
+
 ## Skills to Load
 
 Read these `.agents/skills/` files:

@@ -1,5 +1,8 @@
 # Fix: Async Tool Execution
 
+## Agent
+model: sonnet
+
 ## Skills to Load
 
 Read these `.agents/skills/` files:

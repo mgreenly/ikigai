@@ -1,5 +1,8 @@
 # Fix: Tool Loop Wiring - Tool Calls Not Passed to REPL
 
+## Agent
+model: sonnet
+
 ## Skills to Load
 
 Read these `.agents/skills/` files:
