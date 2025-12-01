@@ -44,7 +44,7 @@ I couldn't find that file. `missing.txt` doesn't exist in the current directory.
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Show me missing.txt"}
   ],
@@ -86,7 +86,7 @@ I couldn't find that file. `missing.txt` doesn't exist in the current directory.
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Show me missing.txt"},
     {"role": "assistant", "tool_calls": [{"id": "call_read1", "type": "function", "function": {"name": "file_read", "arguments": "{\"path\": \"missing.txt\"}"}}]},

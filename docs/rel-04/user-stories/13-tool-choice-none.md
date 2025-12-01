@@ -28,7 +28,7 @@ To find all C files in src/, you can use a command like `find src/ -name "*.c"` 
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Find all C files in src/"}
   ],

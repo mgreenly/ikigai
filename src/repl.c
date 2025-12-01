@@ -235,10 +235,10 @@ static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
 // Exposed for testing
 res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
 {
-    // Only call curl_multi_perform when there's work to do:
-    // - ready == 0 means select() timed out (curl may need to handle its timeouts)
-    // - curl_still_running > 0 means there are active transfers that need processing
-    if (ready == 0 || repl->curl_still_running > 0) {
+    (void)ready;  // Used for select() coordination, not needed here
+
+    // Only process when there are active transfers
+    if (repl->curl_still_running > 0) {
         int prev_running = repl->curl_still_running;
         CHECK(ik_openai_multi_perform(repl->multi, &repl->curl_still_running));
         ik_openai_multi_info_read(repl->multi);
@@ -309,10 +309,10 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         }
 
         // Handle timeout (spinner animation)
+        // Note: Don't continue here - curl events must still be processed
         if (ready == 0 && repl->spinner_state.visible) {
             ik_spinner_advance(&repl->spinner_state);
             CHECK(ik_repl_render_frame(repl));
-            continue;
         }
 
         // Handle debug pipes

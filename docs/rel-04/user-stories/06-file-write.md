@@ -44,7 +44,7 @@ Done! I've created notes.txt with your message.
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Create a file called notes.txt with \"Remember to refactor\""}
   ],
@@ -86,7 +86,7 @@ Done! I've created notes.txt with your message.
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Create a file called notes.txt with \"Remember to refactor\""},
     {"role": "assistant", "tool_calls": [{"id": "call_write1", "type": "function", "function": {"name": "file_write", "arguments": "{\"path\": \"notes.txt\", \"content\": \"Remember to refactor\"}"}}]},

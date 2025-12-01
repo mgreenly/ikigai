@@ -57,7 +57,7 @@ Event 4: {type: "assistant_message", content: "Here's config.json with your debu
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Show me config.json"},
     {"role": "assistant", "tool_calls": [{"id": "call_xyz", "type": "function", "function": {"name": "file_read", "arguments": "{\"path\": \"config.json\"}"}}]},

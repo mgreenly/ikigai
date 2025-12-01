@@ -61,7 +61,7 @@ I found config.json. Here are its contents:
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Find the config file and show me what's in it"}
   ],
@@ -103,7 +103,7 @@ I found config.json. Here are its contents:
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Find the config file and show me what's in it"},
     {"role": "assistant", "tool_calls": [{"id": "call_glob1", "type": "function", "function": {"name": "glob", "arguments": "{\"pattern\": \"config.*\"}"}}]},
@@ -147,7 +147,7 @@ I found config.json. Here are its contents:
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Find the config file and show me what's in it"},
     {"role": "assistant", "tool_calls": [{"id": "call_glob1", "type": "function", "function": {"name": "glob", "arguments": "{\"pattern\": \"config.*\"}"}}]},

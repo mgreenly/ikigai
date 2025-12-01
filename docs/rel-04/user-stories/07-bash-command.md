@@ -44,7 +44,7 @@ You're on the `main` branch.
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "What's the current git branch?"}
   ],
@@ -86,7 +86,7 @@ You're on the `main` branch.
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "What's the current git branch?"},
     {"role": "assistant", "tool_calls": [{"id": "call_bash1", "type": "function", "function": {"name": "bash", "arguments": "{\"command\": \"git branch --show-current\"}"}}]},

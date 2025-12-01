@@ -47,7 +47,7 @@ I found TODO comments in the following locations:
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Search for TODO comments in the C files"}
   ],
@@ -89,7 +89,7 @@ I found TODO comments in the following locations:
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Search for TODO comments in the C files"},
     {"role": "assistant", "tool_calls": [{"id": "call_grep1", "type": "function", "function": {"name": "grep", "arguments": "{\"pattern\": \"TODO\", \"glob\": \"*.c\"}"}}]},

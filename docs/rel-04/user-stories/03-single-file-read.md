@@ -50,7 +50,7 @@ A simple example project.
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Show me the contents of README.md"}
   ],
@@ -92,7 +92,7 @@ A simple example project.
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Show me the contents of README.md"},
     {"role": "assistant", "tool_calls": [{"id": "call_def456", "type": "function", "function": {"name": "file_read", "arguments": "{\"path\": \"README.md\"}"}}]},

@@ -52,7 +52,7 @@ I was searching through files but reached the tool call limit (3 calls). I found
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Keep searching for errors in every file"}
   ],
@@ -150,7 +150,7 @@ I was searching through files but reached the tool call limit (3 calls). I found
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Keep searching for errors in every file"},
     {"role": "assistant", "tool_calls": [{"id": "call_grep1", "type": "function", "function": {"name": "grep", "arguments": "{\"pattern\": \"error\", \"path\": \"src/main.c\"}"}}]},

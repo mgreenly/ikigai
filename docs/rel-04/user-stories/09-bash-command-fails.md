@@ -44,7 +44,7 @@ The compilation failed. GCC reported an undefined reference to `process_input`. 
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Compile the project with gcc main.c"}
   ],
@@ -86,7 +86,7 @@ The compilation failed. GCC reported an undefined reference to `process_input`. 
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Compile the project with gcc main.c"},
     {"role": "assistant", "tool_calls": [{"id": "call_bash1", "type": "function", "function": {"name": "bash", "arguments": "{\"command\": \"gcc main.c\"}"}}]},

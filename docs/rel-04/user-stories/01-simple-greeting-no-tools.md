@@ -38,7 +38,7 @@ Hello! How can I help you today?
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Hello"}
   ],

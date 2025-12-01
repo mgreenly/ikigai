@@ -80,6 +80,9 @@ res_t ik_repl_streaming_callback(const char *chunk, void *ctx)
         if (repl->streaming_line_buffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
 
+    // Trigger re-render to show streaming content
+    ik_repl_render_frame(repl);
+
     return OK(NULL);
 }
 

@@ -50,7 +50,7 @@ I found the issue. In parser.c, the `parse_token` function was missing a null ch
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Find where we handle null pointers in parser.c and add a missing check"}
   ],
@@ -92,7 +92,7 @@ I found the issue. In parser.c, the `parse_token` function was missing a null ch
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     {"role": "user", "content": "Find where we handle null pointers in parser.c and add a missing check"},
     {"role": "assistant", "tool_calls": [{"id": "call_grep1", "type": "function", "function": {"name": "grep", "arguments": "{\"pattern\": \"NULL\", \"path\": \"parser.c\"}"}}]},
@@ -136,7 +136,7 @@ I found the issue. In parser.c, the `parse_token` function was missing a null ch
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     "...previous messages...",
     {"role": "assistant", "tool_calls": [{"id": "call_read1", "type": "function", "function": {"name": "file_read", "arguments": "{\"path\": \"parser.c\"}"}}]},
@@ -180,7 +180,7 @@ I found the issue. In parser.c, the `parse_token` function was missing a null ch
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "messages": [
     "...previous messages...",
     {"role": "assistant", "tool_calls": [{"id": "call_write1", "type": "function", "function": {"name": "file_write", "arguments": "..."}}]},
