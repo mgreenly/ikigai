@@ -112,37 +112,21 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Code analysis (tree-sitter integration)
 - Results flow back to conversation
 
-### Future: Multi-LLM Provider Support
+### Future: Background Agents
 
-**Objective**: Support multiple LLM providers with unified interface
-
-**Tasks**:
-- Abstract provider interface
-- OpenAI, Anthropic, Google, X.AI implementations
-- Provider switching via config or runtime command
-- Unified conversation format
-
-### Future: Layer Architecture Refinement
-
-**Objective**: Remove adapter layer and integrate components directly with layer cake
+**Objective**: Support multiple concurrent agents with human and LLM spawning
 
 **Tasks**:
-- Remove `layer_wrappers.c` adapter abstraction
-- Update scrollback, separator, and input components to implement layer interface directly
-- Consolidate layer creation logic into REPL initialization
-- Reduce indirection and simplify layer management
+- Multiple top-level agents (human-spawned via command or hotkey)
+- LLM-spawned sub-agents for parallel task execution
+- Refactor existing single-agent code for multi-agent architecture
+- Hot-key navigation between active agents (e.g., Alt+1, Alt+2)
+- Agent lifecycle management (spawn, suspend, resume, terminate)
+- Slash commands for agent control (/agents, /spawn, /switch, /kill)
+- Visual indicator of active agent and background agent status
+- Inter-agent communication (optional: message passing between agents)
 
-**Rationale**: The adapter pattern in `layer_wrappers.c` was useful for prototyping but adds unnecessary indirection. Direct implementation of the layer interface by UI components will simplify the codebase.
-
-### Future: Enhanced Terminal UI
-
-**Objective**: Polish the user experience
-
-**Tasks**:
-- Syntax highlighting in code blocks (tree-sitter)
-- External editor integration ($EDITOR)
-- Command history and session management
-- Rich formatting and themes
+**Rationale**: Complex tasks benefit from parallel execution. Human users may want multiple conversations active simultaneously. LLMs can delegate subtasks to specialized sub-agents, improving throughput and enabling divide-and-conquer workflows.
 
 ### Future: Code Organization and Module Cleanup
 
@@ -158,6 +142,42 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Clean up internal module organization
 
 **Rationale**: This is the standard refactoring cycle before each major release. As features are added throughout development, technical debt accumulates and module boundaries become less clear. A dedicated refactoring phase before release ensures the codebase is clean, well-organized, and maintainable for the next development cycle.
+
+### Future: Multi-LLM Provider Support
+
+**Objective**: Support multiple LLM providers with unified interface
+
+**Tasks**:
+- Abstract provider interface
+- OpenAI, Anthropic, Google, X.AI implementations
+- Provider switching via config or runtime command
+- Unified conversation format
+
+### Future: Refactor
+
+**Objective**: Improve code quality through better patterns, dependency injection, and reduced indirection
+
+**Tasks**:
+- Improve dependency injection consistency across modules
+- Apply design patterns more uniformly (strategy, factory, context struct)
+- Remove `layer_wrappers.c` adapter abstraction
+- Update scrollback, separator, and input components to implement layer interface directly
+- Consolidate layer creation logic into REPL initialization
+- Reduce indirection and simplify layer management
+- Review and improve module boundaries
+- Eliminate unnecessary abstractions introduced during prototyping
+
+**Rationale**: As features are added, abstractions accumulate that made sense during prototyping but add unnecessary complexity. Periodic refactoring improves consistency, reduces cognitive load, and ensures patterns are applied uniformly.
+
+### Future: Enhanced Terminal UI
+
+**Objective**: Polish the user experience
+
+**Tasks**:
+- Syntax highlighting in code blocks (tree-sitter)
+- External editor integration ($EDITOR)
+- Command history and session management
+- Rich formatting and themes
 
 ## v2.0 Vision
 
