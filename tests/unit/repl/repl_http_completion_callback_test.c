@@ -12,9 +12,11 @@
 #include "config.h"
 #include "openai/client_multi.h"
 #include "tool.h"
+#include "debug_pipe.h"
 #include <check.h>
 #include <talloc.h>
 #include <curl/curl.h>
+#include <unistd.h>
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
