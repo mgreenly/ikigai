@@ -23,6 +23,7 @@
 
 // Forward declarations
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl);
+static void persist_assistant_msg(ik_repl_ctx_t *repl);
 
 
 static inline long calculate_select_timeout_ms(const ik_repl_ctx_t *repl, long curl_timeout_ms)
@@ -108,6 +109,41 @@ res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_e
     return OK(NULL);
 }
 
+// Persist assistant message to database
+static void persist_assistant_msg(ik_repl_ctx_t *repl)
+{
+    if (repl->db_ctx == NULL || repl->current_session_id <= 0) return;
+
+    char *data_json = talloc_strdup(repl, "{");
+    bool first = true;
+
+    if (repl->response_model != NULL) {
+        data_json = talloc_asprintf_append(data_json, "\"model\":\"%s\"", repl->response_model);
+        first = false;
+    }
+    if (repl->response_completion_tokens > 0) {
+        data_json = talloc_asprintf_append(data_json, "%s\"tokens\":%d",
+                                          first ? "" : ",", repl->response_completion_tokens);
+        first = false;
+    }
+    if (repl->response_finish_reason != NULL) {
+        data_json = talloc_asprintf_append(data_json, "%s\"finish_reason\":\"%s\"",
+                                          first ? "" : ",", repl->response_finish_reason);
+    }
+    data_json = talloc_strdup_append(data_json, "}");
+
+    res_t db_res = ik_db_message_insert_(repl->db_ctx, repl->current_session_id,
+                                        "assistant", repl->assistant_response, data_json);
+    if (is_err(&db_res)) {
+        if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
+            fprintf(repl->db_debug_pipe->write_end,
+                   "Warning: Failed to persist assistant message to database: %s\n",
+                   error_message(db_res.err));
+        }
+        talloc_free(db_res.err);
+    }
+    talloc_free(data_json);
+}
 
 static void handle_request_error(ik_repl_ctx_t *repl)
 {
@@ -150,44 +186,9 @@ void handle_request_success(ik_repl_ctx_t *repl)
         if (repl->openai_debug_pipe && repl->openai_debug_pipe->write_end) {
             size_t len = strlen(repl->assistant_response);
             fprintf(repl->openai_debug_pipe->write_end, len > 80 ? "<< ASSISTANT: %.77s...\n" : "<< ASSISTANT: %s\n", repl->assistant_response);
-            fflush(repl->openai_debug_pipe->write_end);}
-        if (repl->db_ctx != NULL && repl->current_session_id > 0) {
-            // Build data JSON with response metadata
-            char *data_json = talloc_strdup(repl, "{");
-            bool first = true;
-
-            if (repl->response_model != NULL) {
-                data_json = talloc_asprintf_append(data_json, "\"model\":\"%s\"", repl->response_model);
-                first = false;
-            }
-            if (repl->response_completion_tokens > 0) {
-                data_json = talloc_asprintf_append(data_json,
-                                                   "%s\"tokens\":%d",
-                                                   first ? "" : ",",
-                                                   repl->response_completion_tokens);
-                first = false;
-            }
-            if (repl->response_finish_reason != NULL) {
-                data_json = talloc_asprintf_append(data_json,
-                                                   "%s\"finish_reason\":\"%s\"",
-                                                   first ? "" : ",",
-                                                   repl->response_finish_reason);
-            }
-            data_json = talloc_strdup_append(data_json, "}");
-
-            res_t db_res = ik_db_message_insert_(repl->db_ctx, repl->current_session_id,
-                                                 "assistant", repl->assistant_response, data_json);
-            if (is_err(&db_res)) {
-                // Log error but don't crash - memory state is authoritative
-                if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
-                    fprintf(repl->db_debug_pipe->write_end,
-                            "Warning: Failed to persist assistant message to database: %s\n",
-                            error_message(db_res.err));
-                }
-                talloc_free(db_res.err);
-            }
-            talloc_free(data_json);
+            fflush(repl->openai_debug_pipe->write_end);
         }
+        persist_assistant_msg(repl);
     }
 
     // Clear the assistant response (whether empty or not)
@@ -196,14 +197,14 @@ void handle_request_success(ik_repl_ctx_t *repl)
         repl->assistant_response = NULL;
     }
 
-    // Execute pending tool call if present
+    // Execute pending tool call (async)
     if (repl->pending_tool_call != NULL) {
-        ik_repl_execute_pending_tool(repl);
+        ik_repl_start_tool_execution(repl);
+        return; // Exit early - completion handled in event loop
     }
 
-    // Check if we should continue the tool loop
+    // No tool call - check if tool loop should continue
     if (ik_repl_should_continue_tool_loop(repl)) {
-        // Increment tool iteration counter
         repl->tool_iteration_count++;
         submit_tool_loop_continuation(repl);
     }
@@ -212,25 +213,19 @@ void handle_request_success(ik_repl_ctx_t *repl)
 
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
 {
-    // finish_reason is "tool_calls" - submit follow-up request
-    // Check if we've reached the limit (iteration count is incremented BEFORE this call)
     bool limit_reached = (repl->cfg != NULL && repl->tool_iteration_count >= repl->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
-
     FILE *debug_out = repl->debug_enabled ? repl->openai_debug_pipe->write_end : NULL;  // LCOV_EXCL_BR_LINE
     res_t result = ik_openai_multi_add_request(repl->multi, repl->cfg, repl->conversation,
                                                ik_repl_streaming_callback, repl,
                                                ik_repl_http_completion_callback, repl,
                                                debug_out, limit_reached);
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
-        // If request fails, display error and transition to IDLE
         const char *err_msg = error_message(result.err);  // LCOV_EXCL_LINE
         ik_scrollback_append_line(repl->scrollback, err_msg, strlen(err_msg));  // LCOV_EXCL_LINE
         ik_repl_transition_to_idle(repl);  // LCOV_EXCL_LINE
         talloc_free(result.err);  // LCOV_EXCL_LINE
     } else {
-        // Set curl_still_running to 1 so the event loop will call curl_multi_perform
         repl->curl_still_running = 1;
-        // Keep state as WAITING_FOR_LLM (don't transition to IDLE)
     }
 }
 
@@ -263,6 +258,27 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
         }
     }
     return OK(NULL);
+}
+
+// Handle tool thread completion - extracted from event loop
+// Non-static for testing
+void handle_tool_completion(ik_repl_ctx_t *repl)
+{
+    // Thread finished - harvest result and continue
+    ik_repl_complete_tool_execution(repl);
+
+    // Check if tool loop should continue
+    if (ik_repl_should_continue_tool_loop(repl)) {
+        repl->tool_iteration_count++;
+        submit_tool_loop_continuation(repl);
+    } else {
+        // Tool loop done - transition to IDLE, show input prompt
+        ik_repl_transition_to_idle(repl);
+    }
+
+    // Re-render to show tool result in scrollback
+    res_t result = ik_repl_render_frame(repl);
+    if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
 }
 
 res_t ik_repl_run(ik_repl_ctx_t *repl)
@@ -331,6 +347,15 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Handle curl_multi events
         CHECK(handle_curl_events(repl, ready));  // LCOV_EXCL_BR_LINE
+
+        // Poll for tool thread completion
+        if (repl->state == IK_REPL_STATE_EXECUTING_TOOL) {
+            bool complete = false;
+            pthread_mutex_lock_(&repl->tool_thread_mutex);
+            complete = repl->tool_thread_complete;
+            pthread_mutex_unlock_(&repl->tool_thread_mutex);
+            if (complete) handle_tool_completion(repl);
+        }
     }
 
     return OK(NULL);
@@ -344,28 +369,19 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
     const uint8_t *text_data = repl->input_buffer->text->data;
     size_t text_len = ik_byte_array_size(repl->input_buffer->text);
 
-    // Render user message via event renderer (only if there's content and scrollback exists)
-    // Using event_render ensures consistency between live entry and replay
+    // Render user message via event renderer
     if (text_len > 0 && repl->scrollback != NULL) {  // LCOV_EXCL_BR_LINE
-        // Create null-terminated copy - input buffer data is NOT null-terminated
-        // ik_event_render() expects null-terminated strings (uses strlen internally)
         char *text = talloc_size(NULL, text_len + 1);
         if (text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         memcpy(text, text_data, text_len);
         text[text_len] = '\0';
-
         res_t result = ik_event_render(repl->scrollback, "user", text, "{}");
         talloc_free(text);
-        if (is_err(&result)) {
-            return result;
-        }
+        if (is_err(&result)) return result;
     }
 
-    // Clear input buffer
     ik_input_buffer_clear(repl->input_buffer);
-
-    // Auto-scroll to bottom (reset viewport offset)
-    repl->viewport_offset = 0;
+    repl->viewport_offset = 0; // Auto-scroll to bottom
 
     return OK(NULL);
 }
@@ -378,18 +394,13 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
     assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->render != NULL);   /* LCOV_EXCL_BR_LINE */
 
-    // Update terminal dimensions
     int rows, cols;
     res_t result = ik_term_get_size(repl->term, &rows, &cols);
-    if (is_err(&result)) {
-        return result;
-    }
+    if (is_err(&result)) return result;
 
-    // Update render context dimensions
     repl->render->rows = rows;
     repl->render->cols = cols;
 
-    // Invalidate layout caches (will recalculate on next ensure_layout call)
     ik_scrollback_ensure_layout(repl->scrollback, cols);
     ik_input_buffer_ensure_layout(repl->input_buffer, cols);
 

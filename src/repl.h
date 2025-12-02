@@ -142,5 +142,10 @@ void handle_request_success(ik_repl_ctx_t *repl);
 // Tool execution helper (exposed to reduce complexity in handle_request_success)
 void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl);
 
+// Async tool execution (replaces synchronous ik_repl_execute_pending_tool)
+void ik_repl_start_tool_execution(ik_repl_ctx_t *repl);
+void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl);
+void handle_tool_completion(ik_repl_ctx_t *repl); // Event loop helper (exposed for testing)
+
 // Tool loop decision function (Phase 2: Story 02)
 bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl);

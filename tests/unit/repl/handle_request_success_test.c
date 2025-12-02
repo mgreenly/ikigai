@@ -13,11 +13,14 @@
 #include "../../../src/debug_pipe.h"
 #include "../../../src/openai/client.h"
 #include "../../../src/scrollback.h"
+#include "../../../src/tool.h"
+#include "../../../src/wrapper.h"
 #include "../../test_utils.h"
 
 #include <check.h>
 #include <fcntl.h>
 #include <libpq-fe.h>
+#include <pthread.h>
 #include <string.h>
 #include <talloc.h>
 #include <unistd.h>
@@ -523,6 +526,55 @@ START_TEST(test_assistant_message_null_debug_pipe)
 
 END_TEST
 
+// Test: Pending tool call triggers async execution
+START_TEST(test_pending_tool_call_async)
+{
+    // Initialize thread infrastructure
+    pthread_mutex_init_(&repl->tool_thread_mutex, NULL);
+    repl->tool_thread_running = false;
+    repl->tool_thread_complete = false;
+    repl->tool_thread_result = NULL;
+    repl->tool_thread_ctx = NULL;
+    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+
+    // Create scrollback for rendering
+    repl->scrollback = ik_scrollback_create(test_ctx, 10);
+
+    // Create pending tool call
+    repl->pending_tool_call = ik_tool_call_create(test_ctx,
+                                                   "call_test123",
+                                                   "glob",
+                                                   "{\"pattern\": \"*.c\"}");
+    ck_assert_ptr_nonnull(repl->pending_tool_call);
+
+    // Call handle_request_success - should start async execution
+    handle_request_success(repl);
+
+    // Verify state transition to EXECUTING_TOOL
+    ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
+
+    // Verify thread was started
+    ck_assert(repl->tool_thread_running);
+
+    // Wait for thread to complete
+    int max_wait = 50;
+    bool complete = false;
+    for (int i = 0; i < max_wait; i++) {
+        pthread_mutex_lock_(&repl->tool_thread_mutex);
+        complete = repl->tool_thread_complete;
+        pthread_mutex_unlock_(&repl->tool_thread_mutex);
+        if (complete) break;
+        usleep(10000);
+    }
+    ck_assert(complete);
+
+    // Clean up thread
+    pthread_join_(repl->tool_thread, NULL);
+    pthread_mutex_destroy_(&repl->tool_thread_mutex);
+}
+
+END_TEST
+
 static Suite *handle_request_success_suite(void)
 {
     Suite *s = suite_create("handle_request_success");
@@ -547,6 +599,7 @@ static Suite *handle_request_success_suite(void)
     tcase_add_test(tc_core, test_short_assistant_message_debug_output);
     tcase_add_test(tc_core, test_long_assistant_message_truncation);
     tcase_add_test(tc_core, test_assistant_message_null_debug_pipe);
+    tcase_add_test(tc_core, test_pending_tool_call_async);
     suite_add_tcase(s, tc_core);
 
     return s;
