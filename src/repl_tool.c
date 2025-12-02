@@ -45,6 +45,14 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     result = ik_openai_conversation_add_msg(repl->conversation, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
+    // Debug output when tool_result is added
+    if (repl->openai_debug_pipe != NULL && repl->openai_debug_pipe->write_end != NULL) {
+        fprintf(repl->openai_debug_pipe->write_end,
+                "<< TOOL_RESULT: %s\n",
+                result_json);
+        fflush(repl->openai_debug_pipe->write_end);
+    }
+
     // 4. Display tool call and result in scrollback via event renderer
     ik_event_render(repl->scrollback, "tool_call", summary, "{}");
     const char *formatted_result = ik_format_tool_result(repl, tc->name, result_json);

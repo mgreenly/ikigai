@@ -12,7 +12,7 @@
 - ~~[debug-request-prefix.md](debug-request-prefix.md)~~
 - ~~[debug-response-metadata.md](debug-response-metadata.md)~~
 - ~~[debug-tool-call-msg.md](debug-tool-call-msg.md)~~
-- [debug-tool-result-msg.md](debug-tool-result-msg.md)
+- ~~[debug-tool-result-msg.md](debug-tool-result-msg.md)~~
 - [debug-assistant-msg.md](debug-assistant-msg.md)
 
 ### Async Tool Execution (responsive UI during tools)

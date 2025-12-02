@@ -154,16 +154,20 @@ START_TEST(test_execute_pending_tool_debug_output)
     res_t read_res = ik_debug_pipe_read(debug_pipe, lines_out, count_out);
     ck_assert(!read_res.is_err);
 
-    /* Verify debug output contains tool call summary */
+    /* Verify debug output contains both tool call and tool result */
     bool found_tool_call = false;
+    bool found_tool_result = false;
     for (size_t i = 0; i < *count_out; i++) {
         if (strstr((*lines_out)[i], "TOOL_CALL") != NULL &&
             strstr((*lines_out)[i], "glob") != NULL) {
             found_tool_call = true;
-            break;
+        }
+        if (strstr((*lines_out)[i], "TOOL_RESULT") != NULL) {
+            found_tool_result = true;
         }
     }
     ck_assert(found_tool_call);
+    ck_assert(found_tool_result);
 }
 
 END_TEST
