@@ -397,6 +397,132 @@ START_TEST(test_db_error_with_debug_pipe)
 
 END_TEST
 
+// Test: Short assistant message debug output
+START_TEST(test_short_assistant_message_debug_output)
+{
+    // Create debug pipe
+    ik_debug_pipe_t *debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
+    ck_assert_ptr_nonnull(debug_pipe);
+
+    int pipefd[2];
+    int pipe_result = pipe(pipefd);
+    ck_assert_int_eq(pipe_result, 0);
+
+    debug_pipe->write_end = fdopen(pipefd[1], "w");
+    ck_assert_ptr_nonnull(debug_pipe->write_end);
+    repl->openai_debug_pipe = debug_pipe;
+
+    // Set up assistant response (shorter than 80 chars)
+    repl->assistant_response = talloc_strdup(test_ctx, "Hello, this is a short response");
+    repl->db_ctx = NULL;
+
+    handle_request_success(repl);
+
+    // Check that message was added to conversation
+    ck_assert_uint_eq(repl->conversation->message_count, 1);
+
+    // Flush and read debug output
+    fflush(debug_pipe->write_end);
+
+    // Set pipe to non-blocking to avoid timeout
+    int flags = fcntl(pipefd[0], F_GETFL, 0);
+    fcntl(pipefd[0], F_SETFL, flags | O_NONBLOCK);
+
+    char buffer[256];
+    ssize_t bytes_read = read(pipefd[0], buffer, sizeof(buffer) - 1);
+    ck_assert_int_gt(bytes_read, 0);
+    buffer[bytes_read] = '\0';
+
+    // Verify debug output format
+    ck_assert_ptr_nonnull(strstr(buffer, "<< ASSISTANT:"));
+    ck_assert_ptr_nonnull(strstr(buffer, "Hello, this is a short response"));
+    ck_assert_ptr_null(strstr(buffer, "..."));  // No truncation for short messages
+
+    // Cleanup
+    fclose(debug_pipe->write_end);
+    close(pipefd[0]);
+}
+
+END_TEST
+
+// Test: Long assistant message truncation in debug output
+START_TEST(test_long_assistant_message_truncation)
+{
+    // Create debug pipe
+    ik_debug_pipe_t *debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
+    ck_assert_ptr_nonnull(debug_pipe);
+
+    int pipefd[2];
+    int pipe_result = pipe(pipefd);
+    ck_assert_int_eq(pipe_result, 0);
+
+    debug_pipe->write_end = fdopen(pipefd[1], "w");
+    ck_assert_ptr_nonnull(debug_pipe->write_end);
+    repl->openai_debug_pipe = debug_pipe;
+
+    // Set up assistant response (longer than 80 chars)
+    // The message is 100 chars to ensure truncation
+    const char *long_response = "This is a very long response that will be truncated after seventy-seven chars in the output";
+    repl->assistant_response = talloc_strdup(test_ctx, long_response);
+    repl->db_ctx = NULL;
+
+    handle_request_success(repl);
+
+    // Check that message was added to conversation
+    ck_assert_uint_eq(repl->conversation->message_count, 1);
+
+    // Flush and read debug output
+    fflush(debug_pipe->write_end);
+
+    // Set pipe to non-blocking to avoid timeout
+    int flags = fcntl(pipefd[0], F_GETFL, 0);
+    fcntl(pipefd[0], F_SETFL, flags | O_NONBLOCK);
+
+    char buffer[256];
+    ssize_t bytes_read = read(pipefd[0], buffer, sizeof(buffer) - 1);
+    ck_assert_int_gt(bytes_read, 0);
+    buffer[bytes_read] = '\0';
+
+    // Verify debug output format
+    ck_assert_ptr_nonnull(strstr(buffer, "<< ASSISTANT:"));
+    ck_assert_ptr_nonnull(strstr(buffer, "..."));  // Truncation indicator present
+    ck_assert_ptr_nonnull(strstr(buffer, "This is a very long response"));
+
+    // Verify that the truncation is exactly 77 chars of the message
+    // Format is: "<< ASSISTANT: " (14 chars) + 77 chars of message + "...\n"
+    char *assistant_start = strstr(buffer, "<< ASSISTANT:");
+    ck_assert_ptr_nonnull(assistant_start);
+
+    // The output should contain exactly 77 characters from the response
+    // followed by "...\n"
+    char *ellipsis_pos = strstr(assistant_start, "...");
+    ck_assert_ptr_nonnull(ellipsis_pos);
+
+    // Cleanup
+    fclose(debug_pipe->write_end);
+    close(pipefd[0]);
+}
+
+END_TEST
+
+// Test: Assistant message with NULL debug pipe
+START_TEST(test_assistant_message_null_debug_pipe)
+{
+    // Ensure debug pipe is NULL
+    repl->openai_debug_pipe = NULL;
+
+    repl->assistant_response = talloc_strdup(test_ctx, "Test response");
+    repl->db_ctx = NULL;
+
+    handle_request_success(repl);
+
+    // Message should be added to conversation
+    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_ptr_null(repl->assistant_response);
+}
+
+END_TEST
+
 static Suite *handle_request_success_suite(void)
 {
     Suite *s = suite_create("handle_request_success");
@@ -418,6 +544,9 @@ static Suite *handle_request_success_suite(void)
     tcase_add_test(tc_core, test_no_metadata);
     tcase_add_test(tc_core, test_db_error_no_debug_pipe);
     tcase_add_test(tc_core, test_db_error_with_debug_pipe);
+    tcase_add_test(tc_core, test_short_assistant_message_debug_output);
+    tcase_add_test(tc_core, test_long_assistant_message_truncation);
+    tcase_add_test(tc_core, test_assistant_message_null_debug_pipe);
     suite_add_tcase(s, tc_core);
 
     return s;

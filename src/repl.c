@@ -147,7 +147,10 @@ void handle_request_success(ik_repl_ctx_t *repl)
         res_t result = ik_openai_conversation_add_msg(repl->conversation, assistant_msg);
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
-        // Persist assistant message to database (Integration Point 2)
+        if (repl->openai_debug_pipe && repl->openai_debug_pipe->write_end) {
+            size_t len = strlen(repl->assistant_response);
+            fprintf(repl->openai_debug_pipe->write_end, len > 80 ? "<< ASSISTANT: %.77s...\n" : "<< ASSISTANT: %s\n", repl->assistant_response);
+            fflush(repl->openai_debug_pipe->write_end);}
         if (repl->db_ctx != NULL && repl->current_session_id > 0) {
             // Build data JSON with response metadata
             char *data_json = talloc_strdup(repl, "{");
