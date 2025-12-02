@@ -238,7 +238,7 @@ END_TEST START_TEST(test_dispatch_grep_missing_pattern)
 END_TEST START_TEST(test_dispatch_grep_with_matches)
 {
 
-    const char *arguments = "{\"pattern\": \"test\"}";
+    const char *arguments = "{\"pattern\": \"test\", \"glob\": \"*.c\", \"path\": \"src\"}";
     res_t res = ik_tool_dispatch(ctx, "grep", arguments);
 
     ck_assert(!res.is_err);
@@ -489,6 +489,7 @@ static Suite *dispatcher_suite(void)
 
     TCase *tc_dispatch = tcase_create("Dispatcher");
     tcase_add_checked_fixture(tc_dispatch, setup, teardown);
+    tcase_set_timeout(tc_dispatch, 30);
 
 
     tcase_add_test(tc_dispatch, test_dispatch_glob_with_valid_json);

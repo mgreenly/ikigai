@@ -11,6 +11,7 @@
  */
 
 #include "repl.h"
+#include "repl_event_handlers.h"
 #include "repl_callbacks.h"
 #include "openai/client.h"
 #include "openai/client_multi.h"

@@ -1,0 +1,415 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - src/repl_actions.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory src">src</a> - repl_actions.c<span style="font-size: 80%;"> (source / <a href="repl_actions.c.func-c.html" title="Click to go to function table">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">155</td>
+            <td class="headerCovTableEntry">155</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-12-01 22:16:06</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">5</td>
+          </tr>
+                  <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : // REPL action processing module</span>
+<span id="L2"><span class="lineNum">       2</span>              : #include &quot;repl_actions.h&quot;</span>
+<span id="L3"><span class="lineNum">       3</span>              : #include &quot;repl.h&quot;</span>
+<span id="L4"><span class="lineNum">       4</span>              : #include &quot;repl_callbacks.h&quot;</span>
+<span id="L5"><span class="lineNum">       5</span>              : #include &quot;panic.h&quot;</span>
+<span id="L6"><span class="lineNum">       6</span>              : #include &quot;wrapper.h&quot;</span>
+<span id="L7"><span class="lineNum">       7</span>              : #include &quot;format.h&quot;</span>
+<span id="L8"><span class="lineNum">       8</span>              : #include &quot;commands.h&quot;</span>
+<span id="L9"><span class="lineNum">       9</span>              : #include &quot;db/message.h&quot;</span>
+<span id="L10"><span class="lineNum">      10</span>              : #include &quot;input_buffer/core.h&quot;</span>
+<span id="L11"><span class="lineNum">      11</span>              : #include &quot;openai/client.h&quot;</span>
+<span id="L12"><span class="lineNum">      12</span>              : #include &quot;openai/client_multi.h&quot;</span>
+<span id="L13"><span class="lineNum">      13</span>              : #include &lt;assert.h&gt;</span>
+<span id="L14"><span class="lineNum">      14</span>              : #include &lt;talloc.h&gt;</span>
+<span id="L15"><span class="lineNum">      15</span>              : #include &lt;stdio.h&gt;</span>
+<span id="L16"><span class="lineNum">      16</span>              : #include &lt;string.h&gt;</span>
+<span id="L17"><span class="lineNum">      17</span>              : </span>
+<span id="L18"><span class="lineNum">      18</span>              : /**</span>
+<span id="L19"><span class="lineNum">      19</span>              :  * @brief Append multi-line output to scrollback (splits by newlines)</span>
+<span id="L20"><span class="lineNum">      20</span>              :  *</span>
+<span id="L21"><span class="lineNum">      21</span>              :  * Exposed for testing edge cases.</span>
+<span id="L22"><span class="lineNum">      22</span>              :  *</span>
+<span id="L23"><span class="lineNum">      23</span>              :  * @param scrollback Scrollback buffer</span>
+<span id="L24"><span class="lineNum">      24</span>              :  * @param output Multi-line text (may contain \n)</span>
+<span id="L25"><span class="lineNum">      25</span>              :  * @param output_len Length of output</span>
+<span id="L26"><span class="lineNum">      26</span>              :  */</span>
+<span id="L27"><span class="lineNum">      27</span> <span class="tlaGNC">           8 : void ik_repl_append_multiline_to_scrollback(ik_scrollback_t *scrollback, const char *output, size_t output_len)</span></span>
+<span id="L28"><span class="lineNum">      28</span>              : {</span>
+<span id="L29"><span class="lineNum">      29</span> <span class="tlaGNC">           8 :     assert(scrollback != NULL);  /* LCOV_EXCL_BR_LINE */</span></span>
+<span id="L30"><span class="lineNum">      30</span> <span class="tlaGNC">           8 :     assert(output != NULL);  /* LCOV_EXCL_BR_LINE */</span></span>
+<span id="L31"><span class="lineNum">      31</span>              : </span>
+<span id="L32"><span class="lineNum">      32</span> <span class="tlaGNC">           8 :     if (output_len == 0) {</span></span>
+<span id="L33"><span class="lineNum">      33</span> <span class="tlaGNC">           1 :         return;</span></span>
+<span id="L34"><span class="lineNum">      34</span>              :     }</span>
+<span id="L35"><span class="lineNum">      35</span>              : </span>
+<span id="L36"><span class="lineNum">      36</span>              :     // Split output by newlines and append each line separately</span>
+<span id="L37"><span class="lineNum">      37</span> <span class="tlaGNC">           7 :     size_t line_start = 0;</span></span>
+<span id="L38"><span class="lineNum">      38</span> <span class="tlaGNC">         659 :     for (size_t i = 0; i &lt;= output_len; i++) {</span></span>
+<span id="L39"><span class="lineNum">      39</span> <span class="tlaGNC">         652 :         if (i == output_len || output[i] == '\n') {</span></span>
+<span id="L40"><span class="lineNum">      40</span>              :             // Found end of line or end of string</span>
+<span id="L41"><span class="lineNum">      41</span> <span class="tlaGNC">          36 :             size_t line_len = i - line_start;</span></span>
+<span id="L42"><span class="lineNum">      42</span> <span class="tlaGNC">          36 :             if (line_len &gt; 0 || i &lt; output_len) {</span></span>
+<span id="L43"><span class="lineNum">      43</span> <span class="tlaGNC">          29 :                 ik_scrollback_append_line(scrollback, output + line_start, line_len);</span></span>
+<span id="L44"><span class="lineNum">      44</span>              :             }</span>
+<span id="L45"><span class="lineNum">      45</span> <span class="tlaGNC">          36 :             line_start = i + 1;  // Start of next line (skip the \n)</span></span>
+<span id="L46"><span class="lineNum">      46</span>              :         }</span>
+<span id="L47"><span class="lineNum">      47</span>              :     }</span>
+<span id="L48"><span class="lineNum">      48</span>              : }</span>
+<span id="L49"><span class="lineNum">      49</span>              : </span>
+<span id="L50"><span class="lineNum">      50</span>              : /**</span>
+<span id="L51"><span class="lineNum">      51</span>              :  * @brief Handle legacy /pp command (internal debug command)</span>
+<span id="L52"><span class="lineNum">      52</span>              :  *</span>
+<span id="L53"><span class="lineNum">      53</span>              :  * Note: This is a legacy command for debugging. All other slash commands</span>
+<span id="L54"><span class="lineNum">      54</span>              :  * are handled by the command dispatcher (ik_cmd_dispatch).</span>
+<span id="L55"><span class="lineNum">      55</span>              :  *</span>
+<span id="L56"><span class="lineNum">      56</span>              :  * @param repl REPL context</span>
+<span id="L57"><span class="lineNum">      57</span>              :  * @param command Command text (without leading /)</span>
+<span id="L58"><span class="lineNum">      58</span>              :  * @return res_t Result</span>
+<span id="L59"><span class="lineNum">      59</span>              :  */</span>
+<span id="L60"><span class="lineNum">      60</span> <span class="tlaGNC">           4 : static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *command)</span></span>
+<span id="L61"><span class="lineNum">      61</span>              : {</span>
+<span id="L62"><span class="lineNum">      62</span> <span class="tlaGNC">           4 :     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */</span></span>
+<span id="L63"><span class="lineNum">      63</span> <span class="tlaGNC">           4 :     assert(command != NULL); /* LCOV_EXCL_BR_LINE */</span></span>
+<span id="L64"><span class="lineNum">      64</span> <span class="tlaGNC">           4 :     assert(strncmp(command, &quot;pp&quot;, 2) == 0); /* LCOV_EXCL_BR_LINE */  // Only /pp reaches here</span></span>
+<span id="L65"><span class="lineNum">      65</span>              :     (void)command;  // Used only in assert (compiled out in release builds)</span>
+<span id="L66"><span class="lineNum">      66</span>              : </span>
+<span id="L67"><span class="lineNum">      67</span>              :     // Create format buffer for output</span>
+<span id="L68"><span class="lineNum">      68</span> <span class="tlaGNC">           4 :     ik_format_buffer_t *buf = ik_format_buffer_create(repl);</span></span>
+<span id="L69"><span class="lineNum">      69</span>              : </span>
+<span id="L70"><span class="lineNum">      70</span>              :     // Pretty-print the input buffer</span>
+<span id="L71"><span class="lineNum">      71</span> <span class="tlaGNC">           4 :     ik_pp_input_buffer(repl-&gt;input_buffer, buf, 0);</span></span>
+<span id="L72"><span class="lineNum">      72</span>              : </span>
+<span id="L73"><span class="lineNum">      73</span>              :     // Append output to scrollback buffer (split by newlines)</span>
+<span id="L74"><span class="lineNum">      74</span> <span class="tlaGNC">           4 :     const char *output = ik_format_get_string(buf);</span></span>
+<span id="L75"><span class="lineNum">      75</span> <span class="tlaGNC">           4 :     size_t output_len = strlen(output);</span></span>
+<span id="L76"><span class="lineNum">      76</span> <span class="tlaGNC">           4 :     ik_repl_append_multiline_to_scrollback(repl-&gt;scrollback, output, output_len);</span></span>
+<span id="L77"><span class="lineNum">      77</span>              : </span>
+<span id="L78"><span class="lineNum">      78</span>              :     // Clean up format buffer</span>
+<span id="L79"><span class="lineNum">      79</span> <span class="tlaGNC">           4 :     talloc_free(buf);</span></span>
+<span id="L80"><span class="lineNum">      80</span>              : </span>
+<span id="L81"><span class="lineNum">      81</span> <span class="tlaGNC">           4 :     return OK(NULL);</span></span>
+<span id="L82"><span class="lineNum">      82</span>              : }</span>
+<span id="L83"><span class="lineNum">      83</span>              : </span>
+<span id="L84"><span class="lineNum">      84</span>              : /**</span>
+<span id="L85"><span class="lineNum">      85</span>              :  * @brief Handle newline action (Enter key)</span>
+<span id="L86"><span class="lineNum">      86</span>              :  *</span>
+<span id="L87"><span class="lineNum">      87</span>              :  * Processes slash commands or sends regular text to the LLM.</span>
+<span id="L88"><span class="lineNum">      88</span>              :  *</span>
+<span id="L89"><span class="lineNum">      89</span>              :  * @param repl REPL context</span>
+<span id="L90"><span class="lineNum">      90</span>              :  * @return res_t Result</span>
+<span id="L91"><span class="lineNum">      91</span>              :  */</span>
+<span id="L92"><span class="lineNum">      92</span> <span class="tlaGNC">          25 : static res_t handle_newline_action_(ik_repl_ctx_t *repl)</span></span>
+<span id="L93"><span class="lineNum">      93</span>              : {</span>
+<span id="L94"><span class="lineNum">      94</span> <span class="tlaGNC">          25 :     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */</span></span>
+<span id="L95"><span class="lineNum">      95</span>              : </span>
+<span id="L96"><span class="lineNum">      96</span>              :     // Get current input buffer text</span>
+<span id="L97"><span class="lineNum">      97</span> <span class="tlaGNC">          25 :     const char *text = (const char *)repl-&gt;input_buffer-&gt;text-&gt;data;</span></span>
+<span id="L98"><span class="lineNum">      98</span> <span class="tlaGNC">          25 :     size_t text_len = ik_byte_array_size(repl-&gt;input_buffer-&gt;text);</span></span>
+<span id="L99"><span class="lineNum">      99</span>              : </span>
+<span id="L100"><span class="lineNum">     100</span>              :     // Check if text starts with '/' and extract command BEFORE submit clears input buffer</span>
+<span id="L101"><span class="lineNum">     101</span> <span class="tlaGNC">          25 :     bool is_slash_command = (text_len &gt; 0 &amp;&amp; text[0] == '/');</span></span>
+<span id="L102"><span class="lineNum">     102</span> <span class="tlaGNC">          25 :     char *command_text = NULL;</span></span>
+<span id="L103"><span class="lineNum">     103</span> <span class="tlaGNC">          25 :     if (is_slash_command) {</span></span>
+<span id="L104"><span class="lineNum">     104</span>              :         // Extract full command text (including '/' for dispatcher)</span>
+<span id="L105"><span class="lineNum">     105</span> <span class="tlaGNC">           5 :         command_text = talloc_zero_(repl, text_len + 1); // Includes space for null terminator</span></span>
+<span id="L106"><span class="lineNum">     106</span> <span class="tlaGNC">           5 :         if (command_text == NULL) PANIC(&quot;Out of memory&quot;); // LCOV_EXCL_BR_LINE</span></span>
+<span id="L107"><span class="lineNum">     107</span> <span class="tlaGNC">           5 :         memcpy(command_text, text, text_len);</span></span>
+<span id="L108"><span class="lineNum">     108</span> <span class="tlaGNC">           5 :         command_text[text_len] = '\0';</span></span>
+<span id="L109"><span class="lineNum">     109</span>              :     }</span>
+<span id="L110"><span class="lineNum">     110</span>              : </span>
+<span id="L111"><span class="lineNum">     111</span>              :     // If it's a slash command, just clear input buffer (event renderer handles scrollback)</span>
+<span id="L112"><span class="lineNum">     112</span>              :     // If not a slash command, submit to scrollback (regular messages)</span>
+<span id="L113"><span class="lineNum">     113</span> <span class="tlaGNC">          25 :     if (is_slash_command) {</span></span>
+<span id="L114"><span class="lineNum">     114</span>              :         // Clear input buffer and reset viewport (but don't add to scrollback)</span>
+<span id="L115"><span class="lineNum">     115</span> <span class="tlaGNC">           5 :         ik_input_buffer_clear(repl-&gt;input_buffer);</span></span>
+<span id="L116"><span class="lineNum">     116</span> <span class="tlaGNC">           5 :         repl-&gt;viewport_offset = 0;</span></span>
+<span id="L117"><span class="lineNum">     117</span>              :     } else {</span>
+<span id="L118"><span class="lineNum">     118</span>              :         // Regular message: submit line to scrollback</span>
+<span id="L119"><span class="lineNum">     119</span> <span class="tlaGNC">          20 :         ik_repl_submit_line(repl);</span></span>
+<span id="L120"><span class="lineNum">     120</span>              :     }</span>
+<span id="L121"><span class="lineNum">     121</span>              : </span>
+<span id="L122"><span class="lineNum">     122</span>              :     // If it was a slash command, handle it now (event renderer adds to scrollback)</span>
+<span id="L123"><span class="lineNum">     123</span> <span class="tlaGNC">          25 :     if (is_slash_command) {</span></span>
+<span id="L124"><span class="lineNum">     124</span>              :         // Check for legacy /pp command (internal debug command)</span>
+<span id="L125"><span class="lineNum">     125</span> <span class="tlaGNC">           5 :         if (strncmp(command_text + 1, &quot;pp&quot;, 2) == 0) {</span></span>
+<span id="L126"><span class="lineNum">     126</span>              :             // Handle legacy /pp command</span>
+<span id="L127"><span class="lineNum">     127</span> <span class="tlaGNC">           4 :             res_t result = ik_repl_handle_slash_command(repl, command_text + 1);</span></span>
+<span id="L128"><span class="lineNum">     128</span> <span class="tlaGNC">           4 :             if (is_err(&amp;result)) PANIC(&quot;allocation failed&quot;); // LCOV_EXCL_BR_LINE</span></span>
+<span id="L129"><span class="lineNum">     129</span>              :         } else {</span>
+<span id="L130"><span class="lineNum">     130</span>              :             // Dispatch to command registry</span>
+<span id="L131"><span class="lineNum">     131</span> <span class="tlaGNC">           1 :             res_t result = ik_cmd_dispatch(repl, repl, command_text);</span></span>
+<span id="L132"><span class="lineNum">     132</span>              :             // Errors are already displayed in scrollback by dispatcher</span>
+<span id="L133"><span class="lineNum">     133</span>              :             (void)result;</span>
+<span id="L134"><span class="lineNum">     134</span>              :         }</span>
+<span id="L135"><span class="lineNum">     135</span> <span class="tlaGNC">           5 :         talloc_free(command_text);</span></span>
+<span id="L136"><span class="lineNum">     136</span> <span class="tlaGNC">          20 :     } else if (text_len &gt; 0 &amp;&amp; repl-&gt;conversation != NULL &amp;&amp; repl-&gt;cfg != NULL) {</span></span>
+<span id="L137"><span class="lineNum">     137</span>              :         // Not a slash command and not empty - send to LLM (Phase 1.6)</span>
+<span id="L138"><span class="lineNum">     138</span>              :         // Only send if conversation and config are initialized</span>
+<span id="L139"><span class="lineNum">     139</span>              :         // Create null-terminated copy for OpenAI message</span>
+<span id="L140"><span class="lineNum">     140</span> <span class="tlaGNC">          17 :         char *message_text = talloc_zero_(repl, text_len + 1);</span></span>
+<span id="L141"><span class="lineNum">     141</span> <span class="tlaGNC">          17 :         if (message_text == NULL) PANIC(&quot;Out of memory&quot;); // LCOV_EXCL_BR_LINE</span></span>
+<span id="L142"><span class="lineNum">     142</span> <span class="tlaGNC">          17 :         memcpy(message_text, text, text_len);</span></span>
+<span id="L143"><span class="lineNum">     143</span> <span class="tlaGNC">          17 :         message_text[text_len] = '\0';</span></span>
+<span id="L144"><span class="lineNum">     144</span>              : </span>
+<span id="L145"><span class="lineNum">     145</span>              :         // Create user message and add to conversation</span>
+<span id="L146"><span class="lineNum">     146</span> <span class="tlaGNC">          17 :         ik_openai_msg_t *user_msg = ik_openai_msg_create(repl-&gt;conversation, &quot;user&quot;, message_text).ok;</span></span>
+<span id="L147"><span class="lineNum">     147</span> <span class="tlaGNC">          17 :         res_t result = ik_openai_conversation_add_msg(repl-&gt;conversation, user_msg);</span></span>
+<span id="L148"><span class="lineNum">     148</span> <span class="tlaGNC">          17 :         if (is_err(&amp;result)) PANIC(&quot;allocation failed&quot;); // LCOV_EXCL_BR_LINE</span></span>
+<span id="L149"><span class="lineNum">     149</span>              : </span>
+<span id="L150"><span class="lineNum">     150</span>              :         // Persist user message to database (Integration Point 1)</span>
+<span id="L151"><span class="lineNum">     151</span> <span class="tlaGNC">          17 :         if (repl-&gt;db_ctx != NULL &amp;&amp; repl-&gt;current_session_id &gt; 0) {</span></span>
+<span id="L152"><span class="lineNum">     152</span>              :             // Build data JSON with current LLM parameters</span>
+<span id="L153"><span class="lineNum">     153</span> <span class="tlaGNC">           4 :             char *data_json = talloc_asprintf(repl,</span></span>
+<span id="L154"><span class="lineNum">     154</span>              :                                               &quot;{\&quot;model\&quot;:\&quot;%s\&quot;,\&quot;temperature\&quot;:%.2f,\&quot;max_completion_tokens\&quot;:%d}&quot;,</span>
+<span id="L155"><span class="lineNum">     155</span> <span class="tlaGNC">           4 :                                               repl-&gt;cfg-&gt;openai_model,</span></span>
+<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">           4 :                                               repl-&gt;cfg-&gt;openai_temperature,</span></span>
+<span id="L157"><span class="lineNum">     157</span> <span class="tlaGNC">           4 :                                               repl-&gt;cfg-&gt;openai_max_completion_tokens);</span></span>
+<span id="L158"><span class="lineNum">     158</span>              : </span>
+<span id="L159"><span class="lineNum">     159</span> <span class="tlaGNC">           4 :             res_t db_res = ik_db_message_insert(repl-&gt;db_ctx, repl-&gt;current_session_id,</span></span>
+<span id="L160"><span class="lineNum">     160</span>              :                                                 &quot;user&quot;, message_text, data_json);</span>
+<span id="L161"><span class="lineNum">     161</span> <span class="tlaGNC">           4 :             if (is_err(&amp;db_res)) {</span></span>
+<span id="L162"><span class="lineNum">     162</span>              :                 // Log error but don't crash - memory state is authoritative</span>
+<span id="L163"><span class="lineNum">     163</span> <span class="tlaGNC">           3 :                 if (repl-&gt;db_debug_pipe != NULL &amp;&amp; repl-&gt;db_debug_pipe-&gt;write_end != NULL) {</span></span>
+<span id="L164"><span class="lineNum">     164</span> <span class="tlaGNC">           1 :                     fprintf(repl-&gt;db_debug_pipe-&gt;write_end,</span></span>
+<span id="L165"><span class="lineNum">     165</span>              :                             &quot;Warning: Failed to persist user message to database: %s\n&quot;,</span>
+<span id="L166"><span class="lineNum">     166</span> <span class="tlaGNC">           1 :                             error_message(db_res.err));</span></span>
+<span id="L167"><span class="lineNum">     167</span>              :                 }</span>
+<span id="L168"><span class="lineNum">     168</span> <span class="tlaGNC">           3 :                 talloc_free(db_res.err);</span></span>
+<span id="L169"><span class="lineNum">     169</span>              :             }</span>
+<span id="L170"><span class="lineNum">     170</span> <span class="tlaGNC">           4 :             talloc_free(data_json);</span></span>
+<span id="L171"><span class="lineNum">     171</span>              :         }</span>
+<span id="L172"><span class="lineNum">     172</span>              : </span>
+<span id="L173"><span class="lineNum">     173</span>              :         // Clear previous assistant response (prepare for new response)</span>
+<span id="L174"><span class="lineNum">     174</span> <span class="tlaGNC">          17 :         if (repl-&gt;assistant_response != NULL) {</span></span>
+<span id="L175"><span class="lineNum">     175</span> <span class="tlaGNC">           1 :             talloc_free(repl-&gt;assistant_response);</span></span>
+<span id="L176"><span class="lineNum">     176</span> <span class="tlaGNC">           1 :             repl-&gt;assistant_response = NULL;</span></span>
+<span id="L177"><span class="lineNum">     177</span>              :         }</span>
+<span id="L178"><span class="lineNum">     178</span>              : </span>
+<span id="L179"><span class="lineNum">     179</span>              :         // Clear streaming line buffer</span>
+<span id="L180"><span class="lineNum">     180</span> <span class="tlaGNC">          17 :         if (repl-&gt;streaming_line_buffer != NULL) {</span></span>
+<span id="L181"><span class="lineNum">     181</span> <span class="tlaGNC">           1 :             talloc_free(repl-&gt;streaming_line_buffer);</span></span>
+<span id="L182"><span class="lineNum">     182</span> <span class="tlaGNC">           1 :             repl-&gt;streaming_line_buffer = NULL;</span></span>
+<span id="L183"><span class="lineNum">     183</span>              :         }</span>
+<span id="L184"><span class="lineNum">     184</span>              : </span>
+<span id="L185"><span class="lineNum">     185</span>              :         // Reset tool iteration counter (start of new user request)</span>
+<span id="L186"><span class="lineNum">     186</span> <span class="tlaGNC">          17 :         repl-&gt;tool_iteration_count = 0;</span></span>
+<span id="L187"><span class="lineNum">     187</span>              : </span>
+<span id="L188"><span class="lineNum">     188</span>              :         // Transition to WAITING_FOR_LLM state (shows spinner, hides input)</span>
+<span id="L189"><span class="lineNum">     189</span> <span class="tlaGNC">          17 :         ik_repl_transition_to_waiting_for_llm(repl);</span></span>
+<span id="L190"><span class="lineNum">     190</span>              : </span>
+<span id="L191"><span class="lineNum">     191</span>              :         // Initiate non-blocking API request (first request, so limit_reached=false)</span>
+<span id="L192"><span class="lineNum">     192</span> <span class="tlaGNC">          17 :         FILE *debug_out = repl-&gt;debug_enabled ? repl-&gt;openai_debug_pipe-&gt;write_end : NULL;</span></span>
+<span id="L193"><span class="lineNum">     193</span> <span class="tlaGNC">          17 :         result = ik_openai_multi_add_request(repl-&gt;multi, repl-&gt;cfg, repl-&gt;conversation,</span></span>
+<span id="L194"><span class="lineNum">     194</span>              :                                              ik_repl_streaming_callback, repl,</span>
+<span id="L195"><span class="lineNum">     195</span>              :                                              ik_repl_http_completion_callback, repl,</span>
+<span id="L196"><span class="lineNum">     196</span>              :                                              debug_out, false);</span>
+<span id="L197"><span class="lineNum">     197</span> <span class="tlaGNC">          17 :         if (is_err(&amp;result)) {</span></span>
+<span id="L198"><span class="lineNum">     198</span>              :             // If request fails, display error and transition back to IDLE</span>
+<span id="L199"><span class="lineNum">     199</span> <span class="tlaGNC">           7 :             const char *err_msg = error_message(result.err);</span></span>
+<span id="L200"><span class="lineNum">     200</span> <span class="tlaGNC">           7 :             ik_scrollback_append_line(repl-&gt;scrollback, err_msg, strlen(err_msg));</span></span>
+<span id="L201"><span class="lineNum">     201</span> <span class="tlaGNC">           7 :             ik_repl_transition_to_idle(repl);</span></span>
+<span id="L202"><span class="lineNum">     202</span> <span class="tlaGNC">           7 :             talloc_free(result.err);</span></span>
+<span id="L203"><span class="lineNum">     203</span>              :         } else {</span>
+<span id="L204"><span class="lineNum">     204</span>              :             // Set curl_still_running to 1 so the event loop will call curl_multi_perform</span>
+<span id="L205"><span class="lineNum">     205</span>              :             // This is necessary because curl_still_running starts at 0, and we only call</span>
+<span id="L206"><span class="lineNum">     206</span>              :             // curl_multi_perform if ready==0 OR curl_still_running&gt;0</span>
+<span id="L207"><span class="lineNum">     207</span> <span class="tlaGNC">          10 :             repl-&gt;curl_still_running = 1;</span></span>
+<span id="L208"><span class="lineNum">     208</span>              :         }</span>
+<span id="L209"><span class="lineNum">     209</span>              : </span>
+<span id="L210"><span class="lineNum">     210</span>              :         // Clean up temporary message text</span>
+<span id="L211"><span class="lineNum">     211</span> <span class="tlaGNC">          17 :         talloc_free(message_text);</span></span>
+<span id="L212"><span class="lineNum">     212</span>              :     }</span>
+<span id="L213"><span class="lineNum">     213</span>              : </span>
+<span id="L214"><span class="lineNum">     214</span> <span class="tlaGNC">          25 :     return OK(NULL);</span></span>
+<span id="L215"><span class="lineNum">     215</span>              : }</span>
+<span id="L216"><span class="lineNum">     216</span>              : </span>
+<span id="L217"><span class="lineNum">     217</span>              : /**</span>
+<span id="L218"><span class="lineNum">     218</span>              :  * @brief Handle page up action</span>
+<span id="L219"><span class="lineNum">     219</span>              :  *</span>
+<span id="L220"><span class="lineNum">     220</span>              :  * Scrolls up by one terminal screen height.</span>
+<span id="L221"><span class="lineNum">     221</span>              :  *</span>
+<span id="L222"><span class="lineNum">     222</span>              :  * @param repl REPL context</span>
+<span id="L223"><span class="lineNum">     223</span>              :  * @return res_t Result</span>
+<span id="L224"><span class="lineNum">     224</span>              :  */</span>
+<span id="L225"><span class="lineNum">     225</span> <span class="tlaGNC">           8 : static res_t handle_page_up_action_(ik_repl_ctx_t *repl)</span></span>
+<span id="L226"><span class="lineNum">     226</span>              : {</span>
+<span id="L227"><span class="lineNum">     227</span> <span class="tlaGNC">           8 :     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */</span></span>
+<span id="L228"><span class="lineNum">     228</span>              : </span>
+<span id="L229"><span class="lineNum">     229</span>              :     // First ensure layouts are current</span>
+<span id="L230"><span class="lineNum">     230</span> <span class="tlaGNC">           8 :     ik_scrollback_ensure_layout(repl-&gt;scrollback, repl-&gt;term-&gt;screen_cols);</span></span>
+<span id="L231"><span class="lineNum">     231</span> <span class="tlaGNC">           8 :     ik_input_buffer_ensure_layout(repl-&gt;input_buffer, repl-&gt;term-&gt;screen_cols);</span></span>
+<span id="L232"><span class="lineNum">     232</span>              : </span>
+<span id="L233"><span class="lineNum">     233</span>              :     // Calculate maximum offset using unified document model</span>
+<span id="L234"><span class="lineNum">     234</span>              :     // Document = scrollback + separator (1) + MAX(input_buffer, 1)</span>
+<span id="L235"><span class="lineNum">     235</span>              :     // Workspace always occupies at least 1 row (for cursor visibility when empty)</span>
+<span id="L236"><span class="lineNum">     236</span> <span class="tlaGNC">           8 :     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl-&gt;scrollback);</span></span>
+<span id="L237"><span class="lineNum">     237</span> <span class="tlaGNC">           8 :     size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl-&gt;input_buffer);</span></span>
+<span id="L238"><span class="lineNum">     238</span> <span class="tlaGNC">           8 :     size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;</span></span>
+<span id="L239"><span class="lineNum">     239</span> <span class="tlaGNC">           8 :     size_t document_height = scrollback_rows + 1 + input_buffer_display_rows;</span></span>
+<span id="L240"><span class="lineNum">     240</span>              : </span>
+<span id="L241"><span class="lineNum">     241</span>              :     // Max offset = document_height - terminal_rows (can't scroll past top)</span>
+<span id="L242"><span class="lineNum">     242</span> <span class="tlaGNC">           8 :     size_t max_offset = 0;</span></span>
+<span id="L243"><span class="lineNum">     243</span> <span class="tlaGNC">           8 :     if (document_height &gt; (size_t)repl-&gt;term-&gt;screen_rows) {</span></span>
+<span id="L244"><span class="lineNum">     244</span> <span class="tlaGNC">           7 :         max_offset = document_height - (size_t)repl-&gt;term-&gt;screen_rows;</span></span>
+<span id="L245"><span class="lineNum">     245</span>              :     }</span>
+<span id="L246"><span class="lineNum">     246</span>              : </span>
+<span id="L247"><span class="lineNum">     247</span>              :     // Scroll up by one page</span>
+<span id="L248"><span class="lineNum">     248</span> <span class="tlaGNC">           8 :     size_t new_offset = repl-&gt;viewport_offset + (size_t)repl-&gt;term-&gt;screen_rows;</span></span>
+<span id="L249"><span class="lineNum">     249</span> <span class="tlaGNC">           8 :     if (new_offset &gt; max_offset) {</span></span>
+<span id="L250"><span class="lineNum">     250</span> <span class="tlaGNC">           7 :         repl-&gt;viewport_offset = max_offset;</span></span>
+<span id="L251"><span class="lineNum">     251</span>              :     } else {</span>
+<span id="L252"><span class="lineNum">     252</span> <span class="tlaGNC">           1 :         repl-&gt;viewport_offset = new_offset;</span></span>
+<span id="L253"><span class="lineNum">     253</span>              :     }</span>
+<span id="L254"><span class="lineNum">     254</span>              : </span>
+<span id="L255"><span class="lineNum">     255</span> <span class="tlaGNC">           8 :     return OK(NULL);</span></span>
+<span id="L256"><span class="lineNum">     256</span>              : }</span>
+<span id="L257"><span class="lineNum">     257</span>              : </span>
+<span id="L258"><span class="lineNum">     258</span> <span class="tlaGNC">         237 : res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action)</span></span>
+<span id="L259"><span class="lineNum">     259</span>              : {</span>
+<span id="L260"><span class="lineNum">     260</span> <span class="tlaGNC">         237 :     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */</span></span>
+<span id="L261"><span class="lineNum">     261</span> <span class="tlaGNC">         237 :     assert(action != NULL);   /* LCOV_EXCL_BR_LINE */</span></span>
+<span id="L262"><span class="lineNum">     262</span>              : </span>
+<span id="L263"><span class="lineNum">     263</span> <span class="tlaGNC">         237 :     switch (action-&gt;type) { // LCOV_EXCL_BR_LINE</span></span>
+<span id="L264"><span class="lineNum">     264</span> <span class="tlaGNC">         158 :         case IK_INPUT_CHAR:</span></span>
+<span id="L265"><span class="lineNum">     265</span>              :             // Auto-scroll to bottom on input buffer modification (Bug #6 fix)</span>
+<span id="L266"><span class="lineNum">     266</span> <span class="tlaGNC">         158 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L267"><span class="lineNum">     267</span> <span class="tlaGNC">         158 :             return ik_input_buffer_insert_codepoint(repl-&gt;input_buffer, action-&gt;codepoint);</span></span>
+<span id="L268"><span class="lineNum">     268</span> <span class="tlaGNC">           5 :         case IK_INPUT_INSERT_NEWLINE:</span></span>
+<span id="L269"><span class="lineNum">     269</span>              :             // Ctrl+J inserts newline without submitting (multi-line editing)</span>
+<span id="L270"><span class="lineNum">     270</span>              :             // Auto-scroll to bottom on input buffer modification (Bug #6 fix)</span>
+<span id="L271"><span class="lineNum">     271</span> <span class="tlaGNC">           5 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L272"><span class="lineNum">     272</span> <span class="tlaGNC">           5 :             return ik_input_buffer_insert_newline(repl-&gt;input_buffer);</span></span>
+<span id="L273"><span class="lineNum">     273</span> <span class="tlaGNC">          25 :         case IK_INPUT_NEWLINE:</span></span>
+<span id="L274"><span class="lineNum">     274</span> <span class="tlaGNC">          25 :             return handle_newline_action_(repl);</span></span>
+<span id="L275"><span class="lineNum">     275</span> <span class="tlaGNC">           4 :         case IK_INPUT_BACKSPACE:</span></span>
+<span id="L276"><span class="lineNum">     276</span>              :             // Auto-scroll to bottom on input buffer modification (Bug #6 fix)</span>
+<span id="L277"><span class="lineNum">     277</span> <span class="tlaGNC">           4 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L278"><span class="lineNum">     278</span> <span class="tlaGNC">           4 :             return ik_input_buffer_backspace(repl-&gt;input_buffer);</span></span>
+<span id="L279"><span class="lineNum">     279</span> <span class="tlaGNC">           3 :         case IK_INPUT_DELETE:</span></span>
+<span id="L280"><span class="lineNum">     280</span>              :             // Auto-scroll to bottom on input buffer modification (Bug #6 fix)</span>
+<span id="L281"><span class="lineNum">     281</span> <span class="tlaGNC">           3 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L282"><span class="lineNum">     282</span> <span class="tlaGNC">           3 :             return ik_input_buffer_delete(repl-&gt;input_buffer);</span></span>
+<span id="L283"><span class="lineNum">     283</span> <span class="tlaGNC">           4 :         case IK_INPUT_ARROW_LEFT:</span></span>
+<span id="L284"><span class="lineNum">     284</span>              :             // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)</span>
+<span id="L285"><span class="lineNum">     285</span> <span class="tlaGNC">           4 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L286"><span class="lineNum">     286</span> <span class="tlaGNC">           4 :             return ik_input_buffer_cursor_left(repl-&gt;input_buffer);</span></span>
+<span id="L287"><span class="lineNum">     287</span> <span class="tlaGNC">           3 :         case IK_INPUT_ARROW_RIGHT:</span></span>
+<span id="L288"><span class="lineNum">     288</span>              :             // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)</span>
+<span id="L289"><span class="lineNum">     289</span> <span class="tlaGNC">           3 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L290"><span class="lineNum">     290</span> <span class="tlaGNC">           3 :             return ik_input_buffer_cursor_right(repl-&gt;input_buffer);</span></span>
+<span id="L291"><span class="lineNum">     291</span> <span class="tlaGNC">           2 :         case IK_INPUT_ARROW_UP:</span></span>
+<span id="L292"><span class="lineNum">     292</span>              :             // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)</span>
+<span id="L293"><span class="lineNum">     293</span> <span class="tlaGNC">           2 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L294"><span class="lineNum">     294</span> <span class="tlaGNC">           2 :             return ik_input_buffer_cursor_up(repl-&gt;input_buffer);</span></span>
+<span id="L295"><span class="lineNum">     295</span> <span class="tlaGNC">           2 :         case IK_INPUT_ARROW_DOWN:</span></span>
+<span id="L296"><span class="lineNum">     296</span>              :             // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)</span>
+<span id="L297"><span class="lineNum">     297</span> <span class="tlaGNC">           2 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L298"><span class="lineNum">     298</span> <span class="tlaGNC">           2 :             return ik_input_buffer_cursor_down(repl-&gt;input_buffer);</span></span>
+<span id="L299"><span class="lineNum">     299</span> <span class="tlaGNC">           8 :         case IK_INPUT_PAGE_UP:</span></span>
+<span id="L300"><span class="lineNum">     300</span> <span class="tlaGNC">           8 :             return handle_page_up_action_(repl);</span></span>
+<span id="L301"><span class="lineNum">     301</span> <span class="tlaGNC">           4 :         case IK_INPUT_PAGE_DOWN: {</span></span>
+<span id="L302"><span class="lineNum">     302</span>              :             // Scroll down by terminal height (decrease offset)</span>
+<span id="L303"><span class="lineNum">     303</span> <span class="tlaGNC">           4 :             if (repl-&gt;viewport_offset &gt;= (size_t)repl-&gt;term-&gt;screen_rows) {</span></span>
+<span id="L304"><span class="lineNum">     304</span> <span class="tlaGNC">           1 :                 repl-&gt;viewport_offset -= (size_t)repl-&gt;term-&gt;screen_rows;</span></span>
+<span id="L305"><span class="lineNum">     305</span>              :             } else {</span>
+<span id="L306"><span class="lineNum">     306</span> <span class="tlaGNC">           3 :                 repl-&gt;viewport_offset = 0;  // At bottom</span></span>
+<span id="L307"><span class="lineNum">     307</span>              :             }</span>
+<span id="L308"><span class="lineNum">     308</span> <span class="tlaGNC">           4 :             return OK(NULL);</span></span>
+<span id="L309"><span class="lineNum">     309</span>              :         }</span>
+<span id="L310"><span class="lineNum">     310</span> <span class="tlaGNC">           2 :         case IK_INPUT_CTRL_A:</span></span>
+<span id="L311"><span class="lineNum">     311</span>              :             // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)</span>
+<span id="L312"><span class="lineNum">     312</span> <span class="tlaGNC">           2 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L313"><span class="lineNum">     313</span> <span class="tlaGNC">           2 :             return ik_input_buffer_cursor_to_line_start(repl-&gt;input_buffer);</span></span>
+<span id="L314"><span class="lineNum">     314</span> <span class="tlaGNC">           2 :         case IK_INPUT_CTRL_E:</span></span>
+<span id="L315"><span class="lineNum">     315</span>              :             // Auto-scroll to bottom on input buffer navigation (Bug #6 fix)</span>
+<span id="L316"><span class="lineNum">     316</span> <span class="tlaGNC">           2 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L317"><span class="lineNum">     317</span> <span class="tlaGNC">           2 :             return ik_input_buffer_cursor_to_line_end(repl-&gt;input_buffer);</span></span>
+<span id="L318"><span class="lineNum">     318</span> <span class="tlaGNC">           2 :         case IK_INPUT_CTRL_K:</span></span>
+<span id="L319"><span class="lineNum">     319</span>              :             // Auto-scroll to bottom on input buffer modification (Bug #6 fix)</span>
+<span id="L320"><span class="lineNum">     320</span> <span class="tlaGNC">           2 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L321"><span class="lineNum">     321</span> <span class="tlaGNC">           2 :             return ik_input_buffer_kill_to_line_end(repl-&gt;input_buffer);</span></span>
+<span id="L322"><span class="lineNum">     322</span> <span class="tlaGNC">           2 :         case IK_INPUT_CTRL_U:</span></span>
+<span id="L323"><span class="lineNum">     323</span>              :             // Auto-scroll to bottom on input buffer modification (Bug #6 fix)</span>
+<span id="L324"><span class="lineNum">     324</span> <span class="tlaGNC">           2 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L325"><span class="lineNum">     325</span> <span class="tlaGNC">           2 :             return ik_input_buffer_kill_line(repl-&gt;input_buffer);</span></span>
+<span id="L326"><span class="lineNum">     326</span> <span class="tlaGNC">           2 :         case IK_INPUT_CTRL_W:</span></span>
+<span id="L327"><span class="lineNum">     327</span>              :             // Auto-scroll to bottom on input buffer modification (Bug #6 fix)</span>
+<span id="L328"><span class="lineNum">     328</span> <span class="tlaGNC">           2 :             repl-&gt;viewport_offset = 0;</span></span>
+<span id="L329"><span class="lineNum">     329</span> <span class="tlaGNC">           2 :             return ik_input_buffer_delete_word_backward(repl-&gt;input_buffer);</span></span>
+<span id="L330"><span class="lineNum">     330</span> <span class="tlaGNC">           6 :         case IK_INPUT_CTRL_C:</span></span>
+<span id="L331"><span class="lineNum">     331</span> <span class="tlaGNC">           6 :             repl-&gt;quit = true;</span></span>
+<span id="L332"><span class="lineNum">     332</span> <span class="tlaGNC">           6 :             return OK(NULL);</span></span>
+<span id="L333"><span class="lineNum">     333</span> <span class="tlaGNC">           3 :         case IK_INPUT_UNKNOWN:</span></span>
+<span id="L334"><span class="lineNum">     334</span>              :             // Unknown actions are ignored</span>
+<span id="L335"><span class="lineNum">     335</span> <span class="tlaGNC">           3 :             return OK(NULL);</span></span>
+<span id="L336"><span class="lineNum">     336</span>              :         default: // LCOV_EXCL_LINE</span>
+<span id="L337"><span class="lineNum">     337</span>              :             PANIC(&quot;Invalid input action type&quot;); // LCOV_EXCL_LINE</span>
+<span id="L338"><span class="lineNum">     338</span>              :     }</span>
+<span id="L339"><span class="lineNum">     339</span>              : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.0-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

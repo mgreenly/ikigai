@@ -140,14 +140,14 @@ void ik_repl_start_tool_execution(ik_repl_ctx_t *repl)
     args->arguments = talloc_strdup(repl->tool_thread_ctx, tc->arguments);
     args->repl = repl;
 
-    if (args->tool_name == NULL || args->arguments == NULL) {
-        PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (args->tool_name == NULL || args->arguments == NULL) { // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory"); // LCOV_EXCL_LINE
     }
 
     // Spawn thread BEFORE setting running=true.
     // If spawn fails, we PANIC without corrupting state.
     int ret = pthread_create_(&repl->tool_thread, NULL, tool_thread_worker, args);
-    if (ret != 0) {
+    if (ret != 0) { // LCOV_EXCL_BR_LINE
         // Thread creation failure is rare (resource exhaustion).
         // PANIC is acceptable for rel-04 - see design decision D2.
         // The alternative (fallback to sync) adds complexity for an

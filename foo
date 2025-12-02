@@ -1,0 +1,20 @@
+[openai] * Re-using existing https: connection with host api.openai.com
+[openai] * [HTTP/2] [9] OPENED stream for https://api.openai.com/v1/chat/completions
+[openai] * [HTTP/2] [9] [:method: POST]
+[openai] * [HTTP/2] [9] [:scheme: https]
+[openai] * [HTTP/2] [9] [:authority: api.openai.com]
+[openai] * [HTTP/2] [9] [:path: /v1/chat/completions]
+[openai] * [HTTP/2] [9] [accept: */*]
+[openai] * [HTTP/2] [9] [content-type: application/json]
+[openai] * [HTTP/2] [9] [authorization: Bearer REDACTED]
+[openai] * [HTTP/2] [9] [content-length: 1628]
+[openai] > POST /v1/chat/completions HTTP/2
+[openai] Host: api.openai.com
+[openai] Accept: */*
+[openai] Content-Type: application/json
+[openai] Authorization: Bearer REDACTED
+[openai] Content-Length: 1628
+[openai]
+[openai] * upload completely sent off: 1628 bytes
+[openai] < HTTP/2 200
+[openai] < date: Tue, 02 Dec 2025 01:45:33 GMT

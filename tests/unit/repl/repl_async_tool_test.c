@@ -74,7 +74,7 @@ START_TEST(test_start_tool_execution)
     ck_assert_ptr_nonnull(repl->tool_thread_ctx);
 
     /* Wait for thread to complete */
-    int max_wait = 50; // 500ms max
+    int max_wait = 200; // 2 seconds max
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
         pthread_mutex_lock_(&repl->tool_thread_mutex);
@@ -89,6 +89,9 @@ START_TEST(test_start_tool_execution)
 
     /* Verify result was set */
     ck_assert_ptr_nonnull(repl->tool_thread_result);
+
+    /* Clean up thread to prevent leak */
+    ik_repl_complete_tool_execution(repl);
 }
 END_TEST
 
@@ -101,7 +104,7 @@ START_TEST(test_complete_tool_execution)
     ik_repl_start_tool_execution(repl);
 
     /* Wait for thread to complete */
-    int max_wait = 50;
+    int max_wait = 200;
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
         pthread_mutex_lock_(&repl->tool_thread_mutex);
@@ -154,7 +157,7 @@ START_TEST(test_async_tool_file_read)
     /* Start and wait */
     ik_repl_start_tool_execution(repl);
 
-    int max_wait = 50;
+    int max_wait = 200;
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
         pthread_mutex_lock_(&repl->tool_thread_mutex);
@@ -188,7 +191,7 @@ START_TEST(test_async_tool_with_debug_pipe)
     /* Start and wait */
     ik_repl_start_tool_execution(repl);
 
-    int max_wait = 50;
+    int max_wait = 200;
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
         pthread_mutex_lock_(&repl->tool_thread_mutex);

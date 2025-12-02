@@ -3,6 +3,7 @@
   "default",
   "di",
   "errors",
+  "meta",
   "naming",
   "patterns/adapter",
   "patterns/arena-allocator",
@@ -23,5 +24,6 @@
   "patterns/strategy",
   "patterns/vtable",
   "style",
+  "tasks",
   "tdd"
 ]

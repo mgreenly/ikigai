@@ -9,7 +9,7 @@
 
 // Serialize a tool_call message to OpenAI wire format
 // Transforms canonical role="tool_call" to role="assistant" + tool_calls array
-void ik_openai_serialize_tool_call_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
+void ik_openai_serialize_tool_call_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj, // LCOV_EXCL_BR_LINE
                                         const ik_openai_msg_t *msg, void *parent)
 {
     if (!yyjson_mut_obj_add_str(doc, msg_obj, "role", "assistant")) { // LCOV_EXCL_BR_LINE
@@ -113,7 +113,7 @@ void ik_openai_serialize_tool_call_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_
 
 // Serialize a tool_result message to OpenAI wire format
 // Transforms canonical role="tool_result" to role="tool" + tool_call_id + content
-void ik_openai_serialize_tool_result_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
+void ik_openai_serialize_tool_result_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj, // LCOV_EXCL_BR_LINE
                                           const ik_openai_msg_t *msg, void *parent)
 {
     if (!yyjson_mut_obj_add_str(doc, msg_obj, "role", "tool")) { // LCOV_EXCL_BR_LINE

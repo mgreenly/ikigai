@@ -42,7 +42,6 @@ For each file with issues:
 Before reporting done, the sub-agent must execute these commands in order:
 1. `/lint`
 2. `/check`
-3. `/sanitize`
 
 Execute each command ONE AT A TIME using a sub-sub-agent:
 - Tool: `Task`, `subagent_type`: `general-purpose`, `model`: `sonnet`

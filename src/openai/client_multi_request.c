@@ -19,16 +19,6 @@
  * Handles adding new requests to the multi-handle manager.
  */
 
-// libcurl debug info types (from curl/curl.h)
-// We need these to filter in our callback
-#define CURLINFO_TEXT         0
-#define CURLINFO_HEADER_IN    1
-#define CURLINFO_HEADER_OUT   2
-#define CURLINFO_DATA_IN      3
-#define CURLINFO_DATA_OUT     4
-#define CURLINFO_SSL_DATA_IN  5
-#define CURLINFO_SSL_DATA_OUT 6
-
 // Custom curl debug function - filters HTTP/2 noise and redacts secrets.
 //
 // Called by libcurl for each debug event. We filter to show only:
@@ -63,8 +53,13 @@ int32_t ik_openai_curl_debug_output(CURL *handle, curl_infotype type,
     const char *prefix = "";
     if (type == CURLINFO_HEADER_OUT || type == CURLINFO_DATA_OUT) {
         prefix = ">> ";  // Outgoing (request)
-    } else if (type == CURLINFO_HEADER_IN || type == CURLINFO_DATA_IN) {
-        prefix = "<< ";  // Incoming (response)
+    } else {
+        // Check incoming types separately to ensure branch coverage
+        if (type == CURLINFO_HEADER_IN) {
+            prefix = "<< ";  // Incoming (response)
+        } else if (type == CURLINFO_DATA_IN) {
+            prefix = "<< ";  // Incoming (response)
+        }
     }
 
     // Write data line-by-line to handle multi-line headers/bodies

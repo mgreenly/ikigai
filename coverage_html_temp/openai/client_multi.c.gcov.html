@@ -1,0 +1,328 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - client_multi_coverage.info - openai/client_multi.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory openai">openai</a> - client_multi.c<span style="font-size: 80%;"> (source / <a href="client_multi.c.func-c.html" title="Click to go to function table">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">client_multi_coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">121</td>
+            <td class="headerCovTableEntry">121</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-12-01 20:27:34</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntry">6</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">62</td>
+            <td class="headerCovTableEntry">62</td>
+          </tr>
+                  <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : #include &quot;openai/client_multi_internal.h&quot;</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : </span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : #include &quot;error.h&quot;</span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : #include &quot;panic.h&quot;</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : #include &quot;wrapper.h&quot;</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : </span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : #include &lt;assert.h&gt;</span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : #include &lt;curl/curl.h&gt;</span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : #include &lt;string.h&gt;</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             : #include &lt;sys/select.h&gt;</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             : #include &lt;talloc.h&gt;</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             : </span>
+<span id="L13"><span class="lineNum">      13</span>                 :             : /**</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             :  * OpenAI multi-handle client core implementation</span>
+<span id="L15"><span class="lineNum">      15</span>                 :             :  *</span>
+<span id="L16"><span class="lineNum">      16</span>                 :             :  * Provides lifecycle management and event loop operations.</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             :  * Request management is in client_multi_request.c</span>
+<span id="L18"><span class="lineNum">      18</span>                 :             :  */</span>
+<span id="L19"><span class="lineNum">      19</span>                 :             : </span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : /**</span>
+<span id="L21"><span class="lineNum">      21</span>                 :             :  * Destructor for multi-handle manager</span>
+<span id="L22"><span class="lineNum">      22</span>                 :             :  *</span>
+<span id="L23"><span class="lineNum">      23</span>                 :             :  * Cleans up curl multi handle and any remaining active requests.</span>
+<span id="L24"><span class="lineNum">      24</span>                 :             :  */</span>
+<span id="L25"><span class="lineNum">      25</span>                 :<span class="tlaGNC">         162 : static int multi_destructor(ik_openai_multi_t *multi) {</span></span>
+<span id="L26"><span class="lineNum">      26</span>                 :             :     /* Clean up any remaining active requests */</span>
+<span id="L27"><span class="lineNum">      27</span>         [<span class="tlaGBC" title="Branch 0 was taken 45 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 162 times"> + </span>]:<span class="tlaGNC">         207 :     for (size_t i = 0; i &lt; multi-&gt;active_count; i++) {</span></span>
+<span id="L28"><span class="lineNum">      28</span>                 :<span class="tlaGNC">          45 :         active_request_t *req = multi-&gt;active_requests[i];</span></span>
+<span id="L29"><span class="lineNum">      29</span>                 :<span class="tlaGNC">          45 :         curl_multi_remove_handle_(multi-&gt;multi_handle, req-&gt;easy_handle);</span></span>
+<span id="L30"><span class="lineNum">      30</span>                 :<span class="tlaGNC">          45 :         curl_easy_cleanup_(req-&gt;easy_handle);</span></span>
+<span id="L31"><span class="lineNum">      31</span>                 :<span class="tlaGNC">          45 :         curl_slist_free_all_(req-&gt;headers);</span></span>
+<span id="L32"><span class="lineNum">      32</span>                 :             :         /* talloc will free req and its children */</span>
+<span id="L33"><span class="lineNum">      33</span>                 :             :     }</span>
+<span id="L34"><span class="lineNum">      34</span>                 :             : </span>
+<span id="L35"><span class="lineNum">      35</span>                 :             :     /* Clean up multi handle */</span>
+<span id="L36"><span class="lineNum">      36</span>                 :<span class="tlaGNC">         162 :     if (multi-&gt;multi_handle != NULL) {  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L37"><span class="lineNum">      37</span>                 :<span class="tlaGNC">         162 :         curl_multi_cleanup_(multi-&gt;multi_handle);</span></span>
+<span id="L38"><span class="lineNum">      38</span>                 :             :     }</span>
+<span id="L39"><span class="lineNum">      39</span>                 :             : </span>
+<span id="L40"><span class="lineNum">      40</span>                 :<span class="tlaGNC">         162 :     return 0;  /* Success */</span></span>
+<span id="L41"><span class="lineNum">      41</span>                 :             : }</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             : </span>
+<span id="L43"><span class="lineNum">      43</span>                 :<span class="tlaGNC">         163 : res_t ik_openai_multi_create(void *parent) {</span></span>
+<span id="L44"><span class="lineNum">      44</span>                 :<span class="tlaGNC">         163 :     ik_openai_multi_t *multi = talloc_zero(parent, ik_openai_multi_t);</span></span>
+<span id="L45"><span class="lineNum">      45</span>                 :<span class="tlaGNC">         163 :     if (multi == NULL) {  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L46"><span class="lineNum">      46</span>                 :             :         PANIC(&quot;Failed to allocate multi-handle manager&quot;);  // LCOV_EXCL_LINE</span>
+<span id="L47"><span class="lineNum">      47</span>                 :             :     }</span>
+<span id="L48"><span class="lineNum">      48</span>                 :             : </span>
+<span id="L49"><span class="lineNum">      49</span>                 :<span class="tlaGNC">         163 :     multi-&gt;multi_handle = curl_multi_init_();</span></span>
+<span id="L50"><span class="lineNum">      50</span>         [<span class="tlaGBC" title="Branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="Branch 1 was taken 162 times"> + </span>]:<span class="tlaGNC">         163 :     if (multi-&gt;multi_handle == NULL) {</span></span>
+<span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaGNC">           1 :         talloc_free(multi);</span></span>
+<span id="L52"><span class="lineNum">      52</span>                 :<span class="tlaGNC">           1 :         return ERR(parent, IO, &quot;Failed to initialize curl multi handle&quot;);</span></span>
+<span id="L53"><span class="lineNum">      53</span>                 :             :     }</span>
+<span id="L54"><span class="lineNum">      54</span>                 :             : </span>
+<span id="L55"><span class="lineNum">      55</span>                 :<span class="tlaGNC">         162 :     multi-&gt;active_requests = NULL;</span></span>
+<span id="L56"><span class="lineNum">      56</span>                 :<span class="tlaGNC">         162 :     multi-&gt;active_count = 0;</span></span>
+<span id="L57"><span class="lineNum">      57</span>                 :             : </span>
+<span id="L58"><span class="lineNum">      58</span>                 :             :     /* Register destructor */</span>
+<span id="L59"><span class="lineNum">      59</span>                 :<span class="tlaGNC">         162 :     talloc_set_destructor(multi, multi_destructor);</span></span>
+<span id="L60"><span class="lineNum">      60</span>                 :             : </span>
+<span id="L61"><span class="lineNum">      61</span>                 :<span class="tlaGNC">         162 :     return OK(multi);</span></span>
+<span id="L62"><span class="lineNum">      62</span>                 :             : }</span>
+<span id="L63"><span class="lineNum">      63</span>                 :             : </span>
+<span id="L64"><span class="lineNum">      64</span>                 :<span class="tlaGNC">          53 : res_t ik_openai_multi_perform(ik_openai_multi_t *multi, int *still_running) {</span></span>
+<span id="L65"><span class="lineNum">      65</span>                 :<span class="tlaGNC">          53 :     assert(multi != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L66"><span class="lineNum">      66</span>                 :<span class="tlaGNC">          53 :     assert(still_running != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L67"><span class="lineNum">      67</span>                 :             : </span>
+<span id="L68"><span class="lineNum">      68</span>                 :<span class="tlaGNC">          53 :     CURLMcode mres = curl_multi_perform_(multi-&gt;multi_handle, still_running);</span></span>
+<span id="L69"><span class="lineNum">      69</span>         [<span class="tlaGBC" title="Branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 51 times"> + </span>]:<span class="tlaGNC">          53 :     if (mres != CURLM_OK) {</span></span>
+<span id="L70"><span class="lineNum">      70</span>                 :<span class="tlaGNC">           2 :         return ERR(multi, IO, &quot;curl_multi_perform failed: %s&quot;, curl_multi_strerror_(mres));</span></span>
+<span id="L71"><span class="lineNum">      71</span>                 :             :     }</span>
+<span id="L72"><span class="lineNum">      72</span>                 :             : </span>
+<span id="L73"><span class="lineNum">      73</span>                 :<span class="tlaGNC">          51 :     return OK(NULL);</span></span>
+<span id="L74"><span class="lineNum">      74</span>                 :             : }</span>
+<span id="L75"><span class="lineNum">      75</span>                 :             : </span>
+<span id="L76"><span class="lineNum">      76</span>                 :<span class="tlaGNC">          34 : res_t ik_openai_multi_fdset(ik_openai_multi_t *multi,</span></span>
+<span id="L77"><span class="lineNum">      77</span>                 :             :                              fd_set *read_fds, fd_set *write_fds,</span>
+<span id="L78"><span class="lineNum">      78</span>                 :             :                              fd_set *exc_fds, int *max_fd) {</span>
+<span id="L79"><span class="lineNum">      79</span>                 :<span class="tlaGNC">          34 :     assert(multi != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L80"><span class="lineNum">      80</span>                 :<span class="tlaGNC">          34 :     assert(read_fds != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L81"><span class="lineNum">      81</span>                 :<span class="tlaGNC">          34 :     assert(write_fds != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L82"><span class="lineNum">      82</span>                 :<span class="tlaGNC">          34 :     assert(exc_fds != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L83"><span class="lineNum">      83</span>                 :<span class="tlaGNC">          34 :     assert(max_fd != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L84"><span class="lineNum">      84</span>                 :             : </span>
+<span id="L85"><span class="lineNum">      85</span>                 :<span class="tlaGNC">          34 :     CURLMcode mres = curl_multi_fdset_(multi-&gt;multi_handle, read_fds, write_fds, exc_fds, max_fd);</span></span>
+<span id="L86"><span class="lineNum">      86</span>         [<span class="tlaGBC" title="Branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 32 times"> + </span>]:<span class="tlaGNC">          34 :     if (mres != CURLM_OK) {</span></span>
+<span id="L87"><span class="lineNum">      87</span>                 :<span class="tlaGNC">           2 :         return ERR(multi, IO, &quot;curl_multi_fdset failed: %s&quot;, curl_multi_strerror_(mres));</span></span>
+<span id="L88"><span class="lineNum">      88</span>                 :             :     }</span>
+<span id="L89"><span class="lineNum">      89</span>                 :             : </span>
+<span id="L90"><span class="lineNum">      90</span>                 :<span class="tlaGNC">          32 :     return OK(NULL);</span></span>
+<span id="L91"><span class="lineNum">      91</span>                 :             : }</span>
+<span id="L92"><span class="lineNum">      92</span>                 :             : </span>
+<span id="L93"><span class="lineNum">      93</span>                 :<span class="tlaGNC">          33 : res_t ik_openai_multi_timeout(ik_openai_multi_t *multi, long *timeout_ms) {</span></span>
+<span id="L94"><span class="lineNum">      94</span>                 :<span class="tlaGNC">          33 :     assert(multi != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L95"><span class="lineNum">      95</span>                 :<span class="tlaGNC">          33 :     assert(timeout_ms != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L96"><span class="lineNum">      96</span>                 :             : </span>
+<span id="L97"><span class="lineNum">      97</span>                 :<span class="tlaGNC">          33 :     CURLMcode mres = curl_multi_timeout_(multi-&gt;multi_handle, timeout_ms);</span></span>
+<span id="L98"><span class="lineNum">      98</span>         [<span class="tlaGBC" title="Branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 31 times"> + </span>]:<span class="tlaGNC">          33 :     if (mres != CURLM_OK) {</span></span>
+<span id="L99"><span class="lineNum">      99</span>                 :<span class="tlaGNC">           2 :         return ERR(multi, IO, &quot;curl_multi_timeout failed: %s&quot;, curl_multi_strerror_(mres));</span></span>
+<span id="L100"><span class="lineNum">     100</span>                 :             :     }</span>
+<span id="L101"><span class="lineNum">     101</span>                 :             : </span>
+<span id="L102"><span class="lineNum">     102</span>                 :<span class="tlaGNC">          31 :     return OK(NULL);</span></span>
+<span id="L103"><span class="lineNum">     103</span>                 :             : }</span>
+<span id="L104"><span class="lineNum">     104</span>                 :             : </span>
+<span id="L105"><span class="lineNum">     105</span>                 :<span class="tlaGNC">          46 : res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {</span></span>
+<span id="L106"><span class="lineNum">     106</span>                 :<span class="tlaGNC">          46 :     assert(multi != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L107"><span class="lineNum">     107</span>                 :             : </span>
+<span id="L108"><span class="lineNum">     108</span>                 :             :     int msgs_left;</span>
+<span id="L109"><span class="lineNum">     109</span>                 :             :     CURLMsg *msg;</span>
+<span id="L110"><span class="lineNum">     110</span>                 :             : </span>
+<span id="L111"><span class="lineNum">     111</span>         [<span class="tlaGBC" title="Branch 0 was taken 28 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 37 times"> + </span>]:<span class="tlaGNC">          65 :     while ((msg = curl_multi_info_read_(multi-&gt;multi_handle, &amp;msgs_left)) != NULL) {</span></span>
+<span id="L112"><span class="lineNum">     112</span>         [<span class="tlaGBC" title="Branch 0 was taken 27 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          28 :         if (msg-&gt;msg == CURLMSG_DONE) {</span></span>
+<span id="L113"><span class="lineNum">     113</span>                 :<span class="tlaGNC">          27 :             CURL *easy_handle = msg-&gt;easy_handle;</span></span>
+<span id="L114"><span class="lineNum">     114</span>                 :<span class="tlaGNC">          27 :             CURLcode curl_result = msg-&gt;data.result;</span></span>
+<span id="L115"><span class="lineNum">     115</span>                 :             : </span>
+<span id="L116"><span class="lineNum">     116</span>                 :             :             /* Find and remove the completed request from active_requests array */</span>
+<span id="L117"><span class="lineNum">     117</span>         [<span class="tlaGBC" title="Branch 0 was taken 27 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          28 :             for (size_t i = 0; i &lt; multi-&gt;active_count; i++) {</span></span>
+<span id="L118"><span class="lineNum">     118</span>         [<span class="tlaGBC" title="Branch 0 was taken 26 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">          27 :                 if (multi-&gt;active_requests[i]-&gt;easy_handle == easy_handle) {</span></span>
+<span id="L119"><span class="lineNum">     119</span>                 :<span class="tlaGNC">          26 :                     active_request_t *completed = multi-&gt;active_requests[i];</span></span>
+<span id="L120"><span class="lineNum">     120</span>                 :             : </span>
+<span id="L121"><span class="lineNum">     121</span>                 :             :                     /* Build completion information */</span>
+<span id="L122"><span class="lineNum">     122</span>                 :<span class="tlaGNC">          26 :                     ik_http_completion_t completion = {0};</span></span>
+<span id="L123"><span class="lineNum">     123</span>                 :<span class="tlaGNC">          26 :                     completion.curl_code = curl_result;</span></span>
+<span id="L124"><span class="lineNum">     124</span>                 :<span class="tlaGNC">          26 :                     completion.model = NULL;</span></span>
+<span id="L125"><span class="lineNum">     125</span>                 :<span class="tlaGNC">          26 :                     completion.finish_reason = NULL;</span></span>
+<span id="L126"><span class="lineNum">     126</span>                 :<span class="tlaGNC">          26 :                     completion.completion_tokens = 0;</span></span>
+<span id="L127"><span class="lineNum">     127</span>                 :<span class="tlaGNC">          26 :                     completion.tool_call = NULL;</span></span>
+<span id="L128"><span class="lineNum">     128</span>                 :             : </span>
+<span id="L129"><span class="lineNum">     129</span>         [<span class="tlaGBC" title="Branch 0 was taken 24 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 2 times"> + </span>]:<span class="tlaGNC">          26 :                     if (curl_result == CURLE_OK) {</span></span>
+<span id="L130"><span class="lineNum">     130</span>                 :             :                         /* Get HTTP response code */</span>
+<span id="L131"><span class="lineNum">     131</span>                 :<span class="tlaGNC">          24 :                         long response_code = 0;</span></span>
+<span id="L132"><span class="lineNum">     132</span>                 :<span class="tlaGNC">          24 :                         curl_easy_getinfo_(easy_handle, CURLINFO_RESPONSE_CODE, &amp;response_code);</span></span>
+<span id="L133"><span class="lineNum">     133</span>                 :<span class="tlaGNC">          24 :                         completion.http_code = (int32_t)response_code;</span></span>
+<span id="L134"><span class="lineNum">     134</span>                 :             : </span>
+<span id="L135"><span class="lineNum">     135</span>                 :             :                         /* Categorize response */</span>
+<span id="L136"><span class="lineNum">     136</span>   [<span class="tlaGBC" title="Branch 0 was taken 20 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 4 times"> + </span><span class="tlaGBC" title="Branch 2 was taken 13 times"> + </span><span class="tlaGBC" title="Branch 3 was taken 7 times"> + </span>]:<span class="tlaGNC">          24 :                         if (response_code &gt;= 200 &amp;&amp; response_code &lt; 300) {</span></span>
+<span id="L137"><span class="lineNum">     137</span>                 :<span class="tlaGNC">          13 :                             completion.type = IK_HTTP_SUCCESS;</span></span>
+<span id="L138"><span class="lineNum">     138</span>                 :<span class="tlaGNC">          13 :                             completion.error_message = NULL;</span></span>
+<span id="L139"><span class="lineNum">     139</span>                 :             : </span>
+<span id="L140"><span class="lineNum">     140</span>                 :             :                             /* Transfer metadata from write context */</span>
+<span id="L141"><span class="lineNum">     141</span>         [<span class="tlaGBC" title="Branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">          13 :                             if (completed-&gt;write_ctx-&gt;model != NULL) {</span></span>
+<span id="L142"><span class="lineNum">     142</span>                 :<span class="tlaGNC">           5 :                                 completion.model = talloc_steal(multi, completed-&gt;write_ctx-&gt;model);</span></span>
+<span id="L143"><span class="lineNum">     143</span>                 :             :                             }</span>
+<span id="L144"><span class="lineNum">     144</span>         [<span class="tlaGBC" title="Branch 0 was taken 5 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">          13 :                             if (completed-&gt;write_ctx-&gt;finish_reason != NULL) {</span></span>
+<span id="L145"><span class="lineNum">     145</span>                 :<span class="tlaGNC">           5 :                                 completion.finish_reason = talloc_steal(multi, completed-&gt;write_ctx-&gt;finish_reason);</span></span>
+<span id="L146"><span class="lineNum">     146</span>                 :             :                             }</span>
+<span id="L147"><span class="lineNum">     147</span>                 :<span class="tlaGNC">          13 :                             completion.completion_tokens = completed-&gt;write_ctx-&gt;completion_tokens;</span></span>
+<span id="L148"><span class="lineNum">     148</span>         [<span class="tlaGBC" title="Branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 10 times"> + </span>]:<span class="tlaGNC">          13 :                             if (completed-&gt;write_ctx-&gt;tool_call != NULL) {</span></span>
+<span id="L149"><span class="lineNum">     149</span>                 :<span class="tlaGNC">           3 :                                 completion.tool_call = talloc_steal(multi, completed-&gt;write_ctx-&gt;tool_call);</span></span>
+<span id="L150"><span class="lineNum">     150</span>                 :             :                             } else {</span>
+<span id="L151"><span class="lineNum">     151</span>                 :<span class="tlaGNC">          10 :                                 completion.tool_call = NULL;</span></span>
+<span id="L152"><span class="lineNum">     152</span>                 :             :                             }</span>
+<span id="L153"><span class="lineNum">     153</span>   [<span class="tlaGBC" title="Branch 0 was taken 7 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 4 times"> + </span><span class="tlaGBC" title="Branch 2 was taken 3 times"> + </span><span class="tlaGBC" title="Branch 3 was taken 4 times"> + </span>]:<span class="tlaGNC">          11 :                         } else if (response_code &gt;= 400 &amp;&amp; response_code &lt; 500) {</span></span>
+<span id="L154"><span class="lineNum">     154</span>                 :<span class="tlaGNC">           3 :                             completion.type = IK_HTTP_CLIENT_ERROR;</span></span>
+<span id="L155"><span class="lineNum">     155</span>                 :<span class="tlaGNC">           3 :                             completion.error_message = talloc_asprintf(multi,</span></span>
+<span id="L156"><span class="lineNum">     156</span>                 :             :                                 &quot;HTTP %ld error&quot;, response_code);</span>
+<span id="L157"><span class="lineNum">     157</span>   [<span class="tlaGBC" title="Branch 0 was taken 4 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 4 times"> + </span><span class="tlaGBC" title="Branch 2 was taken 3 times"> + </span><span class="tlaGBC" title="Branch 3 was taken 1 time"> + </span>]:<span class="tlaGNC">           8 :                         } else if (response_code &gt;= 500 &amp;&amp; response_code &lt; 600) {</span></span>
+<span id="L158"><span class="lineNum">     158</span>                 :<span class="tlaGNC">           3 :                             completion.type = IK_HTTP_SERVER_ERROR;</span></span>
+<span id="L159"><span class="lineNum">     159</span>                 :<span class="tlaGNC">           3 :                             completion.error_message = talloc_asprintf(multi,</span></span>
+<span id="L160"><span class="lineNum">     160</span>                 :             :                                 &quot;HTTP %ld server error&quot;, response_code);</span>
+<span id="L161"><span class="lineNum">     161</span>                 :             :                         } else {</span>
+<span id="L162"><span class="lineNum">     162</span>                 :             :                             /* Unexpected response code */</span>
+<span id="L163"><span class="lineNum">     163</span>                 :<span class="tlaGNC">           5 :                             completion.type = IK_HTTP_NETWORK_ERROR;</span></span>
+<span id="L164"><span class="lineNum">     164</span>                 :<span class="tlaGNC">           5 :                             completion.error_message = talloc_asprintf(multi,</span></span>
+<span id="L165"><span class="lineNum">     165</span>                 :             :                                 &quot;Unexpected HTTP response code: %ld&quot;, response_code);</span>
+<span id="L166"><span class="lineNum">     166</span>                 :             :                         }</span>
+<span id="L167"><span class="lineNum">     167</span>                 :             :                     } else {</span>
+<span id="L168"><span class="lineNum">     168</span>                 :             :                         /* Network/connection error */</span>
+<span id="L169"><span class="lineNum">     169</span>                 :<span class="tlaGNC">           2 :                         completion.type = IK_HTTP_NETWORK_ERROR;</span></span>
+<span id="L170"><span class="lineNum">     170</span>                 :<span class="tlaGNC">           2 :                         completion.http_code = 0;</span></span>
+<span id="L171"><span class="lineNum">     171</span>                 :<span class="tlaGNC">           2 :                         completion.error_message = talloc_asprintf(multi,</span></span>
+<span id="L172"><span class="lineNum">     172</span>                 :             :                             &quot;Connection error: %s&quot;, curl_easy_strerror_(curl_result));</span>
+<span id="L173"><span class="lineNum">     173</span>                 :             :                     }</span>
+<span id="L174"><span class="lineNum">     174</span>                 :             : </span>
+<span id="L175"><span class="lineNum">     175</span>                 :             :                     /* Invoke completion callback if provided */</span>
+<span id="L176"><span class="lineNum">     176</span>         [<span class="tlaGBC" title="Branch 0 was taken 12 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 14 times"> + </span>]:<span class="tlaGNC">          26 :                     if (completed-&gt;completion_cb != NULL) {</span></span>
+<span id="L177"><span class="lineNum">     177</span>                 :<span class="tlaGNC">          12 :                         res_t cb_result = completed-&gt;completion_cb(&amp;completion, completed-&gt;completion_ctx);</span></span>
+<span id="L178"><span class="lineNum">     178</span>         [<span class="tlaGBC" title="Branch 0 was taken 9 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 3 times"> + </span>]:<span class="tlaGNC">          12 :                         if (is_err(&amp;cb_result)) {</span></span>
+<span id="L179"><span class="lineNum">     179</span>                 :             :                             /* Free error message and metadata from completion */</span>
+<span id="L180"><span class="lineNum">     180</span>         [<span class="tlaGBC" title="Branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 6 times"> + </span>]:<span class="tlaGNC">           9 :                             if (completion.error_message != NULL) {</span></span>
+<span id="L181"><span class="lineNum">     181</span>                 :<span class="tlaGNC">           3 :                                 talloc_free(completion.error_message);</span></span>
+<span id="L182"><span class="lineNum">     182</span>                 :             :                             }</span>
+<span id="L183"><span class="lineNum">     183</span>         [<span class="tlaGBC" title="Branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 6 times"> + </span>]:<span class="tlaGNC">           9 :                             if (completion.model != NULL) {</span></span>
+<span id="L184"><span class="lineNum">     184</span>                 :<span class="tlaGNC">           3 :                                 talloc_free(completion.model);</span></span>
+<span id="L185"><span class="lineNum">     185</span>                 :             :                             }</span>
+<span id="L186"><span class="lineNum">     186</span>         [<span class="tlaGBC" title="Branch 0 was taken 3 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 6 times"> + </span>]:<span class="tlaGNC">           9 :                             if (completion.finish_reason != NULL) {</span></span>
+<span id="L187"><span class="lineNum">     187</span>                 :<span class="tlaGNC">           3 :                                 talloc_free(completion.finish_reason);</span></span>
+<span id="L188"><span class="lineNum">     188</span>                 :             :                             }</span>
+<span id="L189"><span class="lineNum">     189</span>         [<span class="tlaGBC" title="Branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="Branch 1 was taken 8 times"> + </span>]:<span class="tlaGNC">           9 :                             if (completion.tool_call != NULL) {</span></span>
+<span id="L190"><span class="lineNum">     190</span>                 :<span class="tlaGNC">           1 :                                 talloc_free(completion.tool_call);</span></span>
+<span id="L191"><span class="lineNum">     191</span>                 :             :                             }</span>
+<span id="L192"><span class="lineNum">     192</span>                 :             :                             /* Clean up curl handles */</span>
+<span id="L193"><span class="lineNum">     193</span>                 :<span class="tlaGNC">           9 :                             curl_multi_remove_handle_(multi-&gt;multi_handle, easy_handle);</span></span>
+<span id="L194"><span class="lineNum">     194</span>                 :<span class="tlaGNC">           9 :                             curl_easy_cleanup_(easy_handle);</span></span>
+<span id="L195"><span class="lineNum">     195</span>                 :<span class="tlaGNC">           9 :                             curl_slist_free_all_(completed-&gt;headers);</span></span>
+<span id="L196"><span class="lineNum">     196</span>                 :             :                             /* Free the completed request context */</span>
+<span id="L197"><span class="lineNum">     197</span>                 :<span class="tlaGNC">           9 :                             talloc_free(completed);</span></span>
+<span id="L198"><span class="lineNum">     198</span>                 :             :                             /* Remove from array */</span>
+<span id="L199"><span class="lineNum">     199</span>         [<span class="tlaGBC" title="Branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 9 times"> + </span>]:<span class="tlaGNC">          11 :                             for (size_t j = i; j &lt; multi-&gt;active_count - 1; j++) {</span></span>
+<span id="L200"><span class="lineNum">     200</span>                 :<span class="tlaGNC">           2 :                                 multi-&gt;active_requests[j] = multi-&gt;active_requests[j + 1];</span></span>
+<span id="L201"><span class="lineNum">     201</span>                 :             :                             }</span>
+<span id="L202"><span class="lineNum">     202</span>                 :<span class="tlaGNC">           9 :                             multi-&gt;active_count--;</span></span>
+<span id="L203"><span class="lineNum">     203</span>                 :             :                             /* Return the callback error */</span>
+<span id="L204"><span class="lineNum">     204</span>                 :<span class="tlaGNC">           9 :                             return cb_result;</span></span>
+<span id="L205"><span class="lineNum">     205</span>                 :             :                         }</span>
+<span id="L206"><span class="lineNum">     206</span>                 :             :                     }</span>
+<span id="L207"><span class="lineNum">     207</span>                 :             : </span>
+<span id="L208"><span class="lineNum">     208</span>                 :             :                     /* Free error message and metadata */</span>
+<span id="L209"><span class="lineNum">     209</span>         [<span class="tlaGBC" title="Branch 0 was taken 10 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 7 times"> + </span>]:<span class="tlaGNC">          17 :                     if (completion.error_message != NULL) {</span></span>
+<span id="L210"><span class="lineNum">     210</span>                 :<span class="tlaGNC">          10 :                         talloc_free(completion.error_message);</span></span>
+<span id="L211"><span class="lineNum">     211</span>                 :             :                     }</span>
+<span id="L212"><span class="lineNum">     212</span>         [<span class="tlaGBC" title="Branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 15 times"> + </span>]:<span class="tlaGNC">          17 :                     if (completion.model != NULL) {</span></span>
+<span id="L213"><span class="lineNum">     213</span>                 :<span class="tlaGNC">           2 :                         talloc_free(completion.model);</span></span>
+<span id="L214"><span class="lineNum">     214</span>                 :             :                     }</span>
+<span id="L215"><span class="lineNum">     215</span>         [<span class="tlaGBC" title="Branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 15 times"> + </span>]:<span class="tlaGNC">          17 :                     if (completion.finish_reason != NULL) {</span></span>
+<span id="L216"><span class="lineNum">     216</span>                 :<span class="tlaGNC">           2 :                         talloc_free(completion.finish_reason);</span></span>
+<span id="L217"><span class="lineNum">     217</span>                 :             :                     }</span>
+<span id="L218"><span class="lineNum">     218</span>         [<span class="tlaGBC" title="Branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 15 times"> + </span>]:<span class="tlaGNC">          17 :                     if (completion.tool_call != NULL) {</span></span>
+<span id="L219"><span class="lineNum">     219</span>                 :<span class="tlaGNC">           2 :                         talloc_free(completion.tool_call);</span></span>
+<span id="L220"><span class="lineNum">     220</span>                 :             :                     }</span>
+<span id="L221"><span class="lineNum">     221</span>                 :             : </span>
+<span id="L222"><span class="lineNum">     222</span>                 :             :                     /* Clean up curl handles */</span>
+<span id="L223"><span class="lineNum">     223</span>                 :<span class="tlaGNC">          17 :                     curl_multi_remove_handle_(multi-&gt;multi_handle, easy_handle);</span></span>
+<span id="L224"><span class="lineNum">     224</span>                 :<span class="tlaGNC">          17 :                     curl_easy_cleanup_(easy_handle);</span></span>
+<span id="L225"><span class="lineNum">     225</span>                 :<span class="tlaGNC">          17 :                     curl_slist_free_all_(completed-&gt;headers);</span></span>
+<span id="L226"><span class="lineNum">     226</span>                 :             : </span>
+<span id="L227"><span class="lineNum">     227</span>                 :             :                     /* Free the completed request context (talloc will clean up children) */</span>
+<span id="L228"><span class="lineNum">     228</span>                 :<span class="tlaGNC">          17 :                     talloc_free(completed);</span></span>
+<span id="L229"><span class="lineNum">     229</span>                 :             : </span>
+<span id="L230"><span class="lineNum">     230</span>                 :             :                     /* Remove from array by shifting remaining elements */</span>
+<span id="L231"><span class="lineNum">     231</span>         [<span class="tlaGBC" title="Branch 0 was taken 2 times"> + </span><span class="tlaGBC" title="Branch 1 was taken 17 times"> + </span>]:<span class="tlaGNC">          19 :                     for (size_t j = i; j &lt; multi-&gt;active_count - 1; j++) {</span></span>
+<span id="L232"><span class="lineNum">     232</span>                 :<span class="tlaGNC">           2 :                         multi-&gt;active_requests[j] = multi-&gt;active_requests[j + 1];</span></span>
+<span id="L233"><span class="lineNum">     233</span>                 :             :                     }</span>
+<span id="L234"><span class="lineNum">     234</span>                 :<span class="tlaGNC">          17 :                     multi-&gt;active_count--;</span></span>
+<span id="L235"><span class="lineNum">     235</span>                 :             : </span>
+<span id="L236"><span class="lineNum">     236</span>                 :<span class="tlaGNC">          17 :                     break;</span></span>
+<span id="L237"><span class="lineNum">     237</span>                 :             :                 }</span>
+<span id="L238"><span class="lineNum">     238</span>                 :             :             }</span>
+<span id="L239"><span class="lineNum">     239</span>                 :             :         }</span>
+<span id="L240"><span class="lineNum">     240</span>                 :             :     }</span>
+<span id="L241"><span class="lineNum">     241</span>                 :             : </span>
+<span id="L242"><span class="lineNum">     242</span>                 :<span class="tlaGNC">          37 :     return OK(NULL);</span></span>
+<span id="L243"><span class="lineNum">     243</span>                 :             : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.0-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

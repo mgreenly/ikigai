@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - src/render_cursor.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory src">src</a> - render_cursor.c<span style="font-size: 80%;"> (source / <a href="render_cursor.c.func-c.html" title="Click to go to function table">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">30</td>
+            <td class="headerCovTableEntry">30</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-12-01 22:16:06</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+          </tr>
+                  <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : /**</span>
+<span id="L2"><span class="lineNum">       2</span>              :  * @file render_cursor.c</span>
+<span id="L3"><span class="lineNum">       3</span>              :  * @brief Cursor screen position calculation for rendering</span>
+<span id="L4"><span class="lineNum">       4</span>              :  */</span>
+<span id="L5"><span class="lineNum">       5</span>              : </span>
+<span id="L6"><span class="lineNum">       6</span>              : #include &quot;render_cursor.h&quot;</span>
+<span id="L7"><span class="lineNum">       7</span>              : #include &quot;error.h&quot;</span>
+<span id="L8"><span class="lineNum">       8</span>              : #include &lt;assert.h&gt;</span>
+<span id="L9"><span class="lineNum">       9</span>              : #include &lt;utf8proc.h&gt;</span>
+<span id="L10"><span class="lineNum">      10</span>              : </span>
+<span id="L11"><span class="lineNum">      11</span>              : // Calculate cursor screen position (row, col) from byte offset</span>
+<span id="L12"><span class="lineNum">      12</span>              : // Internal function for testing - calculates where cursor should appear on screen</span>
+<span id="L13"><span class="lineNum">      13</span>              : // accounting for UTF-8 character widths and line wrapping</span>
+<span id="L14"><span class="lineNum">      14</span> <span class="tlaGNC">          61 : res_t calculate_cursor_screen_position(</span></span>
+<span id="L15"><span class="lineNum">      15</span>              :     void *ctx,</span>
+<span id="L16"><span class="lineNum">      16</span>              :     const char *text, size_t text_len,</span>
+<span id="L17"><span class="lineNum">      17</span>              :     size_t cursor_byte_offset,</span>
+<span id="L18"><span class="lineNum">      18</span>              :     int32_t terminal_width,</span>
+<span id="L19"><span class="lineNum">      19</span>              :     cursor_screen_pos_t *pos_out</span>
+<span id="L20"><span class="lineNum">      20</span>              :     )</span>
+<span id="L21"><span class="lineNum">      21</span>              : {</span>
+<span id="L22"><span class="lineNum">      22</span> <span class="tlaGNC">          61 :     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE</span></span>
+<span id="L23"><span class="lineNum">      23</span> <span class="tlaGNC">          61 :     assert(text != NULL);     // LCOV_EXCL_BR_LINE</span></span>
+<span id="L24"><span class="lineNum">      24</span> <span class="tlaGNC">          61 :     assert(pos_out != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L25"><span class="lineNum">      25</span>              : </span>
+<span id="L26"><span class="lineNum">      26</span> <span class="tlaGNC">          61 :     int32_t row = 0;</span></span>
+<span id="L27"><span class="lineNum">      27</span> <span class="tlaGNC">          61 :     int32_t col = 0;</span></span>
+<span id="L28"><span class="lineNum">      28</span> <span class="tlaGNC">          61 :     size_t pos = 0;</span></span>
+<span id="L29"><span class="lineNum">      29</span>              : </span>
+<span id="L30"><span class="lineNum">      30</span>              :     // Iterate through text up to cursor position</span>
+<span id="L31"><span class="lineNum">      31</span> <span class="tlaGNC">         282 :     while (pos &lt; cursor_byte_offset) {</span></span>
+<span id="L32"><span class="lineNum">      32</span>              :         // Handle newlines</span>
+<span id="L33"><span class="lineNum">      33</span> <span class="tlaGNC">         224 :         if (text[pos] == '\n') {</span></span>
+<span id="L34"><span class="lineNum">      34</span> <span class="tlaGNC">           5 :             row++;</span></span>
+<span id="L35"><span class="lineNum">      35</span> <span class="tlaGNC">           5 :             col = 0;</span></span>
+<span id="L36"><span class="lineNum">      36</span> <span class="tlaGNC">           5 :             pos++;</span></span>
+<span id="L37"><span class="lineNum">      37</span> <span class="tlaGNC">           5 :             continue;</span></span>
+<span id="L38"><span class="lineNum">      38</span>              :         }</span>
+<span id="L39"><span class="lineNum">      39</span>              : </span>
+<span id="L40"><span class="lineNum">      40</span>              :         // Decode UTF-8 codepoint</span>
+<span id="L41"><span class="lineNum">      41</span>              :         utf8proc_int32_t cp;</span>
+<span id="L42"><span class="lineNum">      42</span> <span class="tlaGNC">         219 :         utf8proc_ssize_t bytes = utf8proc_iterate(</span></span>
+<span id="L43"><span class="lineNum">      43</span> <span class="tlaGNC">         219 :             (const utf8proc_uint8_t *)(text + pos),</span></span>
+<span id="L44"><span class="lineNum">      44</span> <span class="tlaGNC">         219 :             (utf8proc_ssize_t)(text_len - pos),</span></span>
+<span id="L45"><span class="lineNum">      45</span>              :             &amp;cp</span>
+<span id="L46"><span class="lineNum">      46</span>              :             );</span>
+<span id="L47"><span class="lineNum">      47</span>              : </span>
+<span id="L48"><span class="lineNum">      48</span> <span class="tlaGNC">         219 :         if (bytes &lt;= 0) {</span></span>
+<span id="L49"><span class="lineNum">      49</span> <span class="tlaGNC">           3 :             return ERR(ctx, INVALID_ARG, &quot;Invalid UTF-8 at byte offset %zu&quot;, pos);</span></span>
+<span id="L50"><span class="lineNum">      50</span>              :         }</span>
+<span id="L51"><span class="lineNum">      51</span>              : </span>
+<span id="L52"><span class="lineNum">      52</span>              :         // Get display width (accounts for wide chars like CJK, combining chars)</span>
+<span id="L53"><span class="lineNum">      53</span>              :         // Note: utf8proc_charwidth may return negative for control characters,</span>
+<span id="L54"><span class="lineNum">      54</span>              :         // but in practice this doesn't occur for valid displayable text</span>
+<span id="L55"><span class="lineNum">      55</span> <span class="tlaGNC">         216 :         int32_t width = utf8proc_charwidth(cp);</span></span>
+<span id="L56"><span class="lineNum">      56</span>              : </span>
+<span id="L57"><span class="lineNum">      57</span>              :         // Check for line wrap</span>
+<span id="L58"><span class="lineNum">      58</span> <span class="tlaGNC">         216 :         if (col + width &gt; terminal_width) {</span></span>
+<span id="L59"><span class="lineNum">      59</span> <span class="tlaGNC">           2 :             row++;</span></span>
+<span id="L60"><span class="lineNum">      60</span> <span class="tlaGNC">           2 :             col = 0;</span></span>
+<span id="L61"><span class="lineNum">      61</span>              :         }</span>
+<span id="L62"><span class="lineNum">      62</span>              : </span>
+<span id="L63"><span class="lineNum">      63</span> <span class="tlaGNC">         216 :         col += width;</span></span>
+<span id="L64"><span class="lineNum">      64</span> <span class="tlaGNC">         216 :         pos += (size_t)bytes;</span></span>
+<span id="L65"><span class="lineNum">      65</span>              :     }</span>
+<span id="L66"><span class="lineNum">      66</span>              : </span>
+<span id="L67"><span class="lineNum">      67</span>              :     // If cursor is exactly at terminal width, wrap to next line</span>
+<span id="L68"><span class="lineNum">      68</span> <span class="tlaGNC">          58 :     if (col == terminal_width) {</span></span>
+<span id="L69"><span class="lineNum">      69</span> <span class="tlaGNC">           2 :         row++;</span></span>
+<span id="L70"><span class="lineNum">      70</span> <span class="tlaGNC">           2 :         col = 0;</span></span>
+<span id="L71"><span class="lineNum">      71</span>              :     }</span>
+<span id="L72"><span class="lineNum">      72</span>              : </span>
+<span id="L73"><span class="lineNum">      73</span> <span class="tlaGNC">          58 :     pos_out-&gt;screen_row = row;</span></span>
+<span id="L74"><span class="lineNum">      74</span> <span class="tlaGNC">          58 :     pos_out-&gt;screen_col = col;</span></span>
+<span id="L75"><span class="lineNum">      75</span> <span class="tlaGNC">          58 :     return OK(ctx);</span></span>
+<span id="L76"><span class="lineNum">      76</span>              : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.0-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

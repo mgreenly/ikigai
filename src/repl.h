@@ -15,6 +15,7 @@
 #include "db/connection.h"
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 #include <inttypes.h>
 
 // REPL state machine (Phase 1.6)
@@ -47,7 +48,7 @@ typedef struct ik_repl_ctx_t {
     ik_input_parser_t *input_parser;  // Input parser
     ik_scrollback_t *scrollback;      // Scrollback buffer (Phase 4)
     size_t viewport_offset;           // Physical row offset for scrolling (0 = bottom)
-    bool quit;                  // Exit flag
+    atomic_bool quit;           // Exit flag (atomic for thread safety)
 
     // Layer-based rendering (Phase 1.3)
     ik_layer_cake_t *layer_cake;      // Layer cake manager
@@ -134,10 +135,7 @@ void ik_repl_transition_to_idle(ik_repl_ctx_t *repl);
 void ik_repl_transition_to_executing_tool(ik_repl_ctx_t *repl);
 void ik_repl_transition_from_executing_tool(ik_repl_ctx_t *repl);
 
-// Internal helper functions (exposed for testing)
-res_t handle_curl_events(ik_repl_ctx_t *repl, int ready);
-res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit);
-void handle_request_success(ik_repl_ctx_t *repl);
+// Internal helper functions moved to repl_event_handlers.h
 
 // Tool execution helper (exposed to reduce complexity in handle_request_success)
 void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl);
@@ -145,7 +143,6 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl);
 // Async tool execution (replaces synchronous ik_repl_execute_pending_tool)
 void ik_repl_start_tool_execution(ik_repl_ctx_t *repl);
 void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl);
-void handle_tool_completion(ik_repl_ctx_t *repl); // Event loop helper (exposed for testing)
 
 // Tool loop decision function (Phase 2: Story 02)
 bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl);

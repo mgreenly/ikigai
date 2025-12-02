@@ -1,0 +1,375 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - src/debug_pipe.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory src">src</a> - debug_pipe.c<span style="font-size: 80%;"> (source / <a href="debug_pipe.c.func-c.html" title="Click to go to function table">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">146</td>
+            <td class="headerCovTableEntry">146</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-12-01 22:16:06</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">7</td>
+          </tr>
+                  <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : /**</span>
+<span id="L2"><span class="lineNum">       2</span>              :  * @file debug_pipe.c</span>
+<span id="L3"><span class="lineNum">       3</span>              :  * @brief Debug output pipe system implementation</span>
+<span id="L4"><span class="lineNum">       4</span>              :  */</span>
+<span id="L5"><span class="lineNum">       5</span>              : </span>
+<span id="L6"><span class="lineNum">       6</span>              : #include &quot;debug_pipe.h&quot;</span>
+<span id="L7"><span class="lineNum">       7</span>              : </span>
+<span id="L8"><span class="lineNum">       8</span>              : #include &quot;panic.h&quot;</span>
+<span id="L9"><span class="lineNum">       9</span>              : #include &quot;wrapper.h&quot;</span>
+<span id="L10"><span class="lineNum">      10</span>              : </span>
+<span id="L11"><span class="lineNum">      11</span>              : #include &lt;assert.h&gt;</span>
+<span id="L12"><span class="lineNum">      12</span>              : #include &lt;errno.h&gt;</span>
+<span id="L13"><span class="lineNum">      13</span>              : #include &lt;fcntl.h&gt;</span>
+<span id="L14"><span class="lineNum">      14</span>              : #include &lt;string.h&gt;</span>
+<span id="L15"><span class="lineNum">      15</span>              : #include &lt;talloc.h&gt;</span>
+<span id="L16"><span class="lineNum">      16</span>              : #include &lt;unistd.h&gt;</span>
+<span id="L17"><span class="lineNum">      17</span>              : </span>
+<span id="L18"><span class="lineNum">      18</span>              : // Forward declarations</span>
+<span id="L19"><span class="lineNum">      19</span>              : static int debug_pipe_destructor(ik_debug_pipe_t *pipe);</span>
+<span id="L20"><span class="lineNum">      20</span>              : </span>
+<span id="L21"><span class="lineNum">      21</span> <span class="tlaGNC">         132 : res_t ik_debug_pipe_create(void *parent, const char *prefix)</span></span>
+<span id="L22"><span class="lineNum">      22</span>              : {</span>
+<span id="L23"><span class="lineNum">      23</span>              :     // Create pipe</span>
+<span id="L24"><span class="lineNum">      24</span>              :     int pipefd[2];</span>
+<span id="L25"><span class="lineNum">      25</span> <span class="tlaGNC">         132 :     if (posix_pipe_(pipefd) == -1) {</span></span>
+<span id="L26"><span class="lineNum">      26</span> <span class="tlaGNC">           2 :         return ERR(parent, IO, &quot;pipe() failed: %s&quot;, strerror(errno));</span></span>
+<span id="L27"><span class="lineNum">      27</span>              :     }</span>
+<span id="L28"><span class="lineNum">      28</span>              : </span>
+<span id="L29"><span class="lineNum">      29</span> <span class="tlaGNC">         130 :     int read_fd = pipefd[0];</span></span>
+<span id="L30"><span class="lineNum">      30</span> <span class="tlaGNC">         130 :     int write_fd = pipefd[1];</span></span>
+<span id="L31"><span class="lineNum">      31</span>              : </span>
+<span id="L32"><span class="lineNum">      32</span>              :     // Set read end to non-blocking</span>
+<span id="L33"><span class="lineNum">      33</span> <span class="tlaGNC">         130 :     int flags = posix_fcntl_(read_fd, F_GETFL, 0);</span></span>
+<span id="L34"><span class="lineNum">      34</span> <span class="tlaGNC">         130 :     if (flags == -1) {</span></span>
+<span id="L35"><span class="lineNum">      35</span> <span class="tlaGNC">           1 :         posix_close_(read_fd);</span></span>
+<span id="L36"><span class="lineNum">      36</span> <span class="tlaGNC">           1 :         posix_close_(write_fd);</span></span>
+<span id="L37"><span class="lineNum">      37</span> <span class="tlaGNC">           1 :         return ERR(parent, IO, &quot;fcntl(F_GETFL) failed: %s&quot;, strerror(errno));</span></span>
+<span id="L38"><span class="lineNum">      38</span>              :     }</span>
+<span id="L39"><span class="lineNum">      39</span>              : </span>
+<span id="L40"><span class="lineNum">      40</span> <span class="tlaGNC">         129 :     if (posix_fcntl_(read_fd, F_SETFL, flags | O_NONBLOCK) == -1) {</span></span>
+<span id="L41"><span class="lineNum">      41</span> <span class="tlaGNC">           1 :         posix_close_(read_fd);</span></span>
+<span id="L42"><span class="lineNum">      42</span> <span class="tlaGNC">           1 :         posix_close_(write_fd);</span></span>
+<span id="L43"><span class="lineNum">      43</span> <span class="tlaGNC">           1 :         return ERR(parent, IO, &quot;fcntl(F_SETFL) failed: %s&quot;, strerror(errno));</span></span>
+<span id="L44"><span class="lineNum">      44</span>              :     }</span>
+<span id="L45"><span class="lineNum">      45</span>              : </span>
+<span id="L46"><span class="lineNum">      46</span>              :     // Open write end as FILE*</span>
+<span id="L47"><span class="lineNum">      47</span> <span class="tlaGNC">         128 :     FILE *write_end = posix_fdopen_(write_fd, &quot;w&quot;);</span></span>
+<span id="L48"><span class="lineNum">      48</span> <span class="tlaGNC">         128 :     if (write_end == NULL) {</span></span>
+<span id="L49"><span class="lineNum">      49</span> <span class="tlaGNC">           1 :         posix_close_(read_fd);</span></span>
+<span id="L50"><span class="lineNum">      50</span> <span class="tlaGNC">           1 :         posix_close_(write_fd);</span></span>
+<span id="L51"><span class="lineNum">      51</span> <span class="tlaGNC">           1 :         return ERR(parent, IO, &quot;fdopen() failed: %s&quot;, strerror(errno));</span></span>
+<span id="L52"><span class="lineNum">      52</span>              :     }</span>
+<span id="L53"><span class="lineNum">      53</span>              : </span>
+<span id="L54"><span class="lineNum">      54</span>              :     // Allocate debug_pipe structure</span>
+<span id="L55"><span class="lineNum">      55</span> <span class="tlaGNC">         127 :     ik_debug_pipe_t *pipe = talloc_zero_(parent, sizeof(ik_debug_pipe_t));</span></span>
+<span id="L56"><span class="lineNum">      56</span> <span class="tlaGNC">         127 :     if (pipe == NULL) PANIC(&quot;Out of memory&quot;);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L57"><span class="lineNum">      57</span>              : </span>
+<span id="L58"><span class="lineNum">      58</span> <span class="tlaGNC">         127 :     pipe-&gt;write_end = write_end;</span></span>
+<span id="L59"><span class="lineNum">      59</span> <span class="tlaGNC">         127 :     pipe-&gt;read_fd = read_fd;</span></span>
+<span id="L60"><span class="lineNum">      60</span>              : </span>
+<span id="L61"><span class="lineNum">      61</span>              :     // Copy prefix if provided</span>
+<span id="L62"><span class="lineNum">      62</span> <span class="tlaGNC">         127 :     if (prefix != NULL) {</span></span>
+<span id="L63"><span class="lineNum">      63</span> <span class="tlaGNC">         118 :         pipe-&gt;prefix = talloc_strdup(pipe, prefix);</span></span>
+<span id="L64"><span class="lineNum">      64</span> <span class="tlaGNC">         118 :         if (pipe-&gt;prefix == NULL) PANIC(&quot;Out of memory&quot;);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L65"><span class="lineNum">      65</span>              :     } else {</span>
+<span id="L66"><span class="lineNum">      66</span> <span class="tlaGNC">           9 :         pipe-&gt;prefix = NULL;</span></span>
+<span id="L67"><span class="lineNum">      67</span>              :     }</span>
+<span id="L68"><span class="lineNum">      68</span>              : </span>
+<span id="L69"><span class="lineNum">      69</span>              :     // Allocate initial line buffer (1KB)</span>
+<span id="L70"><span class="lineNum">      70</span> <span class="tlaGNC">         127 :     pipe-&gt;buffer_capacity = 1024;</span></span>
+<span id="L71"><span class="lineNum">      71</span> <span class="tlaGNC">         127 :     pipe-&gt;buffer_pos = 0;</span></span>
+<span id="L72"><span class="lineNum">      72</span> <span class="tlaGNC">         127 :     pipe-&gt;line_buffer = talloc_array_(pipe, sizeof(char), pipe-&gt;buffer_capacity);</span></span>
+<span id="L73"><span class="lineNum">      73</span> <span class="tlaGNC">         127 :     if (pipe-&gt;line_buffer == NULL) PANIC(&quot;Out of memory&quot;);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L74"><span class="lineNum">      74</span>              : </span>
+<span id="L75"><span class="lineNum">      75</span>              :     // Set up talloc destructor to clean up pipe resources</span>
+<span id="L76"><span class="lineNum">      76</span> <span class="tlaGNC">         127 :     talloc_set_destructor(pipe, debug_pipe_destructor);</span></span>
+<span id="L77"><span class="lineNum">      77</span>              : </span>
+<span id="L78"><span class="lineNum">      78</span> <span class="tlaGNC">         127 :     return OK(pipe);</span></span>
+<span id="L79"><span class="lineNum">      79</span>              : }</span>
+<span id="L80"><span class="lineNum">      80</span>              : </span>
+<span id="L81"><span class="lineNum">      81</span>              : // Destructor to clean up pipe resources</span>
+<span id="L82"><span class="lineNum">      82</span> <span class="tlaGNC">         127 : static int debug_pipe_destructor(ik_debug_pipe_t *pipe)</span></span>
+<span id="L83"><span class="lineNum">      83</span>              : {</span>
+<span id="L84"><span class="lineNum">      84</span> <span class="tlaGNC">         127 :     if (pipe-&gt;write_end != NULL) {</span></span>
+<span id="L85"><span class="lineNum">      85</span> <span class="tlaGNC">         124 :         fclose(pipe-&gt;write_end);  // This also closes the underlying fd</span></span>
+<span id="L86"><span class="lineNum">      86</span> <span class="tlaGNC">         124 :         pipe-&gt;write_end = NULL;</span></span>
+<span id="L87"><span class="lineNum">      87</span>              :     }</span>
+<span id="L88"><span class="lineNum">      88</span>              :     // Defensive check: read_fd is always &gt;= 0 when pipe is created successfully</span>
+<span id="L89"><span class="lineNum">      89</span>              :     // FALSE branch is impossible without corrupting pipe state</span>
+<span id="L90"><span class="lineNum">      90</span> <span class="tlaGNC">         127 :     if (pipe-&gt;read_fd &gt;= 0) {  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L91"><span class="lineNum">      91</span> <span class="tlaGNC">         127 :         posix_close_(pipe-&gt;read_fd);</span></span>
+<span id="L92"><span class="lineNum">      92</span> <span class="tlaGNC">         127 :         pipe-&gt;read_fd = -1;</span></span>
+<span id="L93"><span class="lineNum">      93</span>              :     }</span>
+<span id="L94"><span class="lineNum">      94</span> <span class="tlaGNC">         127 :     return 0;</span></span>
+<span id="L95"><span class="lineNum">      95</span>              : }</span>
+<span id="L96"><span class="lineNum">      96</span>              : </span>
+<span id="L97"><span class="lineNum">      97</span> <span class="tlaGNC">          23 : res_t ik_debug_pipe_read(ik_debug_pipe_t *pipe, char ***lines_out, size_t *count_out)</span></span>
+<span id="L98"><span class="lineNum">      98</span>              : {</span>
+<span id="L99"><span class="lineNum">      99</span> <span class="tlaGNC">          23 :     assert(pipe != NULL);        // LCOV_EXCL_BR_LINE</span></span>
+<span id="L100"><span class="lineNum">     100</span> <span class="tlaGNC">          23 :     assert(lines_out != NULL);   // LCOV_EXCL_BR_LINE</span></span>
+<span id="L101"><span class="lineNum">     101</span> <span class="tlaGNC">          23 :     assert(count_out != NULL);   // LCOV_EXCL_BR_LINE</span></span>
+<span id="L102"><span class="lineNum">     102</span>              : </span>
+<span id="L103"><span class="lineNum">     103</span> <span class="tlaGNC">          23 :     *lines_out = NULL;</span></span>
+<span id="L104"><span class="lineNum">     104</span> <span class="tlaGNC">          23 :     *count_out = 0;</span></span>
+<span id="L105"><span class="lineNum">     105</span>              : </span>
+<span id="L106"><span class="lineNum">     106</span>              :     // Read buffer (4KB)</span>
+<span id="L107"><span class="lineNum">     107</span>              :     char read_buf[4096];</span>
+<span id="L108"><span class="lineNum">     108</span> <span class="tlaGNC">          23 :     ssize_t nread = posix_read_(pipe-&gt;read_fd, read_buf, sizeof(read_buf));</span></span>
+<span id="L109"><span class="lineNum">     109</span>              : </span>
+<span id="L110"><span class="lineNum">     110</span>              :     // Handle read errors</span>
+<span id="L111"><span class="lineNum">     111</span> <span class="tlaGNC">          23 :     if (nread == -1) {</span></span>
+<span id="L112"><span class="lineNum">     112</span>              :         // Platform-specific: EAGAIN == EWOULDBLOCK on this system, so one branch of OR is impossible</span>
+<span id="L113"><span class="lineNum">     113</span> <span class="tlaGNC">           6 :         if (errno == EAGAIN || errno == EWOULDBLOCK) {  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L114"><span class="lineNum">     114</span>              :             // No data available (non-blocking) - not an error</span>
+<span id="L115"><span class="lineNum">     115</span> <span class="tlaGNC">           4 :             return OK(NULL);</span></span>
+<span id="L116"><span class="lineNum">     116</span>              :         }</span>
+<span id="L117"><span class="lineNum">     117</span> <span class="tlaGNC">           2 :         return ERR(pipe, IO, &quot;read() failed: %s&quot;, strerror(errno));</span></span>
+<span id="L118"><span class="lineNum">     118</span>              :     }</span>
+<span id="L119"><span class="lineNum">     119</span>              : </span>
+<span id="L120"><span class="lineNum">     120</span>              :     // No data available</span>
+<span id="L121"><span class="lineNum">     121</span> <span class="tlaGNC">          17 :     if (nread == 0) {</span></span>
+<span id="L122"><span class="lineNum">     122</span> <span class="tlaGNC">           1 :         return OK(NULL);</span></span>
+<span id="L123"><span class="lineNum">     123</span>              :     }</span>
+<span id="L124"><span class="lineNum">     124</span>              : </span>
+<span id="L125"><span class="lineNum">     125</span>              :     // Allocate lines array (start with capacity for 16 lines)</span>
+<span id="L126"><span class="lineNum">     126</span> <span class="tlaGNC">          16 :     size_t lines_capacity = 16;</span></span>
+<span id="L127"><span class="lineNum">     127</span> <span class="tlaGNC">          16 :     char **lines = talloc_array_(pipe, sizeof(char *), lines_capacity);</span></span>
+<span id="L128"><span class="lineNum">     128</span> <span class="tlaGNC">          16 :     if (lines == NULL) PANIC(&quot;Out of memory&quot;);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L129"><span class="lineNum">     129</span> <span class="tlaGNC">          16 :     size_t lines_count = 0;</span></span>
+<span id="L130"><span class="lineNum">     130</span>              : </span>
+<span id="L131"><span class="lineNum">     131</span>              :     // Process each byte looking for newlines</span>
+<span id="L132"><span class="lineNum">     132</span> <span class="tlaGNC">        2451 :     for (ssize_t i = 0; i &lt; nread; i++) {</span></span>
+<span id="L133"><span class="lineNum">     133</span> <span class="tlaGNC">        2435 :         char c = read_buf[i];</span></span>
+<span id="L134"><span class="lineNum">     134</span>              : </span>
+<span id="L135"><span class="lineNum">     135</span> <span class="tlaGNC">        2435 :         if (c == '\n') {</span></span>
+<span id="L136"><span class="lineNum">     136</span>              :             // Complete line found - create output string</span>
+<span id="L137"><span class="lineNum">     137</span> <span class="tlaGNC">          39 :             char *line = NULL;</span></span>
+<span id="L138"><span class="lineNum">     138</span> <span class="tlaGNC">          39 :             size_t prefix_len = pipe-&gt;prefix ? strlen(pipe-&gt;prefix) : 0;</span></span>
+<span id="L139"><span class="lineNum">     139</span> <span class="tlaGNC">          39 :             size_t space_len = pipe-&gt;prefix ? 1 : 0;  // Space after prefix</span></span>
+<span id="L140"><span class="lineNum">     140</span> <span class="tlaGNC">          39 :             size_t total_len = prefix_len + space_len + pipe-&gt;buffer_pos;</span></span>
+<span id="L141"><span class="lineNum">     141</span>              : </span>
+<span id="L142"><span class="lineNum">     142</span>              :             // Allocate line string (prefix + space + content + null terminator)</span>
+<span id="L143"><span class="lineNum">     143</span> <span class="tlaGNC">          39 :             line = talloc_array_(lines, sizeof(char), total_len + 1);</span></span>
+<span id="L144"><span class="lineNum">     144</span> <span class="tlaGNC">          39 :             if (line == NULL) PANIC(&quot;Out of memory&quot;);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L145"><span class="lineNum">     145</span>              : </span>
+<span id="L146"><span class="lineNum">     146</span> <span class="tlaGNC">          39 :             size_t offset = 0;</span></span>
+<span id="L147"><span class="lineNum">     147</span>              : </span>
+<span id="L148"><span class="lineNum">     148</span>              :             // Copy prefix if present</span>
+<span id="L149"><span class="lineNum">     149</span> <span class="tlaGNC">          39 :             if (pipe-&gt;prefix) {</span></span>
+<span id="L150"><span class="lineNum">     150</span> <span class="tlaGNC">          34 :                 memcpy(line, pipe-&gt;prefix, prefix_len);</span></span>
+<span id="L151"><span class="lineNum">     151</span> <span class="tlaGNC">          34 :                 offset += prefix_len;</span></span>
+<span id="L152"><span class="lineNum">     152</span> <span class="tlaGNC">          34 :                 line[offset++] = ' ';  // Add space after prefix</span></span>
+<span id="L153"><span class="lineNum">     153</span>              :             }</span>
+<span id="L154"><span class="lineNum">     154</span>              : </span>
+<span id="L155"><span class="lineNum">     155</span>              :             // Copy line content</span>
+<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">          39 :             if (pipe-&gt;buffer_pos &gt; 0) {</span></span>
+<span id="L157"><span class="lineNum">     157</span> <span class="tlaGNC">          38 :                 memcpy(line + offset, pipe-&gt;line_buffer, pipe-&gt;buffer_pos);</span></span>
+<span id="L158"><span class="lineNum">     158</span> <span class="tlaGNC">          38 :                 offset += pipe-&gt;buffer_pos;</span></span>
+<span id="L159"><span class="lineNum">     159</span>              :             }</span>
+<span id="L160"><span class="lineNum">     160</span> <span class="tlaGNC">          39 :             line[offset] = '\0';</span></span>
+<span id="L161"><span class="lineNum">     161</span>              : </span>
+<span id="L162"><span class="lineNum">     162</span>              :             // Add to lines array (grow if needed)</span>
+<span id="L163"><span class="lineNum">     163</span> <span class="tlaGNC">          39 :             if (lines_count &gt;= lines_capacity) {</span></span>
+<span id="L164"><span class="lineNum">     164</span> <span class="tlaGNC">           1 :                 lines_capacity *= 2;</span></span>
+<span id="L165"><span class="lineNum">     165</span> <span class="tlaGNC">           1 :                 char **new_lines = talloc_realloc_(pipe, lines, sizeof(char *) * lines_capacity);</span></span>
+<span id="L166"><span class="lineNum">     166</span> <span class="tlaGNC">           1 :                 if (new_lines == NULL) PANIC(&quot;Out of memory&quot;);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L167"><span class="lineNum">     167</span> <span class="tlaGNC">           1 :                 lines = new_lines;</span></span>
+<span id="L168"><span class="lineNum">     168</span>              :             }</span>
+<span id="L169"><span class="lineNum">     169</span> <span class="tlaGNC">          39 :             lines[lines_count++] = line;</span></span>
+<span id="L170"><span class="lineNum">     170</span>              : </span>
+<span id="L171"><span class="lineNum">     171</span>              :             // Reset line buffer for next line</span>
+<span id="L172"><span class="lineNum">     172</span> <span class="tlaGNC">          39 :             pipe-&gt;buffer_pos = 0;</span></span>
+<span id="L173"><span class="lineNum">     173</span>              :         } else {</span>
+<span id="L174"><span class="lineNum">     174</span>              :             // Accumulate character in line buffer</span>
+<span id="L175"><span class="lineNum">     175</span>              :             // Grow buffer if needed</span>
+<span id="L176"><span class="lineNum">     176</span> <span class="tlaGNC">        2396 :             if (pipe-&gt;buffer_pos &gt;= pipe-&gt;buffer_capacity) {</span></span>
+<span id="L177"><span class="lineNum">     177</span> <span class="tlaGNC">           1 :                 pipe-&gt;buffer_capacity *= 2;</span></span>
+<span id="L178"><span class="lineNum">     178</span> <span class="tlaGNC">           1 :                 char *new_buffer = talloc_realloc_(pipe, pipe-&gt;line_buffer,</span></span>
+<span id="L179"><span class="lineNum">     179</span> <span class="tlaGNC">           1 :                                                    sizeof(char) * pipe-&gt;buffer_capacity);</span></span>
+<span id="L180"><span class="lineNum">     180</span> <span class="tlaGNC">           1 :                 if (new_buffer == NULL) PANIC(&quot;Out of memory&quot;);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L181"><span class="lineNum">     181</span> <span class="tlaGNC">           1 :                 pipe-&gt;line_buffer = new_buffer;</span></span>
+<span id="L182"><span class="lineNum">     182</span>              :             }</span>
+<span id="L183"><span class="lineNum">     183</span> <span class="tlaGNC">        2396 :             pipe-&gt;line_buffer[pipe-&gt;buffer_pos++] = c;</span></span>
+<span id="L184"><span class="lineNum">     184</span>              :         }</span>
+<span id="L185"><span class="lineNum">     185</span>              :     }</span>
+<span id="L186"><span class="lineNum">     186</span>              : </span>
+<span id="L187"><span class="lineNum">     187</span> <span class="tlaGNC">          16 :     *lines_out = lines;</span></span>
+<span id="L188"><span class="lineNum">     188</span> <span class="tlaGNC">          16 :     *count_out = lines_count;</span></span>
+<span id="L189"><span class="lineNum">     189</span> <span class="tlaGNC">          16 :     return OK(NULL);</span></span>
+<span id="L190"><span class="lineNum">     190</span>              : }</span>
+<span id="L191"><span class="lineNum">     191</span>              : </span>
+<span id="L192"><span class="lineNum">     192</span> <span class="tlaGNC">          59 : res_t ik_debug_mgr_create(void *parent)</span></span>
+<span id="L193"><span class="lineNum">     193</span>              : {</span>
+<span id="L194"><span class="lineNum">     194</span>              :     // Allocate manager structure</span>
+<span id="L195"><span class="lineNum">     195</span> <span class="tlaGNC">          59 :     ik_debug_pipe_manager_t *mgr = talloc_zero_(parent, sizeof(ik_debug_pipe_manager_t));</span></span>
+<span id="L196"><span class="lineNum">     196</span> <span class="tlaGNC">          59 :     if (mgr == NULL) PANIC(&quot;Out of memory&quot;);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L197"><span class="lineNum">     197</span>              : </span>
+<span id="L198"><span class="lineNum">     198</span>              :     // Initialize with capacity=4, count=0</span>
+<span id="L199"><span class="lineNum">     199</span> <span class="tlaGNC">          59 :     mgr-&gt;capacity = 4;</span></span>
+<span id="L200"><span class="lineNum">     200</span> <span class="tlaGNC">          59 :     mgr-&gt;count = 0;</span></span>
+<span id="L201"><span class="lineNum">     201</span>              : </span>
+<span id="L202"><span class="lineNum">     202</span>              :     // Allocate initial pipes array</span>
+<span id="L203"><span class="lineNum">     203</span> <span class="tlaGNC">          59 :     mgr-&gt;pipes = talloc_array_(mgr, sizeof(ik_debug_pipe_t *), mgr-&gt;capacity);</span></span>
+<span id="L204"><span class="lineNum">     204</span> <span class="tlaGNC">          59 :     if (mgr-&gt;pipes == NULL) PANIC(&quot;Out of memory&quot;);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L205"><span class="lineNum">     205</span>              : </span>
+<span id="L206"><span class="lineNum">     206</span> <span class="tlaGNC">          59 :     return OK(mgr);</span></span>
+<span id="L207"><span class="lineNum">     207</span>              : }</span>
+<span id="L208"><span class="lineNum">     208</span>              : </span>
+<span id="L209"><span class="lineNum">     209</span> <span class="tlaGNC">         106 : res_t ik_debug_mgr_add_pipe(ik_debug_pipe_manager_t *mgr, const char *prefix)</span></span>
+<span id="L210"><span class="lineNum">     210</span>              : {</span>
+<span id="L211"><span class="lineNum">     211</span> <span class="tlaGNC">         106 :     assert(mgr != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L212"><span class="lineNum">     212</span>              : </span>
+<span id="L213"><span class="lineNum">     213</span>              :     // Grow array if needed</span>
+<span id="L214"><span class="lineNum">     214</span> <span class="tlaGNC">         106 :     if (mgr-&gt;count &gt;= mgr-&gt;capacity) {</span></span>
+<span id="L215"><span class="lineNum">     215</span> <span class="tlaGNC">           2 :         size_t new_capacity = mgr-&gt;capacity * 2;</span></span>
+<span id="L216"><span class="lineNum">     216</span> <span class="tlaGNC">           2 :         ik_debug_pipe_t **new_pipes = talloc_realloc_(mgr, mgr-&gt;pipes,</span></span>
+<span id="L217"><span class="lineNum">     217</span>              :                                                       sizeof(ik_debug_pipe_t *) * new_capacity);</span>
+<span id="L218"><span class="lineNum">     218</span> <span class="tlaGNC">           2 :         if (new_pipes == NULL) PANIC(&quot;Out of memory&quot;);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L219"><span class="lineNum">     219</span> <span class="tlaGNC">           2 :         mgr-&gt;pipes = new_pipes;</span></span>
+<span id="L220"><span class="lineNum">     220</span> <span class="tlaGNC">           2 :         mgr-&gt;capacity = new_capacity;</span></span>
+<span id="L221"><span class="lineNum">     221</span>              :     }</span>
+<span id="L222"><span class="lineNum">     222</span>              : </span>
+<span id="L223"><span class="lineNum">     223</span>              :     // Create debug pipe</span>
+<span id="L224"><span class="lineNum">     224</span> <span class="tlaGNC">         106 :     res_t res = ik_debug_pipe_create(mgr, prefix);</span></span>
+<span id="L225"><span class="lineNum">     225</span> <span class="tlaGNC">         106 :     if (is_err(&amp;res)) {</span></span>
+<span id="L226"><span class="lineNum">     226</span> <span class="tlaGNC">           1 :         return res;</span></span>
+<span id="L227"><span class="lineNum">     227</span>              :     }</span>
+<span id="L228"><span class="lineNum">     228</span>              : </span>
+<span id="L229"><span class="lineNum">     229</span> <span class="tlaGNC">         105 :     ik_debug_pipe_t *pipe = res.ok;</span></span>
+<span id="L230"><span class="lineNum">     230</span>              : </span>
+<span id="L231"><span class="lineNum">     231</span>              :     // Add to pipes array</span>
+<span id="L232"><span class="lineNum">     232</span> <span class="tlaGNC">         105 :     mgr-&gt;pipes[mgr-&gt;count] = pipe;</span></span>
+<span id="L233"><span class="lineNum">     233</span> <span class="tlaGNC">         105 :     mgr-&gt;count++;</span></span>
+<span id="L234"><span class="lineNum">     234</span>              : </span>
+<span id="L235"><span class="lineNum">     235</span> <span class="tlaGNC">         105 :     return OK(pipe);</span></span>
+<span id="L236"><span class="lineNum">     236</span>              : }</span>
+<span id="L237"><span class="lineNum">     237</span>              : </span>
+<span id="L238"><span class="lineNum">     238</span> <span class="tlaGNC">           4 : void ik_debug_mgr_add_to_fdset(ik_debug_pipe_manager_t *mgr, fd_set *read_fds, int *max_fd)</span></span>
+<span id="L239"><span class="lineNum">     239</span>              : {</span>
+<span id="L240"><span class="lineNum">     240</span> <span class="tlaGNC">           4 :     assert(mgr != NULL);       // LCOV_EXCL_BR_LINE</span></span>
+<span id="L241"><span class="lineNum">     241</span> <span class="tlaGNC">           4 :     assert(read_fds != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L242"><span class="lineNum">     242</span> <span class="tlaGNC">           4 :     assert(max_fd != NULL);    // LCOV_EXCL_BR_LINE</span></span>
+<span id="L243"><span class="lineNum">     243</span>              : </span>
+<span id="L244"><span class="lineNum">     244</span>              :     // Iterate over all pipes and add their read_fds to the set</span>
+<span id="L245"><span class="lineNum">     245</span> <span class="tlaGNC">          10 :     for (size_t i = 0; i &lt; mgr-&gt;count; i++) {</span></span>
+<span id="L246"><span class="lineNum">     246</span> <span class="tlaGNC">           6 :         ik_debug_pipe_t *pipe = mgr-&gt;pipes[i];</span></span>
+<span id="L247"><span class="lineNum">     247</span> <span class="tlaGNC">           6 :         FD_SET(pipe-&gt;read_fd, read_fds);</span></span>
+<span id="L248"><span class="lineNum">     248</span>              : </span>
+<span id="L249"><span class="lineNum">     249</span>              :         // Update max_fd if this fd is larger</span>
+<span id="L250"><span class="lineNum">     250</span> <span class="tlaGNC">           6 :         if (pipe-&gt;read_fd &gt; *max_fd) {</span></span>
+<span id="L251"><span class="lineNum">     251</span> <span class="tlaGNC">           5 :             *max_fd = pipe-&gt;read_fd;</span></span>
+<span id="L252"><span class="lineNum">     252</span>              :         }</span>
+<span id="L253"><span class="lineNum">     253</span>              :     }</span>
+<span id="L254"><span class="lineNum">     254</span> <span class="tlaGNC">           4 : }</span></span>
+<span id="L255"><span class="lineNum">     255</span>              : </span>
+<span id="L256"><span class="lineNum">     256</span> <span class="tlaGNC">           8 : res_t ik_debug_mgr_handle_ready(ik_debug_pipe_manager_t *mgr, fd_set *read_fds,</span></span>
+<span id="L257"><span class="lineNum">     257</span>              :                                 ik_scrollback_t *scrollback, bool debug_enabled)</span>
+<span id="L258"><span class="lineNum">     258</span>              : {</span>
+<span id="L259"><span class="lineNum">     259</span> <span class="tlaGNC">           8 :     assert(mgr != NULL);       // LCOV_EXCL_BR_LINE</span></span>
+<span id="L260"><span class="lineNum">     260</span> <span class="tlaGNC">           8 :     assert(read_fds != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L261"><span class="lineNum">     261</span>              :     // scrollback can be NULL when debug_enabled is false</span>
+<span id="L262"><span class="lineNum">     262</span>              : </span>
+<span id="L263"><span class="lineNum">     263</span>              :     // Iterate over all pipes</span>
+<span id="L264"><span class="lineNum">     264</span> <span class="tlaGNC">          17 :     for (size_t i = 0; i &lt; mgr-&gt;count; i++) {</span></span>
+<span id="L265"><span class="lineNum">     265</span> <span class="tlaGNC">          10 :         ik_debug_pipe_t *pipe = mgr-&gt;pipes[i];</span></span>
+<span id="L266"><span class="lineNum">     266</span>              : </span>
+<span id="L267"><span class="lineNum">     267</span>              :         // Check if this pipe is ready</span>
+<span id="L268"><span class="lineNum">     268</span> <span class="tlaGNC">          10 :         if (!FD_ISSET(pipe-&gt;read_fd, read_fds)) {</span></span>
+<span id="L269"><span class="lineNum">     269</span> <span class="tlaGNC">           1 :             continue;</span></span>
+<span id="L270"><span class="lineNum">     270</span>              :         }</span>
+<span id="L271"><span class="lineNum">     271</span>              : </span>
+<span id="L272"><span class="lineNum">     272</span>              :         // Read from pipe</span>
+<span id="L273"><span class="lineNum">     273</span> <span class="tlaGNC">           9 :         char **lines = NULL;</span></span>
+<span id="L274"><span class="lineNum">     274</span> <span class="tlaGNC">           9 :         size_t count = 0;</span></span>
+<span id="L275"><span class="lineNum">     275</span> <span class="tlaGNC">           9 :         res_t res = ik_debug_pipe_read(pipe, &amp;lines, &amp;count);</span></span>
+<span id="L276"><span class="lineNum">     276</span> <span class="tlaGNC">           9 :         if (is_err(&amp;res)) {</span></span>
+<span id="L277"><span class="lineNum">     277</span> <span class="tlaGNC">           1 :             return res;</span></span>
+<span id="L278"><span class="lineNum">     278</span>              :         }</span>
+<span id="L279"><span class="lineNum">     279</span>              : </span>
+<span id="L280"><span class="lineNum">     280</span>              :         // If debug enabled, append lines to scrollback</span>
+<span id="L281"><span class="lineNum">     281</span> <span class="tlaGNC">           8 :         if (debug_enabled &amp;&amp; count &gt; 0) {</span></span>
+<span id="L282"><span class="lineNum">     282</span> <span class="tlaGNC">           4 :             assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L283"><span class="lineNum">     283</span> <span class="tlaGNC">           9 :             for (size_t j = 0; j &lt; count; j++) {</span></span>
+<span id="L284"><span class="lineNum">     284</span> <span class="tlaGNC">           5 :                 res_t append_res = ik_scrollback_append_line(scrollback, lines[j], strlen(lines[j]));</span></span>
+<span id="L285"><span class="lineNum">     285</span> <span class="tlaGNC">           5 :                 if (is_err(&amp;append_res)) {  // LCOV_EXCL_BR_LINE</span></span>
+<span id="L286"><span class="lineNum">     286</span>              :                     talloc_free(lines);  // LCOV_EXCL_LINE</span>
+<span id="L287"><span class="lineNum">     287</span>              :                     return append_res;  // LCOV_EXCL_LINE</span>
+<span id="L288"><span class="lineNum">     288</span>              :                 }</span>
+<span id="L289"><span class="lineNum">     289</span>              :             }</span>
+<span id="L290"><span class="lineNum">     290</span>              :         }</span>
+<span id="L291"><span class="lineNum">     291</span>              : </span>
+<span id="L292"><span class="lineNum">     292</span>              :         // Free lines array (whether or not we used it)</span>
+<span id="L293"><span class="lineNum">     293</span> <span class="tlaGNC">           8 :         if (lines != NULL) {</span></span>
+<span id="L294"><span class="lineNum">     294</span> <span class="tlaGNC">           7 :             talloc_free(lines);</span></span>
+<span id="L295"><span class="lineNum">     295</span>              :         }</span>
+<span id="L296"><span class="lineNum">     296</span>              :     }</span>
+<span id="L297"><span class="lineNum">     297</span>              : </span>
+<span id="L298"><span class="lineNum">     298</span> <span class="tlaGNC">           7 :     return OK(NULL);</span></span>
+<span id="L299"><span class="lineNum">     299</span>              : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.0-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>
