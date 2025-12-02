@@ -1,12 +1,14 @@
 // Internal HTTP callback handlers for OpenAI multi client
 #pragma once
 
+#include <curl/curl.h>
+#include <inttypes.h>
+#include <stddef.h>
+#include <stdbool.h>
 #include "error.h"
 #include "openai/sse_parser.h"
 #include "openai/client.h"
 #include "tool.h"
-#include <stddef.h>
-#include <stdbool.h>
 
 /*
  * Context for HTTP write callback
@@ -39,3 +41,19 @@ typedef struct {
  * @return Number of bytes processed
  */
 size_t http_write_callback(char *data, size_t size, size_t nmemb, void *userdata);
+
+/**
+ * @brief libcurl debug callback - filters HTTP/2 noise and redacts secrets
+ *
+ * Called by libcurl for debug events (headers, data, SSL, informational messages).
+ * Filters to show only meaningful HTTP traffic and redacts Authorization headers.
+ *
+ * @param handle  curl handle (unused)
+ * @param type    curl_infotype indicating message type
+ * @param data    Debug data (may not be null-terminated)
+ * @param size    Size of debug data
+ * @param userptr FILE* for debug output
+ * @return Always 0 (success)
+ */
+int32_t ik_openai_curl_debug_output(CURL *handle, curl_infotype type,
+                                    char *data, size_t size, void *userptr);

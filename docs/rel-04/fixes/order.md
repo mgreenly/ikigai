@@ -14,6 +14,7 @@
 - ~~[debug-tool-call-msg.md](debug-tool-call-msg.md)~~
 - ~~[debug-tool-result-msg.md](debug-tool-result-msg.md)~~
 - ~~[debug-assistant-msg.md](debug-assistant-msg.md)~~
+- ~~[filter-http2-debug-noise.md](filter-http2-debug-noise.md)~~
 
 ### Async Tool Execution (responsive UI during tools)
 

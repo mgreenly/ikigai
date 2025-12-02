@@ -8,6 +8,8 @@
 #include "wrapper.h"
 
 #include <assert.h>
+#include <curl/curl.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -16,6 +18,89 @@
  *
  * Handles adding new requests to the multi-handle manager.
  */
+
+// libcurl debug info types (from curl/curl.h)
+// We need these to filter in our callback
+#define CURLINFO_TEXT         0
+#define CURLINFO_HEADER_IN    1
+#define CURLINFO_HEADER_OUT   2
+#define CURLINFO_DATA_IN      3
+#define CURLINFO_DATA_OUT     4
+#define CURLINFO_SSL_DATA_IN  5
+#define CURLINFO_SSL_DATA_OUT 6
+
+// Custom curl debug function - filters HTTP/2 noise and redacts secrets.
+//
+// Called by libcurl for each debug event. We filter to show only:
+// - Outgoing headers (CURLINFO_HEADER_OUT) with Authorization redacted
+// - Incoming headers (CURLINFO_HEADER_IN)
+// - Request/response bodies (CURLINFO_DATA_OUT, CURLINFO_DATA_IN)
+//
+// Filtered out:
+// - SSL/TLS negotiation (CURLINFO_SSL_DATA_IN/OUT)
+// - Informational messages (CURLINFO_TEXT) like "Trying 104..."
+//
+// @param handle  curl handle (unused)
+// @param type    Info type (header, data, ssl, text)
+// @param data    Data buffer (may not be null-terminated)
+// @param size    Data size
+// @param userptr FILE* for debug output
+// @return        Always 0 (success)
+int32_t ik_openai_curl_debug_output(CURL *handle, curl_infotype type,
+                                    char *data, size_t size, void *userptr)
+{
+    (void)handle;  // Unused
+    FILE *debug_output = (FILE *)userptr;
+
+    // Filter out noise - only show meaningful HTTP traffic
+    if (type == CURLINFO_TEXT ||
+        type == CURLINFO_SSL_DATA_IN ||
+        type == CURLINFO_SSL_DATA_OUT) {
+        return 0;  // Ignore TLS/HTTP2 protocol details
+    }
+
+    // Prefix for direction
+    const char *prefix = "";
+    if (type == CURLINFO_HEADER_OUT || type == CURLINFO_DATA_OUT) {
+        prefix = ">> ";  // Outgoing (request)
+    } else if (type == CURLINFO_HEADER_IN || type == CURLINFO_DATA_IN) {
+        prefix = "<< ";  // Incoming (response)
+    }
+
+    // Write data line-by-line to handle multi-line headers/bodies
+    const char *ptr = data;
+    const char *end = data + size;
+
+    while (ptr < end) {
+        // Find next newline
+        const char *line_end = ptr;
+        while (line_end < end && *line_end != '\n' && *line_end != '\r') {
+            line_end++;
+        }
+
+        size_t line_len = (size_t)(line_end - ptr);
+
+        // Check for Authorization header (case-insensitive)
+        if ((type == CURLINFO_HEADER_OUT || type == CURLINFO_HEADER_IN) &&
+            line_len > 14 &&
+            strncasecmp(ptr, "authorization:", 14) == 0) {
+            // Redact the value
+            fprintf(debug_output, "%sAuthorization: [REDACTED]\n", prefix);
+        } else if (line_len > 0) {
+            // Print the line with prefix
+            fprintf(debug_output, "%s%.*s\n", prefix, (int32_t)line_len, ptr);
+        }
+
+        // Skip past newline characters
+        ptr = line_end;
+        while (ptr < end && (*ptr == '\n' || *ptr == '\r')) {
+            ptr++;
+        }
+    }
+
+    fflush(debug_output);
+    return 0;
+}
 
 res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
                                    const ik_cfg_t *cfg,
@@ -96,14 +181,9 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
 
     /* Debug: Enable verbose curl output if debug pipe provided */
     if (debug_output != NULL) {
-        fprintf(debug_output, ">> REQUEST\n");
-        fprintf(debug_output, ">> URL: https://api.openai.com/v1/chat/completions\n");
-        fprintf(debug_output, ">> Body: %s\n", json_body);
-        fprintf(debug_output, "\n");
-        fflush(debug_output);
-
         curl_easy_setopt_(active_req->easy_handle, CURLOPT_VERBOSE, (const void *)1L);
-        curl_easy_setopt_(active_req->easy_handle, CURLOPT_STDERR, debug_output);
+        curl_easy_setopt_(active_req->easy_handle, CURLOPT_DEBUGFUNCTION, ik_openai_curl_debug_output);
+        curl_easy_setopt_(active_req->easy_handle, CURLOPT_DEBUGDATA, debug_output);
     }
 
     // Set headers
