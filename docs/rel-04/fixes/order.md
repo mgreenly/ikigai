@@ -17,5 +17,5 @@
 
 ### Async Tool Execution (responsive UI during tools)
 
-- [tool-thread-infrastructure.md](tool-thread-infrastructure.md)
+- ~~[tool-thread-infrastructure.md](tool-thread-infrastructure.md)~~
 - [async-tool-execution.md](async-tool-execution.md)

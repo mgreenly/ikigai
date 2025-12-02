@@ -13,13 +13,15 @@
 #include "debug_pipe.h"
 #include "tool.h"
 #include "db/connection.h"
+#include <pthread.h>
 #include <stdbool.h>
 #include <inttypes.h>
 
 // REPL state machine (Phase 1.6)
 typedef enum {
     IK_REPL_STATE_IDLE,              // Normal input mode
-    IK_REPL_STATE_WAITING_FOR_LLM    // Waiting for LLM response (spinner visible)
+    IK_REPL_STATE_WAITING_FOR_LLM,   // Waiting for LLM response (spinner visible)
+    IK_REPL_STATE_EXECUTING_TOOL     // Tool running in background thread
 } ik_repl_state_t;
 
 // Mark structure for conversation checkpoints (Phase 1.7)
@@ -95,6 +97,14 @@ typedef struct ik_repl_ctx_t {
 
     // Pending tool call (Story 02)
     ik_tool_call_t *pending_tool_call; // Tool call awaiting execution (NULL if none)
+
+    // Tool thread execution (async tool dispatch)
+    pthread_t tool_thread;              // Worker thread handle
+    pthread_mutex_t tool_thread_mutex;  // Protects tool_thread_* fields
+    bool tool_thread_running;           // Thread is active
+    bool tool_thread_complete;          // Thread finished, result ready
+    TALLOC_CTX *tool_thread_ctx;        // Memory context for thread (owned by main)
+    char *tool_thread_result;           // Result JSON from tool dispatch
 } ik_repl_ctx_t;
 
 // Initialize REPL context
@@ -121,6 +131,8 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl);
 // State transition functions (Phase 1.6)
 void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl);
 void ik_repl_transition_to_idle(ik_repl_ctx_t *repl);
+void ik_repl_transition_to_executing_tool(ik_repl_ctx_t *repl);
+void ik_repl_transition_from_executing_tool(ik_repl_ctx_t *repl);
 
 // Internal helper functions (exposed for testing)
 res_t handle_curl_events(ik_repl_ctx_t *repl, int ready);

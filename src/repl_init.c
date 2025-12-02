@@ -14,6 +14,22 @@
 #include <assert.h>
 #include <talloc.h>
 
+// Destructor for REPL context - handles cleanup on exit or Ctrl+C
+static int repl_destructor(ik_repl_ctx_t *repl)
+{
+    // If tool thread is running, wait for it to finish before cleanup.
+    // This handles Ctrl+C gracefully - we don't cancel the thread or leave
+    // it orphaned. If a bash command is stuck, we wait (known limitation:
+    // "Bash command timeout - not implemented" in README Out of Scope).
+    // The alternative (pthread_cancel) risks leaving resources in bad state.
+    if (repl->tool_thread_running) {  // LCOV_EXCL_BR_LINE
+        pthread_join_(repl->tool_thread, NULL);  // LCOV_EXCL_LINE
+    }
+
+    pthread_mutex_destroy_(&repl->tool_thread_mutex);
+    return 0;
+}
+
 res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
 {
     assert(parent != NULL);     // LCOV_EXCL_BR_LINE
@@ -144,6 +160,22 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
             return result;
         }
     }
+
+    // Initialize tool thread mutex
+    int mutex_ret = pthread_mutex_init_(&repl->tool_thread_mutex, NULL);
+    if (mutex_ret != 0) {
+        talloc_free(repl);
+        return ERR(parent, IO, "Failed to initialize tool thread mutex");
+    }
+
+    // Initialize tool thread state
+    repl->tool_thread_running = false;
+    repl->tool_thread_complete = false;
+    repl->tool_thread_ctx = NULL;
+    repl->tool_thread_result = NULL;
+
+    // Set destructor for cleanup (handles mutex destruction)
+    talloc_set_destructor(repl, repl_destructor);
 
     // Set up signal handlers (SIGWINCH for terminal resize)
     result = ik_signal_handler_init(parent);

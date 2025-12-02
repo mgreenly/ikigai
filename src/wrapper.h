@@ -23,20 +23,16 @@
 #include <unistd.h>
 #include "vendor/yyjson/yyjson.h"
 
-// MOCKABLE: Weak symbols for testing in debug builds,
-// inline with definitions in header for zero overhead in release builds
+// MOCKABLE: weak (debug) or inline (release)
 #ifdef NDEBUG
 #define MOCKABLE static inline
 #else
 #define MOCKABLE __attribute__((weak))
 #endif
 
-// ============================================================================
 // talloc wrappers
-// ============================================================================
 
 #ifdef NDEBUG
-// Release build: inline definitions for zero overhead
 MOCKABLE void *talloc_zero_(TALLOC_CTX *ctx, size_t size)
 {
     return talloc_zero_size(ctx, size);
@@ -67,7 +63,6 @@ MOCKABLE char *talloc_asprintf_(TALLOC_CTX *ctx, const char *fmt, ...)
 }
 
 #else
-// Debug/test build: weak symbol declarations
 MOCKABLE void *talloc_zero_(TALLOC_CTX *ctx, size_t size);
 MOCKABLE char *talloc_strdup_(TALLOC_CTX *ctx, const char *str);
 MOCKABLE void *talloc_array_(TALLOC_CTX *ctx, size_t el_size, size_t count);
@@ -75,12 +70,9 @@ MOCKABLE void *talloc_realloc_(TALLOC_CTX *ctx, void *ptr, size_t size);
 MOCKABLE char *talloc_asprintf_(TALLOC_CTX *ctx, const char *fmt, ...);
 #endif
 
-// ============================================================================
 // yyjson wrappers
-// ============================================================================
 
 #ifdef NDEBUG
-// Release build: inline definitions for zero overhead
 MOCKABLE yyjson_doc *yyjson_read_file_(const char *path, yyjson_read_flag flg,
                                        const yyjson_alc *allocator, yyjson_read_err *err)
 {
@@ -120,7 +112,6 @@ MOCKABLE const char *yyjson_get_str_(yyjson_val *val)
 }
 
 #else
-// Debug/test build: weak symbol declarations
 MOCKABLE yyjson_doc *yyjson_read_file_(const char *path,
                                        yyjson_read_flag flg,
                                        const yyjson_alc *allocator,
@@ -137,12 +128,9 @@ MOCKABLE int64_t yyjson_get_sint_(yyjson_val *val);
 MOCKABLE const char *yyjson_get_str_(yyjson_val *val);
 #endif
 
-// ============================================================================
 // libcurl wrappers
-// ============================================================================
 
 #ifdef NDEBUG
-// Release build: inline definitions for zero overhead
 #include <curl/curl.h>
 
 MOCKABLE CURL *curl_easy_init_(void)
@@ -229,7 +217,6 @@ MOCKABLE const char *curl_multi_strerror_(CURLMcode code)
 }
 
 #else
-// Debug/test build: weak symbol declarations
 #include <curl/curl.h>
 
 MOCKABLE CURL *curl_easy_init_(void);
@@ -260,30 +247,33 @@ MOCKABLE CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue);
 MOCKABLE const char *curl_multi_strerror_(CURLMcode code);
 #endif
 
-// ============================================================================
 // PostgreSQL libpq wrappers
-// ============================================================================
 
 #include <libpq-fe.h>
 
 #ifdef NDEBUG
-// Release build: inline definitions for zero overhead
 MOCKABLE char *PQgetvalue_(const PGresult *res, int row_number, int column_number)
 {
     return PQgetvalue(res, row_number, column_number);
 }
 
 #else
-// Debug/test build: weak symbol declarations
 MOCKABLE char *PQgetvalue_(const PGresult *res, int row_number, int column_number);
 #endif
 
-// ============================================================================
+// Pthread wrappers (for testability)
+#include <pthread.h>
+MOCKABLE int pthread_mutex_init_(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr);
+MOCKABLE int pthread_mutex_destroy_(pthread_mutex_t *mutex);
+MOCKABLE int pthread_mutex_lock_(pthread_mutex_t *mutex);
+MOCKABLE int pthread_mutex_unlock_(pthread_mutex_t *mutex);
+MOCKABLE int pthread_create_(pthread_t *thread, const pthread_attr_t *attr,
+                             void *(*start_routine)(void *), void *arg);
+MOCKABLE int pthread_join_(pthread_t thread, void **retval);
+
 // POSIX system call wrappers
-// ============================================================================
 
 #ifdef NDEBUG
-// Release build: inline definitions for zero overhead
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
@@ -412,7 +402,6 @@ MOCKABLE DIR *opendir_(const char *name)
 }
 
 #else
-// Debug/test build: weak symbol declarations
 MOCKABLE int posix_open_(const char *pathname, int flags);
 MOCKABLE int posix_close_(int fd);
 MOCKABLE int posix_stat_(const char *pathname, struct stat *statbuf);
@@ -439,12 +428,9 @@ MOCKABLE int pclose_(FILE *stream);
 MOCKABLE DIR *opendir_(const char *name);
 #endif
 
-// ============================================================================
 // PostgreSQL wrappers
-// ============================================================================
 
 #ifdef NDEBUG
-// Release build: inline definitions for zero overhead
 #include <libpq-fe.h>
 
 MOCKABLE PGresult *pq_exec_(PGconn *conn, const char *command)
@@ -465,7 +451,6 @@ MOCKABLE PGresult *pq_exec_params_(PGconn *conn,
 }
 
 #else
-// Debug/test build: weak symbol declarations
 #include <libpq-fe.h>
 
 MOCKABLE PGresult *pq_exec_(PGconn *conn, const char *command);
@@ -479,15 +464,12 @@ MOCKABLE PGresult *pq_exec_params_(PGconn *conn,
                                    int resultFormat);
 #endif
 
-// ============================================================================
 // C standard library wrappers
-// ============================================================================
 
 #include <stdarg.h>
 #include <time.h>
 
 #ifdef NDEBUG
-// Release build: inline definitions for zero overhead
 MOCKABLE int vsnprintf_(char *str, size_t size, const char *format, va_list ap)
 {
     return vsnprintf(str, size, format, ap);
@@ -511,19 +493,15 @@ MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct 
 }
 
 #else
-// Debug/test build: weak symbol declarations
 MOCKABLE int vsnprintf_(char *str, size_t size, const char *format, va_list ap);
 MOCKABLE int snprintf_(char *str, size_t size, const char *format, ...);
 MOCKABLE struct tm *gmtime_(const time_t *timep);
 MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct tm *tm);
 #endif
 
-// ============================================================================
 // Internal ikigai function wrappers for testing
-// ============================================================================
 
 #ifdef NDEBUG
-// Release build: Call through to actual functions
 #include "db/connection.h"
 #include "db/message.h"
 #include "repl/session_restore.h"
@@ -555,7 +533,6 @@ MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, si
 }
 
 #else
-// Debug/test build: weak symbol declarations
 // Note: These use void* because the actual types are defined in headers that may
 // not be included when wrapper.h is processed
 #include "error.h"

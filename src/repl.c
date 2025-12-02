@@ -24,7 +24,7 @@
 // Forward declarations
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl);
 
-// Helper: Calculate effective select() timeout
+
 static inline long calculate_select_timeout_ms(const ik_repl_ctx_t *repl, long curl_timeout_ms)
 {
     // Spinner timer: 80ms when visible, no timeout when hidden
@@ -44,7 +44,7 @@ static inline long calculate_select_timeout_ms(const ik_repl_ctx_t *repl, long c
     return 1000;
 }
 
-// Helper: Set up file descriptor sets for select()
+
 static inline res_t setup_fd_sets(ik_repl_ctx_t *repl,
                                   fd_set *read_fds,
                                   fd_set *write_fds,
@@ -74,8 +74,8 @@ static inline res_t setup_fd_sets(ik_repl_ctx_t *repl,
     return OK(NULL);
 }
 
-// Helper: Handle terminal input
-// Exposed for testing
+
+
 res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit)
 {
     char byte;
@@ -108,7 +108,7 @@ res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_e
     return OK(NULL);
 }
 
-// Helper: Handle HTTP request error
+
 static void handle_request_error(ik_repl_ctx_t *repl)
 {
     // Display error in scrollback
@@ -135,8 +135,8 @@ static void handle_request_error(ik_repl_ctx_t *repl)
     }
 }
 
-// Helper: Handle HTTP request success
-// Exposed for testing
+
+
 void handle_request_success(ik_repl_ctx_t *repl)
 {
     // Add assistant response to conversation (only if non-empty)
@@ -209,7 +209,7 @@ void handle_request_success(ik_repl_ctx_t *repl)
     }
 }
 
-// Helper: Submit follow-up request for tool loop continuation
+
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
 {
     // finish_reason is "tool_calls" - submit follow-up request
@@ -234,8 +234,8 @@ static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
     }
 }
 
-// Helper: Handle curl_multi events and detect request completion
-// Exposed for testing
+// Handle curl events
+
 res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
 {
     (void)ready;  // Used for select() coordination, not needed here
@@ -323,7 +323,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             ik_debug_mgr_handle_ready(repl->debug_mgr, &read_fds, repl->scrollback, repl->debug_enabled);  // LCOV_EXCL_LINE
         }
 
-        // Handle terminal input
+        
         if (FD_ISSET(repl->term->tty_fd, &read_fds)) {  // LCOV_EXCL_BR_LINE
             CHECK(handle_terminal_input(repl, repl->term->tty_fd, &should_exit));
             if (should_exit) break;
@@ -421,6 +421,15 @@ void ik_repl_transition_to_idle(ik_repl_ctx_t *repl)
     // Hide spinner, show input
     repl->spinner_state.visible = false;
     repl->input_buffer_visible = true;
+}
+
+void ik_repl_transition_to_executing_tool(ik_repl_ctx_t *repl) {
+    assert(repl != NULL); assert(repl->state == IK_REPL_STATE_WAITING_FOR_LLM); /* LCOV_EXCL_BR_LINE */
+    repl->state = IK_REPL_STATE_EXECUTING_TOOL;
+}
+void ik_repl_transition_from_executing_tool(ik_repl_ctx_t *repl) {
+    assert(repl != NULL); assert(repl->state == IK_REPL_STATE_EXECUTING_TOOL); /* LCOV_EXCL_BR_LINE */
+    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
 }
 
 bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl)

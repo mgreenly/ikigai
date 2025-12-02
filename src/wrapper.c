@@ -86,6 +86,43 @@ MOCKABLE const char *yyjson_get_str_(yyjson_val *val)
 }
 
 // ============================================================================
+// Pthread wrappers - debug/test builds only
+// ============================================================================
+
+#include <pthread.h>
+
+MOCKABLE int pthread_mutex_init_(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
+{
+    return pthread_mutex_init(mutex, attr);
+}
+
+MOCKABLE int pthread_mutex_destroy_(pthread_mutex_t *mutex)
+{
+    return pthread_mutex_destroy(mutex);
+}
+
+MOCKABLE int pthread_mutex_lock_(pthread_mutex_t *mutex)
+{
+    return pthread_mutex_lock(mutex);
+}
+
+MOCKABLE int pthread_mutex_unlock_(pthread_mutex_t *mutex)
+{
+    return pthread_mutex_unlock(mutex);
+}
+
+MOCKABLE int pthread_create_(pthread_t *thread, const pthread_attr_t *attr,
+                             void *(*start_routine)(void *), void *arg)
+{
+    return pthread_create(thread, attr, start_routine, arg);
+}
+
+MOCKABLE int pthread_join_(pthread_t thread, void **retval)
+{
+    return pthread_join(thread, retval);
+}
+
+// ============================================================================
 // POSIX system call wrappers - debug/test builds only
 // ============================================================================
 
