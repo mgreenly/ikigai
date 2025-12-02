@@ -26,6 +26,14 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     res_t result = ik_openai_conversation_add_msg(repl->conversation, tc_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
+    // Debug output when tool_call is added
+    if (repl->openai_debug_pipe != NULL && repl->openai_debug_pipe->write_end != NULL) {
+        fprintf(repl->openai_debug_pipe->write_end,
+                "<< TOOL_CALL: %s\n",
+                summary);
+        fflush(repl->openai_debug_pipe->write_end);
+    }
+
     // 2. Execute tool
     res_t tool_res = ik_tool_dispatch(repl, tc->name, tc->arguments);
     if (is_err(&tool_res)) PANIC("tool dispatch failed"); // LCOV_EXCL_BR_LINE
