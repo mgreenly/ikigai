@@ -145,16 +145,3 @@ Ikigai will:
 - Start/stop everything as a unit
 
 The manual scripts we have today become internal implementation details, invisible to the user.
-
----
-
-## Architecture Notes
-
-**Why these tools?**
-- **nginx**: Battle-tested reverse proxy, static file serving, SSL termination
-- **PostgreSQL**: Reliable, full-featured database
-- **runit**: Simple process supervision with automatic restarts
-- **Deno**: Secure TypeScript runtime, no node_modules complexity
-
-**Dev/Prod Parity:**
-The exact same tools run everywhere. Development uses child processes for easy lifecycle management. Production uses system services. Configuration stays the same.
