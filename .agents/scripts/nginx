@@ -1,0 +1,18 @@
+#!/bin/bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AGENTS_DIR="$(dirname "$SCRIPT_DIR")"
+HTTPD_DIR="$AGENTS_DIR/httpd"
+LOGS_DIR="$AGENTS_DIR/logs"
+ARCHIVE_DIR="$LOGS_DIR/archive"
+LOG_FILE="$LOGS_DIR/nginx.log"
+
+mkdir -p "$HTTPD_DIR/pid" "$ARCHIVE_DIR"
+
+if [ -f "$LOG_FILE" ] && [ -s "$LOG_FILE" ]; then
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    mv "$LOG_FILE" "$ARCHIVE_DIR/nginx-$TIMESTAMP.log"
+fi
+
+exec nginx -p "$HTTPD_DIR" -c nginx.conf

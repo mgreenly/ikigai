@@ -1,0 +1,45 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AGENTS_DIR="$(dirname "$SCRIPT_DIR")"
+SV_DIR="$AGENTS_DIR/sv"
+PID_FILE="$AGENTS_DIR/logs/runsvdir.pid"
+
+case "${1:-}" in
+    start)
+        if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+            echo "runsvdir already running (pid $(cat "$PID_FILE"))"
+            exit 1
+        fi
+        setsid /usr/bin/runsvdir "$SV_DIR" </dev/null >/dev/null 2>&1 &
+        PID=$!
+        sleep 0.2
+        # setsid creates new session, get actual runsvdir pid
+        RUNSVDIR_PID=$(pgrep -P $PID runsvdir 2>/dev/null || echo $PID)
+        echo "$RUNSVDIR_PID" > "$PID_FILE"
+        echo "runsvdir started (pid $RUNSVDIR_PID)"
+        ;;
+    stop)
+        if [ -f "$PID_FILE" ]; then
+            kill "$(cat "$PID_FILE")" 2>/dev/null && rm -f "$PID_FILE"
+            echo "runsvdir stopped"
+        else
+            echo "runsvdir not running"
+        fi
+        ;;
+    status)
+        if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+            echo "runsvdir running (pid $(cat "$PID_FILE"))"
+        else
+            echo "runsvdir not running"
+            rm -f "$PID_FILE" 2>/dev/null
+        fi
+        ;;
+    "")
+        exec /usr/bin/runsvdir "$SV_DIR"
+        ;;
+    *)
+        echo "Usage: runsvdir [start|stop|status]"
+        exit 1
+        ;;
+esac
