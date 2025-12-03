@@ -174,9 +174,7 @@ START_TEST(test_tool_result_add_limit_metadata) {
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
-END_TEST
-
-START_TEST(test_tool_loop_limit_end_to_end)
+END_TEST START_TEST(test_tool_loop_limit_end_to_end)
 {
     SKIP_IF_NO_DB();
 
@@ -305,9 +303,8 @@ START_TEST(test_tool_loop_limit_end_to_end)
     yyjson_doc_free(data_doc);
     PQclear(result);
 }
-END_TEST
 
-START_TEST(test_request_serialization_with_tool_choice)
+END_TEST START_TEST(test_request_serialization_with_tool_choice)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);

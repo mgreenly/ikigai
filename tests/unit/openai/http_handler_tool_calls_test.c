@@ -83,7 +83,7 @@ CURLcode curl_easy_perform_(CURL *curl)
             1,
             mock_response_len,
             g_write_data
-        );
+            );
 #pragma GCC diagnostic pop
         if (result != mock_response_len) {
             return CURLE_WRITE_ERROR;
@@ -138,8 +138,7 @@ CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
  * Tests line 287: Tool call transfer to response structure
  * Tests canonical message conversion in ik_openai_chat_create
  */
-START_TEST(test_tool_call_single_chunk)
-{
+START_TEST(test_tool_call_single_chunk) {
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
@@ -203,7 +202,6 @@ START_TEST(test_tool_call_single_chunk)
     yyjson_doc_free(doc);
 }
 END_TEST
-
 /*
  * Test: Tool call with streaming (multiple chunks)
  *
@@ -279,8 +277,8 @@ START_TEST(test_tool_call_streaming_multiple_chunks)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Tool call with no content
  *
@@ -350,8 +348,8 @@ START_TEST(test_tool_call_no_content)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Parse tool calls returns OK with NULL
  *
@@ -400,8 +398,8 @@ START_TEST(test_parse_tool_calls_ok_null)
     ck_assert_ptr_nonnull(msg->content);
     ck_assert_str_eq(msg->content, "Hello");
 }
-END_TEST
 
+END_TEST
 /*
  * Test: Parse tool calls returns error
  *
@@ -452,6 +450,7 @@ START_TEST(test_parse_tool_calls_error)
     ck_assert_ptr_nonnull(msg->content);
     ck_assert_str_eq(msg->content, "Hello World");
 }
+
 END_TEST
 
 /*

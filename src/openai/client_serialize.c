@@ -76,11 +76,11 @@ void ik_openai_serialize_tool_call_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_
         PANIC("Out of memory"); // LCOV_EXCL_LINE
     }
 
-    if (!yyjson_mut_obj_add_str(doc, tool_call_obj, "id", call_id)) { // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_strcpy(doc, tool_call_obj, "id", call_id)) { // LCOV_EXCL_BR_LINE
         talloc_free(tmp_ctx); // LCOV_EXCL_LINE
         PANIC("Failed to add id to tool call"); // LCOV_EXCL_LINE
     }
-    if (!yyjson_mut_obj_add_str(doc, tool_call_obj, "type", call_type)) { // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_strcpy(doc, tool_call_obj, "type", call_type)) { // LCOV_EXCL_BR_LINE
         talloc_free(tmp_ctx); // LCOV_EXCL_LINE
         PANIC("Failed to add type to tool call"); // LCOV_EXCL_LINE
     }
@@ -91,11 +91,11 @@ void ik_openai_serialize_tool_call_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_
         PANIC("Out of memory"); // LCOV_EXCL_LINE
     }
 
-    if (!yyjson_mut_obj_add_str(doc, func_obj, "name", func_name)) { // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_strcpy(doc, func_obj, "name", func_name)) { // LCOV_EXCL_BR_LINE
         talloc_free(tmp_ctx); // LCOV_EXCL_LINE
         PANIC("Failed to add function name"); // LCOV_EXCL_LINE
     }
-    if (!yyjson_mut_obj_add_str(doc, func_obj, "arguments", func_args)) { // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_strcpy(doc, func_obj, "arguments", func_args)) { // LCOV_EXCL_BR_LINE
         talloc_free(tmp_ctx); // LCOV_EXCL_LINE
         PANIC("Failed to add function arguments"); // LCOV_EXCL_LINE
     }
@@ -109,6 +109,8 @@ void ik_openai_serialize_tool_call_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_
         talloc_free(tmp_ctx); // LCOV_EXCL_LINE
         PANIC("Failed to add tool_calls array to message"); // LCOV_EXCL_LINE
     }
+
+    talloc_free(tmp_ctx);
 }
 
 // Serialize a tool_result message to OpenAI wire format
@@ -153,7 +155,7 @@ void ik_openai_serialize_tool_result_msg(yyjson_mut_doc *doc, yyjson_mut_val *ms
         PANIC("Out of memory copying tool_call_id"); // LCOV_EXCL_LINE
     }
 
-    if (!yyjson_mut_obj_add_str(doc, msg_obj, "tool_call_id", tool_call_id)) { // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_strcpy(doc, msg_obj, "tool_call_id", tool_call_id)) { // LCOV_EXCL_BR_LINE
         talloc_free(tmp_ctx); // LCOV_EXCL_LINE
         PANIC("Failed to add tool_call_id to message"); // LCOV_EXCL_LINE
     }
@@ -162,4 +164,6 @@ void ik_openai_serialize_tool_result_msg(yyjson_mut_doc *doc, yyjson_mut_val *ms
         talloc_free(tmp_ctx); // LCOV_EXCL_LINE
         PANIC("Failed to add content field to message"); // LCOV_EXCL_LINE
     }
+
+    talloc_free(tmp_ctx);
 }

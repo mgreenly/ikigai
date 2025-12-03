@@ -33,9 +33,8 @@ START_TEST(test_curl_debug_callback_redacts_authorization) {
 
     fclose(output);
 }
-END_TEST
-
-START_TEST(test_curl_debug_callback_passes_through_other_headers) {
+END_TEST START_TEST(test_curl_debug_callback_passes_through_other_headers)
+{
     FILE *output = tmpfile();
     ck_assert(output != NULL);
 
@@ -58,9 +57,9 @@ START_TEST(test_curl_debug_callback_passes_through_other_headers) {
 
     fclose(output);
 }
-END_TEST
 
-START_TEST(test_curl_debug_callback_filters_ssl_data) {
+END_TEST START_TEST(test_curl_debug_callback_filters_ssl_data)
+{
     FILE *output = tmpfile();
     ck_assert(output != NULL);
 
@@ -81,9 +80,9 @@ START_TEST(test_curl_debug_callback_filters_ssl_data) {
 
     fclose(output);
 }
-END_TEST
 
-START_TEST(test_curl_debug_callback_filters_text_info) {
+END_TEST START_TEST(test_curl_debug_callback_filters_text_info)
+{
     FILE *output = tmpfile();
     ck_assert(output != NULL);
 
@@ -104,9 +103,9 @@ START_TEST(test_curl_debug_callback_filters_text_info) {
 
     fclose(output);
 }
-END_TEST
 
-START_TEST(test_curl_debug_callback_case_insensitive_auth_match) {
+END_TEST START_TEST(test_curl_debug_callback_case_insensitive_auth_match)
+{
     FILE *output = tmpfile();
     ck_assert(output != NULL);
 
@@ -129,9 +128,9 @@ START_TEST(test_curl_debug_callback_case_insensitive_auth_match) {
 
     fclose(output);
 }
-END_TEST
 
-START_TEST(test_curl_debug_callback_response_headers_with_prefix) {
+END_TEST START_TEST(test_curl_debug_callback_response_headers_with_prefix)
+{
     FILE *output = tmpfile();
     ck_assert(output != NULL);
 
@@ -155,9 +154,9 @@ START_TEST(test_curl_debug_callback_response_headers_with_prefix) {
 
     fclose(output);
 }
-END_TEST
 
-START_TEST(test_curl_debug_callback_data_out_prefix) {
+END_TEST START_TEST(test_curl_debug_callback_data_out_prefix)
+{
     FILE *output = tmpfile();
     ck_assert(output != NULL);
 
@@ -180,9 +179,9 @@ START_TEST(test_curl_debug_callback_data_out_prefix) {
 
     fclose(output);
 }
-END_TEST
 
-START_TEST(test_curl_debug_callback_data_in_prefix) {
+END_TEST START_TEST(test_curl_debug_callback_data_in_prefix)
+{
     FILE *output = tmpfile();
     ck_assert(output != NULL);
 
@@ -205,6 +204,7 @@ START_TEST(test_curl_debug_callback_data_in_prefix) {
 
     fclose(output);
 }
+
 END_TEST
 
 /*

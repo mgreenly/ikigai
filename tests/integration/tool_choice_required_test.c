@@ -359,6 +359,7 @@ START_TEST(test_tool_choice_required_end_to_end)
     ck_assert_int_eq(tool_result_count, 1);  // Tool WAS executed
     PQclear(tool_result_result);
 }
+
 END_TEST
 // ========== Test: Verify required constructor ==========
 

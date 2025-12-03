@@ -35,9 +35,8 @@ START_TEST(test_multi_add_request_with_debug_output_file) {
     ck_assert(!add_res.is_err);
 }
 
-END_TEST
-
-START_TEST(test_multi_add_request_no_debug_output) {
+END_TEST START_TEST(test_multi_add_request_no_debug_output)
+{
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;

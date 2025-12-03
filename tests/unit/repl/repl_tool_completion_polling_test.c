@@ -10,6 +10,7 @@
 #include <talloc.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <sys/select.h>
 #include "../../../src/repl.h"
 #include "../../../src/repl_event_handlers.h"
 #include "../../../src/openai/client.h"
@@ -26,6 +27,21 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     (void)fd;
     (void)buf;
     return (ssize_t)count; /* Always succeed */
+}
+
+/* Mock select to simulate timeout with minimal delay */
+int posix_select_(int nfds, fd_set *readfds, fd_set *writefds,
+                  fd_set *exceptfds, struct timeval *timeout)
+{
+    (void)nfds;
+    (void)timeout;
+    /* Clear all fd_sets to simulate no events */
+    if (readfds) FD_ZERO(readfds);
+    if (writefds) FD_ZERO(writefds);
+    if (exceptfds) FD_ZERO(exceptfds);
+    /* Small delay to allow other threads to run */
+    usleep(1000); /* 1ms */
+    return 0; /* Timeout - no file descriptors ready */
 }
 
 /* Test fixtures */
@@ -93,8 +109,13 @@ static void teardown(void)
 }
 
 /*
- * Thread function that sets completion flag immediately and then sets quit
- * This allows the event loop to run once, detect completion, and exit
+ * Thread function that simulates tool execution.
+ * Sets result and marks complete, then exits immediately.
+ * The main thread will join this thread and handle the completion.
+ *
+ * Note: This thread must NOT wait for state changes because the main
+ * thread calls pthread_join during handle_tool_completion, which would
+ * cause a deadlock if we waited here.
  */
 static void *quick_complete_thread_func(void *arg)
 {
@@ -102,25 +123,41 @@ static void *quick_complete_thread_func(void *arg)
 
     /* Set result immediately */
     repl_ctx->tool_thread_result = talloc_strdup(repl_ctx->tool_thread_ctx,
-        "{\"status\":\"success\",\"output\":\"test result\"}");
+                                                 "{\"status\":\"success\",\"output\":\"test result\"}");
 
-    /* Mark as complete */
+    /* Mark as complete - main thread will join us after seeing this */
     pthread_mutex_lock_(&repl_ctx->tool_thread_mutex);
     repl_ctx->tool_thread_complete = true;
     pthread_mutex_unlock_(&repl_ctx->tool_thread_mutex);
 
-    /* Wait for event loop to detect completion and transition to IDLE */
-    /* Max wait: 300 iterations * 10ms = 3 seconds */
-    /* This needs to be longer than the select() timeout to ensure the event loop */
-    /* has time to wake up, detect completion, and transition to IDLE */
-    for (int i = 0; i < 300; i++) {
-        if (repl_ctx->state == IK_REPL_STATE_IDLE) {
+    /* Exit immediately - main thread will handle the rest */
+    return NULL;
+}
+
+/*
+ * Thread function that waits for IDLE state then sets quit.
+ * This runs separately from the tool thread to avoid deadlock.
+ */
+static void *quit_after_idle_thread_func(void *arg)
+{
+    ik_repl_ctx_t *repl_ctx = (ik_repl_ctx_t *)arg;
+
+    /* Wait for state to become IDLE (max 10 seconds) */
+    for (int i = 0; i < 1000; i++) {
+        /* Read state with mutex protection to avoid data race */
+        pthread_mutex_lock_(&repl_ctx->tool_thread_mutex);
+        ik_repl_state_t current_state = repl_ctx->state;
+        pthread_mutex_unlock_(&repl_ctx->tool_thread_mutex);
+
+        if (current_state == IK_REPL_STATE_IDLE) {
+            /* Give main loop one more iteration to stabilize */
+            usleep(5000);
             break;
         }
         usleep(10000); /* 10ms */
     }
 
-    /* Set quit flag to exit event loop after completion is handled */
+    /* Set quit flag to exit event loop */
     atomic_store(&repl_ctx->quit, true);
 
     return NULL;
@@ -130,8 +167,7 @@ static void *quick_complete_thread_func(void *arg)
  * Test that event loop polls for tool thread completion (lines 91-96)
  * This test actually runs ik_repl_run and verifies it detects tool completion
  */
-START_TEST(test_tool_completion_polling_and_handling)
-{
+START_TEST(test_tool_completion_polling_and_handling) {
     /* Set up tool execution state before starting event loop */
     repl->state = IK_REPL_STATE_EXECUTING_TOOL;
     repl->tool_thread_running = true;
@@ -142,19 +178,26 @@ START_TEST(test_tool_completion_polling_and_handling)
 
     /* Create pending tool call */
     repl->pending_tool_call = ik_tool_call_create(repl,
-                                                   "call_test123",
-                                                   "glob",
-                                                   "{\"pattern\": \"*.c\"}");
+                                                  "call_test123",
+                                                  "glob",
+                                                  "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->pending_tool_call);
 
     /* Set finish reason to "stop" so we don't continue the tool loop */
     repl->response_finish_reason = talloc_strdup(repl, "stop");
 
-    /* Start thread that will complete and then set quit flag */
+    /* Start tool thread that will set completion flag */
     pthread_create_(&repl->tool_thread, NULL, quick_complete_thread_func, repl);
 
-    /* Run event loop - it should detect completion and exit */
+    /* Start a second thread that will set quit after state becomes IDLE */
+    pthread_t quit_thread;
+    pthread_create_(&quit_thread, NULL, quit_after_idle_thread_func, repl);
+
+    /* Run event loop - it should detect completion and exit when quit is set */
     res_t result = ik_repl_run(repl);
+
+    /* Join the quit thread */
+    pthread_join_(quit_thread, NULL);
 
     /* Verify event loop ran successfully */
     ck_assert(!is_err(&result));
@@ -183,7 +226,7 @@ static void *completion_test_thread_func(void *arg)
 
     /* Set result */
     repl_ctx->tool_thread_result = talloc_strdup(repl_ctx->tool_thread_ctx,
-        "{\"status\":\"success\",\"output\":\"test\"}");
+                                                 "{\"status\":\"success\",\"output\":\"test\"}");
 
     /* Mark as complete */
     pthread_mutex_lock_(&repl_ctx->tool_thread_mutex);
@@ -197,8 +240,7 @@ static void *completion_test_thread_func(void *arg)
  * Test tool completion with continuation by directly calling handle_tool_completion
  * (We can't test continuation via ik_repl_run easily because it requires HTTP mocking)
  */
-START_TEST(test_tool_completion_with_continuation)
-{
+START_TEST(test_tool_completion_with_continuation) {
     /* Set up tool execution state */
     repl->state = IK_REPL_STATE_EXECUTING_TOOL;
     repl->tool_thread_running = true;
@@ -210,9 +252,9 @@ START_TEST(test_tool_completion_with_continuation)
 
     /* Create pending tool call */
     repl->pending_tool_call = ik_tool_call_create(repl,
-                                                   "call_test456",
-                                                   "glob",
-                                                   "{\"pattern\": \"*.h\"}");
+                                                  "call_test456",
+                                                  "glob",
+                                                  "{\"pattern\": \"*.h\"}");
     ck_assert_ptr_nonnull(repl->pending_tool_call);
 
     /* Start thread that will complete */
@@ -245,6 +287,118 @@ START_TEST(test_tool_completion_with_continuation)
 END_TEST
 
 /*
+ * Thread function that waits before quitting to allow multiple loop iterations
+ */
+static void *wait_then_quit_thread_func(void *arg)
+{
+    ik_repl_ctx_t *repl_ctx = (ik_repl_ctx_t *)arg;
+
+    /* Wait a bit to allow event loop to run multiple iterations */
+    usleep(50000); /* 50ms - enough for several select() calls */
+
+    /* Set quit flag to exit event loop */
+    atomic_store(&repl_ctx->quit, true);
+
+    return NULL;
+}
+
+/*
+ * Test state is EXECUTING_TOOL but complete is false
+ * This covers the branch where the polling check sees the thread is still running
+ */
+START_TEST(test_polling_while_tool_executing_not_complete) {
+    /* Set up tool execution state with thread NOT complete */
+    repl->state = IK_REPL_STATE_EXECUTING_TOOL;
+    repl->tool_thread_running = true;
+    repl->tool_thread_complete = false; /* Key: NOT complete yet */
+
+    /* Create thread context */
+    repl->tool_thread_ctx = talloc_new(repl);
+
+    /* Create pending tool call */
+    repl->pending_tool_call = ik_tool_call_create(repl,
+                                                  "call_test789",
+                                                  "glob",
+                                                  "{\"pattern\": \"*.h\"}");
+    ck_assert_ptr_nonnull(repl->pending_tool_call);
+
+    /* Start a thread that will set quit after a delay to allow multiple loop iterations */
+    pthread_t quit_thread;
+    pthread_create_(&quit_thread, NULL, wait_then_quit_thread_func, repl);
+
+    /* Run event loop - should poll multiple times and NOT call handle_tool_completion */
+    res_t result = ik_repl_run(repl);
+
+    /* Join the quit thread */
+    pthread_join_(quit_thread, NULL);
+
+    /* Verify event loop ran successfully */
+    ck_assert(!is_err(&result));
+
+    /* Verify state is still EXECUTING_TOOL (not transitioned) */
+    ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
+
+    /* Verify pending_tool_call is NOT cleared (because completion didn't happen) */
+    ck_assert_ptr_nonnull(repl->pending_tool_call);
+
+    /* Clean up - manually mark as complete and join thread */
+    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    repl->tool_thread_complete = true;
+    pthread_mutex_unlock_(&repl->tool_thread_mutex);
+}
+END_TEST
+/*
+ * Test state is NOT EXECUTING_TOOL (e.g., IDLE)
+ * This covers the branch where polling check sees we're not in tool execution state
+ */
+START_TEST(test_polling_when_idle_state)
+{
+    /* Set state to IDLE - not executing a tool */
+    repl->state = IK_REPL_STATE_IDLE;
+    repl->tool_thread_running = false;
+    repl->tool_thread_complete = false;
+
+    /* Set quit immediately so we only do one iteration */
+    atomic_store(&repl->quit, true);
+
+    /* Run event loop - should NOT call handle_tool_completion because state is IDLE */
+    res_t result = ik_repl_run(repl);
+
+    /* Verify event loop ran successfully */
+    ck_assert(!is_err(&result));
+
+    /* Verify state is still IDLE */
+    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+}
+
+END_TEST
+/*
+ * Test state is WAITING_FOR_LLM
+ * This covers another case where state is NOT EXECUTING_TOOL
+ */
+START_TEST(test_polling_when_waiting_for_llm_state)
+{
+    /* Set state to WAITING_FOR_LLM - not executing a tool */
+    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+    repl->tool_thread_running = false;
+    repl->tool_thread_complete = false;
+
+    /* Set quit immediately so we only do one iteration */
+    atomic_store(&repl->quit, true);
+
+    /* Run event loop - should NOT call handle_tool_completion because state is not EXECUTING_TOOL */
+    res_t result = ik_repl_run(repl);
+
+    /* Verify event loop ran successfully */
+    ck_assert(!is_err(&result));
+
+    /* Verify state is still WAITING_FOR_LLM */
+    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+}
+
+END_TEST
+
+/*
  * Test suite
  */
 static Suite *repl_tool_completion_polling_suite(void)
@@ -256,6 +410,9 @@ static Suite *repl_tool_completion_polling_suite(void)
 
     tcase_add_test(tc_core, test_tool_completion_polling_and_handling);
     tcase_add_test(tc_core, test_tool_completion_with_continuation);
+    tcase_add_test(tc_core, test_polling_while_tool_executing_not_complete);
+    tcase_add_test(tc_core, test_polling_when_idle_state);
+    tcase_add_test(tc_core, test_polling_when_waiting_for_llm_state);
 
     suite_add_tcase(s, tc_core);
 

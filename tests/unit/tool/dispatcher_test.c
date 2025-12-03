@@ -259,9 +259,6 @@ END_TEST START_TEST(test_dispatch_grep_with_matches)
 
 END_TEST
 
-
-
-
 END_TEST START_TEST(test_dispatch_bash_success)
 {
 
@@ -278,21 +275,17 @@ END_TEST START_TEST(test_dispatch_bash_success)
 
     yyjson_val *root = yyjson_doc_get_root(doc);
 
-
     yyjson_val *success = yyjson_obj_get(root, "success");
     ck_assert_ptr_nonnull(success);
     ck_assert(yyjson_get_bool(success) == true);
 
-
     yyjson_val *data = yyjson_obj_get(root, "data");
     ck_assert_ptr_nonnull(data);
-
 
     yyjson_val *output = yyjson_obj_get(data, "output");
     ck_assert_ptr_nonnull(output);
     const char *output_str = yyjson_get_str(output);
     ck_assert(strstr(output_str, "test") != NULL);
-
 
     yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
     ck_assert_ptr_nonnull(exit_code);
@@ -333,7 +326,6 @@ END_TEST START_TEST(test_dispatch_error_format_single_field)
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);
 
-
     yyjson_obj_iter iter = yyjson_obj_iter_with(root);
     yyjson_val *key = NULL;
     int field_count = 0;
@@ -358,7 +350,6 @@ END_TEST START_TEST(test_dispatch_glob_with_null_path)
     char *json = res.ok;
     ck_assert_ptr_nonnull(json);
 
-
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
 
@@ -379,7 +370,6 @@ END_TEST START_TEST(test_dispatch_null_arguments)
     char *json = res.ok;
     ck_assert_ptr_nonnull(json);
 
-
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
 
@@ -396,9 +386,7 @@ END_TEST START_TEST(test_dispatch_null_arguments)
     yyjson_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_dispatch_file_write_missing_path)
+END_TEST START_TEST(test_dispatch_file_write_missing_path)
 {
     const char *arguments = "{\"content\": \"test\"}";
     res_t res = ik_tool_dispatch(ctx, "file_write", arguments);
@@ -419,9 +407,7 @@ START_TEST(test_dispatch_file_write_missing_path)
     yyjson_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_dispatch_file_write_missing_content)
+END_TEST START_TEST(test_dispatch_file_write_missing_content)
 {
     const char *arguments = "{\"path\": \"/tmp/test\"}";
     res_t res = ik_tool_dispatch(ctx, "file_write", arguments);
@@ -442,9 +428,7 @@ START_TEST(test_dispatch_file_write_missing_content)
     yyjson_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_dispatch_file_write_success)
+END_TEST START_TEST(test_dispatch_file_write_success)
 {
 
     char test_file[] = "/tmp/ikigai-dispatcher-file-write-test-XXXXXX";
@@ -452,7 +436,6 @@ START_TEST(test_dispatch_file_write_success)
     ck_assert(fd >= 0);
     close(fd);
     unlink(test_file);
-
 
     char arguments[512];
     snprintf(arguments, sizeof(arguments),
@@ -476,12 +459,10 @@ START_TEST(test_dispatch_file_write_success)
 
     yyjson_doc_free(doc);
 
-
     unlink(test_file);
 }
 
 END_TEST
-
 
 static Suite *dispatcher_suite(void)
 {
@@ -491,11 +472,9 @@ static Suite *dispatcher_suite(void)
     tcase_add_checked_fixture(tc_dispatch, setup, teardown);
     tcase_set_timeout(tc_dispatch, 30);
 
-
     tcase_add_test(tc_dispatch, test_dispatch_glob_with_valid_json);
     tcase_add_test(tc_dispatch, test_dispatch_glob_returns_exec_result);
     tcase_add_test(tc_dispatch, test_dispatch_glob_with_null_path);
-
 
     tcase_add_test(tc_dispatch, test_dispatch_null_arguments);
     tcase_add_test(tc_dispatch, test_dispatch_invalid_json_arguments);
@@ -504,21 +483,17 @@ static Suite *dispatcher_suite(void)
     tcase_add_test(tc_dispatch, test_dispatch_null_tool_name);
     tcase_add_test(tc_dispatch, test_dispatch_empty_tool_name);
 
-
     tcase_add_test(tc_dispatch, test_dispatch_file_read_missing_path);
     tcase_add_test(tc_dispatch, test_dispatch_file_read_not_found);
     tcase_add_test(tc_dispatch, test_dispatch_grep_missing_pattern);
     tcase_add_test(tc_dispatch, test_dispatch_grep_with_matches);
 
-
     tcase_add_test(tc_dispatch, test_dispatch_file_write_missing_path);
     tcase_add_test(tc_dispatch, test_dispatch_file_write_missing_content);
     tcase_add_test(tc_dispatch, test_dispatch_file_write_success);
 
-
     tcase_add_test(tc_dispatch, test_dispatch_bash_success);
     tcase_add_test(tc_dispatch, test_dispatch_bash_missing_command);
-
 
     tcase_add_test(tc_dispatch, test_dispatch_error_format_single_field);
 

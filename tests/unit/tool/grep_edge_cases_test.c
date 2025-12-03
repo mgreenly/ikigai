@@ -24,8 +24,7 @@ static void teardown(void)
 }
 
 // Edge case tests
-START_TEST(test_grep_exec_invalid_regex)
-{
+START_TEST(test_grep_exec_invalid_regex) {
     // Test with invalid regex pattern - should trigger build_grep_error
     res_t res = ik_tool_exec_grep(ctx, "[invalid(regex", NULL, ".");
     ck_assert(!res.is_err);
@@ -54,9 +53,7 @@ START_TEST(test_grep_exec_invalid_regex)
 
     yyjson_doc_free(doc);
 }
-END_TEST
-
-START_TEST(test_grep_exec_file_without_newline)
+END_TEST START_TEST(test_grep_exec_file_without_newline)
 {
     // Test file with content but no trailing newline
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
@@ -92,9 +89,8 @@ START_TEST(test_grep_exec_file_without_newline)
     unlink(file1);
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_grep_exec_empty_directory)
+END_TEST START_TEST(test_grep_exec_empty_directory)
 {
     // Test with empty directory - no files to match
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
@@ -126,9 +122,8 @@ START_TEST(test_grep_exec_empty_directory)
     // Cleanup
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_grep_exec_skip_directories)
+END_TEST START_TEST(test_grep_exec_skip_directories)
 {
     // Test that directories are skipped
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
@@ -171,9 +166,8 @@ START_TEST(test_grep_exec_skip_directories)
     rmdir(subdir);
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_grep_exec_empty_path_string)
+END_TEST START_TEST(test_grep_exec_empty_path_string)
 {
     // Test with empty string path - should use current directory
     char oldcwd[256];
@@ -215,9 +209,8 @@ START_TEST(test_grep_exec_empty_path_string)
     unlink(file_path);
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_grep_exec_empty_glob_filter_string)
+END_TEST START_TEST(test_grep_exec_empty_glob_filter_string)
 {
     // Test with empty string glob filter - should match all files
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
@@ -263,9 +256,8 @@ START_TEST(test_grep_exec_empty_glob_filter_string)
     unlink(file2);
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_grep_exec_unreadable_file)
+END_TEST START_TEST(test_grep_exec_unreadable_file)
 {
     // Test that unreadable files are silently skipped
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
@@ -321,9 +313,8 @@ START_TEST(test_grep_exec_unreadable_file)
     unlink(file2);
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_grep_exec_glob_no_matches)
+END_TEST START_TEST(test_grep_exec_glob_no_matches)
 {
     // Test with glob pattern that matches nothing
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
@@ -364,9 +355,8 @@ START_TEST(test_grep_exec_glob_no_matches)
     unlink(file1);
     rmdir(dir);
 }
-END_TEST
 
-START_TEST(test_grep_exec_symlink_skipped)
+END_TEST START_TEST(test_grep_exec_symlink_skipped)
 {
     // Test that symlinks are skipped (only regular files are searched)
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
@@ -412,6 +402,7 @@ START_TEST(test_grep_exec_symlink_skipped)
     unlink(file1);
     rmdir(dir);
 }
+
 END_TEST
 
 // Test suite

@@ -316,7 +316,6 @@ START_TEST(test_render_mark_label_not_string)
 }
 
 END_TEST
-
 // Test: NULL kind returns error
 START_TEST(test_render_null_kind_returns_error)
 {

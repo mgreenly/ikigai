@@ -33,7 +33,8 @@ START_TEST(test_http_write_callback_tool_call_first_chunk) {
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with tool call */
-    const char *sse_data = "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"location\\\":\\\"Boston\\\"}\"}}]}}]}\n\n";
+    const char *sse_data =
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"location\\\":\\\"Boston\\\"}\"}}]}}]}\n\n";
     mock_response_data = sse_data;
     mock_response_len = strlen(sse_data);
     invoke_write_callback = true;
@@ -47,9 +48,8 @@ START_TEST(test_http_write_callback_tool_call_first_chunk) {
     invoke_write_callback = false;
     talloc_free(multi);
 }
-END_TEST
-
-START_TEST(test_http_write_callback_tool_call_streaming_chunks) {
+END_TEST START_TEST(test_http_write_callback_tool_call_streaming_chunks)
+{
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
@@ -96,9 +96,9 @@ START_TEST(test_http_write_callback_tool_call_streaming_chunks) {
     invoke_write_callback = false;
     talloc_free(multi);
 }
-END_TEST
 
-START_TEST(test_http_write_callback_parse_tool_calls_returns_error) {
+END_TEST START_TEST(test_http_write_callback_parse_tool_calls_returns_error)
+{
     /* Create multi-handle */
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
@@ -145,6 +145,7 @@ START_TEST(test_http_write_callback_parse_tool_calls_returns_error) {
     invoke_write_callback = false;
     talloc_free(multi);
 }
+
 END_TEST
 
 /*

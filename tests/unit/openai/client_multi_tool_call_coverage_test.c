@@ -40,8 +40,7 @@ static res_t error_with_tool_call_callback(const ik_http_completion_t *completio
  * 2. write_ctx has a tool_call
  * 3. talloc_steal transfers ownership to multi context
  */
-START_TEST(test_info_read_success_with_tool_call_steal)
-{
+START_TEST(test_info_read_success_with_tool_call_steal) {
     captured_tool_call_id = NULL;
     captured_tool_call_name = NULL;
 
@@ -60,7 +59,8 @@ START_TEST(test_info_read_success_with_tool_call_steal)
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with tool call */
-    const char *sse_data = "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"location\\\":\\\"Boston\\\"}\"}}]}}]}\n\n";
+    const char *sse_data =
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"location\\\":\\\"Boston\\\"}\"}}]}}]}\n\n";
     mock_response_data = sse_data;
     mock_response_len = strlen(sse_data);
     invoke_write_callback = true;
@@ -93,7 +93,6 @@ START_TEST(test_info_read_success_with_tool_call_steal)
     talloc_free(multi);
 }
 END_TEST
-
 /*
  * Test line 190: talloc_free for tool_call in error path
  *
@@ -121,7 +120,8 @@ START_TEST(test_info_read_callback_error_with_tool_call_free)
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with tool call */
-    const char *sse_data = "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_456\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"location\\\":\\\"NYC\\\"}\"}}]}}]}\n\n";
+    const char *sse_data =
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_456\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"location\\\":\\\"NYC\\\"}\"}}]}}]}\n\n";
     mock_response_data = sse_data;
     mock_response_len = strlen(sse_data);
     invoke_write_callback = true;
@@ -149,8 +149,8 @@ START_TEST(test_info_read_callback_error_with_tool_call_free)
     invoke_write_callback = false;
     talloc_free(multi);
 }
-END_TEST
 
+END_TEST
 /*
  * Test line 219: talloc_free for tool_call in success path
  *
@@ -181,7 +181,8 @@ START_TEST(test_info_read_success_with_tool_call_free)
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with tool call */
-    const char *sse_data = "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_789\",\"type\":\"function\",\"function\":{\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"TODO\\\"}\"}}]}}]}\n\n";
+    const char *sse_data =
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_789\",\"type\":\"function\",\"function\":{\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"TODO\\\"}\"}}]}}]}\n\n";
     mock_response_data = sse_data;
     mock_response_len = strlen(sse_data);
     invoke_write_callback = true;
@@ -216,6 +217,7 @@ START_TEST(test_info_read_success_with_tool_call_free)
     captured_tool_call_name = NULL;
     talloc_free(multi);
 }
+
 END_TEST
 
 /*

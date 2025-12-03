@@ -307,9 +307,9 @@ START_TEST(test_completion_error_null_message)
 }
 
 END_TEST
-
 /* Test: Completion stores tool_call in pending_tool_call */
-START_TEST(test_completion_stores_tool_call) {
+START_TEST(test_completion_stores_tool_call)
+{
     /* Create tool_call */
     ik_tool_call_t *tc = ik_tool_call_create(ctx, "call_test123", "glob", "{\"pattern\": \"*.c\"}");
 
@@ -337,9 +337,9 @@ START_TEST(test_completion_stores_tool_call) {
 }
 
 END_TEST
-
 /* Test: Completion clears previous pending_tool_call before storing new one */
-START_TEST(test_completion_clears_previous_tool_call) {
+START_TEST(test_completion_clears_previous_tool_call)
+{
     /* Set up previous pending_tool_call */
     repl->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
 
@@ -369,9 +369,9 @@ START_TEST(test_completion_clears_previous_tool_call) {
 }
 
 END_TEST
-
 /* Test: Completion with NULL tool_call clears pending_tool_call */
-START_TEST(test_completion_null_tool_call_clears_pending) {
+START_TEST(test_completion_null_tool_call_clears_pending)
+{
     /* Set up previous pending_tool_call */
     repl->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
 

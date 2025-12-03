@@ -21,26 +21,35 @@
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl);
 static void persist_assistant_msg(ik_repl_ctx_t *repl);
 
-
-long calculate_select_timeout_ms(const ik_repl_ctx_t *repl, long curl_timeout_ms)
+long calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
 {
     // Spinner timer: 80ms when visible, no timeout when hidden
     long spinner_timeout_ms = repl->spinner_state.visible ? 80 : -1;  // LCOV_EXCL_BR_LINE
 
-    // Use minimum of both timeouts (if both are set)
-    if (spinner_timeout_ms >= 0 && curl_timeout_ms >= 0) {  // LCOV_EXCL_BR_LINE
-        return (spinner_timeout_ms < curl_timeout_ms) ? spinner_timeout_ms : curl_timeout_ms;  // LCOV_EXCL_LINE
+    // Tool polling: 50ms when executing tool to detect completion quickly
+    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    ik_repl_state_t current_state = repl->state;
+    pthread_mutex_unlock_(&repl->tool_thread_mutex);
+    long tool_poll_timeout_ms = (current_state == IK_REPL_STATE_EXECUTING_TOOL) ? 50 : -1;
+
+    // Collect all timeouts
+    long timeouts[] = {spinner_timeout_ms, curl_timeout_ms, tool_poll_timeout_ms};
+    long min_timeout = -1;
+
+    for (size_t i = 0; i < sizeof(timeouts) / sizeof(timeouts[0]); i++) {
+        if (timeouts[i] >= 0) {
+            if (min_timeout < 0 || timeouts[i] < min_timeout) {
+                min_timeout = timeouts[i];
+            }
+        }
     }
-    if (spinner_timeout_ms >= 0) {  // LCOV_EXCL_BR_LINE
-        return spinner_timeout_ms;  // LCOV_EXCL_LINE
-    }
-    if (curl_timeout_ms >= 0) {  // LCOV_EXCL_BR_LINE
-        return curl_timeout_ms;  // LCOV_EXCL_LINE
+
+    if (min_timeout >= 0) {
+        return min_timeout;
     }
     // Use a 1-second timeout to prevent blocking forever
     return 1000;
 }
-
 
 res_t setup_fd_sets(ik_repl_ctx_t *repl,
                     fd_set *read_fds,
@@ -70,8 +79,6 @@ res_t setup_fd_sets(ik_repl_ctx_t *repl,
     *max_fd_out = max_fd;
     return OK(NULL);
 }
-
-
 
 res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit)
 {
@@ -119,22 +126,22 @@ static void persist_assistant_msg(ik_repl_ctx_t *repl)
     }
     if (repl->response_completion_tokens > 0) {
         data_json = talloc_asprintf_append(data_json, "%s\"tokens\":%d",
-                                          first ? "" : ",", repl->response_completion_tokens);
+                                           first ? "" : ",", repl->response_completion_tokens);
         first = false;
     }
     if (repl->response_finish_reason != NULL) {
         data_json = talloc_asprintf_append(data_json, "%s\"finish_reason\":\"%s\"",
-                                          first ? "" : ",", repl->response_finish_reason);
+                                           first ? "" : ",", repl->response_finish_reason);
     }
     data_json = talloc_strdup_append(data_json, "}");
 
     res_t db_res = ik_db_message_insert_(repl->db_ctx, repl->current_session_id,
-                                        "assistant", repl->assistant_response, data_json);
+                                         "assistant", repl->assistant_response, data_json);
     if (is_err(&db_res)) {
         if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
             fprintf(repl->db_debug_pipe->write_end,
-                   "Warning: Failed to persist assistant message to database: %s\n",
-                   error_message(db_res.err));
+                    "Warning: Failed to persist assistant message to database: %s\n",
+                    error_message(db_res.err));
         }
         talloc_free(db_res.err);
     }
@@ -167,8 +174,6 @@ static void handle_request_error(ik_repl_ctx_t *repl)
     }
 }
 
-
-
 void handle_request_success(ik_repl_ctx_t *repl)
 {
     // Add assistant response to conversation (only if non-empty)
@@ -181,7 +186,9 @@ void handle_request_success(ik_repl_ctx_t *repl)
 
         if (repl->openai_debug_pipe && repl->openai_debug_pipe->write_end) {
             size_t len = strlen(repl->assistant_response);
-            fprintf(repl->openai_debug_pipe->write_end, len > 80 ? "<< ASSISTANT: %.77s...\n" : "<< ASSISTANT: %s\n", repl->assistant_response);
+            fprintf(repl->openai_debug_pipe->write_end,
+                    len > 80 ? "<< ASSISTANT: %.77s...\n" : "<< ASSISTANT: %s\n",
+                    repl->assistant_response);
             fflush(repl->openai_debug_pipe->write_end);
         }
         persist_assistant_msg(repl);
@@ -205,7 +212,6 @@ void handle_request_success(ik_repl_ctx_t *repl)
         submit_tool_loop_continuation(repl);
     }
 }
-
 
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
 {
@@ -238,7 +244,11 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
         ik_openai_multi_info_read(repl->multi);
 
         // Detect request completion (was running, now not running)
-        if (prev_running > 0 && repl->curl_still_running == 0 && repl->state == IK_REPL_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
+        pthread_mutex_lock_(&repl->tool_thread_mutex);
+        ik_repl_state_t current_state = repl->state;
+        pthread_mutex_unlock_(&repl->tool_thread_mutex);
+
+        if (prev_running > 0 && repl->curl_still_running == 0 && current_state == IK_REPL_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
             // Check if request failed (error message set by completion callback)
             if (repl->http_error_message != NULL) {
                 handle_request_error(repl);
@@ -249,7 +259,11 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
             // Transition back to IDLE state only if we're still WAITING_FOR_LLM.
             // If handle_request_success started a tool execution, state is now EXECUTING_TOOL
             // and we should NOT transition to IDLE.
-            if (repl->state == IK_REPL_STATE_WAITING_FOR_LLM) {
+            pthread_mutex_lock_(&repl->tool_thread_mutex);
+            current_state = repl->state;
+            pthread_mutex_unlock_(&repl->tool_thread_mutex);
+
+            if (current_state == IK_REPL_STATE_WAITING_FOR_LLM) {
                 ik_repl_transition_to_idle(repl);
             }
 

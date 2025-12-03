@@ -41,8 +41,7 @@ static void teardown(void)
 }
 
 /* Test: Debug output for successful response with metadata */
-START_TEST(test_debug_output_response_success)
-{
+START_TEST(test_debug_output_response_success) {
     /* Create debug pipe */
     int pipefd[2];
     int ret = pipe(pipefd);
@@ -91,7 +90,6 @@ START_TEST(test_debug_output_response_success)
 }
 
 END_TEST
-
 /* Test: Debug output for error response */
 START_TEST(test_debug_output_response_error)
 {
@@ -139,7 +137,6 @@ START_TEST(test_debug_output_response_error)
 }
 
 END_TEST
-
 /* Test: Debug output with tool_call information */
 START_TEST(test_debug_output_response_with_tool_call)
 {
@@ -195,7 +192,6 @@ START_TEST(test_debug_output_response_with_tool_call)
 }
 
 END_TEST
-
 /* Test: Debug output with NULL model and finish_reason */
 START_TEST(test_debug_output_null_metadata)
 {
@@ -245,7 +241,6 @@ START_TEST(test_debug_output_null_metadata)
 }
 
 END_TEST
-
 /* Test: No debug output when openai_debug_pipe is NULL */
 START_TEST(test_debug_output_no_pipe)
 {
@@ -272,7 +267,6 @@ START_TEST(test_debug_output_no_pipe)
 }
 
 END_TEST
-
 /* Test: No debug output when openai_debug_pipe->write_end is NULL */
 START_TEST(test_debug_output_null_write_end)
 {

@@ -78,7 +78,6 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             ik_debug_mgr_handle_ready(repl->debug_mgr, &read_fds, repl->scrollback, repl->debug_enabled);  // LCOV_EXCL_LINE
         }
 
-        
         if (FD_ISSET(repl->term->tty_fd, &read_fds)) {  // LCOV_EXCL_BR_LINE
             CHECK(handle_terminal_input(repl, repl->term->tty_fd, &should_exit));
             if (should_exit) break;
@@ -88,12 +87,13 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         CHECK(handle_curl_events(repl, ready));  // LCOV_EXCL_BR_LINE
 
         // Poll for tool thread completion
-        if (repl->state == IK_REPL_STATE_EXECUTING_TOOL) {
-            bool complete = false;
-            pthread_mutex_lock_(&repl->tool_thread_mutex);
-            complete = repl->tool_thread_complete;
-            pthread_mutex_unlock_(&repl->tool_thread_mutex);
-            if (complete) handle_tool_completion(repl);
+        pthread_mutex_lock_(&repl->tool_thread_mutex);
+        ik_repl_state_t current_state = repl->state;
+        bool complete = repl->tool_thread_complete;
+        pthread_mutex_unlock_(&repl->tool_thread_mutex);
+
+        if (current_state == IK_REPL_STATE_EXECUTING_TOOL && complete) {
+            handle_tool_completion(repl);
         }
     }
 
@@ -150,10 +150,12 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
 void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->state == IK_REPL_STATE_IDLE);   /* LCOV_EXCL_BR_LINE */
 
-    // Update state
+    // Update state with mutex protection for thread safety
+    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    assert(repl->state == IK_REPL_STATE_IDLE);   /* LCOV_EXCL_BR_LINE */
     repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+    pthread_mutex_unlock_(&repl->tool_thread_mutex);
 
     // Show spinner, hide input
     repl->spinner_state.visible = true;
@@ -163,23 +165,34 @@ void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl)
 void ik_repl_transition_to_idle(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->state == IK_REPL_STATE_WAITING_FOR_LLM);   /* LCOV_EXCL_BR_LINE */
 
-    // Update state
+    // Update state with mutex protection for thread safety
+    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    assert(repl->state == IK_REPL_STATE_WAITING_FOR_LLM);   /* LCOV_EXCL_BR_LINE */
     repl->state = IK_REPL_STATE_IDLE;
+    pthread_mutex_unlock_(&repl->tool_thread_mutex);
 
     // Hide spinner, show input
     repl->spinner_state.visible = false;
     repl->input_buffer_visible = true;
 }
 
-void ik_repl_transition_to_executing_tool(ik_repl_ctx_t *repl) {
-    assert(repl != NULL); assert(repl->state == IK_REPL_STATE_WAITING_FOR_LLM); /* LCOV_EXCL_BR_LINE */
+void ik_repl_transition_to_executing_tool(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
+    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    assert(repl->state == IK_REPL_STATE_WAITING_FOR_LLM); /* LCOV_EXCL_BR_LINE */
     repl->state = IK_REPL_STATE_EXECUTING_TOOL;
+    pthread_mutex_unlock_(&repl->tool_thread_mutex);
 }
-void ik_repl_transition_from_executing_tool(ik_repl_ctx_t *repl) {
-    assert(repl != NULL); assert(repl->state == IK_REPL_STATE_EXECUTING_TOOL); /* LCOV_EXCL_BR_LINE */
+
+void ik_repl_transition_from_executing_tool(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
+    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    assert(repl->state == IK_REPL_STATE_EXECUTING_TOOL); /* LCOV_EXCL_BR_LINE */
     repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+    pthread_mutex_unlock_(&repl->tool_thread_mutex);
 }
 
 bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl)

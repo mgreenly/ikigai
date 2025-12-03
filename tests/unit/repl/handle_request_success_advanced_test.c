@@ -57,8 +57,7 @@ static void teardown(void)
 }
 
 // Test: openai_debug_pipe set but write_end is NULL (Line 182, Branch 3)
-START_TEST(test_debug_pipe_null_write_end)
-{
+START_TEST(test_debug_pipe_null_write_end) {
     // Create assistant response with length > 80 to trigger long message path
     char long_response[120];
     memset(long_response, 'A', sizeof(long_response) - 1);
@@ -76,7 +75,6 @@ START_TEST(test_debug_pipe_null_write_end)
     ck_assert_ptr_null(repl->assistant_response);
 }
 END_TEST
-
 // Test: openai_debug_pipe with valid write_end and short message
 START_TEST(test_debug_pipe_short_message)
 {
@@ -96,8 +94,8 @@ START_TEST(test_debug_pipe_short_message)
     // Clean up
     fclose(repl->openai_debug_pipe->write_end);
 }
-END_TEST
 
+END_TEST
 // Test: openai_debug_pipe with valid write_end and long message
 START_TEST(test_debug_pipe_long_message)
 {
@@ -121,8 +119,8 @@ START_TEST(test_debug_pipe_long_message)
     // Clean up
     fclose(repl->openai_debug_pipe->write_end);
 }
-END_TEST
 
+END_TEST
 // Test: handle_curl_events when curl_still_running is already 0 (Line 241, Branch 1)
 START_TEST(test_handle_curl_events_already_stopped)
 {
@@ -136,8 +134,8 @@ START_TEST(test_handle_curl_events_already_stopped)
     // State should remain unchanged
     ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
 }
-END_TEST
 
+END_TEST
 // Test: handle_request_success starts tool execution, state becomes EXECUTING_TOOL (Line 252, Branch 1)
 START_TEST(test_request_success_starts_tool_execution)
 {
@@ -146,9 +144,9 @@ START_TEST(test_request_success_starts_tool_execution)
 
     // Create a pending tool call - this will trigger tool execution
     repl->pending_tool_call = ik_tool_call_create(test_ctx,
-                                                   "call_test123",
-                                                   "glob",
-                                                   "{\"pattern\": \"*.c\"}");
+                                                  "call_test123",
+                                                  "glob",
+                                                  "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->pending_tool_call);
 
     // Initialize thread infrastructure for tool execution
@@ -191,8 +189,8 @@ START_TEST(test_request_success_starts_tool_execution)
     // Clean up mutex
     pthread_mutex_destroy_(&repl->tool_thread_mutex);
 }
-END_TEST
 
+END_TEST
 // Test: handle_curl_events with tool execution state transition
 // This tests line 252, branch 1: state != WAITING_FOR_LLM after handle_request_success
 START_TEST(test_handle_curl_events_tool_execution_state)
@@ -204,9 +202,9 @@ START_TEST(test_handle_curl_events_tool_execution_state)
 
     // Create a pending tool call - this will cause state to become EXECUTING_TOOL
     repl->pending_tool_call = ik_tool_call_create(test_ctx,
-                                                   "call_abc",
-                                                   "glob",
-                                                   "{\"pattern\": \"*.c\"}");
+                                                  "call_abc",
+                                                  "glob",
+                                                  "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->pending_tool_call);
 
     // Initialize thread infrastructure
@@ -253,8 +251,8 @@ START_TEST(test_handle_curl_events_tool_execution_state)
     simulate_completion = false;
     pthread_mutex_destroy_(&repl->tool_thread_mutex);
 }
-END_TEST
 
+END_TEST
 // Test: db_debug_pipe error reporting with NULL db_debug_pipe
 START_TEST(test_db_error_no_debug_pipe)
 {
@@ -264,6 +262,7 @@ START_TEST(test_db_error_no_debug_pipe)
     // This test documents the coverage intent
     ck_assert(1); // Placeholder - actual coverage achieved through integration tests
 }
+
 END_TEST
 
 static Suite *handle_request_success_advanced_suite(void)

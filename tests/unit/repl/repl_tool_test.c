@@ -32,9 +32,9 @@ static void setup(void)
 
     /* Create pending_tool_call with a simple glob call */
     repl->pending_tool_call = ik_tool_call_create(repl,
-                                                   "call_test123",
-                                                   "glob",
-                                                   "{\"pattern\": \"*.c\"}");
+                                                  "call_test123",
+                                                  "glob",
+                                                  "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->pending_tool_call);
 }
 
@@ -98,9 +98,9 @@ END_TEST START_TEST(test_execute_pending_tool_file_read)
     /* Change to file_read tool */
     talloc_free(repl->pending_tool_call);
     repl->pending_tool_call = ik_tool_call_create(repl,
-                                                   "call_read123",
-                                                   "file_read",
-                                                   "{\"file_path\": \"/etc/hostname\"}");
+                                                  "call_read123",
+                                                  "file_read",
+                                                  "{\"path\": \"/etc/hostname\"}");
 
     /* Execute pending tool call */
     ik_repl_execute_pending_tool(repl);
@@ -112,9 +112,7 @@ END_TEST START_TEST(test_execute_pending_tool_file_read)
     ck_assert_uint_eq(repl->conversation->message_count, 2);
 }
 
-END_TEST
-
-START_TEST(test_execute_pending_tool_debug_output)
+END_TEST START_TEST(test_execute_pending_tool_debug_output)
 {
     /* Create debug pipe for OpenAI output */
     res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
@@ -170,9 +168,7 @@ START_TEST(test_execute_pending_tool_debug_output)
     ck_assert(found_tool_result);
 }
 
-END_TEST
-
-START_TEST(test_execute_pending_tool_no_debug_pipe)
+END_TEST START_TEST(test_execute_pending_tool_no_debug_pipe)
 {
     /* Verify that when debug pipe is NULL, execution still works */
     repl->openai_debug_pipe = NULL;
@@ -187,9 +183,7 @@ START_TEST(test_execute_pending_tool_no_debug_pipe)
     ck_assert_uint_eq(repl->conversation->message_count, 2);
 }
 
-END_TEST
-
-START_TEST(test_execute_pending_tool_debug_pipe_null_write_end)
+END_TEST START_TEST(test_execute_pending_tool_debug_pipe_null_write_end)
 {
     /* Create debug pipe and set write_end to NULL to test that branch */
     res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");

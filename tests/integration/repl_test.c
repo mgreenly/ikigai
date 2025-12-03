@@ -51,8 +51,7 @@ int pthread_mutex_init_(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 int pthread_mutex_destroy_(pthread_mutex_t *mutex);
 int pthread_mutex_lock_(pthread_mutex_t *mutex);
 int pthread_mutex_unlock_(pthread_mutex_t *mutex);
-int pthread_create_(pthread_t *thread, const pthread_attr_t *attr,
-                   void *(*start_routine)(void *), void *arg);
+int pthread_create_(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);
 int pthread_join_(pthread_t thread, void **retval);
 
 // Mock functions for terminal operations
@@ -264,7 +263,7 @@ int pthread_mutex_unlock_(pthread_mutex_t *mutex)
 }
 
 int pthread_create_(pthread_t *thread, const pthread_attr_t *attr,
-                   void *(*start_routine)(void *), void *arg)
+                    void *(*start_routine)(void *), void *arg)
 {
     return pthread_create(thread, attr, start_routine, arg);
 }
@@ -363,7 +362,6 @@ START_TEST(test_repl_run)
 }
 
 END_TEST
-
 // Test: Thread infrastructure initialization
 START_TEST(test_thread_infrastructure_init)
 {
@@ -388,7 +386,6 @@ START_TEST(test_thread_infrastructure_init)
 }
 
 END_TEST
-
 // Test: Mutex init failure
 START_TEST(test_mutex_init_failure)
 {
@@ -408,7 +405,6 @@ START_TEST(test_mutex_init_failure)
 }
 
 END_TEST
-
 // Test: State transition to EXECUTING_TOOL
 START_TEST(test_transition_to_executing_tool)
 {
@@ -437,7 +433,6 @@ START_TEST(test_transition_to_executing_tool)
 }
 
 END_TEST
-
 // Test: State transition from EXECUTING_TOOL
 START_TEST(test_transition_from_executing_tool)
 {

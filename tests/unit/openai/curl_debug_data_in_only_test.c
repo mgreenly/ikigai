@@ -13,8 +13,7 @@
 #include <unistd.h>
 
 /* Forward declaration of the function under test */
-int32_t ik_openai_curl_debug_output(CURL *handle, curl_infotype type,
-                                    char *data, size_t size, void *userptr);
+int32_t ik_openai_curl_debug_output(CURL *handle, curl_infotype type, char *data, size_t size, void *userptr);
 
 /* Test context */
 static void *ctx;
@@ -43,8 +42,8 @@ START_TEST(test_curlinfo_data_in_only) {
 
     /* Call with CURLINFO_DATA_IN - use the enum directly */
     int32_t result = ik_openai_curl_debug_output(NULL, CURLINFO_DATA_IN,
-                                                  data, strlen(data),
-                                                  debug_output);
+                                                 data, strlen(data),
+                                                 debug_output);
 
     ck_assert_int_eq(result, 0);
     fflush(debug_output);

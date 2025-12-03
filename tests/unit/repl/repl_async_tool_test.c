@@ -39,9 +39,9 @@ static void setup(void)
 
     /* Create pending_tool_call with a simple glob call */
     repl->pending_tool_call = ik_tool_call_create(repl,
-                                                   "call_test123",
-                                                   "glob",
-                                                   "{\"pattern\": \"*.c\"}");
+                                                  "call_test123",
+                                                  "glob",
+                                                  "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->pending_tool_call);
 }
 
@@ -58,8 +58,7 @@ static void teardown(void)
 /*
  * Test async tool execution start
  */
-START_TEST(test_start_tool_execution)
-{
+START_TEST(test_start_tool_execution) {
     /* Start async tool execution */
     ik_repl_start_tool_execution(repl);
 
@@ -94,7 +93,6 @@ START_TEST(test_start_tool_execution)
     ik_repl_complete_tool_execution(repl);
 }
 END_TEST
-
 /*
  * Test async tool execution completion
  */
@@ -140,8 +138,8 @@ START_TEST(test_complete_tool_execution)
     /* Verify state transition back to WAITING_FOR_LLM */
     ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
 }
-END_TEST
 
+END_TEST
 /*
  * Test async execution with file_read tool
  */
@@ -150,14 +148,15 @@ START_TEST(test_async_tool_file_read)
     /* Change to file_read tool */
     talloc_free(repl->pending_tool_call);
     repl->pending_tool_call = ik_tool_call_create(repl,
-                                                   "call_read123",
-                                                   "file_read",
-                                                   "{\"file_path\": \"/etc/hostname\"}");
+                                                  "call_read123",
+                                                  "file_read",
+                                                  "{\"path\": \"/etc/hostname\"}");
 
     /* Start and wait */
     ik_repl_start_tool_execution(repl);
 
-    int max_wait = 200;
+    /* Wait up to 30 seconds for completion (valgrind is very slow) */
+    int max_wait = 3000;
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
         pthread_mutex_lock_(&repl->tool_thread_mutex);
@@ -175,8 +174,8 @@ START_TEST(test_async_tool_file_read)
     ck_assert_uint_eq(repl->conversation->message_count, 2);
     ck_assert_ptr_null(repl->pending_tool_call);
 }
-END_TEST
 
+END_TEST
 /*
  * Test async execution with debug pipe
  */
@@ -191,7 +190,8 @@ START_TEST(test_async_tool_with_debug_pipe)
     /* Start and wait */
     ik_repl_start_tool_execution(repl);
 
-    int max_wait = 200;
+    /* Wait up to 30 seconds for completion (valgrind is very slow) */
+    int max_wait = 3000;
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
         pthread_mutex_lock_(&repl->tool_thread_mutex);
@@ -209,6 +209,7 @@ START_TEST(test_async_tool_with_debug_pipe)
     ck_assert_uint_eq(repl->conversation->message_count, 2);
     ck_assert_ptr_null(repl->pending_tool_call);
 }
+
 END_TEST
 
 /*

@@ -40,9 +40,9 @@ static void setup(void)
 
     /* Create pending_tool_call with a simple glob call */
     repl->pending_tool_call = ik_tool_call_create(repl,
-                                                   "call_test123",
-                                                   "glob",
-                                                   "{\"pattern\": \"*.c\"}");
+                                                  "call_test123",
+                                                  "glob",
+                                                  "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->pending_tool_call);
 }
 
@@ -60,8 +60,7 @@ static void teardown(void)
  * Test async tool execution with debug pipe that has NULL write_end
  * This tests the branch where openai_debug_pipe is NOT NULL but write_end IS NULL
  */
-START_TEST(test_async_tool_debug_pipe_null_write_end)
-{
+START_TEST(test_async_tool_debug_pipe_null_write_end) {
     /* Create debug pipe */
     res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
     ck_assert(!debug_res.is_err);
@@ -98,7 +97,6 @@ START_TEST(test_async_tool_debug_pipe_null_write_end)
     ck_assert_ptr_null(repl->pending_tool_call);
 }
 END_TEST
-
 /*
  * Test async tool execution without debug pipe (NULL)
  * This tests the branch where openai_debug_pipe IS NULL
@@ -130,8 +128,8 @@ START_TEST(test_async_tool_no_debug_pipe)
     ck_assert_uint_eq(repl->conversation->message_count, 2);
     ck_assert_ptr_null(repl->pending_tool_call);
 }
-END_TEST
 
+END_TEST
 /*
  * Test async tool execution with working debug pipe
  * This tests the branch where both openai_debug_pipe and write_end are NOT NULL
@@ -168,6 +166,7 @@ START_TEST(test_async_tool_with_working_debug_pipe)
     ck_assert_uint_eq(repl->conversation->message_count, 2);
     ck_assert_ptr_null(repl->pending_tool_call);
 }
+
 END_TEST
 
 /*
