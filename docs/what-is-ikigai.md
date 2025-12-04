@@ -30,7 +30,7 @@ What if your project came with its own "operational brain"? Not a passive assist
 
 ## How It Works
 
-Ikigai is a platform for building and running these agent systems. It requires a shift in how you think about development.
+Ikigai is a platform for building and running these agent systems. It requires a shift in how you think about software development and the operation of software systems.
 
 **1. The "Meta-Project"**
 
