@@ -34,9 +34,9 @@ Ikigai is a platform for building and running intelligent agents. Here's what th
 
 You use the Ikigai terminal to create a new project. Let's say you're building "Retube," your vision for a video platform. The project you create isn't Retube itself. It's the *control plane* for Retube: the collection of agents that will help you build and operate it.
 
-**2. You build your first agents**
+**2. You build Retube and its agents together**
 
-Working in the Ikigai terminal, you define agents for your project. Maybe a code-writing agent that understands your architecture. A deployment agent that knows how to ship changes safely. A monitoring agent that watches for problems. Each agent has a specific responsibility.
+The service and the orchestration layer grow in tandem. Working in the Ikigai terminal, you build up the orchestration's knowledge: where Retube's source code lives, where it deploys to, how to deploy and rollback, how to monitor. The orchestration layer maintains its own data and memory about the target system. At the same time, you build the actual Retube code. Ikigai helps you write both. Over time, the orchestration gains more capabilities (content moderation, customer support) as the service needs them.
 
 **3. Deploying the orchestration platform**
 
