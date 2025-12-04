@@ -6,23 +6,25 @@
 
 ## The Short Version
 
-Ikigai helps you build intelligent agents that amplify what you can do. You're a small team with a big vision. Instead of building everything yourself, you create agents that help you build, operate, and grow your project over time.
+Ikigai helps you build intelligent agents that amplify what your team can do.
 
-The agents aren't just tools that help you work faster. They're capabilities that mature. You build them, improve them, add to them over time. And as the system matures, it gives you increasing leverage: 2x at first, then 5x, then 20x. Your ongoing investment goes into the orchestration layer, and that investment compounds.
+Instead of only building your product directly, you also build a system of agents that learns your codebase, your infrastructure, and your workflows. These agents don't just autocomplete code; they become durable capabilities that understand your project and improve over time.
+
+You invest in teaching and refining this system. At first, it might feel like a 2x multiplier. As the agents accumulate context and experience, that leverage grows: 5x, then 10x, then more. Your effort compounds because you're not just building features; you're building the capability to build and operate features.
 
 ---
 
 ## The Problem
 
-You have an idea for something ambitious. Maybe it's a new internet service, a research platform, a logistics system, or a customer management tool. You can see what it should become, but there's only so many of you.
+You have an ambitious idea: a new service, a complex platform, a real-world system. You can see where it needs to go. But there are only so many hours and only so many people.
 
-The traditional paths are limiting:
+The usual options are limiting:
 
-- **Build it yourself**: Every feature, every bug, every operational task needs your attention. You become the bottleneck.
-- **Hire people**: Slow to find. Expensive to keep. And now you're managing instead of building.
-- **Use existing tools**: You end up cobbling together a dozen different services, each with its own way of doing things. Half your time goes to integration instead of building what you actually care about.
+- **Do everything yourself**: Every feature, deployment, and on-call incident routes through you. You become the bottleneck.
+- **Hire a larger team**: Slow to spin up, expensive to maintain, and you spend more time coordinating than creating.
+- **Glue together existing tools**: You assemble a stack of services, each with its own dashboards, configs, and quirks. You spend a large fraction of your time wiring systems together instead of moving your core idea forward.
 
-What if you could build something that helps you build? Not just an assistant that waits for instructions, but agents that understand your project, make decisions, take action, and get better at it over time?
+What if your project came with its own "operational brain"? Not a passive assistant that waits for instructions, but agents that understand your system, act within clear boundaries, ask for guidance when needed, and get better every week?
 
 ---
 
