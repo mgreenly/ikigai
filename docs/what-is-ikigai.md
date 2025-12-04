@@ -14,7 +14,7 @@ The agents aren't just tools that help you work faster. They're capabilities tha
 
 ## The Problem
 
-You have an idea for something ambitious. Maybe it's a new service, a research platform, a logistics system, or a customer management tool. You can see what it should become, but you're a small team. Maybe just you.
+You have an idea for something ambitious. Maybe it's a new service, a research platform, a logistics system, or a customer management tool. You can see what it should become, but there's only so many of you.
 
 The traditional paths are limiting:
 
@@ -60,7 +60,7 @@ There's no single "launch day." You build up the service piece by piece. When it
 
 Ikigai isn't for one specific type of project. It's for any situation where a small team wants to operate at a larger scale:
 
-- **A startup** building a new service, where two developers need the operational capacity of a larger team
+- **A startup** building a new service, where a handful of developers need the operational capacity of a larger team
 - **A research group** managing experiments, literature, and data pipelines that would otherwise require dedicated staff
 - **A business** building internal tools (logistics, customer management, analytics) without hiring a full IT department
 - **A consultancy** creating client-facing platforms that need to run reliably without constant attention
