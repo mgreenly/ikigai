@@ -1,6 +1,6 @@
 # What is Ikigai
 
-**Amplification through Agents**
+**Amplification through Agents, Compounding over Time**
 
 ---
 
@@ -97,10 +97,6 @@ Ikigai amplifies expertise. The more you know about what you're building, the mo
 
 ---
 
-## Getting Started
-
 Ikigai is something I'm building because I think it can help people do more with less.
-
-If this resonates with what you're trying to do, the next step is to try it. Create a project, build your first agent, see what happens. The platform is designed to start simple and grow with you.
 
 *The rest of the documentation covers the technical details: how agents work, how the platform is structured, how deployment works. But the core idea is what you've just read: amplification through agents, compounding over time.*
