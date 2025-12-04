@@ -32,15 +32,15 @@ Ikigai is a platform for building and running intelligent agents. Here's what th
 
 **1. You start a project**
 
-You use the Ikigai terminal to create a new project. Let's say you're building "Retube," your vision for a video platform. The project you create isn't Retube itself. It's the *control plane* for Retube: the collection of agents that will help you build and operate it.
+You use the Ikigai terminal to create a new project. Let's say you're building "Videos.com," your vision for an internet video platform. The project you create isn't Videos.com itself. It's the *control plane* for Videos.com: the collection of agents that will help you build and operate it.
 
-**2. You build Retube and its agents together**
+**2. You build Videos.com and its agents together**
 
-The service and the orchestration layer grow in tandem. Working in the Ikigai terminal, you build up the orchestration's knowledge: where Retube's source code lives, where it deploys to, how to deploy and rollback, how to monitor. The orchestration layer maintains its own data and memory about the target system. At the same time, you build the actual Retube code. Ikigai helps you write both. Over time, the orchestration gains more capabilities (content moderation, customer support) as the service needs them.
+The Videos.com service and the orchestration layer grow in tandem. Working in the Ikigai terminal, you build up the orchestration layer's knowledge: where Videos.com's source code lives, where it deploys to, how to deploy, rollback, and monitor it. The orchestration builds its own understanding of the target system as you build the actual Videos.com code. Ikigai helps you write both, and over time both systems gain more capabilities (content moderation, customer support, etc.) as they are needed.
 
 **3. Deploying the orchestration platform**
 
-Like any software, the orchestration platform can run locally on your laptop, be pushed to a shared test environment, or deployed to production. This is separate from where Retube itself runs. Retube will have its own test and production environments. The orchestration platform manages those deployments; where the orchestration runs and where Retube runs are independent choices.
+Like any software, the orchestration platform can run locally on your laptop, be pushed to a shared test environment, or deployed to production. This is separate from where Videos.com itself runs. Videos.com will have its own test and production environments. The orchestration platform manages those deployments; where the orchestration runs and where Videos.com runs are independent choices.
 
 **4. Collaborative development**
 
@@ -89,7 +89,7 @@ Over time, your project develops its own operational capability. The agents beco
 
 You stay in control. Agents recommend, you confirm. Agents act within boundaries you set. But the mundane work, the repetitive decisions, the operational overhead: that's handled. You focus on direction and judgment. The agents handle execution.
 
-Ikigai amplifies expertise. The more you know about what you're building, the more effective your agents become. An expert in video systems will build better Retube agents than a novice. The agents extend what you already know how to do; they don't replace the need to know it.
+Ikigai amplifies expertise. The more you know about what you're building, the more effective your agents become. An expert in video systems will build better Videos.com agents than a novice. The agents extend what you already know how to do; they don't replace the need to know it.
 
 ---
 
