@@ -30,35 +30,41 @@ What if your project came with its own "operational brain"? Not a passive assist
 
 ## How It Works
 
-Ikigai is a platform for building and running intelligent agents. Here's what the journey looks like:
+Ikigai is a platform for building and running these agent systems. It requires a shift in how you think about development.
 
-**1. You start a project**
+**1. The "Meta-Project"**
 
-You use the Ikigai terminal to create a new project. Let's say you're building "Videos.com," your vision for an internet video platform. The project you create isn't Videos.com itself. It's the *control plane* for Videos.com: the collection of agents that will help you build and operate it.
+You use the Ikigai terminal to create a new project. Let's say you're building "Videos.com." The project you create in Ikigai isn't Videos.com itself. It's the *control plane* for Videos.com: the collection of agents that will help you build and operate the actual target service.
 
-**2. You build Videos.com and its agents together**
+**2. Dual Building**
 
-The Videos.com service and the orchestration layer grow in tandem. Working in the Ikigai terminal, you build up the orchestration layer's knowledge: where Videos.com's source code lives, where it deploys to, how to deploy, rollback, and monitor it. The orchestration builds its own understanding of the target system as you build the actual Videos.com code. Ikigai helps you write both, and over time both systems gain more capabilities (content moderation, customer support, etc.) as they are needed.
+You build the target product and its agents simultaneously. This is the core concept.
 
-**3. Deploying the orchestration platform**
+Working in the Ikigai terminal, you teach your control plane where the Videos.com source code lives, how it's deployed, and how to check if it's healthy. You aren't just writing the code for the video player; you are writing the agent that knows *how* to deploy the video player.
 
-Like any software, the orchestration platform can run locally on your laptop, be pushed to a shared test environment, or deployed to production. The orchestration layer can serve hundreds of users directly.
+As you build out the actual site, the agents build up their understanding of it. Over time, you add agents for content moderation, customer support triage, or scaling infrastructure. You are building the factory alongside the product.
 
-For some projects, that's enough. A research team or business unit can access their tools through the orchestration layer itself. No separate infrastructure needed.
+**3. Deploying the Control Plane**
 
-For projects like Videos.com, the orchestration layer manages something external: a scaled web platform, a robo-taxi fleet, manufacturing systems, anything controllable through software and APIs. Where the orchestration runs and what it manages are independent choices.
+Like any software, this control plane needs somewhere to run. It can run locally on your laptop during development, or be pushed to a server to run continuously.
 
-**4. Collaborative development**
+For some internal tools or research projects, the control plane *is* the final interface for users.
 
-Development works like it does with existing AI coding tools, but at the project level. You define specifications and direction. Agents implement. You and your agents validate together: reviewing code, running tests, checking that features work as intended. When something needs adjustment, you refine the spec or guide the agent. The agents propose, you approve.
+For projects like Videos.com, the control plane manages something external: a scaled web platform, a robo-taxi fleet, or manufacturing hardware. Where the agents run and what they manage are independent choices.
 
-**5. You guide, they compound**
+**4. Collaborative Development**
 
-Your ongoing work happens through the orchestration layer. You interact with your agents, guiding and improving them. As you refine how they work, they get smarter about your specific project. Tasks that once needed your direct involvement start happening automatically. Your leverage grows. The ratio of what you put in to what you get out keeps improving.
+Development happens at the project level, not just the code level. You define specifications and direction. Agents act as developers to implement them.
 
-**6. Continuous operation**
+Crucially, you review together. You and your agents validate code and run tests. When something is wrong, you don't just fix the output; you refine the agent's instructions so it understands better next time. They propose, you approve.
 
-There's no single "launch day." You build up the service piece by piece. When it's ready, you expose it to users. And you keep going. Regular releases, maintenance, customer service, operational improvements: all handled through your agents, guided by you. The system runs continuously, improving continuously.
+**5. You Guide, They Compound**
+
+Your daily work shifts to interacting with the control plane. As you refine how the agents work, they get smarter about your specific domain. Tasks that once needed your direct involvement start happening automatically based on rules you've established. The ratio of what you put in to what you get out keeps improving.
+
+**6. Continuous Operation**
+
+There's no single "launch day." You build up the service piece by piece. When parts are ready, you expose them to users. Regular releases, maintenance, and operational overhead are handled through your agents, guided by you. The system runs continuously and improves continuously.
 
 ---
 
