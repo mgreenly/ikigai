@@ -40,7 +40,11 @@ The Videos.com service and the orchestration layer grow in tandem. Working in th
 
 **3. Deploying the orchestration platform**
 
-Like any software, the orchestration platform can run locally on your laptop, be pushed to a shared test environment, or deployed to production. This is separate from where Videos.com itself runs. Videos.com will have its own test and production environments. The orchestration platform manages those deployments; where the orchestration runs and where Videos.com runs are independent choices.
+Like any software, the orchestration platform can run locally on your laptop, be pushed to a shared test environment, or deployed to production. The orchestration layer can serve hundreds of users directly.
+
+For some projects, that's enough. A research team or business unit can access their tools through the orchestration layer itself. No separate infrastructure needed.
+
+For projects like Videos.com, the orchestration layer manages something external: a scaled web platform, a robo-taxi fleet, manufacturing systems, anything controllable through software and APIs. Where the orchestration runs and what it manages are independent choices.
 
 **4. Collaborative development**
 
