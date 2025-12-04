@@ -6,7 +6,7 @@
 
 ## The Short Version
 
-Ikigai helps you build intelligent agents that amplify what you can do. You're a small team with a big vision. Instead of building everything yourself, you build agents that help you build, operate, and grow your project over time.
+Ikigai helps you build intelligent agents that amplify what you can do. You're a small team with a big vision. Instead of building everything yourself, you create agents that help you build, operate, and grow your project over time.
 
 The agents aren't just tools that help you work faster. They're capabilities that mature. You build them, improve them, add to them over time. And as the system matures, it gives you increasing leverage: 2x at first, then 5x, then 20x. Your ongoing investment goes into the orchestration layer, and that investment compounds.
 
@@ -14,7 +14,7 @@ The agents aren't just tools that help you work faster. They're capabilities tha
 
 ## The Problem
 
-You have an idea for something ambitious. Maybe it's a new service, a research platform, a logistics system, or a customer management tool. You can see what it should become, but there's only so many of you.
+You have an idea for something ambitious. Maybe it's a new internet service, a research platform, a logistics system, or a customer management tool. You can see what it should become, but there's only so many of you.
 
 The traditional paths are limiting:
 
@@ -38,13 +38,13 @@ You use the Ikigai terminal to create a new project. Let's say you're building "
 
 Working in the Ikigai terminal, you define agents for your project. Maybe a code-writing agent that understands your architecture. A deployment agent that knows how to ship changes safely. A monitoring agent that watches for problems. Each agent has a specific responsibility.
 
-**3. You run locally, they work anywhere**
+**3. Deploying the orchestration platform**
 
-The Ikigai orchestration runs on your laptop during development. But that doesn't mean everything stays local. Your agents can control real infrastructure: a test environment in the cloud, staging servers, even production systems. You watch them work, see what decisions they make, and improve them when they get things wrong. The feedback loop is fast.
+Like any software, the orchestration platform can run locally on your laptop, be pushed to a shared test environment, or deployed to production. This is separate from where Retube itself runs. Retube will have its own test and production environments. The orchestration platform manages those deployments; where the orchestration runs and where Retube runs are independent choices.
 
-**4. The agents start working**
+**4. Collaborative development**
 
-Your agents begin doing real work. They write code and propose changes for you to review. They notice when something breaks and suggest fixes. They handle operational tasks that used to require your attention. When they're uncertain, they ask you. When you confirm a decision, they execute it.
+Development works like it does with existing AI coding tools, but at the project level. You define specifications and direction. Agents implement. You and your agents validate together: reviewing code, running tests, checking that features work as intended. When something needs adjustment, you refine the spec or guide the agent. The agents propose, you approve.
 
 **5. You guide, they compound**
 
@@ -52,7 +52,7 @@ Your ongoing work happens through the orchestration layer. You interact with you
 
 **6. Continuous operation**
 
-There's no single "launch day." You build up the service piece by piece. When it's ready, you expose it to users. And you keep going. Regular releases, maintenance, customer service, operational improvements: all handled by your agents, guided by you. The system runs continuously, improving continuously. The same platform architecture that ran on your laptop now runs in production, but the work never really stops.
+There's no single "launch day." You build up the service piece by piece. When it's ready, you expose it to users. And you keep going. Regular releases, maintenance, customer service, operational improvements: all handled through your agents, guided by you. The system runs continuously, improving continuously.
 
 ---
 
