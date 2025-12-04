@@ -6,7 +6,7 @@
 
 ## The Short Version
 
-Ikigai helps you build intelligent agents that amplify what your team can do.
+Ikigai helps you build intelligent agents that amplify what a small team can do.
 
 Instead of building your product directly, you build a system of agents that learns your codebase, your infrastructure, and your workflows. These agents don't just autocomplete code; they become durable capabilities that understand your project and improve it over time.
 
