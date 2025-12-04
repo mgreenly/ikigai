@@ -8,9 +8,9 @@
 
 Ikigai helps you build intelligent agents that amplify what your team can do.
 
-Instead of only building your product directly, you also build a system of agents that learns your codebase, your infrastructure, and your workflows. These agents don't just autocomplete code; they become durable capabilities that understand your project and improve over time.
+Instead of building your product directly, you build a system of agents that learns your codebase, your infrastructure, and your workflows. These agents don't just autocomplete code; they become durable capabilities that understand your project and improve it over time.
 
-You invest in teaching and refining this system. At first, it might feel like a 2x multiplier. As the agents accumulate context and experience, that leverage grows: 5x, then 10x, then more. Your effort compounds because you're not just building features; you're building the capability to build and operate features.
+You invest in teaching and refining this system. At first, it might feel like a 2x multiplier but as the agents accumulate context and experience, that leverage grows: 5x, then 10x, then more. Your efforts compound because you're not just building features; you're building the capability to build and manage features.
 
 ---
 
