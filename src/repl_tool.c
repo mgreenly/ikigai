@@ -144,23 +144,24 @@ void ik_repl_start_tool_execution(ik_repl_ctx_t *repl)
         PANIC("Out of memory"); // LCOV_EXCL_LINE
     }
 
-    // Spawn thread BEFORE setting running=true.
-    // If spawn fails, we PANIC without corrupting state.
-    int ret = pthread_create_(&repl->tool_thread, NULL, tool_thread_worker, args);
-    if (ret != 0) { // LCOV_EXCL_BR_LINE
-        // Thread creation failure is rare (resource exhaustion).
-        // PANIC is acceptable for rel-04 - see design decision D2.
-        // The alternative (fallback to sync) adds complexity for an
-        // edge case that essentially never happens.
-        PANIC("Failed to create tool thread"); // LCOV_EXCL_LINE
-    }
-
-    // Thread started successfully - now set flags.
-    // Order matters: set running AFTER successful pthread_create.
+    // Set flags BEFORE spawning thread to avoid race condition.
+    // If thread runs faster than main thread, we must have flags set first.
+    // If spawn fails, we reset flags and PANIC.
     pthread_mutex_lock_(&repl->tool_thread_mutex);
     repl->tool_thread_complete = false;
     repl->tool_thread_running = true;
     pthread_mutex_unlock_(&repl->tool_thread_mutex);
+
+    // Spawn thread - if this fails, reset flags and PANIC.
+    int ret = pthread_create_(&repl->tool_thread, NULL, tool_thread_worker, args);
+    if (ret != 0) { // LCOV_EXCL_BR_LINE
+        // Thread creation failure is rare (resource exhaustion).
+        // Reset flags before PANIC to maintain consistency.
+        pthread_mutex_lock_(&repl->tool_thread_mutex); // LCOV_EXCL_LINE
+        repl->tool_thread_running = false; // LCOV_EXCL_LINE
+        pthread_mutex_unlock_(&repl->tool_thread_mutex); // LCOV_EXCL_LINE
+        PANIC("Failed to create tool thread"); // LCOV_EXCL_LINE
+    }
 
     // Transition to EXECUTING_TOOL state.
     // Spinner stays visible, input stays hidden.

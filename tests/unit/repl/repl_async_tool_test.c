@@ -62,9 +62,13 @@ START_TEST(test_start_tool_execution) {
     /* Start async tool execution */
     ik_repl_start_tool_execution(repl);
 
-    /* Verify thread was started */
-    ck_assert(repl->tool_thread_running);
-    ck_assert(!repl->tool_thread_complete);
+    /* Verify thread was started - read under mutex to avoid data race */
+    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    bool running = repl->tool_thread_running;
+    bool initial_complete = repl->tool_thread_complete;
+    pthread_mutex_unlock_(&repl->tool_thread_mutex);
+    ck_assert(running);
+    ck_assert(!initial_complete);
 
     /* Verify state transition */
     ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
@@ -72,8 +76,8 @@ START_TEST(test_start_tool_execution) {
     /* Verify thread context was created */
     ck_assert_ptr_nonnull(repl->tool_thread_ctx);
 
-    /* Wait for thread to complete */
-    int max_wait = 200; // 2 seconds max
+    /* Wait for thread to complete (120s for helgrind) */
+    int max_wait = 12000;
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
         pthread_mutex_lock_(&repl->tool_thread_mutex);
@@ -101,8 +105,8 @@ START_TEST(test_complete_tool_execution)
     /* Start async tool execution first */
     ik_repl_start_tool_execution(repl);
 
-    /* Wait for thread to complete */
-    int max_wait = 200;
+    /* Wait for thread to complete (120s for helgrind) */
+    int max_wait = 12000;
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
         pthread_mutex_lock_(&repl->tool_thread_mutex);
@@ -155,8 +159,8 @@ START_TEST(test_async_tool_file_read)
     /* Start and wait */
     ik_repl_start_tool_execution(repl);
 
-    /* Wait up to 30 seconds for completion (valgrind is very slow) */
-    int max_wait = 3000;
+    /* Wait up to 120 seconds for completion (helgrind is extremely slow with parallel tests) */
+    int max_wait = 12000;
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
         pthread_mutex_lock_(&repl->tool_thread_mutex);
@@ -190,8 +194,8 @@ START_TEST(test_async_tool_with_debug_pipe)
     /* Start and wait */
     ik_repl_start_tool_execution(repl);
 
-    /* Wait up to 30 seconds for completion (valgrind is very slow) */
-    int max_wait = 3000;
+    /* Wait up to 120 seconds for completion (helgrind is extremely slow with parallel tests) */
+    int max_wait = 12000;
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
         pthread_mutex_lock_(&repl->tool_thread_mutex);

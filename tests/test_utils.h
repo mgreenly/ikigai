@@ -11,9 +11,10 @@
 // ========== Wrapper Function Overrides ==========
 // These override the weak symbols in src/wrapper.c for testing
 
-// Mocking controls for talloc_realloc_
-extern int ik_test_talloc_realloc_fail_on_call;  // -1 = don't fail, >= 0 = fail on this call
-extern int ik_test_talloc_realloc_call_count;
+// Thread-local mocking controls for talloc_realloc_
+// Using __thread to ensure each test file running in parallel has its own state
+extern __thread int ik_test_talloc_realloc_fail_on_call;  // -1 = don't fail, >= 0 = fail on this call
+extern __thread int ik_test_talloc_realloc_call_count;
 
 void *talloc_zero_(TALLOC_CTX *ctx, size_t size);
 char *talloc_strdup_(TALLOC_CTX *ctx, const char *str);

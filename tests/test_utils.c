@@ -12,9 +12,10 @@
 // ========== Allocator Wrapper Overrides ==========
 // Strong symbols that override the weak symbols in src/wrapper.c
 
-// Global mocking controls - tests can set these to inject failures
-int ik_test_talloc_realloc_fail_on_call = -1;  // -1 = don't fail, >= 0 = fail on this call
-int ik_test_talloc_realloc_call_count = 0;
+// Thread-local mocking controls - tests can set these to inject failures
+// Using __thread to ensure each test file running in parallel has its own state
+__thread int ik_test_talloc_realloc_fail_on_call = -1;  // -1 = don't fail, >= 0 = fail on this call
+__thread int ik_test_talloc_realloc_call_count = 0;
 
 void *talloc_zero_(TALLOC_CTX *ctx, size_t size)
 {
@@ -112,9 +113,10 @@ static const char *get_pg_host(void)
 }
 
 // Build admin database URL
+// Using __thread to ensure each test file running in parallel has its own buffer
 static char *get_admin_db_url(void)
 {
-    static char buf[256];
+    static __thread char buf[256];
     snprintf(buf, sizeof(buf), "postgresql://ikigai:ikigai@%s/postgres", get_pg_host());
     return buf;
 }
@@ -157,8 +159,9 @@ const char *ik_test_db_name(TALLOC_CTX *ctx, const char *file_path)
     if (ctx != NULL) {
         return talloc_asprintf(ctx, "ikigai_test_%.*s", (int)name_len, basename);
     } else {
-        // Use static buffer for NULL ctx (for suite-level setup before talloc)
-        static char static_buf[256];
+        // Use thread-local buffer for NULL ctx (for suite-level setup before talloc)
+        // Using __thread to ensure each test file running in parallel has its own buffer
+        static __thread char static_buf[256];
         snprintf(static_buf, sizeof(static_buf), "ikigai_test_%.*s", (int)name_len, basename);
         return static_buf;
     }
