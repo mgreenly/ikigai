@@ -20,3 +20,9 @@
 
 - ~~[tool-thread-infrastructure.md](tool-thread-infrastructure.md)~~
 - ~~[async-tool-execution.md](async-tool-execution.md)~~
+
+### Terminal Cursor Restoration (cursor disappears on exit)
+
+- ~~[terminal-cleanup-cursor.md](terminal-cleanup-cursor.md)~~
+- [panic-cleanup-cursor.md](panic-cleanup-cursor.md)
+- [test-terminal-reset.md](test-terminal-reset.md)

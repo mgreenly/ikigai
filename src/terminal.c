@@ -89,9 +89,12 @@ void ik_term_cleanup(ik_term_ctx_t *ctx)
         return;
     }
 
-    // Exit alternate screen buffer
-    const char *exit_alt = "\x1b[?1049l";
-    (void)posix_write_(ctx->tty_fd, exit_alt, 8);
+    // Exit alternate screen buffer with full terminal reset
+    // - Show cursor (may be hidden in scrollback mode)
+    // - Reset text attributes (future-proof for colors)
+    // - Exit alternate screen
+    const char *reset_seq = "\x1b[?25h\x1b[0m\x1b[?1049l";
+    (void)posix_write_(ctx->tty_fd, reset_seq, 18);
 
     // Restore original termios settings (immediate, no blocking)
     posix_tcsetattr_(ctx->tty_fd, TCSANOW, &ctx->orig_termios);

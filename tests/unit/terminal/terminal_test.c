@@ -146,7 +146,7 @@ START_TEST(test_term_init_success) {
     talloc_free(ctx);
 
     // Verify cleanup operations
-    ck_assert_int_eq(mock_write_count, 2); // exit alternate screen
+    ck_assert_int_eq(mock_write_count, 2); // exit with reset sequence
     ck_assert_int_eq(mock_tcsetattr_count, 2); // restore termios
     ck_assert_int_eq(mock_tcflush_count, 2); // flush after set raw + cleanup
     ck_assert_int_eq(mock_close_count, 1);

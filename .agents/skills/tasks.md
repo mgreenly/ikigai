@@ -4,7 +4,7 @@ Feature/release folder structure and workflow for TDD-based implementation.
 
 ## Folder Structure
 
-Feature folders live under `docs/` (e.g., `docs/rel-04/`):
+Feature/release folders follow this structure:
 
 - **README.md** - What this feature/release is about
 - **run.md** - Orchestrator prompt for supervising sub-agents
