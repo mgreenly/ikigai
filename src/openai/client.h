@@ -26,6 +26,9 @@
  * For text messages, only role and content are used.
  * For tool_call messages, role="tool_call", content is human-readable summary,
  * and data_json contains structured tool call data.
+ *
+ * Note: This is kept as ik_openai_msg_t (not renamed to ik_msg_t) because ik_msg_t
+ * is already used for the unified database message format in msg.h.
  */
 typedef struct {
     char *role;       /* "user", "assistant", "system", or "tool_call" */
@@ -86,7 +89,7 @@ typedef res_t (*ik_openai_stream_cb_t)(const char *chunk, void *ctx);
  */
 
 /**
- * Create a new OpenAI message
+ * Create a new canonical message
  *
  * @param parent  Talloc context parent (or NULL)
  * @param role    Message role ("user", "assistant", "system")
@@ -110,11 +113,11 @@ res_t ik_openai_msg_create(void *parent, const char *role, const char *content);
  * @return            Created message (panics on OOM)
  */
 ik_openai_msg_t *ik_openai_msg_create_tool_call(void *parent,
-                                                  const char *id,
-                                                  const char *type,
-                                                  const char *name,
-                                                  const char *arguments,
-                                                  const char *content);
+                                                const char *id,
+                                                const char *type,
+                                                const char *name,
+                                                const char *arguments,
+                                                const char *content);
 
 /**
  * Create a canonical tool_result message
@@ -128,8 +131,8 @@ ik_openai_msg_t *ik_openai_msg_create_tool_call(void *parent,
  * @return              Created message (panics on OOM)
  */
 ik_openai_msg_t *ik_openai_msg_create_tool_result(void *parent,
-                                                    const char *tool_call_id,
-                                                    const char *content);
+                                                  const char *tool_call_id,
+                                                  const char *content);
 
 /*
  * Conversation functions

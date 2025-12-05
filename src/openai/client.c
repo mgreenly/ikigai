@@ -50,7 +50,7 @@ res_t ik_openai_conversation_add_msg(ik_openai_conversation_t *conv, ik_openai_m
 
     /* Resize messages array */
     ik_openai_msg_t **new_messages = talloc_realloc_(conv, conv->messages,
-                                                      sizeof(ik_openai_msg_t *) * (conv->message_count + 1));
+                                              sizeof(ik_openai_msg_t *) * (conv->message_count + 1));
     if (!new_messages) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to resize messages array"); // LCOV_EXCL_LINE
     }

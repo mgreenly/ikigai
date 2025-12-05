@@ -26,3 +26,15 @@
 - ~~[terminal-cleanup-cursor.md](terminal-cleanup-cursor.md)~~
 - ~~[panic-cleanup-cursor.md](panic-cleanup-cursor.md)~~
 - ~~[test-terminal-reset.md](test-terminal-reset.md)~~
+
+### Architectural Cleanup (naming and organization)
+
+- ~~[rename-openai-msg-to-msg.md](rename-openai-msg-to-msg.md)~~
+
+### Scrollback Spacing (consistent blank line after events)
+
+- [scrollback-trim-trailing.md](scrollback-trim-trailing.md)
+- [tool-call-arrow-format.md](tool-call-arrow-format.md)
+- [tool-result-truncate.md](tool-result-truncate.md)
+- [event-render-spacing.md](event-render-spacing.md)
+- [debug-pipe-spacing.md](debug-pipe-spacing.md)

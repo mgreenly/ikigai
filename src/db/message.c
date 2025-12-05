@@ -94,11 +94,11 @@ res_t ik_db_message_insert(ik_db_ctx_t *db,
 }
 
 ik_message_t *ik_msg_create_tool_result(void *parent,
-                                         const char *tool_call_id,
-                                         const char *name,
-                                         const char *output,
-                                         bool success,
-                                         const char *content) {
+                                        const char *tool_call_id,
+                                        const char *name,
+                                        const char *output,
+                                        bool success,
+                                        const char *content) {
     assert(tool_call_id != NULL);  // LCOV_EXCL_BR_LINE
     assert(name != NULL);           // LCOV_EXCL_BR_LINE
     assert(output != NULL);         // LCOV_EXCL_BR_LINE

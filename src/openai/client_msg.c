@@ -42,11 +42,11 @@ res_t ik_openai_msg_create(void *parent, const char *role, const char *content) 
 }
 
 ik_openai_msg_t *ik_openai_msg_create_tool_call(void *parent,
-                                                  const char *id,
-                                                  const char *type,
-                                                  const char *name,
-                                                  const char *arguments,
-                                                  const char *content) {
+                                                const char *id,
+                                                const char *type,
+                                                const char *name,
+                                                const char *arguments,
+                                                const char *content) {
     assert(id != NULL);        // LCOV_EXCL_BR_LINE
     assert(type != NULL);      // LCOV_EXCL_BR_LINE
     assert(name != NULL);      // LCOV_EXCL_BR_LINE
@@ -128,8 +128,8 @@ ik_openai_msg_t *ik_openai_msg_create_tool_call(void *parent,
 }
 
 ik_openai_msg_t *ik_openai_msg_create_tool_result(void *parent,
-                                                    const char *tool_call_id,
-                                                    const char *content) {
+                                                  const char *tool_call_id,
+                                                  const char *content) {
     assert(tool_call_id != NULL); // LCOV_EXCL_BR_LINE
     assert(content != NULL);      // LCOV_EXCL_BR_LINE
 
