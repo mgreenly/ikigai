@@ -9,25 +9,10 @@ CURRENT_LOG="$LOG_DIR/current.log"
 # Read JSON from stdin
 INPUT=$(cat)
 
-# Ensure log file exists
-if [ ! -f "$CURRENT_LOG" ]; then
-    mkdir -p "$LOG_DIR"
-    echo "Log file not found, skipping session_end logging" >&2
-    exit 0
-fi
+# Ensure log directory exists
+mkdir -p "$LOG_DIR"
 
-# Extract session end information
-REASON=$(echo "$INPUT" | jq -r '.reason // "unknown"')
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
-
-# Write to log
-{
-    echo "================================================================================"
-    echo "Session Ended: $(date '+%Y-%m-%d %H:%M:%S')"
-    echo "Reason: $REASON"
-    echo "Session ID: $SESSION_ID"
-    echo "================================================================================"
-    echo ""
-} >> "$CURRENT_LOG"
+# Output JSONL: add event type and timestamp to input
+echo "$INPUT" | jq -c '. + {event: "session_end", ts: "'"$(date -Iseconds)"'"}' >> "$CURRENT_LOG"
 
 exit 0

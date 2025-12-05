@@ -30,4 +30,4 @@
 - ~~[tool-call-arrow-format.md](tool-call-arrow-format.md)~~
 - ~~[tool-result-truncate.md](tool-result-truncate.md)~~
 - ~~[event-render-spacing.md](event-render-spacing.md)~~
-- [debug-pipe-spacing.md](debug-pipe-spacing.md)
+- ~~[debug-pipe-spacing.md](debug-pipe-spacing.md)~~
