@@ -39,7 +39,11 @@ size_t ik_format_get_length(ik_format_buffer_t *buf);
 // Format a tool call for display in scrollback
 //
 // Takes a tool call structure and returns a formatted string suitable for display.
-// Format: [tool] tool_name(param1="value1", param2="value2", ...)
+// Format: → tool_name: key1="value1", key2=value2, ...
+//
+// Arguments are parsed from JSON and formatted as key=value pairs.
+// String values are quoted, other types (int, real, bool, null) are unquoted.
+// If arguments are NULL, empty, or invalid JSON, shows just the tool name or raw args.
 //
 // @param parent Talloc parent context for result allocation
 // @param call Tool call structure (cannot be NULL)

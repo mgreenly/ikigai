@@ -33,10 +33,11 @@ START_TEST(test_format_tool_call_glob_basic) {
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
 
-    // Should contain tool call indicator and function name
-    ck_assert(strstr(formatted, "glob") != NULL);
-    // Should show some representation of arguments
-    ck_assert(strlen(formatted) > 0);
+    // Should use arrow prefix and contain tool name
+    ck_assert(strstr(formatted, "→ glob:") != NULL);
+    // Should contain formatted arguments
+    ck_assert(strstr(formatted, "pattern=\"*.c\"") != NULL);
+    ck_assert(strstr(formatted, "path=\"src/\"") != NULL);
 }
 END_TEST
 // Test: Format tool result with list of files
@@ -63,9 +64,8 @@ START_TEST(test_format_tool_call_minimal)
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
 
-    // Should contain tool name
-    ck_assert(strstr(formatted, "glob") != NULL);
-    ck_assert(strlen(formatted) > 0);
+    // Should use arrow format with single argument
+    ck_assert_str_eq(formatted, "→ glob: pattern=\"*.h\"");
 }
 
 END_TEST
@@ -105,9 +105,10 @@ START_TEST(test_format_tool_call_special_chars)
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
 
-    // Should contain tool name
-    ck_assert(strstr(formatted, "grep") != NULL);
-    ck_assert(strlen(formatted) > 0);
+    // Should use arrow format with special chars preserved
+    ck_assert(strstr(formatted, "→ grep:") != NULL);
+    ck_assert(strstr(formatted, "pattern=\"test.*error\"") != NULL);
+    ck_assert(strstr(formatted, "path=\"src/\"") != NULL);
 }
 
 END_TEST
@@ -135,8 +136,8 @@ START_TEST(test_format_tool_call_preserves_name)
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
 
-    // Should contain the tool name exactly
-    ck_assert(strstr(formatted, "file_read") != NULL);
+    // Should use arrow format with exact tool name
+    ck_assert_str_eq(formatted, "→ file_read: path=\"config.txt\"");
 }
 
 END_TEST
@@ -162,7 +163,7 @@ START_TEST(test_format_tool_call_different_names)
 
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
-    ck_assert(strstr(formatted, "bash") != NULL);
+    ck_assert_str_eq(formatted, "→ bash: command=\"ls\"");
 }
 
 END_TEST
@@ -174,6 +175,130 @@ START_TEST(test_format_tool_result_bash_tool)
     const char *formatted = ik_format_tool_result(ctx, "bash", result);
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "bash") != NULL);
+}
+
+END_TEST
+
+// Test: Format tool call with multiple arguments (order may vary)
+START_TEST(test_format_tool_call_multiple_args)
+{
+    ik_tool_call_t *call = ik_tool_call_create(ctx, "call_456", "file_read",
+                                               "{\"path\": \"/src/main.c\", \"offset\": 0, \"limit\": 100}");
+    ck_assert_ptr_nonnull(call);
+
+    const char *formatted = ik_format_tool_call(ctx, call);
+    ck_assert_ptr_nonnull(formatted);
+
+    // JSON object order may vary, check for key parts
+    ck_assert(strstr(formatted, "→ file_read:") != NULL);
+    ck_assert(strstr(formatted, "path=\"/src/main.c\"") != NULL);
+    ck_assert(strstr(formatted, "offset=0") != NULL);
+    ck_assert(strstr(formatted, "limit=100") != NULL);
+}
+
+END_TEST
+
+// Test: Format tool call with no arguments (empty object)
+START_TEST(test_format_tool_call_no_args)
+{
+    ik_tool_call_t *call = ik_tool_call_create(ctx, "call_789", "some_tool", "{}");
+    ck_assert_ptr_nonnull(call);
+
+    const char *formatted = ik_format_tool_call(ctx, call);
+    ck_assert_ptr_nonnull(formatted);
+
+    // Should just show tool name without colon
+    ck_assert_str_eq(formatted, "→ some_tool");
+}
+
+END_TEST
+
+// Test: Format tool call with empty string arguments
+START_TEST(test_format_tool_call_null_args)
+{
+    ik_tool_call_t *call = ik_tool_call_create(ctx, "call_000", "tool_x", "");
+    ck_assert_ptr_nonnull(call);
+
+    const char *formatted = ik_format_tool_call(ctx, call);
+    ck_assert_ptr_nonnull(formatted);
+
+    // Should just show tool name without colon
+    ck_assert_str_eq(formatted, "→ tool_x");
+}
+
+END_TEST
+
+// Test: Format tool call with invalid JSON (fallback)
+START_TEST(test_format_tool_call_invalid_json)
+{
+    ik_tool_call_t *call = ik_tool_call_create(ctx, "call_bad", "broken", "not valid json");
+    ck_assert_ptr_nonnull(call);
+
+    const char *formatted = ik_format_tool_call(ctx, call);
+    ck_assert_ptr_nonnull(formatted);
+
+    // Fallback: show raw arguments
+    ck_assert_str_eq(formatted, "→ broken: not valid json");
+}
+
+END_TEST
+
+// Test: Format tool call with boolean value
+START_TEST(test_format_tool_call_bool_value)
+{
+    ik_tool_call_t *call = ik_tool_call_create(ctx, "call_bool", "file_write",
+                                               "{\"path\": \"test.txt\", \"create\": true}");
+    ck_assert_ptr_nonnull(call);
+
+    const char *formatted = ik_format_tool_call(ctx, call);
+    ck_assert_ptr_nonnull(formatted);
+
+    ck_assert(strstr(formatted, "→ file_write:") != NULL);
+    ck_assert(strstr(formatted, "path=\"test.txt\"") != NULL);
+    ck_assert(strstr(formatted, "create=true") != NULL);
+}
+
+END_TEST
+
+// Test: Format tool call with integer value
+START_TEST(test_format_tool_call_int_value)
+{
+    ik_tool_call_t *call = ik_tool_call_create(ctx, "call_int", "tool", "{\"count\": 42}");
+    ck_assert_ptr_nonnull(call);
+
+    const char *formatted = ik_format_tool_call(ctx, call);
+    ck_assert_ptr_nonnull(formatted);
+
+    ck_assert_str_eq(formatted, "→ tool: count=42");
+}
+
+END_TEST
+
+// Test: Format tool call with real/float value
+START_TEST(test_format_tool_call_real_value)
+{
+    ik_tool_call_t *call = ik_tool_call_create(ctx, "call_real", "tool", "{\"ratio\": 3.14}");
+    ck_assert_ptr_nonnull(call);
+
+    const char *formatted = ik_format_tool_call(ctx, call);
+    ck_assert_ptr_nonnull(formatted);
+
+    ck_assert(strstr(formatted, "→ tool:") != NULL);
+    ck_assert(strstr(formatted, "ratio=3.14") != NULL);
+}
+
+END_TEST
+
+// Test: Format tool call with null value
+START_TEST(test_format_tool_call_null_value)
+{
+    ik_tool_call_t *call = ik_tool_call_create(ctx, "call_null", "tool", "{\"value\": null}");
+    ck_assert_ptr_nonnull(call);
+
+    const char *formatted = ik_format_tool_call(ctx, call);
+    ck_assert_ptr_nonnull(formatted);
+
+    ck_assert_str_eq(formatted, "→ tool: value=null");
 }
 
 END_TEST
@@ -196,6 +321,14 @@ static Suite *tool_format_suite(void)
     tcase_add_test(tc, test_format_tool_result_preserves_name);
     tcase_add_test(tc, test_format_tool_call_different_names);
     tcase_add_test(tc, test_format_tool_result_bash_tool);
+    tcase_add_test(tc, test_format_tool_call_multiple_args);
+    tcase_add_test(tc, test_format_tool_call_no_args);
+    tcase_add_test(tc, test_format_tool_call_null_args);
+    tcase_add_test(tc, test_format_tool_call_invalid_json);
+    tcase_add_test(tc, test_format_tool_call_bool_value);
+    tcase_add_test(tc, test_format_tool_call_int_value);
+    tcase_add_test(tc, test_format_tool_call_real_value);
+    tcase_add_test(tc, test_format_tool_call_null_value);
 
     suite_add_tcase(s, tc);
     return s;

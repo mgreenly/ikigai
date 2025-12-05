@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <talloc.h>
 
@@ -11,6 +12,7 @@
 #include "byte_array.h"
 #include "error.h"
 #include "panic.h"
+#include "vendor/yyjson/yyjson.h"
 #include "wrapper.h"
 
 ik_format_buffer_t *ik_format_buffer_create(void *parent)
@@ -150,10 +152,82 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
     ik_format_buffer_t *buf = ik_format_buffer_create(parent);
     if (buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Format: [tool] tool_name(arguments_json)
-    res_t res = ik_format_appendf(buf, "[tool] %s(%s)", call->name, call->arguments);
+    // Start with arrow and tool name
+    res_t res = ik_format_appendf(buf, "→ %s", call->name);
     if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
 
+    // Handle missing or empty arguments
+    if (call->arguments == NULL || call->arguments[0] == '\0') {
+        return ik_format_get_string(buf);
+    }
+
+    // Try to parse JSON arguments
+    yyjson_doc *doc = yyjson_read(call->arguments, strlen(call->arguments), 0);
+    if (doc == NULL) {
+        // Invalid JSON - show raw arguments as fallback
+        res = ik_format_appendf(buf, ": %s", call->arguments);
+        if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+        return ik_format_get_string(buf);
+    }
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    if (!yyjson_is_obj(root)) {
+        // Not an object - show raw
+        yyjson_doc_free(doc);
+        res = ik_format_appendf(buf, ": %s", call->arguments);
+        if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+        return ik_format_get_string(buf);
+    }
+
+    // Check if object is empty
+    size_t obj_size = yyjson_obj_size(root);
+    if (obj_size == 0) {
+        yyjson_doc_free(doc);
+        return ik_format_get_string(buf);
+    }
+
+    // Format key=value pairs
+    res = ik_format_append(buf, ": ");
+    if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+
+    bool first = true;
+    yyjson_obj_iter iter;
+    yyjson_obj_iter_init(root, &iter);
+    yyjson_val *key;
+    while ((key = yyjson_obj_iter_next(&iter)) != NULL) {
+        yyjson_val *val = yyjson_obj_iter_get_val(key);
+
+        if (!first) {
+            res = ik_format_append(buf, ", ");
+            if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+        }
+        first = false;
+
+        const char *key_str = yyjson_get_str(key);
+
+        // Format value based on type
+        if (yyjson_is_str(val)) {
+            res = ik_format_appendf(buf, "%s=\"%s\"", key_str, yyjson_get_str(val));
+        } else if (yyjson_is_int(val)) {
+            res = ik_format_appendf(buf, "%s=%" PRId64, key_str, yyjson_get_sint(val));
+        } else if (yyjson_is_real(val)) {
+            res = ik_format_appendf(buf, "%s=%g", key_str, yyjson_get_real(val));
+        } else if (yyjson_is_bool(val)) {
+            res = ik_format_appendf(buf, "%s=%s", key_str, yyjson_get_bool(val) ? "true" : "false");
+        } else if (yyjson_is_null(val)) {
+            res = ik_format_appendf(buf, "%s=null", key_str);
+        } else {
+            // Arrays/objects - show as JSON
+            char *val_str = yyjson_val_write(val, 0, NULL);
+            if (val_str != NULL) {
+                res = ik_format_appendf(buf, "%s=%s", key_str, val_str);
+                free(val_str);
+            }
+        }
+        if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+    }
+
+    yyjson_doc_free(doc);
     return ik_format_get_string(buf);
 }
 
