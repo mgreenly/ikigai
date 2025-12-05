@@ -66,7 +66,7 @@ static void verify_tool_result_serialization(yyjson_mut_val *msg_obj,
  */
 
 START_TEST(test_serialize_tool_call_basic) {
-    ik_openai_msg_t *msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *msg = ik_openai_msg_create_tool_call(
         ctx, "call_123", "function", "glob", "{\"pattern\": \"*.c\"}", "glob(pattern=\"*.c\")"
         );
 
@@ -80,7 +80,7 @@ START_TEST(test_serialize_tool_call_basic) {
 END_TEST START_TEST(test_serialize_tool_call_complex)
 {
     const char *args = "{\"nested\": {\"key\": \"value\"}, \"array\": [1, 2, 3]}";
-    ik_openai_msg_t *msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *msg = ik_openai_msg_create_tool_call(
         ctx, "call_complex", "function", "func", args, "func(...)"
         );
 
@@ -94,7 +94,7 @@ END_TEST START_TEST(test_serialize_tool_call_complex)
 
 END_TEST START_TEST(test_serialize_tool_call_null_parent)
 {
-    ik_openai_msg_t *msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *msg = ik_openai_msg_create_tool_call(
         NULL, "call_null", "function", "test", "{}", "test()"
         );
 
@@ -114,7 +114,7 @@ END_TEST
 
 START_TEST(test_serialize_tool_result_basic)
 {
-    ik_openai_msg_t *msg = ik_openai_msg_create_tool_result(
+    ik_msg_t *msg = ik_openai_msg_create_tool_result(
         ctx, "call_123", "{\"success\": true, \"data\": \"result\"}"
         );
 
@@ -129,7 +129,7 @@ START_TEST(test_serialize_tool_result_basic)
 END_TEST START_TEST(test_serialize_tool_result_complex)
 {
     const char *content = "{\"nested\": {\"deep\": {\"value\": 42}}, \"array\": [\"a\", \"b\"]}";
-    ik_openai_msg_t *msg = ik_openai_msg_create_tool_result(ctx, "call_complex", content);
+    ik_msg_t *msg = ik_openai_msg_create_tool_result(ctx, "call_complex", content);
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *msg_obj = yyjson_mut_obj(doc);
@@ -141,7 +141,7 @@ END_TEST START_TEST(test_serialize_tool_result_complex)
 
 END_TEST START_TEST(test_serialize_tool_result_null_parent)
 {
-    ik_openai_msg_t *msg = ik_openai_msg_create_tool_result(NULL, "call_null", "{}");
+    ik_msg_t *msg = ik_openai_msg_create_tool_result(NULL, "call_null", "{}");
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *msg_obj = yyjson_mut_obj(doc);
@@ -159,10 +159,10 @@ END_TEST
 
 START_TEST(test_serialize_call_and_result_sequence)
 {
-    ik_openai_msg_t *call_msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *call_msg = ik_openai_msg_create_tool_call(
         ctx, "call_seq", "function", "func", "{\"a\": 1}", "func(a=1)"
         );
-    ik_openai_msg_t *result_msg = ik_openai_msg_create_tool_result(
+    ik_msg_t *result_msg = ik_openai_msg_create_tool_result(
         ctx, "call_seq", "{\"output\": \"success\"}"
         );
 

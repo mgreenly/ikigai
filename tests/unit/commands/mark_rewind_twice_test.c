@@ -36,10 +36,10 @@ START_TEST(test_rewind_to_same_mark_twice) {
     repl->scrollback = ik_scrollback_create(repl, 80);
 
     // Step 1: Add initial message
-    ik_openai_msg_t *msg1 = talloc_zero(repl->conversation, ik_openai_msg_t);
-    msg1->role = talloc_strdup(msg1, "user");
+    ik_msg_t *msg1 = talloc_zero(repl->conversation, ik_msg_t);
+    msg1->kind = talloc_strdup(msg1, "user");
     msg1->content = talloc_strdup(msg1, "Message 1");
-    repl->conversation->messages = talloc_array(repl->conversation, ik_openai_msg_t *, 1);
+    repl->conversation->messages = talloc_array(repl->conversation, ik_msg_t *, 1);
     repl->conversation->messages[0] = msg1;
     repl->conversation->message_count = 1;
 
@@ -49,10 +49,10 @@ START_TEST(test_rewind_to_same_mark_twice) {
     ck_assert_uint_eq(repl->mark_count, 1);
 
     // Step 3: Add more messages
-    ik_openai_msg_t *msg2 = talloc_zero(repl->conversation, ik_openai_msg_t);
-    msg2->role = talloc_strdup(msg2, "assistant");
+    ik_msg_t *msg2 = talloc_zero(repl->conversation, ik_msg_t);
+    msg2->kind = talloc_strdup(msg2, "assistant");
     msg2->content = talloc_strdup(msg2, "Response 1");
-    repl->conversation->messages = talloc_realloc(repl->conversation, repl->conversation->messages, ik_openai_msg_t *,
+    repl->conversation->messages = talloc_realloc(repl->conversation, repl->conversation->messages, ik_msg_t *,
                                                   2);
     repl->conversation->messages[1] = msg2;
     repl->conversation->message_count = 2;
@@ -69,10 +69,10 @@ START_TEST(test_rewind_to_same_mark_twice) {
     ck_assert_str_eq(repl->marks[0]->label, "test-mark");
 
     // Step 5: Add different messages
-    ik_openai_msg_t *msg3 = talloc_zero(repl->conversation, ik_openai_msg_t);
-    msg3->role = talloc_strdup(msg3, "assistant");
+    ik_msg_t *msg3 = talloc_zero(repl->conversation, ik_msg_t);
+    msg3->kind = talloc_strdup(msg3, "assistant");
     msg3->content = talloc_strdup(msg3, "Response 2");
-    repl->conversation->messages = talloc_realloc(repl->conversation, repl->conversation->messages, ik_openai_msg_t *,
+    repl->conversation->messages = talloc_realloc(repl->conversation, repl->conversation->messages, ik_msg_t *,
                                                   2);
     repl->conversation->messages[1] = msg3;
     repl->conversation->message_count = 2;
@@ -110,10 +110,10 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     repl->scrollback = ik_scrollback_create(repl, 80);
 
     // Add initial message
-    ik_openai_msg_t *msg1 = talloc_zero(repl->conversation, ik_openai_msg_t);
-    msg1->role = talloc_strdup(msg1, "user");
+    ik_msg_t *msg1 = talloc_zero(repl->conversation, ik_msg_t);
+    msg1->kind = talloc_strdup(msg1, "user");
     msg1->content = talloc_strdup(msg1, "Message 1");
-    repl->conversation->messages = talloc_array(repl->conversation, ik_openai_msg_t *, 1);
+    repl->conversation->messages = talloc_array(repl->conversation, ik_msg_t *, 1);
     repl->conversation->messages[0] = msg1;
     repl->conversation->message_count = 1;
 
@@ -123,10 +123,10 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     ck_assert_uint_eq(repl->mark_count, 1);
 
     // Add message
-    ik_openai_msg_t *msg2 = talloc_zero(repl->conversation, ik_openai_msg_t);
-    msg2->role = talloc_strdup(msg2, "assistant");
+    ik_msg_t *msg2 = talloc_zero(repl->conversation, ik_msg_t);
+    msg2->kind = talloc_strdup(msg2, "assistant");
     msg2->content = talloc_strdup(msg2, "Response 1");
-    repl->conversation->messages = talloc_realloc(repl->conversation, repl->conversation->messages, ik_openai_msg_t *,
+    repl->conversation->messages = talloc_realloc(repl->conversation, repl->conversation->messages, ik_msg_t *,
                                                   2);
     repl->conversation->messages[1] = msg2;
     repl->conversation->message_count = 2;
@@ -137,10 +137,10 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     ck_assert_uint_eq(repl->mark_count, 1);
 
     // Add another message
-    ik_openai_msg_t *msg3 = talloc_zero(repl->conversation, ik_openai_msg_t);
-    msg3->role = talloc_strdup(msg3, "assistant");
+    ik_msg_t *msg3 = talloc_zero(repl->conversation, ik_msg_t);
+    msg3->kind = talloc_strdup(msg3, "assistant");
     msg3->content = talloc_strdup(msg3, "Response 2");
-    repl->conversation->messages = talloc_realloc(repl->conversation, repl->conversation->messages, ik_openai_msg_t *,
+    repl->conversation->messages = talloc_realloc(repl->conversation, repl->conversation->messages, ik_msg_t *,
                                                   2);
     repl->conversation->messages[1] = msg3;
     repl->conversation->message_count = 2;

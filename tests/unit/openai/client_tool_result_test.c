@@ -24,20 +24,20 @@ static void teardown(void)
  */
 
 START_TEST(test_tool_result_message_create) {
-    ik_openai_msg_t *msg = ik_openai_msg_create_tool_result(
+    ik_msg_t *msg = ik_openai_msg_create_tool_result(
         ctx,
         "call_abc123",
         "{\"success\": true, \"data\": {\"count\": 3}}"
         );
 
     ck_assert_ptr_nonnull(msg);
-    ck_assert_str_eq(msg->role, "tool_result");
+    ck_assert_str_eq(msg->kind, "tool_result");
     ck_assert_str_eq(msg->content, "{\"success\": true, \"data\": {\"count\": 3}}");
     ck_assert_ptr_nonnull(msg->data_json);
 }
 END_TEST START_TEST(test_tool_result_message_data_json_structure)
 {
-    ik_openai_msg_t *msg = ik_openai_msg_create_tool_result(
+    ik_msg_t *msg = ik_openai_msg_create_tool_result(
         ctx,
         "call_xyz789",
         "{\"output\": \"file.c\"}"
@@ -62,7 +62,7 @@ END_TEST START_TEST(test_tool_result_message_data_json_structure)
 
 END_TEST START_TEST(test_tool_result_message_talloc_hierarchy)
 {
-    ik_openai_msg_t *msg = ik_openai_msg_create_tool_result(
+    ik_msg_t *msg = ik_openai_msg_create_tool_result(
         ctx,
         "call_test",
         "{}"
@@ -72,7 +72,7 @@ END_TEST START_TEST(test_tool_result_message_talloc_hierarchy)
     ck_assert_ptr_eq(talloc_parent(msg), ctx);
 
     /* Role, content, and data_json should be children of message */
-    ck_assert_ptr_eq(talloc_parent(msg->role), msg);
+    ck_assert_ptr_eq(talloc_parent(msg->kind), msg);
     ck_assert_ptr_eq(talloc_parent(msg->content), msg);
     ck_assert_ptr_eq(talloc_parent(msg->data_json), msg);
 }
@@ -84,7 +84,7 @@ END_TEST START_TEST(test_serialize_tool_result_message)
     ck_assert(!conv_res.is_err);
     ik_openai_conversation_t *conv = conv_res.ok;
 
-    ik_openai_msg_t *msg = ik_openai_msg_create_tool_result(
+    ik_msg_t *msg = ik_openai_msg_create_tool_result(
         ctx,
         "call_123",
         "{\"success\": true, \"count\": 5}"
@@ -148,7 +148,7 @@ END_TEST START_TEST(test_serialize_tool_call_and_result_sequence)
     ck_assert(!add_user.is_err);
 
     /* Add tool_call message */
-    ik_openai_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
         ctx,
         "call_456",
         "function",
@@ -160,7 +160,7 @@ END_TEST START_TEST(test_serialize_tool_call_and_result_sequence)
     ck_assert(!add_call.is_err);
 
     /* Add tool_result message */
-    ik_openai_msg_t *tool_result_msg = ik_openai_msg_create_tool_result(
+    ik_msg_t *tool_result_msg = ik_openai_msg_create_tool_result(
         ctx,
         "call_456",
         "{\"output\": \"main.c\\ntest.c\", \"count\": 2}"

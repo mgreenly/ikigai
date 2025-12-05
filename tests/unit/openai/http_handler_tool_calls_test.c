@@ -165,11 +165,11 @@ START_TEST(test_tool_call_single_chunk) {
 
     /* Should succeed */
     ck_assert(!result.is_err);
-    ik_openai_msg_t *msg = result.ok;
+    ik_msg_t *msg = result.ok;
 
     /* Should be canonical tool_call message */
-    ck_assert_ptr_nonnull(msg->role);
-    ck_assert_str_eq(msg->role, "tool_call");
+    ck_assert_ptr_nonnull(msg->kind);
+    ck_assert_str_eq(msg->kind, "tool_call");
 
     /* Should have human-readable content */
     ck_assert_ptr_nonnull(msg->content);
@@ -241,11 +241,11 @@ START_TEST(test_tool_call_streaming_multiple_chunks)
 
     /* Should succeed */
     ck_assert(!result.is_err);
-    ik_openai_msg_t *msg = result.ok;
+    ik_msg_t *msg = result.ok;
 
     /* Should be canonical tool_call message */
-    ck_assert_ptr_nonnull(msg->role);
-    ck_assert_str_eq(msg->role, "tool_call");
+    ck_assert_ptr_nonnull(msg->kind);
+    ck_assert_str_eq(msg->kind, "tool_call");
 
     /* Should have human-readable content */
     ck_assert_ptr_nonnull(msg->content);
@@ -312,11 +312,11 @@ START_TEST(test_tool_call_no_content)
 
     /* Should succeed */
     ck_assert(!result.is_err);
-    ik_openai_msg_t *msg = result.ok;
+    ik_msg_t *msg = result.ok;
 
     /* Should be canonical tool_call message */
-    ck_assert_ptr_nonnull(msg->role);
-    ck_assert_str_eq(msg->role, "tool_call");
+    ck_assert_ptr_nonnull(msg->kind);
+    ck_assert_str_eq(msg->kind, "tool_call");
 
     /* Should have human-readable content (generated summary) */
     ck_assert_ptr_nonnull(msg->content);
@@ -388,11 +388,11 @@ START_TEST(test_parse_tool_calls_ok_null)
 
     /* Should succeed */
     ck_assert(!result.is_err);
-    ik_openai_msg_t *msg = result.ok;
+    ik_msg_t *msg = result.ok;
 
     /* Should be a regular assistant message (not a tool_call) */
-    ck_assert_ptr_nonnull(msg->role);
-    ck_assert_str_eq(msg->role, "assistant");
+    ck_assert_ptr_nonnull(msg->kind);
+    ck_assert_str_eq(msg->kind, "assistant");
 
     /* Should have content */
     ck_assert_ptr_nonnull(msg->content);
@@ -440,11 +440,11 @@ START_TEST(test_parse_tool_calls_error)
 
     /* Should succeed despite the malformed JSON event */
     ck_assert(!result.is_err);
-    ik_openai_msg_t *msg = result.ok;
+    ik_msg_t *msg = result.ok;
 
     /* Should be a regular assistant message */
-    ck_assert_ptr_nonnull(msg->role);
-    ck_assert_str_eq(msg->role, "assistant");
+    ck_assert_ptr_nonnull(msg->kind);
+    ck_assert_str_eq(msg->kind, "assistant");
 
     /* Should have content from the valid events */
     ck_assert_ptr_nonnull(msg->content);

@@ -168,8 +168,8 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
 
     // Render conversation messages using event renderer (no role prefixes)
     for (size_t i = 0; i < repl->conversation->message_count; i++) {
-        ik_openai_msg_t *msg = repl->conversation->messages[i];
-        result = ik_event_render(repl->scrollback, msg->role, msg->content, "{}");
+        ik_msg_t *msg = repl->conversation->messages[i];
+        result = ik_event_render(repl->scrollback, msg->kind, msg->content, "{}");
         if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
     }
 

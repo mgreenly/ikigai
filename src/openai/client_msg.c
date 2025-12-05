@@ -21,13 +21,13 @@ res_t ik_openai_msg_create(void *parent, const char *role, const char *content) 
     assert(role != NULL); // LCOV_EXCL_BR_LINE
     assert(content != NULL); // LCOV_EXCL_BR_LINE
 
-    ik_openai_msg_t *msg = talloc_zero(parent, ik_openai_msg_t);
+    ik_msg_t *msg = talloc_zero(parent, ik_msg_t);
     if (!msg) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to allocate message"); // LCOV_EXCL_LINE
     }
 
-    msg->role = talloc_strdup(msg, role);
-    if (!msg->role) { // LCOV_EXCL_BR_LINE
+    msg->kind = talloc_strdup(msg, role);
+    if (!msg->kind) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to allocate role string"); // LCOV_EXCL_LINE
     }
 
@@ -41,7 +41,7 @@ res_t ik_openai_msg_create(void *parent, const char *role, const char *content) 
     return OK(msg);
 }
 
-ik_openai_msg_t *ik_openai_msg_create_tool_call(void *parent,
+ik_msg_t *ik_openai_msg_create_tool_call(void *parent,
                                                 const char *id,
                                                 const char *type,
                                                 const char *name,
@@ -54,12 +54,12 @@ ik_openai_msg_t *ik_openai_msg_create_tool_call(void *parent,
     assert(content != NULL);   // LCOV_EXCL_BR_LINE
 
     /* Allocate message struct */
-    ik_openai_msg_t *msg = talloc_zero(parent, ik_openai_msg_t);
+    ik_msg_t *msg = talloc_zero(parent, ik_msg_t);
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     /* Set role to "tool_call" */
-    msg->role = talloc_strdup(msg, "tool_call");
-    if (!msg->role) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    msg->kind = talloc_strdup(msg, "tool_call");
+    if (!msg->kind) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     /* Set content to human-readable summary */
     msg->content = talloc_strdup(msg, content);
@@ -127,19 +127,19 @@ ik_openai_msg_t *ik_openai_msg_create_tool_call(void *parent,
     return msg;
 }
 
-ik_openai_msg_t *ik_openai_msg_create_tool_result(void *parent,
+ik_msg_t *ik_openai_msg_create_tool_result(void *parent,
                                                   const char *tool_call_id,
                                                   const char *content) {
     assert(tool_call_id != NULL); // LCOV_EXCL_BR_LINE
     assert(content != NULL);      // LCOV_EXCL_BR_LINE
 
     /* Allocate message struct */
-    ik_openai_msg_t *msg = talloc_zero(parent, ik_openai_msg_t);
+    ik_msg_t *msg = talloc_zero(parent, ik_msg_t);
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     /* Set role to "tool_result" (canonical format, transformed during serialization) */
-    msg->role = talloc_strdup(msg, "tool_result");
-    if (!msg->role) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    msg->kind = talloc_strdup(msg, "tool_result");
+    if (!msg->kind) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     /* Set content to tool result JSON */
     msg->content = talloc_strdup(msg, content);

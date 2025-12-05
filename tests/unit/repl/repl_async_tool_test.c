@@ -127,12 +127,12 @@ START_TEST(test_complete_tool_execution)
     ck_assert_uint_eq(repl->conversation->message_count, 2);
 
     /* First message should be tool_call */
-    ik_openai_msg_t *tc_msg = repl->conversation->messages[0];
-    ck_assert_str_eq(tc_msg->role, "tool_call");
+    ik_msg_t *tc_msg = repl->conversation->messages[0];
+    ck_assert_str_eq(tc_msg->kind, "tool_call");
 
     /* Second message should be tool_result */
-    ik_openai_msg_t *result_msg = repl->conversation->messages[1];
-    ck_assert_str_eq(result_msg->role, "tool_result");
+    ik_msg_t *result_msg = repl->conversation->messages[1];
+    ck_assert_str_eq(result_msg->kind, "tool_result");
 
     /* Verify thread state was reset */
     ck_assert(!repl->tool_thread_running);

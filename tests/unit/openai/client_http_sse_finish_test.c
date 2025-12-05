@@ -166,7 +166,7 @@ CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
 /*
  * Test: SSE streaming response with finish_reason
  *
- * Note: finish_reason is not stored in canonical format (ik_openai_msg_t).
+ * Note: finish_reason is not stored in canonical format (ik_msg_t).
  * This test verifies that responses with finish_reason are properly converted.
  */
 START_TEST(test_http_callback_with_finish_reason) {
@@ -185,7 +185,7 @@ START_TEST(test_http_callback_with_finish_reason) {
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -204,10 +204,10 @@ START_TEST(test_http_callback_with_finish_reason) {
     ck_assert(!result.is_err);
 
     /* Verify canonical message was created with content */
-    ik_openai_msg_t *response_msg = result.ok;
+    ik_msg_t *response_msg = result.ok;
     ck_assert_ptr_nonnull(response_msg);
-    ck_assert_ptr_nonnull(response_msg->role);
-    ck_assert_str_eq(response_msg->role, "assistant");
+    ck_assert_ptr_nonnull(response_msg->kind);
+    ck_assert_str_eq(response_msg->kind, "assistant");
     ck_assert_ptr_nonnull(response_msg->content);
     ck_assert_str_eq(response_msg->content, "Hello World");
 }
@@ -233,7 +233,7 @@ START_TEST(test_http_callback_without_finish_reason)
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -250,10 +250,10 @@ START_TEST(test_http_callback_without_finish_reason)
     ck_assert(!result.is_err);
 
     /* Verify canonical message was created with content */
-    ik_openai_msg_t *response_msg = result.ok;
+    ik_msg_t *response_msg = result.ok;
     ck_assert_ptr_nonnull(response_msg);
-    ck_assert_ptr_nonnull(response_msg->role);
-    ck_assert_str_eq(response_msg->role, "assistant");
+    ck_assert_ptr_nonnull(response_msg->kind);
+    ck_assert_str_eq(response_msg->kind, "assistant");
     ck_assert_ptr_nonnull(response_msg->content);
     ck_assert_str_eq(response_msg->content, "Hello");
 }
@@ -279,7 +279,7 @@ START_TEST(test_http_callback_malformed_finish_reason)
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -300,10 +300,10 @@ START_TEST(test_http_callback_malformed_finish_reason)
     ck_assert(!result.is_err);
 
     /* Verify canonical message was created (should have at least the valid content) */
-    ik_openai_msg_t *response_msg = result.ok;
+    ik_msg_t *response_msg = result.ok;
     ck_assert_ptr_nonnull(response_msg);
-    ck_assert_ptr_nonnull(response_msg->role);
-    ck_assert_str_eq(response_msg->role, "assistant");
+    ck_assert_ptr_nonnull(response_msg->kind);
+    ck_assert_str_eq(response_msg->kind, "assistant");
     ck_assert_ptr_nonnull(response_msg->content);
     ck_assert_str_eq(response_msg->content, "Hi");
 }
@@ -329,7 +329,7 @@ START_TEST(test_http_callback_finish_reason_edge_cases)
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -354,10 +354,10 @@ START_TEST(test_http_callback_finish_reason_edge_cases)
     ck_assert(!result.is_err);
 
     /* Verify canonical message was created */
-    ik_openai_msg_t *response_msg = result.ok;
+    ik_msg_t *response_msg = result.ok;
     ck_assert_ptr_nonnull(response_msg);
-    ck_assert_ptr_nonnull(response_msg->role);
-    ck_assert_str_eq(response_msg->role, "assistant");
+    ck_assert_ptr_nonnull(response_msg->kind);
+    ck_assert_str_eq(response_msg->kind, "assistant");
     ck_assert_ptr_nonnull(response_msg->content);
 }
 

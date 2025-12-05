@@ -246,7 +246,7 @@ START_TEST(test_tool_conversation_e2e)
     ck_assert(is_ok(&res));
 
     // Add tool_call message (canonical format)
-    ik_openai_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
         replay_ctx,
         "call_xyz",
         "function",
@@ -263,7 +263,7 @@ START_TEST(test_tool_conversation_e2e)
     res_t tool_msg_res = ik_openai_msg_create(replay_ctx, "tool",
         "{\"success\":true,\"data\":{\"output\":\"{\\\"debug\\\":true,\\\"port\\\":8080}\"}}");
     ck_assert(is_ok(&tool_msg_res));
-    ik_openai_msg_t *tool_result_msg = tool_msg_res.ok;
+    ik_msg_t *tool_result_msg = tool_msg_res.ok;
     // Set data_json to include tool_call_id for serialization
     tool_result_msg->data_json = talloc_strdup(tool_result_msg,
         "{\"tool_call_id\":\"call_xyz\"}");

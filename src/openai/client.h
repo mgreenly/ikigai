@@ -3,6 +3,7 @@
 
 #include "error.h"
 #include "config.h"
+#include "msg.h"
 #include "openai/sse_parser.h"
 #include "openai/tool_choice.h"
 #include "vendor/yyjson/yyjson.h"
@@ -20,21 +21,14 @@
  */
 
 /**
- * OpenAI message structure
+ * Message structure (ik_msg_t)
  *
- * Represents a single message in a conversation (user, assistant, system, or tool_call).
- * For text messages, only role and content are used.
- * For tool_call messages, role="tool_call", content is human-readable summary,
- * and data_json contains structured tool call data.
+ * The OpenAI module now uses the canonical ik_msg_t type defined in msg.h.
+ * This type is shared across all modules for database storage, in-memory representation,
+ * and rendering to scrollback.
  *
- * Note: This is kept as ik_openai_msg_t (not renamed to ik_msg_t) because ik_msg_t
- * is already used for the unified database message format in msg.h.
+ * Note: The field is currently 'role' but will be renamed to 'kind' in a follow-up fix.
  */
-typedef struct {
-    char *role;       /* "user", "assistant", "system", or "tool_call" */
-    char *content;    /* Message text content or human-readable summary */
-    char *data_json;  /* Structured data for tool_call messages (NULL for text messages) */
-} ik_openai_msg_t;
 
 /**
  * OpenAI conversation structure
@@ -43,7 +37,7 @@ typedef struct {
  * Passed to API to provide context for the request.
  */
 typedef struct {
-    ik_openai_msg_t **messages;  /* Array of message pointers */
+    ik_msg_t **messages;  /* Array of message pointers */
     size_t message_count;         /* Number of messages */
 } ik_openai_conversation_t;
 
@@ -112,7 +106,7 @@ res_t ik_openai_msg_create(void *parent, const char *role, const char *content);
  * @param content     Human-readable summary (e.g., "glob(pattern=\"*.c\")")
  * @return            Created message (panics on OOM)
  */
-ik_openai_msg_t *ik_openai_msg_create_tool_call(void *parent,
+ik_msg_t *ik_openai_msg_create_tool_call(void *parent,
                                                 const char *id,
                                                 const char *type,
                                                 const char *name,
@@ -130,7 +124,7 @@ ik_openai_msg_t *ik_openai_msg_create_tool_call(void *parent,
  * @param content       Tool result content (JSON string with result data)
  * @return              Created message (panics on OOM)
  */
-ik_openai_msg_t *ik_openai_msg_create_tool_result(void *parent,
+ik_msg_t *ik_openai_msg_create_tool_result(void *parent,
                                                   const char *tool_call_id,
                                                   const char *content);
 
@@ -153,7 +147,7 @@ res_t ik_openai_conversation_create(void *parent);
  * @param msg     Message to add (will be reparented to conv)
  * @return        OK(NULL) or ERR(...)
  */
-res_t ik_openai_conversation_add_msg(ik_openai_conversation_t *conv, ik_openai_msg_t *msg);
+res_t ik_openai_conversation_add_msg(ik_openai_conversation_t *conv, ik_msg_t *msg);
 
 /**
  * Clear all messages from a conversation
@@ -214,7 +208,7 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
 /**
  * Send a chat completion request with streaming
  *
- * Returns canonical message format (ik_openai_msg_t*).
+ * Returns canonical message format (ik_msg_t*).
  * - For tool calls: role="tool_call", data_json contains structured data, content has human-readable summary
  * - For text responses: role="assistant", content has response text
  *
@@ -223,7 +217,7 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
  * @param conv        Conversation to send
  * @param stream_cb   Callback for streaming chunks (or NULL for no streaming)
  * @param cb_ctx      Context pointer passed to callback
- * @return            OK(ik_openai_msg_t*) or ERR(...)
+ * @return            OK(ik_msg_t*) or ERR(...)
  */
 res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
                              ik_openai_conversation_t *conv,
@@ -233,7 +227,7 @@ res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
  * Internal wrapper function (exposed for testing)
  */
 
-ik_openai_msg_t *get_message_at_index(ik_openai_msg_t **messages, size_t idx);
+ik_msg_t *get_message_at_index(ik_msg_t **messages, size_t idx);
 
 /*
  * Message serialization helpers (in client_serialize.c)
@@ -250,7 +244,7 @@ ik_openai_msg_t *get_message_at_index(ik_openai_msg_t **messages, size_t idx);
  * @param parent   Talloc context for temporary allocations
  */
 void ik_openai_serialize_tool_call_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
-                                        const ik_openai_msg_t *msg, void *parent);
+                                        const ik_msg_t *msg, void *parent);
 
 /**
  * Serialize a tool_result message to OpenAI wire format
@@ -263,6 +257,6 @@ void ik_openai_serialize_tool_call_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_
  * @param parent   Talloc context for temporary allocations
  */
 void ik_openai_serialize_tool_result_msg(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
-                                          const ik_openai_msg_t *msg, void *parent);
+                                          const ik_msg_t *msg, void *parent);
 
 #endif /* IK_OPENAI_CLIENT_H */

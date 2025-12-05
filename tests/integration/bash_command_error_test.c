@@ -261,7 +261,7 @@ START_TEST(test_bash_error_conversation_persistence)
     // Step 1: User message "Compile the project with gcc main.c"
     res_t user_msg_res = ik_openai_msg_create(test_ctx, "user", "Compile the project with gcc main.c");
     ck_assert(!user_msg_res.is_err);
-    ik_openai_msg_t *user_msg = user_msg_res.ok;
+    ik_msg_t *user_msg = user_msg_res.ok;
 
     res_t add_res = ik_openai_conversation_add_msg(conv, user_msg);
     ck_assert(!add_res.is_err);
@@ -277,7 +277,7 @@ START_TEST(test_bash_error_conversation_persistence)
     // Step 2: Model responds with bash tool call (simulated)
     // In real flow, model would respond with tool_calls
     // We create the tool call message that represents the assistant's decision
-    ik_openai_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
         test_ctx,
         "call_bash1",
         "function",
@@ -343,7 +343,7 @@ START_TEST(test_bash_error_conversation_persistence)
                                                    "assistant",
                                                    "The compilation failed. GCC reported an error. The file does not exist.");
     ck_assert(!assistant_msg_res.is_err);
-    ik_openai_msg_t *assistant_msg = assistant_msg_res.ok;
+    ik_msg_t *assistant_msg = assistant_msg_res.ok;
 
     add_res = ik_openai_conversation_add_msg(conv, assistant_msg);
     ck_assert(!add_res.is_err);

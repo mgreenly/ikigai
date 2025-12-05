@@ -194,7 +194,7 @@ START_TEST(test_db_message_insert_error) {
 
     // Verify the user message was still added to conversation (memory state is authoritative)
     ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->role, "user");
+    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
     ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
 
     // Verify scrollback has the user input (scrollback may have 1 or 2 lines depending on rendering)
@@ -235,7 +235,7 @@ START_TEST(test_db_message_insert_success)
 
     // Verify the user message was added to conversation
     ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->role, "user");
+    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
     ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
 
     // Verify scrollback has the user input (scrollback may have 1 or 2 lines depending on rendering)
@@ -270,7 +270,7 @@ START_TEST(test_db_message_insert_error_no_debug_pipe)
 
     // Verify the user message was still added to conversation
     ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->role, "user");
+    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
     ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
 }
 
@@ -298,7 +298,7 @@ START_TEST(test_message_submission_no_db_ctx)
 
     // Verify the user message was still added to conversation
     ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->role, "user");
+    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
     ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
 
     // No DB operation should have occurred, so no error logged
@@ -335,7 +335,7 @@ START_TEST(test_message_submission_no_session)
 
     // Verify the user message was still added to conversation
     ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->role, "user");
+    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
     ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
 
     // No DB operation should have occurred, so no error logged
@@ -375,7 +375,7 @@ START_TEST(test_db_error_null_write_end)
 
     // Verify the user message was still added to conversation
     ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->role, "user");
+    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
     ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
 }
 

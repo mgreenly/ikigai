@@ -178,7 +178,7 @@ void handle_request_success(ik_repl_ctx_t *repl)
 {
     // Add assistant response to conversation (only if non-empty)
     if (repl->assistant_response != NULL && strlen(repl->assistant_response) > 0) {
-        ik_openai_msg_t *assistant_msg = ik_openai_msg_create(repl->conversation,
+        ik_msg_t *assistant_msg = ik_openai_msg_create(repl->conversation,
                                                 "assistant",
                                                 repl->assistant_response).ok;
         res_t result = ik_openai_conversation_add_msg(repl->conversation, assistant_msg);

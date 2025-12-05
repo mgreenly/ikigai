@@ -103,14 +103,14 @@ START_TEST(test_clear_conversation_with_messages)
     // Add messages to conversation
     res_t res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg1 = res.ok;
+    ik_msg_t *msg1 = res.ok;
 
     res = ik_openai_conversation_add_msg(repl->conversation, msg1);
     ck_assert(is_ok(&res));
 
     res = ik_openai_msg_create(ctx, "assistant", "Hi there!");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg2 = res.ok;
+    ik_msg_t *msg2 = res.ok;
 
     res = ik_openai_conversation_add_msg(repl->conversation, msg2);
     ck_assert(is_ok(&res));
@@ -140,13 +140,13 @@ START_TEST(test_clear_both_scrollback_and_conversation)
     // Add conversation messages
     res = ik_openai_msg_create(ctx, "user", "User message");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg1 = res.ok;
+    ik_msg_t *msg1 = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg1);
     ck_assert(is_ok(&res));
 
     res = ik_openai_msg_create(ctx, "assistant", "Assistant response");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg2 = res.ok;
+    ik_msg_t *msg2 = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg2);
     ck_assert(is_ok(&res));
 
@@ -211,7 +211,7 @@ START_TEST(test_clear_with_marks)
 
     res = ik_openai_msg_create(ctx, "user", "Message");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg = res.ok;
+    ik_msg_t *msg = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg);
     ck_assert(is_ok(&res));
 

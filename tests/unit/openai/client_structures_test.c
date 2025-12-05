@@ -28,9 +28,9 @@ START_TEST(test_message_create_valid) {
     res_t res = ik_openai_msg_create(ctx, "user", "Hello, world!");
     ck_assert(!res.is_err);
 
-    ik_openai_msg_t *msg = res.ok;
+    ik_msg_t *msg = res.ok;
     ck_assert_ptr_nonnull(msg);
-    ck_assert_str_eq(msg->role, "user");
+    ck_assert_str_eq(msg->kind, "user");
     ck_assert_str_eq(msg->content, "Hello, world!");
 }
 END_TEST START_TEST(test_message_talloc_hierarchy)
@@ -38,13 +38,13 @@ END_TEST START_TEST(test_message_talloc_hierarchy)
     res_t res = ik_openai_msg_create(ctx, "assistant", "Hi there!");
     ck_assert(!res.is_err);
 
-    ik_openai_msg_t *msg = res.ok;
+    ik_msg_t *msg = res.ok;
 
     /* Message should be child of ctx */
     ck_assert_ptr_eq(talloc_parent(msg), ctx);
 
     /* Role and content should be children of message */
-    ck_assert_ptr_eq(talloc_parent(msg->role), msg);
+    ck_assert_ptr_eq(talloc_parent(msg->kind), msg);
     ck_assert_ptr_eq(talloc_parent(msg->content), msg);
 }
 
@@ -72,7 +72,7 @@ END_TEST START_TEST(test_conversation_add_single_message)
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Test message");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -110,11 +110,11 @@ END_TEST START_TEST(test_conversation_add_multiple_messages)
     ck_assert(!add3_res.is_err);
 
     ck_assert_uint_eq(conv->message_count, 3);
-    ck_assert_str_eq(conv->messages[0]->role, "user");
+    ck_assert_str_eq(conv->messages[0]->kind, "user");
     ck_assert_str_eq(conv->messages[0]->content, "Question");
-    ck_assert_str_eq(conv->messages[1]->role, "assistant");
+    ck_assert_str_eq(conv->messages[1]->kind, "assistant");
     ck_assert_str_eq(conv->messages[1]->content, "Answer");
-    ck_assert_str_eq(conv->messages[2]->role, "user");
+    ck_assert_str_eq(conv->messages[2]->kind, "user");
     ck_assert_str_eq(conv->messages[2]->content, "Follow-up");
 }
 
@@ -241,7 +241,7 @@ END_TEST START_TEST(test_get_message_at_index_valid)
     ck_assert(!msg_res.is_err);
     ik_openai_conversation_add_msg(conv, msg_res.ok);
 
-    ik_openai_msg_t *msg = get_message_at_index(conv->messages, 0);
+    ik_msg_t *msg = get_message_at_index(conv->messages, 0);
     ck_assert_ptr_nonnull(msg);
     ck_assert_str_eq(msg->content, "Test");
 }

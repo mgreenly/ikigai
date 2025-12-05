@@ -58,7 +58,7 @@ START_TEST(test_rewind_with_system_role) {
     // Create a system message
     res_t msg_res = ik_openai_msg_create(repl->conversation, "system", "You are a helpful assistant");
     ck_assert(is_ok(&msg_res));
-    ik_openai_msg_t *sys_msg = msg_res.ok;
+    ik_msg_t *sys_msg = msg_res.ok;
 
     // Add it to conversation
     msg_res = ik_openai_conversation_add_msg(repl->conversation, sys_msg);
@@ -95,8 +95,8 @@ START_TEST(test_rewind_with_system_role) {
 
     // Verify conversation was rewound
     ck_assert_uint_eq(repl->conversation->message_count, 2);
-    ck_assert_str_eq(repl->conversation->messages[0]->role, "system");
-    ck_assert_str_eq(repl->conversation->messages[1]->role, "user");
+    ck_assert_str_eq(repl->conversation->messages[0]->kind, "system");
+    ck_assert_str_eq(repl->conversation->messages[1]->kind, "user");
 }
 END_TEST
 // Test: Rewind with multiple system messages

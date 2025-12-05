@@ -83,7 +83,7 @@ START_TEST(test_handle_request_success_with_tool_calls_continues_loop) {
     repl->assistant_response = talloc_strdup(repl, "");
 
     /* Add initial user message to conversation */
-    ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Find all C files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Find all C files").ok;
     ik_openai_conversation_add_msg(repl->conversation, user_msg);
 
     /* Call handle_request_success */
@@ -115,7 +115,7 @@ START_TEST(test_handle_request_success_with_stop_ends_loop)
     repl->assistant_response = talloc_strdup(repl, "I found 3 C files.");
 
     /* Add initial user message to conversation */
-    ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Find all C files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Find all C files").ok;
     ik_openai_conversation_add_msg(repl->conversation, user_msg);
 
     /* Record initial conversation size */
@@ -130,7 +130,7 @@ START_TEST(test_handle_request_success_with_stop_ends_loop)
      * 3. Assistant response should be cleared
      */
     ck_assert_uint_eq(repl->conversation->message_count, initial_count + 1);
-    ck_assert_str_eq(repl->conversation->messages[initial_count]->role, "assistant");
+    ck_assert_str_eq(repl->conversation->messages[initial_count]->kind, "assistant");
     ck_assert_str_eq(repl->conversation->messages[initial_count]->content, "I found 3 C files.");
     ck_assert_int_eq(repl->curl_still_running, 0);
     ck_assert_ptr_null(repl->assistant_response);
@@ -147,7 +147,7 @@ START_TEST(test_handle_request_success_with_null_finish_reason)
     repl->assistant_response = talloc_strdup(repl, "Response text");
 
     /* Add initial user message to conversation */
-    ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Test").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Test").ok;
     ik_openai_conversation_add_msg(repl->conversation, user_msg);
 
     /* Call handle_request_success */
@@ -164,7 +164,7 @@ END_TEST
 START_TEST(test_multiple_tool_loop_iterations)
 {
     /* Add initial user message */
-    ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Find files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Find files").ok;
     ik_openai_conversation_add_msg(repl->conversation, user_msg);
 
     /* First iteration: finish_reason = "tool_calls" */
@@ -197,7 +197,7 @@ END_TEST
 START_TEST(test_tool_loop_with_empty_content)
 {
     /* Add initial user message */
-    ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Test").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Test").ok;
     ik_openai_conversation_add_msg(repl->conversation, user_msg);
 
     /* Set finish_reason to "tool_calls" with empty response */
@@ -240,7 +240,7 @@ END_TEST
 START_TEST(test_multi_tool_scenario_glob_then_file_read)
 {
     /* Initial state: User asks to find and read config file */
-    ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user",
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user",
                                                      "Find config file and show contents").ok;
     ik_openai_conversation_add_msg(repl->conversation, user_msg);
 
@@ -262,7 +262,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
 
     /* Simulate tool execution: Add tool result to conversation */
     /* In real scenario, tool dispatcher would add this */
-    ik_openai_msg_t *tool_result_1 = ik_openai_msg_create(repl->conversation, "tool",
+    ik_msg_t *tool_result_1 = ik_openai_msg_create(repl->conversation, "tool",
                                                           "{\"output\":\"config.json\"}").ok;
     ik_openai_conversation_add_msg(repl->conversation, tool_result_1);
 
@@ -288,7 +288,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     ck_assert_int_eq(repl->curl_still_running, 1);
 
     /* Simulate tool execution: Add second tool result to conversation */
-    ik_openai_msg_t *tool_result_2 = ik_openai_msg_create(repl->conversation, "tool",
+    ik_msg_t *tool_result_2 = ik_openai_msg_create(repl->conversation, "tool",
                                                           "{\"output\":\"{\\\"debug\\\":true}\"}").ok;
     ik_openai_conversation_add_msg(repl->conversation, tool_result_2);
 
@@ -320,7 +320,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     ck_assert_uint_eq(repl->conversation->message_count, 4);
 
     /* Verify last message is assistant with final content */
-    ck_assert_str_eq(repl->conversation->messages[3]->role, "assistant");
+    ck_assert_str_eq(repl->conversation->messages[3]->kind, "assistant");
     ck_assert_str_eq(repl->conversation->messages[3]->content,
                      "I found config.json with debug:true");
 }

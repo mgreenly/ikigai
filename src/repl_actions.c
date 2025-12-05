@@ -143,7 +143,7 @@ static res_t handle_newline_action_(ik_repl_ctx_t *repl)
         message_text[text_len] = '\0';
 
         // Create user message and add to conversation
-        ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", message_text).ok;
+        ik_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", message_text).ok;
         res_t result = ik_openai_conversation_add_msg(repl->conversation, user_msg);
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 

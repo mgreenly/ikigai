@@ -23,7 +23,7 @@
  * Internal wrapper function
  */
 
-ik_openai_msg_t *get_message_at_index(ik_openai_msg_t **messages, size_t idx)
+ik_msg_t *get_message_at_index(ik_msg_t **messages, size_t idx)
 {
     return messages[idx];
 }
@@ -44,13 +44,13 @@ res_t ik_openai_conversation_create(void *parent) {
     return OK(conv);
 }
 
-res_t ik_openai_conversation_add_msg(ik_openai_conversation_t *conv, ik_openai_msg_t *msg) {
+res_t ik_openai_conversation_add_msg(ik_openai_conversation_t *conv, ik_msg_t *msg) {
     assert(conv != NULL); // LCOV_EXCL_BR_LINE
     assert(msg != NULL); // LCOV_EXCL_BR_LINE
 
     /* Resize messages array */
-    ik_openai_msg_t **new_messages = talloc_realloc_(conv, conv->messages,
-                                              sizeof(ik_openai_msg_t *) * (conv->message_count + 1));
+    ik_msg_t **new_messages = talloc_realloc_(conv, conv->messages,
+                                              sizeof(ik_msg_t *) * (conv->message_count + 1));
     if (!new_messages) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to resize messages array"); // LCOV_EXCL_LINE
     }
@@ -154,20 +154,20 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
 
     /* Add each message to the array */
     for (size_t i = 0; i < request->conv->message_count; i++) {
-        ik_openai_msg_t *msg = get_message_at_index(request->conv->messages, i);
+        ik_msg_t *msg = get_message_at_index(request->conv->messages, i);
 
         /* Create message object */
         yyjson_mut_val *msg_obj = yyjson_mut_arr_add_obj(doc, messages_arr);
         if (msg_obj == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
         /* Check if this is a tool_call message */
-        if (strcmp(msg->role, "tool_call") == 0) {
+        if (strcmp(msg->kind, "tool_call") == 0) {
             ik_openai_serialize_tool_call_msg(doc, msg_obj, msg, parent);
-        } else if (strcmp(msg->role, "tool_result") == 0) {
+        } else if (strcmp(msg->kind, "tool_result") == 0) {
             ik_openai_serialize_tool_result_msg(doc, msg_obj, msg, parent);
         } else {
             /* Regular text message */
-            if (!yyjson_mut_obj_add_str(doc, msg_obj, "role", msg->role)) { // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_str(doc, msg_obj, "role", msg->kind)) { // LCOV_EXCL_BR_LINE
                 PANIC("Failed to add role field to message"); // LCOV_EXCL_LINE
             }
             if (!yyjson_mut_obj_add_str(doc, msg_obj, "content", msg->content)) { // LCOV_EXCL_BR_LINE
@@ -255,7 +255,7 @@ res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
     ik_openai_http_response_t *http_resp = http_res.ok;
 
     /* Convert to canonical message format */
-    ik_openai_msg_t *msg = NULL;
+    ik_msg_t *msg = NULL;
 
     if (http_resp->tool_call != NULL) {
         /* Tool call present - create canonical tool_call message */

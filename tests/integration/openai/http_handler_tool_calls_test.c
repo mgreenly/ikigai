@@ -22,7 +22,7 @@ START_TEST(test_tool_call_single_chunk) {
 
     /* Verify tool call was extracted and transferred to response */
     ck_assert(!result.is_err);
-    ik_openai_msg_t *msg = result.ok;
+    ik_msg_t *msg = result.ok;
     ck_assert_ptr_nonnull(msg->tool_call);
     ck_assert_str_eq(msg->tool_call->id, "call_abc");
     ck_assert_str_eq(msg->tool_call->name, "glob");
@@ -45,7 +45,7 @@ START_TEST(test_tool_call_streaming_chunks) {
 
     /* Verify tool call arguments were accumulated */
     ck_assert(!result.is_err);
-    ik_openai_msg_t *msg = result.ok;
+    ik_msg_t *msg = result.ok;
     ck_assert_ptr_nonnull(msg->tool_call);
     ck_assert_str_eq(msg->tool_call->id, "call_xyz");
     ck_assert_str_eq(msg->tool_call->name, "file_read");
@@ -66,7 +66,7 @@ START_TEST(test_tool_call_no_content) {
 
     /* Verify tool call exists and content is empty */
     ck_assert(!result.is_err);
-    ik_openai_msg_t *msg = result.ok;
+    ik_msg_t *msg = result.ok;
     ck_assert_ptr_nonnull(msg->tool_call);
     ck_assert_str_eq(msg->tool_call->id, "call_grep");
     ck_assert_str_eq(msg->tool_call->name, "grep");

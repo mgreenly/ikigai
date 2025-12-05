@@ -66,7 +66,7 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     // 1. Add tool_call message to conversation (canonical format)
     char *summary = talloc_asprintf(repl, "%s(%s)", tc->name, tc->arguments);
     if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    ik_openai_msg_t *tc_msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *tc_msg = ik_openai_msg_create_tool_call(
         repl->conversation, tc->id, "function", tc->name, tc->arguments, summary);
     res_t result = ik_openai_conversation_add_msg(repl->conversation, tc_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
@@ -85,7 +85,7 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     char *result_json = tool_res.ok;
 
     // 3. Add tool result message to conversation
-    ik_openai_msg_t *result_msg = ik_openai_msg_create_tool_result(
+    ik_msg_t *result_msg = ik_openai_msg_create_tool_result(
         repl->conversation, tc->id, result_json);
     result = ik_openai_conversation_add_msg(repl->conversation, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
@@ -200,7 +200,7 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
     char *summary = talloc_asprintf(repl, "%s(%s)", tc->name, tc->arguments);
     if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    ik_openai_msg_t *tc_msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *tc_msg = ik_openai_msg_create_tool_call(
         repl->conversation, tc->id, "function", tc->name, tc->arguments, summary);
     res_t result = ik_openai_conversation_add_msg(repl->conversation, tc_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
@@ -214,7 +214,7 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
     }
 
     // 2. Add tool result message to conversation
-    ik_openai_msg_t *result_msg = ik_openai_msg_create_tool_result(
+    ik_msg_t *result_msg = ik_openai_msg_create_tool_result(
         repl->conversation, tc->id, result_json);
     result = ik_openai_conversation_add_msg(repl->conversation, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE

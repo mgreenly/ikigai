@@ -100,7 +100,7 @@ START_TEST(test_create_multiple_marks)
     // Add some messages to conversation
     res_t res = ik_openai_msg_create(repl->conversation, "user", "Hello");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg1 = res.ok;
+    ik_msg_t *msg1 = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg1);
     ck_assert(is_ok(&res));
 
@@ -113,7 +113,7 @@ START_TEST(test_create_multiple_marks)
     // Add another message
     res = ik_openai_msg_create(repl->conversation, "assistant", "Hi");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg2 = res.ok;
+    ik_msg_t *msg2 = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg2);
     ck_assert(is_ok(&res));
 
@@ -215,13 +215,13 @@ START_TEST(test_rewind_to_mark)
     // Build conversation with messages
     res_t res = ik_openai_msg_create(repl->conversation, "user", "Message 1");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg1 = res.ok;
+    ik_msg_t *msg1 = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg1);
     ck_assert(is_ok(&res));
 
     res = ik_openai_msg_create(repl->conversation, "assistant", "Response 1");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg2 = res.ok;
+    ik_msg_t *msg2 = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg2);
     ck_assert(is_ok(&res));
 
@@ -232,13 +232,13 @@ START_TEST(test_rewind_to_mark)
     // Add more messages
     res = ik_openai_msg_create(repl->conversation, "user", "Message 2");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg3 = res.ok;
+    ik_msg_t *msg3 = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg3);
     ck_assert(is_ok(&res));
 
     res = ik_openai_msg_create(repl->conversation, "assistant", "Response 2");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg4 = res.ok;
+    ik_msg_t *msg4 = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg4);
     ck_assert(is_ok(&res));
 
@@ -263,7 +263,7 @@ START_TEST(test_rewind_to_most_recent)
     // Create conversation and marks
     res_t res = ik_openai_msg_create(repl->conversation, "user", "Message");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg = res.ok;
+    ik_msg_t *msg = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg);
     ck_assert(is_ok(&res));
 
@@ -272,7 +272,7 @@ START_TEST(test_rewind_to_most_recent)
 
     res = ik_openai_msg_create(repl->conversation, "assistant", "Response");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg2 = res.ok;
+    ik_msg_t *msg2 = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg2);
     ck_assert(is_ok(&res));
 
@@ -365,7 +365,7 @@ START_TEST(test_rewind_command_via_dispatcher)
     // Create conversation and mark
     res_t res = ik_openai_msg_create(repl->conversation, "user", "Test");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg = res.ok;
+    ik_msg_t *msg = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg);
     ck_assert(is_ok(&res));
 
@@ -374,7 +374,7 @@ START_TEST(test_rewind_command_via_dispatcher)
 
     res = ik_openai_msg_create(repl->conversation, "assistant", "Response");
     ck_assert(is_ok(&res));
-    ik_openai_msg_t *msg2 = res.ok;
+    ik_msg_t *msg2 = res.ok;
     res = ik_openai_conversation_add_msg(repl->conversation, msg2);
     ck_assert(is_ok(&res));
 

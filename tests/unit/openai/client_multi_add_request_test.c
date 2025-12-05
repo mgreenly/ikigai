@@ -42,7 +42,7 @@ END_TEST START_TEST(test_multi_add_request_no_api_key)
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     ik_openai_conversation_add_msg(conv, msg);
 
@@ -72,7 +72,7 @@ END_TEST START_TEST(test_multi_add_request_empty_api_key)
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     ik_openai_conversation_add_msg(conv, msg);
 

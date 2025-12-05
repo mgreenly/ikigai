@@ -46,7 +46,7 @@ static void teardown(void)
  */
 START_TEST(test_add_tool_call_message_to_conversation) {
     /* Add a user message first */
-    ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Find all C files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Find all C files").ok;
     res_t res = ik_openai_conversation_add_msg(repl->conversation, user_msg);
     ck_assert(is_ok(&res));
 
@@ -56,7 +56,7 @@ START_TEST(test_add_tool_call_message_to_conversation) {
      *   content: human-readable summary
      *   data_json: structured tool call data
      */
-    ik_openai_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
         repl->conversation,
         "call_abc123",                      /* id */
         "function",                         /* type */
@@ -73,11 +73,11 @@ START_TEST(test_add_tool_call_message_to_conversation) {
     ck_assert_uint_eq(repl->conversation->message_count, 2);
 
     /* Verify first message is user */
-    ck_assert_str_eq(repl->conversation->messages[0]->role, "user");
+    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
     ck_assert_str_eq(repl->conversation->messages[0]->content, "Find all C files");
 
     /* Verify second message is tool_call */
-    ck_assert_str_eq(repl->conversation->messages[1]->role, "tool_call");
+    ck_assert_str_eq(repl->conversation->messages[1]->kind, "tool_call");
     ck_assert_str_eq(repl->conversation->messages[1]->content, "glob(pattern=\"*.c\")");
     ck_assert_ptr_nonnull(repl->conversation->messages[1]->data_json);
 }
@@ -88,10 +88,10 @@ END_TEST
 START_TEST(test_execute_tool_and_add_result_message)
 {
     /* Start with a user message and tool_call message */
-    ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Find all C files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "Find all C files").ok;
     ik_openai_conversation_add_msg(repl->conversation, user_msg);
 
-    ik_openai_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
         repl->conversation,
         "call_abc123",
         "function",
@@ -117,7 +117,7 @@ START_TEST(test_execute_tool_and_add_result_message)
                                       tool_output
                                       );
 
-    ik_openai_msg_t *tool_result_msg = ik_openai_msg_create(
+    ik_msg_t *tool_result_msg = ik_openai_msg_create(
         repl->conversation,
         "tool_result",
         "Files found: src/main.c, src/config.c"  /* human-readable summary */
@@ -132,9 +132,9 @@ START_TEST(test_execute_tool_and_add_result_message)
     ck_assert_uint_eq(repl->conversation->message_count, 3);
 
     /* Verify message ordering: user -> tool_call -> tool_result */
-    ck_assert_str_eq(repl->conversation->messages[0]->role, "user");
-    ck_assert_str_eq(repl->conversation->messages[1]->role, "tool_call");
-    ck_assert_str_eq(repl->conversation->messages[2]->role, "tool_result");
+    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
+    ck_assert_str_eq(repl->conversation->messages[1]->kind, "tool_call");
+    ck_assert_str_eq(repl->conversation->messages[2]->kind, "tool_result");
 
     /* Verify tool_result message has correct data */
     ck_assert_str_eq(repl->conversation->messages[2]->content, "Files found: src/main.c, src/config.c");
@@ -150,11 +150,11 @@ START_TEST(test_message_ordering_preserved)
     /* Build complete conversation: user -> tool_call -> tool_result */
 
     /* 1. User message */
-    ik_openai_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "List files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", "List files").ok;
     ik_openai_conversation_add_msg(repl->conversation, user_msg);
 
     /* 2. Tool call message */
-    ik_openai_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
+    ik_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
         repl->conversation,
         "call_123",
         "function",
@@ -165,7 +165,7 @@ START_TEST(test_message_ordering_preserved)
     ik_openai_conversation_add_msg(repl->conversation, tool_call_msg);
 
     /* 3. Tool result message */
-    ik_openai_msg_t *tool_result_msg = ik_openai_msg_create(repl->conversation, "tool_result", "Found 3 files").ok;
+    ik_msg_t *tool_result_msg = ik_openai_msg_create(repl->conversation, "tool_result", "Found 3 files").ok;
     tool_result_msg->data_json = talloc_strdup(tool_result_msg,
                                                "{\"tool_call_id\":\"call_123\",\"name\":\"glob\",\"output\":\"{}\",\"success\":true}"
                                                );
@@ -173,9 +173,9 @@ START_TEST(test_message_ordering_preserved)
 
     /* Verify ordering is preserved */
     ck_assert_uint_eq(repl->conversation->message_count, 3);
-    ck_assert_str_eq(repl->conversation->messages[0]->role, "user");
-    ck_assert_str_eq(repl->conversation->messages[1]->role, "tool_call");
-    ck_assert_str_eq(repl->conversation->messages[2]->role, "tool_result");
+    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
+    ck_assert_str_eq(repl->conversation->messages[1]->kind, "tool_call");
+    ck_assert_str_eq(repl->conversation->messages[2]->kind, "tool_result");
 }
 
 END_TEST
