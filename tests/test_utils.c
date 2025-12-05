@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 // ========== Allocator Wrapper Overrides ==========
 // Strong symbols that override the weak symbols in src/wrapper.c
@@ -399,4 +400,18 @@ res_t ik_test_db_destroy(const char *db_name)
 
     PQfinish(conn);
     return OK(NULL);
+}
+
+// ========== Terminal Reset Utilities ==========
+
+void ik_test_reset_terminal(void)
+{
+    // Reset sequence:
+    // - \x1b[?25h  Show cursor (may be hidden)
+    // - \x1b[0m    Reset text attributes (future-proof)
+    //
+    // Do NOT exit alternate screen - tests don't enter it.
+    // Write to stdout which is where test output goes.
+    const char reset_seq[] = "\x1b[?25h\x1b[0m";
+    (void)write(STDOUT_FILENO, reset_seq, sizeof(reset_seq) - 1);
 }

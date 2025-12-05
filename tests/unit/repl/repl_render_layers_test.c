@@ -292,5 +292,7 @@ int main(void)
     number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);
 
+    ik_test_reset_terminal();
+
     return (number_failed == 0) ? 0 : 1;
 }

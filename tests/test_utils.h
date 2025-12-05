@@ -157,4 +157,18 @@ res_t ik_test_db_truncate_all(ik_db_ctx_t *db);
  */
 res_t ik_test_db_destroy(const char *db_name);
 
+// ========== Terminal Reset Utilities ==========
+
+/**
+ * Reset terminal state after tests that may emit escape sequences.
+ *
+ * Call this in suite teardown for any test file that:
+ * - Mocks posix_write_ for terminal output
+ * - Tests rendering code
+ * - Exercises cursor visibility
+ *
+ * Safe to call even if terminal is in normal state.
+ */
+void ik_test_reset_terminal(void);
+
 #endif // IK_TEST_UTILS_H

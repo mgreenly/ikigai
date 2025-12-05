@@ -25,4 +25,4 @@
 
 - ~~[terminal-cleanup-cursor.md](terminal-cleanup-cursor.md)~~
 - ~~[panic-cleanup-cursor.md](panic-cleanup-cursor.md)~~
-- [test-terminal-reset.md](test-terminal-reset.md)
+- ~~[test-terminal-reset.md](test-terminal-reset.md)~~
