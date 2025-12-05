@@ -231,6 +231,86 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
     return ik_format_get_string(buf);
 }
 
+// Helper to truncate content to 3 lines or 400 chars, whichever comes first
+static void truncate_and_append(ik_format_buffer_t *buf, const char *content, size_t content_len)
+{
+    assert(buf != NULL);     // LCOV_EXCL_BR_LINE
+    assert(content != NULL); // LCOV_EXCL_BR_LINE
+
+    if (content_len == 0) {
+        res_t res = ik_format_append(buf, "(no output)");
+        if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+        return;
+    }
+
+    // Count lines and find truncation point
+    size_t line_count = 1;
+    size_t char_count = 0;
+    size_t truncate_at = content_len;
+    bool needs_truncation = false;
+
+    for (size_t i = 0; i < content_len; i++) {
+        char_count++;
+
+        if (content[i] == '\n') {
+            line_count++;
+            if (line_count > 3) {
+                truncate_at = i;
+                needs_truncation = true;
+                break;
+            }
+        }
+
+        if (char_count >= 400) {
+            truncate_at = i + 1;
+            needs_truncation = true;
+            break;
+        }
+    }
+
+    // Append content with truncation if needed
+    res_t res;
+    if (needs_truncation) {
+        res = ik_format_appendf(buf, "%.*s...", (int32_t)truncate_at, content);
+    } else {
+        res = ik_format_append(buf, content);
+    }
+    if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+}
+
+// Helper to extract content from JSON array - joins elements with ", "
+static const char *extract_array_content(void *parent, yyjson_val *root, size_t *out_len)
+{
+    assert(parent != NULL); // LCOV_EXCL_BR_LINE
+    assert(root != NULL);   // LCOV_EXCL_BR_LINE
+
+    ik_format_buffer_t *arr_buf = ik_format_buffer_create(parent);
+    if (arr_buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    size_t arr_size = yyjson_arr_size(root);
+
+    for (size_t i = 0; i < arr_size; i++) {
+        yyjson_val *elem = yyjson_arr_get(root, i);
+        if (i > 0) {
+            res_t r = ik_format_append(arr_buf, ", ");
+            if (is_err(&r)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+        }
+        if (yyjson_is_str(elem)) {
+            res_t r = ik_format_append(arr_buf, yyjson_get_str(elem));
+            if (is_err(&r)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+        } else {
+            char *elem_str = yyjson_val_write(elem, 0, NULL);
+            if (elem_str != NULL) {
+                res_t r = ik_format_append(arr_buf, elem_str);
+                if (is_err(&r)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+                free(elem_str);
+            }
+        }
+    }
+
+    *out_len = ik_format_get_length(arr_buf);
+    return ik_format_get_string(arr_buf);
+}
+
 const char *ik_format_tool_result(void *parent, const char *tool_name, const char *result_json)
 {
     assert(parent != NULL);    // LCOV_EXCL_BR_LINE
@@ -239,12 +319,68 @@ const char *ik_format_tool_result(void *parent, const char *tool_name, const cha
     ik_format_buffer_t *buf = ik_format_buffer_create(parent);
     if (buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Format: [result] tool_name: result_json
+    // Start with arrow and tool name
+    res_t res = ik_format_appendf(buf, "← %s: ", tool_name);
+    if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+
+    // Handle null result
     if (result_json == NULL) {
-        res_t res = ik_format_appendf(buf, "[result] %s: (null)", tool_name);
+        res = ik_format_append(buf, "(no output)");
         if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+        return ik_format_get_string(buf);
+    }
+
+    // Try to parse JSON
+    yyjson_doc *doc = yyjson_read(result_json, strlen(result_json), 0);
+    if (doc == NULL) {
+        // Invalid JSON - show raw, truncated
+        truncate_and_append(buf, result_json, strlen(result_json));
+        return ik_format_get_string(buf);
+    }
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    const char *content = NULL;
+    size_t content_len = 0;
+
+    if (yyjson_is_str(root)) {
+        // String result - use directly
+        const char *str = yyjson_get_str(root);
+        content_len = yyjson_get_len(root);
+
+        // Check for empty string
+        if (content_len == 0) {
+            yyjson_doc_free(doc);
+            res = ik_format_append(buf, "(no output)");
+            if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+            return ik_format_get_string(buf);
+        }
+
+        // Copy string before freeing doc
+        char *content_owned = talloc_strndup(parent, str, content_len);
+        if (content_owned == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        content = content_owned;
+    } else if (yyjson_is_arr(root)) {
+        // Array - join elements with ", "
+        content = extract_array_content(parent, root, &content_len);
     } else {
-        res_t res = ik_format_appendf(buf, "[result] %s: %s", tool_name, result_json);
+        // Object or other - serialize to JSON
+        char *json_str = yyjson_val_write(root, 0, NULL);
+        if (json_str != NULL) {
+            char *content_owned = talloc_strdup(parent, json_str);
+            if (content_owned == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            content = content_owned;
+            content_len = strlen(content);
+            free(json_str);
+        }
+    }
+
+    yyjson_doc_free(doc);
+
+    // Truncate and append content
+    if (content != NULL) {
+        truncate_and_append(buf, content, content_len);
+    } else {
+        res = ik_format_append(buf, "(no output)");
         if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
     }
 

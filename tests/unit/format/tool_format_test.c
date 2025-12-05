@@ -88,10 +88,8 @@ START_TEST(test_format_tool_result_null_result)
     const char *formatted = ik_format_tool_result(ctx, "glob", NULL);
     ck_assert_ptr_nonnull(formatted);
 
-    // Should contain tool name and indication of null result
-    ck_assert(strstr(formatted, "glob") != NULL);
-    ck_assert(strstr(formatted, "(null)") != NULL);
-    ck_assert(strlen(formatted) > 0);
+    // Should use arrow format with (no output)
+    ck_assert_str_eq(formatted, "← glob: (no output)");
 }
 
 END_TEST
@@ -303,6 +301,124 @@ START_TEST(test_format_tool_call_null_value)
 
 END_TEST
 
+// Test: Format tool result - short string array
+START_TEST(test_format_tool_result_short)
+{
+    const char *formatted = ik_format_tool_result(ctx, "glob", "[\"a.c\", \"b.c\"]");
+    ck_assert_ptr_nonnull(formatted);
+    ck_assert_str_eq(formatted, "← glob: a.c, b.c");
+}
+
+END_TEST
+
+// Test: Format tool result - empty string
+START_TEST(test_format_tool_result_empty_string)
+{
+    const char *formatted = ik_format_tool_result(ctx, "bash", "\"\"");
+    ck_assert_ptr_nonnull(formatted);
+    ck_assert_str_eq(formatted, "← bash: (no output)");
+}
+
+END_TEST
+
+// Test: Format tool result - truncate by characters (>400 chars)
+START_TEST(test_format_tool_result_truncate_chars)
+{
+    // Create a string > 400 chars
+    char long_content[500];
+    memset(long_content, 'x', 450);
+    long_content[450] = '\0';
+    char json[600];
+    snprintf(json, sizeof(json), "\"%s\"", long_content);
+
+    const char *formatted = ik_format_tool_result(ctx, "file_read", json);
+    ck_assert_ptr_nonnull(formatted);
+
+    // Should be truncated with ...
+    // "← file_read: " is 13 chars, + 400 + "..." = 416 max
+    ck_assert(strlen(formatted) <= 420);
+    ck_assert_ptr_nonnull(strstr(formatted, "..."));
+}
+
+END_TEST
+
+// Test: Format tool result - truncate by lines (>3 lines)
+START_TEST(test_format_tool_result_truncate_lines)
+{
+    const char *formatted = ik_format_tool_result(ctx, "grep", "\"line1\\nline2\\nline3\\nline4\\nline5\"");
+    ck_assert_ptr_nonnull(formatted);
+
+    // Should show only 3 lines + ...
+    ck_assert_ptr_nonnull(strstr(formatted, "← grep:"));
+    ck_assert_ptr_nonnull(strstr(formatted, "line1"));
+    ck_assert_ptr_nonnull(strstr(formatted, "line2"));
+    ck_assert_ptr_nonnull(strstr(formatted, "line3"));
+    ck_assert_ptr_null(strstr(formatted, "line4"));
+    ck_assert_ptr_nonnull(strstr(formatted, "..."));
+}
+
+END_TEST
+
+// Test: Format tool result - error object
+START_TEST(test_format_tool_result_error_object)
+{
+    const char *formatted = ik_format_tool_result(ctx, "bash", "{\"error\": \"Command failed\", \"exit_code\": 1}");
+    ck_assert_ptr_nonnull(formatted);
+
+    // Should show JSON for objects
+    ck_assert_ptr_nonnull(strstr(formatted, "← bash:"));
+    ck_assert_ptr_nonnull(strstr(formatted, "error"));
+}
+
+END_TEST
+
+// Test: Format tool result - array of strings joined with comma
+START_TEST(test_format_tool_result_array_of_strings)
+{
+    const char *formatted = ik_format_tool_result(ctx, "glob", "[\"file1.c\", \"file2.c\", \"file3.c\"]");
+    ck_assert_ptr_nonnull(formatted);
+    ck_assert_str_eq(formatted, "← glob: file1.c, file2.c, file3.c");
+}
+
+END_TEST
+
+// Test: Format tool result - exactly three lines (no truncation)
+START_TEST(test_format_tool_result_exactly_three_lines)
+{
+    const char *formatted = ik_format_tool_result(ctx, "grep", "\"line1\\nline2\\nline3\"");
+    ck_assert_ptr_nonnull(formatted);
+
+    // Exactly 3 lines - no truncation needed
+    ck_assert_ptr_nonnull(strstr(formatted, "line1"));
+    ck_assert_ptr_nonnull(strstr(formatted, "line2"));
+    ck_assert_ptr_nonnull(strstr(formatted, "line3"));
+    ck_assert_ptr_null(strstr(formatted, "..."));
+}
+
+END_TEST
+
+// Test: Format tool result - invalid JSON (fallback to raw)
+START_TEST(test_format_tool_result_invalid_json)
+{
+    const char *formatted = ik_format_tool_result(ctx, "broken", "not json");
+    ck_assert_ptr_nonnull(formatted);
+
+    // Fallback to raw content
+    ck_assert_str_eq(formatted, "← broken: not json");
+}
+
+END_TEST
+
+// Test: Format tool result - simple string content
+START_TEST(test_format_tool_result_simple_string)
+{
+    const char *formatted = ik_format_tool_result(ctx, "bash", "\"hello world\"");
+    ck_assert_ptr_nonnull(formatted);
+    ck_assert_str_eq(formatted, "← bash: hello world");
+}
+
+END_TEST
+
 static Suite *tool_format_suite(void)
 {
     Suite *s = suite_create("Tool Formatting");
@@ -329,6 +445,15 @@ static Suite *tool_format_suite(void)
     tcase_add_test(tc, test_format_tool_call_int_value);
     tcase_add_test(tc, test_format_tool_call_real_value);
     tcase_add_test(tc, test_format_tool_call_null_value);
+    tcase_add_test(tc, test_format_tool_result_short);
+    tcase_add_test(tc, test_format_tool_result_empty_string);
+    tcase_add_test(tc, test_format_tool_result_truncate_chars);
+    tcase_add_test(tc, test_format_tool_result_truncate_lines);
+    tcase_add_test(tc, test_format_tool_result_error_object);
+    tcase_add_test(tc, test_format_tool_result_array_of_strings);
+    tcase_add_test(tc, test_format_tool_result_exactly_three_lines);
+    tcase_add_test(tc, test_format_tool_result_invalid_json);
+    tcase_add_test(tc, test_format_tool_result_simple_string);
 
     suite_add_tcase(s, tc);
     return s;

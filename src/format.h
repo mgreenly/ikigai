@@ -53,8 +53,11 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call);
 // Format a tool result for display in scrollback
 //
 // Takes a tool name and JSON result string and returns a formatted string.
-// Parses the JSON and displays the result in a readable format.
-// Format: [result] count items/lines of formatted output
+// Parses the JSON and displays meaningful content in a readable format.
+// Format: ← tool_name: <truncated content>
+// - Truncates at 3 lines or 400 characters (whichever first)
+// - Adds "..." when truncated
+// - Arrays joined with ", ", strings used directly, objects as JSON
 //
 // @param parent Talloc parent context for result allocation
 // @param tool_name Tool name (e.g., "glob")
