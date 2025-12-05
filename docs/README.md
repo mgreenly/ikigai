@@ -26,6 +26,8 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 
 ### Architecture & Design
 - **[architecture.md](architecture.md)** - System architecture, dependencies, and design principles
+- **[autonomous-agents.md](autonomous-agents.md)** - Autonomous agent system: identity, communication, hierarchy, deployment
+- **[services.md](services.md)** - Services infrastructure: nginx, PostgreSQL, runit for dev and production
 - **[decisions/](decisions/)** - Architecture Decision Records (ADRs) for key design choices
 - **[repl/](repl/)** - REPL terminal interface documentation (rel-01 - complete)
 

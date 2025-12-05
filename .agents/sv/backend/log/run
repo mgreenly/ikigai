@@ -1,0 +1,4 @@
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+AGENTS_DIR="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
+exec svlogd -tt "$AGENTS_DIR/logs/backend/"
