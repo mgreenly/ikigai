@@ -95,9 +95,12 @@ void ik_panic_impl(const char *msg, const char *file, int32_t line)
 {
     // Restore terminal state if available
     if (g_term_ctx_for_panic != NULL) {
-        // Exit alternate screen buffer
-        const char exit_alt[] = "\x1b[?1049l";
-        write_ignore(g_term_ctx_for_panic->tty_fd, exit_alt, 8);
+        // Full terminal reset sequence:
+        // - Show cursor (may be hidden in scrollback mode)
+        // - Reset text attributes (future-proof for colors)
+        // - Exit alternate screen buffer
+        const char reset_seq[] = "\x1b[?25h\x1b[0m\x1b[?1049l";
+        write_ignore(g_term_ctx_for_panic->tty_fd, reset_seq, 18);
 
         // Restore original termios
         // NOTE: tcsetattr() is not async-signal-safe per POSIX,
