@@ -44,10 +44,10 @@ START_TEST(test_streaming_callback_appends_to_scrollback) {
     ck_assert(is_ok(&res));
 
     // Verify streaming data was appended to scrollback
-    // The scrollback should now have the user message "Test"
+    // The scrollback should now have the user message "Test" + blank line
     // Note: "Hello world" (no trailing newline) is buffered but not added to scrollback yet
     size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
-    ck_assert_uint_eq(line_count, 1); // Only user message (streamed content has no newline)
+    ck_assert_uint_eq(line_count, 2); // User message + blank line (streamed content has no newline)
 
     // Verify assistant_response was accumulated
     ck_assert_ptr_nonnull(repl->assistant_response);

@@ -73,13 +73,17 @@ START_TEST(test_render_user_event)
 
     res_t result = ik_event_render(scrollback, "user", "Hello world", NULL);
     ck_assert(!is_err(&result));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
     const char *text;
     size_t length;
     ik_scrollback_get_line_text(scrollback, 0, &text, &length);
     ck_assert_uint_eq(length, 11);
     ck_assert_mem_eq(text, "Hello world", 11);
+
+    // Second line should be blank
+    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
+    ck_assert_uint_eq(length, 0);
 
     talloc_free(ctx);
 }
@@ -93,13 +97,17 @@ START_TEST(test_render_assistant_event)
 
     res_t result = ik_event_render(scrollback, "assistant", "I am an AI", NULL);
     ck_assert(!is_err(&result));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
     const char *text;
     size_t length;
     ik_scrollback_get_line_text(scrollback, 0, &text, &length);
     ck_assert_uint_eq(length, 10);
     ck_assert_mem_eq(text, "I am an AI", 10);
+
+    // Second line should be blank
+    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
+    ck_assert_uint_eq(length, 0);
 
     talloc_free(ctx);
 }
@@ -113,13 +121,17 @@ START_TEST(test_render_system_event)
 
     res_t result = ik_event_render(scrollback, "system", "You are helpful.", NULL);
     ck_assert(!is_err(&result));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
     const char *text;
     size_t length;
     ik_scrollback_get_line_text(scrollback, 0, &text, &length);
     ck_assert_uint_eq(length, 16);
     ck_assert_mem_eq(text, "You are helpful.", 16);
+
+    // Second line should be blank
+    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
+    ck_assert_uint_eq(length, 0);
 
     talloc_free(ctx);
 }
@@ -133,13 +145,17 @@ START_TEST(test_render_mark_event_with_label)
 
     res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"foo\"}");
     ck_assert(!is_err(&result));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
     const char *text;
     size_t length;
     ik_scrollback_get_line_text(scrollback, 0, &text, &length);
     ck_assert_uint_eq(length, 9);
     ck_assert_mem_eq(text, "/mark foo", 9);
+
+    // Second line should be blank
+    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
+    ck_assert_uint_eq(length, 0);
 
     talloc_free(ctx);
 }
@@ -153,7 +169,7 @@ START_TEST(test_render_mark_event_no_label)
 
     res_t result = ik_event_render(scrollback, "mark", NULL, "{}");
     ck_assert(!is_err(&result));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
     const char *text;
     size_t length;
@@ -161,10 +177,15 @@ START_TEST(test_render_mark_event_no_label)
     ck_assert_uint_eq(length, 5);
     ck_assert_mem_eq(text, "/mark", 5);
 
+    // Second line should be blank
+    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
+    ck_assert_uint_eq(length, 0);
+
     talloc_free(ctx);
 }
 
 END_TEST
+
 // Test: Render mark event with NULL data_json
 START_TEST(test_render_mark_event_null_json)
 {
@@ -173,7 +194,7 @@ START_TEST(test_render_mark_event_null_json)
 
     res_t result = ik_event_render(scrollback, "mark", NULL, NULL);
     ck_assert(!is_err(&result));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
     const char *text;
     size_t length;
@@ -181,10 +202,15 @@ START_TEST(test_render_mark_event_null_json)
     ck_assert_uint_eq(length, 5);
     ck_assert_mem_eq(text, "/mark", 5);
 
+    // Second line should be blank
+    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
+    ck_assert_uint_eq(length, 0);
+
     talloc_free(ctx);
 }
 
 END_TEST
+
 // Test: Render mark event with empty label in data_json
 START_TEST(test_render_mark_event_empty_label)
 {
@@ -193,13 +219,17 @@ START_TEST(test_render_mark_event_empty_label)
 
     res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"\"}");
     ck_assert(!is_err(&result));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
     const char *text;
     size_t length;
     ik_scrollback_get_line_text(scrollback, 0, &text, &length);
     ck_assert_uint_eq(length, 5);
     ck_assert_mem_eq(text, "/mark", 5);
+
+    // Second line should be blank
+    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
+    ck_assert_uint_eq(length, 0);
 
     talloc_free(ctx);
 }
@@ -284,7 +314,7 @@ START_TEST(test_render_mark_invalid_json)
 
     res_t result = ik_event_render(scrollback, "mark", NULL, "not valid json");
     ck_assert(!is_err(&result));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
     const char *text;
     size_t length;
@@ -292,10 +322,15 @@ START_TEST(test_render_mark_invalid_json)
     ck_assert_uint_eq(length, 5);
     ck_assert_mem_eq(text, "/mark", 5);
 
+    // Second line should be blank
+    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
+    ck_assert_uint_eq(length, 0);
+
     talloc_free(ctx);
 }
 
 END_TEST
+
 // Test: Render mark event with label not a string
 START_TEST(test_render_mark_label_not_string)
 {
@@ -304,13 +339,17 @@ START_TEST(test_render_mark_label_not_string)
 
     res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":123}");
     ck_assert(!is_err(&result));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
     const char *text;
     size_t length;
     ik_scrollback_get_line_text(scrollback, 0, &text, &length);
     ck_assert_uint_eq(length, 5);
     ck_assert_mem_eq(text, "/mark", 5);
+
+    // Second line should be blank
+    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
+    ck_assert_uint_eq(length, 0);
 
     talloc_free(ctx);
 }

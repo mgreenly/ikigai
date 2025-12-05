@@ -264,9 +264,9 @@ START_TEST(test_clear_with_system_message_displays_in_scrollback)
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Bug: After /clear with system message configured,
-    // scrollback should have 1 line (the system message), not 0
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    // After /clear with system message configured,
+    // scrollback should have 2 lines (the system message + blank line), not 0
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
 
     // Verify the content is the system message
     const char *line = NULL;
@@ -275,6 +275,11 @@ START_TEST(test_clear_with_system_message_displays_in_scrollback)
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "You are a helpful assistant.");
+
+    // Verify the second line is blank
+    res = ik_scrollback_get_line_text(repl->scrollback, 1, &line, &line_len);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(line_len, 0);
 }
 
 END_TEST

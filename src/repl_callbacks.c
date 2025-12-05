@@ -133,6 +133,11 @@ res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, v
         repl->streaming_line_buffer = NULL;
     }
 
+    // Add blank line after assistant response (spacing)
+    if (completion->type == IK_HTTP_SUCCESS) {
+        ik_scrollback_append_line(repl->scrollback, "", 0);
+    }
+
     // Clear any previous error
     if (repl->http_error_message != NULL) {
         talloc_free(repl->http_error_message);

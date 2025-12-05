@@ -195,9 +195,9 @@ START_TEST(test_slash_in_middle_not_command)
     size_t text_len = ik_byte_array_size(repl->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
-    /* Verify "hello" was added to scrollback */
+    /* Verify "hello" was added to scrollback (content + blank line) */
     size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
-    ck_assert_uint_eq(line_count, 1);
+    ck_assert_uint_eq(line_count, 2);
 
     talloc_free(ctx);
 }

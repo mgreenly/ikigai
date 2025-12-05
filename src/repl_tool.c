@@ -99,7 +99,8 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     }
 
     // 4. Display tool call and result in scrollback via event renderer
-    ik_event_render(repl->scrollback, "tool_call", summary, "{}");
+    const char *formatted_call = ik_format_tool_call(repl, tc);
+    ik_event_render(repl->scrollback, "tool_call", formatted_call, "{}");
     const char *formatted_result = ik_format_tool_result(repl, tc->name, result_json);
     ik_event_render(repl->scrollback, "tool_result", formatted_result, "{}");
 
@@ -228,7 +229,8 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
     }
 
     // 3. Display in scrollback via event renderer
-    ik_event_render(repl->scrollback, "tool_call", summary, "{}");
+    const char *formatted_call = ik_format_tool_call(repl, tc);
+    ik_event_render(repl->scrollback, "tool_call", formatted_call, "{}");
     const char *formatted_result = ik_format_tool_result(repl, tc->name, result_json);
     ik_event_render(repl->scrollback, "tool_result", formatted_result, "{}");
 

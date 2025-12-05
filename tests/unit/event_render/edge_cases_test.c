@@ -43,7 +43,7 @@ START_TEST(test_render_mark_yyjson_get_str_returns_null) {
     // Even with valid JSON, our mock will make yyjson_get_str_ return NULL
     res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"foo\"}");
     ck_assert(!is_err(&result));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
     // Should render as "/mark" since label extraction failed
     const char *text;
@@ -51,6 +51,10 @@ START_TEST(test_render_mark_yyjson_get_str_returns_null) {
     ik_scrollback_get_line_text(scrollback, 0, &text, &length);
     ck_assert_uint_eq(length, 5);
     ck_assert_mem_eq(text, "/mark", 5);
+
+    // Second line should be blank
+    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
+    ck_assert_uint_eq(length, 0);
 
     talloc_free(ctx);
 }

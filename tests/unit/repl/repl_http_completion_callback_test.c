@@ -60,9 +60,9 @@ START_TEST(test_completion_flushes_streaming_buffer) {
     res_t result = ik_repl_http_completion_callback(&completion, repl);
     ck_assert(is_ok(&result));
 
-    /* Verify buffer was flushed to scrollback and cleared */
+    /* Verify buffer was flushed to scrollback (content + blank line) and cleared */
     ck_assert_ptr_null(repl->streaming_line_buffer);
-    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->scrollback), 2);
 }
 END_TEST
 /* Test: Completion clears previous error message */

@@ -93,15 +93,15 @@ START_TEST(test_page_up_shows_earliest_line) {
     // - Scrollback: a, b, c, d (4 lines, 4 physical rows)
     // - Separator: 1 row
     // - Input buffer: e (1 line, 1 physical row)
-    // - Document: 6 rows total
+    // - Document: 8 (scrollback with blank lines) + 1 (separator) + 1 (input) = 10 rows total
     // - Terminal: 5 rows
-    // - At bottom (offset=0): Shows rows 1-5 (b, c, d, separator, e)
-    //   Row 0 (a) is off-screen
+    // - At bottom (offset=0): Shows last few scrollback rows + separator + e
+    //   Earlier rows are off-screen
 
     // Verify document structure
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(scrollback);
     size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
-    ck_assert_uint_eq(scrollback_rows, 4);
+    ck_assert_uint_eq(scrollback_rows, 8);
     ck_assert_uint_eq(input_buf_rows, 1);
 
     // Calculate viewport at bottom
@@ -109,37 +109,37 @@ START_TEST(test_page_up_shows_earliest_line) {
     res = ik_repl_calculate_viewport(repl, &viewport_bottom);
     ck_assert(is_ok(&res));
 
-    // At bottom, first scrollback line visible should be line 1 (b)
-    ck_assert_uint_eq(viewport_bottom.scrollback_start_line, 1);
+    // At bottom, first scrollback line visible should be line 5 (showing last few lines)
+    ck_assert_uint_eq(viewport_bottom.scrollback_start_line, 5);
 
     // Simulate: Press Page Up
     ik_input_action_t action = {.type = IK_INPUT_PAGE_UP};
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    // After Page Up, viewport_offset should be 1 (max_offset)
-    // max_offset = document_height - terminal_rows = 6 - 5 = 1
-    ck_assert_uint_eq(repl->viewport_offset, 1);
+    // After Page Up, viewport_offset should be 5 (max_offset)
+    // max_offset = document_height - terminal_rows = 10 - 5 = 5
+    ck_assert_uint_eq(repl->viewport_offset, 5);
 
     // Calculate viewport after Page Up
     ik_viewport_t viewport_up;
     res = ik_repl_calculate_viewport(repl, &viewport_up);
     ck_assert(is_ok(&res));
 
-    // After Page Up, should show rows 0-4 (a, b, c, d, separator)
+    // After Page Up, should show rows 0-4 (first 5 scrollback lines)
     // First scrollback line should be line 0 (a)
     ck_assert_msg(viewport_up.scrollback_start_line == 0,
                   "Expected first scrollback line to be 0 (a), got %zu",
                   viewport_up.scrollback_start_line);
 
-    // Should see 4 scrollback lines (a, b, c, d)
-    ck_assert_msg(viewport_up.scrollback_lines_count == 4,
-                  "Expected 4 scrollback lines visible, got %zu",
+    // Should see 5 scrollback lines (a, blank, b, blank, c)
+    ck_assert_msg(viewport_up.scrollback_lines_count == 5,
+                  "Expected 5 scrollback lines visible, got %zu",
                   viewport_up.scrollback_lines_count);
 
-    // Separator should be visible at row 4
-    ck_assert_msg(viewport_up.separator_visible,
-                  "Expected separator to be visible");
+    // Separator should NOT be visible (terminal filled with scrollback)
+    ck_assert_msg(!viewport_up.separator_visible,
+                  "Expected separator to NOT be visible");
 
     // input buffer should be off-screen
     ck_assert_msg(viewport_up.input_buffer_start_row == 5,

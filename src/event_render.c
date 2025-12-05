@@ -80,14 +80,21 @@ static res_t render_mark_event(ik_scrollback_t *scrollback, const char *data_jso
     }
     if (text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Append to scrollback (use wrapper for testability)
+    // Append mark text
     res_t result = ik_scrollback_append_line_(scrollback, text, strlen(text));
+    if (is_err(&result)) {
+        talloc_free(tmp);
+        return result;
+    }
+
+    // Append blank line for spacing
+    result = ik_scrollback_append_line_(scrollback, "", 0);
 
     talloc_free(tmp);
     return result;
 }
 
-// Helper: render content event (user, assistant, system)
+// Helper: render content event (user, assistant, system, tool_call, tool_result)
 static res_t render_content_event(ik_scrollback_t *scrollback, const char *content)
 {
     // Content can be NULL (e.g., empty system message)
@@ -95,7 +102,30 @@ static res_t render_content_event(ik_scrollback_t *scrollback, const char *conte
         return OK(NULL);
     }
 
-    return ik_scrollback_append_line_(scrollback, content, strlen(content));
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    if (tmp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Trim trailing whitespace
+    char *trimmed = ik_scrollback_trim_trailing(tmp, content, strlen(content));
+
+    // Skip if empty after trimming
+    if (trimmed[0] == '\0') {
+        talloc_free(tmp);
+        return OK(NULL);
+    }
+
+    // Append content
+    res_t result = ik_scrollback_append_line_(scrollback, trimmed, strlen(trimmed));
+    if (is_err(&result)) {
+        talloc_free(tmp);
+        return result;
+    }
+
+    // Append blank line for spacing
+    result = ik_scrollback_append_line_(scrollback, "", 0);
+
+    talloc_free(tmp);
+    return result;
 }
 
 res_t ik_event_render(ik_scrollback_t *scrollback,
@@ -114,7 +144,9 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
     // Handle each event kind
     if (strcmp(kind, "user") == 0 ||
         strcmp(kind, "assistant") == 0 ||
-        strcmp(kind, "system") == 0) {
+        strcmp(kind, "system") == 0 ||
+        strcmp(kind, "tool_call") == 0 ||
+        strcmp(kind, "tool_result") == 0) {
         return render_content_event(scrollback, content);
     }
 
