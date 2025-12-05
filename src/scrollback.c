@@ -346,3 +346,28 @@ void ik_scrollback_clear(ik_scrollback_t *scrollback)
     // Preserve allocated capacity for efficient reuse
     // (no need to free/reallocate arrays)
 }
+
+char *ik_scrollback_trim_trailing(void *parent, const char *text, size_t length)
+{
+    assert(parent != NULL);  // LCOV_EXCL_BR_LINE
+
+    if (text == NULL || length == 0) {
+        char *result = talloc_strdup(parent, "");
+        if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        return result;
+    }
+
+    // Find last non-whitespace character
+    size_t end = length;
+    while (end > 0) {
+        char c = text[end - 1];
+        if (c != ' ' && c != '\t' && c != '\n' && c != '\r') {
+            break;
+        }
+        end--;
+    }
+
+    char *result = talloc_strndup(parent, text, end);
+    if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    return result;
+}
