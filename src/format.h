@@ -6,6 +6,7 @@
 #include "byte_array.h"
 #include "error.h"
 #include "tool.h"
+#include "vendor/yyjson/yyjson.h"
 
 /**
  * Format buffer for building output strings.
@@ -64,5 +65,21 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call);
 // @param result_json JSON result string (can be NULL)
 // @return Formatted string (owned by parent), never NULL
 const char *ik_format_tool_result(void *parent, const char *tool_name, const char *result_json);
+
+// Helper functions (non-static to ensure LCOV markers work properly)
+// See style.md "Avoid Static Functions" rule
+
+// Truncate content to 3 lines or 400 chars and append to buffer
+void ik_format_truncate_and_append(ik_format_buffer_t *buf, const char *content, size_t content_len);
+
+// Extract and join array elements with ", "
+const char *ik_format_extract_array_content(void *parent, yyjson_val *root, size_t *out_len);
+
+// Wrappers for yyjson inline functions to avoid coverage gaps from inline expansion
+// These wrap vendor inline functions so they expand only once, in a testable location
+void ik_format_yyjson_obj_iter_init_wrapper(yyjson_val *obj, yyjson_obj_iter *iter);
+yyjson_val *ik_format_yyjson_obj_iter_next_wrapper(yyjson_obj_iter *iter);
+yyjson_val *ik_format_yyjson_obj_iter_get_val_wrapper(yyjson_val *key);
+char *ik_format_yyjson_val_write_wrapper(yyjson_val *val) __attribute__((weak));
 
 #endif // IK_FORMAT_H
