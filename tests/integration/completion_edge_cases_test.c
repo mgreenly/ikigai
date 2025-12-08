@@ -14,7 +14,7 @@
 #include <curl/curl.h>
 #include <sys/stat.h>
 #include "../../src/repl.h"
-#include "../../../src/shared.h"
+#include "../../src/shared.h"
 #include "../../src/repl_actions.h"
 #include "../../src/input.h"
 #include "../../src/completion.h"

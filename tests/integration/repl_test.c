@@ -10,7 +10,7 @@
 #include <curl/curl.h>
 #include <sys/select.h>
 #include "../../src/repl.h"
-#include "../../../src/shared.h"
+#include "../../src/shared.h"
 #include "../test_utils.h"
 
 // Mock terminal file descriptor
@@ -305,8 +305,8 @@ START_TEST(test_repl_init) {
     // Verify successful initialization
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
-    ck_assert_ptr_nonnull(repl->term);
-    ck_assert_ptr_nonnull(repl->render);
+    ck_assert_ptr_nonnull(repl->shared->term);
+    ck_assert_ptr_nonnull(repl->shared->render);
     ck_assert_ptr_nonnull(repl->input_buffer);
     ck_assert_ptr_nonnull(repl->input_parser);
     ck_assert(!repl->quit);
@@ -334,6 +334,10 @@ START_TEST(test_repl_cleanup_null_term)
     // but we still need to cleanup the repl structure)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+
+    // Create a minimal shared context with NULL term
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    repl->shared = shared;
 
     // Explicitly ensure term is NULL (talloc_zero does this, but being explicit)
     repl->shared->term = NULL;

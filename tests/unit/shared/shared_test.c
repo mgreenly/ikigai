@@ -8,10 +8,113 @@
 
 #include <check.h>
 #include <talloc.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
+
+// Mock control state for terminal
+static int mock_open_fail = 0;
+static int mock_tcgetattr_fail = 0;
+static int mock_tcsetattr_fail = 0;
+static int mock_tcflush_fail = 0;
+static int mock_write_fail = 0;
+static int mock_ioctl_fail = 0;
+
+// Mock function prototypes
+int posix_open_(const char *pathname, int flags);
+int posix_close_(int fd);
+int posix_tcgetattr_(int fd, struct termios *termios_p);
+int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p);
+int posix_tcflush_(int fd, int queue_selector);
+int posix_ioctl_(int fd, unsigned long request, void *argp);
+ssize_t posix_write_(int fd, const void *buf, size_t count);
+
+// Mock implementations for POSIX functions
+int posix_open_(const char *pathname, int flags)
+{
+    (void)pathname;
+    (void)flags;
+    if (mock_open_fail) {
+        return -1;
+    }
+    return 42; // Mock fd
+}
+
+int posix_close_(int fd)
+{
+    (void)fd;
+    return 0;
+}
+
+int posix_tcgetattr_(int fd, struct termios *termios_p)
+{
+    (void)fd;
+    if (mock_tcgetattr_fail) {
+        return -1;
+    }
+    memset(termios_p, 0, sizeof(*termios_p));
+    return 0;
+}
+
+int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p)
+{
+    (void)fd;
+    (void)optional_actions;
+    (void)termios_p;
+    if (mock_tcsetattr_fail) {
+        return -1;
+    }
+    return 0;
+}
+
+int posix_tcflush_(int fd, int queue_selector)
+{
+    (void)fd;
+    (void)queue_selector;
+    if (mock_tcflush_fail) {
+        return -1;
+    }
+    return 0;
+}
+
+int posix_ioctl_(int fd, unsigned long request, void *argp)
+{
+    (void)fd;
+    (void)request;
+    if (mock_ioctl_fail) {
+        return -1;
+    }
+    struct winsize *ws = (struct winsize *)argp;
+    ws->ws_row = 24;
+    ws->ws_col = 80;
+    return 0;
+}
+
+ssize_t posix_write_(int fd, const void *buf, size_t count)
+{
+    (void)fd;
+    (void)buf;
+    if (mock_write_fail) {
+        return -1;
+    }
+    return (ssize_t)count;
+}
+
+static void reset_mocks(void)
+{
+    mock_open_fail = 0;
+    mock_tcgetattr_fail = 0;
+    mock_tcsetattr_fail = 0;
+    mock_tcflush_fail = 0;
+    mock_write_fail = 0;
+    mock_ioctl_fail = 0;
+}
 
 // Test that ik_shared_ctx_init() succeeds
 START_TEST(test_shared_ctx_init_success)
 {
+    reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -32,6 +135,7 @@ END_TEST
 // Test that shared_ctx is allocated under provided parent
 START_TEST(test_shared_ctx_parent_allocation)
 {
+    reset_mocks();
     TALLOC_CTX *parent = talloc_new(NULL);
     ck_assert_ptr_nonnull(parent);
 
@@ -56,6 +160,7 @@ END_TEST
 // Test that shared_ctx can be freed via talloc_free
 START_TEST(test_shared_ctx_can_be_freed)
 {
+    reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -80,6 +185,7 @@ END_TEST
 // Test that shared_ctx stores cfg pointer
 START_TEST(test_shared_ctx_stores_cfg)
 {
+    reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -101,6 +207,7 @@ END_TEST
 // Test that shared_ctx->cfg is accessible
 START_TEST(test_shared_ctx_cfg_accessible)
 {
+    reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -124,6 +231,7 @@ END_TEST
 // Test that shared_ctx initializes term
 START_TEST(test_shared_ctx_term_initialized)
 {
+    reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -145,6 +253,7 @@ END_TEST
 // Test that shared_ctx initializes render
 START_TEST(test_shared_ctx_render_initialized)
 {
+    reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -166,6 +275,7 @@ END_TEST
 // Test that render dimensions match term dimensions
 START_TEST(test_shared_ctx_render_matches_term_dimensions)
 {
+    reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -216,6 +326,8 @@ int main(void)
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);
+
+    ik_test_reset_terminal();
 
     return (number_failed == 0) ? 0 : 1;
 }
