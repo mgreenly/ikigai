@@ -29,12 +29,12 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     int32_t terminal_rows = repl->shared->term->screen_rows;
 
     // Unified document model:
-    // Document = scrollback_rows + 1 (separator) + MAX(input_buffer_rows, 1)
+    // Document = scrollback_rows + 1 (upper_separator) + MAX(input_buffer_rows, 1) + 1 (lower_separator)
     // Input buffer always occupies at least 1 row (for cursor visibility when empty)
     size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
     size_t separator_row = scrollback_rows;  // Separator is at this document row (0-indexed)
     size_t input_buffer_start_doc_row = scrollback_rows + 1;  // Input buffer starts here
-    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows;
+    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows + 1;  // +1 for lower separator
 
     // Calculate visible document range
     // viewport_offset = how many rows scrolled UP from bottom
@@ -184,7 +184,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
     size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
     size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
-    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows;
+    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows + 1;  // +1 for lower separator
     int32_t terminal_rows = repl->shared->term->screen_rows;
 
     size_t first_visible_row;

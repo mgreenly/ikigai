@@ -62,16 +62,17 @@ START_TEST(test_exact_user_scenario) {
     shared->render = render_ctx;
     repl->viewport_offset = 0;
 
-    // Document: 4 scrollback + 1 separator + 1 input buffer = 6 rows
+    // Document: 4 scrollback + 1 (upper sep) + 1 input + 1 (lower sep) = 7 rows
     // (input buffer always occupies 1 row even when empty, for cursor visibility)
     // Terminal: 5 rows
-    // At bottom (offset=0), showing rows 1-5:
+    // At bottom (offset=0), showing rows 2-6:
     //   Row 0: A (off-screen)
-    //   Row 1: B
+    //   Row 1: B (off-screen)
     //   Row 2: C
     //   Row 3: D
     //   Row 4: separator
     //   Row 5: input buffer
+    //   Row 6: lower separator
 
     fprintf(stderr, "\n=== User Scenario: At Bottom ===\n");
 
@@ -98,8 +99,7 @@ START_TEST(test_exact_user_scenario) {
     fprintf(stderr, "Contains B: %s\n", strstr(output1, "B") ? "YES" : "NO");
     fprintf(stderr, "Contains A: %s\n", strstr(output1, "A") ? "YES" : "NO");
 
-    // At bottom: should see B, C, D, separator, input buffer (A is off-screen top)
-    ck_assert_ptr_ne(strstr(output1, "B"), NULL);
+    // At bottom: should see C, D, separator, input buffer, lower separator (A and B are off-screen top)
     ck_assert_ptr_ne(strstr(output1, "C"), NULL);
     ck_assert_ptr_ne(strstr(output1, "D"), NULL);
 

@@ -62,7 +62,7 @@ START_TEST(test_page_up_with_4_lines) {
     fprintf(stderr, "\n=== Initial State ===\n");
     fprintf(stderr, "Scrollback lines: 4 (A, B, C, D)\n");
     fprintf(stderr, "Input buffer lines: 1 (empty)\n");
-    fprintf(stderr, "Document height: 4 + 1 + 1 = 6 rows\n");
+    fprintf(stderr, "Document height: 4 + 1 (upper_sep) + 1 (input) + 1 (lower_sep) = 7 rows\n");
     fprintf(stderr, "Terminal rows: 5\n");
     fprintf(stderr, "viewport_offset: %zu\n", repl->viewport_offset);
 
@@ -72,7 +72,8 @@ START_TEST(test_page_up_with_4_lines) {
 
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(scrollback);
     size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
-    size_t document_height = scrollback_rows + 1 + input_buf_rows;
+    size_t input_buf_display_rows = (input_buf_rows == 0) ? 1 : input_buf_rows;
+    size_t document_height = scrollback_rows + 1 + input_buf_display_rows + 1;  // +1 for lower separator
 
     fprintf(stderr, "Calculated: scrollback_rows=%zu, input_buf_rows=%zu, document_height=%zu\n",
             scrollback_rows, input_buf_rows, document_height);

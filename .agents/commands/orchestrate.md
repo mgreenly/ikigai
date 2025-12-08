@@ -3,6 +3,19 @@ Orchestrate task execution from a tasks directory with automatic retry and escal
 **Usage:**
 - `/orchestrate PATH` - Run tasks from PATH (e.g., `docs/rel-05/tasks`)
 
+## CRITICAL: SEQUENTIAL EXECUTION ONLY
+
+**ALL TASKS MUST BE EXECUTED ONE AT A TIME, IN SEQUENCE.**
+
+- NEVER run multiple tasks in parallel
+- NEVER use `run_in_background=true` for task agents
+- NEVER spawn multiple Task agents simultaneously
+- Wait for each task to FULLY COMPLETE before starting the next
+- Each task modifies shared source code and uses the same build system
+- Parallel execution causes merge conflicts, race conditions, and corrupted state
+
+The workflow is: **get next task → spawn ONE agent → wait for completion → process result → repeat**
+
 **Behavior:**
 1. Call `.ikigai/scripts/tasks/next.ts` to get next task (with current model/thinking)
 2. Call `.ikigai/scripts/tasks/session.ts start <task>`
@@ -24,9 +37,10 @@ Orchestrate task execution from a tasks directory with automatic retry and escal
 | 4 | opus | ultrathink |
 
 **Critical rules:**
+- **SEQUENTIAL ONLY:** Run ONE task at a time. Never parallelize. Never use run_in_background.
 - NEVER read task files yourself (sub-agents do)
 - NEVER run make commands yourself (sub-agents do)
-- Only: spawn agents, parse responses, call scripts, report progress
+- Only: spawn ONE agent, WAIT for it to finish, parse response, call scripts, report progress, then loop
 
 **Sub-agent prompt template:**
 ```
@@ -68,15 +82,27 @@ You must:
 {{#if args}}
 You are the task orchestrator for `{{args}}`.
 
-**Your workflow:**
+## MANDATORY: SEQUENTIAL EXECUTION
+
+You MUST execute tasks ONE AT A TIME. This is non-negotiable.
+
+- Do NOT use `run_in_background=true` when spawning Task agents
+- Do NOT spawn multiple Task agents in a single message
+- Do NOT try to parallelize for efficiency - it will break everything
+- WAIT for each agent to fully complete before proceeding to the next task
+- All tasks share the same codebase and build system - parallel execution corrupts state
+
+**Your workflow (strictly sequential):**
 
 1. Run: `deno run --allow-read .ikigai/scripts/tasks/next.ts {{args}}/order.json`
 2. Parse the JSON response
 3. If `data` is null, all tasks complete - report summary and stop
 4. If `data` has a task:
    - Run: `deno run --allow-read --allow-write .ikigai/scripts/tasks/session.ts {{args}}/session.json start <task>`
-   - Spawn sub-agent with specified model and thinking level
+   - Spawn ONE sub-agent (do NOT use run_in_background - wait for completion)
+   - Use Task tool with specified model, do NOT set run_in_background=true
    - Sub-agent prompt: "Read and execute {{args}}/<task>. Return only JSON: {\"ok\": true} or {\"ok\": false, \"reason\": \"...\", \"progress_made\": true|false}. progress_made=true if you wrote code, made commits, or fixed errors. progress_made=false if blocked, pre-conditions failed, or no change possible. You must: read task file, verify pre-conditions, execute TDD cycle, verify post-conditions, commit changes, return JSON."
+   - Wait for sub-agent to fully complete (do not proceed until done)
    - Parse sub-agent response for `{"ok": ...}`
 
 5. If ok:
@@ -102,7 +128,7 @@ You are the task orchestrator for `{{args}}`.
    - Report: `✗ <task> failed with no progress: <reason>`
    - Stop and wait for human input
 
-**Remember:** You only orchestrate. Never read task files. Never run make. Sub-agents do all implementation work.
+**Remember:** You only orchestrate. Never read task files. Never run make. Sub-agents do all implementation work. **Execute ONE task at a time, sequentially. Never parallelize.**
 
 Begin orchestration now.
 {{else}}

@@ -64,12 +64,15 @@ START_TEST(test_page_up_after_typing_in_input_buffer) {
     ik_scrollback_ensure_layout(scrollback, 80);
     ik_input_buffer_ensure_layout(input_buf, 80);
 
-    // At this point: scrollback has a, b, c, d with blank lines (8 rows), input buffer empty (0 rows)
-    // Document: 8 (scrollback) + 1 (separator) + 0 (input_buf) = 9 rows
+    // At this point: scrollback has a, b, c, d with blank lines (8 rows), input buffer empty (occupies 1 row)
+    // Document: 8 (scrollback) + 1 (upper_sep) + 1 (input, empty but takes 1 row) + 1 (lower_sep) = 11 rows
     // Terminal: 5 rows
-    // At bottom: shows last 4 scrollback lines + separator
+    // At bottom (offset=0): shows rows 6-10 (last 3 scrollback lines + sep + input + lower_sep)
+    // max_offset = 11 - 5 = 6
 
-    // Step 5: Page Up (should show all visible lines in terminal)
+    // Step 5: Page Up (scrolls up by 5 rows)
+    // offset = min(0 + 5, 6) = 5
+    // Shows rows 1-5 (scrollback lines 1-4 + separator, or similar)
     ik_input_action_t page_up_action = {.type = IK_INPUT_PAGE_UP};
     res = ik_repl_process_action(repl, &page_up_action);
     ck_assert(is_ok(&res));
@@ -78,8 +81,10 @@ START_TEST(test_page_up_after_typing_in_input_buffer) {
     res = ik_repl_calculate_viewport(repl, &viewport_after_first_pageup);
     ck_assert(is_ok(&res));
 
-    // Should see 5 scrollback lines (terminal has 5 rows, 1 for separator)
-    ck_assert_uint_eq(viewport_after_first_pageup.scrollback_start_line, 0);
+    // After Page Up with offset=5: shows rows 1-5
+    // Scrollback occupies rows 0-7 (8 rows), separator at row 8, input at row 9, lower_sep at row 10
+    // Visible rows 1-5 means we see scrollback rows 1-5 (logical lines based on physical rows)
+    ck_assert_uint_eq(viewport_after_first_pageup.scrollback_start_line, 1);
     ck_assert_uint_eq(viewport_after_first_pageup.scrollback_lines_count, 5);
 
     // Step 6: Type 'e' (stays in input buffer, auto-scrolls to bottom)
@@ -93,9 +98,9 @@ START_TEST(test_page_up_after_typing_in_input_buffer) {
     // After typing 'e', auto-scroll should reset to bottom
     ck_assert_uint_eq(repl->viewport_offset, 0);
 
-    // Document now: 8 (scrollback with blank lines) + 1 (separator) + 1 (input buffer 'e') = 10 rows
+    // Document now: 8 (scrollback with blank lines) + 1 (upper_sep) + 1 (input buffer 'e') + 1 (lower_sep) = 11 rows
     // Terminal: 5 rows
-    // At bottom (offset=0): shows last few scrollback lines + separator + e
+    // At bottom (offset=0): shows rows 6-10 (last 3 scrollback lines + separator + e + lower_sep)
 
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(scrollback);
     size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
@@ -112,8 +117,9 @@ START_TEST(test_page_up_after_typing_in_input_buffer) {
     printf("  scrollback_lines_count: %zu\n", viewport_at_bottom.scrollback_lines_count);
     printf("  input_buffer_start_row: %zu\n", viewport_at_bottom.input_buffer_start_row);
 
-    // At bottom, should start at line 5 (showing last few scrollback lines before separator)
-    ck_assert_uint_eq(viewport_at_bottom.scrollback_start_line, 5);
+    // At bottom (offset=0), document rows 6-10 are visible
+    // Scrollback occupies rows 0-7, so rows 6-7 are visible (which is line 6 if each line takes 2 rows)
+    ck_assert_uint_eq(viewport_at_bottom.scrollback_start_line, 6);
 
     // Step 7: Page Up again
     res = ik_repl_process_action(repl, &page_up_action);
@@ -122,8 +128,8 @@ START_TEST(test_page_up_after_typing_in_input_buffer) {
     printf("\nAfter Page Up:\n");
     printf("  viewport_offset: %zu\n", repl->viewport_offset);
 
-    // max_offset = 10 - 5 = 5
-    // offset should be 5 (or 5 clamped to 5)
+    // max_offset = 11 - 5 = 6
+    // After Page Up: offset = min(0 + 5, 6) = 5
     ck_assert_uint_eq(repl->viewport_offset, 5);
 
     ik_viewport_t viewport_after_pageup;
@@ -135,13 +141,13 @@ START_TEST(test_page_up_after_typing_in_input_buffer) {
     printf("  input_buffer_start_row: %zu\n", viewport_after_pageup.input_buffer_start_row);
     printf("  separator_visible: %d\n", viewport_after_pageup.separator_visible);
 
-    // After Page Up, should show rows 0-4 (first 5 scrollback lines including blank lines)
-    // First scrollback line should be 0 (a)
-    ck_assert_msg(viewport_after_pageup.scrollback_start_line == 0,
-                  "Expected scrollback_start_line = 0, got %zu",
+    // After Page Up with offset=5, should show rows 1-5
+    // With scrollback rows 0-7, showing rows 1-5 means we start at scrollback line 1
+    ck_assert_msg(viewport_after_pageup.scrollback_start_line == 1,
+                  "Expected scrollback_start_line = 1, got %zu",
                   viewport_after_pageup.scrollback_start_line);
 
-    // Should see 5 scrollback lines (a, blank, b, blank, c)
+    // Should see 5 scrollback lines
     ck_assert_msg(viewport_after_pageup.scrollback_lines_count == 5,
                   "Expected scrollback_lines_count = 5, got %zu",
                   viewport_after_pageup.scrollback_lines_count);
