@@ -44,7 +44,7 @@ static inline void setup_mock_curl_msg(CURLMsg *msg, CURL *handle, CURLcode resu
 static inline res_t add_test_request(ik_openai_multi_t *multi, ik_cfg_t *cfg,
                                      ik_openai_conversation_t *conv)
 {
-    return ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, NULL);
+    return ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
 }
 
 /* Completion callback that returns error */

@@ -1,5 +1,6 @@
 #include "openai/sse_parser.h"
 #include "error.h"
+#include "tool.h"
 #include "vendor/yyjson/yyjson.h"
 #include <talloc.h>
 #include <string.h>
@@ -35,6 +36,11 @@ yyjson_val *yyjson_arr_get_wrapper(yyjson_val *arr, size_t idx)
 bool yyjson_is_obj_wrapper(yyjson_val *val)
 {
     return yyjson_is_obj(val);
+}
+
+const char *yyjson_get_str_wrapper(yyjson_val *val)
+{
+    return yyjson_get_str(val);
 }
 
 /*
@@ -191,6 +197,128 @@ res_t ik_openai_parse_sse_event(void *parent, const char *event) {
     char *result = talloc_strdup(parent, content_str);
     if (!result) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to allocate content string"); // LCOV_EXCL_LINE
+    }
+
+    yyjson_doc_free(doc);
+    return OK(result);
+}
+
+res_t ik_openai_parse_tool_calls(void *parent, const char *event) {
+    assert(event != NULL); // LCOV_EXCL_BR_LINE
+
+    /* Check for "data: " prefix */
+    const char *data_prefix = "data: ";
+    if (strncmp(event, data_prefix, strlen(data_prefix)) != 0) {
+        return ERR(parent, PARSE, "SSE event missing 'data: ' prefix");
+    }
+
+    /* Get JSON payload (after "data: ") */
+    const char *json_str = event + strlen(data_prefix);
+
+    /* Check for [DONE] marker */
+    if (strcmp(json_str, "[DONE]") == 0) {
+        /* End of stream */
+        return OK(NULL);
+    }
+
+    /* Parse JSON */
+    yyjson_doc *doc = yyjson_read(json_str, strlen(json_str), 0);
+    if (!doc) {
+        return ERR(parent, PARSE, "Failed to parse SSE event JSON");
+    }
+
+    yyjson_val *root = yyjson_doc_get_root_wrapper(doc);
+    if (!yyjson_is_obj_wrapper(root)) {
+        yyjson_doc_free(doc);
+        return ERR(parent, PARSE, "SSE event JSON root is not an object");
+    }
+
+    /* Extract choices[0].delta.tool_calls */
+    yyjson_val *choices = yyjson_obj_get(root, "choices");
+    if (!choices || !yyjson_is_arr(choices) || yyjson_arr_size(choices) == 0) {
+        /* No choices array or empty - no tool_calls */
+        yyjson_doc_free(doc);
+        return OK(NULL);
+    }
+
+    yyjson_val *choice0 = yyjson_arr_get_wrapper(choices, 0);
+    if (!choice0 || !yyjson_is_obj_wrapper(choice0)) { // LCOV_EXCL_BR_LINE
+        yyjson_doc_free(doc);
+        return OK(NULL);
+    }
+
+    yyjson_val *delta = yyjson_obj_get(choice0, "delta");
+    if (!delta || !yyjson_is_obj_wrapper(delta)) {
+        yyjson_doc_free(doc);
+        return OK(NULL);
+    }
+
+    yyjson_val *tool_calls = yyjson_obj_get(delta, "tool_calls");
+    if (!tool_calls || !yyjson_is_arr(tool_calls) || yyjson_arr_size(tool_calls) == 0) {
+        /* No tool_calls field or empty array */
+        yyjson_doc_free(doc);
+        return OK(NULL);
+    }
+
+    /* Extract first tool call (Story 02 scope: single complete tool call) */
+    yyjson_val *tool_call = yyjson_arr_get_wrapper(tool_calls, 0);
+    if (!tool_call || !yyjson_is_obj_wrapper(tool_call)) { // LCOV_EXCL_BR_LINE
+        yyjson_doc_free(doc);
+        return OK(NULL);
+    }
+
+    /* Extract id (optional for streaming chunks - may be absent in subsequent chunks) */
+    yyjson_val *id_val = yyjson_obj_get(tool_call, "id");
+    bool has_id = (id_val != NULL);
+    if (has_id) {
+        has_id = yyjson_is_str(id_val);
+    }
+
+    /* Extract function object */
+    yyjson_val *function = yyjson_obj_get(tool_call, "function");
+    if (!function || !yyjson_is_obj_wrapper(function)) {
+        yyjson_doc_free(doc);
+        return OK(NULL);
+    }
+
+    /* Extract function.name (optional for streaming chunks - may be absent in subsequent chunks) */
+    yyjson_val *name_val = yyjson_obj_get(function, "name");
+    bool has_name = (name_val != NULL);
+    if (has_name) {
+        has_name = yyjson_is_str(name_val);
+    }
+
+    /* For streaming: id and name must both be present OR both be absent */
+    /* First chunk: has both id and name. Subsequent chunks: has neither. */
+    if (has_id != has_name) {
+        /* Malformed: has one but not the other */
+        yyjson_doc_free(doc);
+        return OK(NULL);
+    }
+
+    const char *id_str;
+    const char *name_str;
+    if (has_id) {
+        id_str = yyjson_get_str_wrapper(id_val);
+        name_str = yyjson_get_str_wrapper(name_val);
+    } else {
+        id_str = "";
+        name_str = "";
+    }
+
+    /* Extract function.arguments */
+    yyjson_val *arguments_val = yyjson_obj_get(function, "arguments");
+    if (!arguments_val || !yyjson_is_str(arguments_val)) {
+        yyjson_doc_free(doc);
+        return OK(NULL);
+    }
+    const char *arguments_str = yyjson_get_str_wrapper(arguments_val);
+
+    /* Create ik_tool_call_t */
+    ik_tool_call_t *result = ik_tool_call_create(parent, id_str, name_str, arguments_str);
+    if (!result) { // LCOV_EXCL_BR_LINE
+        yyjson_doc_free(doc);
+        PANIC("Failed to allocate tool_call struct"); // LCOV_EXCL_LINE
     }
 
     yyjson_doc_free(doc);

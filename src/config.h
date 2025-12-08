@@ -14,6 +14,9 @@ typedef struct {
     char *listen_address;
     uint16_t listen_port;
     char *db_connection_string;
+    int32_t max_tool_turns;
+    int64_t max_output_size;
+    int32_t history_size;
 } ik_cfg_t;
 
 res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);

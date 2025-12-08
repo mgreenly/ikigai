@@ -258,6 +258,26 @@ size_t http_write_callback(char *data, size_t size, size_t nmemb, void *userdata
             }
 
             talloc_free(content);
+        } else {
+            /* No content - check for tool calls */
+            res_t tool_res = ik_openai_parse_tool_calls(ctx->parser, event);
+            /* Note: tool_res.is_err is always false here because we already validated
+             * this event parses successfully in parse_sse_event above (line 229).
+             * Both functions parse the same event, so if one succeeds, the other will too. */
+            if (tool_res.ok != NULL) {
+                ik_tool_call_t *tc = tool_res.ok;
+                if (ctx->tool_call == NULL) {
+                    /* First tool call chunk - take ownership */
+                    ctx->tool_call = talloc_steal(ctx->parser, tc);
+                } else {
+                    /* Accumulate arguments for streaming case */
+                    ctx->tool_call->arguments = talloc_strdup_append(ctx->tool_call->arguments, tc->arguments);
+                    if (ctx->tool_call->arguments == NULL) {  // LCOV_EXCL_BR_LINE
+                        PANIC("Failed to accumulate tool call arguments");  // LCOV_EXCL_LINE
+                    }
+                    talloc_free(tc);
+                }
+            }
         }
 
         /* Extract model if not already captured */

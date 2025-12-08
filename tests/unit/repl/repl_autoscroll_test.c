@@ -162,14 +162,22 @@ END_TEST START_TEST(test_autoscroll_on_delete)
 
 END_TEST START_TEST(test_autoscroll_on_cursor_navigation)
 {
-    ik_input_action_t actions[] = {
+    // Arrow left/right should autoscroll
+    ik_input_action_t left_right_actions[] = {
         { .type = IK_INPUT_ARROW_LEFT },
-        { .type = IK_INPUT_ARROW_RIGHT },
+        { .type = IK_INPUT_ARROW_RIGHT }
+    };
+    for (size_t i = 0; i < sizeof(left_right_actions) / sizeof(left_right_actions[0]); i++) {
+        test_action_autoscrolls(&left_right_actions[i], true);
+    }
+
+    // Arrow up/down should NOT autoscroll - they scroll the viewport instead
+    ik_input_action_t up_down_actions[] = {
         { .type = IK_INPUT_ARROW_UP },
         { .type = IK_INPUT_ARROW_DOWN }
     };
-    for (size_t i = 0; i < sizeof(actions) / sizeof(actions[0]); i++) {
-        test_action_autoscrolls(&actions[i], true);
+    for (size_t i = 0; i < sizeof(up_down_actions) / sizeof(up_down_actions[0]); i++) {
+        test_action_autoscrolls(&up_down_actions[i], false);
     }
 }
 
@@ -232,5 +240,8 @@ int main(void)
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);
+
+    ik_test_reset_terminal();
+
     return (number_failed == 0) ? 0 : 1;
 }

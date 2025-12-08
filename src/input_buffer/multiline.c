@@ -144,6 +144,7 @@ static size_t grapheme_to_byte_offset(const char *text, size_t len, size_t targe
 res_t ik_input_buffer_cursor_up(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer->cursor != NULL); // LCOV_EXCL_BR_LINE
 
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
@@ -200,6 +201,7 @@ res_t ik_input_buffer_cursor_up(ik_input_buffer_t *input_buffer)
 res_t ik_input_buffer_cursor_down(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer->cursor != NULL); // LCOV_EXCL_BR_LINE
 
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
@@ -256,6 +258,7 @@ res_t ik_input_buffer_cursor_down(ik_input_buffer_t *input_buffer)
 res_t ik_input_buffer_cursor_to_line_start(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer->cursor != NULL); // LCOV_EXCL_BR_LINE
 
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
@@ -288,6 +291,7 @@ res_t ik_input_buffer_cursor_to_line_start(ik_input_buffer_t *input_buffer)
 res_t ik_input_buffer_cursor_to_line_end(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer->cursor != NULL); // LCOV_EXCL_BR_LINE
 
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
@@ -320,6 +324,7 @@ res_t ik_input_buffer_cursor_to_line_end(ik_input_buffer_t *input_buffer)
 res_t ik_input_buffer_kill_to_line_end(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer->cursor != NULL); // LCOV_EXCL_BR_LINE
 
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
@@ -362,6 +367,7 @@ res_t ik_input_buffer_kill_to_line_end(ik_input_buffer_t *input_buffer)
 res_t ik_input_buffer_kill_line(ik_input_buffer_t *input_buffer)
 {
     assert(input_buffer != NULL); // LCOV_EXCL_BR_LINE
+    assert(input_buffer->cursor != NULL); // LCOV_EXCL_BR_LINE
 
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);

@@ -1,0 +1,21 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AGENTS_DIR="$(dirname "$SCRIPT_DIR")"
+HTTPD_DIR="$AGENTS_DIR/httpd"
+NGINX=/usr/sbin/nginx
+
+case "${1:-}" in
+    start)
+        exec "$NGINX" -p "$HTTPD_DIR" -c nginx.conf
+        ;;
+    stop)
+        exec "$NGINX" -p "$HTTPD_DIR" -c nginx.conf -s stop
+        ;;
+    "")
+        exec "$NGINX" -p "$HTTPD_DIR" -c nginx.conf -g "daemon off;"
+        ;;
+    *)
+        exec "$NGINX" -p "$HTTPD_DIR" -c nginx.conf "$@"
+        ;;
+esac

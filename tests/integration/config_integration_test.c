@@ -65,7 +65,9 @@ START_TEST(test_config_full_flow) {
     fprintf(f, "  \"openai_max_completion_tokens\": 2048,\n");
     fprintf(f, "  \"openai_system_message\": \"You are a helpful assistant\",\n");
     fprintf(f, "  \"listen_address\": \"0.0.0.0\",\n");
-    fprintf(f, "  \"listen_port\": 3000\n");
+    fprintf(f, "  \"listen_port\": 3000,\n");
+    fprintf(f, "  \"max_tool_turns\": 50,\n");
+    fprintf(f, "  \"max_output_size\": 1048576\n");
     fprintf(f, "}\n");
     fclose(f);
 

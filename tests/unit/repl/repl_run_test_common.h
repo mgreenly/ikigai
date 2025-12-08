@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "../../../src/repl.h"
+#include "../../../src/repl_event_handlers.h"
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/input.h"
 #include "../../../src/terminal.h"

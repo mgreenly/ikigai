@@ -340,6 +340,14 @@ END_TEST START_TEST(test_yyjson_arr_get_wrapper_out_of_bounds)
     yyjson_doc_free(doc);
 }
 
+END_TEST START_TEST(test_yyjson_get_str_wrapper_null_value)
+{
+    /* Test NULL value returns NULL */
+    extern const char *yyjson_get_str_wrapper(yyjson_val *val);
+    const char *result = yyjson_get_str_wrapper(NULL);
+    ck_assert_ptr_null(result);
+}
+
 END_TEST START_TEST(test_parse_sse_event_delta_missing)
 {
     /* choice[0] exists but is missing delta key */
@@ -408,6 +416,7 @@ static Suite *openai_sse_suite(void)
     tcase_add_test(tc_sse_parse, test_parse_sse_event_choice0_not_object);
     tcase_add_test(tc_sse_parse, test_parse_sse_event_choice0_null);
     tcase_add_test(tc_sse_parse, test_yyjson_arr_get_wrapper_out_of_bounds);
+    tcase_add_test(tc_sse_parse, test_yyjson_get_str_wrapper_null_value);
     tcase_add_test(tc_sse_parse, test_parse_sse_event_delta_missing);
     tcase_add_test(tc_sse_parse, test_parse_sse_event_delta_not_object);
     tcase_add_test(tc_sse_parse, test_parse_sse_event_content_not_string);

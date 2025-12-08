@@ -6,7 +6,7 @@
 
 ## Purpose
 
-The runtime system provides platform services that agents and webapps consume: task queues, mailboxes, storage, caching, pub/sub, and telemetry. Agents import `@ikigai/platform` and use its APIs. They're built for Ikigai, but they don't need to know which database their queue lives in.
+The runtime system provides platform services that agents and webapps consume: task queues, mailboxes, storage, caching, pub/sub, telemetry, and **LLM access via the Ikigai Daemon**. Agents import `@ikigai/platform` and use its APIs. They're built for Ikigai, but they don't need to know which database their queue lives in or which LLM provider handles their prompts.
 
 ```typescript
 import { Platform } from "@ikigai/platform";
@@ -15,6 +15,12 @@ const platform = await Platform.connect();
 const task = await platform.queue("my-tasks").claim();
 await platform.cache.set("key", value);
 await platform.pubsub.publish("topic", message);
+
+// LLM access via the daemon
+const response = await platform.prompt({
+    model: "sonnet-4.5",
+    messages: [{ role: "user", content: "Analyze this data..." }],
+});
 ```
 
 The platform package is the API contract. Backend implementations are configuration.
@@ -191,6 +197,242 @@ for await (const notification of listener) {
 ```
 
 This avoids polling while keeping operational simplicity. Other backends would use their native pub/sub mechanisms (Redis SUBSCRIBE, NATS subjects, etc.).
+
+---
+
+## Ikigai Daemon
+
+The Ikigai Daemon exposes `libikigai` to agents over a Unix socket. It's the same intelligence that powers the [Terminal](05-terminal.md), available as a platform service.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Agent Process                             │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │              @ikigai/platform client                       │  │
+│  └─────────────────────────┬─────────────────────────────────┘  │
+└────────────────────────────┼────────────────────────────────────┘
+                             │ Unix socket
+┌────────────────────────────┴────────────────────────────────────┐
+│                       ikigai-daemon                              │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                      libikigai                             │  │
+│  │  LLM Routing • Tools • Conversations • Telemetry          │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │
+            ┌─────────────────┼─────────────────┐
+            ▼                 ▼                 ▼
+     LLM Providers       PostgreSQL          Platform
+     (OpenAI, etc.)    (conversations)       Services
+```
+
+### Why a Daemon?
+
+Agents need LLM capabilities, but duplicating LLM integration in TypeScript would mean:
+
+- Rebuilding provider abstraction, conversation management, tool execution
+- Losing unified observability (developer and agent prompts in different systems)
+- Managing API keys in multiple places
+- Missing platform-native tools that require C-level platform access
+
+The daemon gives agents access to all `libikigai` capabilities:
+
+- **Same LLM routing**: Multi-provider support, failover, model selection
+- **Same conversation management**: Threads, history, context optimization
+- **Same tool framework**: Platform tools plus agent-defined custom tools
+- **Same telemetry**: All LLM interactions logged uniformly
+- **Same cost tracking**: Centralized billing attribution
+
+### Agent API
+
+Agents access LLM capabilities through `@ikigai/platform`:
+
+```typescript
+import { Platform } from "@ikigai/platform";
+
+const platform = await Platform.connect();
+
+// Simple prompt
+const response = await platform.prompt({
+    model: "sonnet-4.5",
+    messages: [
+        { role: "user", content: "Should I escalate this alert?" }
+    ],
+});
+
+// With platform tools
+const response = await platform.prompt({
+    model: "sonnet-4.5",
+    messages: [
+        { role: "user", content: "Check recent errors and decide if we need to alert." }
+    ],
+    tools: {
+        platform: ["query_telemetry", "send_message"],
+        custom: [myCustomToolDefinition],
+    },
+});
+
+// With conversation threading
+const thread = await platform.threads.create({
+    context: "Analyzing customer support tickets"
+});
+
+await platform.prompt({
+    thread: thread.id,
+    messages: [{ role: "user", content: "Categorize this ticket..." }],
+});
+
+// Follow-up (has context from previous turn)
+await platform.prompt({
+    thread: thread.id,
+    messages: [{ role: "user", content: "What priority did you assign?" }],
+});
+```
+
+### Platform Tools
+
+The daemon provides built-in tools that agents can use in prompts:
+
+| Tool | Description |
+|------|-------------|
+| `query_telemetry` | Read platform metrics and logs |
+| `create_task` | Queue work for any agent |
+| `send_message` | Send to any mailbox |
+| `list_agents` | Discover registered agents |
+| `read_config` | Access platform configuration |
+| `deploy_agent` | Create or update agents (recursive development) |
+
+These tools execute with platform-level access. When an LLM decides to call `create_task`, the daemon executes it with proper PostgreSQL transactions and permissions.
+
+```typescript
+// Agent asks LLM to decide and act
+const response = await platform.prompt({
+    model: "sonnet-4.5",
+    messages: [{
+        role: "user",
+        content: `I received this webhook: ${payload}.
+                  Should I create a task for the analysis agent?`
+    }],
+    tools: {
+        platform: ["create_task", "query_telemetry"],
+    },
+});
+
+// LLM might respond: "Yes, creating a high-priority task..."
+// and call create_task automatically
+```
+
+### Permission Model
+
+Agent LLM access is controlled via `manifest.json`:
+
+```json
+{
+    "name": "monitoring-agent",
+    "permissions": {
+        "llm": {
+            "models": ["haiku", "sonnet"],
+            "max_tokens_per_request": 4096,
+            "max_tokens_per_hour": 100000,
+            "platform_tools": ["query_telemetry", "send_message"],
+            "allow_custom_tools": true
+        }
+    }
+}
+```
+
+The daemon enforces these limits:
+
+- **Model restrictions**: Agent can only use listed models
+- **Token quotas**: Per-request and hourly limits
+- **Tool access**: Only listed platform tools are available
+- **Custom tools**: Can be disabled entirely for sensitive agents
+
+### Observability
+
+All agent LLM interactions are logged to the same telemetry system as developer Terminal sessions:
+
+```sql
+-- Query all LLM calls related to a specific task
+SELECT * FROM llm_interactions
+WHERE metadata->>'task_id' = '...'
+ORDER BY created_at;
+
+-- Compare costs across agents
+SELECT agent_name, SUM(tokens_used), SUM(cost_usd)
+FROM llm_interactions
+WHERE created_at > now() - interval '24 hours'
+GROUP BY agent_name;
+```
+
+This unified observability means:
+
+- Debug agent decisions: "Why did it escalate that alert?"
+- Track costs: "Which agent is using the most tokens?"
+- Audit: "What did any part of the system send to LLMs?"
+
+### Memory and Context
+
+Agents control their own context window, just as developers do in the Terminal. The daemon exposes both high-level conveniences (equivalent to Terminal commands like `/mark` and `/rewind`) and low-level APIs for direct control.
+
+**High-level API** (Terminal-equivalent operations):
+
+```typescript
+// Mark a restoration point
+const mark = await platform.context.mark("before-analysis");
+
+// Rewind to a previous mark
+await platform.context.rewind(mark);
+
+// Exclude an exchange from future context
+await platform.context.exclude(response.id);
+
+// Summarize older history to save context space
+await platform.context.summarize({ olderThan: "1h" });
+```
+
+**Low-level API** (direct control):
+
+```typescript
+// Memory blocks - named, persistent context sections
+await platform.memory.blocks.create({
+    label: "working_state",
+    value: "Currently processing batch #1234",
+    limit: 2000,
+});
+
+await platform.memory.blocks.update("working_state", {
+    value: "Batch #1234 complete, 47 items processed",
+});
+
+const block = await platform.memory.blocks.get("working_state");
+
+// Conversation history management
+const messages = await platform.conversation.list({ limit: 50 });
+await platform.conversation.delete(messageId);
+
+// Sliding window configuration
+await platform.context.window.resize(16000);  // tokens
+await platform.context.window.strategy("summarize");  // or "truncate"
+```
+
+**LLM-accessible tools** for self-managing context:
+
+```typescript
+await platform.prompt({
+    messages: [...],
+    tools: {
+        platform: [
+            "memory_read",      // Read a memory block
+            "memory_write",     // Update a memory block
+            "context_mark",     // Save a restoration point
+            "context_exclude",  // Remove an exchange from future context
+        ]
+    }
+});
+```
+
+This layered approach means agents can use simple operations for common cases, or drop to low-level APIs when they need precise control over their context and memory.
 
 ---
 

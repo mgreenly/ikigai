@@ -374,6 +374,29 @@ START_TEST(test_layout_zero_width)
 }
 
 END_TEST
+/* Test: Layout calculation - ANSI escape sequences ignored in width */
+START_TEST(test_layout_ansi_width)
+{
+    void *ctx = talloc_new(NULL);
+    ik_input_buffer_t *input_buffer = ik_input_buffer_create(ctx);
+
+    /* Add text: "\x1b[38;5;242mhello\x1b[0m world" (11 visible chars) */
+    const char *text = "\x1b[38;5;242mhello\x1b[0m world";
+    for (const char *p = text; *p; p++) {
+        ik_input_buffer_insert_codepoint(input_buffer, (uint32_t)(unsigned char)*p);
+    }
+
+    /* Width 80: 1 line, width 10: 2 lines (11 chars ignoring escapes) */
+    ik_input_buffer_ensure_layout(input_buffer, 80);
+    ck_assert_uint_eq(input_buffer->physical_lines, 1);
+
+    ik_input_buffer_ensure_layout(input_buffer, 10);
+    ck_assert_uint_eq(input_buffer->physical_lines, 2);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL parameter assertions */
@@ -421,6 +444,7 @@ static Suite *input_buffer_layout_cache_suite(void)
     tcase_add_test(tc_core, test_text_modification_invalidates_layout);
     tcase_add_test(tc_core, test_layout_empty_lines);
     tcase_add_test(tc_core, test_layout_zero_width);
+    tcase_add_test(tc_core, test_layout_ansi_width);
 
     suite_add_tcase(s, tc_core);
 
@@ -440,6 +464,20 @@ int main(void)
     int number_failed;
     Suite *s = input_buffer_layout_cache_suite();
     SRunner *sr = srunner_create(s);
+
+    /*
+     * Disable forking when running with AddressSanitizer or when SKIP_SIGNAL_TESTS is defined.
+     * AddressSanitizer doesn't work well with check's fork-based test isolation because:
+     * 1. Each forked child process triggers leak detection on exit
+     * 2. The check library's internal allocations (emalloc) appear as leaks in each child
+     * 3. This causes tests to exit with status 1, which check interprets as "Early exit"
+     *
+     * When SKIP_SIGNAL_TESTS is set (used by sanitizer builds), we don't have signal tests
+     * anyway, so it's safe to disable forking for better compatibility.
+     */
+#if defined(SKIP_SIGNAL_TESTS)
+    srunner_set_fork_status(sr, CK_NOFORK);
+#endif
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

@@ -1,11 +1,14 @@
 // Internal HTTP callback handlers for OpenAI multi client
 #pragma once
 
+#include <curl/curl.h>
+#include <inttypes.h>
+#include <stddef.h>
+#include <stdbool.h>
 #include "error.h"
 #include "openai/sse_parser.h"
 #include "openai/client.h"
-#include <stddef.h>
-#include <stdbool.h>
+#include "tool.h"
 
 /*
  * Context for HTTP write callback
@@ -22,6 +25,7 @@ typedef struct {
     char *model;                         /* Model name from SSE stream */
     char *finish_reason;                 /* Finish reason from SSE stream */
     int32_t completion_tokens;           /* Completion token count from SSE stream */
+    ik_tool_call_t *tool_call;           /* Tool call if present (NULL otherwise) */
 } http_write_ctx_t;
 
 /**
@@ -37,3 +41,4 @@ typedef struct {
  * @return Number of bytes processed
  */
 size_t http_write_callback(char *data, size_t size, size_t nmemb, void *userdata);
+

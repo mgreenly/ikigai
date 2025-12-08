@@ -12,6 +12,7 @@
 #include <curl/curl.h>
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
+#include "../../../src/repl_event_handlers.h"
 #include "../../../src/render.h"
 #include "../../../src/layer.h"
 #include "../../../src/layer_wrappers.h"

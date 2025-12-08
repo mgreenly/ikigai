@@ -42,12 +42,28 @@ From the perspective of agents and webapps, Ikigai is a Platform as a Service. T
 - **Storage**: Persistent data
 - **Cache**: Fast access to hot data
 - **Telemetry**: Logs, metrics, events
+- **LLM Access**: Prompts, conversations, tool execution
 
-Agents don't care whether their queue is PostgreSQL or Redis. They use the platform API; the infrastructure is configuration. This separation means:
+Agents don't care whether their queue is PostgreSQL or Redis, or which LLM provider handles their prompts. They use the platform API; the infrastructure is configuration. This separation means:
 
 1. **Agents stay simple**: No infrastructure code, just business logic
 2. **Operations stay flexible**: Swap backends without touching agent code
 3. **Defaults work**: PostgreSQL handles everything out of the box
+
+---
+
+## Shared Intelligence
+
+The same AI capabilities that power developer interactions are available to agents.
+
+A core C library (`libikigai`) provides LLM routing, conversation management, tool execution, and telemetry. Two interfaces expose it:
+
+- **Ikigai Terminal**: The developer's conversational interface
+- **Ikigai Daemon**: A service agents consume for LLM access
+
+This means agents can use the same prompt capabilities, the same tool framework, and the same conversation threading that developers use. When you improve the core library, both developers and agents benefit.
+
+More importantly, agents can use **platform tools** that operate on the platform itself: query telemetry, create tasks, send messages, even deploy other agents. The LLM doesn't just generate text; it can act on the platform with proper permissions and transactions.
 
 ---
 

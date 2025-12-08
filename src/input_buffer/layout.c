@@ -5,6 +5,7 @@
 
 #include "core.h"
 #include "error.h"
+#include "../ansi.h"
 #include <assert.h>
 #include <inttypes.h>
 #include <utf8proc.h>
@@ -18,12 +19,19 @@
  */
 static size_t calculate_display_width(const char *text, size_t len)
 {
-    if (text == NULL || len == 0)return 0;  // LCOV_EXCL_LINE - defensive: text is never NULL when len > 0
+    if (text == NULL || len == 0) return 0;  // LCOV_EXCL_LINE - defensive: text is never NULL when len > 0
 
     size_t display_width = 0;
     size_t pos = 0;
 
     while (pos < len) {
+        /* Skip ANSI escape sequences */
+        size_t skip = ik_ansi_skip_csi(text, len, pos);
+        if (skip > 0) {
+            pos += skip;
+            continue;
+        }
+
         utf8proc_int32_t codepoint;
         utf8proc_ssize_t bytes_read = utf8proc_iterate((const utf8proc_uint8_t *)(text + pos),
                                                        (utf8proc_ssize_t)(len - pos),

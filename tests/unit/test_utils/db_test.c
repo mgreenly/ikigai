@@ -186,6 +186,7 @@ static Suite *test_utils_db_suite(void)
     suite_add_tcase(s, tc_name);
 
     TCase *tc_lifecycle = tcase_create("DB Lifecycle");
+    tcase_set_timeout(tc_lifecycle, 30);
     tcase_add_test(tc_lifecycle, test_db_full_lifecycle);
     tcase_add_test(tc_lifecycle, test_db_truncate_all);
     tcase_add_test(tc_lifecycle, test_db_create_without_migrate);

@@ -9,22 +9,10 @@ CURRENT_LOG="$LOG_DIR/current.log"
 # Read JSON from stdin
 INPUT=$(cat)
 
-# Ensure log file exists
-if [ ! -f "$CURRENT_LOG" ]; then
-    mkdir -p "$LOG_DIR"
-    echo "Log file not found, skipping notification logging" >&2
-    exit 0
-fi
+# Ensure log directory exists
+mkdir -p "$LOG_DIR"
 
-# Extract notification information
-MESSAGE=$(echo "$INPUT" | jq -r '.message // "no message"')
-NOTIFICATION_TYPE=$(echo "$INPUT" | jq -r '.notification_type // "unknown"')
-
-# Write to log
-{
-    echo "[NOTIFICATION $(date '+%Y-%m-%d %H:%M:%S')] Type: $NOTIFICATION_TYPE"
-    echo "$MESSAGE"
-    echo ""
-} >> "$CURRENT_LOG"
+# Output JSONL: add event type and timestamp to input
+echo "$INPUT" | jq -c '. + {event: "notification", ts: "'"$(date -Iseconds)"'"}' >> "$CURRENT_LOG"
 
 exit 0

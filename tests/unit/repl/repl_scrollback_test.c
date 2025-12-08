@@ -363,8 +363,8 @@ START_TEST(test_submit_line_to_scrollback)
     res = ik_repl_submit_line(repl);
     ck_assert(is_ok(&res));
 
-    // Verify scrollback has one line
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    // Verify scrollback has two lines (content + blank line)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
 
     // Verify input buffer is cleared
     ck_assert_uint_eq(ik_byte_array_size(repl->input_buffer->text), 0);
@@ -474,6 +474,8 @@ int main(void)
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);
+
+    ik_test_reset_terminal();
 
     return (number_failed == 0) ? 0 : 1;
 }

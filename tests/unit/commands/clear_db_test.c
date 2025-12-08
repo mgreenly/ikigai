@@ -80,6 +80,14 @@ char *PQerrorMessage(const PGconn *conn)
     return error_msg;
 }
 
+// Mock posix_rename_ (logger rotation)
+int posix_rename_(const char *oldpath, const char *newpath)
+{
+    (void)oldpath;
+    (void)newpath;
+    return 0;  // Success
+}
+
 /**
  * Create a REPL context with scrollback and conversation for clear testing.
  */
@@ -197,8 +205,8 @@ START_TEST(test_clear_db_error_system_message)
     ck_assert(is_ok(&res));
 
     // Verify clear still happened despite DB error
-    // System message should be displayed in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    // System message should be displayed in scrollback (with blank line after)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
     ck_assert_uint_eq(repl->conversation->message_count, 0);
 
     // Clean up
@@ -287,12 +295,13 @@ START_TEST(test_clear_system_db_error_no_debug_pipe)
     ck_assert(is_ok(&res));
 
     // Verify clear happened
-    // System message should be displayed in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    // System message should be displayed in scrollback (with blank line after)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
     ck_assert_uint_eq(repl->conversation->message_count, 0);
 }
 
 END_TEST
+
 // Test: Clear with DB error and debug pipe but write_end is NULL
 START_TEST(test_clear_db_error_write_end_null)
 {
@@ -358,12 +367,13 @@ START_TEST(test_clear_system_db_error_write_end_null)
     ck_assert(is_ok(&res));
 
     // Verify clear happened
-    // System message should be displayed in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    // System message should be displayed in scrollback (with blank line after)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
     ck_assert_uint_eq(repl->conversation->message_count, 0);
 }
 
 END_TEST
+
 // Test: Clear with session_id <= 0 (no DB persistence)
 START_TEST(test_clear_with_invalid_session_id)
 {

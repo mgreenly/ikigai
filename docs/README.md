@@ -26,6 +26,8 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 
 ### Architecture & Design
 - **[architecture.md](architecture.md)** - System architecture, dependencies, and design principles
+- **[autonomous-agents.md](autonomous-agents.md)** - Autonomous agent system: identity, communication, hierarchy, deployment
+- **[services.md](services.md)** - Services infrastructure: nginx, PostgreSQL, runit for dev and production
 - **[decisions/](decisions/)** - Architecture Decision Records (ADRs) for key design choices
 - **[repl/](repl/)** - REPL terminal interface documentation (rel-01 - complete)
 
@@ -49,15 +51,10 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - **[task-system-guide.md](task-system-guide.md)** - Task system usage guide with workflows, templates, and examples
 
 ### Internal Analysis
-- **[memory_usage_analysis.md](memory_usage_analysis.md)** - Memory usage analysis and optimization notes
 - **[considerations.md](considerations.md)** - Candidate features and changes to consider for the future
 - **[../fix.md](../fix.md)** - Known issues and technical debt
 
-## Roadmap to v1.0
-
-**Architecture Overview**:
-- **[v1-architecture.md](v1-architecture.md)** - v1.0 core architecture: scrollback as context window, three-layer model
-- **[v1-implementation-roadmap.md](v1-implementation-roadmap.md)** - Phase-by-phase implementation plan with dependencies
+## Roadmap
 
 ### rel-01: REPL Terminal Foundation
 
@@ -85,7 +82,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - In-memory conversation state with checkpoint/rollback
 - Mock verification test suite
 
-### v0.3.0: Database Integration (PostgreSQL)
+### rel-03: Database Integration (PostgreSQL)
 
 **Objective**: Persistent conversation history with optional database mode
 
@@ -99,7 +96,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Session restoration on launch
 - Memory-only fallback mode
 
-### Future: Local Tool Execution
+### rel-04: Local Tool Execution
 
 **Objective**: Enable file operations, shell commands, and code analysis
 
@@ -109,6 +106,22 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Shell command execution
 - Code analysis (tree-sitter integration)
 - Results flow back to conversation
+
+### Future: Background Agents
+
+**Objective**: Support multiple concurrent agents with human and LLM spawning
+
+**Tasks**:
+- Multiple top-level agents (human-spawned via command or hotkey)
+- LLM-spawned sub-agents for parallel task execution
+- Refactor existing single-agent code for multi-agent architecture
+- Hot-key navigation between active agents (e.g., Alt+1, Alt+2)
+- Agent lifecycle management (spawn, switch, terminate)
+- Slash commands for agent control (/agents, /spawn, /switch, /kill)
+- Visual indicator showing current agent and status of all agents
+- Inter-agent communication (optional: message passing between agents)
+
+**Rationale**: Complex tasks benefit from parallel execution. Human users may want multiple conversations active simultaneously. LLMs can delegate subtasks to specialized sub-agents, improving throughput and enabling divide-and-conquer workflows.
 
 ### Future: Multi-LLM Provider Support
 
@@ -120,44 +133,47 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Provider switching via config or runtime command
 - Unified conversation format
 
-### Future: Layer Architecture Refinement
+### Future: Codebase Refactor
 
-**Objective**: Remove adapter layer and integrate components directly with layer cake
-
-**Tasks**:
-- Remove `layer_wrappers.c` adapter abstraction
-- Update scrollback, separator, and input components to implement layer interface directly
-- Consolidate layer creation logic into REPL initialization
-- Reduce indirection and simplify layer management
-
-**Rationale**: The adapter pattern in `layer_wrappers.c` was useful for prototyping but adds unnecessary indirection. Direct implementation of the layer interface by UI components will simplify the codebase.
-
-### Future: Enhanced Terminal UI
-
-**Objective**: Polish the user experience
+**Objective**: Improve code organization, reduce complexity, and clean up technical debt
 
 **Tasks**:
-- Syntax highlighting in code blocks (tree-sitter)
-- External editor integration ($EDITOR)
-- Command history and session management
-- Rich formatting and themes
+- Reorganize source into subfolder-per-module structure with one public header each
+- Standardize naming conventions and design patterns across modules
+- Remove unnecessary abstractions (e.g., `layer_wrappers.c`)
+- Consolidate and clean up test structure
+- Improve dependency injection consistency
 
-### Future: Code Organization and Module Cleanup
+### Future: Rich Tool Use
 
-**Objective**: Refactor codebase structure for better organization and maintainability
+**Objective**: Expand tool capabilities and improve tool execution experience
 
 **Tasks**:
-- Reorganize source into subfolder-per-module structure
-- Consolidate to one public header (*.h) per module/subfolder
-- Standardize naming conventions across all modules
-- Remove code redundancies and duplications
-- Reorganize and consolidate test structure
-- Improve module boundaries and interfaces
-- Clean up internal module organization
+- Parallel tool execution
+- Better tool run inspection and visibility
 
-**Rationale**: This is the standard refactoring cycle before each major release. As features are added throughout development, technical debt accumulates and module boundaries become less clear. A dedicated refactoring phase before release ensures the codebase is clean, well-organized, and maintainable for the next development cycle.
+**Tool Priorities** (compared against Claude Code's 18 tools, we have 5):
 
-## v2.0 Vision
+| Priority | Tool | Rationale |
+|----------|------|-----------|
+| High | Edit | Surgical text replacement, less context than file_write |
+| High | BashOutput + KillShell | Async bash monitoring and termination |
+| High | TodoWrite | Task tracking for complex multi-step work |
+| Medium | AskUserQuestion | Interactive clarification from model |
+| Medium | WebFetch | Fetch and process web content (docs, APIs) |
+| Medium | WebSearch | General web search |
+| Low | SlashCommand | Model self-invocation of commands |
+| Low | Skill | Direct skill loading by model |
+
+### Future: User Experience
+
+**Objective**: Polish configuration, discoverability, and customization workflows
+
+**Tasks**:
+- Separate credentials from config ([design](backlog/config-credentials-split.md))
+- Layered resolution for commands, skills, and personas ([design](backlog/agents-layered-resolution.md))
+
+### Far Future: Vision
 
 v2.0 focuses on intelligent context management through comprehensive RAG infrastructure. Automated indexing and summarization will maintain conversation history, with retrieval systems constructing optimal context for each LLM request. The model gains tools to search and retrieve historical messages, while the architecture introduces concurrency foundations for background processing of RAG operations.
 

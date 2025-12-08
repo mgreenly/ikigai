@@ -5,6 +5,102 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rel-04] - 2025-12-07
+
+### Added
+
+#### Local Tool Execution (Complete)
+- **Tool dispatcher**: Route tool calls by name to execution handlers
+- **File operations**: file_read and file_write tools with output truncation
+- **Code search**: glob and grep tools for codebase exploration
+- **Shell execution**: bash tool with command execution and error handling
+- **Tool loop**: Multi-tool iteration with finish_reason detection and loop limits
+- **Conversation integration**: Tool messages added to conversation state with DB persistence
+- **Replay support**: Tool message transformation for session replay
+
+#### Tool Choice API
+- **Configuration type**: tool_choice field with auto, none, required, and specific modes
+- **JSON serialization**: Proper serialization of all tool_choice variants
+- **Loop limit behavior**: Automatic tool_choice=none when iteration limit reached
+- **E2E test suite**: Comprehensive tests for all tool_choice modes
+
+#### Command History
+- **File persistence**: JSONL load/save/append operations in ~/.ikigai directory
+- **Navigation**: Up/Down arrow key integration for history traversal
+- **Deduplication**: Consecutive duplicate command prevention
+- **Configuration**: history_size field in config with sensible defaults
+
+#### Tab Completion (Complete)
+- **Completion layer**: Dropdown display for completion candidates
+- **Fuzzy matching**: fzy algorithm integration with talloc-aware wrapper
+- **Prefix enforcement**: Strict prefix matching for command completion
+- **Argument matching**: Context-aware completion based on current input
+- **Navigation**: Arrow/Tab/Escape key interaction for selection
+- **State machine**: Tab cycling through candidates with wrap-around
+- **Accept behavior**: Tab accepts and dismisses, cursor positioned at end
+
+#### JSONL Logger
+- **File output**: Structured logging to ~/.ikigai/logs directory
+- **Timestamps**: ISO 8601 timestamp formatting
+- **Log rotation**: Atomic file rotation with configurable limits
+- **Thread safety**: Mutex-protected logging for concurrent access
+- **Log levels**: Debug, info, warning, error with filtering
+- **HTTP logging**: Request/response logging for OpenAI API calls
+
+#### Mouse Scroll Support
+- **SGR protocol**: Parse SGR mouse escape sequences
+- **Terminal integration**: Enable SGR mouse reporting mode
+- **Scroll actions**: IK_INPUT_SCROLL_UP/DOWN action types
+- **Handler**: Mouse scroll event handling in REPL
+- **Alternate scroll mode**: Arrow keys scroll when viewing scrollback
+
+#### UI Improvements
+- **Unicode box drawing**: Replaced ASCII separators with Unicode characters
+- **Input layer newline**: Fixed trailing newline handling in input layer
+
+#### ANSI Color System
+- **Escape skip**: Function to skip over ANSI CSI escape sequences
+- **Width calculation**: ANSI-aware width for scrollback, input, and cursor
+- **Color constants**: ANSI color codes and SGR sequence builders
+- **SGR stripping**: Remove SGR sequences from pasted input
+- **Message styling**: Apply colors to different message kinds
+
+### Changed
+
+#### Async Tool Execution
+- **Thread infrastructure**: Background thread pool for tool execution
+- **Non-blocking**: Tools execute without blocking the event loop
+- **Debug output**: Request/response metadata with >> prefix convention
+
+#### Terminal Improvements
+- **Cursor restoration**: Proper cursor visibility on exit and panic
+- **Terminal reset**: Test utility for consistent terminal state
+- **HTTP/2 filtering**: Filter debug noise and redact secrets from logs
+
+#### Code Organization
+- **Layer modules**: Split layer_wrappers.c into per-layer files (completion, input, scrollback, separator, spinner)
+- **Action modules**: Split repl_actions.c into focused modules (completion, history, llm, viewport)
+- **Wrapper headers**: Split wrapper.h into domain-specific headers (curl, json, posix, postgres, pthread, stdlib, talloc)
+
+### Development
+
+#### Testing & Quality Gates
+- **Test coverage**: Maintained 100% (6,374 lines, 384 functions, 2,144 branches)
+- **Sanitizer fixes**: Thread safety improvements for ASan/UBSan/TSan compliance
+- **Valgrind/Helgrind**: All 286 tests pass under memory and thread checkers
+- **File size enforcement**: 16KB limit with automated splitting
+
+#### Documentation
+- **Task specifications**: TDD task files for all tool execution user stories
+- **Architecture docs**: Canonical message format and extended thinking documentation
+- **Agent skills**: Modernized skill system with composable personas
+
+### Technical Metrics
+- **Changes**: 703 files modified, +87,581/-9,083 lines
+- **Commits**: 174 commits over development cycle
+- **Test coverage**: 100% lines (6,374), functions (384), and branches (2,144)
+- **Code quality**: All lint, format, and sanitizer checks pass
+
 ## [rel-03] - 2025-11-28
 
 ### Added
@@ -182,6 +278,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
+[rel-04]: https://github.com/mgreenly/ikigai/releases/tag/rel-04
 [rel-03]: https://github.com/mgreenly/ikigai/releases/tag/rel-03
 [rel-02]: https://github.com/mgreenly/ikigai/releases/tag/rel-02
 [rel-01]: https://github.com/mgreenly/ikigai/releases/tag/rel-01

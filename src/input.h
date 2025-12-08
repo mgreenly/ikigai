@@ -20,12 +20,16 @@ typedef enum {
     IK_INPUT_ARROW_DOWN,  // Down arrow
     IK_INPUT_PAGE_UP,     // Page Up key
     IK_INPUT_PAGE_DOWN,   // Page Down key
+    IK_INPUT_SCROLL_UP,   // Mouse scroll up
+    IK_INPUT_SCROLL_DOWN, // Mouse scroll down
     IK_INPUT_CTRL_A,      // Ctrl+A (beginning of line)
     IK_INPUT_CTRL_C,      // Ctrl+C (exit)
     IK_INPUT_CTRL_E,      // Ctrl+E (end of line)
     IK_INPUT_CTRL_K,      // Ctrl+K (kill to end of line)
     IK_INPUT_CTRL_U,      // Ctrl+U (kill line)
     IK_INPUT_CTRL_W,      // Ctrl+W (delete word backward)
+    IK_INPUT_TAB,         // Tab key (completion trigger)
+    IK_INPUT_ESCAPE,      // Escape key (dismiss completion)
     IK_INPUT_UNKNOWN      // Unrecognized sequence
 } ik_input_action_type_t;
 

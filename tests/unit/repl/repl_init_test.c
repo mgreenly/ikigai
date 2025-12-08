@@ -5,11 +5,14 @@
 
 #include <check.h>
 #include <talloc.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <termios.h>
 #include <unistd.h>
-#include <signal.h>
+
 #include "../../../src/repl.h"
 #include "../../test_utils.h"
 
@@ -22,6 +25,9 @@ static bool mock_ioctl_should_fail = false;
 // Mock state for controlling posix_sigaction_ failures
 static bool mock_sigaction_should_fail = false;
 
+// Mock state for controlling posix_stat_ failures (for history)
+static bool mock_stat_should_fail = false;
+
 // Forward declarations for wrapper functions
 int posix_open_(const char *pathname, int flags);
 int posix_ioctl_(int fd, unsigned long request, void *argp);
@@ -32,6 +38,8 @@ int posix_tcflush_(int fd, int queue_selector);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
 ssize_t posix_read_(int fd, void *buf, size_t count);
 int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
+int posix_stat_(const char *pathname, struct stat *statbuf);
+int posix_mkdir_(const char *pathname, mode_t mode);
 
 // Forward declaration for suite function
 static Suite *repl_init_suite(void);
@@ -127,6 +135,33 @@ int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *
     return 0;  // Success
 }
 
+int posix_stat_(const char *pathname, struct stat *statbuf)
+{
+    (void)pathname;
+    (void)statbuf;
+
+    if (mock_stat_should_fail) {
+        errno = EACCES;  // Permission denied
+        return -1;
+    }
+
+    // Simulate directory exists for .ikigai
+    return -1;  // File doesn't exist (normal case for history file)
+}
+
+int posix_mkdir_(const char *pathname, mode_t mode)
+{
+    (void)pathname;
+    (void)mode;
+
+    if (mock_stat_should_fail) {
+        errno = EACCES;  // Permission denied
+        return -1;
+    }
+
+    return 0;  // Success
+}
+
 /* Test: Terminal init failure (cannot open /dev/tty) */
 START_TEST(test_repl_init_terminal_open_failure) {
     void *ctx = talloc_new(NULL);
@@ -197,6 +232,36 @@ START_TEST(test_repl_init_signal_handler_failure)
 }
 
 END_TEST
+
+/* Test: History load failure (graceful degradation) */
+START_TEST(test_repl_init_history_load_failure)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Enable mock failure for stat/mkdir (history directory creation)
+    mock_stat_should_fail = true;
+
+    // Initialize REPL - should succeed even with history failure
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t res = ik_repl_init(ctx, cfg, &repl);
+
+    // Verify success (graceful degradation)
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(repl);
+
+    // History should be created but empty
+    ck_assert_ptr_nonnull(repl->history);
+    ck_assert_uint_eq(repl->history->count, 0);
+
+    // Cleanup mock state
+    mock_stat_should_fail = false;
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+
+END_TEST
 /* Test: Successful initialization verifies debug manager creation */
 START_TEST(test_repl_init_success_debug_manager)
 {
@@ -232,6 +297,7 @@ static Suite *repl_init_suite(void)
     tcase_add_test(tc_term, test_repl_init_terminal_open_failure);
     tcase_add_test(tc_term, test_repl_init_render_invalid_dimensions);
     tcase_add_test(tc_term, test_repl_init_signal_handler_failure);
+    tcase_add_test(tc_term, test_repl_init_history_load_failure);
     suite_add_tcase(s, tc_term);
 
     TCase *tc_success = tcase_create("Successful Init");

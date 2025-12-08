@@ -2,16 +2,26 @@
 #include "error.h"
 #include "panic.h"
 #include "repl.h"
+#include "logger.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <talloc.h>
+#include <unistd.h>
 
 /* LCOV_EXCL_START */
 int main(void)
 {
     void *root_ctx = talloc_new(NULL);
     if (root_ctx == NULL) PANIC("Failed to create root talloc context");
+
+    // Capture working directory for logger initialization
+    char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+        PANIC("Failed to get current working directory");
+    }
 
     // Load configuration
     res_t cfg_result = ik_cfg_load(root_ctx, "~/.config/ikigai/config.json");
@@ -22,10 +32,14 @@ int main(void)
     }
     ik_cfg_t *cfg = cfg_result.ok;
 
+    // Initialize logger with captured working directory
+    ik_log_init(cwd);
+
     ik_repl_ctx_t *repl = NULL;
     res_t result = ik_repl_init(root_ctx, cfg, &repl);
     if (is_err(&result)) {
         error_fprintf(stderr, result.err);
+        ik_log_shutdown();
         talloc_free(root_ctx);
         return EXIT_FAILURE;
     }
@@ -37,6 +51,7 @@ int main(void)
     result = ik_repl_run(repl);
 
     ik_repl_cleanup(repl);
+    ik_log_shutdown();
     talloc_free(root_ctx);
 
     return is_ok(&result) ? EXIT_SUCCESS : EXIT_FAILURE;

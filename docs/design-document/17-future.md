@@ -29,6 +29,19 @@ For specialized needs, vector storage can be reconfigured to dedicated vector da
 
 ---
 
+## Memory and Stateful Agents
+
+The problem of stateful, memory-managing agents is being solved across the industry. Projects like [Letta](https://www.letta.com/) have explored memory blocks, context window management, and agent self-improvement through similar primitives.
+
+Ikigai's approach shares conceptual ground but differs in philosophy:
+
+- **Letta**: Memory as the central abstraction; agents as server-side entities created via API
+- **Ikigai**: Platform coordination as the central abstraction; agents as Linux processes consuming platform services
+
+Where the underlying problems converge (context control, persistent memory, multi-turn reasoning), Ikigai's APIs will naturally resemble others solving the same problems. That's not imitation; it's recognition that these are the correct primitives for stateful agents.
+
+---
+
 ## Additional Interfaces
 
 The web portal architecture (Pillar 4) can be extended to support additional interfaces:

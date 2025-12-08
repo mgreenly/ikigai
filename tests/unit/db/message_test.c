@@ -309,6 +309,69 @@ START_TEST(test_db_message_insert_null_data)
 }
 
 END_TEST
+// Test: Insert tool_call event with tool details
+START_TEST(test_db_message_insert_tool_call_event)
+{
+    SKIP_IF_NO_DB();
+
+    const char *tool_call_content = "glob(pattern='*.c', path='src/')";
+    const char *data_json =
+        "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
+
+    res_t res = ik_db_message_insert(db, session_id, "tool_call", tool_call_content, data_json);
+    ck_assert(is_ok(&res));
+
+    // Verify message was inserted
+    const char *query = "SELECT kind, content, data::text FROM messages WHERE session_id = $1";
+    const char *params[] = {talloc_asprintf(test_ctx, "%lld", (long long)session_id)};
+    PGresult *result = PQexecParams(db->conn, query, 1, NULL, params, NULL, NULL, 0);
+
+    ck_assert_int_eq(PQresultStatus(result), PGRES_TUPLES_OK);
+    ck_assert_int_eq(PQntuples(result), 1);
+    ck_assert_str_eq(PQgetvalue(result, 0, 0), "tool_call");
+    ck_assert_str_eq(PQgetvalue(result, 0, 1), tool_call_content);
+
+    // Verify JSONB contains tool call details
+    const char *json_result = PQgetvalue(result, 0, 2);
+    ck_assert(strstr(json_result, "call_abc123") != NULL);
+    ck_assert(strstr(json_result, "glob") != NULL);
+
+    PQclear(result);
+}
+
+END_TEST
+// Test: Insert tool_result event with execution result
+START_TEST(test_db_message_insert_tool_result_event)
+{
+    SKIP_IF_NO_DB();
+
+    const char *tool_result_content = "3 files found";
+    const char *data_json =
+        "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
+
+    res_t res = ik_db_message_insert(db, session_id, "tool_result", tool_result_content, data_json);
+    ck_assert(is_ok(&res));
+
+    // Verify message was inserted
+    const char *query = "SELECT kind, content, data::text FROM messages WHERE session_id = $1";
+    const char *params[] = {talloc_asprintf(test_ctx, "%lld", (long long)session_id)};
+    PGresult *result = PQexecParams(db->conn, query, 1, NULL, params, NULL, NULL, 0);
+
+    ck_assert_int_eq(PQresultStatus(result), PGRES_TUPLES_OK);
+    ck_assert_int_eq(PQntuples(result), 1);
+    ck_assert_str_eq(PQgetvalue(result, 0, 0), "tool_result");
+    ck_assert_str_eq(PQgetvalue(result, 0, 1), tool_result_content);
+
+    // Verify JSONB contains tool result details
+    const char *json_result = PQgetvalue(result, 0, 2);
+    ck_assert(strstr(json_result, "call_abc123") != NULL);
+    ck_assert(strstr(json_result, "glob") != NULL);
+    ck_assert(strstr(json_result, "success") != NULL);
+
+    PQclear(result);
+}
+
+END_TEST
 // Test: Insert with non-existent session_id triggers foreign key constraint
 // Bug 9 regression test: error message must be accessible without crash
 START_TEST(test_db_message_insert_fk_constraint)
@@ -381,6 +444,8 @@ static Suite *message_suite(void)
     tcase_add_test(tc_insert, test_db_message_insert_assistant_event);
     tcase_add_test(tc_insert, test_db_message_insert_mark_event);
     tcase_add_test(tc_insert, test_db_message_insert_rewind_event);
+    tcase_add_test(tc_insert, test_db_message_insert_tool_call_event);
+    tcase_add_test(tc_insert, test_db_message_insert_tool_result_event);
     tcase_add_test(tc_insert, test_db_message_insert_empty_content);
     tcase_add_test(tc_insert, test_db_message_insert_null_data);
     tcase_add_test(tc_insert, test_db_message_insert_multiple_events);

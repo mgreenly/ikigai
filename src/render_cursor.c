@@ -4,6 +4,7 @@
  */
 
 #include "render_cursor.h"
+#include "ansi.h"
 #include "error.h"
 #include <assert.h>
 #include <utf8proc.h>
@@ -34,6 +35,13 @@ res_t calculate_cursor_screen_position(
             row++;
             col = 0;
             pos++;
+            continue;
+        }
+
+        // Skip ANSI escape sequences
+        size_t skip = ik_ansi_skip_csi(text, text_len, pos);
+        if (skip > 0) {
+            pos += skip;
             continue;
         }
 

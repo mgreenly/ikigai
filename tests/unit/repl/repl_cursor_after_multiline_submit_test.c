@@ -50,13 +50,15 @@ START_TEST(test_scrollback_lines_after_single_line_submit) {
 
     ik_input_buffer_ensure_layout(repl->input_buffer, 80);
     ik_scrollback_ensure_layout(repl->scrollback, 80);
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
-    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 2);
     ck_assert_uint_eq(repl->input_buffer->physical_lines, 0);
 
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_scrollback_lines_after_multiline_submit)
+END_TEST
+
+START_TEST(test_scrollback_lines_after_multiline_submit)
 {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
@@ -72,14 +74,16 @@ END_TEST START_TEST(test_scrollback_lines_after_multiline_submit)
 
     ik_input_buffer_ensure_layout(repl->input_buffer, 80);
     ik_scrollback_ensure_layout(repl->scrollback, 80);
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
-    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 2);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 3);
     ck_assert_uint_eq(repl->input_buffer->physical_lines, 0);
 
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_with_leading_newline)
+END_TEST
+
+START_TEST(test_scrollback_lines_with_leading_newline)
 {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
@@ -93,13 +97,15 @@ END_TEST START_TEST(test_scrollback_lines_with_leading_newline)
 
     ik_input_buffer_ensure_layout(repl->input_buffer, 80);
     ik_scrollback_ensure_layout(repl->scrollback, 80);
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
-    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 2);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 3);
 
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_with_trailing_newline)
+END_TEST
+
+START_TEST(test_scrollback_lines_with_trailing_newline)
 {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
@@ -113,13 +119,15 @@ END_TEST START_TEST(test_scrollback_lines_with_trailing_newline)
 
     ik_input_buffer_ensure_layout(repl->input_buffer, 80);
     ik_scrollback_ensure_layout(repl->scrollback, 80);
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
     ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 2);
 
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_after_three_line_submit)
+END_TEST
+
+START_TEST(test_scrollback_lines_after_three_line_submit)
 {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
@@ -139,14 +147,16 @@ END_TEST START_TEST(test_scrollback_lines_after_three_line_submit)
 
     ik_input_buffer_ensure_layout(repl->input_buffer, 80);
     ik_scrollback_ensure_layout(repl->scrollback, 80);
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
-    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 3);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 4);
     ck_assert_uint_eq(repl->input_buffer->physical_lines, 0);
 
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_a_b_trailing_newline)
+END_TEST
+
+START_TEST(test_scrollback_lines_a_b_trailing_newline)
 {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
@@ -164,13 +174,15 @@ END_TEST START_TEST(test_scrollback_lines_a_b_trailing_newline)
 
     ik_input_buffer_ensure_layout(repl->input_buffer, 80);
     ik_scrollback_ensure_layout(repl->scrollback, 80);
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
     ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 3);
 
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_single_newline)
+END_TEST
+
+START_TEST(test_scrollback_lines_single_newline)
 {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
@@ -182,13 +194,15 @@ END_TEST START_TEST(test_scrollback_lines_single_newline)
 
     ik_input_buffer_ensure_layout(repl->input_buffer, 80);
     ik_scrollback_ensure_layout(repl->scrollback, 80);
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
-    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 0);
 
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_double_newline)
+END_TEST
+
+START_TEST(test_scrollback_lines_double_newline)
 {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
@@ -202,13 +216,15 @@ END_TEST START_TEST(test_scrollback_lines_double_newline)
 
     ik_input_buffer_ensure_layout(repl->input_buffer, 80);
     ik_scrollback_ensure_layout(repl->scrollback, 80);
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
-    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 2);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 0);
 
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_content_double_newline)
+END_TEST
+
+START_TEST(test_scrollback_lines_content_double_newline)
 {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
@@ -224,8 +240,8 @@ END_TEST START_TEST(test_scrollback_lines_content_double_newline)
 
     ik_input_buffer_ensure_layout(repl->input_buffer, 80);
     ik_scrollback_ensure_layout(repl->scrollback, 80);
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
-    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 3);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_uint_eq((size_t)ik_scrollback_get_total_physical_lines(repl->scrollback), 2);
 
     talloc_free(ctx);
 }

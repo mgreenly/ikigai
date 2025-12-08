@@ -11,9 +11,10 @@
 // ========== Wrapper Function Overrides ==========
 // These override the weak symbols in src/wrapper.c for testing
 
-// Mocking controls for talloc_realloc_
-extern int ik_test_talloc_realloc_fail_on_call;  // -1 = don't fail, >= 0 = fail on this call
-extern int ik_test_talloc_realloc_call_count;
+// Thread-local mocking controls for talloc_realloc_
+// Using __thread to ensure each test file running in parallel has its own state
+extern __thread int ik_test_talloc_realloc_fail_on_call;  // -1 = don't fail, >= 0 = fail on this call
+extern __thread int ik_test_talloc_realloc_call_count;
 
 void *talloc_zero_(TALLOC_CTX *ctx, size_t size);
 char *talloc_strdup_(TALLOC_CTX *ctx, const char *str);
@@ -155,5 +156,19 @@ res_t ik_test_db_truncate_all(ik_db_ctx_t *db);
  * @return OK on success, ERR on failure
  */
 res_t ik_test_db_destroy(const char *db_name);
+
+// ========== Terminal Reset Utilities ==========
+
+/**
+ * Reset terminal state after tests that may emit escape sequences.
+ *
+ * Call this in suite teardown for any test file that:
+ * - Mocks posix_write_ for terminal output
+ * - Tests rendering code
+ * - Exercises cursor visibility
+ *
+ * Safe to call even if terminal is in normal state.
+ */
+void ik_test_reset_terminal(void);
 
 #endif // IK_TEST_UTILS_H

@@ -1,7 +1,9 @@
 #include "openai/client_multi_internal.h"
 
 #include "error.h"
+#include "logger.h"
 #include "panic.h"
+#include "vendor/yyjson/yyjson.h"
 #include "wrapper.h"
 
 #include <assert.h>
@@ -16,6 +18,33 @@
  * Provides lifecycle management and event loop operations.
  * Request management is in client_multi_request.c
  */
+
+/**
+ * yyjson wrapper functions for testing inline vendor functions
+ *
+ * These wrappers allow testing the NULL branches of vendor inline functions
+ * by providing a non-inline boundary for code coverage tools.
+ */
+
+yyjson_mut_val *yyjson_mut_doc_get_root_wrapper(yyjson_mut_doc *doc)
+{
+    return yyjson_mut_doc_get_root(doc);
+}
+
+bool yyjson_mut_obj_add_str_wrapper(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key, const char *val)
+{
+    return yyjson_mut_obj_add_str(doc, obj, key, val);
+}
+
+bool yyjson_mut_obj_add_int_wrapper(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key, int64_t val)
+{
+    return yyjson_mut_obj_add_int(doc, obj, key, val);
+}
+
+yyjson_mut_val *yyjson_mut_obj_add_obj_wrapper(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key)
+{
+    return yyjson_mut_obj_add_obj(doc, obj, key);
+}
 
 /**
  * Destructor for multi-handle manager
@@ -124,12 +153,37 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                     completion.model = NULL;
                     completion.finish_reason = NULL;
                     completion.completion_tokens = 0;
+                    completion.tool_call = NULL;
 
                     if (curl_result == CURLE_OK) {
                         /* Get HTTP response code */
                         long response_code = 0;
                         curl_easy_getinfo_(easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
                         completion.http_code = (int32_t)response_code;
+
+                        /* Log HTTP response */
+                        yyjson_mut_doc *resp_log_doc = ik_log_create();
+                        if (resp_log_doc != NULL) {  // LCOV_EXCL_BR_LINE
+                            yyjson_mut_val *resp_log_root = yyjson_mut_doc_get_root_wrapper(resp_log_doc);
+
+                            // Add event field
+                            yyjson_mut_obj_add_str_wrapper(resp_log_doc, resp_log_root, "event", "http_response");
+
+                            // Add status field
+                            yyjson_mut_obj_add_int_wrapper(resp_log_doc, resp_log_root, "status", response_code);
+
+                            // Add body as JSON object if we have complete response
+                            if (completed->write_ctx->complete_response != NULL) {
+                                // Create a body object with the accumulated content
+                                yyjson_mut_val *body_obj = yyjson_mut_obj_add_obj_wrapper(resp_log_doc, resp_log_root, "body");
+                                yyjson_mut_obj_add_str_wrapper(resp_log_doc, body_obj, "content", completed->write_ctx->complete_response);
+                            } else {
+                                // Empty body object
+                                yyjson_mut_obj_add_obj_wrapper(resp_log_doc, resp_log_root, "body");
+                            }
+
+                            ik_log_debug_json(resp_log_doc);
+                        }
 
                         /* Categorize response */
                         if (response_code >= 200 && response_code < 300) {
@@ -144,6 +198,11 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                                 completion.finish_reason = talloc_steal(multi, completed->write_ctx->finish_reason);
                             }
                             completion.completion_tokens = completed->write_ctx->completion_tokens;
+                            if (completed->write_ctx->tool_call != NULL) {
+                                completion.tool_call = talloc_steal(multi, completed->write_ctx->tool_call);
+                            } else {
+                                completion.tool_call = NULL;
+                            }
                         } else if (response_code >= 400 && response_code < 500) {
                             completion.type = IK_HTTP_CLIENT_ERROR;
                             completion.error_message = talloc_asprintf(multi,
@@ -180,6 +239,9 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                             if (completion.finish_reason != NULL) {
                                 talloc_free(completion.finish_reason);
                             }
+                            if (completion.tool_call != NULL) {
+                                talloc_free(completion.tool_call);
+                            }
                             /* Clean up curl handles */
                             curl_multi_remove_handle_(multi->multi_handle, easy_handle);
                             curl_easy_cleanup_(easy_handle);
@@ -205,6 +267,9 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                     }
                     if (completion.finish_reason != NULL) {
                         talloc_free(completion.finish_reason);
+                    }
+                    if (completion.tool_call != NULL) {
+                        talloc_free(completion.tool_call);
                     }
 
                     /* Clean up curl handles */

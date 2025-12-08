@@ -8,6 +8,7 @@
 #include "commands_mark.h"
 #include "db/message.h"
 #include "event_render.h"
+#include "logger.h"
 #include "marks.h"
 #include "openai/client.h"
 #include "panic.h"
@@ -17,9 +18,11 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 // Forward declarations of command handlers
 static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args);
@@ -121,6 +124,14 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
     (void)ctx;      // Used only in assert (compiled out in release builds)
     (void)args;     // Unused for /clear
+
+    // Reinitialize logger when /clear is executed
+    // This rotates the current.log file and creates a new one
+    char cwd[PATH_MAX];
+    if (posix_getcwd_(cwd, sizeof(cwd)) == NULL) {
+        return ERR(ctx, IO, "Failed to get current working directory");
+    }
+    ik_log_reinit(cwd);
 
     // Clear scrollback buffer
     ik_scrollback_clear(repl->scrollback);

@@ -48,9 +48,13 @@ END_TEST START_TEST(test_separator_layer_render)
     // Render separator at width 10
     layer->render(layer, output, 10, 0, 1);
 
-    // Should be 10 dashes + \r\n
-    ck_assert_uint_eq(output->size, 12);
-    ck_assert_int_eq(memcmp(output->data, "----------\r\n", 12), 0);
+    // Should be 10 box-drawing chars (3 bytes each) + \r\n = 32 bytes
+    ck_assert_uint_eq(output->size, 32);
+    // Expected: 10 * (0xE2 0x94 0x80) + \r\n
+    const uint8_t expected[] = {0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80,
+                                0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80,
+                                0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, '\r', '\n'};
+    ck_assert_int_eq(memcmp(output->data, expected, 32), 0);
 
     talloc_free(ctx);
 }
@@ -65,7 +69,33 @@ END_TEST START_TEST(test_separator_layer_render_various_widths)
     // Test width 5
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
     layer->render(layer, output, 5, 0, 1);
-    ck_assert_uint_eq(output->size, 7); // "-----\r\n"
+    // Should be 5 box-drawing chars (3 bytes each) + \r\n = 17 bytes
+    ck_assert_uint_eq(output->size, 17); // 5 * 3 + 2
+    // Expected: 5 * (0xE2 0x94 0x80) + \r\n
+    const uint8_t expected[] = {0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80,
+                                0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, '\r', '\n'};
+    ck_assert_int_eq(memcmp(output->data, expected, 17), 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST START_TEST(test_separator_layer_render_unicode_box_drawing)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    bool visible = true;
+    ik_layer_t *layer = ik_separator_layer_create(ctx, "sep", &visible);
+
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
+
+    // Render separator at width 3
+    // Each box-drawing character is 3 bytes (0xE2 0x94 0x80), so 3 chars = 9 bytes + 2 for \r\n = 11 bytes total
+    layer->render(layer, output, 3, 0, 1);
+
+    ck_assert_uint_eq(output->size, 11);
+    // Expected: 3 box-drawing characters (3 bytes each) + \r\n = 11 bytes
+    const uint8_t expected[] = {0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, '\r', '\n'};
+    ck_assert_int_eq(memcmp(output->data, expected, 11), 0);
 
     talloc_free(ctx);
 }
@@ -81,6 +111,7 @@ static Suite *separator_layer_suite(void)
     tcase_add_test(tc_core, test_separator_layer_height);
     tcase_add_test(tc_core, test_separator_layer_render);
     tcase_add_test(tc_core, test_separator_layer_render_various_widths);
+    tcase_add_test(tc_core, test_separator_layer_render_unicode_box_drawing);
     suite_add_tcase(s, tc_core);
 
     return s;

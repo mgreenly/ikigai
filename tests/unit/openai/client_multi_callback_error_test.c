@@ -30,7 +30,7 @@ START_TEST(test_multi_info_read_callback_error_with_model) {
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                error_completion_callback, ctx, NULL);
+                                                error_completion_callback, ctx, false);
     ck_assert(!add_res.is_err);
 
     active_request_t *active_req = multi->active_requests[0];
@@ -72,7 +72,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_finish_reason)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                error_completion_callback, ctx, NULL);
+                                                error_completion_callback, ctx, false);
     ck_assert(!add_res.is_err);
 
     active_request_t *active_req = multi->active_requests[0];
@@ -114,7 +114,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_both_metadata)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                error_completion_callback, ctx, NULL);
+                                                error_completion_callback, ctx, false);
     ck_assert(!add_res.is_err);
 
     active_request_t *active_req = multi->active_requests[0];
@@ -163,11 +163,11 @@ END_TEST START_TEST(test_multi_info_read_callback_error_multiple_requests_shift)
         /* Only first request has error callback */
         if (i == 0) {
             res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                        error_completion_callback, ctx, NULL);
+                                                        error_completion_callback, ctx, false);
             ck_assert(!add_res.is_err);
             first_handle = g_last_easy_handle;
         } else {
-            res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, NULL);
+            res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
             ck_assert(!add_res.is_err);
         }
     }

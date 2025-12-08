@@ -5,7 +5,7 @@ Load default context with key information about this project.
 
 ## Details
 
-AGENTS.md is the primary agent memory file and should always be in context.
+**CRITICAL**: Never change directories. Always stay in the root of the working tree and use relative paths from there.
 
 Don't enumerate or read the other files I list here unless you need to.
 

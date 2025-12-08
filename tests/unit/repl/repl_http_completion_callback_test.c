@@ -11,9 +11,12 @@
 #include "scrollback.h"
 #include "config.h"
 #include "openai/client_multi.h"
+#include "tool.h"
+#include "debug_pipe.h"
 #include <check.h>
 #include <talloc.h>
 #include <curl/curl.h>
+#include <unistd.h>
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
@@ -57,9 +60,9 @@ START_TEST(test_completion_flushes_streaming_buffer) {
     res_t result = ik_repl_http_completion_callback(&completion, repl);
     ck_assert(is_ok(&result));
 
-    /* Verify buffer was flushed to scrollback and cleared */
+    /* Verify buffer was flushed to scrollback (content + blank line) and cleared */
     ck_assert_ptr_null(repl->streaming_line_buffer);
-    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->scrollback), 2);
 }
 END_TEST
 /* Test: Completion clears previous error message */
@@ -304,6 +307,95 @@ START_TEST(test_completion_error_null_message)
 }
 
 END_TEST
+/* Test: Completion stores tool_call in pending_tool_call */
+START_TEST(test_completion_stores_tool_call)
+{
+    /* Create tool_call */
+    ik_tool_call_t *tc = ik_tool_call_create(ctx, "call_test123", "glob", "{\"pattern\": \"*.c\"}");
+
+    /* Create successful completion with tool_call */
+    ik_http_completion_t completion = {
+        .type = IK_HTTP_SUCCESS,
+        .http_code = 200,
+        .curl_code = CURLE_OK,
+        .error_message = NULL,
+        .model = NULL,
+        .finish_reason = talloc_strdup(ctx, "tool_calls"),
+        .completion_tokens = 50,
+        .tool_call = tc
+    };
+
+    /* Call callback */
+    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    ck_assert(is_ok(&result));
+
+    /* Verify tool_call was stored */
+    ck_assert_ptr_nonnull(repl->pending_tool_call);
+    ck_assert_str_eq(repl->pending_tool_call->id, "call_test123");
+    ck_assert_str_eq(repl->pending_tool_call->name, "glob");
+    ck_assert_str_eq(repl->pending_tool_call->arguments, "{\"pattern\": \"*.c\"}");
+}
+
+END_TEST
+/* Test: Completion clears previous pending_tool_call before storing new one */
+START_TEST(test_completion_clears_previous_tool_call)
+{
+    /* Set up previous pending_tool_call */
+    repl->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
+
+    /* Create new tool_call */
+    ik_tool_call_t *tc = ik_tool_call_create(ctx, "new_call", "new_tool", "{\"key\": \"value\"}");
+
+    /* Create successful completion with tool_call */
+    ik_http_completion_t completion = {
+        .type = IK_HTTP_SUCCESS,
+        .http_code = 200,
+        .curl_code = CURLE_OK,
+        .error_message = NULL,
+        .model = NULL,
+        .finish_reason = talloc_strdup(ctx, "tool_calls"),
+        .completion_tokens = 25,
+        .tool_call = tc
+    };
+
+    /* Call callback */
+    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    ck_assert(is_ok(&result));
+
+    /* Verify new tool_call replaced old one */
+    ck_assert_ptr_nonnull(repl->pending_tool_call);
+    ck_assert_str_eq(repl->pending_tool_call->id, "new_call");
+    ck_assert_str_eq(repl->pending_tool_call->name, "new_tool");
+}
+
+END_TEST
+/* Test: Completion with NULL tool_call clears pending_tool_call */
+START_TEST(test_completion_null_tool_call_clears_pending)
+{
+    /* Set up previous pending_tool_call */
+    repl->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
+
+    /* Create successful completion without tool_call */
+    ik_http_completion_t completion = {
+        .type = IK_HTTP_SUCCESS,
+        .http_code = 200,
+        .curl_code = CURLE_OK,
+        .error_message = NULL,
+        .model = NULL,
+        .finish_reason = talloc_strdup(ctx, "stop"),
+        .completion_tokens = 10,
+        .tool_call = NULL
+    };
+
+    /* Call callback */
+    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    ck_assert(is_ok(&result));
+
+    /* Verify pending_tool_call was cleared */
+    ck_assert_ptr_null(repl->pending_tool_call);
+}
+
+END_TEST
 
 /*
  * Test suite
@@ -325,6 +417,9 @@ static Suite *repl_http_completion_callback_suite(void)
     tcase_add_test(tc_core, test_completion_client_error);
     tcase_add_test(tc_core, test_completion_flushes_buffer_and_stores_error);
     tcase_add_test(tc_core, test_completion_error_null_message);
+    tcase_add_test(tc_core, test_completion_stores_tool_call);
+    tcase_add_test(tc_core, test_completion_clears_previous_tool_call);
+    tcase_add_test(tc_core, test_completion_null_tool_call_clears_pending);
     suite_add_tcase(s, tc_core);
 
     return s;

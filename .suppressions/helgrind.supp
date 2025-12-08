@@ -8,3 +8,15 @@
    obj:*/libp11-kit.so.*
    ...
 }
+
+# glibc timezone data races - known false positives in localtime_r
+# The timezone functions access shared timezone data structures
+# but are safe for read-only access which is our use case
+{
+   glibc_timezone_data_race
+   Helgrind:Race
+   ...
+   fun:__tz_convert
+   fun:ik_log_format_timestamp
+   ...
+}

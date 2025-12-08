@@ -176,7 +176,7 @@ START_TEST(test_http_curl_init_failure) {
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Test message");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -209,7 +209,7 @@ START_TEST(test_http_curl_perform_failure)
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Test message");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -251,7 +251,7 @@ START_TEST(test_http_api_key_too_long)
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Test message");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -282,7 +282,7 @@ START_TEST(test_http_successful_request)
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);

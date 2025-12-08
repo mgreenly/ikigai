@@ -281,7 +281,15 @@ res_t ik_debug_mgr_handle_ready(ik_debug_pipe_manager_t *mgr, fd_set *read_fds,
         if (debug_enabled && count > 0) {
             assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
             for (size_t j = 0; j < count; j++) {
+                // Append debug line
                 res_t append_res = ik_scrollback_append_line(scrollback, lines[j], strlen(lines[j]));
+                if (is_err(&append_res)) {  // LCOV_EXCL_BR_LINE
+                    talloc_free(lines);  // LCOV_EXCL_LINE
+                    return append_res;  // LCOV_EXCL_LINE
+                }
+
+                // Append blank line for consistent spacing
+                append_res = ik_scrollback_append_line(scrollback, "", 0);
                 if (is_err(&append_res)) {  // LCOV_EXCL_BR_LINE
                     talloc_free(lines);  // LCOV_EXCL_LINE
                     return append_res;  // LCOV_EXCL_LINE

@@ -6,7 +6,10 @@
 #include "../../../src/db/session.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/replay.h"
+#include "../../../src/openai/client.h"
 #include "../../../src/scrollback.h"
+#include "../../../src/wrapper.h"
+#include "../../../src/msg.h"
 #include "../../test_utils.h"
 
 // Mock state for ik_db_session_get_active
@@ -82,6 +85,14 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
     return OK(NULL);
 }
 
+// Wrapper mocks (pass-through to real implementations)
+MOCKABLE res_t ik_msg_from_db_(void *parent, const void *db_msg) {
+    return ik_msg_from_db(parent, (const ik_message_t *)db_msg);
+}
+MOCKABLE res_t ik_openai_conversation_add_msg_(void *conv, void *msg) {
+    return ik_openai_conversation_add_msg((ik_openai_conversation_t *)conv, (ik_msg_t *)msg);
+}
+
 static void reset_mocks(void)
 {
     // Reset session mocks
@@ -104,12 +115,13 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
     ik_repl_ctx_t *repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     repl->scrollback = ik_scrollback_create(repl, 80);
     repl->current_session_id = 0;
+    res_t conv_res = ik_openai_conversation_create(repl);
+    repl->conversation = conv_res.ok;
     return repl;
 }
 
 static ik_db_ctx_t *create_test_db_ctx(TALLOC_CTX *ctx)
 {
-    // Create a dummy db context (not used by mocks)
     return talloc_zero_(ctx, sizeof(ik_db_ctx_t));
 }
 
@@ -141,7 +153,7 @@ START_TEST(test_restore_no_active_session_creates_new) {
     ik_db_ctx_t *db_ctx = create_test_db_ctx(ctx);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
 
-    // No active session
+
     mock_active_session_id = 0;
 
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
@@ -162,7 +174,7 @@ START_TEST(test_restore_no_active_session_writes_clear)
     ik_db_ctx_t *db_ctx = create_test_db_ctx(ctx);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
 
-    // No active session
+
     mock_active_session_id = 0;
 
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
@@ -175,7 +187,7 @@ START_TEST(test_restore_no_active_session_writes_clear)
 }
 
 END_TEST
-/* Test: No active session with system message - writes system event */
+/* Test: No active session with system message */
 START_TEST(test_restore_no_active_session_writes_system_message)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -186,7 +198,7 @@ START_TEST(test_restore_no_active_session_writes_system_message)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->openai_system_message = talloc_strdup_(ctx, "You are a helpful assistant");
 
-    // No active session
+
     mock_active_session_id = 0;
 
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
@@ -201,7 +213,7 @@ START_TEST(test_restore_no_active_session_writes_system_message)
 }
 
 END_TEST
-/* Test: No active session without system message - only writes clear */
+/* Test: No active session without system message */
 START_TEST(test_restore_no_active_session_no_system_message)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -212,7 +224,7 @@ START_TEST(test_restore_no_active_session_no_system_message)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->openai_system_message = NULL;
 
-    // No active session
+
     mock_active_session_id = 0;
 
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
@@ -225,7 +237,7 @@ START_TEST(test_restore_no_active_session_no_system_message)
 }
 
 END_TEST
-/* Test: No active session - scrollback remains empty if no system message */
+/* Test: No active session - scrollback empty */
 START_TEST(test_restore_no_active_session_scrollback_empty)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -236,7 +248,7 @@ START_TEST(test_restore_no_active_session_scrollback_empty)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->openai_system_message = NULL; // No system message
 
-    // No active session
+
     mock_active_session_id = 0;
 
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
@@ -248,7 +260,7 @@ START_TEST(test_restore_no_active_session_scrollback_empty)
 }
 
 END_TEST
-/* Test: Bug 6 - system message added to scrollback on new session creation */
+/* Test: Bug 6 - system message in scrollback */
 START_TEST(test_restore_new_session_system_message_in_scrollback)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -265,8 +277,8 @@ START_TEST(test_restore_new_session_system_message_in_scrollback)
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    // System message should be in scrollback (Bug 6 fix)
-    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 1);
+    // System message should be in scrollback (Bug 6 fix) - with blank line = 2 lines
+    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 2);
 
     talloc_free(ctx);
 }
@@ -282,7 +294,7 @@ START_TEST(test_restore_active_session_loads_id)
     ik_db_ctx_t *db_ctx = create_test_db_ctx(ctx);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
 
-    // Active session exists
+
     mock_active_session_id = 42;
 
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
@@ -310,13 +322,13 @@ START_TEST(test_restore_active_session_populates_scrollback)
     replay_ctx->messages[1] = create_mock_message(ctx, "assistant", "Hi there!");
     mock_replay_context = replay_ctx;
 
-    // Active session exists
+
     mock_active_session_id = 42;
 
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 4);
 
     talloc_free(ctx);
 }
@@ -336,7 +348,7 @@ START_TEST(test_restore_active_session_no_messages)
     ik_replay_context_t *replay_ctx = create_mock_replay_context(ctx, 0);
     mock_replay_context = replay_ctx;
 
-    // Active session exists
+
     mock_active_session_id = 42;
 
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
@@ -359,7 +371,7 @@ START_TEST(test_restore_active_session_no_event_writes)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->openai_system_message = talloc_strdup_(ctx, "You are helpful");
 
-    // Active session exists
+
     mock_active_session_id = 42;
 
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
@@ -372,7 +384,7 @@ START_TEST(test_restore_active_session_no_event_writes)
 }
 
 END_TEST
-/* Test: Replay with multiple clears - only messages after last clear */
+/* Test: Multiple clears - only after last */
 START_TEST(test_restore_multiple_clears_only_after_last)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -388,19 +400,20 @@ START_TEST(test_restore_multiple_clears_only_after_last)
     replay_ctx->messages[0] = create_mock_message(ctx, "user", "Message after clear");
     mock_replay_context = replay_ctx;
 
-    // Active session exists
+
     mock_active_session_id = 42;
 
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 2);
 
     talloc_free(ctx);
 }
 
 END_TEST
-/* Test: Active session - event render handles each kind appropriately */
+
+/* Test: Event render handles each kind */
 START_TEST(test_restore_active_session_empty_string_content_skipped)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -419,14 +432,47 @@ START_TEST(test_restore_active_session_empty_string_content_skipped)
     replay_ctx->messages[2] = create_mock_message(ctx, "rewind", NULL); // Rewind renders nothing
     mock_replay_context = replay_ctx;
 
-    // Active session exists
+
     mock_active_session_id = 42;
 
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    // User message renders, clear/rewind don't render visible content
-    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 1);
+    // User message renders (with blank line), clear/rewind don't render visible content
+    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 2);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+/* Test: Active session - conversation rebuilt */
+START_TEST(test_restore_rebuilds_conversation)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    reset_mocks();
+
+    ik_repl_ctx_t *repl = create_test_repl(ctx);
+    ik_db_ctx_t *db_ctx = create_test_db_ctx(ctx);
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+
+    // Replay: user, assistant, clear, user, mark
+    ik_replay_context_t *replay_ctx = create_mock_replay_context(ctx, 5);
+    replay_ctx->messages[0] = create_mock_message(ctx, "user", "Hello");
+    replay_ctx->messages[1] = create_mock_message(ctx, "assistant", "Hi");
+    replay_ctx->messages[2] = create_mock_message(ctx, "clear", NULL);
+    replay_ctx->messages[3] = create_mock_message(ctx, "user", "Second");
+    replay_ctx->messages[4] = create_mock_message(ctx, "mark", NULL);
+    mock_replay_context = replay_ctx;
+    mock_active_session_id = 42;
+
+    res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
+
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq((int)repl->conversation->message_count, 3);
+    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
+    ck_assert_str_eq(repl->conversation->messages[1]->kind, "assistant");
+    ck_assert_str_eq(repl->conversation->messages[2]->kind, "user");
 
     talloc_free(ctx);
 }
@@ -450,6 +496,7 @@ static Suite *session_restore_suite(void)
     tcase_add_test(tc_existing, test_restore_active_session_no_messages);
     tcase_add_test(tc_existing, test_restore_active_session_no_event_writes);
     tcase_add_test(tc_existing, test_restore_active_session_empty_string_content_skipped);
+    tcase_add_test(tc_existing, test_restore_rebuilds_conversation);
     suite_add_tcase(s, tc_existing);
     TCase *tc_clears = tcase_create("Multiple Clears");
     tcase_add_test(tc_clears, test_restore_multiple_clears_only_after_last);

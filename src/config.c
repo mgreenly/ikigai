@@ -7,6 +7,7 @@
 
 #include <errno.h>
 #include <libgen.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -73,6 +74,9 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
     yyjson_mut_obj_add_null(doc, root, "openai_system_message");
     yyjson_mut_obj_add_str(doc, root, "listen_address", "127.0.0.1");
     yyjson_mut_obj_add_int(doc, root, "listen_port", 1984);
+    yyjson_mut_obj_add_int(doc, root, "max_tool_turns", 50);
+    yyjson_mut_obj_add_int(doc, root, "max_output_size", 1048576);
+    yyjson_mut_obj_add_int(doc, root, "history_size", 10000);
 
     // Write to file with pretty printing
     yyjson_write_err write_err;
@@ -128,6 +132,9 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     yyjson_val *address = yyjson_obj_get_(root, "listen_address");
     yyjson_val *port = yyjson_obj_get_(root, "listen_port");
     yyjson_val *db_conn_str = yyjson_obj_get_(root, "db_connection_string");
+    yyjson_val *max_tool_turns = yyjson_obj_get_(root, "max_tool_turns");
+    yyjson_val *max_output_size = yyjson_obj_get_(root, "max_output_size");
+    yyjson_val *history_size = yyjson_obj_get_(root, "history_size");
 
     // validate openai_api_key
     if (!api_key) {
@@ -205,6 +212,53 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
         return ERR(ctx, PARSE, "Invalid type for db_connection_string");
     }
 
+    // validate max_tool_turns
+    if (!max_tool_turns) {
+        return ERR(ctx, PARSE, "Missing max_tool_turns");
+    }
+    if (!yyjson_is_int(max_tool_turns)) {
+        return ERR(ctx, PARSE, "Invalid type for max_tool_turns");
+    }
+    int64_t max_tool_turns_value = yyjson_get_sint_(max_tool_turns);
+    if (max_tool_turns_value < 1 || max_tool_turns_value > 1000) {
+        return ERR(ctx,
+                   OUT_OF_RANGE,
+                   "max_tool_turns must be 1-1000, got %lld",
+                   (long long)max_tool_turns_value);
+    }
+
+    // validate max_output_size
+    if (!max_output_size) {
+        return ERR(ctx, PARSE, "Missing max_output_size");
+    }
+    if (!yyjson_is_int(max_output_size)) {
+        return ERR(ctx, PARSE, "Invalid type for max_output_size");
+    }
+    int64_t max_output_size_value = yyjson_get_sint_(max_output_size);
+    if (max_output_size_value < 1024 || max_output_size_value > 104857600) {
+        return ERR(ctx,
+                   OUT_OF_RANGE,
+                   "max_output_size must be 1024-104857600, got %lld",
+                   (long long)max_output_size_value);
+    }
+
+    // validate history_size (optional - defaults to 10000)
+    int32_t history_size_value = 10000;
+    if (history_size) {
+        if (!yyjson_is_int(history_size)) {
+            return ERR(ctx, PARSE, "Invalid type for history_size");
+        }
+        int64_t history_size_raw = yyjson_get_sint_(history_size);
+        if (history_size_raw < 1 || history_size_raw > INT32_MAX) {
+            return ERR(ctx,
+                       OUT_OF_RANGE,
+                       "history_size must be 1-%d, got %lld",
+                       INT32_MAX,
+                       (long long)history_size_raw);
+        }
+        history_size_value = (int32_t)history_size_raw;
+    }
+
     // copy values to config
     cfg->openai_api_key = talloc_strdup(cfg, yyjson_get_str_(api_key));
     cfg->openai_model = talloc_strdup(cfg, yyjson_get_str_(model));
@@ -228,6 +282,9 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     } else {
         cfg->db_connection_string = NULL;
     }
+    cfg->max_tool_turns = (int32_t)max_tool_turns_value;
+    cfg->max_output_size = max_output_size_value;
+    cfg->history_size = history_size_value;
 
     // no cleanup required talloc frees everything when ctx is freed
     return OK(cfg);

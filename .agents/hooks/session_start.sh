@@ -5,10 +5,10 @@ set -e
 
 LOG_DIR="$(dirname "$0")/../logs"
 CURRENT_LOG="$LOG_DIR/current.log"
-
-# Read JSON from stdin (Claude Code 2.X style)
-INPUT=$(cat)
 ARCHIVE_DIR="$LOG_DIR/archive"
+
+# Read JSON from stdin
+INPUT=$(cat)
 
 # Ensure directories exist
 mkdir -p "$ARCHIVE_DIR"
@@ -22,18 +22,7 @@ fi
 # Clean up archives older than 30 days
 find "$ARCHIVE_DIR" -name "*.log" -mtime +30 -delete 2>/dev/null || true
 
-# Parse session info from stdin JSON
-SOURCE=$(echo "$INPUT" | jq -r '.source // "unknown"')
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
-
-# Create new session log
-cat > "$CURRENT_LOG" << EOF
-================================================================================
-Session Started: $(date '+%Y-%m-%d %H:%M:%S')
-Source: $SOURCE
-Session ID: $SESSION_ID
-================================================================================
-
-EOF
+# Output JSONL: add event type and timestamp to input
+echo "$INPUT" | jq -c '. + {event: "session_start", ts: "'"$(date -Iseconds)"'"}' > "$CURRENT_LOG"
 
 exit 0

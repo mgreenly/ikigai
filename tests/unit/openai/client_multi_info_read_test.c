@@ -231,7 +231,7 @@ END_TEST START_TEST(test_multi_info_read_completion_callback_error)
     ik_openai_conversation_t *conv = create_test_conversation("Hello");
     ik_cfg_t *cfg = create_test_config();
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                error_completion_callback, ctx, NULL);
+                                                error_completion_callback, ctx, false);
     ck_assert(!add_res.is_err);
 
     CURLMsg msg;

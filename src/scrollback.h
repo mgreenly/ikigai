@@ -188,4 +188,20 @@ res_t ik_scrollback_find_logical_line_at_physical_row(ik_scrollback_t *scrollbac
  */
 void ik_scrollback_clear(ik_scrollback_t *scrollback);
 
+/**
+ * @brief Trim trailing whitespace from string
+ *
+ * Returns a new string with trailing whitespace removed.
+ * Original string is not modified.
+ *
+ * @param parent Talloc parent context
+ * @param text Input string (NULL returns empty string)
+ * @param length Length of input string
+ * @return New string with trailing whitespace removed (owned by parent)
+ *
+ * Assertions:
+ * - parent must not be NULL
+ */
+char *ik_scrollback_trim_trailing(void *parent, const char *text, size_t length);
+
 #endif // IKIGAI_SCROLLBACK_H

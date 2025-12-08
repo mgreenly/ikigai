@@ -61,6 +61,19 @@ const char *ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, size_t *le
 void ik_input_buffer_clear(ik_input_buffer_t *input_buffer);
 
 /**
+ * @brief Replace entire input buffer with new text
+ *
+ * Clears the existing buffer and sets it to the new text.
+ * Resets cursor to position 0.
+ *
+ * @param input_buffer Workspace
+ * @param text New text to set (UTF-8 encoded)
+ * @param text_len Length of new text in bytes
+ * @return RES_OK on success, RES_ERR on failure
+ */
+res_t ik_input_buffer_set_text(ik_input_buffer_t *input_buffer, const char *text, size_t text_len);
+
+/**
  * @brief Insert a Unicode codepoint at the cursor position
  *
  * Encodes the codepoint to UTF-8 and inserts it at the current cursor position.

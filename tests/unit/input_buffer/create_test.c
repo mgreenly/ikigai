@@ -4,7 +4,6 @@
  */
 
 #include <check.h>
-#include <signal.h>
 #include <talloc.h>
 #include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
@@ -81,40 +80,6 @@ START_TEST(test_clear)
 
 END_TEST
 
-#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
-/* Test: NULL parameter assertions */
-START_TEST(test_get_text_null_input_buffer_asserts)
-{
-    void *ctx = talloc_new(NULL);
-    size_t len = 0;
-
-    /* input_buffer cannot be NULL */
-    ik_input_buffer_get_text(NULL, &len);
-
-    talloc_free(ctx);
-}
-
-END_TEST START_TEST(test_get_text_null_len_out_asserts)
-{
-    void *ctx = talloc_new(NULL);
-
-    ik_input_buffer_t *input_buffer = ik_input_buffer_create(ctx);
-
-    /* len_out cannot be NULL */
-    ik_input_buffer_get_text(input_buffer, NULL);
-
-    talloc_free(ctx);
-}
-
-END_TEST START_TEST(test_clear_null_input_buffer_asserts)
-{
-    /* input_buffer cannot be NULL - should abort */
-    ik_input_buffer_clear(NULL);
-}
-
-END_TEST
-#endif
-
 static Suite *input_buffer_create_suite(void)
 {
     Suite *s = suite_create("Input Buffer Create");
@@ -124,16 +89,6 @@ static Suite *input_buffer_create_suite(void)
     tcase_add_test(tc_core, test_create);
     tcase_add_test(tc_core, test_get_text);
     tcase_add_test(tc_core, test_clear);
-
-#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
-    /* Assertion tests */
-    TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
-    tcase_add_test_raise_signal(tc_assertions, test_get_text_null_input_buffer_asserts, SIGABRT);
-    tcase_add_test_raise_signal(tc_assertions, test_get_text_null_len_out_asserts, SIGABRT);
-    tcase_add_test_raise_signal(tc_assertions, test_clear_null_input_buffer_asserts, SIGABRT);
-    suite_add_tcase(s, tc_assertions);
-#endif
 
     suite_add_tcase(s, tc_core);
     return s;

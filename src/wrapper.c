@@ -86,6 +86,43 @@ MOCKABLE const char *yyjson_get_str_(yyjson_val *val)
 }
 
 // ============================================================================
+// Pthread wrappers - debug/test builds only
+// ============================================================================
+
+#include <pthread.h>
+
+MOCKABLE int pthread_mutex_init_(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
+{
+    return pthread_mutex_init(mutex, attr);
+}
+
+MOCKABLE int pthread_mutex_destroy_(pthread_mutex_t *mutex)
+{
+    return pthread_mutex_destroy(mutex);
+}
+
+MOCKABLE int pthread_mutex_lock_(pthread_mutex_t *mutex)
+{
+    return pthread_mutex_lock(mutex);
+}
+
+MOCKABLE int pthread_mutex_unlock_(pthread_mutex_t *mutex)
+{
+    return pthread_mutex_unlock(mutex);
+}
+
+MOCKABLE int pthread_create_(pthread_t *thread, const pthread_attr_t *attr,
+                             void *(*start_routine)(void *), void *arg)
+{
+    return pthread_create(thread, attr, start_routine, arg);
+}
+
+MOCKABLE int pthread_join_(pthread_t thread, void **retval)
+{
+    return pthread_join(thread, retval);
+}
+
+// ============================================================================
 // POSIX system call wrappers - debug/test builds only
 // ============================================================================
 
@@ -174,6 +211,11 @@ MOCKABLE size_t fread_(void *ptr, size_t size, size_t nmemb, FILE *stream)
     return fread(ptr, size, nmemb, stream);
 }
 
+MOCKABLE size_t fwrite_(const void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+    return fwrite(ptr, size, nmemb, stream);
+}
+
 MOCKABLE FILE *fopen_(const char *pathname, const char *mode)
 {
     return fopen(pathname, mode);
@@ -194,9 +236,34 @@ MOCKABLE int fclose_(FILE *stream)
     return fclose(stream);
 }
 
+MOCKABLE FILE *popen_(const char *command, const char *mode)
+{
+    return popen(command, mode);
+}
+
+MOCKABLE int pclose_(FILE *stream)
+{
+    return pclose(stream);
+}
+
 MOCKABLE DIR *opendir_(const char *name)
 {
     return opendir(name);
+}
+
+MOCKABLE int posix_access_(const char *pathname, int mode)
+{
+    return access(pathname, mode);
+}
+
+MOCKABLE int posix_rename_(const char *oldpath, const char *newpath)
+{
+    return rename(oldpath, newpath);
+}
+
+MOCKABLE char *posix_getcwd_(char *buf, size_t size)
+{
+    return getcwd(buf, size);
 }
 
 // ============================================================================
@@ -368,6 +435,8 @@ MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct 
 #include "repl/session_restore.h"
 #include "config.h"
 #include "scrollback.h"
+#include "msg.h"
+#include "openai/client.h"
 
 MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
 {
@@ -391,6 +460,16 @@ MOCKABLE res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg)
 MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length)
 {
     return ik_scrollback_append_line((ik_scrollback_t *)scrollback, text, length);
+}
+
+MOCKABLE res_t ik_msg_from_db_(void *parent, const void *db_msg)
+{
+    return ik_msg_from_db(parent, (const ik_message_t *)db_msg);
+}
+
+MOCKABLE res_t ik_openai_conversation_add_msg_(void *conv, void *msg)
+{
+    return ik_openai_conversation_add_msg((ik_openai_conversation_t *)conv, (ik_msg_t *)msg);
 }
 
 // LCOV_EXCL_STOP
