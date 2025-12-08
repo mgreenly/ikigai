@@ -3,7 +3,7 @@
     {
       "task": "shared-ctx-cfg.md",
       "group": "Shared Context DI Refactor",
-      "model": "sonnet",
+      "model": "opus",
       "thinking": "high"
     },
     {

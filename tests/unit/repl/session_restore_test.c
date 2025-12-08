@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/session.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/replay.h"
@@ -12,24 +13,14 @@
 #include "../../../src/msg.h"
 #include "../../test_utils.h"
 
-// Mock state for ik_db_session_get_active
 static int64_t mock_active_session_id = 0;
-
-// Mock state for ik_db_session_create
 static int64_t mock_created_session_id = 1;
-
-// Mock state for ik_db_messages_load
 static ik_replay_context_t *mock_replay_context = NULL;
-
-// Mock state for ik_db_message_insert
 static int mock_message_insert_call_count = 0;
 static char *mock_inserted_kind[10];
 static char *mock_inserted_content[10];
 
-// Forward declarations
 res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t *cfg);
-
-// Mock ik_db_session_get_active
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 {
     (void)db_ctx;
@@ -113,10 +104,12 @@ static void reset_mocks(void)
 static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
 {
     ik_repl_ctx_t *repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
+    ik_shared_ctx_t *shared = talloc_zero_(ctx, sizeof(ik_shared_ctx_t));
+    shared->cfg = talloc_zero_(ctx, sizeof(ik_cfg_t));
+    repl->shared = shared;
     repl->scrollback = ik_scrollback_create(repl, 80);
     repl->current_session_id = 0;
-    res_t conv_res = ik_openai_conversation_create(repl);
-    repl->conversation = conv_res.ok;
+    repl->conversation = ik_openai_conversation_create(repl).ok;
     return repl;
 }
 

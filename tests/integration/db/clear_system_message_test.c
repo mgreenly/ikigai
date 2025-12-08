@@ -157,7 +157,7 @@ START_TEST(test_clear_persists_system_message_event)
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     // Create shared context
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(test_ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
     repl->shared = shared;
     repl->db_ctx = db;
@@ -210,7 +210,7 @@ START_TEST(test_clear_no_system_message_when_null)
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     // Create shared context
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(test_ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
     repl->shared = shared;
     repl->db_ctx = db;

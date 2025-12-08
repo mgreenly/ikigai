@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/session.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/replay.h"
@@ -116,6 +117,12 @@ static void reset_mocks(void)
 static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
 {
     ik_repl_ctx_t *repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
+
+    // Create shared context with test config
+    ik_shared_ctx_t *shared = talloc_zero_(ctx, sizeof(ik_shared_ctx_t));
+    shared->cfg = talloc_zero_(ctx, sizeof(ik_cfg_t));
+    repl->shared = shared;
+
     repl->scrollback = ik_scrollback_create(repl, 80);
     repl->current_session_id = 0;
     repl->marks = NULL;

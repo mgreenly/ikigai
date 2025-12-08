@@ -159,7 +159,11 @@ START_TEST(test_completion_argument_workflow)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     type_str(repl, "/model ");
@@ -188,7 +192,11 @@ START_TEST(test_completion_escape_dismisses)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     type_str(repl, "/m");
@@ -221,7 +229,11 @@ START_TEST(test_completion_no_matches)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     type_str(repl, "/xyz");
@@ -244,7 +256,11 @@ START_TEST(test_completion_history_no_conflict)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     ik_history_add(repl->history, "prev cmd");
@@ -274,7 +290,11 @@ START_TEST(test_completion_layer_visibility)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     ck_assert(!repl->completion_layer->is_visible(repl->completion_layer));
@@ -299,7 +319,11 @@ START_TEST(test_completion_dynamic_update)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     type_str(repl, "/ma");
@@ -330,7 +354,11 @@ START_TEST(test_completion_debug_args)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     type_str(repl, "/debug ");
@@ -359,7 +387,11 @@ START_TEST(test_completion_partial_arg)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Test argument completion - /model with any model

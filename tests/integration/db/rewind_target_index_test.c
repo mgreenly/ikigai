@@ -132,9 +132,11 @@ START_TEST(test_rewind_persists_correct_target_message_index)
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
-    // Create config
-    repl->shared->cfg = talloc_zero(repl, ik_cfg_t);
-    ck_assert_ptr_nonnull(repl->shared->cfg);
+    // Create shared context with config
+    ik_shared_ctx_t *shared = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared->cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(shared->cfg);
+    repl->shared = shared;
 
     // Create scrollback
     repl->scrollback = ik_scrollback_create(repl, 80);

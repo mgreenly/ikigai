@@ -14,6 +14,7 @@
 #include <curl/curl.h>
 #include <sys/stat.h>
 #include "../../src/repl.h"
+#include "../../src/shared.h"
 #include "../../src/repl_actions.h"
 #include "../../src/input.h"
 #include "../../src/completion.h"
@@ -122,21 +123,16 @@ START_TEST(test_completion_space_commits)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
-    ck_assert(is_ok(&res));
-
+    ik_shared_ctx_t *shared = NULL;
+    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/m");
     press_tab(repl);
-    // Tab accepts first selection and dismisses completion
     ck_assert_ptr_null(repl->completion);
-
-    // Input buffer should have the selected completion
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
-    ck_assert(len >= 2);  // At least "/" + selection
+    ck_assert(len >= 2);
     ck_assert_mem_eq(text, "/", 1);
-
-    // Press space to add a space after the selection
     press_space(repl);
     text = ik_input_buffer_get_text(repl->input_buffer, &len);
     // Now should have more text (added space)
@@ -157,38 +153,32 @@ START_TEST(test_completion_tab_wraparound)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
-    ck_assert(is_ok(&res));
-
+    ik_shared_ctx_t *shared = NULL;
+    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug ");
     press_tab(repl);
-    // First Tab accepts and dismisses
     ck_assert_ptr_null(repl->completion);
-
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
-    ck_assert(len > 7);  // "/debug " plus argument
+    ck_assert(len > 7);
     ck_assert_mem_eq(text, "/debug ", 7);
-
     ik_repl_cleanup(repl);
     talloc_free(ctx);
     cleanup_test_dir();
 }
 END_TEST
 
-/* Test: Single item completion */
 START_TEST(test_completion_single_item)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
-
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
-    ck_assert(is_ok(&res));
-
-    // Type something that matches one or more commands
+    ik_shared_ctx_t *shared = NULL;
+    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug");
     press_tab(repl);
     // Tab accepts and dismisses completion
@@ -215,10 +205,9 @@ START_TEST(test_completion_escape_exact_revert)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
-    ck_assert(is_ok(&res));
-
-    // Type specific input
+    ik_shared_ctx_t *shared = NULL;
+    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/mar");
     size_t original_len = 0;
     ik_input_buffer_get_text(repl->input_buffer, &original_len);
@@ -258,27 +247,22 @@ START_TEST(test_completion_tab_cycle_then_space)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
-    ck_assert(is_ok(&res));
-
+    ik_shared_ctx_t *shared = NULL;
+    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug ");
     press_tab(repl);
-    // Tab accepts first selection and dismisses
     ck_assert_ptr_null(repl->completion);
-
-    // Input buffer should have selection
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
-    ck_assert(len > 7);  // "/debug " plus argument
+    ck_assert(len > 7);
     ck_assert_mem_eq(text, "/debug ", 7);
-
     ik_repl_cleanup(repl);
     talloc_free(ctx);
     cleanup_test_dir();
 }
 END_TEST
 
-/* Test: Tab accepts selection, then Space adds space */
 START_TEST(test_completion_space_on_first_tab)
 {
     cleanup_test_dir();
@@ -287,21 +271,16 @@ START_TEST(test_completion_space_on_first_tab)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
-    ck_assert(is_ok(&res));
-
+    ik_shared_ctx_t *shared = NULL;
+    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/d");
     press_tab(repl);
-    // Tab accepts and dismisses
     ck_assert_ptr_null(repl->completion);
-
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
-    // Should have /d + matched command
-    ck_assert(len >= 2);  // At least "/d"
+    ck_assert(len >= 2);
     ck_assert_mem_eq(text, "/", 1);
-
-    // Press space to add space after selection
     size_t len_before_space = len;
     press_space(repl);
     text = ik_input_buffer_get_text(repl->input_buffer, &len);
@@ -323,19 +302,14 @@ START_TEST(test_completion_type_cancels)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
-    ck_assert(is_ok(&res));
-
+    ik_shared_ctx_t *shared = NULL;
+    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/m");
     press_tab(repl);
-    // Tab accepts and dismisses
     ck_assert_ptr_null(repl->completion);
-
-    // Get the text length after Tab
     size_t len_before = 0;
     ik_input_buffer_get_text(repl->input_buffer, &len_before);
-
-    // Type a character
     ik_input_action_t a = {.type = IK_INPUT_CHAR, .codepoint = 'x'};
     ik_repl_process_action(repl, &a);
 
@@ -360,10 +334,9 @@ START_TEST(test_completion_rewind_args)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
-    ck_assert(is_ok(&res));
-
-    // Without any marks set, /rewind has no argument completion
+    ik_shared_ctx_t *shared = NULL;
+    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/rewind ");
     press_tab(repl);
     // No completion available
@@ -389,12 +362,11 @@ START_TEST(test_completion_mark_no_args)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
-    ck_assert(is_ok(&res));
-
+    ik_shared_ctx_t *shared = NULL;
+    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/mark ");
     press_tab(repl);
-    // No completion for /mark arguments
     ck_assert_ptr_null(repl->completion);
 
     size_t len = 0;
@@ -417,12 +389,11 @@ START_TEST(test_completion_help_no_args)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
-    ck_assert(is_ok(&res));
-
+    ik_shared_ctx_t *shared = NULL;
+    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/help ");
     press_tab(repl);
-    // No completion for /help arguments
     ck_assert_ptr_null(repl->completion);
 
     size_t len = 0;

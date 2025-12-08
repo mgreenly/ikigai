@@ -510,7 +510,11 @@ START_TEST(test_repl_init_null_out)
 {
     void *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    (void)ik_repl_init(ctx, cfg, NULL);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+    (void)ik_repl_init(ctx, shared, NULL);
     talloc_free(ctx);
 }
 
