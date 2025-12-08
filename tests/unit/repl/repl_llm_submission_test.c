@@ -57,6 +57,11 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+
+    // Create shared context first
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    repl->shared = shared;
+
     repl->input_buffer = input_buf;
     repl->shared->render = render;
     repl->shared->term = term;
@@ -95,7 +100,7 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     res = ik_layer_cake_add_layer(layer_cake, input_layer);
     ck_assert(is_ok(&res));
 
-    // Create config
+    // Create config and set in shared context (already created above)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_api_key = talloc_strdup(cfg, "test-api-key");
@@ -103,10 +108,7 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant.");
-    // Create shared context
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
-    repl->shared = shared;
 
     // Create conversation
     res = ik_openai_conversation_create(ctx);
