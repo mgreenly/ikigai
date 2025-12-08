@@ -66,8 +66,8 @@ START_TEST(test_debug_pipe_null_write_end) {
     repl->assistant_response = talloc_strdup(test_ctx, long_response);
 
     // Create debug pipe but set write_end to NULL
-    repl->openai_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    repl->openai_debug_pipe->write_end = NULL; // This triggers Branch 3
+    repl->shared->openai_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
+    repl->shared->openai_debug_pipe->write_end = NULL; // This triggers Branch 3
 
     handle_request_success(repl);
 
@@ -82,9 +82,9 @@ START_TEST(test_debug_pipe_short_message)
     repl->assistant_response = talloc_strdup(test_ctx, "Short message");
 
     // Create debug pipe with valid write_end
-    repl->openai_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    repl->openai_debug_pipe->write_end = tmpfile();
-    ck_assert_ptr_nonnull(repl->openai_debug_pipe->write_end);
+    repl->shared->openai_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
+    repl->shared->openai_debug_pipe->write_end = tmpfile();
+    ck_assert_ptr_nonnull(repl->shared->openai_debug_pipe->write_end);
 
     handle_request_success(repl);
 
@@ -93,7 +93,7 @@ START_TEST(test_debug_pipe_short_message)
     ck_assert_ptr_null(repl->assistant_response);
 
     // Clean up
-    fclose(repl->openai_debug_pipe->write_end);
+    fclose(repl->shared->openai_debug_pipe->write_end);
 }
 
 END_TEST
@@ -107,9 +107,9 @@ START_TEST(test_debug_pipe_long_message)
     repl->assistant_response = talloc_strdup(test_ctx, long_response);
 
     // Create debug pipe with valid write_end
-    repl->openai_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    repl->openai_debug_pipe->write_end = tmpfile();
-    ck_assert_ptr_nonnull(repl->openai_debug_pipe->write_end);
+    repl->shared->openai_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
+    repl->shared->openai_debug_pipe->write_end = tmpfile();
+    ck_assert_ptr_nonnull(repl->shared->openai_debug_pipe->write_end);
 
     handle_request_success(repl);
 
@@ -118,7 +118,7 @@ START_TEST(test_debug_pipe_long_message)
     ck_assert_ptr_null(repl->assistant_response);
 
     // Clean up
-    fclose(repl->openai_debug_pipe->write_end);
+    fclose(repl->shared->openai_debug_pipe->write_end);
 }
 
 END_TEST

@@ -95,7 +95,7 @@ static void teardown(void)
 START_TEST(test_db_error_no_debug_pipe) {
     repl->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Configure mock to fail
     mock_db_insert_should_fail = true;
@@ -123,7 +123,7 @@ START_TEST(test_db_error_with_debug_pipe)
 
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Configure mock to fail
     mock_db_insert_should_fail = true;
@@ -167,7 +167,7 @@ START_TEST(test_db_error_with_debug_pipe_null_write_end)
     ik_debug_pipe_t *debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = NULL;
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Configure mock to fail
     mock_db_insert_should_fail = true;

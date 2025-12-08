@@ -401,6 +401,55 @@ START_TEST(test_shared_ctx_history_capacity_matches_config)
 }
 END_TEST
 
+// Test that debug_mgr is initialized
+START_TEST(test_shared_ctx_debug_mgr_initialized)
+{
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create minimal cfg for test
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;
+
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    ck_assert_ptr_nonnull(shared->debug_mgr);
+    ck_assert(!shared->debug_enabled);  // Initially false
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test that debug pipes are created
+START_TEST(test_shared_ctx_debug_pipes_created)
+{
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create minimal cfg for test
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;
+
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    ck_assert_ptr_nonnull(shared->debug_mgr);
+    ck_assert_ptr_nonnull(shared->openai_debug_pipe);
+    ck_assert_ptr_nonnull(shared->db_debug_pipe);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *shared_suite(void)
 {
     Suite *s = suite_create("Shared Context");
@@ -418,6 +467,8 @@ static Suite *shared_suite(void)
     tcase_add_test(tc_core, test_shared_ctx_session_id_zero_when_not_configured);
     tcase_add_test(tc_core, test_shared_ctx_history_initialized);
     tcase_add_test(tc_core, test_shared_ctx_history_capacity_matches_config);
+    tcase_add_test(tc_core, test_shared_ctx_debug_mgr_initialized);
+    tcase_add_test(tc_core, test_shared_ctx_debug_pipes_created);
     suite_add_tcase(s, tc_core);
 
     return s;

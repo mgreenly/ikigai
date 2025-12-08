@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "repl.h"
+#include "shared.h"
 #include "openai/client.h"
 #include "tool.h"
 #include "scrollback.h"
@@ -261,7 +262,7 @@ START_TEST(test_async_tool_with_debug_pipe)
     res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
     ck_assert(!debug_res.is_err);
     ik_debug_pipe_t *debug_pipe = (ik_debug_pipe_t *)debug_res.ok;
-    repl->openai_debug_pipe = debug_pipe;
+    repl->shared->openai_debug_pipe = debug_pipe;
 
     /* Start and wait */
     ik_repl_start_tool_execution(repl);

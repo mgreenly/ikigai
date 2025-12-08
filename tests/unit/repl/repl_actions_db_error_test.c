@@ -132,10 +132,10 @@ static void setup(void)
     repl->shared->session_id = 1;
 
     // Create db_debug_pipe
-    repl->db_debug_pipe = talloc_zero_(repl, sizeof(ik_debug_pipe_t));
-    ck_assert_ptr_nonnull(repl->db_debug_pipe);
-    repl->db_debug_pipe->write_end = fdopen(db_debug_pipe_fds[1], "w");
-    ck_assert_ptr_nonnull(repl->db_debug_pipe->write_end);
+    repl->shared->db_debug_pipe = talloc_zero_(repl, sizeof(ik_debug_pipe_t));
+    ck_assert_ptr_nonnull(repl->shared->db_debug_pipe);
+    repl->shared->db_debug_pipe->write_end = fdopen(db_debug_pipe_fds[1], "w");
+    ck_assert_ptr_nonnull(repl->shared->db_debug_pipe->write_end);
 
     // Set viewport offset
     repl->viewport_offset = 0;
@@ -153,8 +153,8 @@ static void setup(void)
 
 static void teardown(void)
 {
-    if (repl->db_debug_pipe && repl->db_debug_pipe->write_end) {
-        fclose(repl->db_debug_pipe->write_end);
+    if (repl->shared->db_debug_pipe && repl->shared->db_debug_pipe->write_end) {
+        fclose(repl->shared->db_debug_pipe->write_end);
     }
     close(db_debug_pipe_fds[0]);
 
@@ -187,7 +187,7 @@ START_TEST(test_db_message_insert_error) {
     ck_assert(is_ok(&result));
 
     // Read from db_debug_pipe to verify error message was logged
-    fflush(repl->db_debug_pipe->write_end);
+    fflush(repl->shared->db_debug_pipe->write_end);
 
     char buffer[512];
     ssize_t n = read(db_debug_pipe_fds[0], buffer, sizeof(buffer) - 1);
@@ -228,7 +228,7 @@ START_TEST(test_db_message_insert_success)
     ck_assert(is_ok(&result));
 
     // No error message should be logged
-    fflush(repl->db_debug_pipe->write_end);
+    fflush(repl->shared->db_debug_pipe->write_end);
 
     fd_set readfds;
     FD_ZERO(&readfds);
@@ -253,9 +253,9 @@ END_TEST
 START_TEST(test_db_message_insert_error_no_debug_pipe)
 {
     // Close and remove debug pipe
-    fclose(repl->db_debug_pipe->write_end);
-    repl->db_debug_pipe->write_end = NULL;
-    repl->db_debug_pipe = NULL;
+    fclose(repl->shared->db_debug_pipe->write_end);
+    repl->shared->db_debug_pipe->write_end = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Set up: Insert text into input buffer
     const char *test_text = "Test";
@@ -308,7 +308,7 @@ START_TEST(test_message_submission_no_db_ctx)
     ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
 
     // No DB operation should have occurred, so no error logged
-    fflush(repl->db_debug_pipe->write_end);
+    fflush(repl->shared->db_debug_pipe->write_end);
     fd_set readfds;
     FD_ZERO(&readfds);
     FD_SET(db_debug_pipe_fds[0], &readfds);
@@ -345,7 +345,7 @@ START_TEST(test_message_submission_no_session)
     ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
 
     // No DB operation should have occurred, so no error logged
-    fflush(repl->db_debug_pipe->write_end);
+    fflush(repl->shared->db_debug_pipe->write_end);
     fd_set readfds;
     FD_ZERO(&readfds);
     FD_SET(db_debug_pipe_fds[0], &readfds);
@@ -359,8 +359,8 @@ END_TEST
 START_TEST(test_db_error_null_write_end)
 {
     // Set write_end to NULL but keep db_debug_pipe allocated
-    fclose(repl->db_debug_pipe->write_end);
-    repl->db_debug_pipe->write_end = NULL;
+    fclose(repl->shared->db_debug_pipe->write_end);
+    repl->shared->db_debug_pipe->write_end = NULL;
 
     // Set up: Insert text into input buffer
     const char *test_text = "Test with null write_end";

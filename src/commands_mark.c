@@ -95,8 +95,8 @@ res_t ik_cmd_mark(void *ctx, ik_repl_ctx_t *repl, const char *args)
                                             "mark", NULL, data_json);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
-            if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
-                fprintf(repl->db_debug_pipe->write_end,
+            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
+                fprintf(repl->shared->db_debug_pipe->write_end,
                         "Warning: Failed to persist mark event to database: %s\n",
                         error_message(db_res.err));
             }
@@ -154,8 +154,8 @@ res_t ik_cmd_rewind(void *ctx, ik_repl_ctx_t *repl, const char *args)
                                             "rewind", NULL, data_json);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
-            if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
-                fprintf(repl->db_debug_pipe->write_end,
+            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
+                fprintf(repl->shared->db_debug_pipe->write_end,
                         "Warning: Failed to persist rewind event to database: %s\n",
                         error_message(db_res.err));
             }

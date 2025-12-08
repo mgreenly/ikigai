@@ -2,6 +2,7 @@
 #include "repl_callbacks.h"
 #include "repl.h"
 #include "repl_actions.h"
+#include "shared.h"
 #include "panic.h"
 #include <assert.h>
 #include <talloc.h>
@@ -104,25 +105,25 @@ res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, v
     ik_repl_ctx_t *repl = (ik_repl_ctx_t *)ctx;
 
     // Debug output for response metadata
-    if (repl->openai_debug_pipe != NULL && repl->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->openai_debug_pipe->write_end,
+    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
+        fprintf(repl->shared->openai_debug_pipe->write_end,
                 "<< RESPONSE: type=%s",
                 completion->type == IK_HTTP_SUCCESS ? "success" : "error");
         if (completion->type == IK_HTTP_SUCCESS) {
-            fprintf(repl->openai_debug_pipe->write_end,
+            fprintf(repl->shared->openai_debug_pipe->write_end,
                     ", model=%s, finish=%s, tokens=%d",
                     completion->model ? completion->model : "(null)",
                     completion->finish_reason ? completion->finish_reason : "(null)",
                     completion->completion_tokens);
         }
         if (completion->tool_call != NULL) {
-            fprintf(repl->openai_debug_pipe->write_end,
+            fprintf(repl->shared->openai_debug_pipe->write_end,
                     ", tool_call=%s(%s)",
                     completion->tool_call->name,
                     completion->tool_call->arguments);
         }
-        fprintf(repl->openai_debug_pipe->write_end, "\n");
-        fflush(repl->openai_debug_pipe->write_end);
+        fprintf(repl->shared->openai_debug_pipe->write_end, "\n");
+        fflush(repl->shared->openai_debug_pipe->write_end);
     }
 
     // Flush any remaining buffered line content (streaming ended without final newline)

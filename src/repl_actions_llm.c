@@ -92,8 +92,8 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
         res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
                                             "user", message_text, data_json);
         if (is_err(&db_res)) {
-            if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
-                fprintf(repl->db_debug_pipe->write_end,
+            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
+                fprintf(repl->shared->db_debug_pipe->write_end,
                         "Warning: Failed to persist user message to database: %s\n",
                         error_message(db_res.err));
             }

@@ -188,7 +188,7 @@ START_TEST(test_mark_unlabeled_db_error_with_debug_pipe) {
     ck_assert_int_eq(pipe(pipefd), 0);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock INSERT to fail
     mock_insert_should_fail = true;
@@ -213,7 +213,7 @@ START_TEST(test_mark_unlabeled_db_error_no_debug_pipe)
     repl->shared->session_id = 1;
 
     // No debug pipe
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Mock INSERT to fail
     mock_insert_should_fail = true;
@@ -237,7 +237,7 @@ START_TEST(test_mark_unlabeled_db_error_null_write_end)
     // Debug pipe with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
     debug_pipe->write_end = NULL;
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock INSERT to fail
     mock_insert_should_fail = true;
@@ -285,7 +285,7 @@ START_TEST(test_rewind_db_error_with_debug_pipe)
     ck_assert_int_eq(pipe(pipefd), 0);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Create a mark in memory
     res_t mark_res = ik_mark_create(repl, "checkpoint");
@@ -323,7 +323,7 @@ START_TEST(test_rewind_db_error_no_debug_pipe)
     repl->shared->session_id = 1;
 
     // No debug pipe
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Create a mark in memory
     res_t mark_res = ik_mark_create(repl, "checkpoint");
@@ -359,7 +359,7 @@ START_TEST(test_rewind_db_error_null_write_end)
     // Debug pipe with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
     debug_pipe->write_end = NULL;
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Create a mark in memory
     res_t mark_res = ik_mark_create(repl, "checkpoint");

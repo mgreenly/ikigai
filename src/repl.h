@@ -91,12 +91,6 @@ typedef struct ik_repl_ctx_t {
     // Tab completion (rel-04)
     ik_completion_t *completion;                  // Tab completion context (NULL when inactive)
 
-    // Debug pipes
-    ik_debug_pipe_manager_t *debug_mgr;
-    ik_debug_pipe_t *openai_debug_pipe;
-    ik_debug_pipe_t *db_debug_pipe;
-    bool debug_enabled;
-
     // Tool loop iteration tracking (Story 11)
     int32_t tool_iteration_count;     // Number of tool call iterations in current request
 

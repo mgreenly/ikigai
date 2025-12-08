@@ -44,8 +44,8 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         CHECK(setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd));  // LCOV_EXCL_BR_LINE
 
         // Add debug pipes to fd_set
-        if (repl->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
-            ik_debug_mgr_add_to_fdset(repl->debug_mgr, &read_fds, &max_fd);  // LCOV_EXCL_LINE
+        if (repl->shared->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
+            ik_debug_mgr_add_to_fdset(repl->shared->debug_mgr, &read_fds, &max_fd);  // LCOV_EXCL_LINE
         }
 
         // Calculate timeout
@@ -76,8 +76,8 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         }
 
         // Handle debug pipes
-        if (ready > 0 && repl->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
-            ik_debug_mgr_handle_ready(repl->debug_mgr, &read_fds, repl->scrollback, repl->debug_enabled);  // LCOV_EXCL_LINE
+        if (ready > 0 && repl->shared->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
+            ik_debug_mgr_handle_ready(repl->shared->debug_mgr, &read_fds, repl->scrollback, repl->shared->debug_enabled);  // LCOV_EXCL_LINE
         }
 
         if (FD_ISSET(repl->shared->term->tty_fd, &read_fds)) {  // LCOV_EXCL_BR_LINE

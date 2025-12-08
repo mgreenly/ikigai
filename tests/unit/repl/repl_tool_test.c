@@ -198,7 +198,7 @@ END_TEST START_TEST(test_execute_pending_tool_debug_output)
     ck_assert_ptr_nonnull(debug_pipe->write_end);
 
     /* Set the debug pipe on repl */
-    repl->openai_debug_pipe = debug_pipe;
+    repl->shared->openai_debug_pipe = debug_pipe;
 
     /* Execute pending tool call */
     ik_repl_execute_pending_tool(repl);
@@ -247,7 +247,7 @@ END_TEST START_TEST(test_execute_pending_tool_debug_output)
 END_TEST START_TEST(test_execute_pending_tool_no_debug_pipe)
 {
     /* Verify that when debug pipe is NULL, execution still works */
-    repl->openai_debug_pipe = NULL;
+    repl->shared->openai_debug_pipe = NULL;
 
     /* Execute pending tool call */
     ik_repl_execute_pending_tool(repl);
@@ -273,7 +273,7 @@ END_TEST START_TEST(test_execute_pending_tool_debug_pipe_null_write_end)
     /* Set write_end to NULL but keep pipe non-NULL */
     fclose(debug_pipe->write_end);
     debug_pipe->write_end = NULL;
-    repl->openai_debug_pipe = debug_pipe;
+    repl->shared->openai_debug_pipe = debug_pipe;
 
     /* Execute pending tool call - should not crash even with NULL write_end */
     ik_repl_execute_pending_tool(repl);

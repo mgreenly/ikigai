@@ -143,12 +143,6 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     repl->marks = NULL;
     repl->mark_count = 0;
 
-    // Debug pipe manager
-    repl->debug_mgr = TRY(ik_debug_mgr_create(repl));  // LCOV_EXCL_BR_LINE
-    repl->openai_debug_pipe = TRY(ik_debug_mgr_add_pipe(repl->debug_mgr, "[openai]"));  // LCOV_EXCL_BR_LINE
-    repl->db_debug_pipe = TRY(ik_debug_mgr_add_pipe(repl->debug_mgr, "[db]"));  // LCOV_EXCL_BR_LINE
-    repl->debug_enabled = false;
-
     // Restore session if database is configured (must be after repl allocated)
     if (shared->db_ctx != NULL) {
         result = ik_repl_restore_session_(repl, shared->db_ctx, cfg);

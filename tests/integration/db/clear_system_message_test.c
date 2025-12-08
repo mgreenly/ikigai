@@ -175,7 +175,7 @@ START_TEST(test_clear_persists_system_message_event)
     // Initialize marks
     repl->marks = NULL;
     repl->mark_count = 0;
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Verify no messages initially
     ck_assert_int_eq(count_messages_by_kind(db, session_id, "clear"), 0);
@@ -228,7 +228,7 @@ START_TEST(test_clear_no_system_message_when_null)
     // Initialize marks
     repl->marks = NULL;
     repl->mark_count = 0;
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Execute /clear command
     res_t clear_res = ik_cmd_dispatch(test_ctx, repl, "/clear");

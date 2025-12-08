@@ -154,7 +154,7 @@ START_TEST(test_rewind_persists_correct_target_message_index)
     // Set database context and session ID
     repl->shared->db_ctx = db;
     repl->shared->session_id = session_id;
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Build scenario from bug report:
     // DB Index 0: user message

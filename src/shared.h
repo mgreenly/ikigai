@@ -2,12 +2,14 @@
 
 #include "config.h"
 #include "db/connection.h"
+#include "debug_pipe.h"
 #include "error.h"
 #include "history.h"
 #include "render.h"
 #include "terminal.h"
 
 #include <inttypes.h>
+#include <stdbool.h>
 #include <talloc.h>
 
 // Shared infrastructure context - resources shared across all agents
@@ -19,6 +21,10 @@ typedef struct ik_shared_ctx {
     ik_db_ctx_t *db_ctx;     // Database connection (NULL if not configured)
     int64_t session_id;       // Current session ID (0 if no database)
     ik_history_t *history;   // Command history (shared across all agents)
+    ik_debug_pipe_manager_t *debug_mgr;  // Debug pipe manager
+    ik_debug_pipe_t *openai_debug_pipe;  // OpenAI debug pipe
+    ik_debug_pipe_t *db_debug_pipe;      // Database debug pipe
+    bool debug_enabled;                   // Debug flag
 } ik_shared_ctx_t;
 
 // Create shared context (facade that will create infrastructure)

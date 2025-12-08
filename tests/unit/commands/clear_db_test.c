@@ -167,7 +167,7 @@ START_TEST(test_clear_db_error_clear_event) {
     ck_assert_int_eq(pipe(pipefd), 0);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on first call (clear event)
     mock_insert_fail_on_call = 1;
@@ -212,7 +212,7 @@ START_TEST(test_clear_db_error_system_message)
     ck_assert_int_eq(pipe(pipefd), 0);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on second call (system message)
     mock_insert_fail_on_call = 2;
@@ -273,7 +273,7 @@ START_TEST(test_clear_db_error_no_debug_pipe)
     repl->shared = shared;
 
     // No debug pipe set - db_debug_pipe is NULL
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Mock will return error on first call (clear event)
     mock_insert_fail_on_call = 1;
@@ -308,7 +308,7 @@ START_TEST(test_clear_system_db_error_no_debug_pipe)
     repl->shared = shared;
 
     // No debug pipe set - db_debug_pipe is NULL
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Mock will return error on second call (system message)
     mock_insert_fail_on_call = 2;
@@ -348,7 +348,7 @@ START_TEST(test_clear_db_error_write_end_null)
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = NULL;  // NULL write_end
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on first call (clear event)
     mock_insert_fail_on_call = 1;
@@ -386,7 +386,7 @@ START_TEST(test_clear_system_db_error_write_end_null)
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = NULL;  // NULL write_end
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on second call (system message)
     mock_insert_fail_on_call = 2;

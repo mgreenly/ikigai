@@ -296,10 +296,10 @@ START_TEST(test_repl_init_success_debug_manager)
     ck_assert_ptr_nonnull(repl);
 
     // Verify debug manager is created
-    ck_assert_ptr_nonnull(repl->debug_mgr);
+    ck_assert_ptr_nonnull(repl->shared->debug_mgr);
 
     // Verify debug is disabled by default
-    ck_assert(!repl->debug_enabled);
+    ck_assert(!repl->shared->debug_enabled);
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);

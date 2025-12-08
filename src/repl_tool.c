@@ -74,11 +74,11 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
-    if (repl->openai_debug_pipe != NULL && repl->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->openai_debug_pipe->write_end,
+    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
+        fprintf(repl->shared->openai_debug_pipe->write_end,
                 "<< TOOL_CALL: %s\n",
                 summary);
-        fflush(repl->openai_debug_pipe->write_end);
+        fflush(repl->shared->openai_debug_pipe->write_end);
     }
 
     // 2. Execute tool
@@ -93,11 +93,11 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added
-    if (repl->openai_debug_pipe != NULL && repl->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->openai_debug_pipe->write_end,
+    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
+        fprintf(repl->shared->openai_debug_pipe->write_end,
                 "<< TOOL_RESULT: %s\n",
                 result_json);
-        fflush(repl->openai_debug_pipe->write_end);
+        fflush(repl->shared->openai_debug_pipe->write_end);
     }
 
     // 4. Display tool call and result in scrollback via event renderer
@@ -217,11 +217,11 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
-    if (repl->openai_debug_pipe != NULL && repl->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->openai_debug_pipe->write_end,
+    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
+        fprintf(repl->shared->openai_debug_pipe->write_end,
                 "<< TOOL_CALL: %s\n",
                 summary);
-        fflush(repl->openai_debug_pipe->write_end);
+        fflush(repl->shared->openai_debug_pipe->write_end);
     }
 
     // 2. Add tool result message to conversation
@@ -231,11 +231,11 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added
-    if (repl->openai_debug_pipe != NULL && repl->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->openai_debug_pipe->write_end,
+    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
+        fprintf(repl->shared->openai_debug_pipe->write_end,
                 "<< TOOL_RESULT: %s\n",
                 result_json);
-        fflush(repl->openai_debug_pipe->write_end);
+        fflush(repl->shared->openai_debug_pipe->write_end);
     }
 
     // 3. Display in scrollback via event renderer

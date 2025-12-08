@@ -78,7 +78,7 @@ START_TEST(test_async_tool_debug_pipe_null_write_end) {
     /* Close write_end and set to NULL */
     fclose(debug_pipe->write_end);
     debug_pipe->write_end = NULL;
-    repl->openai_debug_pipe = debug_pipe;
+    repl->shared->openai_debug_pipe = debug_pipe;
 
     /* Start async tool execution */
     ik_repl_start_tool_execution(repl);
@@ -111,7 +111,7 @@ END_TEST
 START_TEST(test_async_tool_no_debug_pipe)
 {
     /* Set debug pipe to NULL */
-    repl->openai_debug_pipe = NULL;
+    repl->shared->openai_debug_pipe = NULL;
 
     /* Start async tool execution */
     ik_repl_start_tool_execution(repl);
@@ -149,7 +149,7 @@ START_TEST(test_async_tool_with_working_debug_pipe)
     ik_debug_pipe_t *debug_pipe = (ik_debug_pipe_t *)debug_res.ok;
     ck_assert_ptr_nonnull(debug_pipe);
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->openai_debug_pipe = debug_pipe;
+    repl->shared->openai_debug_pipe = debug_pipe;
 
     /* Start async tool execution */
     ik_repl_start_tool_execution(repl);

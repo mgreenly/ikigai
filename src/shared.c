@@ -1,6 +1,7 @@
 #include "shared.h"
 
 #include "db/connection.h"
+#include "debug_pipe.h"
 #include "history.h"
 #include "logger.h"
 #include "panic.h"
@@ -76,6 +77,17 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, ik_shared_ctx_t **out)
         ik_log_warn("Failed to load history: %s", result.err->msg);
         talloc_free(result.err);
     }
+
+    // Initialize debug infrastructure
+    shared->debug_enabled = false;
+    shared->debug_mgr = ik_debug_mgr_create(shared).ok;
+    if (shared->debug_mgr == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    shared->openai_debug_pipe = ik_debug_mgr_add_pipe(shared->debug_mgr, "[openai]").ok;
+    if (shared->openai_debug_pipe == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    shared->db_debug_pipe = ik_debug_mgr_add_pipe(shared->debug_mgr, "[db]").ok;
+    if (shared->db_debug_pipe == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Set destructor for cleanup
     talloc_set_destructor(shared, shared_destructor);

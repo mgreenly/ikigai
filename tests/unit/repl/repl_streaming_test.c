@@ -395,8 +395,8 @@ START_TEST(test_submission_with_debug_enabled)
     // Create a debug pipe
     res_t res = ik_debug_pipe_create(repl, "openai");
     ck_assert(is_ok(&res));
-    repl->openai_debug_pipe = res.ok;
-    repl->debug_enabled = true;
+    repl->shared->openai_debug_pipe = res.ok;
+    repl->shared->debug_enabled = true;
 
     // Reset mock state
     g_write_callback = NULL;
