@@ -6,6 +6,7 @@
 #include "commands.h"
 
 #include "commands_mark.h"
+#include "completion.h"
 #include "db/message.h"
 #include "event_render.h"
 #include "logger.h"
@@ -150,6 +151,12 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
         talloc_free(repl->marks);
         repl->marks = NULL;
         repl->mark_count = 0;
+    }
+
+    // Clear autocomplete state so suggestions don't persist
+    if (repl->completion != NULL) {  // LCOV_EXCL_BR_LINE
+        talloc_free(repl->completion);
+        repl->completion = NULL;
     }
 
     // Persist clear event to database (Integration Point 3)
