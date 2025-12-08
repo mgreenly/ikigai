@@ -119,6 +119,7 @@ MODULE_OBJ_NO_DB = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES_NO_DB))
 
 # Test utilities (linked with all tests)
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
+TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 
@@ -167,6 +168,10 @@ $(BUILDDIR)/tests/integration/db/%_test: $(BUILDDIR)/tests/integration/db/%_test
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 $(BUILDDIR)/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | $(BUILDDIR)/tests
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILDDIR)/tests/helpers/test_contexts.o: tests/helpers/test_contexts.c tests/helpers/test_contexts.h | $(BUILDDIR)/tests
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o: tests/unit/repl/repl_run_test_common.c tests/unit/repl/repl_run_test_common.h
@@ -230,6 +235,11 @@ $(BUILDDIR)/tests/unit/repl/session_restore_errors_test: $(BUILDDIR)/tests/unit/
 $(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) -lgcov
+
+# Special rule for test_contexts_test (needs test_contexts helper)
+$(BUILDDIR)/tests/unit/helpers/test_contexts_test: $(BUILDDIR)/tests/unit/helpers/test_contexts_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(TEST_CONTEXTS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 bin:
 	mkdir -p bin
