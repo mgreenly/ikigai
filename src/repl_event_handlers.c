@@ -63,7 +63,7 @@ res_t setup_fd_sets(ik_repl_ctx_t *repl,
     FD_ZERO(exc_fds);
 
     // Add terminal fd
-    int32_t terminal_fd = repl->term->tty_fd;
+    int32_t terminal_fd = repl->shared->term->tty_fd;
     FD_SET(terminal_fd, read_fds);
     int max_fd = terminal_fd;
 

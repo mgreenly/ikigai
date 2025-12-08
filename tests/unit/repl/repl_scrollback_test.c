@@ -128,7 +128,9 @@ START_TEST(test_repl_scrollback_terminal_width)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->term = term;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
 
     // Create scrollback with terminal width
     ik_scrollback_t *scrollback = ik_scrollback_create(repl, term->screen_cols);
@@ -351,11 +353,11 @@ START_TEST(test_page_up_clamping)
     // input buffer always occupies at least 1 row (for cursor visibility when empty)
     // max_offset = 32 - 24 = 8
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
-    ik_input_buffer_ensure_layout(repl->input_buffer, repl->term->screen_cols);
+    ik_input_buffer_ensure_layout(repl->input_buffer, repl->shared->term->screen_cols);
     size_t input_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
     size_t input_display_rows = (input_rows == 0) ? 1 : input_rows;
     size_t document_height = scrollback_rows + 1 + input_display_rows;
-    size_t expected_max = document_height - (size_t)repl->term->screen_rows;
+    size_t expected_max = document_height - (size_t)repl->shared->term->screen_rows;
 
     // Start near top
     repl->viewport_offset = (expected_max > 10) ? expected_max - 10 : 0;

@@ -8,6 +8,7 @@
  */
 
 #include <check.h>
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include <unistd.h>
@@ -88,10 +89,12 @@ START_TEST(test_separator_partial_first_line) {
 
     // Create REPL and scroll to show rows 1-10 (starts mid-line)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    shared->render = render_ctx;
 
     // To show document rows 1-10:
     // last_visible_row = 10
@@ -180,10 +183,10 @@ START_TEST(test_separator_row_offset_impact)
 
     // Create REPL
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    shared->render = render_ctx;
 
     // Show rows 1-5 (starts in middle of line 0)
     // Line 0: rows 0-1

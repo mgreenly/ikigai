@@ -56,7 +56,7 @@ int main(void)
         return EXIT_FAILURE;
     }
     // Our abort implementation uses `g_term_ctx_for_panic` to restore the primary buffer if it's not NULL.
-    g_term_ctx_for_panic = repl->term;
+    g_term_ctx_for_panic = shared->term;
     // The talloc library will call this, instead of `abort` if it's defined, which will restore the primary buffer.
     talloc_set_abort_fn(ik_talloc_abort_handler);
 

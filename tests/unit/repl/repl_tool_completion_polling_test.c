@@ -63,13 +63,13 @@ static void setup(void)
     shared->cfg->max_tool_turns = 5;
 
     /* Create minimal terminal context for rendering */
-    repl->term = talloc_zero(repl, ik_term_ctx_t);
-    repl->term->screen_rows = 24;
-    repl->term->screen_cols = 80;
-    repl->term->tty_fd = 1; /* stdout for mock write */
+    repl->shared->term = talloc_zero(repl, ik_term_ctx_t);
+    repl->shared->term->screen_rows = 24;
+    repl->shared->term->screen_cols = 80;
+    repl->shared->term->tty_fd = 1; /* stdout for mock write */
 
     /* Create render context */
-    res_t render_res = ik_render_create(repl, 24, 80, 1, &repl->render);
+    res_t render_res = ik_render_create(repl, 24, 80, 1, &repl->shared->render);
     ck_assert(!render_res.is_err);
 
     /* Create input buffer */

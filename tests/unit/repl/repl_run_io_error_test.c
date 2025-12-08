@@ -4,6 +4,7 @@
  */
 
 #include "repl_run_test_common.h"
+#include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include <errno.h>
 
@@ -33,8 +34,10 @@ START_TEST(test_repl_run_read_error_eintr) {
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -83,8 +86,8 @@ START_TEST(test_repl_run_read_error_other)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -133,8 +136,8 @@ START_TEST(test_repl_run_select_error_eintr)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -187,8 +190,8 @@ START_TEST(test_repl_run_select_error_other)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;

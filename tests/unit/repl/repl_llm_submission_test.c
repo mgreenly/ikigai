@@ -58,8 +58,8 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
+    repl->shared->render = render;
+    repl->shared->term = term;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->layer_cake = layer_cake;

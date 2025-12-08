@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,8 +68,10 @@ START_TEST(test_render_frame_empty_scrollback) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, term->screen_cols);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->render = render;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
@@ -143,8 +146,8 @@ START_TEST(test_render_frame_with_scrollback)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;

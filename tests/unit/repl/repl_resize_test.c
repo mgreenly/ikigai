@@ -118,8 +118,8 @@ START_TEST(test_resize_updates_terminal_dimensions) {
     ck_assert_ptr_nonnull(repl);
 
     // Initial size should be 24x80
-    ck_assert_int_eq(repl->term->screen_rows, 24);
-    ck_assert_int_eq(repl->term->screen_cols, 80);
+    ck_assert_int_eq(repl->shared->term->screen_rows, 24);
+    ck_assert_int_eq(repl->shared->term->screen_cols, 80);
 
     // Change mock terminal size
     mock_screen_rows = 40;
@@ -130,8 +130,8 @@ START_TEST(test_resize_updates_terminal_dimensions) {
     ck_assert(is_ok(&result));
 
     // Terminal dimensions should be updated
-    ck_assert_int_eq(repl->term->screen_rows, 40);
-    ck_assert_int_eq(repl->term->screen_cols, 120);
+    ck_assert_int_eq(repl->shared->term->screen_rows, 40);
+    ck_assert_int_eq(repl->shared->term->screen_cols, 120);
 
     talloc_free(ctx);
 }

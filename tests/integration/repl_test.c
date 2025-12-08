@@ -10,7 +10,7 @@
 #include <curl/curl.h>
 #include <sys/select.h>
 #include "../../src/repl.h"
-#include "../../src/shared.h"
+#include "../../../src/shared.h"
 #include "../test_utils.h"
 
 // Mock terminal file descriptor
@@ -336,7 +336,7 @@ START_TEST(test_repl_cleanup_null_term)
     ck_assert_ptr_nonnull(repl);
 
     // Explicitly ensure term is NULL (talloc_zero does this, but being explicit)
-    repl->term = NULL;
+    repl->shared->term = NULL;
 
     // Should not crash - cleanup should handle NULL term gracefully
     ik_repl_cleanup(repl);

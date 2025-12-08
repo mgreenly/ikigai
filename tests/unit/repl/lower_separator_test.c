@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/shared.h"
 #include <signal.h>
 #include <talloc.h>
 #include <string.h>
@@ -81,8 +82,10 @@ START_TEST(test_lower_separator_renders_with_layers)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->render = render;
+    shared->term = term;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
 
@@ -162,8 +165,8 @@ START_TEST(test_lower_separator_visibility_flag)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
+    shared->render = render;
+    shared->term = term;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
 
@@ -218,7 +221,7 @@ START_TEST(test_lower_separator_layer_order)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->term = term;
+    shared->term = term;
 
     // Initialize layer cake
     repl->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);

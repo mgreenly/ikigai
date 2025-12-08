@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/shared.h"
 #include <signal.h>
 #include <talloc.h>
 #include <string.h>
@@ -66,8 +67,10 @@ START_TEST(test_separator_renders_on_empty_scrollback)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->render = render;
+    shared->term = term;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
 
@@ -163,8 +166,8 @@ START_TEST(test_separator_renders_with_scrollback)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
+    shared->render = render;
+    shared->term = term;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
 
@@ -260,8 +263,8 @@ START_TEST(test_separator_not_renders_when_invisible)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
+    shared->render = render;
+    shared->term = term;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
 

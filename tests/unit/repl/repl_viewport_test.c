@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
@@ -36,7 +37,9 @@ START_TEST(test_viewport_empty_scrollback) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
@@ -89,7 +92,7 @@ START_TEST(test_viewport_small_scrollback)
     ck_assert_uint_eq(scrollback_rows, 3);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;  // At bottom
@@ -148,7 +151,7 @@ START_TEST(test_viewport_large_scrollback)
     ck_assert_uint_eq(scrollback_rows, 20);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;  // At bottom
@@ -201,7 +204,7 @@ START_TEST(test_viewport_offset_clamping)
     }
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 100;  // Try to scroll way past top
@@ -258,7 +261,7 @@ START_TEST(test_viewport_no_scrollback_room)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;

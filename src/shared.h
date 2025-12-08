@@ -2,6 +2,8 @@
 
 #include "error.h"
 #include "config.h"
+#include "terminal.h"
+#include "render.h"
 
 #include <talloc.h>
 
@@ -9,6 +11,8 @@
 // Created as sibling to repl_ctx under root_ctx (DI pattern)
 typedef struct ik_shared_ctx {
     ik_cfg_t *cfg;  // Configuration (borrowed, not owned)
+    ik_term_ctx_t *term;    // Terminal context
+    ik_render_ctx_t *render; // Render context
 } ik_shared_ctx_t;
 
 // Create shared context (facade that will create infrastructure)

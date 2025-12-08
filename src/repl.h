@@ -47,8 +47,6 @@ typedef struct {
 // REPL context structure
 typedef struct ik_repl_ctx_t {
     ik_shared_ctx_t *shared;    // Shared context (DI)
-    ik_term_ctx_t *term;        // Terminal context
-    ik_render_ctx_t *render;    // Rendering context
     ik_input_buffer_t *input_buffer;  // Input buffer
     ik_input_parser_t *input_parser;  // Input parser
     ik_scrollback_t *scrollback;      // Scrollback buffer (Phase 4)

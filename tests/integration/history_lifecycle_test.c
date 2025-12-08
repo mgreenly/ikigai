@@ -1,6 +1,6 @@
 #include "../../src/history.h"
 #include "../../src/repl.h"
-#include "../../src/shared.h"
+#include "../../../src/shared.h"
 #include "../test_utils.h"
 
 #include <check.h>

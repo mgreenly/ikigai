@@ -4,6 +4,7 @@
  */
 
 #include "repl_streaming_test_common.h"
+#include "../../../src/shared.h"
 
 // Global state for curl mocking
 curl_write_callback g_write_callback = NULL;
@@ -104,12 +105,17 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     ik_layer_cake_t *layer_cake = NULL;
     layer_cake = ik_layer_cake_create(ctx, 24);
 
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->term = term;
+    shared->render = render;
+
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+    repl->shared = shared;
     repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->layer_cake = layer_cake;

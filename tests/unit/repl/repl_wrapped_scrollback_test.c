@@ -6,6 +6,7 @@
  */
 
 #include <check.h>
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include <unistd.h>
@@ -69,10 +70,12 @@ START_TEST(test_separator_with_wrapped_lines) {
 
     // Create REPL and scroll to show middle of scrollback
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    shared->render = render_ctx;
 
     // Scroll to show document rows 20-29 (which should be lines 10-14)
     // Each line is 2 physical rows, so:

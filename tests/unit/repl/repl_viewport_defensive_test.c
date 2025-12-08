@@ -9,6 +9,7 @@
  */
 
 #include <check.h>
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include "../../../src/repl.h"
@@ -124,7 +125,9 @@ START_TEST(test_viewport_input_buffer_before_viewport) {
     ck_assert_uint_eq(scrollback_rows, 5);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;  // At bottom

@@ -41,45 +41,19 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     ik_cfg_t *cfg = shared->cfg;
 
     // Phase 1: All failable operations allocate on parent
-    // Initialize terminal (raw mode + alternate screen)
-    ik_term_ctx_t *term = NULL;
-    res_t result = ik_term_init(parent, &term);
-    if (is_err(&result)) {
-        return result;
-    }
-
-    // Initialize render
-    ik_render_ctx_t *render = NULL;
-    result = ik_render_create(parent,
-                              term->screen_rows,
-                              term->screen_cols,
-                              term->tty_fd,
-                              &render);
-    if (is_err(&result)) {
-        ik_term_cleanup(term);
-        talloc_free(term);
-        return result;
-    }
-
     // Handle database init if configured
     ik_db_ctx_t *db_ctx = NULL;
     int64_t current_session_id = 0;
     if (cfg->db_connection_string != NULL) {
-        result = ik_db_init_(parent, cfg->db_connection_string, (void **)&db_ctx);
+        res_t result = ik_db_init_(parent, cfg->db_connection_string, (void **)&db_ctx);
         if (is_err(&result)) {
-            ik_term_cleanup(term);
-            talloc_free(term);
-            talloc_free(render);
             return result;
         }
     }
 
     // Set up signal handlers (SIGWINCH for terminal resize) - must be before repl alloc
-    result = ik_signal_handler_init(parent);
+    res_t result = ik_signal_handler_init(parent);
     if (is_err(&result)) {
-        ik_term_cleanup(term);
-        talloc_free(term);
-        talloc_free(render);
         if (db_ctx != NULL) {
             talloc_free(db_ctx);
         }
@@ -91,16 +65,12 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     if (repl == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Reparent successful sub-contexts under repl
-    talloc_steal(repl, term);
-    talloc_steal(repl, render);
     if (db_ctx != NULL) {
         talloc_steal(repl, db_ctx);
     }
 
     // Wire up successfully initialized components
     repl->shared = shared;
-    repl->term = term;
-    repl->render = render;
     repl->db_ctx = db_ctx;
     repl->current_session_id = current_session_id;
 
@@ -111,7 +81,7 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     repl->input_parser = ik_input_parser_create(repl);
 
     // Initialize scrollback buffer (Phase 4)
-    repl->scrollback = ik_scrollback_create(repl, repl->term->screen_cols);
+    repl->scrollback = ik_scrollback_create(repl, repl->shared->term->screen_cols);
 
     // Initialize viewport offset to 0 (at bottom)
     repl->viewport_offset = 0;
@@ -133,7 +103,7 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     repl->completion = NULL;
 
     // Create layer cake
-    repl->layer_cake = ik_layer_cake_create(repl, (size_t)repl->term->screen_rows);
+    repl->layer_cake = ik_layer_cake_create(repl, (size_t)repl->shared->term->screen_rows);
 
     // Create scrollback layer
     repl->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", repl->scrollback);
@@ -244,11 +214,7 @@ void ik_repl_cleanup(ik_repl_ctx_t *repl)
         return;
     }
 
-    // Cleanup terminal (restore state)
-    if (repl->term != NULL) {
-        ik_term_cleanup(repl->term);
-    }
-
+    // Terminal cleanup now handled by shared context
     // Other components cleaned up via talloc hierarchy
     talloc_free(repl);
 }

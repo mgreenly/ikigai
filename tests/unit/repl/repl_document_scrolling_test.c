@@ -8,6 +8,7 @@
  */
 
 #include <check.h>
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include <unistd.h>
@@ -61,10 +62,12 @@ START_TEST(test_separator_scrolls_offscreen) {
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    shared->render = render_ctx;
 
     // Document height = 50 (scrollback) + 1 (separator) + 1 (input_buf) = 52 lines
     // Terminal shows 10 lines
@@ -158,10 +161,10 @@ START_TEST(test_input_buffer_scrolls_offscreen)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    shared->render = render_ctx;
 
     // Scroll to middle of scrollback (input buffer is off-screen)
     repl->viewport_offset = 30;
@@ -236,10 +239,10 @@ START_TEST(test_scrollback_adjacent_to_separator)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    shared->render = render_ctx;
 
     // Scrolled to bottom (offset = 0) - all scrollback visible
     repl->viewport_offset = 0;

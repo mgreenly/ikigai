@@ -80,8 +80,8 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             ik_debug_mgr_handle_ready(repl->debug_mgr, &read_fds, repl->scrollback, repl->debug_enabled);  // LCOV_EXCL_LINE
         }
 
-        if (FD_ISSET(repl->term->tty_fd, &read_fds)) {  // LCOV_EXCL_BR_LINE
-            CHECK(handle_terminal_input(repl, repl->term->tty_fd, &should_exit));
+        if (FD_ISSET(repl->shared->term->tty_fd, &read_fds)) {  // LCOV_EXCL_BR_LINE
+            CHECK(handle_terminal_input(repl, repl->shared->term->tty_fd, &should_exit));
             if (should_exit) break;
         }
 
@@ -160,17 +160,17 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
 res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->term != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->shared->term != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->render != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->shared->render != NULL);   /* LCOV_EXCL_BR_LINE */
 
     int rows, cols;
-    res_t result = ik_term_get_size(repl->term, &rows, &cols);
+    res_t result = ik_term_get_size(repl->shared->term, &rows, &cols);
     if (is_err(&result)) return result;
 
-    repl->render->rows = rows;
-    repl->render->cols = cols;
+    repl->shared->render->rows = rows;
+    repl->shared->render->cols = cols;
 
     ik_scrollback_ensure_layout(repl->scrollback, cols);
     ik_input_buffer_ensure_layout(repl->input_buffer, cols);

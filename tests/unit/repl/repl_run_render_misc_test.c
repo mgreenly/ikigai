@@ -4,6 +4,7 @@
  */
 
 #include "repl_run_test_common.h"
+#include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 
 /* Test: Initial render error */
@@ -32,8 +33,10 @@ START_TEST(test_repl_run_initial_render_error) {
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -81,8 +84,8 @@ START_TEST(test_repl_run_render_error_in_loop)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -128,8 +131,8 @@ START_TEST(test_repl_run_spinner_render_error)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -199,8 +202,8 @@ START_TEST(test_repl_run_spinner_timeout_success)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -270,8 +273,8 @@ START_TEST(test_repl_process_action_invalid_codepoint)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -317,8 +320,8 @@ START_TEST(test_handle_terminal_input_success)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;

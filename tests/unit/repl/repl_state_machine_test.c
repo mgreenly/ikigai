@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include "../../../src/repl.h"
@@ -52,8 +53,10 @@ static ik_repl_ctx_t *create_test_repl(void *ctx)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->render = render;
+    shared->term = term;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->layer_cake = layer_cake;

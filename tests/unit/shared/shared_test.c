@@ -2,6 +2,8 @@
 
 #include "../../../src/error.h"
 #include "../../../src/config.h"
+#include "../../../src/terminal.h"
+#include "../../../src/render.h"
 #include "../../test_utils.h"
 
 #include <check.h>
@@ -119,6 +121,74 @@ START_TEST(test_shared_ctx_cfg_accessible)
 }
 END_TEST
 
+// Test that shared_ctx initializes term
+START_TEST(test_shared_ctx_term_initialized)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create minimal cfg for test
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    ck_assert_ptr_nonnull(shared->term);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test that shared_ctx initializes render
+START_TEST(test_shared_ctx_render_initialized)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create minimal cfg for test
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    ck_assert_ptr_nonnull(shared->render);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test that render dimensions match term dimensions
+START_TEST(test_shared_ctx_render_matches_term_dimensions)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create minimal cfg for test
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    ck_assert_ptr_nonnull(shared->term);
+    ck_assert_ptr_nonnull(shared->render);
+
+    // Verify dimensions match
+    ck_assert_int_eq(shared->render->rows, shared->term->screen_rows);
+    ck_assert_int_eq(shared->render->cols, shared->term->screen_cols);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *shared_suite(void)
 {
     Suite *s = suite_create("Shared Context");
@@ -129,6 +199,9 @@ static Suite *shared_suite(void)
     tcase_add_test(tc_core, test_shared_ctx_can_be_freed);
     tcase_add_test(tc_core, test_shared_ctx_stores_cfg);
     tcase_add_test(tc_core, test_shared_ctx_cfg_accessible);
+    tcase_add_test(tc_core, test_shared_ctx_term_initialized);
+    tcase_add_test(tc_core, test_shared_ctx_render_initialized);
+    tcase_add_test(tc_core, test_shared_ctx_render_matches_term_dimensions);
     suite_add_tcase(s, tc_core);
 
     return s;

@@ -4,6 +4,7 @@
  */
 
 #include "repl_run_test_common.h"
+#include "../../../src/shared.h"
 
 /* Test: Simple character input followed by Ctrl+C */
 START_TEST(test_repl_run_simple_char_input) {
@@ -31,8 +32,10 @@ START_TEST(test_repl_run_simple_char_input) {
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -81,8 +84,8 @@ START_TEST(test_repl_run_multiple_chars)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -134,8 +137,8 @@ START_TEST(test_repl_run_with_newline)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -185,8 +188,8 @@ START_TEST(test_repl_run_with_backspace)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -234,8 +237,8 @@ START_TEST(test_repl_run_read_eof)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -284,8 +287,8 @@ START_TEST(test_repl_run_unknown_action)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -335,8 +338,8 @@ START_TEST(test_repl_run_select_timeout)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;
@@ -389,8 +392,8 @@ START_TEST(test_repl_run_active_curl_transfers)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
+    shared->term = term;
+    shared->render = render;
     repl->scrollback = scrollback;
     repl->viewport_offset = 0;
     repl->quit = false;

@@ -12,6 +12,7 @@
  */
 
 #include <check.h>
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include <unistd.h>
@@ -51,10 +52,12 @@ START_TEST(test_page_up_shows_earliest_line) {
 
     // Create REPL
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->render = render;
+    shared->render = render;
     repl->viewport_offset = 0;
 
     // Simulate: type a, Enter

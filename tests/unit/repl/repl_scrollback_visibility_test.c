@@ -8,6 +8,7 @@
  */
 
 #include <check.h>
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include <unistd.h>
@@ -64,10 +65,12 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    shared->render = render_ctx;
 
     // Document structure:
     //   Lines 0-49: scrollback (50 lines)
@@ -177,10 +180,10 @@ START_TEST(test_scrollback_visible_when_scrolled_to_top)
 
     // Create REPL and scroll to top (maximum offset)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
+    shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    shared->render = render_ctx;
 
     // Document: 50 scrollback + 1 sep + 1 input buffer = 52 lines
     // Max offset = 52 - 10 = 42, shows lines 0-9

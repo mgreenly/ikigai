@@ -122,10 +122,10 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->multi);
 
     // Create terminal context
-    repl->term = talloc_zero_(repl, sizeof(ik_term_ctx_t));
+    repl->shared->term = talloc_zero_(repl, sizeof(ik_term_ctx_t));
     ck_assert_ptr_nonnull(repl->term);
-    repl->term->screen_rows = 24;
-    repl->term->screen_cols = 80;
+    repl->shared->term->screen_rows = 24;
+    repl->shared->term->screen_cols = 80;
 
     // Set up database connection
     repl->db_ctx = mock_db_ctx;
