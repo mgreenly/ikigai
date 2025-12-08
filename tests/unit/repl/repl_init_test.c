@@ -166,24 +166,18 @@ int posix_mkdir_(const char *pathname, mode_t mode)
 /* Test: Terminal init failure (cannot open /dev/tty) */
 START_TEST(test_repl_init_terminal_open_failure) {
     void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
 
     // Enable mock failure
     mock_open_should_fail = true;
 
-    // Attempt to initialize REPL - should fail
+    // Attempt to initialize shared context - should fail during terminal init
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    // Create shared context
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
-    ck_assert(is_ok(&res));
 
-    // Create REPL context
-    res = ik_repl_init(ctx, shared, &repl);
-
-    // Verify failure
+    // Verify failure (terminal init failed)
     ck_assert(is_err(&res));
-    ck_assert_ptr_null(repl);
+    ck_assert_ptr_null(shared);
 
     // Cleanup mock state
     mock_open_should_fail = false;
@@ -195,24 +189,18 @@ END_TEST
 START_TEST(test_repl_init_render_invalid_dimensions)
 {
     void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
 
     // Enable mock failure for ioctl
     mock_ioctl_should_fail = true;
 
-    // Attempt to initialize REPL - should fail when creating render
+    // Attempt to initialize shared context - should fail when creating render
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    // Create shared context
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
-    ck_assert(is_ok(&res));
 
-    // Create REPL context
-    res = ik_repl_init(ctx, shared, &repl);
-
-    // Verify failure
+    // Verify failure (render init failed)
     ck_assert(is_err(&res));
-    ck_assert_ptr_null(repl);
+    ck_assert_ptr_null(shared);
 
     // Cleanup mock state
     mock_ioctl_should_fail = false;
