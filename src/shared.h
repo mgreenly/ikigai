@@ -12,8 +12,22 @@
 #include <stdbool.h>
 #include <talloc.h>
 
-// Shared infrastructure context - resources shared across all agents
-// Created as sibling to repl_ctx under root_ctx (DI pattern)
+/**
+ * Shared infrastructure context for ikigai.
+ *
+ * Contains resources shared across all agents in a session:
+ * - Configuration (borrowed, not owned)
+ * - Terminal I/O
+ * - Database connection
+ * - Command history
+ *
+ * Ownership: Created as sibling to ik_repl_ctx_t under root_ctx.
+ * This follows DI principles: dependencies created first, injected
+ * into consumers (repl_ctx).
+ *
+ * Thread safety: Currently single-threaded. Phase 2 will add
+ * synchronization for multi-agent access.
+ */
 typedef struct ik_shared_ctx {
     ik_cfg_t *cfg;  // Configuration (borrowed, not owned)
     ik_term_ctx_t *term;    // Terminal context
