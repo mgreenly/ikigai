@@ -81,6 +81,8 @@ START_TEST(test_scroll_down_decreases_offset)
     }
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
@@ -125,6 +127,8 @@ START_TEST(test_scroll_up_clamps_at_max)
     }
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
@@ -166,6 +170,8 @@ START_TEST(test_scroll_down_clamps_at_zero)
     }
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
@@ -215,6 +221,8 @@ START_TEST(test_scroll_preserves_input_buffer)
     }
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
@@ -275,6 +283,8 @@ START_TEST(test_scroll_up_empty_input_buffer)
     }
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
@@ -320,6 +330,8 @@ START_TEST(test_scroll_up_small_document)
     }
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;

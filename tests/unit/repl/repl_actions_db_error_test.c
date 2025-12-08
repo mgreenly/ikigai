@@ -123,7 +123,7 @@ static void setup(void)
 
     // Create terminal context
     repl->shared->term = talloc_zero_(repl, sizeof(ik_term_ctx_t));
-    ck_assert_ptr_nonnull(repl->term);
+    ck_assert_ptr_nonnull(repl->shared->term);
     repl->shared->term->screen_rows = 24;
     repl->shared->term->screen_cols = 80;
 

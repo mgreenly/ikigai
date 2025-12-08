@@ -105,6 +105,8 @@ START_TEST(test_arrow_down_with_viewport_offset_scrolls)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
@@ -152,6 +154,8 @@ START_TEST(test_arrow_up_with_zero_offset_navigates_history)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
@@ -210,6 +214,8 @@ START_TEST(test_arrow_down_to_bottom_then_history)
 
     // Start with history browsing and viewport offset
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;

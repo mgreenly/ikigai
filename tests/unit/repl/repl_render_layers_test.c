@@ -161,6 +161,8 @@ START_TEST(test_repl_render_frame_with_layers_scrolling)
     // Create REPL with layer cake
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;
@@ -223,6 +225,8 @@ START_TEST(test_repl_render_frame_write_failure)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;

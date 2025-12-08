@@ -81,6 +81,8 @@ START_TEST(test_repl_run_multiple_chars)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
@@ -134,6 +136,8 @@ START_TEST(test_repl_run_with_newline)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
@@ -185,6 +189,8 @@ START_TEST(test_repl_run_with_backspace)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
@@ -234,6 +240,8 @@ START_TEST(test_repl_run_read_eof)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
@@ -284,6 +292,8 @@ START_TEST(test_repl_run_unknown_action)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
@@ -335,6 +345,8 @@ START_TEST(test_repl_run_select_timeout)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;
@@ -389,6 +401,8 @@ START_TEST(test_repl_run_active_curl_transfers)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->input_parser = parser;

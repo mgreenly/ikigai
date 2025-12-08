@@ -124,6 +124,8 @@ START_TEST(test_repl_render_frame_multiline)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     shared->render = render;
@@ -170,6 +172,8 @@ START_TEST(test_repl_render_frame_cursor_positions)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     shared->render = render;
@@ -239,6 +243,8 @@ START_TEST(test_repl_render_frame_utf8)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     shared->render = render;

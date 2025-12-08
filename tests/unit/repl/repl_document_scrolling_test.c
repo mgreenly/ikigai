@@ -161,6 +161,8 @@ START_TEST(test_input_buffer_scrolls_offscreen)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
@@ -239,6 +241,8 @@ START_TEST(test_scrollback_adjacent_to_separator)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;

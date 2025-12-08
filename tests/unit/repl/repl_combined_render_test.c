@@ -146,6 +146,8 @@ START_TEST(test_render_frame_with_scrollback)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     shared->term = term;
     shared->render = render;
     repl->input_buffer = input_buf;
