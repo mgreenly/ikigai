@@ -377,6 +377,30 @@ START_TEST(test_input_parse_page_down)
 
 END_TEST
 
+// Test: double ESC sequence (ESC ESC) - first ESC should be treated as escape action
+START_TEST(test_input_parse_double_escape)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse first ESC - should start escape sequence
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(parser->in_escape);
+
+    // Parse second ESC - first ESC should become IK_INPUT_ESCAPE, second starts new sequence
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ck_assert_int_eq(action.type, IK_INPUT_ESCAPE);
+    ck_assert(parser->in_escape); // Should still be in escape mode (new sequence started)
+    ck_assert_uint_eq(parser->esc_len, 0); // New sequence starts fresh
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 // Test suite
 static Suite *input_escape_suite(void)
 {
@@ -398,6 +422,7 @@ static Suite *input_escape_suite(void)
     tcase_add_test(tc_core, test_input_parse_unrecognized_csi_sequence);
     tcase_add_test(tc_core, test_input_parse_unrecognized_csi_middle_letter);
     tcase_add_test(tc_core, test_input_parse_unrecognized_single_char_escape);
+    tcase_add_test(tc_core, test_input_parse_double_escape);
 
     suite_add_tcase(s, tc_core);
     return s;

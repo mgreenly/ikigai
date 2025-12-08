@@ -79,7 +79,7 @@ Configuring backup to S3...
 S3 bucket URL? s3://my-bucket/ikigai-backup
 
 Secrets need a backup passphrase. This passphrase encrypts your
-secrets before upload. Store it securely—without it, secrets
+secrets before upload. Store it securely. Without it, secrets
 cannot be restored.
 
 Passphrase: ********

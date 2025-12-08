@@ -68,6 +68,18 @@ END_TEST START_TEST(test_valid_rewind)
     ck_assert(result);
 }
 
+END_TEST START_TEST(test_valid_tool_call)
+{
+    bool result = ik_db_message_is_valid_kind("tool_call");
+    ck_assert(result);
+}
+
+END_TEST START_TEST(test_valid_tool_result)
+{
+    bool result = ik_db_message_is_valid_kind("tool_result");
+    ck_assert(result);
+}
+
 END_TEST
 // Test: Case sensitivity
 START_TEST(test_kind_case_sensitive)
@@ -99,6 +111,8 @@ static Suite *message_kind_validation_suite(void)
     tcase_add_test(tc_valid, test_valid_assistant);
     tcase_add_test(tc_valid, test_valid_mark);
     tcase_add_test(tc_valid, test_valid_rewind);
+    tcase_add_test(tc_valid, test_valid_tool_call);
+    tcase_add_test(tc_valid, test_valid_tool_result);
     suite_add_tcase(s, tc_valid);
 
     return s;

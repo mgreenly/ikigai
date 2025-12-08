@@ -1,6 +1,7 @@
 #include <check.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <pthread.h>
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <talloc.h>
@@ -21,6 +22,7 @@ static int mock_tcsetattr_fail = 0;
 static int mock_tcflush_fail = 0;
 static int mock_write_fail = 0;
 static int mock_ioctl_fail = 0;
+static int mock_pthread_mutex_init_fail = 0;
 
 // Mock function prototypes
 int posix_open_(const char *pathname, int flags);
@@ -45,6 +47,12 @@ void curl_easy_cleanup_(CURL *curl);
 CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val);
 struct curl_slist *curl_slist_append_(struct curl_slist *list, const char *string);
 void curl_slist_free_all_(struct curl_slist *list);
+int pthread_mutex_init_(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr);
+int pthread_mutex_destroy_(pthread_mutex_t *mutex);
+int pthread_mutex_lock_(pthread_mutex_t *mutex);
+int pthread_mutex_unlock_(pthread_mutex_t *mutex);
+int pthread_create_(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);
+int pthread_join_(pthread_t thread, void **retval);
 
 // Mock functions for terminal operations
 int posix_open_(const char *pathname, int flags)
@@ -230,6 +238,41 @@ void curl_slist_free_all_(struct curl_slist *list)
     (void)list;
 }
 
+// Mock pthread functions
+int pthread_mutex_init_(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
+{
+    if (mock_pthread_mutex_init_fail) {
+        return 1;  // EPERM or other error
+    }
+    return pthread_mutex_init(mutex, attr);
+}
+
+int pthread_mutex_destroy_(pthread_mutex_t *mutex)
+{
+    return pthread_mutex_destroy(mutex);
+}
+
+int pthread_mutex_lock_(pthread_mutex_t *mutex)
+{
+    return pthread_mutex_lock(mutex);
+}
+
+int pthread_mutex_unlock_(pthread_mutex_t *mutex)
+{
+    return pthread_mutex_unlock(mutex);
+}
+
+int pthread_create_(pthread_t *thread, const pthread_attr_t *attr,
+                    void *(*start_routine)(void *), void *arg)
+{
+    return pthread_create(thread, attr, start_routine, arg);
+}
+
+int pthread_join_(pthread_t thread, void **retval)
+{
+    return pthread_join(thread, retval);
+}
+
 // Helper to reset mocks
 static void reset_mocks(void)
 {
@@ -239,6 +282,7 @@ static void reset_mocks(void)
     mock_tcflush_fail = 0;
     mock_write_fail = 0;
     mock_ioctl_fail = 0;
+    mock_pthread_mutex_init_fail = 0;
 }
 
 // Test: REPL initialization creates all components
@@ -318,6 +362,102 @@ START_TEST(test_repl_run)
 }
 
 END_TEST
+// Test: Thread infrastructure initialization
+START_TEST(test_thread_infrastructure_init)
+{
+    reset_mocks();
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(repl);
+
+    // Verify thread fields are initialized
+    ck_assert(!repl->tool_thread_running);
+    ck_assert(!repl->tool_thread_complete);
+    ck_assert_ptr_null(repl->tool_thread_ctx);
+    ck_assert_ptr_null(repl->tool_thread_result);
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: Mutex init failure
+START_TEST(test_mutex_init_failure)
+{
+    reset_mocks();
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    mock_pthread_mutex_init_fail = 1;
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
+
+    ck_assert(is_err(&result));
+    ck_assert_ptr_null(repl);
+
+    talloc_free(result.err);
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: State transition to EXECUTING_TOOL
+START_TEST(test_transition_to_executing_tool)
+{
+    reset_mocks();
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
+    ck_assert(is_ok(&result));
+
+    // Transition to WAITING_FOR_LLM first
+    ik_repl_transition_to_waiting_for_llm(repl);
+    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert(repl->spinner_state.visible);
+    ck_assert(!repl->input_buffer_visible);
+
+    // Transition to EXECUTING_TOOL
+    ik_repl_transition_to_executing_tool(repl);
+    ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
+    ck_assert(repl->spinner_state.visible);  // Spinner stays visible
+    ck_assert(!repl->input_buffer_visible);  // Input stays hidden
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: State transition from EXECUTING_TOOL
+START_TEST(test_transition_from_executing_tool)
+{
+    reset_mocks();
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    res_t result = ik_repl_init(ctx, cfg, &repl);
+    ck_assert(is_ok(&result));
+
+    // Set up state: IDLE -> WAITING_FOR_LLM -> EXECUTING_TOOL
+    ik_repl_transition_to_waiting_for_llm(repl);
+    ik_repl_transition_to_executing_tool(repl);
+    ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
+
+    // Transition from EXECUTING_TOOL back to WAITING_FOR_LLM
+    ik_repl_transition_from_executing_tool(repl);
+    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+
+END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: REPL initialization with NULL parent
@@ -350,6 +490,10 @@ static Suite *repl_suite(void)
     tcase_add_test(tc_core, test_repl_cleanup_null);
     tcase_add_test(tc_core, test_repl_cleanup_null_term);
     tcase_add_test(tc_core, test_repl_run);
+    tcase_add_test(tc_core, test_thread_infrastructure_init);
+    tcase_add_test(tc_core, test_mutex_init_failure);
+    tcase_add_test(tc_core, test_transition_to_executing_tool);
+    tcase_add_test(tc_core, test_transition_from_executing_tool);
     suite_add_tcase(s, tc_core);
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
@@ -371,6 +515,8 @@ int32_t main(void)
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);
+
+    ik_test_reset_terminal();
 
     return (number_failed == 0) ? 0 : 1;
 }

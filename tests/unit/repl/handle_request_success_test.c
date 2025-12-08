@@ -1,23 +1,27 @@
 /**
  * @file handle_request_success_test.c
- * @brief Unit tests for handle_request_success function
+ * @brief Unit tests for handle_request_success function - basic and metadata tests
  *
- * Tests all code paths in handle_request_success by adjusting repl state parameters.
+ * Tests basic code paths and metadata handling in handle_request_success.
  * Uses per-file database isolation for parallel test execution.
  */
 
 #include "../../../src/repl.h"
+#include "../../../src/repl_event_handlers.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
 #include "../../../src/debug_pipe.h"
 #include "../../../src/openai/client.h"
 #include "../../../src/scrollback.h"
+#include "../../../src/tool.h"
+#include "../../../src/wrapper.h"
 #include "../../test_utils.h"
 
 #include <check.h>
 #include <fcntl.h>
 #include <libpq-fe.h>
+#include <pthread.h>
 #include <string.h>
 #include <talloc.h>
 #include <unistd.h>
@@ -326,76 +330,6 @@ START_TEST(test_no_metadata)
 }
 
 END_TEST
-// Test: DB error without debug pipe
-START_TEST(test_db_error_no_debug_pipe)
-{
-    SKIP_IF_NO_DB();
-
-    repl->assistant_response = talloc_strdup(test_ctx, "Test response");
-    repl->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->db_debug_pipe = NULL;
-
-    // Use invalid session ID to cause DB error
-    repl->current_session_id = -1;
-
-    handle_request_success(repl);
-
-    // Message should still be added to conversation despite DB error
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_ptr_null(repl->assistant_response);
-}
-
-END_TEST
-// Test: DB error with debug pipe
-START_TEST(test_db_error_with_debug_pipe)
-{
-    SKIP_IF_NO_DB();
-
-    repl->assistant_response = talloc_strdup(test_ctx, "Test response");
-    repl->response_model = talloc_strdup(test_ctx, "gpt-4");
-
-    // Create debug pipe
-    ik_debug_pipe_t *debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    ck_assert_ptr_nonnull(debug_pipe);
-
-    int pipefd[2];
-    int pipe_result = pipe(pipefd);
-    ck_assert_int_eq(pipe_result, 0);
-
-    debug_pipe->write_end = fdopen(pipefd[1], "w");
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->db_debug_pipe = debug_pipe;
-
-    // Use invalid session ID to cause DB error
-    repl->current_session_id = -1;
-
-    handle_request_success(repl);
-
-    // Message should still be added despite DB error
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_ptr_null(repl->assistant_response);
-
-    // Check that error was written to debug pipe
-    fflush(debug_pipe->write_end);
-
-    // Set pipe to non-blocking to avoid timeout
-    int flags = fcntl(pipefd[0], F_GETFL, 0);
-    fcntl(pipefd[0], F_SETFL, flags | O_NONBLOCK);
-
-    char buffer[512];
-    ssize_t bytes_read = read(pipefd[0], buffer, sizeof(buffer) - 1);
-    if (bytes_read > 0) {
-        buffer[bytes_read] = '\0';
-        ck_assert_ptr_nonnull(strstr(buffer, "Warning"));
-        ck_assert_ptr_nonnull(strstr(buffer, "Failed to persist"));
-    }
-
-    // Cleanup
-    fclose(debug_pipe->write_end);
-    close(pipefd[0]);
-}
-
-END_TEST
 
 static Suite *handle_request_success_suite(void)
 {
@@ -416,8 +350,6 @@ static Suite *handle_request_success_suite(void)
     tcase_add_test(tc_core, test_model_finish_reason_metadata);
     tcase_add_test(tc_core, test_tokens_finish_reason_metadata);
     tcase_add_test(tc_core, test_no_metadata);
-    tcase_add_test(tc_core, test_db_error_no_debug_pipe);
-    tcase_add_test(tc_core, test_db_error_with_debug_pipe);
     suite_add_tcase(s, tc_core);
 
     return s;

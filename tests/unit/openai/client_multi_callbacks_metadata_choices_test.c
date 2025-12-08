@@ -29,7 +29,7 @@ START_TEST(test_http_write_callback_missing_choices) {
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, NULL);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response without choices array */
@@ -71,7 +71,7 @@ END_TEST START_TEST(test_http_write_callback_empty_choices)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, NULL);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with empty choices array */
@@ -114,7 +114,7 @@ END_TEST START_TEST(test_http_write_callback_choice_not_object)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, NULL);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with choice as string (not object) */
@@ -157,7 +157,7 @@ END_TEST START_TEST(test_http_write_callback_finish_reason_not_string)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, NULL);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with finish_reason as int (not string) */
@@ -200,7 +200,7 @@ END_TEST START_TEST(test_http_write_callback_metadata_already_captured)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, NULL);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
     ck_assert(!add_res.is_err);
 
     /* First chunk with model, finish_reason, and completion_tokens */

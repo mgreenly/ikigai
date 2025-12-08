@@ -219,6 +219,78 @@ START_TEST(test_cursor_position_invalid_utf8)
 }
 
 END_TEST
+// Test: cursor position after SGR escape sequence
+START_TEST(test_cursor_position_ansi_sgr_reset)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    // "\x1b[0mhello" - cursor at byte 4 (after SGR reset) should be at screen col 0
+    const char *text = "\x1b[0mhello";
+    cursor_screen_pos_t pos = {0};
+
+    res_t res = calculate_cursor_screen_position(ctx, text, 9, 4, 80, &pos);
+
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(pos.screen_row, 0);
+    ck_assert_int_eq(pos.screen_col, 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: cursor position with SGR prefix (256-color)
+START_TEST(test_cursor_position_ansi_sgr_256_color)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    // "\x1b[38;5;242mtext" - cursor at byte 11 (after 256-color SGR) should be at screen col 0
+    const char *text = "\x1b[38;5;242mtext";
+    cursor_screen_pos_t pos = {0};
+
+    res_t res = calculate_cursor_screen_position(ctx, text, 15, 11, 80, &pos);
+
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(pos.screen_row, 0);
+    ck_assert_int_eq(pos.screen_col, 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: cursor in middle of colored text
+START_TEST(test_cursor_position_ansi_middle_colored)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    // "\x1b[38;5;242mhello" - cursor at byte 13 (after "he") should be at screen col 2
+    const char *text = "\x1b[38;5;242mhello";
+    cursor_screen_pos_t pos = {0};
+
+    res_t res = calculate_cursor_screen_position(ctx, text, 16, 13, 80, &pos);
+
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(pos.screen_row, 0);
+    ck_assert_int_eq(pos.screen_col, 2);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: cursor after multiple escape sequences
+START_TEST(test_cursor_position_ansi_multiple)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    // "\x1b[0m\x1b[38;5;242mtext" - cursor at byte 15 (after both escapes) should be at screen col 0
+    const char *text = "\x1b[0m\x1b[38;5;242mtext";
+    cursor_screen_pos_t pos = {0};
+
+    res_t res = calculate_cursor_screen_position(ctx, text, 19, 15, 80, &pos);
+
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(pos.screen_row, 0);
+    ck_assert_int_eq(pos.screen_col, 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: NULL ctx asserts
@@ -270,6 +342,10 @@ static Suite *cursor_position_suite(void)
     tcase_add_test(tc_core, test_cursor_position_control_char);
     tcase_add_test(tc_core, test_cursor_position_wrap_boundary);
     tcase_add_test(tc_core, test_cursor_position_invalid_utf8);
+    tcase_add_test(tc_core, test_cursor_position_ansi_sgr_reset);
+    tcase_add_test(tc_core, test_cursor_position_ansi_sgr_256_color);
+    tcase_add_test(tc_core, test_cursor_position_ansi_middle_colored);
+    tcase_add_test(tc_core, test_cursor_position_ansi_multiple);
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     tcase_add_test_raise_signal(tc_core, test_cursor_position_null_ctx_asserts, SIGABRT);

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AGENTS_DIR="$(dirname "$SCRIPT_DIR")"
+DB_DIR="$AGENTS_DIR/db"
+
+export PGPASSWORD=ikigai
+exec /usr/lib/postgresql/17/bin/psql -h "$DB_DIR" -p 15432 -U ikigai -d ikigai "$@"

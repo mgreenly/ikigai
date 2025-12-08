@@ -3,6 +3,7 @@
 
 #include "../error.h"
 #include "connection.h"
+#include "replay.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -43,5 +44,32 @@ res_t ik_db_message_insert(ik_db_ctx_t *db,
  * @return      true if kind is valid, false otherwise
  */
 bool ik_db_message_is_valid_kind(const char *kind);
+
+/**
+ * Create a canonical tool result message.
+ *
+ * Allocates an ik_message_t struct representing a tool execution result
+ * with kind="tool_result". The data_json field is populated with a JSON object
+ * containing tool_call_id, name, output, and success fields.
+ *
+ * Memory ownership:
+ * - Returned message is allocated on parent context
+ * - All string fields (kind, content, data_json) are children of the message
+ * - Single talloc_free(message) or talloc_free(parent) releases all memory
+ *
+ * @param parent         Talloc context for allocation (can be NULL for root)
+ * @param tool_call_id   Unique tool call ID (e.g., "call_abc123")
+ * @param name           Tool name (e.g., "glob", "file_read")
+ * @param output         Tool output string (can be empty string)
+ * @param success        Whether the tool executed successfully (true/false)
+ * @param content        Human-readable summary for the message (e.g., "3 files found")
+ * @return               Allocated ik_message_t struct (owned by parent), or NULL on OOM
+ */
+ik_message_t *ik_msg_create_tool_result(void *parent,
+                                         const char *tool_call_id,
+                                         const char *name,
+                                         const char *output,
+                                         bool success,
+                                         const char *content);
 
 #endif // IK_DB_MESSAGE_H

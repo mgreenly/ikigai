@@ -8,13 +8,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 // ========== Allocator Wrapper Overrides ==========
 // Strong symbols that override the weak symbols in src/wrapper.c
 
-// Global mocking controls - tests can set these to inject failures
-int ik_test_talloc_realloc_fail_on_call = -1;  // -1 = don't fail, >= 0 = fail on this call
-int ik_test_talloc_realloc_call_count = 0;
+// Thread-local mocking controls - tests can set these to inject failures
+// Using __thread to ensure each test file running in parallel has its own state
+__thread int ik_test_talloc_realloc_fail_on_call = -1;  // -1 = don't fail, >= 0 = fail on this call
+__thread int ik_test_talloc_realloc_call_count = 0;
 
 void *talloc_zero_(TALLOC_CTX *ctx, size_t size)
 {
@@ -64,6 +66,7 @@ ik_cfg_t *ik_test_create_config(TALLOC_CTX *ctx)
     cfg->openai_system_message = NULL;
     cfg->listen_address = talloc_strdup(cfg, "127.0.0.1");
     cfg->listen_port = 8080;
+    cfg->history_size = 10000;  // Default history size
 
     return cfg;
 }
@@ -112,9 +115,10 @@ static const char *get_pg_host(void)
 }
 
 // Build admin database URL
+// Using __thread to ensure each test file running in parallel has its own buffer
 static char *get_admin_db_url(void)
 {
-    static char buf[256];
+    static __thread char buf[256];
     snprintf(buf, sizeof(buf), "postgresql://ikigai:ikigai@%s/postgres", get_pg_host());
     return buf;
 }
@@ -157,8 +161,9 @@ const char *ik_test_db_name(TALLOC_CTX *ctx, const char *file_path)
     if (ctx != NULL) {
         return talloc_asprintf(ctx, "ikigai_test_%.*s", (int)name_len, basename);
     } else {
-        // Use static buffer for NULL ctx (for suite-level setup before talloc)
-        static char static_buf[256];
+        // Use thread-local buffer for NULL ctx (for suite-level setup before talloc)
+        // Using __thread to ensure each test file running in parallel has its own buffer
+        static __thread char static_buf[256];
         snprintf(static_buf, sizeof(static_buf), "ikigai_test_%.*s", (int)name_len, basename);
         return static_buf;
     }
@@ -193,6 +198,10 @@ res_t ik_test_db_create(const char *db_name)
         PQfinish(conn);
         return ERR(NULL, DB_CONNECT, "Failed to connect to admin database: %s", pq_err);
     }
+
+    // Suppress NOTICE messages (e.g., "database does not exist, skipping")
+    PGresult *notice_result = PQexec(conn, "SET client_min_messages = WARNING");
+    PQclear(notice_result);
 
     // Drop database if exists (terminate connections first)
     char drop_conns[512];
@@ -373,6 +382,10 @@ res_t ik_test_db_destroy(const char *db_name)
         return ERR(NULL, DB_CONNECT, "Failed to connect to admin database: %s", pq_err);
     }
 
+    // Suppress NOTICE messages (e.g., "database does not exist, skipping")
+    PGresult *notice_result = PQexec(conn, "SET client_min_messages = WARNING");
+    PQclear(notice_result);
+
     // Terminate any remaining connections
     char drop_conns[512];
     snprintf(drop_conns, sizeof(drop_conns),
@@ -396,4 +409,18 @@ res_t ik_test_db_destroy(const char *db_name)
 
     PQfinish(conn);
     return OK(NULL);
+}
+
+// ========== Terminal Reset Utilities ==========
+
+void ik_test_reset_terminal(void)
+{
+    // Reset sequence:
+    // - \x1b[?25h  Show cursor (may be hidden)
+    // - \x1b[0m    Reset text attributes (future-proof)
+    //
+    // Do NOT exit alternate screen - tests don't enter it.
+    // Write to stdout which is where test output goes.
+    const char reset_seq[] = "\x1b[?25h\x1b[0m";
+    (void)write(STDOUT_FILENO, reset_seq, sizeof(reset_seq) - 1);
 }

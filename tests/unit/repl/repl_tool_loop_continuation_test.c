@@ -1,0 +1,145 @@
+/**
+ * @file repl_tool_loop_continuation_test.c
+ * @brief Unit tests for REPL tool loop continuation check
+ *
+ * Tests the ik_repl_should_continue_tool_loop function which determines
+ * whether to continue the tool loop based on finish_reason.
+ */
+
+#include "repl.h"
+#include "config.h"
+#include "scrollback.h"
+#include <check.h>
+#include <talloc.h>
+
+static void *ctx;
+static ik_repl_ctx_t *repl;
+
+static void setup(void)
+{
+    ctx = talloc_new(NULL);
+
+    /* Create minimal REPL context for testing */
+    repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->response_finish_reason = NULL;
+}
+
+static void teardown(void)
+{
+    talloc_free(ctx);
+}
+
+/*
+ * Test: Should continue when finish_reason is "tool_calls"
+ */
+START_TEST(test_should_continue_with_tool_calls) {
+    /* Set finish_reason to "tool_calls" */
+    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+
+    /* Should return true */
+    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    ck_assert(should_continue);
+}
+
+END_TEST
+/*
+ * Test: Should not continue when finish_reason is "stop"
+ */
+START_TEST(test_should_not_continue_with_stop)
+{
+    /* Set finish_reason to "stop" */
+    repl->response_finish_reason = talloc_strdup(repl, "stop");
+
+    /* Should return false */
+    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    ck_assert(!should_continue);
+}
+
+END_TEST
+/*
+ * Test: Should not continue when finish_reason is "length"
+ */
+START_TEST(test_should_not_continue_with_length)
+{
+    /* Set finish_reason to "length" */
+    repl->response_finish_reason = talloc_strdup(repl, "length");
+
+    /* Should return false */
+    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    ck_assert(!should_continue);
+}
+
+END_TEST
+/*
+ * Test: Should not continue when finish_reason is NULL
+ */
+START_TEST(test_should_not_continue_with_null)
+{
+    /* finish_reason is NULL */
+    repl->response_finish_reason = NULL;
+
+    /* Should return false */
+    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    ck_assert(!should_continue);
+}
+
+END_TEST
+/*
+ * Test: Should not continue when finish_reason is empty string
+ */
+START_TEST(test_should_not_continue_with_empty_string)
+{
+    /* Set finish_reason to empty string */
+    repl->response_finish_reason = talloc_strdup(repl, "");
+
+    /* Should return false */
+    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    ck_assert(!should_continue);
+}
+
+END_TEST
+/*
+ * Test: Should not continue with unknown finish_reason
+ */
+START_TEST(test_should_not_continue_with_unknown)
+{
+    /* Set finish_reason to unknown value */
+    repl->response_finish_reason = talloc_strdup(repl, "content_filter");
+
+    /* Should return false */
+    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    ck_assert(!should_continue);
+}
+
+END_TEST
+
+/*
+ * Test suite
+ */
+static Suite *repl_tool_loop_continuation_suite(void)
+{
+    Suite *s = suite_create("REPL Tool Loop Continuation");
+
+    TCase *tc_core = tcase_create("Core");
+    tcase_add_checked_fixture(tc_core, setup, teardown);
+    tcase_add_test(tc_core, test_should_continue_with_tool_calls);
+    tcase_add_test(tc_core, test_should_not_continue_with_stop);
+    tcase_add_test(tc_core, test_should_not_continue_with_length);
+    tcase_add_test(tc_core, test_should_not_continue_with_null);
+    tcase_add_test(tc_core, test_should_not_continue_with_empty_string);
+    tcase_add_test(tc_core, test_should_not_continue_with_unknown);
+    suite_add_tcase(s, tc_core);
+
+    return s;
+}
+
+int main(void)
+{
+    Suite *s = repl_tool_loop_continuation_suite();
+    SRunner *sr = srunner_create(s);
+    srunner_run_all(sr, CK_VERBOSE);
+    int number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+    return (number_failed == 0) ? 0 : 1;
+}

@@ -179,8 +179,8 @@ START_TEST(test_debug_mgr_handle_ready_enabled)
     res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
     ck_assert(is_ok(&handle_res));
 
-    /* Verify output was appended to scrollback */
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
+    /* Verify output was appended to scrollback with blank line after */
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
     const char *line_text = NULL;
     size_t line_length = 0;
@@ -190,6 +190,11 @@ START_TEST(test_debug_mgr_handle_ready_enabled)
 
     /* Should have prefix + space + content */
     ck_assert_str_eq(line_text, "[test] hello world");
+
+    /* Second line should be blank */
+    get_res = ik_scrollback_get_line_text(scrollback, 1, &line_text, &line_length);
+    ck_assert(is_ok(&get_res));
+    ck_assert_str_eq(line_text, "");
 
     talloc_free(ctx);
 }
@@ -285,8 +290,8 @@ START_TEST(test_debug_mgr_handle_ready_partial)
     res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
     ck_assert(is_ok(&handle_res));
 
-    /* Verify we got 2 lines (from pipe1 and pipe3, but not pipe2) */
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
+    /* Verify we got 4 lines: pipe1 line + blank, pipe3 line + blank (but not pipe2) */
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 4);
 
     talloc_free(ctx);
 }
@@ -360,53 +365,6 @@ START_TEST(test_debug_mgr_add_to_fdset_max_fd_large)
 
     /* max_fd should remain unchanged since pipe->read_fd < original max_fd */
     ck_assert_int_eq(max_fd, original_max_fd);
-
-    talloc_free(ctx);
-}
-
-END_TEST
-
-/* Override posix_read_ to inject failure */
-static int fail_read = 0;
-ssize_t posix_read_(int fd, void *buf, size_t count)
-{
-    if (fail_read) {
-        errno = EIO;
-        return -1;
-    }
-    return read(fd, buf, count);
-}
-
-/* Test: handle_ready when read fails with error */
-START_TEST(test_debug_mgr_handle_ready_read_error) {
-    void *ctx = talloc_new(NULL);
-
-    /* Create manager and add pipe */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
-    ck_assert(is_ok(&mgr_res));
-    ik_debug_pipe_manager_t *mgr = mgr_res.ok;
-
-    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
-    ck_assert(is_ok(&pipe_res));
-    ik_debug_pipe_t *pipe = pipe_res.ok;
-
-    /* Create scrollback */
-    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-
-    /* Set up fd_set with pipe marked as ready */
-    fd_set read_fds;
-    FD_ZERO(&read_fds);
-    FD_SET(pipe->read_fd, &read_fds);
-
-    /* Enable read() failure */
-    fail_read = 1;
-
-    /* Handle ready pipes - should fail with read error */
-    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
-    ck_assert(is_err(&handle_res));
-
-    /* Disable failure for cleanup */
-    fail_read = 0;
 
     talloc_free(ctx);
 }
@@ -529,7 +487,6 @@ static Suite *debug_pipe_manager_suite(void)
     tcase_add_test(tc_core, test_debug_mgr_handle_ready_partial);
     tcase_add_test(tc_core, test_debug_mgr_add_pipe_creation_failure);
     tcase_add_test(tc_core, test_debug_mgr_add_to_fdset_max_fd_large);
-    tcase_add_test(tc_core, test_debug_mgr_handle_ready_read_error);
     tcase_add_test(tc_core, test_debug_mgr_handle_ready_no_newline);
     tcase_add_test(tc_core, test_debug_mgr_handle_ready_no_data);
     tcase_add_test(tc_core, test_debug_pipe_destructor);

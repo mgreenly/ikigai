@@ -4,19 +4,25 @@
  */
 
 #include "session_restore.h"
-#include "../repl.h"
-#include "../db/session.h"
+
 #include "../db/message.h"
 #include "../db/replay.h"
-#include "../event_render.h"
-#include "../scrollback.h"
+#include "../db/session.h"
 #include "../error.h"
+#include "../event_render.h"
+#include "../msg.h"
+#include "../openai/client.h"
 #include "../panic.h"
+#include "../repl.h"
+#include "../scrollback.h"
 #include "../wrapper.h"
 #include <assert.h>
 #include <talloc.h>
 #include <string.h>
 
+// NOTE: When returning errors after talloc_free(tmp), we must first
+// reparent the error to repl via talloc_steal(). See fix.md for details
+// on this use-after-free bug pattern.
 res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t *cfg)
 {
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
@@ -41,6 +47,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
         // Load messages from database
         res_t load_res = ik_db_messages_load(tmp, db_ctx, session_id);
         if (is_err(&load_res)) {
+            talloc_steal(repl, load_res.err);  // Reparent error before freeing tmp
             talloc_free(tmp);
             return load_res;
         }
@@ -94,6 +101,29 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
             if (is_err(&render_res)) {
                 talloc_free(tmp);
                 return render_res;
+            }
+        }
+
+        // Rebuild conversation from replay context for LLM context
+        for (size_t i = 0; i < replay_ctx->count; i++) {
+            ik_message_t *db_msg = replay_ctx->messages[i];
+
+            // Convert DB format to canonical format
+            res_t msg_res = ik_msg_from_db_(tmp, db_msg);
+            if (is_err(&msg_res)) {
+                talloc_steal(repl, msg_res.err);  // Reparent error before freeing tmp
+                talloc_free(tmp);
+                return msg_res;
+            }
+
+            // Add to conversation if not skipped (NULL means skip)
+            ik_msg_t *msg = msg_res.ok;
+            if (msg != NULL) {
+                res_t add_res = ik_openai_conversation_add_msg_(repl->conversation, msg);
+                if (is_err(&add_res)) {
+                    talloc_free(tmp);
+                    return add_res;
+                }
             }
         }
 

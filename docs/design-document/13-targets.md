@@ -1,6 +1,6 @@
 # Remote Targets
 
-> **Part VI: Production Operations** — These sections cover running Ikigai in production: managing multiple servers, backup strategies, and configuration as code.
+> **Part VI: Production Operations**: These sections cover running Ikigai in production: managing multiple servers, backup strategies, and configuration as code.
 
 ---
 
@@ -93,7 +93,7 @@ Executes:
 ssh alice@staging.example.com "ikigai-server deploy monitoring-agent"
 ```
 
-No API server, no tokens, no certificates. SSH keys are the authentication layer—proven, simple, already configured on most developer machines.
+No API server, no tokens, no certificates. SSH keys are the authentication layer, proven, simple, already configured on most developer machines.
 
 ---
 

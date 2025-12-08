@@ -108,8 +108,9 @@ END_TEST START_TEST(test_input_layer_render_empty)
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     layer->render(layer, output, 80, 0, 1);
-    // Empty input produces no output
-    ck_assert_uint_eq(output->size, 0);
+    // Empty input produces a blank line to reserve cursor space
+    ck_assert_uint_eq(output->size, 2);
+    ck_assert_int_eq(memcmp(output->data, "\r\n", 2), 0);
 
     talloc_free(ctx);
 }
@@ -128,8 +129,29 @@ END_TEST START_TEST(test_input_layer_render_simple_text)
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     layer->render(layer, output, 80, 0, 1);
-    ck_assert_uint_eq(output->size, 5);
-    ck_assert_int_eq(memcmp(output->data, "Hello", 5), 0);
+    // Non-empty input should have trailing \r\n
+    ck_assert_uint_eq(output->size, 7);
+    ck_assert_int_eq(memcmp(output->data, "Hello\r\n", 7), 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST START_TEST(test_input_layer_render_simple_text_has_trailing_newline)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    bool visible = true;
+    const char *text = "Hello";
+    const char *text_ptr = text;
+    size_t text_len = 5;
+
+    ik_layer_t *layer = ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len);
+
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
+
+    layer->render(layer, output, 80, 0, 1);
+    ck_assert_uint_eq(output->size, 7);
+    ck_assert_int_eq(memcmp(output->data, "Hello\r\n", 7), 0);
 
     talloc_free(ctx);
 }
@@ -149,9 +171,31 @@ END_TEST START_TEST(test_input_layer_render_with_newline)
 
     layer->render(layer, output, 80, 0, 2);
 
-    // Newline should be converted to \r\n
-    ck_assert_uint_eq(output->size, 12); // "Line1\r\nLine2"
-    ck_assert_int_eq(memcmp(output->data, "Line1\r\nLine2", 12), 0);
+    // Newline should be converted to \r\n and trailing \r\n added
+    ck_assert_uint_eq(output->size, 14); // "Line1\r\nLine2\r\n"
+    ck_assert_int_eq(memcmp(output->data, "Line1\r\nLine2\r\n", 14), 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST START_TEST(test_input_layer_render_text_ending_with_newline_no_double)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    bool visible = true;
+    const char *text = "Line1\n";
+    const char *text_ptr = text;
+    size_t text_len = 6;
+
+    ik_layer_t *layer = ik_input_layer_create(ctx, "input", &visible, &text_ptr, &text_len);
+
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
+
+    layer->render(layer, output, 80, 0, 2);
+
+    // Text ending with \n should convert to \r\n, but NOT add another \r\n
+    ck_assert_uint_eq(output->size, 7); // "Line1\r\n"
+    ck_assert_int_eq(memcmp(output->data, "Line1\r\n", 7), 0);
 
     talloc_free(ctx);
 }
@@ -170,7 +214,9 @@ static Suite *input_layer_suite(void)
     tcase_add_test(tc_core, test_input_layer_height_with_wrapping);
     tcase_add_test(tc_core, test_input_layer_render_empty);
     tcase_add_test(tc_core, test_input_layer_render_simple_text);
+    tcase_add_test(tc_core, test_input_layer_render_simple_text_has_trailing_newline);
     tcase_add_test(tc_core, test_input_layer_render_with_newline);
+    tcase_add_test(tc_core, test_input_layer_render_text_ending_with_newline_no_double);
     suite_add_tcase(s, tc_core);
 
     return s;

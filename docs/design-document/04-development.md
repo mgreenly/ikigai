@@ -50,7 +50,7 @@ The developer's local environment mirrors production:
 └── docker-compose.yml          # Local runtime services
 ```
 
-The `agents.d/` directory structure is intentional—it matches where agents live on production servers (`/opt/ikigai/agents.d/`). Same structure, same conventions, same code.
+The `agents.d/` directory structure is intentional. It matches where agents live on production servers (`/opt/ikigai/agents.d/`). Same structure, same conventions, same code.
 
 ---
 
@@ -98,7 +98,7 @@ Restarting agent...
 [monitoring-agent] Status: healthy
 ```
 
-Code changes take effect immediately—no build step, no restart dance.
+Code changes take effect immediately. No build step, no restart dance.
 
 ---
 

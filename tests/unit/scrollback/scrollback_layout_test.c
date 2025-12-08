@@ -168,6 +168,121 @@ START_TEST(test_scrollback_ensure_layout_with_empty_lines)
 
 END_TEST
 
+// Test: append line with embedded SGR should only count visible characters
+START_TEST(test_scrollback_append_line_with_embedded_sgr)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
+
+    // "\x1b[38;5;242mhello\x1b[0m" has 5 visible chars (11+4 escape bytes)
+    const char *text = "\x1b[38;5;242mhello\x1b[0m";
+    size_t len = strlen(text);
+
+    res_t res = ik_scrollback_append_line(sb, text, len);
+    ck_assert(is_ok(&res));
+
+    // Verify display_width is 5 (only visible characters)
+    ck_assert_uint_eq(sb->layouts[0].display_width, 5);
+    ck_assert_uint_eq(sb->layouts[0].physical_lines, 1);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: append line with SGR at start
+START_TEST(test_scrollback_append_line_with_sgr_at_start)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
+
+    // "\x1b[0mworld" has 5 visible chars (4 escape bytes)
+    const char *text = "\x1b[0mworld";
+    size_t len = strlen(text);
+
+    res_t res = ik_scrollback_append_line(sb, text, len);
+    ck_assert(is_ok(&res));
+
+    // Verify display_width is 5
+    ck_assert_uint_eq(sb->layouts[0].display_width, 5);
+    ck_assert_uint_eq(sb->layouts[0].physical_lines, 1);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: append line with SGR at end
+START_TEST(test_scrollback_append_line_with_sgr_at_end)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
+
+    // "test\x1b[0m" has 4 visible chars (4 escape bytes)
+    const char *text = "test\x1b[0m";
+    size_t len = strlen(text);
+
+    res_t res = ik_scrollback_append_line(sb, text, len);
+    ck_assert(is_ok(&res));
+
+    // Verify display_width is 4
+    ck_assert_uint_eq(sb->layouts[0].display_width, 4);
+    ck_assert_uint_eq(sb->layouts[0].physical_lines, 1);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: append line with multiple SGRs
+START_TEST(test_scrollback_append_line_with_multiple_sgrs)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
+
+    // "\x1b[1m\x1b[38;5;242mbold gray\x1b[0m" has 9 visible chars
+    const char *text = "\x1b[1m\x1b[38;5;242mbold gray\x1b[0m";
+    size_t len = strlen(text);
+
+    res_t res = ik_scrollback_append_line(sb, text, len);
+    ck_assert(is_ok(&res));
+
+    // Verify display_width is 9
+    ck_assert_uint_eq(sb->layouts[0].display_width, 9);
+    ck_assert_uint_eq(sb->layouts[0].physical_lines, 1);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: physical lines calculation with colors (verify wrapping still works)
+START_TEST(test_scrollback_append_line_with_sgr_wrapping)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_scrollback_t *sb = ik_scrollback_create(ctx, 40);
+
+    // 60 visible chars + SGR codes = should wrap to 2 lines at width 40
+    // Build: "\x1b[38;5;242m" + 60 'a' chars + "\x1b[0m"
+    char text[100];
+    strcpy(text, "\x1b[38;5;242m");
+    memset(text + 11, 'a', 60);
+    strcpy(text + 71, "\x1b[0m");
+    size_t len = strlen(text);
+
+    res_t res = ik_scrollback_append_line(sb, text, len);
+    ck_assert(is_ok(&res));
+
+    // Verify display_width is 60 (visible chars only)
+    ck_assert_uint_eq(sb->layouts[0].display_width, 60);
+    // Verify wraps to 2 physical lines (60 / 40 = 2)
+    ck_assert_uint_eq(sb->layouts[0].physical_lines, 2);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *scrollback_layout_suite(void)
 {
     Suite *s;
@@ -181,6 +296,11 @@ static Suite *scrollback_layout_suite(void)
     tcase_add_test(tc_core, test_scrollback_ensure_layout_multiple_lines);
     tcase_add_test(tc_core, test_scrollback_ensure_layout_empty);
     tcase_add_test(tc_core, test_scrollback_ensure_layout_with_empty_lines);
+    tcase_add_test(tc_core, test_scrollback_append_line_with_embedded_sgr);
+    tcase_add_test(tc_core, test_scrollback_append_line_with_sgr_at_start);
+    tcase_add_test(tc_core, test_scrollback_append_line_with_sgr_at_end);
+    tcase_add_test(tc_core, test_scrollback_append_line_with_multiple_sgrs);
+    tcase_add_test(tc_core, test_scrollback_append_line_with_sgr_wrapping);
 
     suite_add_tcase(s, tc_core);
     return s;

@@ -3,9 +3,11 @@
 
 #include "openai/client_multi.h"
 #include "openai/client_multi_callbacks.h"
+#include "vendor/yyjson/yyjson.h"
 
 #include <curl/curl.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <talloc.h>
 
 /**
@@ -13,6 +15,14 @@
  *
  * Shared between client_multi.c and client_multi_request.c
  */
+
+/**
+ * yyjson wrapper function prototypes for testing inline vendor functions
+ */
+yyjson_mut_val *yyjson_mut_doc_get_root_wrapper(yyjson_mut_doc *doc);
+bool yyjson_mut_obj_add_str_wrapper(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key, const char *val);
+bool yyjson_mut_obj_add_int_wrapper(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key, int64_t val);
+yyjson_mut_val *yyjson_mut_obj_add_obj_wrapper(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key);
 
 /**
  * Active request context

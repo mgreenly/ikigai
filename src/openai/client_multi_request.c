@@ -2,11 +2,15 @@
 
 #include "openai/client.h"
 #include "openai/sse_parser.h"
+#include "openai/tool_choice.h"
 #include "error.h"
+#include "logger.h"
 #include "panic.h"
 #include "wrapper.h"
 
 #include <assert.h>
+#include <curl/curl.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -23,7 +27,7 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
                                    void *stream_ctx,
                                    ik_http_completion_cb_t completion_cb,
                                    void *completion_ctx,
-                                   FILE *debug_output) {
+                                   bool limit_reached) {
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);  // LCOV_EXCL_BR_LINE
     assert(conv != NULL);  // LCOV_EXCL_BR_LINE
@@ -40,8 +44,9 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
     // Create request
     ik_openai_request_t *request = ik_openai_request_create(multi, cfg, conv);
 
-    // Serialize request to JSON
-    char *json_body = ik_openai_serialize_request(multi, request);
+    // Serialize request to JSON with tool_choice based on limit_reached
+    ik_tool_choice_t tool_choice = limit_reached ? ik_tool_choice_none() : ik_tool_choice_auto();
+    char *json_body = ik_openai_serialize_request(multi, request, tool_choice);
 
     // Create active request context
     active_request_t *active_req = talloc_zero(multi, active_request_t);
@@ -91,19 +96,6 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
     curl_easy_setopt_(active_req->easy_handle, CURLOPT_WRITEFUNCTION, http_write_callback);
     curl_easy_setopt_(active_req->easy_handle, CURLOPT_WRITEDATA, active_req->write_ctx);
 
-    /* Debug: Enable verbose curl output if debug pipe provided */
-    if (debug_output != NULL) {
-        fprintf(debug_output, "[OpenAI Request]\n");
-        fprintf(debug_output, "URL: https://api.openai.com/v1/chat/completions\n");
-        fprintf(debug_output, "Content-Type: application/json\n");
-        fprintf(debug_output, "Body: %s\n", json_body);
-        fprintf(debug_output, "\n");
-        fflush(debug_output);
-
-        curl_easy_setopt_(active_req->easy_handle, CURLOPT_VERBOSE, (const void *)1L);
-        curl_easy_setopt_(active_req->easy_handle, CURLOPT_STDERR, debug_output);
-    }
-
     // Set headers
     active_req->headers = NULL;
     active_req->headers = curl_slist_append_(active_req->headers, "Content-Type: application/json");
@@ -119,6 +111,36 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
     active_req->headers = curl_slist_append_(active_req->headers, auth_header);
 
     curl_easy_setopt_(active_req->easy_handle, CURLOPT_HTTPHEADER, active_req->headers);
+
+    // Log HTTP request
+    yyjson_mut_doc *log_doc = ik_log_create();
+    if (log_doc != NULL) {  // LCOV_EXCL_BR_LINE
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root_wrapper(log_doc);
+
+        // Add event field
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "http_request");
+
+        // Add method field
+        yyjson_mut_obj_add_str(log_doc, log_root, "method", "POST");
+
+        // Add url field
+        yyjson_mut_obj_add_str(log_doc, log_root, "url", url);
+
+        // Add headers object (excluding Authorization)
+        yyjson_mut_val *headers_obj = yyjson_mut_obj_add_obj_wrapper(log_doc, log_root, "headers");
+        yyjson_mut_obj_add_str(log_doc, headers_obj, "Content-Type", "application/json");
+
+        // Parse request body JSON and add as body object
+        yyjson_doc *body_doc = yyjson_read(active_req->request_body, strlen(active_req->request_body), 0);
+        if (body_doc != NULL) {  // LCOV_EXCL_BR_LINE
+            yyjson_val *body_root = yyjson_doc_get_root(body_doc);
+            yyjson_mut_val *body_copy = yyjson_val_mut_copy(log_doc, body_root);
+            yyjson_mut_obj_add_val(log_doc, log_root, "body", body_copy);
+            yyjson_doc_free(body_doc);
+        }
+
+        ik_log_debug_json(log_doc);
+    }
 
     // Add to multi handle
     CURLMcode mres = curl_multi_add_handle_(multi->multi_handle, active_req->easy_handle);

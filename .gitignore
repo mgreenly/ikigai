@@ -1,6 +1,6 @@
 build/
 build-*/
-bin/
+/bin/
 dist/
 coverage/
 .envrc
@@ -16,3 +16,17 @@ tags
 **/*.d
 **/*.info
 coverage_html/
+
+# Agent runtime data
+.agents/logs/
+.ikigai/logs/
+.ikigai/history
+.agents/db/
+.agents/deno/
+
+# Nginx runtime
+.agents/httpd/pid/
+
+# Runit runtime (supervise dirs are created by runsv)
+.agents/sv/*/supervise/
+.agents/sv/*/log/supervise/

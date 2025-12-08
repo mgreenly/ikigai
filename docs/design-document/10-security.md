@@ -1,12 +1,12 @@
 # Identity and Security
 
-> Part of [Cross-Cutting Concerns](09-filesystem.md). Identity applies to all pillars—developers access the Terminal, agents run as services, web users authenticate through the Portal.
+> Part of [Cross-Cutting Concerns](09-filesystem.md). Identity applies to all pillars. Developers access the Terminal, agents run as services, web users authenticate through the Portal.
 
 ---
 
 ## Philosophy
 
-The platform uses Linux as its identity layer. No custom authentication system—identity is Linux users, authorization is file permissions and PostgreSQL roles, federation is PAM.
+The platform uses Linux as its identity layer. No custom authentication system. Identity is Linux users, authorization is file permissions and PostgreSQL roles, federation is PAM.
 
 ---
 

@@ -1,20 +1,40 @@
 # Vision
 
-Ikigai is infrastructure you own.
+Build an agent. Deploy it. Your team uses it. That's the whole workflow.
 
-Cloud platforms (AWS Bedrock, Azure AI, GCP Vertex) offer managed agent services but lock you into their ecosystems and pricing. SaaS providers offer simplified deployment but own your runtime. Ikigai takes a different path: open-source infrastructure that runs on any Linux system.
+A small team creating intelligent agents can have the effectiveness of a much larger group. Developers build agents that monitor what matters, process information at scales humans can't sustain, and decide when to act.
+
+Ikigai handles the infrastructure so you can focus on the development of your agents. The gap between "I built a thing" and "the team uses the thing" is nearly zero - no separate production infrastructure, no handoff to ops, no elaborate deployment pipeline. The prototype is the production system for your scale.
 
 ```
 apt install ikigai
 ```
 
-From there, you have a complete platform for autonomous agents—no cloud account, no API keys to a middleman, no per-agent fees. Your agents run on your servers, coordinated by your runtime, storing data in your databases.
+From there, you have a complete platform for autonomous agents. Your agents run on your servers, with direct access to the models you choose: your API keys, your usage, your costs. No middleman between you and the LLM.
+
+---
+
+## One Install, Complete Platform
+
+That single command gives you task queues, mailboxes, pub/sub, storage, caching, telemetry, and process management. No separate message broker, no cache cluster, no container orchestrator. PostgreSQL and systemd handle what other stacks spread across half a dozen services.
+
+You can add specialized backends later if you need them. But the defaults handle everything, and they work together because they were chosen to work together.
+
+---
+
+## From Notebook to Production
+
+Think of Ikigai as Jupyter Notebooks for continuous AI agents.
+
+Jupyter lets a developer explore data interactively, then share that notebook with colleagues who can run it themselves. The exploration environment and the sharing environment are the same thing. There's no "productionizing" step.
+
+Ikigai does the same for agents. Develop locally, deploy to the platform, and your team can use what you built. The development environment, the testing environment, and the production environment are the same Linux box running the same services. What works on your machine works for your users because it's the same machine.
 
 ---
 
 ## Platform as a Service
 
-From the perspective of agents and webapps, Ikigai is a Platform as a Service. They're built for Ikigai—they import `@ikigai/platform` and consume its services:
+From the perspective of agents and webapps, Ikigai is a Platform as a Service. They're built for Ikigai. They import `@ikigai/platform` and consume its services:
 
 - **Queues**: Claim tasks, complete work
 - **Mailboxes**: Point-to-point messaging
@@ -22,12 +42,28 @@ From the perspective of agents and webapps, Ikigai is a Platform as a Service. T
 - **Storage**: Persistent data
 - **Cache**: Fast access to hot data
 - **Telemetry**: Logs, metrics, events
+- **LLM Access**: Prompts, conversations, tool execution
 
-Agents don't care whether their queue is PostgreSQL or Redis. They use the platform API; the infrastructure is configuration. This separation means:
+Agents don't care whether their queue is PostgreSQL or Redis, or which LLM provider handles their prompts. They use the platform API; the infrastructure is configuration. This separation means:
 
 1. **Agents stay simple**: No infrastructure code, just business logic
 2. **Operations stay flexible**: Swap backends without touching agent code
 3. **Defaults work**: PostgreSQL handles everything out of the box
+
+---
+
+## Shared Intelligence
+
+The same AI capabilities that power developer interactions are available to agents.
+
+A core C library (`libikigai`) provides LLM routing, conversation management, tool execution, and telemetry. Two interfaces expose it:
+
+- **Ikigai Terminal**: The developer's conversational interface
+- **Ikigai Daemon**: A service agents consume for LLM access
+
+This means agents can use the same prompt capabilities, the same tool framework, and the same conversation threading that developers use. When you improve the core library, both developers and agents benefit.
+
+More importantly, agents can use **platform tools** that operate on the platform itself: query telemetry, create tasks, send messages, even deploy other agents. The LLM doesn't just generate text; it can act on the platform with proper permissions and transactions.
 
 ---
 
@@ -41,26 +77,54 @@ Rather than building custom systems for identity, authorization, secrets, proces
 - Agents run as systemd services
 - Logs flow through journald
 
-This isn't a limitation—it's a deliberate choice that eliminates entire categories of complexity. Linux solved these problems decades ago; Ikigai leverages that work rather than reinventing it. Organizations with existing Linux infrastructure (LDAP, Active Directory via SSSD, centralized sudo policies) get integration for free.
+This isn't a limitation; it's a deliberate choice that eliminates entire categories of complexity. Linux solved these problems decades ago; Ikigai leverages that work rather than reinventing it. Organizations with existing Linux infrastructure (LDAP, Active Directory via SSSD, centralized sudo policies) get integration for free.
+
+---
+
+## Omakase
+
+David Heinemeier Hansson described Ruby on Rails as "The Omakase Stack", a cohesive set of choices made by the framework authors, like a chef's tasting menu where someone has already figured out what works well together. You can substitute ingredients, but the menu is designed as a whole.
+
+Ikigai follows this philosophy. PostgreSQL for coordination. Systemd for process management. PAM for identity. Journald for logs. These aren't arbitrary defaults; they're choices that compose well on Linux. Omarchy, DHH's Linux desktop project, embodies the same idea: strong defaults that let you focus on your actual work instead of endless configuration.
+
+You can swap pieces when you have specific needs. But the defaults are the defaults because they work together.
 
 ---
 
 ## Target User
 
-**Power developers building sophisticated autonomous AI systems.**
+**Developers who want to build and operate agents they fully control.**
 
-Not a low-code drag-and-drop builder. Not a chatbot framework. A platform for engineers who want full control over their agent infrastructure.
+Small teams (typically 2-10 engineers) who:
+- Have a mission and understand AI can extend their reach
+- Want agents running reliably, 24/7, without babysitting
+- Prefer to own their infrastructure rather than rent it
+- Value opinionated tools that work out of the box
+
+The scale is internal platforms and power-user tools, not consumer SaaS. Think dozens to hundreds of users, not millions. A research group's analysis pipeline. A company's internal automation suite. A consultancy's client-facing tools. Production-grade reliability without the complexity of horizontal scaling.
+
+Not a low-code drag-and-drop builder. Not a chatbot framework. A platform for engineers who treat their agents as strategic capabilities, not just automations.
 
 ---
 
 ## Open-Source Ecosystem
 
-The platform's future is shaped by its community. New runtime backends, agent templates, integrations, and tooling—contributed by developers who need them, available to everyone. The collective effort makes the platform more powerful than any single organization could achieve.
+The platform's future is shaped by its community. New runtime backends, agent templates, integrations, and tooling, all contributed by developers who need them, available to everyone. The collective effort makes the platform more powerful than any single organization could achieve.
 
 ---
 
 ## Ambitious Scope
 
-Ikigai aims to be the foundation for the most sophisticated autonomous AI systems. The goal isn't simplicity for its own sake—it's removing accidental complexity so developers can focus on the hard problems: agent intelligence, multi-agent coordination, and system reliability.
+Ikigai aims to be the foundation for sophisticated autonomous AI systems. The goal isn't simplicity for its own sake; it's removing accidental complexity so developers can focus on the hard problems: what their agents should pay attention to, how they reason about what they find, how they coordinate, and when they should act.
 
-Every autonomous agent system needs the same foundational pieces: task queues, message passing, identity management, secrets handling, deployment pipelines, process supervision, telemetry, and operational tooling. Today, developers rebuild these from scratch for each project, or cobble them together from disparate tools that weren't designed to work together. Ikigai provides these common pieces as a cohesive platform, battle-tested and ready to use. Developers start at the interesting problems—what their agents do, how they reason, how they coordinate—instead of spending months on infrastructure that adds no unique value to their system.
+Every autonomous agent system needs the same foundational pieces: task queues, message passing, identity management, secrets handling, deployment pipelines, process supervision, telemetry, and operational tooling. Today, developers rebuild these from scratch for each project, or cobble them together from disparate tools that weren't designed to work together.
+
+Ikigai provides these pieces as a cohesive platform, opinionated choices that work well together out of the box.
+
+---
+
+## Vertical First
+
+Start with one server. A modern Linux machine with fast storage and enough RAM can handle hundreds of concurrent agents. On a single box, there are no network partitions, no distributed consensus, no eventual consistency. Just processes talking through local sockets and a shared database.
+
+Most teams never need more than this. When you do, the architecture supports scaling out without fundamental changes. But preserve the simplicity of a single server as long as you can. It makes everything easier to operate, debug, and reason about. One person can maintain it. That's the point.

@@ -1,37 +1,46 @@
 # Git
 
 ## Description
-Load git configuration and commit policies for ikigai.
+Standard git operations for day-to-day development work.
 
 ## Git Configuration
 
 - **Remote**: origin (github.com:mgreenly/ikigai.git)
 - **Primary branch**: main
-- **Upstream**: github/main
 
 ## Commit Policy
 
-Do NOT include attributions:
+### Attribution Rules (MANDATORY)
+
+Do NOT include attributions in commit messages:
 - No "Co-Authored-By: Claude <noreply@anthropic.com>"
 - No "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 
-## Pre-Commit Requirements
+A pre-commit hook enforces this. Commits will be rejected if these lines are present.
 
-BEFORE creating ANY commit with source code changes (mandatory, no exceptions):
+### Pre-Commit Checks
 
-1. `make fmt` - Format code
-2. `make check` - ALL tests pass (100%)
-3. `make lint` - ALL complexity/file size checks pass
-4. `make coverage` - ALL metrics (lines, functions, branches) at 100.0%
-5. `make check-dynamic` - ALL sanitizer checks pass (ASan, UBSan, TSan)
+Pre-commit checks are NOT required for this skill. Commit freely during development.
 
-If ANY check fails: fix ALL issues, re-run ALL checks, repeat until everything passes.
+However, you should still run `make check` periodically to catch issues early.
 
-Never commit with ANY known issue - even "pre-existing" or "in another file".
+## Prohibited Operations
 
-**Exception**: Pre-commit checks can be SKIPPED if the commit contains ONLY documentation changes:
-- Changes to *.md files (README, docs/, .agents/, etc.)
-- Changes to .gitignore, .editorconfig, or similar config files
-- NO changes to source code (*.c, *.h), Makefile, or build configuration
+This skill does NOT permit:
+- Merging to `main` branch
+- Creating tags
+- Creating releases
+- Force pushing to any branch
 
-If ANY source code file is modified, ALL pre-commit checks are required.
+These operations require the `git-strict` skill which enforces quality gates.
+
+If you need to perform any of these operations, stop and inform the user they need to load the `git-strict` skill.
+
+## Permitted Operations
+
+- Commit to feature/fix branches
+- Push to feature/fix branches
+- Create new branches
+- Pull/fetch from remote
+- Rebase (non-destructive)
+- Cherry-pick

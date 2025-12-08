@@ -80,6 +80,9 @@ res_t ik_repl_streaming_callback(const char *chunk, void *ctx)
         if (repl->streaming_line_buffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
 
+    // Trigger re-render to show streaming content
+    ik_repl_render_frame(repl);
+
     return OK(NULL);
 }
 
@@ -100,12 +103,39 @@ res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, v
 
     ik_repl_ctx_t *repl = (ik_repl_ctx_t *)ctx;
 
+    // Debug output for response metadata
+    if (repl->openai_debug_pipe != NULL && repl->openai_debug_pipe->write_end != NULL) {
+        fprintf(repl->openai_debug_pipe->write_end,
+                "<< RESPONSE: type=%s",
+                completion->type == IK_HTTP_SUCCESS ? "success" : "error");
+        if (completion->type == IK_HTTP_SUCCESS) {
+            fprintf(repl->openai_debug_pipe->write_end,
+                    ", model=%s, finish=%s, tokens=%d",
+                    completion->model ? completion->model : "(null)",
+                    completion->finish_reason ? completion->finish_reason : "(null)",
+                    completion->completion_tokens);
+        }
+        if (completion->tool_call != NULL) {
+            fprintf(repl->openai_debug_pipe->write_end,
+                    ", tool_call=%s(%s)",
+                    completion->tool_call->name,
+                    completion->tool_call->arguments);
+        }
+        fprintf(repl->openai_debug_pipe->write_end, "\n");
+        fflush(repl->openai_debug_pipe->write_end);
+    }
+
     // Flush any remaining buffered line content (streaming ended without final newline)
     if (repl->streaming_line_buffer != NULL) {
         size_t buffer_len = strlen(repl->streaming_line_buffer);
         ik_scrollback_append_line(repl->scrollback, repl->streaming_line_buffer, buffer_len);
         talloc_free(repl->streaming_line_buffer);
         repl->streaming_line_buffer = NULL;
+    }
+
+    // Add blank line after assistant response (spacing)
+    if (completion->type == IK_HTTP_SUCCESS) {
+        ik_scrollback_append_line(repl->scrollback, "", 0);
     }
 
     // Clear any previous error
@@ -143,6 +173,20 @@ res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, v
             if (repl->response_finish_reason == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         }
         repl->response_completion_tokens = completion->completion_tokens;
+
+        // Store tool_call if present
+        if (repl->pending_tool_call != NULL) {
+            talloc_free(repl->pending_tool_call);
+            repl->pending_tool_call = NULL;
+        }
+        if (completion->tool_call != NULL) {
+            // Deep copy the tool_call struct
+            repl->pending_tool_call = ik_tool_call_create(repl,
+                                                          completion->tool_call->id,
+                                                          completion->tool_call->name,
+                                                          completion->tool_call->arguments);
+            if (repl->pending_tool_call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
     }
 
     return OK(NULL);

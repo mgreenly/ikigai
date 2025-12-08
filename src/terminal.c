@@ -10,6 +10,13 @@
 #include "terminal.h"
 #include "wrapper.h"
 
+// Terminal escape sequences
+#define ESC_ALT_SCREEN_ENTER "\x1b[?1049h"
+#define ESC_ALT_SCREEN_EXIT "\x1b[?1049l"
+#define ESC_MOUSE_ENABLE "\x1b[?1007h"  // Alternate scroll mode
+#define ESC_MOUSE_DISABLE "\x1b[?1007l"
+#define ESC_TERMINAL_RESET "\x1b[?25h\x1b[0m"  // Show cursor + reset attributes
+
 // Initialize terminal (raw mode + alternate screen)
 res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
 {
@@ -57,19 +64,26 @@ res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
     }
 
     // Enter alternate screen buffer
-    const char *alt_screen = "\x1b[?1049h";
-    if (posix_write_(tty_fd, alt_screen, 8) < 0) {
+    if (posix_write_(tty_fd, ESC_ALT_SCREEN_ENTER, 8) < 0) {
         posix_tcsetattr_(tty_fd, TCSANOW, &ctx->orig_termios);
         posix_close_(tty_fd);
         return ERR(parent, IO, "Failed to enter alternate screen");
+    }
+
+    // Enable alternate scroll mode
+    if (posix_write_(tty_fd, ESC_MOUSE_ENABLE, 8) < 0) {
+        (void)posix_write_(tty_fd, ESC_ALT_SCREEN_EXIT, 8);
+        posix_tcsetattr_(tty_fd, TCSANOW, &ctx->orig_termios);
+        posix_close_(tty_fd);
+        return ERR(parent, IO, "Failed to enable mouse reporting");
     }
 
     // Get terminal size
     struct winsize ws;
     if (posix_ioctl_(tty_fd, TIOCGWINSZ, &ws) < 0) {
         // Restore before returning error
-        const char *exit_alt = "\x1b[?1049l";
-        (void)posix_write_(tty_fd, exit_alt, 8);
+        (void)posix_write_(tty_fd, ESC_MOUSE_DISABLE, 8);
+        (void)posix_write_(tty_fd, ESC_ALT_SCREEN_EXIT, 8);
         posix_tcsetattr_(tty_fd, TCSANOW, &ctx->orig_termios);
         posix_close_(tty_fd);
         return ERR(parent, IO, "Failed to get terminal size");
@@ -89,9 +103,12 @@ void ik_term_cleanup(ik_term_ctx_t *ctx)
         return;
     }
 
-    // Exit alternate screen buffer
-    const char *exit_alt = "\x1b[?1049l";
-    (void)posix_write_(ctx->tty_fd, exit_alt, 8);
+    // Disable alternate scroll mode
+    (void)posix_write_(ctx->tty_fd, ESC_MOUSE_DISABLE, 8);
+
+    // Reset terminal and exit alternate screen
+    (void)posix_write_(ctx->tty_fd, ESC_TERMINAL_RESET, 10);
+    (void)posix_write_(ctx->tty_fd, ESC_ALT_SCREEN_EXIT, 8);
 
     // Restore original termios settings (immediate, no blocking)
     posix_tcsetattr_(ctx->tty_fd, TCSANOW, &ctx->orig_termios);

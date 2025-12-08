@@ -18,6 +18,7 @@
 // Mock state for controlling failures
 static bool mock_db_init_should_fail = false;
 static bool mock_session_restore_should_fail = false;
+static bool mock_sigaction_should_fail = false;
 
 // Forward declarations for wrapper functions
 int posix_open_(const char *pathname, int flags);
@@ -135,6 +136,10 @@ int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *
     (void)signum;
     (void)act;
     (void)oldact;
+
+    if (mock_sigaction_should_fail) {
+        return -1;  // Failure
+    }
     return 0;  // Success
 }
 
@@ -208,6 +213,31 @@ START_TEST(test_repl_init_db_success)
 
 END_TEST
 
+/* Test: Signal handler init failure with db_ctx allocated (line 80-81 cleanup) */
+START_TEST(test_repl_init_signal_handler_failure_with_db)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Enable mock failure for sigaction
+    mock_sigaction_should_fail = true;
+
+    // Attempt to initialize REPL with database - db_init succeeds, signal_handler fails
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
+    res_t res = ik_repl_init(ctx, cfg, &repl);
+
+    // Verify failure
+    ck_assert(is_err(&res));
+    ck_assert_ptr_null(repl);
+
+    // Cleanup mock state
+    mock_sigaction_should_fail = false;
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *repl_init_db_suite(void)
 {
     Suite *s = suite_create("REPL Database Initialization");
@@ -216,6 +246,7 @@ static Suite *repl_init_db_suite(void)
     tcase_set_timeout(tc_db, 30);
     tcase_add_test(tc_db, test_repl_init_db_init_failure);
     tcase_add_test(tc_db, test_repl_init_session_restore_failure);
+    tcase_add_test(tc_db, test_repl_init_signal_handler_failure_with_db);
     suite_add_tcase(s, tc_db);
 
     TCase *tc_db_success = tcase_create("Database Success");

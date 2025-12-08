@@ -1,13 +1,13 @@
 [
   "coverage",
   "default",
-  "git",
+  "errors",
   "lcov",
   "mocking",
   "naming",
-  "quality",
+  "quality-strict",
   "style",
-  "tdd",
+  "tdd-strict",
   "testability",
   "zero-debt"
 ]

@@ -6,7 +6,10 @@
 #include "../../../src/db/session.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/replay.h"
+#include "../../../src/openai/client.h"
 #include "../../../src/scrollback.h"
+#include "../../../src/wrapper.h"
+#include "../../../src/msg.h"
 #include "../../test_utils.h"
 
 // Mock state for ik_db_session_get_active
@@ -85,6 +88,14 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
     return OK(NULL);
 }
 
+// Wrapper mocks (pass-through to real implementations)
+MOCKABLE res_t ik_msg_from_db_(void *parent, const void *db_msg) {
+    return ik_msg_from_db(parent, (const ik_message_t *)db_msg);
+}
+MOCKABLE res_t ik_openai_conversation_add_msg_(void *conv, void *msg) {
+    return ik_openai_conversation_add_msg((ik_openai_conversation_t *)conv, (ik_msg_t *)msg);
+}
+
 static void reset_mocks(void)
 {
     // Reset session mocks
@@ -109,6 +120,11 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
     repl->current_session_id = 0;
     repl->marks = NULL;
     repl->mark_count = 0;
+
+    // Create empty conversation
+    res_t conv_res = ik_openai_conversation_create(repl);
+    repl->conversation = conv_res.ok;
+
     return repl;
 }
 

@@ -1,6 +1,6 @@
 # Appendix
 
-> **Part VII: Reference** — Terminology, open questions, and future directions.
+> **Part VII: Reference**: Terminology, open questions, and future directions.
 
 ---
 
@@ -11,7 +11,7 @@ To avoid ambiguity, this document uses these terms consistently:
 | Term | Meaning |
 |------|---------|
 | **Runtime environment** | The broader platform infrastructure: PostgreSQL, systemd, Linux services, and coordination primitives |
-| **Runtime language** | Deno/TypeScript—the language and execution engine for agent code |
+| **Runtime language** | Deno/TypeScript, the language and execution engine for agent code |
 | **Platform package** | The `@ikigai/platform` TypeScript package that agents import to access Ikigai systems (secrets, queues, mailboxes, telemetry) |
 | **Ikigai Terminal** | The C application running on the developer's local machine |
 

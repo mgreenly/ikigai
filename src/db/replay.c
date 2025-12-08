@@ -150,7 +150,8 @@ static res_t process_event(ik_replay_context_t *context, int64_t id,
   }
 
   if (strcmp(kind, "system") == 0 || strcmp(kind, "user") == 0 ||
-      strcmp(kind, "assistant") == 0) {
+      strcmp(kind, "assistant") == 0 || strcmp(kind, "tool_call") == 0 ||
+      strcmp(kind, "tool_result") == 0) {
     // Append message to context array
     return append_message(context, id, kind, content, data_json);
   }

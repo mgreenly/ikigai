@@ -255,6 +255,46 @@ int websocket_callback(request, response, user_data) {
 
 ---
 
+### Error Context Lifetime (Critical)
+
+**WARNING:** Errors allocated on a freed context cause use-after-free bugs.
+
+**Problem:**
+```c
+res_t ik_foo_init(void *parent, foo_t **out) {
+    foo_t *foo = talloc_zero_(parent, sizeof(foo_t));
+    res_t result = ik_bar_init(foo, &foo->bar);  // Error on foo
+    if (is_err(&result)) {
+        talloc_free(foo);  // FREES ERROR TOO - use-after-free!
+        return result;
+    }
+}
+```
+
+**Fix A (Preferred):** Pass parent context to sub-functions:
+```c
+res_t ik_foo_init(void *parent, foo_t **out) {
+    res_t result = ik_bar_init(parent, NULL);  // Error on parent
+    if (is_err(&result)) return result;  // Safe - parent survives
+    foo_t *foo = talloc_zero_(parent, sizeof(foo_t));
+    // ...
+    return OK(foo);
+}
+```
+
+**Fix B:** Reparent error before freeing:
+```c
+if (is_err(&result)) {
+    talloc_steal(parent, result.err);  // Survive free
+    talloc_free(foo);
+    return result;
+}
+```
+
+**Rule:** Error context must outlive the error. Either allocate on parent (A) or use `talloc_steal` before freeing (B).
+
+---
+
 ## Assertions: When to Use
 
 ### Purpose

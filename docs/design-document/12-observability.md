@@ -81,7 +81,7 @@ For organizations with existing observability infrastructure:
 - Forward logs to syslog/journald (already integrated via systemd)
 - Push to external systems via a dedicated telemetry-export agent
 
-The platform doesn't replace existing observability—it integrates with it.
+The platform doesn't replace existing observability; it integrates with it.
 
 ---
 

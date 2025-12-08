@@ -9,10 +9,19 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/openai/client.h"
+#include "../../../src/wrapper.h"
 #include "../../test_utils.h"
 
 #include <check.h>
 #include <talloc.h>
+
+// Mock posix_rename_ (logger rotation) to prevent PANIC during tests
+int posix_rename_(const char *oldpath, const char *newpath)
+{
+    (void)oldpath;
+    (void)newpath;
+    return 0;  // Success
+}
 
 // Forward declaration for suite function
 static Suite *commands_dispatch_suite(void);

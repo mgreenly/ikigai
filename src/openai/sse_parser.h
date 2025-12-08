@@ -2,6 +2,7 @@
 #define IK_OPENAI_SSE_PARSER_H
 
 #include "error.h"
+#include "tool.h"
 #include <stddef.h>
 
 /**
@@ -78,6 +79,23 @@ char *ik_openai_sse_parser_get_event(ik_openai_sse_parser_t *parser);
  */
 res_t ik_openai_parse_sse_event(void *parent, const char *event);
 
+/**
+ * Parse an SSE event and extract tool_calls delta
+ *
+ * Strips "data: " prefix, handles [DONE] marker, parses JSON,
+ * and extracts choices[0].delta.tool_calls[0] fields (id, function.name, function.arguments).
+ *
+ * For Story 02 scope: handles single complete tool call (arguments arrive in one chunk).
+ * Streaming accumulation across multiple deltas is out of scope.
+ *
+ * @param parent  Talloc context parent (or NULL)
+ * @param event   SSE event string (e.g., "data: {...}")
+ * @return        OK(ik_tool_call_t*) if tool_calls present,
+ *                OK(NULL) if [DONE] or no tool_calls,
+ *                ERR(...) on parse error
+ */
+res_t ik_openai_parse_tool_calls(void *parent, const char *event);
+
 /*
  * Internal wrapper functions (exposed for testing)
  *
@@ -89,5 +107,6 @@ res_t ik_openai_parse_sse_event(void *parent, const char *event);
 yyjson_val *yyjson_doc_get_root_wrapper(yyjson_doc *doc);
 yyjson_val *yyjson_arr_get_wrapper(yyjson_val *arr, size_t idx);
 bool yyjson_is_obj_wrapper(yyjson_val *val);
+const char *yyjson_get_str_wrapper(yyjson_val *val);
 
 #endif /* IK_OPENAI_SSE_PARSER_H */

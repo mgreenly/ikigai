@@ -4,6 +4,7 @@
 #include "error.h"
 #include "config.h"
 #include "openai/client.h"
+#include "tool.h"
 #include <sys/select.h>
 
 /**
@@ -39,6 +40,7 @@ typedef struct {
     char *model;                  /* Model name from SSE response (or NULL) */
     char *finish_reason;          /* Finish reason from SSE response (or NULL) */
     int32_t completion_tokens;    /* Completion token count from SSE response (0 if not present) */
+    ik_tool_call_t *tool_call;    /* Tool call if present (or NULL) */
 } ik_http_completion_t;
 
 /**
@@ -81,7 +83,7 @@ res_t ik_openai_multi_create(void *parent);
  * @param stream_ctx     Context pointer passed to streaming callback
  * @param completion_cb  Callback for request completion (or NULL)
  * @param completion_ctx Context pointer passed to completion callback
- * @param debug_output   FILE* for debug output (request/response details), or NULL
+ * @param limit_reached  If true, set tool_choice to "none"; otherwise "auto"
  * @return               OK(NULL) or ERR(...)
  */
 res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
@@ -91,7 +93,7 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
                                    void *stream_ctx,
                                    ik_http_completion_cb_t completion_cb,
                                    void *completion_ctx,
-                                   FILE *debug_output);
+                                   bool limit_reached);
 
 /**
  * Perform non-blocking I/O operations

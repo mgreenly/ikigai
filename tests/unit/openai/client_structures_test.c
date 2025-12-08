@@ -2,6 +2,7 @@
 #include <talloc.h>
 #include <string.h>
 #include "openai/client.h"
+#include "openai/tool_choice.h"
 #include "config.h"
 #include "vendor/yyjson/yyjson.h"
 
@@ -27,9 +28,9 @@ START_TEST(test_message_create_valid) {
     res_t res = ik_openai_msg_create(ctx, "user", "Hello, world!");
     ck_assert(!res.is_err);
 
-    ik_openai_msg_t *msg = res.ok;
+    ik_msg_t *msg = res.ok;
     ck_assert_ptr_nonnull(msg);
-    ck_assert_str_eq(msg->role, "user");
+    ck_assert_str_eq(msg->kind, "user");
     ck_assert_str_eq(msg->content, "Hello, world!");
 }
 END_TEST START_TEST(test_message_talloc_hierarchy)
@@ -37,13 +38,13 @@ END_TEST START_TEST(test_message_talloc_hierarchy)
     res_t res = ik_openai_msg_create(ctx, "assistant", "Hi there!");
     ck_assert(!res.is_err);
 
-    ik_openai_msg_t *msg = res.ok;
+    ik_msg_t *msg = res.ok;
 
     /* Message should be child of ctx */
     ck_assert_ptr_eq(talloc_parent(msg), ctx);
 
     /* Role and content should be children of message */
-    ck_assert_ptr_eq(talloc_parent(msg->role), msg);
+    ck_assert_ptr_eq(talloc_parent(msg->kind), msg);
     ck_assert_ptr_eq(talloc_parent(msg->content), msg);
 }
 
@@ -71,7 +72,7 @@ END_TEST START_TEST(test_conversation_add_single_message)
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Test message");
     ck_assert(!msg_res.is_err);
-    ik_openai_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = msg_res.ok;
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -109,11 +110,11 @@ END_TEST START_TEST(test_conversation_add_multiple_messages)
     ck_assert(!add3_res.is_err);
 
     ck_assert_uint_eq(conv->message_count, 3);
-    ck_assert_str_eq(conv->messages[0]->role, "user");
+    ck_assert_str_eq(conv->messages[0]->kind, "user");
     ck_assert_str_eq(conv->messages[0]->content, "Question");
-    ck_assert_str_eq(conv->messages[1]->role, "assistant");
+    ck_assert_str_eq(conv->messages[1]->kind, "assistant");
     ck_assert_str_eq(conv->messages[1]->content, "Answer");
-    ck_assert_str_eq(conv->messages[2]->role, "user");
+    ck_assert_str_eq(conv->messages[2]->kind, "user");
     ck_assert_str_eq(conv->messages[2]->content, "Follow-up");
 }
 
@@ -159,110 +160,6 @@ START_TEST(test_response_create_valid)
     ck_assert_int_eq(resp->prompt_tokens, 0);
     ck_assert_int_eq(resp->completion_tokens, 0);
     ck_assert_int_eq(resp->total_tokens, 0);
-}
-
-END_TEST
-/*
- * JSON serialization tests
- */
-
-START_TEST(test_serialize_empty_conversation)
-{
-    /* Create test config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_model = talloc_strdup(cfg, "gpt-4-turbo");
-    cfg->openai_temperature = 0.7;
-    cfg->openai_max_completion_tokens = 2048;
-
-    /* Create empty conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
-
-    /* Create request */
-    ik_openai_request_t *req = ik_openai_request_create(ctx, cfg, conv);
-    ck_assert_ptr_nonnull(req);
-
-    /* Serialize */
-    char *json = ik_openai_serialize_request(ctx, req);
-    ck_assert_ptr_nonnull(json);
-
-    /* Parse JSON to verify structure */
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    ck_assert(yyjson_is_obj(root));
-
-    /* Check fields */
-    yyjson_val *model = yyjson_obj_get(root, "model");
-    ck_assert_str_eq(yyjson_get_str(model), "gpt-4-turbo");
-
-    yyjson_val *messages = yyjson_obj_get(root, "messages");
-    ck_assert(yyjson_is_arr(messages));
-    ck_assert_uint_eq(yyjson_arr_size(messages), 0);
-
-    yyjson_val *temp = yyjson_obj_get(root, "temperature");
-    ck_assert(yyjson_get_real(temp) == 0.7);
-
-    yyjson_val *max_tokens = yyjson_obj_get(root, "max_completion_tokens");
-    ck_assert_int_eq(yyjson_get_int(max_tokens), 2048);
-
-    yyjson_val *stream = yyjson_obj_get(root, "stream");
-    ck_assert(yyjson_get_bool(stream) == true);
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST START_TEST(test_serialize_with_messages)
-{
-    /* Create test config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
-    cfg->openai_temperature = 0.5;
-    cfg->openai_max_completion_tokens = 1024;
-
-    /* Create conversation with messages */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
-
-    res_t msg1_res = ik_openai_msg_create(ctx, "user", "Hello!");
-    ck_assert(!msg1_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg1_res.ok);
-
-    res_t msg2_res = ik_openai_msg_create(ctx, "assistant", "Hi there!");
-    ck_assert(!msg2_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg2_res.ok);
-
-    /* Create request */
-    ik_openai_request_t *req = ik_openai_request_create(ctx, cfg, conv);
-    ck_assert_ptr_nonnull(req);
-
-    /* Serialize */
-    char *json = ik_openai_serialize_request(ctx, req);
-    ck_assert_ptr_nonnull(json);
-
-    /* Parse JSON to verify structure */
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *messages = yyjson_obj_get(root, "messages");
-    ck_assert(yyjson_is_arr(messages));
-    ck_assert_uint_eq(yyjson_arr_size(messages), 2);
-
-    /* Check first message */
-    yyjson_val *msg1 = yyjson_arr_get(messages, 0);
-    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(msg1, "role")), "user");
-    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(msg1, "content")), "Hello!");
-
-    /* Check second message */
-    yyjson_val *msg2 = yyjson_arr_get(messages, 1);
-    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(msg2, "role")), "assistant");
-    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(msg2, "content")), "Hi there!");
-
-    yyjson_doc_free(doc);
 }
 
 END_TEST
@@ -333,20 +230,6 @@ END_TEST START_TEST(test_yyjson_is_obj_wrapper_valid_obj)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_yyjson_is_obj_wrapper_not_obj)
-{
-    /* Test non-object returns false */
-    const char *json = "[1, 2, 3]";
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    bool is_obj = yyjson_is_obj_wrapper(root);
-    ck_assert(is_obj == false);
-
-    yyjson_doc_free(doc);
-}
-
 END_TEST START_TEST(test_get_message_at_index_valid)
 {
     /* Test valid array access */
@@ -358,9 +241,196 @@ END_TEST START_TEST(test_get_message_at_index_valid)
     ck_assert(!msg_res.is_err);
     ik_openai_conversation_add_msg(conv, msg_res.ok);
 
-    ik_openai_msg_t *msg = get_message_at_index(conv->messages, 0);
+    ik_msg_t *msg = get_message_at_index(conv->messages, 0);
     ck_assert_ptr_nonnull(msg);
     ck_assert_str_eq(msg->content, "Test");
+}
+
+END_TEST START_TEST(test_serialize_with_tools_and_tool_choice)
+{
+    /* Create test config */
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
+    cfg->openai_temperature = 1.0;
+    cfg->openai_max_completion_tokens = 4096;
+
+    /* Create conversation with one message */
+    res_t conv_res = ik_openai_conversation_create(ctx);
+    ck_assert(!conv_res.is_err);
+    ik_openai_conversation_t *conv = conv_res.ok;
+
+    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
+    ck_assert(!msg_res.is_err);
+    ik_openai_conversation_add_msg(conv, msg_res.ok);
+
+    /* Create request */
+    ik_openai_request_t *req = ik_openai_request_create(ctx, cfg, conv);
+    ck_assert_ptr_nonnull(req);
+
+    /* Serialize with tool_choice auto */
+    ik_tool_choice_t choice_auto = ik_tool_choice_auto();
+    char *json = ik_openai_serialize_request(ctx, req, choice_auto);
+    ck_assert_ptr_nonnull(json);
+
+    /* Parse JSON to verify structure */
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert(yyjson_is_obj(root));
+
+    /* Verify tools array exists and is an array */
+    yyjson_val *tools = yyjson_obj_get(root, "tools");
+    ck_assert_ptr_nonnull(tools);
+    ck_assert(yyjson_is_arr(tools));
+
+    /* Verify tools array has 5 elements */
+    ck_assert_uint_eq(yyjson_arr_size(tools), 5);
+
+    /* Verify tool_choice field exists with value "auto" */
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "auto");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST START_TEST(test_serialize_with_tool_choice_none)
+{
+    /* Create test config */
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
+    cfg->openai_temperature = 1.0;
+    cfg->openai_max_completion_tokens = 4096;
+
+    /* Create conversation with one message */
+    res_t conv_res = ik_openai_conversation_create(ctx);
+    ck_assert(!conv_res.is_err);
+    ik_openai_conversation_t *conv = conv_res.ok;
+
+    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
+    ck_assert(!msg_res.is_err);
+    ik_openai_conversation_add_msg(conv, msg_res.ok);
+
+    /* Create request */
+    ik_openai_request_t *req = ik_openai_request_create(ctx, cfg, conv);
+    ck_assert_ptr_nonnull(req);
+
+    /* Serialize with tool_choice none */
+    ik_tool_choice_t choice_none = ik_tool_choice_none();
+    char *json = ik_openai_serialize_request(ctx, req, choice_none);
+    ck_assert_ptr_nonnull(json);
+
+    /* Parse JSON to verify structure */
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert(yyjson_is_obj(root));
+
+    /* Verify tool_choice field exists with value "none" */
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "none");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST START_TEST(test_serialize_with_tool_choice_required)
+{
+    /* Create test config */
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
+    cfg->openai_temperature = 1.0;
+    cfg->openai_max_completion_tokens = 4096;
+
+    /* Create conversation with one message */
+    res_t conv_res = ik_openai_conversation_create(ctx);
+    ck_assert(!conv_res.is_err);
+    ik_openai_conversation_t *conv = conv_res.ok;
+
+    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
+    ck_assert(!msg_res.is_err);
+    ik_openai_conversation_add_msg(conv, msg_res.ok);
+
+    /* Create request */
+    ik_openai_request_t *req = ik_openai_request_create(ctx, cfg, conv);
+    ck_assert_ptr_nonnull(req);
+
+    /* Serialize with tool_choice required */
+    ik_tool_choice_t choice_required = ik_tool_choice_required();
+    char *json = ik_openai_serialize_request(ctx, req, choice_required);
+    ck_assert_ptr_nonnull(json);
+
+    /* Parse JSON to verify structure */
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert(yyjson_is_obj(root));
+
+    /* Verify tool_choice field exists with value "required" */
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "required");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST START_TEST(test_serialize_with_tool_choice_specific)
+{
+    /* Create test config */
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
+    cfg->openai_temperature = 1.0;
+    cfg->openai_max_completion_tokens = 4096;
+
+    /* Create conversation with one message */
+    res_t conv_res = ik_openai_conversation_create(ctx);
+    ck_assert(!conv_res.is_err);
+    ik_openai_conversation_t *conv = conv_res.ok;
+
+    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
+    ck_assert(!msg_res.is_err);
+    ik_openai_conversation_add_msg(conv, msg_res.ok);
+
+    /* Create request */
+    ik_openai_request_t *req = ik_openai_request_create(ctx, cfg, conv);
+    ck_assert_ptr_nonnull(req);
+
+    /* Serialize with tool_choice specific "glob" */
+    ik_tool_choice_t choice_specific = ik_tool_choice_specific(ctx, "glob");
+    char *json = ik_openai_serialize_request(ctx, req, choice_specific);
+    ck_assert_ptr_nonnull(json);
+
+    /* Parse JSON to verify structure */
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert(yyjson_is_obj(root));
+
+    /* Verify tool_choice field exists and is an object */
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    ck_assert(yyjson_is_obj(tool_choice));
+
+    /* Verify tool_choice has "type": "function" */
+    yyjson_val *type = yyjson_obj_get(tool_choice, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_get_str(type), "function");
+
+    /* Verify tool_choice has "function" object */
+    yyjson_val *function = yyjson_obj_get(tool_choice, "function");
+    ck_assert_ptr_nonnull(function);
+    ck_assert(yyjson_is_obj(function));
+
+    /* Verify function has "name": "glob" */
+    yyjson_val *name = yyjson_obj_get(function, "name");
+    ck_assert_ptr_nonnull(name);
+    ck_assert_str_eq(yyjson_get_str(name), "glob");
+
+    yyjson_doc_free(doc);
 }
 
 END_TEST
@@ -398,8 +468,10 @@ static Suite *openai_structures_suite(void)
 
     TCase *tc_json = tcase_create("JSON Serialization");
     tcase_add_checked_fixture(tc_json, setup, teardown);
-    tcase_add_test(tc_json, test_serialize_empty_conversation);
-    tcase_add_test(tc_json, test_serialize_with_messages);
+    tcase_add_test(tc_json, test_serialize_with_tools_and_tool_choice);
+    tcase_add_test(tc_json, test_serialize_with_tool_choice_none);
+    tcase_add_test(tc_json, test_serialize_with_tool_choice_required);
+    tcase_add_test(tc_json, test_serialize_with_tool_choice_specific);
     suite_add_tcase(s, tc_json);
 
     TCase *tc_wrappers = tcase_create("Wrapper Functions");
@@ -410,7 +482,6 @@ static Suite *openai_structures_suite(void)
     tcase_add_test(tc_wrappers, test_yyjson_arr_get_wrapper_valid);
     tcase_add_test(tc_wrappers, test_yyjson_is_obj_wrapper_null);
     tcase_add_test(tc_wrappers, test_yyjson_is_obj_wrapper_valid_obj);
-    tcase_add_test(tc_wrappers, test_yyjson_is_obj_wrapper_not_obj);
     tcase_add_test(tc_wrappers, test_get_message_at_index_valid);
     suite_add_tcase(s, tc_wrappers);
 

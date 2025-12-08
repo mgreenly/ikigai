@@ -1,6 +1,6 @@
 # Filesystem Layout
 
-> **Part V: Cross-Cutting Concerns** — These sections describe infrastructure that spans all four pillars: where files live, how identity works, how deployment happens, and how you observe the system.
+> **Part V: Cross-Cutting Concerns**: These sections describe infrastructure that spans all four pillars: where files live, how identity works, how deployment happens, and how you observe the system.
 
 ---
 
@@ -22,7 +22,7 @@ The platform follows the Filesystem Hierarchy Standard (FHS):
 │       └── current -> v1.2.0/       # Active version
 └── webapps.d/                       # Deployed web applications
     └── dashboard/
-        ├── v1.0.0/                  # No current symlink—nginx controls routing
+        ├── v1.0.0/                  # No current symlink, nginx controls routing
         └── v1.1.0/
 
 /etc/ikigai/                         # Configuration (host-specific)

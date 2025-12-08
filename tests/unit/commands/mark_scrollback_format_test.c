@@ -115,31 +115,35 @@ START_TEST(test_rewind_no_role_prefixes) {
 
     // Check scrollback content - should NOT have "You:" or "Assistant:" prefixes
     // Line 0: system message
-    // Line 1: user message (no prefix)
-    // Line 2: assistant message (no prefix)
-    // Line 3: /mark qux
+    // Line 1: blank line
+    // Line 2: user message (no prefix)
+    // Line 3: blank line
+    // Line 4: assistant message (no prefix)
+    // Line 5: blank line
+    // Line 6: /mark qux
+    // Line 7: blank line
 
-    // Get scrollback line count
+    // Get scrollback line count (each event + blank line = 8 lines total)
     size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
-    ck_assert_uint_eq(line_count, 4);
+    ck_assert_uint_eq(line_count, 8);
 
     // Get lines and verify content
     const char *line0 = get_line_text(repl->scrollback, 0);
-    const char *line1 = get_line_text(repl->scrollback, 1);
     const char *line2 = get_line_text(repl->scrollback, 2);
-    const char *line3 = get_line_text(repl->scrollback, 3);
+    const char *line4 = get_line_text(repl->scrollback, 4);
+    const char *line6 = get_line_text(repl->scrollback, 6);
 
-    // Verify system message is first
-    ck_assert_str_eq(line0, "You are a helpful assistant for testing.");
+    // Verify system message is first (with color styling)
+    ck_assert_ptr_nonnull(strstr(line0, "You are a helpful assistant for testing."));
 
     // Verify user message has no "You:" prefix
-    ck_assert_str_eq(line1, "what is 2 + 2");
+    ck_assert_str_eq(line2, "what is 2 + 2");
 
-    // Verify assistant message has no "Assistant:" prefix
-    ck_assert_str_eq(line2, "2 + 2 = 4");
+    // Verify assistant message has no "Assistant:" prefix (but has color styling)
+    ck_assert_ptr_nonnull(strstr(line4, "2 + 2 = 4"));
 
     // Verify mark indicator
-    ck_assert_str_eq(line3, "/mark qux");
+    ck_assert_str_eq(line6, "/mark qux");
 }
 END_TEST
 // Test: Rewind should include system message from config
@@ -169,9 +173,9 @@ START_TEST(test_rewind_includes_system_message)
     res_t rewind_res = ik_mark_rewind_to_mark(repl, target_mark);
     ck_assert(is_ok(&rewind_res));
 
-    // Verify system message is first line
+    // Verify system message is first line (with color styling)
     const char *line0 = get_line_text(repl->scrollback, 0);
-    ck_assert_str_eq(line0, "You are a helpful assistant for testing.");
+    ck_assert_ptr_nonnull(strstr(line0, "You are a helpful assistant for testing."));
 }
 
 END_TEST

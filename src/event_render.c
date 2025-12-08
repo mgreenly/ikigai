@@ -5,6 +5,7 @@
 
 #include "event_render.h"
 
+#include "ansi.h"
 #include "panic.h"
 #include "scrollback.h"
 #include "vendor/yyjson/yyjson.h"
@@ -32,6 +33,18 @@ bool ik_event_renders_visible(const char *kind)
     // rewind: action is handled separately (truncation)
     // clear: action is handled separately (clear scrollback)
     return false;
+}
+
+// Helper: apply color styling to content based on color code
+static char *apply_style(TALLOC_CTX *ctx, const char *content, uint8_t color)
+{
+    if (!ik_ansi_colors_enabled() || color == 0) {
+        return talloc_strdup(ctx, content);
+    }
+
+    char color_seq[16];
+    ik_ansi_fg_256(color_seq, sizeof(color_seq), color);
+    return talloc_asprintf(ctx, "%s%s%s", color_seq, content, IK_ANSI_RESET);
 }
 
 // Helper: extract label from data_json
@@ -80,22 +93,56 @@ static res_t render_mark_event(ik_scrollback_t *scrollback, const char *data_jso
     }
     if (text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Append to scrollback (use wrapper for testability)
+    // Append mark text
     res_t result = ik_scrollback_append_line_(scrollback, text, strlen(text));
+    if (is_err(&result)) {
+        talloc_free(tmp);
+        return result;
+    }
+
+    // Append blank line for spacing
+    result = ik_scrollback_append_line_(scrollback, "", 0);
 
     talloc_free(tmp);
     return result;
 }
 
-// Helper: render content event (user, assistant, system)
-static res_t render_content_event(ik_scrollback_t *scrollback, const char *content)
+// Helper: render content event (user, assistant, system, tool_call, tool_result)
+static res_t render_content_event(ik_scrollback_t *scrollback, const char *content, uint8_t color)
 {
     // Content can be NULL (e.g., empty system message)
     if (content == NULL || content[0] == '\0') {
         return OK(NULL);
     }
 
-    return ik_scrollback_append_line_(scrollback, content, strlen(content));
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    if (tmp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Trim trailing whitespace
+    char *trimmed = ik_scrollback_trim_trailing(tmp, content, strlen(content));
+
+    // Skip if empty after trimming
+    if (trimmed[0] == '\0') {
+        talloc_free(tmp);
+        return OK(NULL);
+    }
+
+    // Apply color styling
+    char *styled = apply_style(tmp, trimmed, color);
+    if (styled == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Append content
+    res_t result = ik_scrollback_append_line_(scrollback, styled, strlen(styled));
+    if (is_err(&result)) {
+        talloc_free(tmp);
+        return result;
+    }
+
+    // Append blank line for spacing
+    result = ik_scrollback_append_line_(scrollback, "", 0);
+
+    talloc_free(tmp);
+    return result;
 }
 
 res_t ik_event_render(ik_scrollback_t *scrollback,
@@ -104,13 +151,31 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
                       const char *data_json)
 {
     assert(scrollback != NULL); // LCOV_EXCL_BR_LINE
-    assert(kind != NULL);       // LCOV_EXCL_BR_LINE
+
+    // Validate kind parameter - return error instead of asserting
+    // This allows callers to handle invalid kinds gracefully
+    if (kind == NULL) { // LCOV_EXCL_START
+        return ERR(scrollback, INVALID_ARG, "kind parameter cannot be NULL");
+    } // LCOV_EXCL_STOP
+
+    // Determine color based on kind
+    uint8_t color = 0;
+    if (strcmp(kind, "assistant") == 0) {
+        color = IK_ANSI_GRAY_LIGHT;  // 249 - slightly subdued
+    } else if (strcmp(kind, "tool_call") == 0 ||
+               strcmp(kind, "tool_result") == 0 ||
+               strcmp(kind, "system") == 0) {
+        color = IK_ANSI_GRAY_SUBDUED;  // 242 - very subdued
+    }
+    // user, mark, rewind, clear: color = 0 (no color)
 
     // Handle each event kind
     if (strcmp(kind, "user") == 0 ||
         strcmp(kind, "assistant") == 0 ||
-        strcmp(kind, "system") == 0) {
-        return render_content_event(scrollback, content);
+        strcmp(kind, "system") == 0 ||
+        strcmp(kind, "tool_call") == 0 ||
+        strcmp(kind, "tool_result") == 0) {
+        return render_content_event(scrollback, content, color);
     }
 
     if (strcmp(kind, "mark") == 0) {

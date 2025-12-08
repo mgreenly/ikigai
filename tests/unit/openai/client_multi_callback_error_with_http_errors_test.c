@@ -33,7 +33,7 @@ START_TEST(test_multi_info_read_callback_error_with_client_error) {
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(
-        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, NULL);
+        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, false);
     ck_assert(!add_res.is_err);
 
     /* HTTP 404 will create error_message */
@@ -75,7 +75,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_server_error)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(
-        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, NULL);
+        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, false);
     ck_assert(!add_res.is_err);
 
     /* HTTP 500 will create error_message */
@@ -117,7 +117,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_network_error)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(
-        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, NULL);
+        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, false);
     ck_assert(!add_res.is_err);
 
     /* Network error will create error_message */
@@ -158,7 +158,7 @@ END_TEST START_TEST(test_multi_info_read_http_599_edge_case)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                NULL, NULL, NULL);
+                                                NULL, NULL, false);
     ck_assert(!add_res.is_err);
 
     /* HTTP 599 - edge of server error range */
@@ -197,7 +197,7 @@ END_TEST START_TEST(test_multi_info_read_http_600_unexpected)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                NULL, NULL, NULL);
+                                                NULL, NULL, false);
     ck_assert(!add_res.is_err);
 
     /* HTTP 600 - beyond server error range, should hit "unexpected" branch */
@@ -249,7 +249,7 @@ START_TEST(test_multi_info_read_callback_success_with_error_message) {
 
     /* Use success callback instead of error callback */
     res_t add_res = ik_openai_multi_add_request(
-        multi, cfg, conv, NULL, NULL, success_completion_callback, ctx, NULL);
+        multi, cfg, conv, NULL, NULL, success_completion_callback, ctx, false);
     ck_assert(!add_res.is_err);
 
     /* HTTP 404 will create error_message, but callback succeeds */

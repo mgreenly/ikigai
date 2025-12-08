@@ -274,10 +274,11 @@ res_t ik_openai_stream_req(TALLOC_CTX *ctx, ...) {
     parser->buffer = talloc_array(tmp, char, 4096);
     // ... perform request ...
 
-    // Result allocated on ctx if returning error
+    // CRITICAL: Errors must be allocated on ctx, NOT tmp
+    // If you allocate error on tmp and then free tmp, you have a use-after-free bug
     res_t result;
     if (error_occurred) {
-        result = ERR(ctx, NETWORK, "Request failed");
+        result = ERR(ctx, NETWORK, "Request failed");  // Error on ctx, not tmp!
     } else {
         result = OK(NULL);
     }
@@ -286,6 +287,8 @@ res_t ik_openai_stream_req(TALLOC_CTX *ctx, ...) {
     return result;
 }
 ```
+
+**WARNING:** Never allocate errors on `tmp`. If you call a sub-function that might return an error, pass `ctx` (not `tmp`) to those functions, or use `talloc_steal(ctx, result.err)` before freeing `tmp`. See "Error Context Lifetime" in `error_handling.md`.
 
 ## Phase 1 Implementation Plan
 
