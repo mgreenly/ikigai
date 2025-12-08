@@ -122,6 +122,7 @@ START_TEST(test_shared_ctx_init_success)
     // Create minimal cfg for test
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
@@ -143,6 +144,7 @@ START_TEST(test_shared_ctx_parent_allocation)
     // Create minimal cfg for test
     ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(parent, cfg, &shared);
@@ -168,6 +170,7 @@ START_TEST(test_shared_ctx_can_be_freed)
     // Create minimal cfg for test
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
@@ -193,6 +196,7 @@ START_TEST(test_shared_ctx_stores_cfg)
     // Create minimal cfg for test
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
@@ -216,6 +220,7 @@ START_TEST(test_shared_ctx_cfg_accessible)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "test-model");
+    cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
@@ -239,6 +244,7 @@ START_TEST(test_shared_ctx_term_initialized)
     // Create minimal cfg for test
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
@@ -261,6 +267,7 @@ START_TEST(test_shared_ctx_render_initialized)
     // Create minimal cfg for test
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
@@ -283,6 +290,7 @@ START_TEST(test_shared_ctx_render_matches_term_dimensions)
     // Create minimal cfg for test
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
@@ -310,6 +318,7 @@ START_TEST(test_shared_ctx_db_ctx_null_when_not_configured)
     // Create minimal cfg for test (no db_connection_string)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
@@ -332,6 +341,7 @@ START_TEST(test_shared_ctx_session_id_zero_when_not_configured)
     // Create minimal cfg for test (no db_connection_string)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);

@@ -9,6 +9,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
+#include "../../../src/shared.h"
 #include "../../test_utils.h"
 
 /* Test: Process ARROW_LEFT action */
@@ -245,6 +246,12 @@ START_TEST(test_repl_process_action_arrow_up)
     repl->input_buffer = input_buf;
     repl->quit = false;
 
+    // Create minimal shared context for history access
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;  // No history for this test
+    repl->shared = shared;
+
     // Insert "a\nb" (line1\nline2)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'a'};
     ik_repl_process_action(repl, &action);
@@ -288,6 +295,12 @@ START_TEST(test_repl_process_action_arrow_down)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+
+    // Create minimal shared context for history access
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;  // No history for this test
+    repl->shared = shared;
 
     // Insert "a\nb" (line1\nline2)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'a'};

@@ -158,8 +158,8 @@ START_TEST(test_history_survives_repl_restart)
     r = ik_shared_ctx_init(ctx, cfg, &shared2); ck_assert(is_ok(&r));
     result = ik_repl_init(ctx, shared2, &repl2);
     ck_assert(is_ok(&result));
-    ck_assert_uint_eq(repl2->history->count, 1);
-    ck_assert_str_eq(repl2->history->entries[0], "persistent command");
+    ck_assert_uint_eq(shared2->history->count, 1);
+    ck_assert_str_eq(shared2->history->entries[0], "persistent command");
 
     ik_repl_cleanup(repl2);
     talloc_free(ctx);

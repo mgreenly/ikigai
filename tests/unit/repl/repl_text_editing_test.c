@@ -9,6 +9,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
+#include "../../../src/shared.h"
 #include "../../test_utils.h"
 
 /* Test: Process CHAR action */
@@ -23,6 +24,12 @@ START_TEST(test_repl_process_action_char) {
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+
+    // Create minimal shared context for history access
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;
+    repl->shared = shared;
 
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'a'};
 

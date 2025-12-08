@@ -9,6 +9,7 @@
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
 #include "../../../src/input_buffer/core.h"
+#include "../../../src/shared.h"
 #include "../../test_utils.h"
 
 /* Test: /pp command clears input buffer after execution */
@@ -19,6 +20,12 @@ START_TEST(test_pp_command_clears_input_buffer) {
     /* Create REPL without initializing terminal */
     repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
+
+    /* Create minimal shared context for history access */
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;
+    repl->shared = shared;
 
     /* Create input buffer */
     repl->input_buffer = ik_input_buffer_create(repl);
@@ -65,6 +72,12 @@ START_TEST(test_pp_command_with_args)
     repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
+    /* Create minimal shared context for history access */
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;
+    repl->shared = shared;
+
     /* Create input buffer */
     repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
@@ -102,6 +115,12 @@ START_TEST(test_unknown_slash_command)
     /* Create REPL without initializing terminal */
     repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
+
+    /* Create minimal shared context for history access */
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;
+    repl->shared = shared;
 
     /* Create input buffer */
     repl->input_buffer = ik_input_buffer_create(repl);
@@ -141,6 +160,12 @@ START_TEST(test_empty_input_buffer_newline)
     repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
+    /* Create minimal shared context for history access */
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;
+    repl->shared = shared;
+
     /* Create input buffer */
     repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
@@ -170,6 +195,12 @@ START_TEST(test_slash_in_middle_not_command)
     /* Create REPL without initializing terminal */
     repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
+
+    /* Create minimal shared context for history access */
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;
+    repl->shared = shared;
 
     /* Create input buffer */
     repl->input_buffer = ik_input_buffer_create(repl);
@@ -212,6 +243,12 @@ START_TEST(test_pp_command_order_in_scrollback)
     /* Create minimal REPL context */
     repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
+
+    /* Create minimal shared context for history access */
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;
+    repl->shared = shared;
 
     /* Create input buffer */
     repl->input_buffer = ik_input_buffer_create(repl);
@@ -258,6 +295,12 @@ START_TEST(test_pp_output_trailing_newline)
     /* Create minimal REPL context */
     repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
+
+    /* Create minimal shared context for history access */
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;
+    repl->shared = shared;
 
     /* Create input buffer */
     repl->input_buffer = ik_input_buffer_create(repl);
