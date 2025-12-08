@@ -8,6 +8,7 @@
 
 #include "repl.h"
 #include "config.h"
+#include "shared.h"
 #include "scrollback.h"
 #include <check.h>
 #include <talloc.h>
@@ -21,8 +22,16 @@ static void setup(void)
 
     /* Create minimal REPL context for testing */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+
+    /* Create shared context */
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = talloc_zero(ctx, ik_cfg_t);
+    shared->cfg->max_tool_turns = 10;  /* Set reasonable limit */
+    repl->shared = shared;
+
     repl->scrollback = ik_scrollback_create(repl, 80);
     repl->response_finish_reason = NULL;
+    repl->tool_iteration_count = 0;  /* Initialize iteration count */
 }
 
 static void teardown(void)

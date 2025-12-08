@@ -5,6 +5,7 @@
 
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/error.h"
 #include "../../../src/marks.h"
 #include "../../../src/openai/client.h"
@@ -36,11 +37,21 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_openai_conversation_t *conv = res.ok;
     ck_assert_ptr_nonnull(conv);
 
+    // Create minimal config
+    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = cfg;
+
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
     r->scrollback = scrollback;
     r->conversation = conv;
+    r->shared = shared;
 
     return r;
 }
@@ -249,7 +260,10 @@ START_TEST(test_clear_with_system_message_displays_in_scrollback)
     ck_assert_ptr_nonnull(cfg->openai_system_message);
 
     // Attach config to REPL
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // Add some content to scrollback first
     res_t res = ik_scrollback_append_line(repl->scrollback, "User message", 12);
@@ -293,7 +307,10 @@ START_TEST(test_clear_without_system_message_empty_scrollback)
     cfg->openai_system_message = NULL;
 
     // Attach config to REPL
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // Add some content to scrollback
     res_t res = ik_scrollback_append_line(repl->scrollback, "User message", 12);
@@ -331,7 +348,10 @@ START_TEST(test_clear_with_system_message_append_failure)
     ck_assert_ptr_nonnull(cfg->openai_system_message);
 
     // Attach config to REPL
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // Add some content to scrollback first
     res_t res = ik_scrollback_append_line(repl->scrollback, "Initial content", 15);

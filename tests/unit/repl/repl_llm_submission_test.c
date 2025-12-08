@@ -10,6 +10,7 @@
 #include <talloc.h>
 #include <string.h>
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/render.h"
 #include "../../../src/layer.h"
@@ -102,7 +103,10 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant.");
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // Create conversation
     res = ik_openai_conversation_create(ctx);
@@ -199,7 +203,7 @@ START_TEST(test_submit_message_without_cfg)
     ik_repl_ctx_t *repl = create_test_repl_with_llm(ctx);
 
     // Set cfg to NULL
-    repl->cfg = NULL;
+    repl->shared->cfg = NULL;
 
     // Type a message
     const char *message = "Hello";
@@ -235,8 +239,8 @@ START_TEST(test_submit_message_api_request_failure)
     ik_repl_ctx_t *repl = create_test_repl_with_llm(ctx);
 
     // Set empty API key to trigger failure
-    talloc_free(repl->cfg->openai_api_key);
-    repl->cfg->openai_api_key = talloc_strdup(repl->cfg, "");
+    talloc_free(repl->shared->cfg->openai_api_key);
+    repl->shared->cfg->openai_api_key = talloc_strdup(repl->shared->cfg, "");
 
     // Type a message
     const char *message = "Hello";

@@ -8,6 +8,7 @@
 #include "repl.h"
 #include "repl_actions.h"
 #include "repl_callbacks.h"
+#include "shared.h"
 #include "wrapper.h"
 
 #include <assert.h>
@@ -215,8 +216,8 @@ void handle_request_success(ik_repl_ctx_t *repl)
 
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
 {
-    bool limit_reached = (repl->cfg != NULL && repl->tool_iteration_count >= repl->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
-    res_t result = ik_openai_multi_add_request(repl->multi, repl->cfg, repl->conversation,
+    bool limit_reached = (repl->shared->cfg != NULL && repl->tool_iteration_count >= repl->shared->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
+    res_t result = ik_openai_multi_add_request(repl->multi, repl->shared->cfg, repl->conversation,
                                                ik_repl_streaming_callback, repl,
                                                ik_repl_http_completion_callback, repl,
                                                limit_reached);

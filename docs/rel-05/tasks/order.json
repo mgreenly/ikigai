@@ -1,16 +1,10 @@
 {
   "todo": [
     {
-      "task": "shared-ctx-struct.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
       "task": "shared-ctx-cfg.md",
       "group": "Shared Context DI Refactor",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "high"
     },
     {
       "task": "shared-ctx-term-render.md",
@@ -319,5 +313,12 @@
       "thinking": "none"
     }
   ],
-  "done": []
+  "done": [
+    {
+      "task": "shared-ctx-struct.md",
+      "group": "Shared Context DI Refactor",
+      "model": "sonnet",
+      "thinking": "none"
+    }
+  ]
 }

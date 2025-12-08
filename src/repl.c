@@ -7,6 +7,7 @@
 #include "panic.h"
 #include "render_cursor.h"
 #include "repl_event_handlers.h"
+#include "shared.h"
 #include "signal_handler.h"
 #include "wrapper.h"
 
@@ -240,7 +241,7 @@ bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl)
     }
 
     /* Check if we've reached the tool iteration limit (if config is available) */
-    if (repl->cfg != NULL && repl->tool_iteration_count >= repl->cfg->max_tool_turns) {
+    if (repl->shared->cfg != NULL && repl->tool_iteration_count >= repl->shared->cfg->max_tool_turns) {
         return false;
     }
 

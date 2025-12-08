@@ -5,6 +5,7 @@
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "shared.h"
 #include "wrapper.h"
 
 #include <assert.h>
@@ -161,8 +162,8 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
     ik_scrollback_clear(repl->scrollback);
 
     // Render system message first (if configured)
-    if (repl->cfg != NULL && repl->cfg->openai_system_message != NULL) {
-        result = ik_event_render(repl->scrollback, "system", repl->cfg->openai_system_message, "{}");
+    if (repl->shared->cfg != NULL && repl->shared->cfg->openai_system_message != NULL) {
+        result = ik_event_render(repl->scrollback, "system", repl->shared->cfg->openai_system_message, "{}");
         if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
     }
 

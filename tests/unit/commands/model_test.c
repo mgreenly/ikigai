@@ -5,6 +5,7 @@
 
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/error.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
@@ -39,7 +40,11 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
     r->scrollback = scrollback;
-    r->cfg = cfg;
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    r->shared = shared;
 
     return r;
 }
@@ -61,14 +66,14 @@ static void teardown(void)
 // Test: Switch to valid model
 START_TEST(test_model_switch_gpt4) {
     // Verify initial model
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-5-mini");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-5-mini");
 
     // Execute /model gpt-4
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
     ck_assert(is_ok(&res));
 
     // Verify model changed
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-4");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-4");
 
     // Verify confirmation message in scrollback
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
@@ -85,7 +90,7 @@ START_TEST(test_model_switch_gpt4_turbo)
 {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4-turbo");
     ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-4-turbo");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-4-turbo");
 
     const char *line;
     size_t length;
@@ -101,7 +106,7 @@ START_TEST(test_model_switch_gpt4o)
 {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4o");
     ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-4o");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-4o");
 }
 
 END_TEST
@@ -110,7 +115,7 @@ START_TEST(test_model_switch_gpt35_turbo)
 {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-3.5-turbo");
     ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-3.5-turbo");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-3.5-turbo");
 }
 
 END_TEST
@@ -119,7 +124,7 @@ START_TEST(test_model_switch_o1_mini)
 {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model o1-mini");
     ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->cfg->openai_model, "o1-mini");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "o1-mini");
 }
 
 END_TEST
@@ -139,7 +144,7 @@ START_TEST(test_model_missing_name)
     ck_assert_str_eq(line, "Error: Model name required (usage: /model <name>)");
 
     // Verify model unchanged
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-5-mini");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-5-mini");
 }
 
 END_TEST
@@ -159,7 +164,7 @@ START_TEST(test_model_invalid_name)
     ck_assert_str_eq(line, "Error: Unknown model 'invalid-model-xyz'");
 
     // Verify model unchanged
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-5-mini");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-5-mini");
 }
 
 END_TEST
@@ -169,17 +174,17 @@ START_TEST(test_model_multiple_switches)
     // First switch
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
     ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-4");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-4");
 
     // Second switch
     res = ik_cmd_dispatch(ctx, repl, "/model gpt-3.5-turbo");
     ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-3.5-turbo");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-3.5-turbo");
 
     // Third switch
     res = ik_cmd_dispatch(ctx, repl, "/model o1-mini");
     ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->cfg->openai_model, "o1-mini");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "o1-mini");
 
     // Verify all three messages in scrollback
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 3);
@@ -191,7 +196,7 @@ START_TEST(test_model_with_whitespace)
 {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model   gpt-4");
     ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-4");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-4");
 }
 
 END_TEST
@@ -208,7 +213,7 @@ START_TEST(test_model_all_valid_models)
         char *cmd = talloc_asprintf(ctx, "/model %s", valid_models[i]);
         res_t res = ik_cmd_dispatch(ctx, repl, cmd);
         ck_assert(is_ok(&res));
-        ck_assert_str_eq(repl->cfg->openai_model, valid_models[i]);
+        ck_assert_str_eq(repl->shared->cfg->openai_model, valid_models[i]);
         talloc_free(cmd);
     }
 

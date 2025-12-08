@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../test_utils.h"
 
 // Mock state for controlling posix_open_ failures
@@ -172,7 +173,13 @@ START_TEST(test_repl_init_terminal_open_failure) {
 
     // Attempt to initialize REPL - should fail
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -195,7 +202,13 @@ START_TEST(test_repl_init_render_invalid_dimensions)
 
     // Attempt to initialize REPL - should fail when creating render
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -219,7 +232,13 @@ START_TEST(test_repl_init_signal_handler_failure)
 
     // Attempt to initialize REPL - should fail when setting up signal handler
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -244,7 +263,13 @@ START_TEST(test_repl_init_history_load_failure)
 
     // Initialize REPL - should succeed even with history failure
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify success (graceful degradation)
     ck_assert(is_ok(&res));
@@ -270,7 +295,13 @@ START_TEST(test_repl_init_success_debug_manager)
 
     // Initialize REPL - should succeed
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify success
     ck_assert(is_ok(&res));

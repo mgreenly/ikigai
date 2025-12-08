@@ -19,6 +19,9 @@
 #include <stdatomic.h>
 #include <inttypes.h>
 
+// Forward declarations
+typedef struct ik_shared_ctx ik_shared_ctx_t;
+
 // REPL state machine (Phase 1.6)
 typedef enum {
     IK_REPL_STATE_IDLE,              // Normal input mode
@@ -43,6 +46,7 @@ typedef struct {
 
 // REPL context structure
 typedef struct ik_repl_ctx_t {
+    ik_shared_ctx_t *shared;    // Shared context (DI)
     ik_term_ctx_t *term;        // Terminal context
     ik_render_ctx_t *render;    // Rendering context
     ik_input_buffer_t *input_buffer;  // Input buffer
@@ -74,7 +78,6 @@ typedef struct ik_repl_ctx_t {
     ik_repl_state_t state;            // Current REPL state (IDLE or WAITING_FOR_LLM)
 
     // Configuration and conversation (Phase 1.6)
-    ik_cfg_t *cfg;                                // Configuration (API key, model, etc.)
     ik_openai_conversation_t *conversation;       // Current conversation (session messages)
     char *assistant_response;                     // Accumulated assistant response (during streaming)
     char *streaming_line_buffer;                  // Buffer for incomplete line during streaming
@@ -119,7 +122,7 @@ typedef struct ik_repl_ctx_t {
 } ik_repl_ctx_t;
 
 // Initialize REPL context
-res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out);
+res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_out);
 
 // Cleanup REPL context
 void ik_repl_cleanup(ik_repl_ctx_t *repl);

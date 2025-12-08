@@ -5,6 +5,7 @@
 
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
@@ -103,11 +104,21 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_openai_conversation_t *conv = res.ok;
     ck_assert_ptr_nonnull(conv);
 
+    // Create minimal config
+    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = cfg;
+
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
     r->scrollback = scrollback;
     r->conversation = conv;
+    r->shared = shared;
 
     return r;
 }
@@ -143,7 +154,10 @@ START_TEST(test_clear_db_error_clear_event) {
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // Set up debug pipe to capture error
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -185,7 +199,10 @@ START_TEST(test_clear_db_error_system_message)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant");
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // Set up debug pipe to capture error
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -250,7 +267,10 @@ START_TEST(test_clear_db_error_no_debug_pipe)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // No debug pipe set - db_debug_pipe is NULL
     repl->db_debug_pipe = NULL;
@@ -282,7 +302,10 @@ START_TEST(test_clear_system_db_error_no_debug_pipe)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are helpful");
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // No debug pipe set - db_debug_pipe is NULL
     repl->db_debug_pipe = NULL;
@@ -316,7 +339,10 @@ START_TEST(test_clear_db_error_write_end_null)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // Create debug pipe but with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -351,7 +377,10 @@ START_TEST(test_clear_system_db_error_write_end_null)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are helpful");
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // Create debug pipe but with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);

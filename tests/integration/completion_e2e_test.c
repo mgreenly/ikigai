@@ -14,6 +14,7 @@
 #include <curl/curl.h>
 #include <sys/stat.h>
 #include "../../src/repl.h"
+#include "../../src/shared.h"
 #include "../../src/repl_actions.h"
 #include "../../src/input.h"
 #include "../../src/completion.h"
@@ -123,7 +124,13 @@ START_TEST(test_completion_full_workflow)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     type_str(repl, "/m");

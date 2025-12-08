@@ -9,6 +9,7 @@
 #include "openai/client.h"
 #include "openai/client_multi.h"
 #include "panic.h"
+#include "shared.h"
 #include "signal_handler.h"
 #include "wrapper.h"
 
@@ -31,11 +32,13 @@ static int repl_destructor(ik_repl_ctx_t *repl)
     return 0;
 }
 
-res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
+res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_out)
 {
     assert(parent != NULL);     // LCOV_EXCL_BR_LINE
-    assert(cfg != NULL);        // LCOV_EXCL_BR_LINE
+    assert(shared != NULL);     // LCOV_EXCL_BR_LINE
     assert(repl_out != NULL);   // LCOV_EXCL_BR_LINE
+
+    ik_cfg_t *cfg = shared->cfg;
 
     // Phase 1: All failable operations allocate on parent
     // Initialize terminal (raw mode + alternate screen)
@@ -95,6 +98,7 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
     }
 
     // Wire up successfully initialized components
+    repl->shared = shared;
     repl->term = term;
     repl->render = render;
     repl->db_ctx = db_ctx;
@@ -173,9 +177,6 @@ res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out)
     repl->multi = TRY(ik_openai_multi_create(repl));  // LCOV_EXCL_BR_LINE
     repl->curl_still_running = 0;  // No active transfers initially
     repl->state = IK_REPL_STATE_IDLE;  // Start in IDLE state
-
-    // Store config reference (borrowed from parent)
-    repl->cfg = cfg;
 
     // Initialize conversation for session messages (Phase 1.6)
     repl->conversation = ik_openai_conversation_create(repl).ok;

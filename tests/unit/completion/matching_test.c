@@ -8,6 +8,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/marks.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../test_utils.h"
 
 #include <check.h>
@@ -31,11 +32,16 @@ static void setup(void)
     test_repl->marks = NULL;
     test_repl->mark_count = 0;
 
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    test_repl->shared = shared;
+
     // Initialize config with a default model
-    test_repl->cfg = talloc_zero(test_repl, ik_cfg_t);
-    ck_assert_ptr_nonnull(test_repl->cfg);
-    test_repl->cfg->openai_model = talloc_strdup(test_repl->cfg, "gpt-4o");
-    ck_assert_ptr_nonnull(test_repl->cfg->openai_model);
+    shared->cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(shared->cfg);
+    shared->cfg->openai_model = talloc_strdup(shared->cfg, "gpt-4o");
+    ck_assert_ptr_nonnull(shared->cfg->openai_model);
 }
 
 static void teardown(void)

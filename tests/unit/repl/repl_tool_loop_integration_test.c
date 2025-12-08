@@ -17,6 +17,7 @@
 #include "openai/client_multi.h"
 #include "scrollback.h"
 #include "config.h"
+#include "../../../src/shared.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
@@ -48,7 +49,10 @@ static void setup(void)
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
     cfg->max_tool_turns = 50;  // Default limit for tool loop iterations
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     repl->scrollback = ik_scrollback_create(repl, 80);
     repl->assistant_response = NULL;

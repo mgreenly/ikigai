@@ -5,6 +5,7 @@
 
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/error.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
@@ -38,7 +39,11 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
     r->scrollback = scrollback;
-    r->cfg = cfg;
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    r->shared = shared;
 
     return r;
 }
@@ -60,15 +65,15 @@ static void teardown(void)
 // Test: Set system message
 START_TEST(test_system_set_message) {
     // Verify initial state (no system message)
-    ck_assert_ptr_null(repl->cfg->openai_system_message);
+    ck_assert_ptr_null(repl->shared->cfg->openai_system_message);
 
     // Execute /system with message
     res_t res = ik_cmd_dispatch(ctx, repl, "/system You are a helpful assistant");
     ck_assert(is_ok(&res));
 
     // Verify system message was set
-    ck_assert_ptr_nonnull(repl->cfg->openai_system_message);
-    ck_assert_str_eq(repl->cfg->openai_system_message, "You are a helpful assistant");
+    ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
+    ck_assert_str_eq(repl->shared->cfg->openai_system_message, "You are a helpful assistant");
 
     // Verify confirmation message in scrollback
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
@@ -84,15 +89,15 @@ END_TEST
 START_TEST(test_system_clear_message)
 {
     // Set initial system message
-    repl->cfg->openai_system_message = talloc_strdup(repl->cfg, "Initial message");
-    ck_assert_ptr_nonnull(repl->cfg->openai_system_message);
+    repl->shared->cfg->openai_system_message = talloc_strdup(repl->shared->cfg, "Initial message");
+    ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
 
     // Execute /system without args
     res_t res = ik_cmd_dispatch(ctx, repl, "/system");
     ck_assert(is_ok(&res));
 
     // Verify system message was cleared
-    ck_assert_ptr_null(repl->cfg->openai_system_message);
+    ck_assert_ptr_null(repl->shared->cfg->openai_system_message);
 
     // Verify confirmation message in scrollback
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
@@ -109,16 +114,16 @@ END_TEST
 START_TEST(test_system_replace_message)
 {
     // Set initial system message
-    repl->cfg->openai_system_message = talloc_strdup(repl->cfg, "Old message");
-    ck_assert_ptr_nonnull(repl->cfg->openai_system_message);
+    repl->shared->cfg->openai_system_message = talloc_strdup(repl->shared->cfg, "Old message");
+    ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
 
     // Execute /system with new message
     res_t res = ik_cmd_dispatch(ctx, repl, "/system New message");
     ck_assert(is_ok(&res));
 
     // Verify system message was replaced
-    ck_assert_ptr_nonnull(repl->cfg->openai_system_message);
-    ck_assert_str_eq(repl->cfg->openai_system_message, "New message");
+    ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
+    ck_assert_str_eq(repl->shared->cfg->openai_system_message, "New message");
 
     // Verify confirmation message in scrollback
     const char *line;
@@ -136,8 +141,8 @@ START_TEST(test_system_with_special_chars)
     res_t res = ik_cmd_dispatch(ctx, repl, "/system You are a \"pirate\" assistant!");
     ck_assert(is_ok(&res));
 
-    ck_assert_ptr_nonnull(repl->cfg->openai_system_message);
-    ck_assert_str_eq(repl->cfg->openai_system_message, "You are a \"pirate\" assistant!");
+    ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
+    ck_assert_str_eq(repl->shared->cfg->openai_system_message, "You are a \"pirate\" assistant!");
 }
 
 END_TEST
@@ -149,8 +154,8 @@ START_TEST(test_system_long_message)
     res_t res = ik_cmd_dispatch(ctx, repl, long_msg);
     ck_assert(is_ok(&res));
 
-    ck_assert_ptr_nonnull(repl->cfg->openai_system_message);
-    ck_assert_str_eq(repl->cfg->openai_system_message,
+    ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
+    ck_assert_str_eq(repl->shared->cfg->openai_system_message,
                      "You are a helpful assistant that provides detailed "
                      "explanations and considers multiple perspectives when answering questions");
 }
@@ -162,17 +167,17 @@ START_TEST(test_system_multiple_cycles)
     // Set message
     res_t res = ik_cmd_dispatch(ctx, repl, "/system First");
     ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->cfg->openai_system_message, "First");
+    ck_assert_str_eq(repl->shared->cfg->openai_system_message, "First");
 
     // Clear message
     res = ik_cmd_dispatch(ctx, repl, "/system");
     ck_assert(is_ok(&res));
-    ck_assert_ptr_null(repl->cfg->openai_system_message);
+    ck_assert_ptr_null(repl->shared->cfg->openai_system_message);
 
     // Set again
     res = ik_cmd_dispatch(ctx, repl, "/system Second");
     ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->cfg->openai_system_message, "Second");
+    ck_assert_str_eq(repl->shared->cfg->openai_system_message, "Second");
 
     // Verify scrollback has all 3 messages
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 3);

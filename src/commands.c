@@ -14,6 +14,7 @@
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "shared.h"
 #include "wrapper.h"
 
 #include <assert.h>
@@ -166,12 +167,12 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
 
         // Write system message if configured (matching new session creation pattern)
-        if (repl->cfg->openai_system_message != NULL) {
+        if (repl->shared->cfg->openai_system_message != NULL) {
             res_t system_res = ik_db_message_insert(
                 repl->db_ctx,
                 repl->current_session_id,
                 "system",
-                repl->cfg->openai_system_message,
+                repl->shared->cfg->openai_system_message,
                 "{}"
                 );
             if (is_err(&system_res)) {
@@ -187,11 +188,11 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Add system message to scrollback using event renderer (consistent with replay)
-    if (repl->cfg != NULL && repl->cfg->openai_system_message != NULL) {
+    if (repl->shared->cfg != NULL && repl->shared->cfg->openai_system_message != NULL) {
         res_t render_res = ik_event_render(
             repl->scrollback,
             "system",
-            repl->cfg->openai_system_message,
+            repl->shared->cfg->openai_system_message,
             "{}"
             );
         if (is_err(&render_res)) {
@@ -289,11 +290,11 @@ static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Update config (free old, allocate new)
-    if (repl->cfg->openai_model != NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(repl->cfg->openai_model);
+    if (repl->shared->cfg->openai_model != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(repl->shared->cfg->openai_model);
     }
-    repl->cfg->openai_model = talloc_strdup(repl->cfg, args);
-    if (!repl->cfg->openai_model) {     // LCOV_EXCL_BR_LINE
+    repl->shared->cfg->openai_model = talloc_strdup(repl->shared->cfg, args);
+    if (!repl->shared->cfg->openai_model) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
 
@@ -312,9 +313,9 @@ static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args)
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
 
     // Free old system message
-    if (repl->cfg->openai_system_message != NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(repl->cfg->openai_system_message);
-        repl->cfg->openai_system_message = NULL;
+    if (repl->shared->cfg->openai_system_message != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(repl->shared->cfg->openai_system_message);
+        repl->shared->cfg->openai_system_message = NULL;
     }
 
     char *msg = NULL;
@@ -327,8 +328,8 @@ static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
     } else {
         // Set new system message
-        repl->cfg->openai_system_message = talloc_strdup(repl->cfg, args);
-        if (!repl->cfg->openai_system_message) {     // LCOV_EXCL_BR_LINE
+        repl->shared->cfg->openai_system_message = talloc_strdup(repl->shared->cfg, args);
+        if (!repl->shared->cfg->openai_system_message) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
 

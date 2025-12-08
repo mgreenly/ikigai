@@ -18,6 +18,7 @@
 #include "../../../src/tool.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/wrapper.h"
 #include "../../../src/render.h"
 
@@ -53,6 +54,14 @@ static void setup(void)
     ctx = talloc_new(NULL);
     repl = talloc_zero(ctx, ik_repl_ctx_t);
 
+    /* Create shared context */
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    repl->shared = shared;
+
+    /* Create config */
+    shared->cfg = talloc_zero(ctx, ik_cfg_t);
+    shared->cfg->max_tool_turns = 5;
+
     /* Create minimal terminal context for rendering */
     repl->term = talloc_zero(repl, ik_term_ctx_t);
     repl->term->screen_rows = 24;
@@ -80,10 +89,6 @@ static void setup(void)
     res_t multi_res = ik_openai_multi_create(repl);
     ck_assert(!multi_res.is_err);
     repl->multi = multi_res.ok;
-
-    /* Create config */
-    repl->cfg = talloc_zero(repl, ik_cfg_t);
-    repl->cfg->max_tool_turns = 5;
 
     /* Initialize thread infrastructure */
     pthread_mutex_init_(&repl->tool_thread_mutex, NULL);

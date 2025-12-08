@@ -10,6 +10,7 @@
 #include <curl/curl.h>
 #include <sys/select.h>
 #include "../../src/repl.h"
+#include "../../src/shared.h"
 #include "../test_utils.h"
 
 // Mock terminal file descriptor
@@ -293,7 +294,13 @@ START_TEST(test_repl_init) {
 
     // Initialize REPL
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
 
     // Verify successful initialization
     ck_assert(is_ok(&result));
@@ -346,7 +353,13 @@ START_TEST(test_repl_run)
     ik_repl_ctx_t *repl = NULL;
 
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Set quit flag immediately so ik_repl_run exits without blocking
@@ -370,7 +383,13 @@ START_TEST(test_thread_infrastructure_init)
     ik_repl_ctx_t *repl = NULL;
 
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
@@ -395,7 +414,13 @@ START_TEST(test_mutex_init_failure)
 
     mock_pthread_mutex_init_fail = 1;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
 
     ck_assert(is_err(&result));
     ck_assert_ptr_null(repl);
@@ -413,7 +438,13 @@ START_TEST(test_transition_to_executing_tool)
     ik_repl_ctx_t *repl = NULL;
 
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Transition to WAITING_FOR_LLM first
@@ -441,7 +472,13 @@ START_TEST(test_transition_from_executing_tool)
     ik_repl_ctx_t *repl = NULL;
 
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Set up state: IDLE -> WAITING_FOR_LLM -> EXECUTING_TOOL

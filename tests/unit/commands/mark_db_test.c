@@ -8,6 +8,8 @@
 
 #include "../../../src/commands.h"
 #include "../../../src/commands_mark.h"
+#include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
@@ -97,10 +99,20 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     ck_assert_ptr_nonnull(conv);
 
     // Create REPL context
+    // Create minimal config
+    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = cfg;
+
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
     r->scrollback = scrollback;
     r->conversation = conv;
+    r->shared = shared;
     r->marks = NULL;
     r->mark_count = 0;
     r->db_ctx = NULL;

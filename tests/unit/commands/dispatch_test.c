@@ -9,6 +9,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/openai/client.h"
+#include "../../../src/shared.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
 
@@ -57,7 +58,12 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ck_assert_ptr_nonnull(r);
     r->scrollback = scrollback;
     r->conversation = conv;
-    r->cfg = cfg;
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    r->shared = shared;
+
     r->marks = NULL;
     r->mark_count = 0;
 
@@ -235,7 +241,7 @@ START_TEST(test_dispatch_model_with_arg)
     ck_assert(is_ok(&res));
 
     // Verify model changed
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-4-turbo");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-4-turbo");
 
     // Verify scrollback received confirmation message
     const char *line = NULL;

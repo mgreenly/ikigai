@@ -2,6 +2,7 @@
 #include "error.h"
 #include "panic.h"
 #include "repl.h"
+#include "shared.h"
 #include "logger.h"
 
 #include <limits.h>
@@ -35,8 +36,19 @@ int main(void)
     // Initialize logger with captured working directory
     ik_log_init(cwd);
 
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(root_ctx, cfg, &shared);
+    if (is_err(&result)) {
+        error_fprintf(stderr, result.err);
+        ik_log_shutdown();
+        talloc_free(root_ctx);
+        return EXIT_FAILURE;
+    }
+
+    // Create REPL context with shared context
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(root_ctx, cfg, &repl);
+    result = ik_repl_init(root_ctx, shared, &repl);
     if (is_err(&result)) {
         error_fprintf(stderr, result.err);
         ik_log_shutdown();

@@ -7,6 +7,7 @@
 
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
@@ -132,8 +133,8 @@ START_TEST(test_rewind_persists_correct_target_message_index)
     ck_assert_ptr_nonnull(repl);
 
     // Create config
-    repl->cfg = talloc_zero(repl, ik_cfg_t);
-    ck_assert_ptr_nonnull(repl->cfg);
+    repl->shared->cfg = talloc_zero(repl, ik_cfg_t);
+    ck_assert_ptr_nonnull(repl->shared->cfg);
 
     // Create scrollback
     repl->scrollback = ik_scrollback_create(repl, 80);

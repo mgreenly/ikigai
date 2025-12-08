@@ -8,6 +8,7 @@
 
 #include "repl.h"
 #include "config.h"
+#include "../../../src/shared.h"
 #include "scrollback.h"
 #include "openai/client.h"
 #include <check.h>
@@ -27,7 +28,10 @@ static void setup(void)
 
     /* Create minimal REPL context for testing */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
     repl->scrollback = ik_scrollback_create(repl, 80);
 
     /* Create conversation */

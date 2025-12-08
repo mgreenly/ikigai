@@ -10,6 +10,7 @@
 #include "../../../src/commands.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/debug_pipe.h"
 #include "../../test_utils.h"
 
@@ -28,11 +29,22 @@ static ik_repl_ctx_t *create_test_repl(void *parent)
     ik_debug_pipe_manager_t *debug_mgr = res.ok;
     ck_assert_ptr_nonnull(debug_mgr);
 
+
+    // Create minimal config
+    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = cfg;
+
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
     r->scrollback = scrollback;
     r->debug_mgr = debug_mgr;
+    r->shared = shared;
     r->debug_enabled = false;  // Default: disabled
 
     return r;

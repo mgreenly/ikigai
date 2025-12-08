@@ -11,6 +11,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../test_utils.h"
@@ -152,7 +153,13 @@ START_TEST(test_page_down_scrolling)
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Start scrolled up (viewport_offset = 48, i.e., 2 pages up)
@@ -179,7 +186,13 @@ START_TEST(test_page_down_at_bottom)
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Start at bottom (viewport_offset = 0)
@@ -206,7 +219,13 @@ START_TEST(test_page_down_small_offset)
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Start with small offset (less than screen_rows)
@@ -233,7 +252,13 @@ START_TEST(test_page_up_scrolling)
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Add some lines to scrollback to have content to scroll through
@@ -268,7 +293,13 @@ START_TEST(test_page_up_empty_scrollback)
     // Setup REPL with empty scrollback
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Verify scrollback is empty
@@ -298,7 +329,13 @@ START_TEST(test_page_up_clamping)
     // Setup REPL with scrollback (terminal is 24 rows from ik_repl_init)
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Add enough lines to overflow terminal (30 lines > 24 terminal rows)
@@ -344,7 +381,13 @@ START_TEST(test_submit_line_to_scrollback)
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Add some text to input buffer
@@ -382,7 +425,13 @@ START_TEST(test_submit_line_auto_scroll)
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Scroll up (viewport_offset > 0)
@@ -416,7 +465,13 @@ START_TEST(test_submit_empty_line)
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Verify input buffer is empty

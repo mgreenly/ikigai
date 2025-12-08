@@ -4,6 +4,8 @@
  */
 
 #include "../../../src/commands_mark.h"
+#include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/db/session.h"
 #include "../../../src/marks.h"
@@ -21,6 +23,16 @@ START_TEST(test_rewind_to_same_mark_twice) {
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+
+    // Create minimal config
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // Initialize conversation
     repl->conversation = talloc_zero(repl, ik_openai_conversation_t);
@@ -95,6 +107,16 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+
+    // Create minimal config
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // Initialize conversation
     repl->conversation = talloc_zero(repl, ik_openai_conversation_t);

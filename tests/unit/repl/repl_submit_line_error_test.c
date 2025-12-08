@@ -13,6 +13,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
@@ -139,7 +140,13 @@ START_TEST(test_submit_line_event_render_fails) {
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Add some text to input buffer

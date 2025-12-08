@@ -1,5 +1,6 @@
 #include "../../src/history.h"
 #include "../../src/repl.h"
+#include "../../src/shared.h"
 #include "../test_utils.h"
 
 #include <check.h>
@@ -114,7 +115,13 @@ START_TEST(test_history_loads_on_init)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
@@ -141,7 +148,13 @@ START_TEST(test_history_saves_on_submit)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Submit a command
@@ -221,7 +234,13 @@ START_TEST(test_history_respects_config_capacity)
     cfg->history_size = 3;  // Small capacity for testing
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Verify capacity is set correctly
@@ -245,7 +264,13 @@ START_TEST(test_history_empty_input_not_saved)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Submit empty input
@@ -273,7 +298,13 @@ START_TEST(test_history_multiline_preserved)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Submit multiline command
@@ -316,7 +347,13 @@ START_TEST(test_history_file_corrupt_continues)
 
     // REPL should still initialize successfully
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
 
@@ -342,7 +379,13 @@ START_TEST(test_history_submit_stops_browsing)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Add first command
@@ -382,7 +425,13 @@ START_TEST(test_history_file_write_failure)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Make .ikigai directory read-only to cause write failure

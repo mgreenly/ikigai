@@ -4,6 +4,7 @@
 #include "repl.h"
 #include "repl_callbacks.h"
 #include "panic.h"
+#include "shared.h"
 #include "wrapper.h"
 #include "format.h"
 #include "commands.h"
@@ -84,9 +85,9 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
     if (repl->db_ctx != NULL && repl->current_session_id > 0) {
         char *data_json = talloc_asprintf(repl,
                                           "{\"model\":\"%s\",\"temperature\":%.2f,\"max_completion_tokens\":%d}",
-                                          repl->cfg->openai_model,
-                                          repl->cfg->openai_temperature,
-                                          repl->cfg->openai_max_completion_tokens);
+                                          repl->shared->cfg->openai_model,
+                                          repl->shared->cfg->openai_temperature,
+                                          repl->shared->cfg->openai_max_completion_tokens);
 
         res_t db_res = ik_db_message_insert(repl->db_ctx, repl->current_session_id,
                                             "user", message_text, data_json);
@@ -114,7 +115,7 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
     repl->tool_iteration_count = 0;
     ik_repl_transition_to_waiting_for_llm(repl);
 
-    result = ik_openai_multi_add_request(repl->multi, repl->cfg, repl->conversation,
+    result = ik_openai_multi_add_request(repl->multi, repl->shared->cfg, repl->conversation,
                                          ik_repl_streaming_callback, repl,
                                          ik_repl_http_completion_callback, repl, false);
     if (is_err(&result)) {
@@ -161,7 +162,7 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
     if (is_slash_command) {
         handle_slash_cmd_(repl, command_text);
         talloc_free(command_text);
-    } else if (text_len > 0 && repl->conversation != NULL && repl->cfg != NULL) {
+    } else if (text_len > 0 && repl->conversation != NULL && repl->shared->cfg != NULL) {
         char *message_text = talloc_zero_(repl, text_len + 1);
         if (message_text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         memcpy(message_text, text, text_len);

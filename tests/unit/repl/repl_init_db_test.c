@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/repl/session_restore.h"
 #include "../../test_utils.h"
@@ -154,7 +155,13 @@ START_TEST(test_repl_init_db_init_failure) {
     // Attempt to initialize REPL with database - should fail
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -178,7 +185,13 @@ START_TEST(test_repl_init_session_restore_failure)
     // Attempt to initialize REPL with database - should fail during session restore
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -200,7 +213,13 @@ START_TEST(test_repl_init_db_success)
     // Both db_init and session_restore should succeed (mocks return success by default)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify success
     ck_assert(is_ok(&res));
@@ -225,7 +244,13 @@ START_TEST(test_repl_init_signal_handler_failure_with_db)
     // Attempt to initialize REPL with database - db_init succeeds, signal_handler fails
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify failure
     ck_assert(is_err(&res));

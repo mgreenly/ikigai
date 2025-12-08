@@ -17,6 +17,7 @@
 #include "../../../src/openai/client.h"
 #include "../../../src/openai/client_multi.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../test_utils.h"
 
 // Mock state for ik_db_message_insert
@@ -91,6 +92,18 @@ static void setup(void)
     repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
 
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
+    ck_assert_ptr_nonnull(shared);
+    repl->shared = shared;
+
+    // Create config
+    shared->cfg = talloc_zero_(test_ctx, sizeof(ik_cfg_t));
+    ck_assert_ptr_nonnull(shared->cfg);
+    shared->cfg->openai_model = talloc_strdup_(shared->cfg, "gpt-4");
+    shared->cfg->openai_temperature = 0.7;
+    shared->cfg->openai_max_completion_tokens = 2048;
+
     // Create scrollback
     repl->scrollback = ik_scrollback_create(repl, 80);
     ck_assert_ptr_nonnull(repl->scrollback);
@@ -103,13 +116,6 @@ static void setup(void)
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(is_ok(&conv_res));
     repl->conversation = conv_res.ok;
-
-    // Create config
-    repl->cfg = talloc_zero_(repl, sizeof(ik_cfg_t));
-    ck_assert_ptr_nonnull(repl->cfg);
-    repl->cfg->openai_model = talloc_strdup_(repl->cfg, "gpt-4");
-    repl->cfg->openai_temperature = 0.7;
-    repl->cfg->openai_max_completion_tokens = 2048;
 
     // Create multi client (opaque pointer)
     repl->multi = talloc_zero_(repl, 1);

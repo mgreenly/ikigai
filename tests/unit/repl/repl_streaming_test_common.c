@@ -153,7 +153,10 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant.");
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 
     // Create conversation
     res = ik_openai_conversation_create(ctx);

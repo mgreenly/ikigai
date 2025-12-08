@@ -12,6 +12,7 @@
 #include <talloc.h>
 
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/marks.h"
 #include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
@@ -36,10 +37,20 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
     ik_openai_conversation_t *conv = res.ok;
     ck_assert_ptr_nonnull(conv);
 
+    // Create minimal config (will be replaced by setup)
+    ik_cfg_t *test_cfg = talloc_zero(parent, ik_cfg_t);
+    ck_assert_ptr_nonnull(test_cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = test_cfg;
+
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
     r->scrollback = scrollback;
     r->conversation = conv;
+    r->shared = shared;
     r->marks = NULL;
     r->mark_count = 0;
 
@@ -68,7 +79,10 @@ static void setup(void)
 
     repl = create_test_repl_with_config(ctx);
     ck_assert_ptr_nonnull(repl);
-    repl->cfg = cfg;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
 }
 
 static void teardown(void)
@@ -220,7 +234,7 @@ END_TEST
 START_TEST(test_rewind_with_null_config)
 {
     // Set config to NULL
-    repl->cfg = NULL;
+    repl->shared->cfg = NULL;
 
     // Add a user message
     res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "Test message");

@@ -17,6 +17,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
+#include "../../../src/shared.h"
 #include "../../../src/input.h"
 #include "../../test_utils.h"
 
@@ -80,7 +81,14 @@ ssize_t posix_read_(int fd, void *b, size_t c)
 static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offset)
 {
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, repl_out);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, repl_out);
     ck_assert(is_ok(&res));
     for (int32_t i = 0; i < 50; i++) {
         char buf[32];
