@@ -88,9 +88,6 @@ typedef struct ik_repl_ctx_t {
     ik_mark_t **marks;                            // Array of conversation marks
     size_t mark_count;                            // Number of marks
 
-    // Command history (rel-04)
-    ik_history_t *history;                        // Command history
-
     // Tab completion (rel-04)
     ik_completion_t *completion;                  // Tab completion context (NULL when inactive)
 
@@ -113,6 +110,8 @@ typedef struct ik_repl_ctx_t {
     bool tool_thread_complete;          // Thread finished, result ready
     TALLOC_CTX *tool_thread_ctx;        // Memory context for thread (owned by main)
     char *tool_thread_result;           // Result JSON from tool dispatch
+
+    // Note: history removed - now in shared context (repl->shared->history)
 } ik_repl_ctx_t;
 
 // Initialize REPL context

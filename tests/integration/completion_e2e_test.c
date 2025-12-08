@@ -263,17 +263,17 @@ START_TEST(test_completion_history_no_conflict)
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
-    ik_history_add(repl->history, "prev cmd");
+    ik_history_add(repl->shared->history, "prev cmd");
 
     type_str(repl, "/m");
     press_tab(repl);
     // Tab accepts and dismisses completion
     ck_assert_ptr_null(repl->completion);
-    ck_assert(!ik_history_is_browsing(repl->history));
+    ck_assert(!ik_history_is_browsing(repl->shared->history));
 
     ik_input_buffer_clear(repl->input_buffer);
     press_up(repl);
-    ck_assert(ik_history_is_browsing(repl->history));
+    ck_assert(ik_history_is_browsing(repl->shared->history));
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);

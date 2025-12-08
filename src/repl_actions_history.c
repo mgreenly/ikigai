@@ -1,6 +1,7 @@
 // REPL action processing - history navigation
 #include "repl_actions_internal.h"
 #include "repl.h"
+#include "shared.h"
 #include "panic.h"
 #include "history.h"
 #include "completion.h"
@@ -63,7 +64,7 @@ res_t ik_repl_handle_arrow_up_action(ik_repl_ctx_t *repl)
         return ik_input_buffer_cursor_up(repl->input_buffer);
     }
 
-    if (repl->history == NULL) {  // LCOV_EXCL_BR_LINE
+    if (repl->shared->history == NULL) {  // LCOV_EXCL_BR_LINE
         return OK(NULL);  // LCOV_EXCL_LINE
     }
 
@@ -71,7 +72,7 @@ res_t ik_repl_handle_arrow_up_action(ik_repl_ctx_t *repl)
     const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
 
     const char *entry = NULL;
-    if (!ik_history_is_browsing(repl->history)) {
+    if (!ik_history_is_browsing(repl->shared->history)) {
         char *pending = talloc_zero_size(repl, text_len + 1);
         if (pending == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         if (text_len > 0) {
@@ -79,16 +80,16 @@ res_t ik_repl_handle_arrow_up_action(ik_repl_ctx_t *repl)
         }
         pending[text_len] = '\0';
 
-        res = ik_history_start_browsing(repl->history, pending);
+        res = ik_history_start_browsing(repl->shared->history, pending);
         if (is_err(&res)) {  // LCOV_EXCL_BR_LINE - OOM in history_start_browsing
             talloc_free(pending);  // LCOV_EXCL_LINE
             return res;  // LCOV_EXCL_LINE
         }
         talloc_free(pending);
 
-        entry = ik_history_get_current(repl->history);
+        entry = ik_history_get_current(repl->shared->history);
     } else {
-        entry = ik_history_prev(repl->history);
+        entry = ik_history_prev(repl->shared->history);
     }
 
     if (entry == NULL) {
@@ -133,8 +134,8 @@ res_t ik_repl_handle_arrow_down_action(ik_repl_ctx_t *repl)
         return ik_input_buffer_cursor_down(repl->input_buffer);  // LCOV_EXCL_LINE
     }
 
-    if (repl->history != NULL && ik_history_is_browsing(repl->history)) {
-        const char *entry = ik_history_next(repl->history);
+    if (repl->shared->history != NULL && ik_history_is_browsing(repl->shared->history)) {
+        const char *entry = ik_history_next(repl->shared->history);
         if (entry == NULL) {  // LCOV_EXCL_BR_LINE
             return OK(NULL);  // LCOV_EXCL_LINE
         }

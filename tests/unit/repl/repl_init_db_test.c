@@ -147,25 +147,20 @@ int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *
 /* Test: Database init failure */
 START_TEST(test_repl_init_db_init_failure) {
     void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
 
     // Enable mock failure
     mock_db_init_should_fail = true;
 
-    // Attempt to initialize REPL with database - should fail
+    // Attempt to initialize shared context with database - should fail
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
-    // Create shared context
+    // Create shared context - should fail at db_init
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
-    ck_assert(is_ok(&res));
 
-    // Create REPL context
-    res = ik_repl_init(ctx, shared, &repl);
-
-    // Verify failure
+    // Verify failure at shared_ctx_init level
     ck_assert(is_err(&res));
-    ck_assert_ptr_null(repl);
+    ck_assert_ptr_null(shared);
 
     // Cleanup mock state
     mock_db_init_should_fail = false;

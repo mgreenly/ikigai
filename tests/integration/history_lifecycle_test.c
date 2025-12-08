@@ -90,9 +90,9 @@ START_TEST(test_history_loads_on_init)
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
-    ck_assert_uint_eq(repl->history->count, 2);
-    ck_assert_str_eq(repl->history->entries[0], "test command 1");
-    ck_assert_str_eq(repl->history->entries[1], "test command 2");
+    ck_assert_uint_eq(repl->shared->history->count, 2);
+    ck_assert_str_eq(repl->shared->history->entries[0], "test command 1");
+    ck_assert_str_eq(repl->shared->history->entries[1], "test command 2");
     ik_repl_cleanup(repl);
     talloc_free(ctx);
     cleanup_test_dir();
@@ -117,8 +117,8 @@ START_TEST(test_history_saves_on_submit)
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
-    ck_assert_uint_eq(repl->history->count, 1);
-    ck_assert_str_eq(repl->history->entries[0], "my test command");
+    ck_assert_uint_eq(repl->shared->history->count, 1);
+    ck_assert_str_eq(repl->shared->history->entries[0], "my test command");
     FILE *f = fopen(".ikigai/history", "r");
     ck_assert_ptr_nonnull(f);
     char line[256];
@@ -180,7 +180,7 @@ START_TEST(test_history_respects_config_capacity)
     res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
-    ck_assert_uint_eq(repl->history->capacity, 3);
+    ck_assert_uint_eq(repl->shared->history->capacity, 3);
     ik_repl_cleanup(repl);
     talloc_free(ctx);
     cleanup_test_dir();
@@ -202,7 +202,7 @@ START_TEST(test_history_empty_input_not_saved)
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
-    ck_assert_uint_eq(repl->history->count, 0);
+    ck_assert_uint_eq(repl->shared->history->count, 0);
     ik_repl_cleanup(repl);
     talloc_free(ctx);
     cleanup_test_dir();
@@ -238,8 +238,8 @@ START_TEST(test_history_multiline_preserved)
     ck_assert(is_ok(&result));
 
     // Verify multiline was preserved
-    ck_assert_uint_eq(repl->history->count, 1);
-    ck_assert_str_eq(repl->history->entries[0], "line 1\nline 2\nline 3");
+    ck_assert_uint_eq(repl->shared->history->count, 1);
+    ck_assert_str_eq(repl->shared->history->entries[0], "line 1\nline 2\nline 3");
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -281,8 +281,8 @@ START_TEST(test_history_file_corrupt_continues)
     ck_assert_ptr_nonnull(repl);
 
     // Should have loaded the valid line
-    ck_assert_uint_eq(repl->history->count, 1);
-    ck_assert_str_eq(repl->history->entries[0], "valid command");
+    ck_assert_uint_eq(repl->shared->history->count, 1);
+    ck_assert_str_eq(repl->shared->history->entries[0], "valid command");
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -318,8 +318,8 @@ START_TEST(test_history_submit_stops_browsing)
     ck_assert(is_ok(&result));
 
     // Start browsing
-    ik_history_start_browsing(repl->history, "");
-    ck_assert(ik_history_is_browsing(repl->history));
+    ik_history_start_browsing(repl->shared->history, "");
+    ck_assert(ik_history_is_browsing(repl->shared->history));
 
     // Submit new command
     result = ik_input_buffer_set_text(repl->input_buffer, "command 2", 9);
@@ -328,7 +328,7 @@ START_TEST(test_history_submit_stops_browsing)
     ck_assert(is_ok(&result));
 
     // Should no longer be browsing
-    ck_assert(!ik_history_is_browsing(repl->history));
+    ck_assert(!ik_history_is_browsing(repl->shared->history));
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -369,8 +369,8 @@ START_TEST(test_history_file_write_failure)
     ck_assert(is_ok(&result));
 
     // History should still be updated in memory
-    ck_assert_uint_eq(repl->history->count, 1);
-    ck_assert_str_eq(repl->history->entries[0], "test command");
+    ck_assert_uint_eq(repl->shared->history->count, 1);
+    ck_assert_str_eq(repl->shared->history->entries[0], "test command");
 
     // Restore permissions
     chmod(".ikigai", 0755);

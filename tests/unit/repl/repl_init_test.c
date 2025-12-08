@@ -264,8 +264,8 @@ START_TEST(test_repl_init_history_load_failure)
     ck_assert_ptr_nonnull(repl);
 
     // History should be created but empty
-    ck_assert_ptr_nonnull(repl->history);
-    ck_assert_uint_eq(repl->history->count, 0);
+    ck_assert_ptr_nonnull(repl->shared->history);
+    ck_assert_uint_eq(repl->shared->history->count, 0);
 
     // Cleanup mock state
     mock_stat_should_fail = false;

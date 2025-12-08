@@ -6,6 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
+#include "../../../src/shared.h"
 #include "../../../src/history.h"
 #include "../../../src/input.h"
 #include "../../../src/input_buffer/core.h"
@@ -34,7 +35,9 @@ START_TEST(test_history_up_from_empty_input)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->history = history;
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = history;
     repl->quit = false;
 
     // Press Up arrow (cursor is at position 0 in empty buffer)
@@ -84,7 +87,9 @@ START_TEST(test_history_up_multiple_times)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->history = history;
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = history;
     repl->quit = false;
 
     // Press Up arrow first time
@@ -148,7 +153,9 @@ START_TEST(test_history_down_restores_pending)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->history = history;
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = history;
     repl->quit = false;
 
     // Type some text (pending input)
@@ -215,7 +222,9 @@ START_TEST(test_history_up_with_cursor_not_at_zero)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->history = history;
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = history;
     repl->quit = false;
 
     // Type multi-line text: "line1\nline2"
@@ -290,7 +299,9 @@ START_TEST(test_history_navigation_with_multiline)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->history = history;
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = history;
     repl->quit = false;
 
     // Type multi-line text: "line1\nline2"
@@ -342,7 +353,9 @@ START_TEST(test_history_empty)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
-    repl->history = history;
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = history;
     repl->quit = false;
 
     // Press Up arrow in empty history

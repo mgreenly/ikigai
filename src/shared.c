@@ -1,6 +1,8 @@
 #include "shared.h"
 
 #include "db/connection.h"
+#include "history.h"
+#include "logger.h"
 #include "panic.h"
 #include "render.h"
 #include "terminal.h"
@@ -65,6 +67,15 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, ik_shared_ctx_t **out)
 
     // Initialize session_id to 0 (session creation stays in repl_init for now)
     shared->session_id = 0;
+
+    // Initialize command history
+    shared->history = ik_history_create(shared, (size_t)cfg->history_size);
+    result = ik_history_load(shared, shared->history);
+    if (is_err(&result)) {
+        // Log warning but continue with empty history (graceful degradation)
+        ik_log_warn("Failed to load history: %s", result.err->msg);
+        talloc_free(result.err);
+    }
 
     // Set destructor for cleanup
     talloc_set_destructor(shared, shared_destructor);

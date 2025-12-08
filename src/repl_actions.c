@@ -2,6 +2,7 @@
 #include "repl_actions.h"
 #include "repl_actions_internal.h"
 #include "repl.h"
+#include "shared.h"
 #include "history.h"
 #include "scrollback.h"
 #include "input_buffer/core.h"
@@ -51,8 +52,8 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
                 return ik_repl_handle_completion_space_commit(repl);
             }
 
-            if (repl->history != NULL && ik_history_is_browsing(repl->history)) {  // LCOV_EXCL_BR_LINE
-                ik_history_stop_browsing(repl->history);  // LCOV_EXCL_LINE
+            if (repl->shared->history != NULL && ik_history_is_browsing(repl->shared->history)) {  // LCOV_EXCL_BR_LINE
+                ik_history_stop_browsing(repl->shared->history);  // LCOV_EXCL_LINE
             }
             repl->viewport_offset = 0;
 

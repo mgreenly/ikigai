@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/select.h>
 #include "repl.h"
+#include "shared.h"
 #include "openai/client.h"
 #include "tool.h"
 #include "scrollback.h"
@@ -75,6 +76,12 @@ static void setup(void)
 
     /* Create minimal repl context for testing */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+
+    /* Create minimal shared context for test */
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->db_ctx = NULL;  /* No database by default - tests can override */
+    repl->shared->session_id = 0;
 
     /* Create conversation */
     res_t conv_res = ik_openai_conversation_create(repl);

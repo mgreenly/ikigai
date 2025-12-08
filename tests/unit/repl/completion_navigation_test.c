@@ -5,7 +5,9 @@
 
 #include <check.h>
 #include <talloc.h>
+#include "../../../src/shared.h"
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
 #include "../../../src/completion.h"
@@ -26,6 +28,16 @@ START_TEST(test_tab_triggers_completion)
     repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/" (should trigger completion automatically)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -65,6 +77,16 @@ START_TEST(test_tab_accepts_selection)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" - completion is created automatically
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -106,6 +128,16 @@ START_TEST(test_arrow_up_changes_selection)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" - completion is created automatically
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -152,6 +184,16 @@ START_TEST(test_arrow_down_changes_selection)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" - completion is created automatically
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -198,6 +240,16 @@ START_TEST(test_escape_dismisses_completion)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" - completion is created automatically
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -243,6 +295,16 @@ START_TEST(test_typing_updates_completion)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" - completion is created automatically
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -284,6 +346,16 @@ START_TEST(test_typing_dismisses_on_no_match)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" - completion is created automatically
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -319,6 +391,16 @@ START_TEST(test_left_right_arrow_dismisses)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" - completion is created automatically
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -370,6 +452,16 @@ START_TEST(test_tab_on_empty_input_no_op)
     repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Press TAB on empty input
     ik_input_action_t action = {.type = IK_INPUT_TAB};
@@ -397,6 +489,16 @@ START_TEST(test_tab_on_non_slash_no_op)
     repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "hello" (no leading slash)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'h'};
@@ -429,6 +531,16 @@ START_TEST(test_cursor_at_end_after_tab_completion)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" - completion is created automatically
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};

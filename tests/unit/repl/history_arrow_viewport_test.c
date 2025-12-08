@@ -12,6 +12,7 @@
 #include <string.h>
 #include <talloc.h>
 #include "../../../src/shared.h"
+#include "../../../src/shared.h"
 #include "../../../src/history.h"
 #include "../../../src/input.h"
 #include "../../../src/input_buffer/core.h"
@@ -53,7 +54,7 @@ START_TEST(test_arrow_up_with_viewport_offset_scrolls)
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->history = history;
+    repl->shared->history = history;
     repl->viewport_offset = 5;  // Already scrolled up
 
     // Press Arrow Up - should scroll viewport, not navigate history
@@ -110,7 +111,7 @@ START_TEST(test_arrow_down_with_viewport_offset_scrolls)
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->history = history;
+    repl->shared->history = history;
     repl->viewport_offset = 5;  // Already scrolled up
 
     // Press Arrow Down - should scroll viewport, not navigate history
@@ -159,7 +160,7 @@ START_TEST(test_arrow_up_with_zero_offset_navigates_history)
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->history = history;
+    repl->shared->history = history;
     repl->viewport_offset = 0;  // At bottom
 
     // Press Arrow Up - should navigate history
@@ -219,7 +220,7 @@ START_TEST(test_arrow_down_to_bottom_then_history)
     shared->term = term;
     repl->input_buffer = input_buf;
     repl->scrollback = scrollback;
-    repl->history = history;
+    repl->shared->history = history;
     repl->viewport_offset = 1;  // Scrolled up by 1
 
     // Press Arrow Down - should scroll viewport down to 0

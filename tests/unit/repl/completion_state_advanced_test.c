@@ -7,6 +7,8 @@
 
 #include <check.h>
 #include <talloc.h>
+#include "../../../src/shared.h"
+#include "../../../src/shared.h"
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
@@ -25,6 +27,16 @@ START_TEST(test_tab_wraps_around)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/mar" to get completion with just ["mark"]
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -73,6 +85,16 @@ START_TEST(test_original_input_stored)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/mod" to get single completion (model)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -121,6 +143,16 @@ START_TEST(test_multiple_tab_presses)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" to get multiple commands
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -167,6 +199,16 @@ START_TEST(test_update_completion_preserves_original_input)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" to trigger initial completion
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -206,6 +248,16 @@ START_TEST(test_space_commit_no_completion)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
     repl->completion = NULL;  // No active completion
 
     // Type some normal text (not a command)

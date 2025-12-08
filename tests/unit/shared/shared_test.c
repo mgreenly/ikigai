@@ -4,6 +4,7 @@
 #include "../../../src/config.h"
 #include "../../../src/terminal.h"
 #include "../../../src/render.h"
+#include "../../../src/history.h"
 #include "../../test_utils.h"
 
 #include <check.h>
@@ -343,6 +344,53 @@ START_TEST(test_shared_ctx_session_id_zero_when_not_configured)
 }
 END_TEST
 
+// Test that shared_ctx->history is initialized
+START_TEST(test_shared_ctx_history_initialized)
+{
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create minimal cfg for test
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;  // Set history size
+
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    ck_assert_ptr_nonnull(shared->history);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test that history capacity matches config
+START_TEST(test_shared_ctx_history_capacity_matches_config)
+{
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create minimal cfg for test
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 250;  // Set custom history size
+
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    ck_assert_ptr_nonnull(shared->history);
+    ck_assert_uint_eq(shared->history->capacity, 250);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *shared_suite(void)
 {
     Suite *s = suite_create("Shared Context");
@@ -358,6 +406,8 @@ static Suite *shared_suite(void)
     tcase_add_test(tc_core, test_shared_ctx_render_matches_term_dimensions);
     tcase_add_test(tc_core, test_shared_ctx_db_ctx_null_when_not_configured);
     tcase_add_test(tc_core, test_shared_ctx_session_id_zero_when_not_configured);
+    tcase_add_test(tc_core, test_shared_ctx_history_initialized);
+    tcase_add_test(tc_core, test_shared_ctx_history_capacity_matches_config);
     suite_add_tcase(s, tc_core);
 
     return s;

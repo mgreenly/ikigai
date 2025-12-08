@@ -5,6 +5,7 @@
 
 #include <check.h>
 #include <talloc.h>
+#include "../../../src/shared.h"
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
@@ -26,6 +27,11 @@ START_TEST(test_typing_slash_triggers_completion)
     repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/" - completion should activate with all commands
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -55,6 +61,11 @@ START_TEST(test_typing_m_after_slash_filters)
     repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/" to trigger completion
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -92,6 +103,11 @@ START_TEST(test_typing_regular_text_no_completion)
     repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "hello" without slash - no completion
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'h'};
@@ -122,6 +138,11 @@ START_TEST(test_backspace_refilters)
     repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/" to trigger completion
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -170,6 +191,11 @@ START_TEST(test_tab_cycles_without_triggering)
     repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/" to trigger completion
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -212,6 +238,11 @@ START_TEST(test_empty_slash_then_typing)
     repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/" alone
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};

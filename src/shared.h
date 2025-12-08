@@ -3,6 +3,7 @@
 #include "config.h"
 #include "db/connection.h"
 #include "error.h"
+#include "history.h"
 #include "render.h"
 #include "terminal.h"
 
@@ -17,6 +18,7 @@ typedef struct ik_shared_ctx {
     ik_render_ctx_t *render; // Render context
     ik_db_ctx_t *db_ctx;     // Database connection (NULL if not configured)
     int64_t session_id;       // Current session ID (0 if no database)
+    ik_history_t *history;   // Command history (shared across all agents)
 } ik_shared_ctx_t;
 
 // Create shared context (facade that will create infrastructure)

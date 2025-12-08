@@ -111,14 +111,14 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
     size_t text_len = ik_byte_array_size(repl->input_buffer->text);
 
     // Add to history (skip empty input)
-    if (text_len > 0 && repl->history != NULL) {  // LCOV_EXCL_BR_LINE
+    if (text_len > 0 && repl->shared->history != NULL) {  // LCOV_EXCL_BR_LINE
         char *text = talloc_size(NULL, text_len + 1);
         if (text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         memcpy(text, text_data, text_len);
         text[text_len] = '\0';
 
         // Add to history structure (with deduplication)
-        res_t result = ik_history_add(repl->history, text);
+        res_t result = ik_history_add(repl->shared->history, text);
         if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
             talloc_free(text);  // LCOV_EXCL_LINE
             return result;  // LCOV_EXCL_LINE
@@ -135,8 +135,8 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
         talloc_free(text);
 
         // Exit browsing mode if active
-        if (ik_history_is_browsing(repl->history)) {  // LCOV_EXCL_BR_LINE
-            ik_history_stop_browsing(repl->history);  // LCOV_EXCL_LINE
+        if (ik_history_is_browsing(repl->shared->history)) {  // LCOV_EXCL_BR_LINE
+            ik_history_stop_browsing(repl->shared->history);  // LCOV_EXCL_LINE
         }
     }
 

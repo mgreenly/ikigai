@@ -7,6 +7,7 @@
 
 #include <check.h>
 #include <talloc.h>
+#include "../../../src/shared.h"
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
@@ -25,6 +26,11 @@ START_TEST(test_tab_cycles_to_next)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" to get completion with ["mark", "model"]
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -71,6 +77,11 @@ START_TEST(test_tab_updates_input_buffer)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" to get completion
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -120,6 +131,11 @@ START_TEST(test_esc_reverts_to_original)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" - get multiple completions
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -175,6 +191,11 @@ START_TEST(test_space_commits_selection)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/cl" to get completion (unique match: /clear)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -227,6 +248,11 @@ START_TEST(test_enter_commits_and_submits)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/c" (unique prefix for "/clear")
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};

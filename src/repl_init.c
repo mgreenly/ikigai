@@ -143,15 +143,6 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     repl->marks = NULL;
     repl->mark_count = 0;
 
-    // Initialize history (rel-04)
-    repl->history = ik_history_create(repl, (size_t)cfg->history_size);
-    result = ik_history_load(repl, repl->history);
-    if (is_err(&result)) {
-        // Log warning but continue with empty history (graceful degradation)
-        ik_log_warn("Failed to load history: %s", result.err->msg);
-        talloc_free(result.err);
-    }
-
     // Debug pipe manager
     repl->debug_mgr = TRY(ik_debug_mgr_create(repl));  // LCOV_EXCL_BR_LINE
     repl->openai_debug_pipe = TRY(ik_debug_mgr_add_pipe(repl->debug_mgr, "[openai]"));  // LCOV_EXCL_BR_LINE
