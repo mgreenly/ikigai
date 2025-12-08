@@ -11,10 +11,7 @@ Supports User Stories:
 - 33 (send to nonexistent agent) - "Error: Agent 99/ not found"
 - 34 (send empty body rejected) - "Error: Message body cannot be empty"
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -23,7 +20,7 @@ model: sonnet
 - .agents/skills/testability.md
 - .agents/skills/patterns/command-handler.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (User Interface section, /mail command syntax)
 - docs/memory.md (talloc ownership patterns)
 - docs/error_handling.md (res_t patterns)
@@ -35,7 +32,7 @@ model: sonnet
 - docs/rel-05/user-stories/33-send-to-nonexistent-agent.md
 - docs/rel-05/user-stories/34-send-empty-body-rejected.md
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/commands.h (ik_cmd_handler_t signature, ik_command_t structure)
 - src/commands.c (command registry, dispatch pattern, existing handlers)
 - src/commands_mark.h (external command handler pattern)
@@ -46,7 +43,7 @@ model: sonnet
 - src/agent.h (ik_agent_ctx_t - current_agent access)
 - src/repl.h (ik_repl_ctx_t structure - agents[], current_agent)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/commands/mark_test.c (command handler test patterns)
 - tests/unit/mail/send_test.c (mail operation mocking patterns)
 - tests/unit/mail/list_test.c (mail operation mocking patterns)

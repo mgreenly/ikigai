@@ -3,21 +3,18 @@
 ## Target
 Phase 1: Agent Context Extraction - Step 2 (display fields migration)
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/shared-context-di.md (design document)
 - docs/rel-05/scratch.md (ik_agent_ctx_t display fields)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/agent.h (current agent context with identity)
 - src/agent.c (current agent create)
 - src/repl.h (display fields to migrate)
@@ -26,7 +23,7 @@ model: sonnet
 - src/layer.h (ik_layer_t)
 - src/layer_cake.h (ik_layer_cake_t)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/agent/agent_test.c
 
 ## Pre-conditions

@@ -6,10 +6,7 @@ Phase 3: Inter-Agent Mailboxes - Step 14 (Notification visual styling)
 Supports User Stories:
 - 39 (notification visible in scrollback) - Notifications styled with ANSI dim to de-emphasize visually
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -17,13 +14,13 @@ model: sonnet
 - .agents/skills/coverage.md
 - .agents/skills/mocking.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (Notification System section - visual styling)
 - docs/rel-05/user-stories/39-notification-visible-in-scrollback.md (complete walkthrough)
 - docs/memory.md (talloc ownership patterns)
 - docs/return_values.md (res_t patterns)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/event_render.h (ik_event_render, ik_event_renders_visible)
 - src/event_render.c (render_content_event, apply_style patterns)
 - src/scrollback.h (ik_scrollback_append_line)
@@ -31,7 +28,7 @@ model: sonnet
 - src/ansi.h (IK_ANSI_RESET, color constants, ik_ansi_colors_enabled)
 - src/ansi.c (ANSI sequence building patterns)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/event_render/styling_test.c (color styling test patterns)
 - tests/unit/event_render/basic_test.c (event rendering test patterns)
 - tests/unit/scrollback/scrollback_test.c (scrollback append patterns)

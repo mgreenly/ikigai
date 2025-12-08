@@ -3,26 +3,23 @@
 ## Target
 Phase 1: Agent Context Extraction - Step 8 (completion field migration)
 
-## Agent
-model: haiku
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/shared-context-di.md (design document)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/agent.h (current agent context)
 - src/agent.c (current agent create)
 - src/repl.h (completion field)
 - src/completion.h (ik_completion_t)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/agent/agent_test.c
 
 ## Pre-conditions

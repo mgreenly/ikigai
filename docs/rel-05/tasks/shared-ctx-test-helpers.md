@@ -3,25 +3,22 @@
 ## Target
 Phase 0: Shared Context DI - Test Infrastructure
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/tdd.md
 - .agents/skills/style.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/shared-context-di.md (test fixture strategy section)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/shared.h (shared context structure)
 - src/shared.c (shared context init)
 - src/repl.h (repl context structure)
 - tests/helpers/*.h (existing test helpers if any)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/shared/shared_test.c
 - tests/unit/repl/*.c (tests that need shared context)
 

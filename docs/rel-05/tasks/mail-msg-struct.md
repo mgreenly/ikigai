@@ -9,27 +9,24 @@ Supports User Stories:
 - 31 (read mail) - fields for full display (body, timestamp, from)
 - 45 (mail persisted to DB) - fields map to database columns
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
 - .agents/skills/patterns/context-struct.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (design document, especially Data Model section)
 - docs/memory.md (talloc ownership patterns)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/msg.h (ik_msg_t structure - simple struct with string fields)
 - src/db/message.h (ik_msg_create_tool_result - factory function pattern)
 - src/db/message.c (talloc string allocation, PANIC on OOM)
 - src/repl.h (ik_mark_t structure - simple value object pattern)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/db/message_test.c (database message tests, fixture patterns)
 - tests/unit/msg/msg_test.c (simple struct creation tests if exists)
 

@@ -24,8 +24,8 @@ Located in `tasks/order.json` (and `fixes/order.json`):
 ```json
 {
   "todo": [
-    {"task": "shared-ctx-struct.md", "group": "Shared Context DI", "model": "sonnet", "thinking": "none"},
-    {"task": "shared-ctx-cfg.md", "group": "Shared Context DI", "model": "sonnet", "thinking": "none"}
+    {"task": "shared-ctx-struct.md", "group": "Shared Context DI", "model": "sonnet", "thinking": "thinking"},
+    {"task": "shared-ctx-cfg.md", "group": "Shared Context DI", "model": "sonnet", "thinking": "thinking"}
   ],
   "done": []
 }
@@ -37,7 +37,23 @@ Located in `tasks/order.json` (and `fixes/order.json`):
 - `model` - Agent model: haiku, sonnet, opus
 - `thinking` - Thinking level: none, thinking, extended, ultrathink
 
-Execute strictly in order. Scripts manage todo→done movement.
+Execute strictly in order. Scripts manage todo→done movement. On failure with progress, `escalate.ts` updates model/thinking in place.
+
+## Escalation Ladder
+
+When a sub-agent fails but makes progress, the orchestrator escalates to higher capability:
+
+| Level | Model | Thinking |
+|-------|-------|----------|
+| 1 | sonnet | thinking |
+| 2 | sonnet | extended |
+| 3 | opus | extended |
+| 4 | opus | ultrathink |
+
+**Escalation rules:**
+- Failure + progress_made → escalate and retry
+- Failure + no progress → abort
+- Max level + failure → abort (human review needed)
 
 ## Task/Fix File Format
 
@@ -52,15 +68,16 @@ Each file specifies:
 
 ## Scripts
 
-Located in `scripts/tasks/`:
+Located in `.ikigai/scripts/tasks/`:
 
 | Script | Purpose |
 |--------|---------|
 | `next.ts` | Get next task from order.json |
 | `done.ts` | Mark task done in order.json |
-| `session.ts` | Log timing events, return elapsed time |
+| `escalate.ts` | Bump model/thinking to next escalation level |
+| `session.ts` | Log timing events (start/done/retry), return elapsed time |
 
-See `scripts/tasks/README.md` for full API documentation.
+See `.ikigai/scripts/tasks/README.md` for full API documentation.
 
 ## Workflow
 
@@ -78,11 +95,12 @@ The orchestrator:
 - Calls `next.ts` to get next task (with model/thinking)
 - Calls `session.ts start` to log timing
 - Spawns sub-agent with specified model/thinking
-- Parses sub-agent JSON response (`{"ok": true}` or `{"ok": false, "reason": "..."}`)
-- Calls `session.ts done` to complete timing
-- Calls `done.ts` to move task to done array
-- Reports progress: `task.md [12m 15s] | Total: 25m 8s | Remaining: 52`
-- Loops until todo is empty or failure occurs
+- Parses sub-agent JSON response
+- On success: `session.ts done`, `done.ts`, report progress, loop
+- On failure with progress: `escalate.ts`, `session.ts retry`, loop with higher capability
+- On failure without progress: `session.ts done`, report failure, stop
+- On max level failure: `session.ts done`, report max-level failure, stop
+- Reports progress: `✓ task.md [12m 15s] | Total: 25m 8s | Remaining: 52`
 
 **Critical:** Orchestrator never reads task files or runs make. Sub-agents do all work.
 
@@ -93,7 +111,23 @@ The orchestrator:
 3. Execute TDD cycle
 4. Verify post-conditions
 5. Commit their own changes
-6. Return JSON response: `{"ok": true}` or `{"ok": false, "reason": "..."}`
+6. Return JSON response
+
+**Response format:**
+```json
+{"ok": true}
+{"ok": false, "reason": "...", "progress_made": true|false}
+```
+
+**progress_made = true** if:
+- Wrote test or implementation code
+- Made any commits
+- Fixed errors (even if new ones emerged)
+
+**progress_made = false** if:
+- Pre-conditions not met
+- Blocked on external issue
+- Same error with no change possible
 
 ## Rules
 

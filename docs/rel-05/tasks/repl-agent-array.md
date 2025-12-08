@@ -3,10 +3,7 @@
 ## Target
 User Stories: All (foundational infrastructure for multi-agent)
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/ddd.md
@@ -18,14 +15,14 @@ model: sonnet
 - .agents/skills/patterns/factory.md
 - .agents/skills/patterns/arena-allocator.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/manual-top-level-agents.md (full design spec)
 - docs/backlog/shared-context-di.md (prerequisite design)
 - docs/memory.md (talloc ownership)
 - docs/rel-05/user-stories/01-spawn-agent.md
 - docs/rel-05/user-stories/13-max-agents-limit.md
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/repl.h (current ik_repl_ctx_t structure)
 - src/repl_init.c (current initialization flow)
 - src/agent.h (ik_agent_ctx_t from DI-1)
@@ -33,7 +30,7 @@ model: sonnet
 - src/shared.h (ik_shared_ctx_t from DI-0)
 - src/array.h (dynamic array pattern)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/repl/repl_test.c (existing repl tests)
 - tests/unit/agent/agent_test.c (agent tests from DI-1)
 

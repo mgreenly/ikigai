@@ -8,10 +8,7 @@ Supports User Stories:
 - 38 (notification not repeated) - `mail_notification_pending` flag prevents duplicate notifications
 - 39 (notification visible in scrollback) - Notification appears in scrollback with dim styling
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -20,7 +17,7 @@ model: sonnet
 - .agents/skills/mocking.md
 - .agents/skills/testability.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (Notification System section - trigger, format, debounce)
 - docs/rel-05/user-stories/37-notification-on-idle-with-unread.md (complete walkthrough)
 - docs/rel-05/user-stories/38-notification-not-repeated.md (debounce behavior)
@@ -28,7 +25,7 @@ model: sonnet
 - docs/memory.md (talloc ownership patterns)
 - docs/return_values.md (res_t patterns)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/repl.h (ik_repl_ctx_t, ik_repl_state_t, state transitions)
 - src/repl.c (ik_repl_transition_to_idle() - hook point for notification)
 - src/agent.h (ik_agent_ctx_t - inbox field, mail_notification_pending flag)
@@ -38,7 +35,7 @@ model: sonnet
 - src/scrollback.h (ik_scrollback_append_line)
 - src/msg.h (ik_msg_t - message structure)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/repl/repl_scroll_test.c (repl context test patterns)
 - tests/unit/mail/inbox_test.c (inbox fixture patterns)
 - tests/unit/layer/separator_mail_test.c (mail notification test patterns)

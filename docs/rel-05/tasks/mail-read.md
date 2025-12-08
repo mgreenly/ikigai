@@ -7,10 +7,7 @@ Supports User Stories:
 - 31 (read mail) - display full message, mark as read, clear notification_pending
 - 38 (notification not repeated) - clears mail_notification_pending flag after reading
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -18,7 +15,7 @@ model: sonnet
 - .agents/skills/errors.md
 - .agents/skills/testability.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (User Interface section, /mail read example, Notification Timing section)
 - docs/memory.md (talloc ownership patterns)
 - docs/error_handling.md (res_t patterns)
@@ -26,7 +23,7 @@ model: sonnet
 - docs/rel-05/user-stories/31-read-mail.md (exact output format, walkthrough steps)
 - docs/rel-05/user-stories/38-notification-not-repeated.md (notification_pending flag behavior)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/mail/msg.h (ik_mail_msg_t structure - timestamp field)
 - src/mail/inbox.h (ik_inbox_t structure, ik_inbox_get_by_id(), ik_inbox_mark_read())
 - src/mail/list.h (ik_mail_list() - sibling high-level operation pattern)
@@ -36,7 +33,7 @@ model: sonnet
 - src/agent.h (ik_agent_ctx_t structure - inbox field, mail_notification_pending flag)
 - src/wrapper.h (time_ wrapper for testable timestamps)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/mail/list_test.c (mail operation tests, mock patterns, fixture setup)
 - tests/unit/mail/send_test.c (mail operation tests, agent mock patterns)
 - tests/unit/mail/inbox_test.c (inbox tests, message creation helpers)

@@ -3,20 +3,17 @@
 ## Target
 Phase 0: Shared Context DI - Step 3 (term + render field migration)
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/shared-context-di.md (design document)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/shared.h (current shared context with cfg)
 - src/shared.c (current shared init)
 - src/repl.h (term and render fields)
@@ -24,7 +21,7 @@ model: sonnet
 - src/terminal.h (ik_term_ctx_t)
 - src/render.h (ik_render_ctx_t)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/shared/shared_test.c
 
 ## Pre-conditions

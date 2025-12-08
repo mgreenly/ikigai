@@ -3,28 +3,24 @@
 ## Target
 Phase 0: Shared Context DI - Step 2 (cfg field migration)
 
-## Agent
-model: opus
-thinking: high
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/shared-context-di.md (design document)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/shared.h (current shared context)
 - src/shared.c (current shared init)
 - src/repl.h (ik_repl_ctx_t with cfg field)
 - src/repl_init.c (cfg usage in init)
 - src/config.h (ik_cfg_t definition)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/shared/shared_test.c (existing shared tests)
 
 ## Pre-conditions

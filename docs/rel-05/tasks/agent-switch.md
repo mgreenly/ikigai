@@ -3,10 +3,7 @@
 ## Target
 User Stories: 02-switch-next-agent.md, 03-switch-prev-agent.md, 04-switch-wrap-forward.md, 05-switch-wrap-backward.md, 11-preserved-input-on-switch.md
 
-## Agent
-model: opus
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/ddd.md
@@ -18,7 +15,7 @@ model: opus
 - .agents/skills/patterns/facade.md
 - .agents/skills/patterns/composite.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/manual-top-level-agents.md (Switching Agents section, Lazy SIGWINCH)
 - docs/rel-05/user-stories/02-switch-next-agent.md
 - docs/rel-05/user-stories/03-switch-prev-agent.md
@@ -26,7 +23,7 @@ model: opus
 - docs/rel-05/user-stories/05-switch-wrap-backward.md
 - docs/rel-05/user-stories/11-preserved-input-on-switch.md
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/repl.h (ik_repl_ctx_t with agents array)
 - src/repl.c (main loop, current agent access)
 - src/repl_actions.c (action dispatch)
@@ -38,7 +35,7 @@ model: opus
 - src/scrollback.h (scrollback reflow)
 - src/input.h (IK_INPUT_AGENT_PREV/NEXT)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/repl/repl_test.c (repl tests)
 - tests/unit/scrollback/scrollback_test.c (reflow tests)
 

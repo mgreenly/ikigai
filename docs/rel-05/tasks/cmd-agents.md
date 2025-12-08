@@ -3,10 +3,7 @@
 ## Target
 User Story: 06-list-agents.md
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -14,18 +11,18 @@ model: sonnet
 - .agents/skills/patterns/command.md
 - .agents/skills/patterns/iterator.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/manual-top-level-agents.md (Agent State Machine, /agents command)
 - docs/rel-05/user-stories/06-list-agents.md
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/commands.h (command interface)
 - src/commands.c (existing slash commands)
 - src/repl.h (repl context, agents array, ik_repl_state_t)
 - src/agent.h (ik_agent_ctx_t, state field)
 - src/scrollback.h (for output)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/commands/commands_test.c (command tests)
 
 ## Pre-conditions

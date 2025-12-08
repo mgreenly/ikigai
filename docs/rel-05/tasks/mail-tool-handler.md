@@ -8,10 +8,7 @@ Supports User Stories:
 - 41 (agent reads message via tool) - Agent uses `mail` tool with `action: read`
 - 42 (agent sends mail via tool) - Agent uses `mail` tool with `action: send`
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -21,14 +18,14 @@ model: sonnet
 - .agents/skills/errors.md
 - .agents/skills/mocking.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (Agent Interface section - tool result JSON formats)
 - docs/memory.md (talloc ownership patterns)
 - docs/naming.md (ik_ prefix conventions)
 - docs/return_values.md (res_t patterns, tool result conventions)
 - docs/error_handling.md (error JSON format)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/tool.h (ik_tool_dispatch, ik_tool_arg_get_string, ik_tool_arg_get_int declarations)
 - src/tool.c (existing tool dispatch patterns, JSON argument parsing, result building)
 - src/mail/send.h (ik_mail_send() - high-level send operation)
@@ -41,7 +38,7 @@ model: sonnet
 - src/config.c (yyjson nested object/array construction)
 - src/wrapper.h (time_ wrapper, ISO 8601 timestamp formatting)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/tool/tool_test.c (tool dispatch tests, mock patterns)
 - tests/unit/tool/tool_dispatch_test.c (dispatcher test patterns if exists)
 - tests/unit/mail/send_test.c (mail operation mocks)

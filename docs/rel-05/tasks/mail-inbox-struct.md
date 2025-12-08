@@ -9,22 +9,19 @@ Supports User Stories:
 - 35 (separator shows unread) - needs unread_count for display
 - 36 (hides when zero) - needs unread_count == 0 check
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
 - .agents/skills/patterns/arena-allocator.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (design document, especially Data Model section)
 - docs/memory.md (talloc ownership patterns)
 - docs/error_handling.md
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/mail/msg.h (ik_mail_msg_t structure - message contained in inbox)
 - src/mail/msg.c (factory function pattern)
 - src/history.h (ik_history_t - similar container with array management)
@@ -32,7 +29,7 @@ model: sonnet
 - src/marks.c (talloc_realloc pattern for array growth)
 - src/repl.h (ik_mark_t **marks, size_t mark_count pattern)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/mail/msg_test.c (mail message tests, fixture pattern)
 - tests/unit/history/core_test.c (container operation tests, comprehensive coverage)
 

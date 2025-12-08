@@ -3,10 +3,7 @@
 ## Target
 User Story: 12-separator-shows-agent.md
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -14,11 +11,11 @@ model: sonnet
 - .agents/skills/patterns/composite.md
 - .agents/skills/patterns/vtable.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/manual-top-level-agents.md (Visual Feedback section)
 - docs/rel-05/user-stories/12-separator-shows-agent.md
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/layer.h (layer vtable interface)
 - src/layer.c (layer implementation)
 - src/layer_wrappers.h (separator layer)
@@ -29,7 +26,7 @@ model: sonnet
 - src/agent.h (agent_id field)
 - src/ansi.h (ANSI escape codes for formatting)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/layer/layer_test.c (layer tests)
 
 ## Pre-conditions

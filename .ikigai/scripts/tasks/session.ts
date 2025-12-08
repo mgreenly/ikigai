@@ -6,14 +6,22 @@
  * Usage:
  *   deno run --allow-read --allow-write scripts/tasks/session.ts <session.json> start <task>
  *   deno run --allow-read --allow-write scripts/tasks/session.ts <session.json> done <task>
+ *   deno run --allow-read --allow-write scripts/tasks/session.ts <session.json> retry <task>
+ *
+ * Events:
+ *   start - Begin work on a task (starts timer)
+ *   done  - Complete work on a task (stops timer)
+ *   retry - Log an escalation retry (informational, doesn't affect timer)
  *
  * Returns:
  *   {success: true, data: {elapsed_seconds: number, elapsed_human: string}}
  *   {success: false, error: string, code: string}
  */
 
+type EventType = "start" | "done" | "retry";
+
 interface SessionEvent {
-  event: "start" | "done";
+  event: EventType;
   task: string;
   time: string;
 }
@@ -79,17 +87,17 @@ function main(): Response {
   if (args.length !== 3) {
     return {
       success: false,
-      error: "Usage: session.ts <session.json> <start|done> <task>",
+      error: "Usage: session.ts <session.json> <start|done|retry> <task>",
       code: "INVALID_ARGS",
     };
   }
 
   const [sessionPath, eventType, taskName] = args;
 
-  if (eventType !== "start" && eventType !== "done") {
+  if (eventType !== "start" && eventType !== "done" && eventType !== "retry") {
     return {
       success: false,
-      error: "Event type must be 'start' or 'done'",
+      error: "Event type must be 'start', 'done', or 'retry'",
       code: "INVALID_EVENT",
     };
   }

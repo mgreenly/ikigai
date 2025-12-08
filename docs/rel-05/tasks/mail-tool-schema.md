@@ -8,10 +8,7 @@ Supports User Stories:
 - 36 (agent checks inbox via tool) - Agent uses `mail` tool with `action: inbox`
 - 37 (agent reads message via tool) - Agent uses `mail` tool with `action: read`
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -19,19 +16,19 @@ model: sonnet
 - .agents/skills/coverage.md
 - .agents/skills/quality.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (Agent Interface section - mail tool JSON schema)
 - docs/memory.md (talloc ownership patterns)
 - docs/naming.md (ik_ prefix conventions)
 - docs/return_values.md (yyjson return patterns)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/tool.h (existing schema builder declarations, ik_tool_add_string_param helper)
 - src/tool.c (existing schema implementations - glob, file_read, grep, file_write, bash)
 - src/openai/client.c (yyjson JSON building patterns)
 - src/config.c (yyjson nested object/array construction)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/tool/tool_test.c (schema verification patterns - verify_schema_basics, verify_string_param, verify_required)
 - tests/test_utils.h (test helper functions)
 

@@ -8,10 +8,7 @@ Supports User Stories:
 - 33 (send to nonexistent agent) - "Error: Agent 99/ not found"
 - 34 (send empty body rejected) - "Error: Message body cannot be empty"
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -19,13 +16,13 @@ model: sonnet
 - .agents/skills/errors.md
 - .agents/skills/testability.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (Core Principle, Data Model, User Interface sections)
 - docs/memory.md (talloc ownership patterns)
 - docs/error_handling.md (res_t patterns)
 - docs/return_values.md (output parameter conventions)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/mail/msg.h (ik_mail_msg_t structure, ik_mail_msg_create())
 - src/mail/inbox.h (ik_inbox_t structure, ik_inbox_add())
 - src/db/mail.h (ik_db_mail_insert() for database write)
@@ -35,7 +32,7 @@ model: sonnet
 - src/commands.h (existing command handler patterns)
 - src/wrapper.h (time_ wrapper for testable timestamps)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/mail/msg_test.c (mail message creation tests)
 - tests/unit/mail/inbox_test.c (inbox operation tests)
 - tests/unit/db/mail_operations_test.c (database mail operation tests)

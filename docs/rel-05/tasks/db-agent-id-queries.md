@@ -3,10 +3,7 @@
 ## Target
 User Story: 10-independent-scrollback.md (per-agent message isolation)
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -14,11 +11,11 @@ model: sonnet
 - .agents/skills/errors.md
 - .agents/skills/di.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/manual-top-level-agents.md (Database Schema section)
 - docs/rel-05/user-stories/10-independent-scrollback.md
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/db/message.h (message interface)
 - src/db/message.c (message queries)
 - src/db/replay.h (session replay interface)
@@ -26,7 +23,7 @@ model: sonnet
 - src/agent.h (ik_agent_ctx_t with agent_id)
 - src/repl.h (access to current agent)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/db/message_test.c (message tests)
 - tests/unit/db/replay_test.c (replay tests)
 

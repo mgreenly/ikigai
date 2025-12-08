@@ -3,20 +3,17 @@
 ## Target
 Phase 1: Agent Context Extraction - Final Verification
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/tdd.md
 - .agents/skills/style.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/shared-context-di.md (success criteria)
 - docs/rel-05/scratch.md (Phase 1 design)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/agent.h (complete agent context)
 - src/agent.c (complete agent create)
 - src/shared.h (shared context)
@@ -24,7 +21,7 @@ model: sonnet
 - src/repl_init.c (initialization flow)
 - src/client.c (main entry point)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/agent/*.c
 - tests/helpers/test_contexts.h
 

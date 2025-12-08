@@ -3,10 +3,7 @@
 ## Target
 Phase 1: Agent Context Extraction - Step 1 (Empty struct with identity)
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/naming.md
@@ -15,18 +12,18 @@ model: sonnet
 - .agents/skills/patterns/context-struct.md
 - .agents/skills/patterns/factory.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/shared-context-di.md (design document)
 - docs/rel-05/scratch.md (Phase 1 section, lines 130-193)
 - docs/memory.md (talloc ownership)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/shared.h (shared context pattern to follow)
 - src/shared.c (init pattern to follow)
 - src/repl.h (current ik_repl_ctx_t - fields to extract)
 - src/repl_init.c (current initialization flow)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/shared/shared_test.c (context test patterns)
 
 ## Pre-conditions

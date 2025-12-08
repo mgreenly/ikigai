@@ -3,10 +3,7 @@
 ## Target
 User Story: 10-independent-scrollback.md (foundation for per-agent message storage)
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -14,18 +11,18 @@ model: sonnet
 - .agents/skills/errors.md
 - .agents/skills/ddd.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/manual-top-level-agents.md (Database Schema section)
 - docs/rel-05/user-stories/10-independent-scrollback.md
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/db/migration.h (migration interface)
 - src/db/migration.c (existing migrations)
 - src/db/message.h (message structure)
 - src/db/message.c (message persistence)
 - src/db/connection.h (database connection)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/db/migration_test.c (migration tests)
 - tests/unit/db/message_test.c (message tests)
 

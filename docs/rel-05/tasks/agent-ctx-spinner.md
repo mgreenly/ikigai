@@ -3,27 +3,24 @@
 ## Target
 Phase 1: Agent Context Extraction - Step 7 (spinner field migration)
 
-## Agent
-model: haiku
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/shared-context-di.md (design document)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/agent.h (current agent context)
 - src/agent.c (current agent create)
 - src/repl.h (spinner_state field)
 - src/spinner/spinner.h (ik_spinner_state_t)
 - src/layer_wrappers.c (spinner layer creation)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/agent/agent_test.c
 
 ## Pre-conditions

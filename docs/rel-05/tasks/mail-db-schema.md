@@ -7,21 +7,18 @@ Supports User Stories:
 - 45 (mail persisted to DB) - "Handler immediately writes to database"
 - 46 (mail scoped to session) - "session_id scopes mail to current session"
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
 - .agents/skills/errors.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (Database Schema section)
 - docs/memory.md (talloc ownership patterns)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - migrations/001-initial-schema.sql (existing migration patterns: BIGSERIAL, BIGINT, TIMESTAMPTZ, indexes)
 - src/db/migration.h (migration interface, ik_db_migrate function)
 - src/db/migration.c (migration system implementation, file naming conventions)
@@ -30,7 +27,7 @@ model: sonnet
 - src/mail/msg.h (ik_mail_msg_t structure - fields that map to columns)
 - src/mail/inbox.h (ik_inbox_t structure)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/db/zzz_migration_basic_test.c (migration testing patterns, temp directory, cleanup)
 - tests/unit/db/message_test.c (database operation tests)
 

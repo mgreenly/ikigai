@@ -7,10 +7,7 @@ Supports User Stories:
 - 35 (separator shows unread count) - `[mail:N]` indicator displayed when unread_count > 0
 - 36 (hides when zero) - No indicator when unread_count == 0
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -19,13 +16,13 @@ model: sonnet
 - .agents/skills/mocking.md
 - .agents/skills/patterns/vtable.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (Status Bar Indicator section)
 - docs/rel-05/user-stories/35-separator-shows-unread-count.md
 - docs/rel-05/user-stories/36-separator-hides-mail-when-zero.md
 - docs/rel-05/user-stories/28-separator-navigation-context.md (separator layout reference)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/layer_wrappers.h (separator layer interface)
 - src/layer_wrappers.c (separator layer implementation)
 - src/layer.h (layer vtable, output_buffer)
@@ -34,7 +31,7 @@ model: sonnet
 - src/mail/inbox.h (ik_inbox_t - unread_count field)
 - src/output_buffer.h (ik_output_buffer_t, ik_output_buffer_append)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/layer/separator_layer_test.c (separator layer tests)
 - tests/unit/mail/inbox_test.c (inbox fixture patterns)
 

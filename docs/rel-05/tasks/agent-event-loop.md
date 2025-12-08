@@ -3,10 +3,7 @@
 ## Target
 User Stories: All (agents always run - core architecture principle)
 
-## Agent
-model: opus
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/ddd.md
@@ -19,12 +16,12 @@ model: opus
 - .agents/skills/patterns/observer.md
 - .agents/skills/patterns/callback-context.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/manual-top-level-agents.md (Agent State Machine, Core Principle sections)
 - docs/rel-05/user-stories/10-independent-scrollback.md
 - docs/memory.md (talloc ownership)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/repl.h (current REPL structure)
 - src/repl.c (current main loop)
 - src/repl_event_handlers.c (event handling)
@@ -34,7 +31,7 @@ model: opus
 - src/repl_tool.c (tool thread handling)
 - src/tool.h (tool execution)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/repl/repl_test.c (repl event tests)
 - tests/unit/openai/client_multi_test.c (curl_multi tests)
 

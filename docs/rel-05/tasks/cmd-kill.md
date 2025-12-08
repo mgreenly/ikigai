@@ -3,10 +3,7 @@
 ## Target
 User Stories: 07-kill-current-agent.md, 08-kill-specific-agent.md, 09-kill-agent-zero-refused.md
 
-## Agent
-model: opus
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/ddd.md
@@ -17,14 +14,14 @@ model: opus
 - .agents/skills/patterns/command.md
 - .agents/skills/patterns/arena-allocator.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/manual-top-level-agents.md (Killing an Agent section)
 - docs/rel-05/user-stories/07-kill-current-agent.md
 - docs/rel-05/user-stories/08-kill-specific-agent.md
 - docs/rel-05/user-stories/09-kill-agent-zero-refused.md
 - docs/memory.md (talloc cleanup)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/commands.h (command interface)
 - src/commands.c (existing slash commands)
 - src/repl.h (repl context, agents array)
@@ -32,7 +29,7 @@ model: opus
 - src/agent_switch.h (switching function)
 - src/scrollback.h (for messages)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/commands/commands_test.c (command tests)
 
 ## Pre-conditions

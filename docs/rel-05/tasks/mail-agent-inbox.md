@@ -8,28 +8,25 @@ Supports User Stories:
 - 35 (separator shows unread) - separator layer queries `agent->inbox->unread_count`
 - 37 (notification on idle) - idle transition checks `agent->inbox->unread_count > 0`
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (design document, especially Notification System section)
 - docs/memory.md (talloc ownership patterns)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/mail/inbox.h (ik_inbox_t structure, ik_inbox_create())
 - src/mail/inbox.c (inbox implementation)
 - src/agent.h (current agent context structure - target for modification)
 - src/agent.c (agent creation - where inbox initialization goes)
 - src/repl.h (shows how agent context is used, ik_repl_state_t for idle detection)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/agent/agent_test.c (agent context tests, fixture patterns)
 - tests/unit/mail/inbox_test.c (inbox operation tests)
 

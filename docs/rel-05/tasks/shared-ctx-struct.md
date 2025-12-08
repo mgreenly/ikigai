@@ -3,10 +3,7 @@
 ## Target
 Phase 0: Shared Context DI - Step 1 (Empty struct infrastructure)
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/naming.md
@@ -15,16 +12,16 @@ model: sonnet
 - .agents/skills/patterns/context-struct.md
 - .agents/skills/patterns/facade.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/shared-context-di.md (design document)
 - docs/memory.md (talloc ownership)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/repl.h (current ik_repl_ctx_t - see fields to migrate)
 - src/repl_init.c (current initialization flow)
 - src/client.c (main entry point)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/repl/*.c (existing repl test patterns)
 
 ## Pre-conditions

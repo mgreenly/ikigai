@@ -3,10 +3,7 @@
 ## Target
 User Stories: 02-switch-next-agent.md, 03-switch-prev-agent.md, 04-switch-wrap-forward.md, 05-switch-wrap-backward.md
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -14,18 +11,18 @@ model: sonnet
 - .agents/skills/errors.md
 - .agents/skills/patterns/state-machine.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/manual-top-level-agents.md (Switching Agents section)
 - docs/rel-05/user-stories/02-switch-next-agent.md
 - docs/rel-05/user-stories/03-switch-prev-agent.md
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/input.h (input action types, ik_input_action_t)
 - src/input.c (input parser, escape sequence handling)
 - src/ansi.h (ANSI escape sequence definitions)
 - src/repl_actions.c (action dispatch)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/input/input_test.c (input parsing tests)
 - tests/unit/input/sgr_test.c (escape sequence tests)
 

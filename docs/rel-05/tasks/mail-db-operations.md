@@ -10,10 +10,7 @@ Supports User Stories:
 - 45 (mail persisted to DB) - INSERT with RETURNING id
 - 46 (mail scoped to session) - all queries filter by session_id
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -22,13 +19,13 @@ model: sonnet
 - .agents/skills/database.md
 - .agents/skills/testability.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (Data Model, Database Schema sections)
 - docs/memory.md (talloc ownership patterns)
 - docs/error_handling.md (res_t patterns)
 - docs/return_values.md (output parameter conventions)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/db/message.h (parameterized query patterns, INSERT without RETURNING)
 - src/db/message.c (PQexecParams usage, pg_result wrapper, error handling)
 - src/db/session.h (INSERT with RETURNING id pattern)
@@ -40,7 +37,7 @@ model: sonnet
 - src/mail/msg.h (ik_mail_msg_t structure definition)
 - src/wrapper.h (pq_exec_params_ wrapper function)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/db/session_test.c (database test setup/teardown, SKIP_IF_NO_DB pattern)
 - tests/unit/db/message_test.c (INSERT test patterns)
 - tests/unit/db/replay_core_test.c (SELECT with struct population tests)

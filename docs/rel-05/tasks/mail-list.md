@@ -7,10 +7,7 @@ Supports User Stories:
 - 30 (list inbox) - format messages for display with unread first, previews, line truncation
 - 32 (inbox empty) - display "(no messages)" when count == 0
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
@@ -18,13 +15,13 @@ model: sonnet
 - .agents/skills/errors.md
 - .agents/skills/testability.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/inter-agent-mailboxes.md (User Interface section, output format examples)
 - docs/memory.md (talloc ownership patterns)
 - docs/rel-05/user-stories/30-list-inbox.md (exact output format, walkthrough)
 - docs/rel-05/user-stories/32-inbox-empty.md (empty inbox handling)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/mail/msg.h (ik_mail_msg_t structure)
 - src/mail/inbox.h (ik_inbox_t structure, ik_inbox_get_all() for sorted retrieval)
 - src/mail/send.h (ik_mail_send() - sibling high-level operation pattern)
@@ -34,7 +31,7 @@ model: sonnet
 - src/input/ansi.h (ik_ansi_visible_width() for ANSI-aware width calculation)
 - src/wrapper.h (wrapper functions for testability)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/mail/send_test.c (mail operation tests, mock patterns)
 - tests/unit/mail/inbox_test.c (inbox tests, message creation helpers)
 - tests/unit/scrollback/scrollback_test.c (output formatting test patterns)

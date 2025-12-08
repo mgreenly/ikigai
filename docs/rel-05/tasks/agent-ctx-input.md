@@ -3,28 +3,25 @@
 ## Target
 Phase 1: Agent Context Extraction - Step 3 (input fields migration)
 
-## Agent
-model: sonnet
-
-### Pre-read Skills
+## Pre-read Skills
 - .agents/skills/default.md
 - .agents/skills/di.md
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
 
-### Pre-read Docs
+## Pre-read Docs
 - docs/backlog/shared-context-di.md (design document)
 - docs/rel-05/scratch.md (ik_agent_ctx_t input fields)
 
-### Pre-read Source (patterns)
+## Pre-read Source (patterns)
 - src/agent.h (current agent context)
 - src/agent.c (current agent create)
 - src/repl.h (input fields to migrate)
 - src/repl_init.c (input initialization)
 - src/input_buffer/core.h (ik_input_buffer_t)
 
-### Pre-read Tests (patterns)
+## Pre-read Tests (patterns)
 - tests/unit/agent/agent_test.c
 
 ## Pre-conditions

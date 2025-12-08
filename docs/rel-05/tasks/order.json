@@ -1,304 +1,274 @@
 {
   "todo": [
     {
-      "task": "shared-ctx-db-session.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "shared-ctx-history.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "shared-ctx-debug.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "shared-ctx-test-helpers.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "shared-ctx-cleanup.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
       "task": "agent-ctx-struct.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "agent-ctx-display.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "agent-ctx-input.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "agent-ctx-conversation.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "agent-ctx-llm.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "agent-ctx-tool.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "agent-ctx-spinner.md",
       "group": "Agent Context Extraction",
       "model": "haiku",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "agent-ctx-completion.md",
       "group": "Agent Context Extraction",
       "model": "haiku",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "agent-ctx-cleanup.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "repl-agent-array.md",
       "group": "Foundation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "db-agent-id-schema.md",
       "group": "Foundation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "db-agent-id-queries.md",
       "group": "Foundation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "agent-event-loop.md",
       "group": "Foundation",
       "model": "opus",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "input-ctrl-arrow-actions.md",
       "group": "Navigation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "agent-switch.md",
       "group": "Navigation",
       "model": "opus",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "separator-agent-id.md",
       "group": "User Interface",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "cmd-spawn.md",
       "group": "Commands",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "cmd-kill.md",
       "group": "Commands",
       "model": "opus",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "cmd-agents.md",
       "group": "Commands",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-hierarchy-fields.md",
       "group": "Foundation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-depth-calc.md",
       "group": "Foundation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-child-array.md",
       "group": "Foundation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-tool-schema.md",
       "group": "Tool Implementation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-tool-handler.md",
       "group": "Tool Implementation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-completion-detect.md",
       "group": "Tool Implementation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-result-delivery.md",
       "group": "Tool Implementation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-nav-up-down.md",
       "group": "Navigation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-separator-nav.md",
       "group": "Navigation",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-cascade-kill.md",
       "group": "Lifecycle",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-input-disable.md",
       "group": "Lifecycle",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "subagent-agents-tree.md",
       "group": "Display",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-msg-struct.md",
       "group": "Data Structures",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-inbox-struct.md",
       "group": "Data Structures",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-agent-inbox.md",
       "group": "Data Structures",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-db-schema.md",
       "group": "Database Layer",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-db-operations.md",
       "group": "Database Layer",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-send.md",
       "group": "Core Operations",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-list.md",
       "group": "Core Operations",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-read.md",
       "group": "Core Operations",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-cmd-register.md",
       "group": "Slash Command",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-tool-schema.md",
       "group": "Tool Interface",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-tool-handler.md",
       "group": "Tool Interface",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-separator-unread.md",
       "group": "Separator Enhancement",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-notification-inject.md",
       "group": "Notification System",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "mail-notification-style.md",
       "group": "Notification System",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     }
   ],
   "done": [
@@ -306,7 +276,7 @@
       "task": "shared-ctx-struct.md",
       "group": "Shared Context DI Refactor",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
     },
     {
       "task": "shared-ctx-cfg.md",
@@ -318,7 +288,37 @@
       "task": "shared-ctx-term-render.md",
       "group": "Shared Context DI Refactor",
       "model": "sonnet",
-      "thinking": "none"
+      "thinking": "low"
+    },
+    {
+      "task": "shared-ctx-db-session.md",
+      "group": "Shared Context DI Refactor",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "shared-ctx-history.md",
+      "group": "Shared Context DI Refactor",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "shared-ctx-debug.md",
+      "group": "Shared Context DI Refactor",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "shared-ctx-test-helpers.md",
+      "group": "Shared Context DI Refactor",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "shared-ctx-cleanup.md",
+      "group": "Shared Context DI Refactor",
+      "model": "sonnet",
+      "thinking": "low"
     }
   ]
 }
