@@ -116,7 +116,7 @@ res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_e
 // Persist assistant message to database
 static void persist_assistant_msg(ik_repl_ctx_t *repl)
 {
-    if (repl->db_ctx == NULL || repl->current_session_id <= 0) return;
+    if (repl->shared->db_ctx == NULL || repl->shared->session_id <= 0) return;
 
     char *data_json = talloc_strdup(repl, "{");
     bool first = true;
@@ -136,7 +136,7 @@ static void persist_assistant_msg(ik_repl_ctx_t *repl)
     }
     data_json = talloc_strdup_append(data_json, "}");
 
-    res_t db_res = ik_db_message_insert_(repl->db_ctx, repl->current_session_id,
+    res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
                                          "assistant", repl->assistant_response, data_json);
     if (is_err(&db_res)) {
         if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {

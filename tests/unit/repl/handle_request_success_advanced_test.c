@@ -7,6 +7,7 @@
  * 2. Line 252: state != WAITING_FOR_LLM after handle_request_success (tool execution started)
  */
 
+#include "../../test_utils.h"
 #include "repl_streaming_test_common.h"
 #include "../../../src/debug_pipe.h"
 #include "../../../src/tool.h"
@@ -37,8 +38,8 @@ static void setup(void)
     mock_write_should_fail = false;
 
     // Initialize common state
-    repl->db_ctx = NULL;
-    repl->current_session_id = 0;
+    repl->shared->db_ctx = NULL;
+    repl->shared->session_id = 0;
     repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
 }
 

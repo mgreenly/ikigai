@@ -153,8 +153,8 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Persist clear event to database (Integration Point 3)
-    if (repl->db_ctx != NULL && repl->current_session_id > 0) {
-        res_t db_res = ik_db_message_insert(repl->db_ctx, repl->current_session_id,
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
                                             "clear", NULL, NULL);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
@@ -169,8 +169,8 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
         // Write system message if configured (matching new session creation pattern)
         if (repl->shared->cfg->openai_system_message != NULL) {
             res_t system_res = ik_db_message_insert(
-                repl->db_ctx,
-                repl->current_session_id,
+                repl->shared->db_ctx,
+                repl->shared->session_id,
                 "system",
                 repl->shared->cfg->openai_system_message,
                 "{}"

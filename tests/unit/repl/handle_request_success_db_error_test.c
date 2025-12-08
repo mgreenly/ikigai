@@ -66,6 +66,10 @@ static void setup(void)
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
+    // Create shared context
+    repl->shared = talloc_zero(test_ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+
     // Create conversation
     res_t res = ik_openai_conversation_create(test_ctx);
     ck_assert(is_ok(&res));
@@ -73,8 +77,8 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->conversation);
 
     // Set up minimal database context (we use a dummy pointer since we're mocking)
-    repl->db_ctx = (ik_db_ctx_t *)0x1;  // Non-NULL dummy pointer
-    repl->current_session_id = 1;       // Valid session ID
+    repl->shared->db_ctx = (ik_db_ctx_t *)0x1;  // Non-NULL dummy pointer
+    repl->shared->session_id = 1;       // Valid session ID
 }
 
 static void teardown(void)

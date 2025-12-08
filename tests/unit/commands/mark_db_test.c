@@ -115,8 +115,8 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     r->shared = shared;
     r->marks = NULL;
     r->mark_count = 0;
-    r->db_ctx = NULL;
-    r->current_session_id = 0;
+    r->shared->db_ctx = NULL;
+    r->shared->session_id = 0;
     r->db_debug_pipe = NULL;
 
     return r;
@@ -152,8 +152,8 @@ START_TEST(test_mark_db_insert_error_with_null_label) {
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
@@ -187,8 +187,8 @@ START_TEST(test_mark_db_insert_error_with_label)
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
@@ -223,8 +223,8 @@ START_TEST(test_rewind_error_handling)
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Create a mark
     res_t res = ik_mark_create(repl, "checkpoint");
@@ -248,8 +248,8 @@ START_TEST(test_rewind_db_insert_error)
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
@@ -286,8 +286,8 @@ START_TEST(test_mark_db_error_no_debug_pipe)
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
@@ -308,8 +308,8 @@ START_TEST(test_mark_db_error_null_write_end)
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;

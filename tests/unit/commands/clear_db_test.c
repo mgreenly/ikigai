@@ -147,8 +147,8 @@ START_TEST(test_clear_db_error_clear_event) {
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     ck_assert_ptr_nonnull(db_ctx);
     db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create minimal config (no system message for this test)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -192,8 +192,8 @@ START_TEST(test_clear_db_error_system_message)
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     ck_assert_ptr_nonnull(db_ctx);
     db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create config with system message
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -236,8 +236,8 @@ END_TEST
 START_TEST(test_clear_without_db_ctx)
 {
     // No database context set (db_ctx is NULL)
-    repl->db_ctx = NULL;
-    repl->current_session_id = 0;
+    repl->shared->db_ctx = NULL;
+    repl->shared->session_id = 0;
 
     // Add content
     res_t res = ik_scrollback_append_line(repl->scrollback, "Line 1", 6);
@@ -260,8 +260,8 @@ START_TEST(test_clear_db_error_no_debug_pipe)
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     ck_assert_ptr_nonnull(db_ctx);
     db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create minimal config (no system message)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -295,8 +295,8 @@ START_TEST(test_clear_system_db_error_no_debug_pipe)
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     ck_assert_ptr_nonnull(db_ctx);
     db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create config with system message
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -332,8 +332,8 @@ START_TEST(test_clear_db_error_write_end_null)
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     ck_assert_ptr_nonnull(db_ctx);
     db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create minimal config
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -370,8 +370,8 @@ START_TEST(test_clear_system_db_error_write_end_null)
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     ck_assert_ptr_nonnull(db_ctx);
     db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create config with system message
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -408,8 +408,8 @@ START_TEST(test_clear_with_invalid_session_id)
 {
     // Set up database context but invalid session_id
     ik_db_ctx_t *db_ctx = (ik_db_ctx_t *)0x1234;  // Fake pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 0;  // Invalid session ID
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 0;  // Invalid session ID
 
     // Add content
     res_t res = ik_scrollback_append_line(repl->scrollback, "Line 1", 6);

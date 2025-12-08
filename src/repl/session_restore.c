@@ -15,10 +15,11 @@
 #include "../panic.h"
 #include "../repl.h"
 #include "../scrollback.h"
+#include "../shared.h"
 #include "../wrapper.h"
 #include <assert.h>
-#include <talloc.h>
 #include <string.h>
+#include <talloc.h>
 
 // NOTE: When returning errors after talloc_free(tmp), we must first
 // reparent the error to repl via talloc_steal(). See fix.md for details
@@ -42,7 +43,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
 
     if (session_id > 0) {
         // Existing session path: load and replay messages
-        repl->current_session_id = session_id;
+        repl->shared->session_id = session_id;
 
         // Load messages from database
         res_t load_res = ik_db_messages_load(tmp, db_ctx, session_id);
@@ -137,7 +138,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
             return create_res;
         }
 
-        repl->current_session_id = session_id;
+        repl->shared->session_id = session_id;
 
         // Write initial clear event
         res_t clear_res = ik_db_message_insert(db_ctx, session_id, "clear", NULL, "{}");

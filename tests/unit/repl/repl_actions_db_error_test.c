@@ -128,8 +128,8 @@ static void setup(void)
     repl->shared->term->screen_cols = 80;
 
     // Set up database connection
-    repl->db_ctx = mock_db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db_ctx;
+    repl->shared->session_id = 1;
 
     // Create db_debug_pipe
     repl->db_debug_pipe = talloc_zero_(repl, sizeof(ik_debug_pipe_t));
@@ -285,8 +285,8 @@ END_TEST
 START_TEST(test_message_submission_no_db_ctx)
 {
     // Set db_ctx to NULL
-    repl->db_ctx = NULL;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = NULL;
+    repl->shared->session_id = 1;
 
     // Set up: Insert text into input buffer
     const char *test_text = "Test without DB";
@@ -322,8 +322,8 @@ END_TEST
 START_TEST(test_message_submission_no_session)
 {
     // Set session_id to 0 (no active session)
-    repl->db_ctx = mock_db_ctx;
-    repl->current_session_id = 0;
+    repl->shared->db_ctx = mock_db_ctx;
+    repl->shared->session_id = 0;
 
     // Set up: Insert text into input buffer
     const char *test_text = "Test without session";

@@ -299,6 +299,50 @@ START_TEST(test_shared_ctx_render_matches_term_dimensions)
 }
 END_TEST
 
+// Test that shared_ctx->db_ctx is NULL when not configured
+START_TEST(test_shared_ctx_db_ctx_null_when_not_configured)
+{
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create minimal cfg for test (no db_connection_string)
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    ck_assert_ptr_null(shared->db_ctx);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test that shared_ctx->session_id is 0 when not configured
+START_TEST(test_shared_ctx_session_id_zero_when_not_configured)
+{
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create minimal cfg for test (no db_connection_string)
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    ck_assert_int_eq(shared->session_id, 0);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *shared_suite(void)
 {
     Suite *s = suite_create("Shared Context");
@@ -312,6 +356,8 @@ static Suite *shared_suite(void)
     tcase_add_test(tc_core, test_shared_ctx_term_initialized);
     tcase_add_test(tc_core, test_shared_ctx_render_initialized);
     tcase_add_test(tc_core, test_shared_ctx_render_matches_term_dimensions);
+    tcase_add_test(tc_core, test_shared_ctx_db_ctx_null_when_not_configured);
+    tcase_add_test(tc_core, test_shared_ctx_session_id_zero_when_not_configured);
     suite_add_tcase(s, tc_core);
 
     return s;

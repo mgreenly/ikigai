@@ -160,8 +160,8 @@ START_TEST(test_clear_persists_system_message_event)
     ik_shared_ctx_t *shared = talloc_zero(test_ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
     repl->shared = shared;
-    repl->db_ctx = db;
-    repl->current_session_id = session_id;
+    repl->shared->db_ctx = db;
+    repl->shared->session_id = session_id;
 
     // Create scrollback
     repl->scrollback = ik_scrollback_create(repl, 80);
@@ -213,8 +213,8 @@ START_TEST(test_clear_no_system_message_when_null)
     ik_shared_ctx_t *shared = talloc_zero(test_ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
     repl->shared = shared;
-    repl->db_ctx = db;
-    repl->current_session_id = session_id;
+    repl->shared->db_ctx = db;
+    repl->shared->session_id = session_id;
 
     // Create scrollback
     repl->scrollback = ik_scrollback_create(repl, 80);

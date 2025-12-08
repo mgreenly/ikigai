@@ -179,8 +179,8 @@ START_TEST(test_mark_unlabeled_db_error_with_debug_pipe) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Set up debug pipe
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -209,8 +209,8 @@ START_TEST(test_mark_unlabeled_db_error_no_debug_pipe)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // No debug pipe
     repl->db_debug_pipe = NULL;
@@ -231,8 +231,8 @@ START_TEST(test_mark_unlabeled_db_error_null_write_end)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Debug pipe with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -255,8 +255,8 @@ START_TEST(test_rewind_mark_not_found)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Mock query to return 0 rows (mark not found)
     mock_ntuples = 0;
@@ -276,8 +276,8 @@ START_TEST(test_rewind_db_error_with_debug_pipe)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Set up debug pipe
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -319,8 +319,8 @@ START_TEST(test_rewind_db_error_no_debug_pipe)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // No debug pipe
     repl->db_debug_pipe = NULL;
@@ -353,8 +353,8 @@ START_TEST(test_rewind_db_error_null_write_end)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Debug pipe with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -389,8 +389,8 @@ START_TEST(test_mark_with_db_ctx_but_no_session)
     // Set up DB context but invalid session
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 0;  // Invalid session
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 0;  // Invalid session
 
     // Create mark - should not attempt DB operations
     res_t res = ik_cmd_mark(ctx, repl, "test");
@@ -405,8 +405,8 @@ START_TEST(test_rewind_with_db_ctx_but_no_session)
     // Set up DB context but invalid session
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 0;  // Invalid session
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 0;  // Invalid session
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
@@ -431,8 +431,8 @@ START_TEST(test_rewind_with_zero_message_id)
     // Set up valid DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");

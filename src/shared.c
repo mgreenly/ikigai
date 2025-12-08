@@ -1,9 +1,10 @@
 #include "shared.h"
 
+#include "db/connection.h"
 #include "panic.h"
-#include "wrapper.h"
-#include "terminal.h"
 #include "render.h"
+#include "terminal.h"
+#include "wrapper.h"
 
 #include <assert.h>
 
@@ -46,6 +47,24 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, ik_shared_ctx_t **out)
         talloc_free(shared);
         return result;
     }
+
+    // Initialize database connection if configured
+    if (cfg->db_connection_string != NULL) {
+        result = ik_db_init_(shared, cfg->db_connection_string, (void **)&shared->db_ctx);
+        if (is_err(&result)) {
+            // Cleanup already-initialized resources
+            if (shared->term != NULL) {
+                ik_term_cleanup(shared->term);
+            }
+            talloc_free(shared);
+            return result;
+        }
+    } else {
+        shared->db_ctx = NULL;
+    }
+
+    // Initialize session_id to 0 (session creation stays in repl_init for now)
+    shared->session_id = 0;
 
     // Set destructor for cleanup
     talloc_set_destructor(shared, shared_destructor);

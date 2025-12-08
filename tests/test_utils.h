@@ -5,6 +5,7 @@
 #include "config.h"
 #include "../src/db/connection.h"
 #include "../src/error.h"
+#include "../src/shared.h"
 
 // Test utilities for ikigai test suite
 

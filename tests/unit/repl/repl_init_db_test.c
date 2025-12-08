@@ -224,7 +224,7 @@ START_TEST(test_repl_init_db_success)
     // Verify success
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(repl);
-    ck_assert_ptr_nonnull(repl->db_ctx);
+    ck_assert_ptr_nonnull(repl->shared->db_ctx);
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);

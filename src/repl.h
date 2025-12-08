@@ -100,10 +100,6 @@ typedef struct ik_repl_ctx_t {
     ik_debug_pipe_t *db_debug_pipe;
     bool debug_enabled;
 
-    // Database session (v0.3.0)
-    ik_db_ctx_t *db_ctx;             // Database connection context
-    int64_t current_session_id;       // Current active session ID (0 if none)
-
     // Tool loop iteration tracking (Story 11)
     int32_t tool_iteration_count;     // Number of tool call iterations in current request
 

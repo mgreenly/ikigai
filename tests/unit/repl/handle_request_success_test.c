@@ -82,6 +82,10 @@ static void setup(void)
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
+    // Create shared context
+    repl->shared = talloc_zero(test_ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+
     // Create conversation
     res_t res = ik_openai_conversation_create(test_ctx);
     ck_assert(is_ok(&res));
@@ -90,21 +94,21 @@ static void setup(void)
 
     if (!db_available) {
         db = NULL;
-        repl->db_ctx = NULL;
+        repl->shared->db_ctx = NULL;
         return;
     }
 
     res = ik_test_db_connect(test_ctx, DB_NAME, &db);
     if (is_err(&res)) {
         db = NULL;
-        repl->db_ctx = NULL;
+        repl->shared->db_ctx = NULL;
         return;
     }
 
     res = ik_test_db_begin(db);
     if (is_err(&res)) {
         db = NULL;
-        repl->db_ctx = NULL;
+        repl->shared->db_ctx = NULL;
         return;
     }
 
@@ -114,12 +118,12 @@ static void setup(void)
     if (is_err(&res)) {
         ik_test_db_rollback(db);
         db = NULL;
-        repl->db_ctx = NULL;
+        repl->shared->db_ctx = NULL;
         return;
     }
 
-    repl->db_ctx = db;
-    repl->current_session_id = session_id;
+    repl->shared->db_ctx = db;
+    repl->shared->session_id = session_id;
 }
 
 // Per-test teardown
@@ -164,8 +168,8 @@ END_TEST
 START_TEST(test_assistant_response_no_db)
 {
     repl->assistant_response = talloc_strdup(test_ctx, "Test response");
-    repl->db_ctx = NULL;
-    repl->current_session_id = 0;
+    repl->shared->db_ctx = NULL;
+    repl->shared->session_id = 0;
 
     handle_request_success(repl);
 
@@ -183,7 +187,7 @@ START_TEST(test_assistant_response_db_no_session)
     SKIP_IF_NO_DB();
 
     repl->assistant_response = talloc_strdup(test_ctx, "Test response");
-    repl->current_session_id = 0;  // No session
+    repl->shared->session_id = 0;  // No session
 
     handle_request_success(repl);
 

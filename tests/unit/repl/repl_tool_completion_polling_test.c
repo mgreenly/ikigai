@@ -6,6 +6,7 @@
  * which is what gets called when the polling detects completion.
  */
 
+#include "../../test_utils.h"
 #include <check.h>
 #include <talloc.h>
 #include <pthread.h>

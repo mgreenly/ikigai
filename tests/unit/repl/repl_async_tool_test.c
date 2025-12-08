@@ -1,3 +1,4 @@
+#include "../../test_utils.h"
 #include <check.h>
 #include <talloc.h>
 #include <pthread.h>
@@ -71,6 +72,9 @@ static void setup(void)
     }
 
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+
+    /* Create shared context */
+    repl->shared = talloc_zero(ctx, ik_shared_ctx_t);
 
     /* Create conversation */
     res_t conv_res = ik_openai_conversation_create(repl);
@@ -290,8 +294,8 @@ END_TEST
 START_TEST(test_async_tool_db_persistence)
 {
     /* Set up database context */
-    repl->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
-    repl->current_session_id = 42;
+    repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
+    repl->shared->session_id = 42;
 
     /* Start and wait */
     ik_repl_start_tool_execution(repl);
@@ -327,8 +331,8 @@ END_TEST
 START_TEST(test_async_tool_no_db_ctx)
 {
     /* Set db_ctx to NULL - should not persist */
-    repl->db_ctx = NULL;
-    repl->current_session_id = 42;
+    repl->shared->db_ctx = NULL;
+    repl->shared->session_id = 42;
 
     /* Start and wait */
     ik_repl_start_tool_execution(repl);
@@ -364,8 +368,8 @@ END_TEST
 START_TEST(test_async_tool_no_session_id)
 {
     /* Set session_id to 0 - should not persist */
-    repl->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
-    repl->current_session_id = 0;
+    repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
+    repl->shared->session_id = 0;
 
     /* Start and wait */
     ik_repl_start_tool_execution(repl);

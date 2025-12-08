@@ -1,10 +1,12 @@
 #pragma once
 
-#include "error.h"
 #include "config.h"
-#include "terminal.h"
+#include "db/connection.h"
+#include "error.h"
 #include "render.h"
+#include "terminal.h"
 
+#include <inttypes.h>
 #include <talloc.h>
 
 // Shared infrastructure context - resources shared across all agents
@@ -13,6 +15,8 @@ typedef struct ik_shared_ctx {
     ik_cfg_t *cfg;  // Configuration (borrowed, not owned)
     ik_term_ctx_t *term;    // Terminal context
     ik_render_ctx_t *render; // Render context
+    ik_db_ctx_t *db_ctx;     // Database connection (NULL if not configured)
+    int64_t session_id;       // Current session ID (0 if no database)
 } ik_shared_ctx_t;
 
 // Create shared context (facade that will create infrastructure)

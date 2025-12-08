@@ -5,6 +5,7 @@
 #include "event_render.h"
 #include "format.h"
 #include "panic.h"
+#include "shared.h"
 #include "tool.h"
 #include "wrapper.h"
 
@@ -106,10 +107,10 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     ik_event_render(repl->scrollback, "tool_result", formatted_result, "{}");
 
     // 5. Persist to database
-    if (repl->db_ctx != NULL && repl->current_session_id > 0) {
-        ik_db_message_insert_(repl->db_ctx, repl->current_session_id,
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
                               "tool_call", formatted_call, tc_msg->data_json);
-        ik_db_message_insert_(repl->db_ctx, repl->current_session_id,
+        ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
                               "tool_result", formatted_result, result_msg->data_json);
     }
 
@@ -244,10 +245,10 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
     ik_event_render(repl->scrollback, "tool_result", formatted_result, "{}");
 
     // 4. Persist to database
-    if (repl->db_ctx != NULL && repl->current_session_id > 0) {
-        ik_db_message_insert_(repl->db_ctx, repl->current_session_id,
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
                               "tool_call", formatted_call, tc_msg->data_json);
-        ik_db_message_insert_(repl->db_ctx, repl->current_session_id,
+        ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
                               "tool_result", formatted_result, result_msg->data_json);
     }
 

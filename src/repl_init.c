@@ -40,23 +40,9 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
 
     ik_cfg_t *cfg = shared->cfg;
 
-    // Phase 1: All failable operations allocate on parent
-    // Handle database init if configured
-    ik_db_ctx_t *db_ctx = NULL;
-    int64_t current_session_id = 0;
-    if (cfg->db_connection_string != NULL) {
-        res_t result = ik_db_init_(parent, cfg->db_connection_string, (void **)&db_ctx);
-        if (is_err(&result)) {
-            return result;
-        }
-    }
-
     // Set up signal handlers (SIGWINCH for terminal resize) - must be before repl alloc
     res_t result = ik_signal_handler_init(parent);
     if (is_err(&result)) {
-        if (db_ctx != NULL) {
-            talloc_free(db_ctx);
-        }
         return result;
     }
 
@@ -64,15 +50,8 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     ik_repl_ctx_t *repl = talloc_zero_(parent, sizeof(ik_repl_ctx_t));
     if (repl == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Reparent successful sub-contexts under repl
-    if (db_ctx != NULL) {
-        talloc_steal(repl, db_ctx);
-    }
-
     // Wire up successfully initialized components
     repl->shared = shared;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = current_session_id;
 
     // Initialize input buffer
     repl->input_buffer = ik_input_buffer_create(repl);
@@ -180,8 +159,8 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     repl->debug_enabled = false;
 
     // Restore session if database is configured (must be after repl allocated)
-    if (db_ctx != NULL) {
-        result = ik_repl_restore_session_(repl, db_ctx, cfg);
+    if (shared->db_ctx != NULL) {
+        result = ik_repl_restore_session_(repl, shared->db_ctx, cfg);
         if (is_err(&result)) {
             talloc_free(repl);
             return result;

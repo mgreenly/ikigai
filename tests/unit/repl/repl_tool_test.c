@@ -1,3 +1,4 @@
+#include "../../test_utils.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
@@ -282,8 +283,8 @@ END_TEST
 START_TEST(test_execute_pending_tool_db_persistence)
 {
     /* Create a mock database context */
-    repl->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
-    repl->current_session_id = 42;
+    repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
+    repl->shared->session_id = 42;
 
     /* Execute pending tool call */
     ik_repl_execute_pending_tool(repl);
@@ -303,8 +304,8 @@ END_TEST
 START_TEST(test_execute_pending_tool_no_db_ctx)
 {
     /* Set db_ctx to NULL - should not persist */
-    repl->db_ctx = NULL;
-    repl->current_session_id = 42;
+    repl->shared->db_ctx = NULL;
+    repl->shared->session_id = 42;
 
     /* Execute pending tool call */
     ik_repl_execute_pending_tool(repl);
@@ -322,8 +323,8 @@ END_TEST
 START_TEST(test_execute_pending_tool_no_session_id)
 {
     /* Set session_id to 0 - should not persist */
-    repl->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
-    repl->current_session_id = 0;
+    repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
+    repl->shared->session_id = 0;
 
     /* Execute pending tool call */
     ik_repl_execute_pending_tool(repl);

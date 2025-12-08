@@ -108,7 +108,7 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
     shared->cfg = talloc_zero_(ctx, sizeof(ik_cfg_t));
     repl->shared = shared;
     repl->scrollback = ik_scrollback_create(repl, 80);
-    repl->current_session_id = 0;
+    repl->shared->session_id = 0;
     repl->conversation = ik_openai_conversation_create(repl).ok;
     return repl;
 }
@@ -152,7 +152,7 @@ START_TEST(test_restore_no_active_session_creates_new) {
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    ck_assert_int_eq(repl->current_session_id, mock_created_session_id);
+    ck_assert_int_eq(repl->shared->session_id, mock_created_session_id);
 
     talloc_free(ctx);
 }
@@ -293,7 +293,7 @@ START_TEST(test_restore_active_session_loads_id)
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    ck_assert_int_eq(repl->current_session_id, 42);
+    ck_assert_int_eq(repl->shared->session_id, 42);
 
     talloc_free(ctx);
 }

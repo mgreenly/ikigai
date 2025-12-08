@@ -174,8 +174,8 @@ START_TEST(test_mark_db_query_no_results) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "findme");
@@ -202,8 +202,8 @@ START_TEST(test_mark_db_query_failure)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
@@ -229,8 +229,8 @@ END_TEST
 START_TEST(test_mark_db_id_null_ctx)
 {
     // No DB context
-    repl->db_ctx = NULL;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = NULL;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
@@ -255,8 +255,8 @@ START_TEST(test_mark_db_id_invalid_session)
     // DB context set but invalid session
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = -1;  // Invalid
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = -1;  // Invalid
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
@@ -281,8 +281,8 @@ START_TEST(test_rewind_unlabeled_mark_db_query)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create an unlabeled mark in memory
     res_t mark_res = ik_mark_create(repl, NULL);
@@ -311,8 +311,8 @@ START_TEST(test_mark_db_id_sscanf_non_numeric)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
@@ -341,8 +341,8 @@ START_TEST(test_mark_db_id_sscanf_empty_string)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
@@ -371,8 +371,8 @@ START_TEST(test_mark_db_id_sscanf_special_chars)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
@@ -401,8 +401,8 @@ START_TEST(test_mark_db_id_sscanf_text_only)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
