@@ -349,14 +349,14 @@ START_TEST(test_page_up_clamping)
     }
 
     // With unified document model:
-    // document_height = scrollback (30) + separator (1) + MAX(input buffer, 1) = 32 rows
+    // document_height = scrollback (30) + upper_separator (1) + MAX(input buffer, 1) + lower_separator (1) = 33 rows
     // input buffer always occupies at least 1 row (for cursor visibility when empty)
-    // max_offset = 32 - 24 = 8
+    // max_offset = 33 - 24 = 9
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
     ik_input_buffer_ensure_layout(repl->input_buffer, repl->shared->term->screen_cols);
     size_t input_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
     size_t input_display_rows = (input_rows == 0) ? 1 : input_rows;
-    size_t document_height = scrollback_rows + 1 + input_display_rows;
+    size_t document_height = scrollback_rows + 1 + input_display_rows + 1;
     size_t expected_max = document_height - (size_t)repl->shared->term->screen_rows;
 
     // Start near top

@@ -4,7 +4,7 @@
       "task": "full-viewport-separator-bug.md",
       "group": "Bug Fix",
       "model": "sonnet",
-      "thinking": "low"
+      "thinking": "thinking"
     },
     {
       "task": "mouse-scroll-scrollback-bug.md",

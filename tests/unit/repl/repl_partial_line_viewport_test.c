@@ -174,7 +174,7 @@ START_TEST(test_separator_row_offset_impact)
     ik_scrollback_ensure_layout(scrollback, 80);
     ck_assert_uint_eq(scrollback->layouts[0].physical_lines, 2);
 
-    // Total: 20 lines * 2 rows = 40 rows + 1 sep + 1 ws = 42 rows
+    // Total: 20 lines * 2 rows = 40 rows + 1 upper_sep + 1 input + 1 lower_sep = 43 rows
 
     // Create render context
     ik_render_ctx_t *render_ctx = NULL;
@@ -204,8 +204,8 @@ START_TEST(test_separator_row_offset_impact)
     // Should include lines 0, 1, 2 (3 lines)
     //
     // last_visible = 5, first_visible = 1
-    // offset = 42 - 1 - 5 = 36
-    repl->viewport_offset = 36;
+    // offset = 43 - 1 - 5 = 37
+    repl->viewport_offset = 37;
 
     ik_viewport_t viewport;
     res = ik_repl_calculate_viewport(repl, &viewport);

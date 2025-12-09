@@ -74,15 +74,16 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
 
     // Document structure:
     //   Lines 0-49: scrollback (50 lines)
-    //   Line 50: separator
+    //   Line 50: upper separator
     //   Line 51: input buffer
-    // Total: 52 lines
+    //   Line 52: lower separator
+    // Total: 53 lines
     //
     // Set viewport_offset to show lines 10-19 of scrollback
-    // When offset = 32, we show document lines 10-19 (all scrollback)
-    // last_visible_row = 52 - 1 - 32 = 19
+    // When offset = 33, we show document lines 10-19 (all scrollback)
+    // last_visible_row = 53 - 1 - 33 = 19
     // first_visible_row = 19 + 1 - 10 = 10
-    repl->viewport_offset = 32;
+    repl->viewport_offset = 33;
 
     // Capture stdout to verify output
     int pipefd[2];

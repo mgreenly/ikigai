@@ -51,8 +51,7 @@ When a sub-agent fails but makes progress, the orchestrator escalates to higher 
 | 4 | opus | ultrathink |
 
 **Escalation rules:**
-- Failure + progress_made → escalate and retry
-- Failure + no progress → abort
+- Failure → escalate and retry automatically
 - Max level + failure → abort (human review needed)
 
 ## Task/Fix File Format
@@ -97,8 +96,7 @@ The orchestrator:
 - Spawns sub-agent with specified model/thinking
 - Parses sub-agent JSON response
 - On success: `session.ts done`, `done.ts`, report progress, loop
-- On failure with progress: `escalate.ts`, `session.ts retry`, loop with higher capability
-- On failure without progress: `session.ts done`, report failure, stop
+- On failure: `escalate.ts`, `session.ts retry`, loop with higher capability
 - On max level failure: `session.ts done`, report max-level failure, stop
 - Reports progress: `✓ task.md [12m 15s] | Total: 25m 8s | Remaining: 52`
 
@@ -116,18 +114,8 @@ The orchestrator:
 **Response format:**
 ```json
 {"ok": true}
-{"ok": false, "reason": "...", "progress_made": true|false}
+{"ok": false, "reason": "..."}
 ```
-
-**progress_made = true** if:
-- Wrote test or implementation code
-- Made any commits
-- Fixed errors (even if new ones emerged)
-
-**progress_made = false** if:
-- Pre-conditions not met
-- Blocked on external issue
-- Same error with no change possible
 
 ## Rules
 
