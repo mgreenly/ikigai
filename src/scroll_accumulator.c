@@ -5,24 +5,19 @@
 #include <talloc.h>
 
 #include "panic.h"
-#include "wrapper.h"
-
-// Helper to get minimum of two values
-static inline int64_t min_i64(int64_t a, int64_t b)
-{
-    return (a < b) ? a : b;
-}
 
 // Create accumulator (talloc-based)
 ik_scroll_accumulator_t *ik_scroll_accumulator_create(void *parent)
 {
     assert(parent != NULL);  // LCOV_EXCL_BR_LINE
 
-    ik_scroll_accumulator_t *acc = talloc_zero_(parent, sizeof(ik_scroll_accumulator_t));
+    ik_scroll_accumulator_t *acc = talloc_zero(parent, ik_scroll_accumulator_t);
     if (acc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    acc->previous_time_ms = 0;
-    acc->accumulator = IK_SCROLL_ACCUMULATOR_MAX;
+    acc->pending = false;
+    acc->pending_dir = IK_INPUT_ARROW_UP;  // Arbitrary initial value
+    acc->pending_time_ms = 0;
+    acc->burst_threshold_ms = IK_SCROLL_BURST_THRESHOLD_MS;
 
     return acc;
 }
@@ -37,50 +32,105 @@ ik_scroll_result_t ik_scroll_accumulator_process_arrow(
     assert(acc != NULL);  // LCOV_EXCL_BR_LINE
     assert(arrow_type == IK_INPUT_ARROW_UP || arrow_type == IK_INPUT_ARROW_DOWN);  // LCOV_EXCL_BR_LINE
 
-    // Calculate elapsed time since last event
-    int64_t elapsed = timestamp_ms - acc->previous_time_ms;
-    acc->previous_time_ms = timestamp_ms;
-
-    // Check if this is a slow arrow (keyboard)
-    if (elapsed > IK_SCROLL_KEYBOARD_THRESHOLD_MS) {
-        // Emit cursor movement immediately
-        return (arrow_type == IK_INPUT_ARROW_UP)
-            ? IK_SCROLL_RESULT_ARROW_UP
-            : IK_SCROLL_RESULT_ARROW_DOWN;
+    if (!acc->pending) {
+        // First arrow after idle - buffer it
+        acc->pending = true;
+        acc->pending_dir = arrow_type;
+        acc->pending_time_ms = timestamp_ms;
+        return IK_SCROLL_RESULT_NONE;
     }
 
-    // Fast arrow - drain accumulator
-    acc->accumulator -= IK_SCROLL_ACCUMULATOR_DRAIN;
+    // There's a pending arrow - check elapsed time
+    int64_t elapsed = timestamp_ms - acc->pending_time_ms;
 
-    // Check if accumulator depleted
-    if (acc->accumulator < 1) {
-        // Reset accumulator
-        acc->accumulator = IK_SCROLL_ACCUMULATOR_MAX;
-
-        // Emit scroll
-        return (arrow_type == IK_INPUT_ARROW_UP)
+    if (elapsed <= acc->burst_threshold_ms) {
+        // Rapid follow-up = mouse wheel burst
+        ik_scroll_result_t scroll_result = (acc->pending_dir == IK_INPUT_ARROW_UP)
             ? IK_SCROLL_RESULT_SCROLL_UP
             : IK_SCROLL_RESULT_SCROLL_DOWN;
+
+        // Buffer current event as new pending
+        acc->pending_dir = arrow_type;
+        acc->pending_time_ms = timestamp_ms;
+
+        return scroll_result;
     }
 
-    // Still accumulating, swallow this event
-    return IK_SCROLL_RESULT_NONE;
+    // Slow follow-up = keyboard
+    ik_scroll_result_t arrow_result = (acc->pending_dir == IK_INPUT_ARROW_UP)
+        ? IK_SCROLL_RESULT_ARROW_UP
+        : IK_SCROLL_RESULT_ARROW_DOWN;
+
+    // Buffer current event as new pending
+    acc->pending_dir = arrow_type;
+    acc->pending_time_ms = timestamp_ms;
+
+    return arrow_result;
 }
 
-// Process a non-arrow event (refills accumulator)
-void ik_scroll_accumulator_process_other(
+// Check if timeout expired and flush pending event
+ik_scroll_result_t ik_scroll_accumulator_check_timeout(
     ik_scroll_accumulator_t *acc,
     int64_t timestamp_ms
 )
 {
     assert(acc != NULL);  // LCOV_EXCL_BR_LINE
 
-    // Calculate elapsed time since last event
-    int64_t elapsed = timestamp_ms - acc->previous_time_ms;
-    acc->previous_time_ms = timestamp_ms;
+    if (!acc->pending) {
+        return IK_SCROLL_RESULT_NONE;
+    }
 
-    // Refill accumulator (cap at max)
-    acc->accumulator = min_i64(IK_SCROLL_ACCUMULATOR_MAX, acc->accumulator + elapsed);
+    int64_t elapsed = timestamp_ms - acc->pending_time_ms;
+    if (elapsed > acc->burst_threshold_ms) {
+        // Timeout expired - flush as arrow
+        ik_scroll_result_t result = (acc->pending_dir == IK_INPUT_ARROW_UP)
+            ? IK_SCROLL_RESULT_ARROW_UP
+            : IK_SCROLL_RESULT_ARROW_DOWN;
+
+        acc->pending = false;
+        return result;
+    }
+
+    return IK_SCROLL_RESULT_NONE;
+}
+
+// Get timeout for select()
+int64_t ik_scroll_accumulator_get_timeout_ms(
+    ik_scroll_accumulator_t *acc,
+    int64_t timestamp_ms
+)
+{
+    assert(acc != NULL);  // LCOV_EXCL_BR_LINE
+
+    if (!acc->pending) {
+        return -1;  // No pending event
+    }
+
+    int64_t elapsed = timestamp_ms - acc->pending_time_ms;
+    int64_t remaining = acc->burst_threshold_ms - elapsed;
+
+    if (remaining < 0) {
+        return 0;  // Already expired
+    }
+
+    return remaining;
+}
+
+// Flush pending event immediately
+ik_scroll_result_t ik_scroll_accumulator_flush(ik_scroll_accumulator_t *acc)
+{
+    assert(acc != NULL);  // LCOV_EXCL_BR_LINE
+
+    if (!acc->pending) {
+        return IK_SCROLL_RESULT_NONE;
+    }
+
+    ik_scroll_result_t result = (acc->pending_dir == IK_INPUT_ARROW_UP)
+        ? IK_SCROLL_RESULT_ARROW_UP
+        : IK_SCROLL_RESULT_ARROW_DOWN;
+
+    acc->pending = false;
+    return result;
 }
 
 // Reset to initial state
@@ -88,6 +138,6 @@ void ik_scroll_accumulator_reset(ik_scroll_accumulator_t *acc)
 {
     assert(acc != NULL);  // LCOV_EXCL_BR_LINE
 
-    acc->previous_time_ms = 0;
-    acc->accumulator = IK_SCROLL_ACCUMULATOR_MAX;
+    acc->pending = false;
+    acc->pending_time_ms = 0;
 }

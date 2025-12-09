@@ -1,6 +1,6 @@
 /**
  * @file scroll_accumulator_test.c
- * @brief Unit tests for scroll accumulator module
+ * @brief Unit tests for scroll accumulator module (deferred detection)
  */
 
 #include "../../../src/scroll_accumulator.h"
@@ -27,193 +27,213 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-// Test 1: Slow arrow (keyboard) emits cursor
-START_TEST(test_slow_arrow_emits_cursor)
+// Test 1: First arrow is buffered (returns NONE)
+START_TEST(test_first_arrow_buffered)
 {
     ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
 
-    // Arrow after 500ms (way above 15ms threshold)
-    ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
-        acc, IK_INPUT_ARROW_UP, 500);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
-}
-END_TEST
-
-// Test 2: Three rapid arrows emit one scroll
-START_TEST(test_three_rapid_arrows_scroll)
-{
-    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
-
-    // Simulate rapid mouse wheel (3ms apart)
-    ik_scroll_result_t r;
-
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 0);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);  // elapsed=0, swallow
-
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 3);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);  // acc=10, swallow
-
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 6);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);  // acc=5-5=0, scroll!
-}
-END_TEST
-
-// Test 3: Scroll down direction
-START_TEST(test_scroll_down)
-{
-    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
-
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_DOWN, 0);
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_DOWN, 3);
-    ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
-        acc, IK_INPUT_ARROW_DOWN, 6);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_DOWN);
-}
-END_TEST
-
-// Test 4: Accumulator resets after scroll
-START_TEST(test_accumulator_resets_after_scroll)
-{
-    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
-
-    // Drain to scroll
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 0);
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 3);
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 6);  // scroll
-
-    // Next 3 should also scroll (accumulator reset to 15)
-    ik_scroll_result_t r;
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 9);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);  // acc=10
-
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 12);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);  // acc=5
-
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 15);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);  // scroll!
-}
-END_TEST
-
-// Test 5: Non-arrow key refills accumulator
-START_TEST(test_non_arrow_refills)
-{
-    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
-
-    // Start draining
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 0);
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 3);  // acc=10
-
-    // Type a character after 50ms
-    ik_scroll_accumulator_process_other(acc, 53);  // acc = min(15, 10+50) = 15
-
-    // Now need 3 more rapid arrows to scroll
-    ik_scroll_result_t r;
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 56);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);  // acc=10
-
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 59);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);  // acc=5
-
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 62);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);
-}
-END_TEST
-
-// Test 6: Key repeat (33ms) always emits cursor
-START_TEST(test_key_repeat_emits_cursor)
-{
-    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
-
-    // Simulate held arrow key at 30Hz (33ms)
-    ik_scroll_result_t r;
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 33);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
-
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 66);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
-
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 99);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
-}
-END_TEST
-
-// Test 7: First event handling (previous_time not set)
-START_TEST(test_first_event)
-{
-    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
-
-    // Very first arrow event - elapsed is large (from init time of 0)
     ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
         acc, IK_INPUT_ARROW_UP, 1000);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
+}
+END_TEST
+
+// Test 2: Rapid second arrow emits SCROLL
+START_TEST(test_rapid_second_arrow_emits_scroll)
+{
+    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
+
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1000);
+    ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
+        acc, IK_INPUT_ARROW_UP, 1001);  // 1ms later
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);
+}
+END_TEST
+
+// Test 3: Slow second arrow emits ARROW for first, buffers second
+START_TEST(test_slow_second_arrow_emits_arrow)
+{
+    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
+
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1000);
+    ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
+        acc, IK_INPUT_ARROW_UP, 1030);  // 30ms later
     ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
 }
 END_TEST
 
-// Test 8: Direction change - both emit appropriately
-START_TEST(test_direction_change)
+// Test 4: Timeout flushes pending as ARROW
+START_TEST(test_timeout_flushes_arrow)
 {
     ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
 
-    // Rapid up arrows
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 0);
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 3);
-    ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
-        acc, IK_INPUT_ARROW_UP, 6);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1000);
+    ik_scroll_result_t r = ik_scroll_accumulator_check_timeout(acc, 1015);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
+}
+END_TEST
 
-    // Rapid down arrows (accumulator was reset)
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_DOWN, 9);
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_DOWN, 12);
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_DOWN, 15);
+// Test 5: Timeout before threshold returns NONE
+START_TEST(test_timeout_before_threshold_returns_none)
+{
+    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
+
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1000);
+    ik_scroll_result_t r = ik_scroll_accumulator_check_timeout(acc, 1005);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
+}
+END_TEST
+
+// Test 6: get_timeout_ms returns correct value
+START_TEST(test_get_timeout_ms)
+{
+    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
+
+    // No pending - returns -1
+    int64_t t = ik_scroll_accumulator_get_timeout_ms(acc, 1000);
+    ck_assert_int_eq(t, -1);
+
+    // With pending at t=1000, check at t=1003 - should return 7ms
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1000);
+    t = ik_scroll_accumulator_get_timeout_ms(acc, 1003);
+    ck_assert_int_eq(t, 7);
+
+    // At t=1015 - already expired, return 0
+    t = ik_scroll_accumulator_get_timeout_ms(acc, 1015);
+    ck_assert_int_eq(t, 0);
+}
+END_TEST
+
+// Test 7: flush() emits pending ARROW
+START_TEST(test_flush_emits_arrow)
+{
+    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
+
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_DOWN, 1000);
+    ik_scroll_result_t r = ik_scroll_accumulator_flush(acc);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_DOWN);
+
+    // Second flush returns NONE
+    r = ik_scroll_accumulator_flush(acc);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
+}
+END_TEST
+
+// Test 8: Scroll direction preserved
+START_TEST(test_scroll_direction)
+{
+    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
+
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_DOWN, 1000);
+    ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
+        acc, IK_INPUT_ARROW_DOWN, 1001);
     ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_DOWN);
 }
 END_TEST
 
-// Test 9: Reset clears state
-START_TEST(test_reset)
+// Test 9: Mixed directions - each burst independent
+START_TEST(test_mixed_directions)
 {
     ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
 
-    // Drain partially
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 0);
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 3);
+    // Up burst
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1000);
+    ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
+        acc, IK_INPUT_ARROW_UP, 1001);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);
 
-    // Reset
+    // Wait, then down burst
+    ik_scroll_accumulator_check_timeout(acc, 1050);  // Flush any pending
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_DOWN, 1100);
+    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_DOWN, 1101);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_DOWN);
+}
+END_TEST
+
+// Test 10: Reset clears pending
+START_TEST(test_reset_clears_pending)
+{
+    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
+
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1000);
     ik_scroll_accumulator_reset(acc);
 
-    // Should need 3 arrows again
-    ik_scroll_result_t r;
-    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 100);
-    // After reset, elapsed from 0 to 100 is large, so emit cursor
+    // Timeout should return NONE (nothing pending)
+    ik_scroll_result_t r = ik_scroll_accumulator_check_timeout(acc, 1020);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
+}
+END_TEST
+
+// Test 11: Continuous scroll (rapid second event also buffers)
+START_TEST(test_continuous_scroll)
+{
+    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
+
+    // Arrow 1
+    ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
+        acc, IK_INPUT_ARROW_UP, 1000);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);  // buffered
+
+    // Arrow 2 rapid - emits SCROLL, buffers Arrow 2
+    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1001);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);
+
+    // Arrow 3 rapid - emits SCROLL, buffers Arrow 3
+    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1002);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);
+
+    // Timeout flushes last pending arrow
+    r = ik_scroll_accumulator_check_timeout(acc, 1020);
     ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
 }
 END_TEST
 
-// Test 10: Exactly at threshold (15ms) - should drain accumulator
-START_TEST(test_at_threshold_drains)
+// Test 12: Key repeat (30ms intervals) - each emits ARROW
+START_TEST(test_key_repeat)
 {
     ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
 
-    // Set baseline
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 0);
+    ik_scroll_result_t r;
 
-    // Exactly 15ms later - NOT > 15, so drains accumulator
-    ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
-        acc, IK_INPUT_ARROW_UP, 15);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);  // acc=10, swallow
+    // First arrow buffered
+    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1000);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
+
+    // Second arrow 30ms later - slow, emits ARROW for first
+    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1030);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
+
+    // Third arrow 30ms later
+    r = ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1060);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
+
+    // Flush last pending
+    r = ik_scroll_accumulator_check_timeout(acc, 1080);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
 }
 END_TEST
 
-// Test 11: Just above threshold (16ms) - should emit cursor
-START_TEST(test_above_threshold_emits_cursor)
+// Test 13: Exactly at threshold (10ms)
+START_TEST(test_at_threshold)
 {
     ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
 
-    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 0);
-
-    // 16ms later - above threshold
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1000);
     ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
-        acc, IK_INPUT_ARROW_UP, 16);
+        acc, IK_INPUT_ARROW_UP, 1010);  // exactly 10ms
+    // Spec says "<= 10ms" is burst
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);
+}
+END_TEST
+
+// Test 14: Just above threshold (11ms)
+START_TEST(test_above_threshold)
+{
+    ik_scroll_accumulator_t *acc = ik_scroll_accumulator_create(ctx);
+
+    ik_scroll_accumulator_process_arrow(acc, IK_INPUT_ARROW_UP, 1000);
+    ik_scroll_result_t r = ik_scroll_accumulator_process_arrow(
+        acc, IK_INPUT_ARROW_UP, 1011);  // 11ms - above threshold
     ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
 }
 END_TEST
@@ -229,17 +249,20 @@ static Suite *scroll_accumulator_suite(void)
     tc_core = tcase_create("Core");
 
     tcase_add_checked_fixture(tc_core, setup, teardown);
-    tcase_add_test(tc_core, test_slow_arrow_emits_cursor);
-    tcase_add_test(tc_core, test_three_rapid_arrows_scroll);
-    tcase_add_test(tc_core, test_scroll_down);
-    tcase_add_test(tc_core, test_accumulator_resets_after_scroll);
-    tcase_add_test(tc_core, test_non_arrow_refills);
-    tcase_add_test(tc_core, test_key_repeat_emits_cursor);
-    tcase_add_test(tc_core, test_first_event);
-    tcase_add_test(tc_core, test_direction_change);
-    tcase_add_test(tc_core, test_reset);
-    tcase_add_test(tc_core, test_at_threshold_drains);
-    tcase_add_test(tc_core, test_above_threshold_emits_cursor);
+    tcase_add_test(tc_core, test_first_arrow_buffered);
+    tcase_add_test(tc_core, test_rapid_second_arrow_emits_scroll);
+    tcase_add_test(tc_core, test_slow_second_arrow_emits_arrow);
+    tcase_add_test(tc_core, test_timeout_flushes_arrow);
+    tcase_add_test(tc_core, test_timeout_before_threshold_returns_none);
+    tcase_add_test(tc_core, test_get_timeout_ms);
+    tcase_add_test(tc_core, test_flush_emits_arrow);
+    tcase_add_test(tc_core, test_scroll_direction);
+    tcase_add_test(tc_core, test_mixed_directions);
+    tcase_add_test(tc_core, test_reset_clears_pending);
+    tcase_add_test(tc_core, test_continuous_scroll);
+    tcase_add_test(tc_core, test_key_repeat);
+    tcase_add_test(tc_core, test_at_threshold);
+    tcase_add_test(tc_core, test_above_threshold);
 
     suite_add_tcase(s, tc_core);
 

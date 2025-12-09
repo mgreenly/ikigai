@@ -3,6 +3,7 @@
 #include "db/message.h"
 #include "event_render.h"
 #include "input.h"
+#include "logger.h"
 #include "openai/client_multi.h"
 #include "panic.h"
 #include "repl.h"
@@ -19,6 +20,21 @@
 #include <talloc.h>
 #include <time.h>
 
+// Debug helper: convert input action type to string
+static const char *input_action_type_str(ik_input_action_type_t type)
+{
+    switch (type) {
+        case IK_INPUT_ARROW_UP: return "ARROW_UP";
+        case IK_INPUT_ARROW_DOWN: return "ARROW_DOWN";
+        case IK_INPUT_SCROLL_UP: return "SCROLL_UP";
+        case IK_INPUT_SCROLL_DOWN: return "SCROLL_DOWN";
+        case IK_INPUT_PAGE_UP: return "PAGE_UP";
+        case IK_INPUT_PAGE_DOWN: return "PAGE_DOWN";
+        case IK_INPUT_UNKNOWN: return "UNKNOWN";
+        default: return "OTHER";
+    }
+}
+
 // Forward declarations
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl);
 static void persist_assistant_msg(ik_repl_ctx_t *repl);
@@ -34,8 +50,17 @@ long calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
     pthread_mutex_unlock_(&repl->tool_thread_mutex);
     long tool_poll_timeout_ms = (current_state == IK_REPL_STATE_EXECUTING_TOOL) ? 50 : -1;
 
-    // Collect all timeouts (scroll accumulator has no timeout)
-    long timeouts[] = {spinner_timeout_ms, curl_timeout_ms, tool_poll_timeout_ms};
+    // Scroll accumulator timeout: get time until pending arrow must flush
+    long scroll_timeout_ms = -1;
+    if (repl->scroll_acc != NULL) {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+        scroll_timeout_ms = ik_scroll_accumulator_get_timeout_ms(repl->scroll_acc, now_ms);
+    }
+
+    // Collect all timeouts
+    long timeouts[] = {spinner_timeout_ms, curl_timeout_ms, tool_poll_timeout_ms, scroll_timeout_ms};
     long min_timeout = -1;
 
     for (size_t i = 0; i < sizeof(timeouts) / sizeof(timeouts[0]); i++) {
@@ -101,6 +126,16 @@ res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_e
     // Parse and process action
     ik_input_action_t action;
     ik_input_parse_byte(repl->input_parser, byte, &action);
+
+    // Debug: log input events (scroll/arrow only to reduce noise)
+    if (action.type == IK_INPUT_ARROW_UP || action.type == IK_INPUT_ARROW_DOWN ||
+        action.type == IK_INPUT_SCROLL_UP || action.type == IK_INPUT_SCROLL_DOWN) {
+        yyjson_mut_doc *doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "input_parsed");
+        yyjson_mut_obj_add_str(doc, root, "type", input_action_type_str(action.type));
+        ik_log_debug_json(doc);
+    }
 
     res_t result = ik_repl_process_action(repl, &action);
     // Unreachable: input parser sanitizes codepoints. (See test_repl_process_action_invalid_codepoint)

@@ -218,5 +218,30 @@
     "event": "start",
     "task": "arrow-burst-integration.md",
     "time": "2025-12-09T05:32:15.786Z"
+  },
+  {
+    "event": "done",
+    "task": "arrow-burst-integration.md",
+    "time": "2025-12-09T05:44:56.741Z"
+  },
+  {
+    "event": "start",
+    "task": "scroll-accumulator-rewrite.md",
+    "time": "2025-12-09T14:06:29.416Z"
+  },
+  {
+    "event": "done",
+    "task": "scroll-accumulator-rewrite.md",
+    "time": "2025-12-09T14:17:04.235Z"
+  },
+  {
+    "event": "start",
+    "task": "scroll-deferred-detection.md",
+    "time": "2025-12-09T16:23:29.681Z"
+  },
+  {
+    "event": "retry",
+    "task": "scroll-deferred-detection.md",
+    "time": "2025-12-09T16:40:04.218Z"
   }
 ]

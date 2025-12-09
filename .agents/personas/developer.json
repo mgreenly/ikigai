@@ -2,6 +2,7 @@
   "default",
   "errors",
   "git",
+  "log",
   "naming",
   "quality",
   "style",

@@ -30,11 +30,9 @@ static res_t load_history_entry_(ik_repl_ctx_t *repl, const char *entry)
 }
 
 /**
- * @brief Handle arrow up action - viewport scroll, completion navigation, history navigation, or cursor up
+ * @brief Handle arrow up action - completion navigation or cursor up
  *
- * When viewport_offset > 0, scrolls the viewport up instead of navigating history.
- * This allows scroll wheel (which sends arrow sequences in alternate scroll mode)
- * to scroll the viewport naturally.
+ * Arrow keys ONLY move cursor. History navigation is Ctrl+P/N only.
  *
  * @param repl REPL context
  * @return res_t Result
@@ -100,11 +98,9 @@ res_t ik_repl_handle_arrow_up_action(ik_repl_ctx_t *repl)
 }
 
 /**
- * @brief Handle arrow down action - viewport scroll, completion navigation, history navigation, or cursor down
+ * @brief Handle arrow down action - completion navigation or cursor down
  *
- * When viewport_offset > 0, scrolls the viewport down instead of navigating history.
- * This allows scroll wheel (which sends arrow sequences in alternate scroll mode)
- * to scroll the viewport naturally.
+ * Arrow keys ONLY move cursor. History navigation is Ctrl+P/N only.
  *
  * @param repl REPL context
  * @return res_t Result

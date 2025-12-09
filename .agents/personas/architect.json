@@ -3,6 +3,7 @@
   "default",
   "di",
   "errors",
+  "log",
   "meta",
   "naming",
   "patterns/adapter",

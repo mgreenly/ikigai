@@ -1,10 +1,10 @@
 {
   "todo": [
     {
-      "task": "arrow-burst-integration.md",
+      "task": "scroll-deferred-detection.md",
       "group": "Bug Fix",
       "model": "sonnet",
-      "thinking": "high"
+      "thinking": "thinking"
     },
     {
       "task": "agent-ctx-struct.md",
@@ -403,6 +403,18 @@
       "group": "Bug Fix",
       "model": "sonnet",
       "thinking": "high"
+    },
+    {
+      "task": "arrow-burst-integration.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "high"
+    },
+    {
+      "task": "scroll-accumulator-rewrite.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "low"
     }
   ]
 }

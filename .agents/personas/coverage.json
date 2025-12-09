@@ -3,6 +3,7 @@
   "default",
   "errors",
   "lcov",
+  "log",
   "mocking",
   "naming",
   "quality-strict",

@@ -4,6 +4,7 @@
 #include "repl.h"
 #include "shared.h"
 #include "history.h"
+#include "logger.h"
 #include "scrollback.h"
 #include "input_buffer/core.h"
 #include <assert.h>
@@ -65,26 +66,34 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             case IK_SCROLL_RESULT_SCROLL_DOWN:
                 return ik_repl_handle_scroll_down_action(repl);
             case IK_SCROLL_RESULT_ARROW_UP:
-                ik_repl_dismiss_completion(repl);
-                repl->viewport_offset = 0;
-                return ik_input_buffer_cursor_up(repl->input_buffer);
+                // Fall through to handle as normal arrow up
+                break;
             case IK_SCROLL_RESULT_ARROW_DOWN:
-                ik_repl_dismiss_completion(repl);
-                repl->viewport_offset = 0;
-                return ik_input_buffer_cursor_down(repl->input_buffer);
+                // Fall through to handle as normal arrow down
+                break;
             case IK_SCROLL_RESULT_NONE:
-                // Swallowed (rapid arrow, not yet scroll)
+                // Buffered, waiting for more
+                // Reset viewport_offset speculatively (keyboard arrows should autoscroll)
+                // If this turns out to be mouse scroll, the scroll handler will adjust it
+                repl->viewport_offset = 0;
                 return OK(NULL);
         }
     }
 
-    // Process non-arrow events through scroll accumulator for refilling
+    // For non-arrow events, flush any pending arrow
     if (repl->scroll_acc != NULL && action->type != IK_INPUT_ARROW_UP &&
-        action->type != IK_INPUT_ARROW_DOWN) {
-        struct timespec ts;
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-        ik_scroll_accumulator_process_other(repl->scroll_acc, now_ms);
+        action->type != IK_INPUT_ARROW_DOWN && action->type != IK_INPUT_UNKNOWN) {
+        ik_scroll_result_t flush_result = ik_scroll_accumulator_flush(repl->scroll_acc);
+
+        // If we flushed an arrow, handle it directly (don't go through scroll_acc again)
+        if (flush_result == IK_SCROLL_RESULT_ARROW_UP) {
+            res_t r = ik_repl_handle_arrow_up_action(repl);
+            if (is_err(&r)) return r;  // LCOV_EXCL_BR_LINE
+        } else if (flush_result == IK_SCROLL_RESULT_ARROW_DOWN) {
+            res_t r = ik_repl_handle_arrow_down_action(repl);
+            if (is_err(&r)) return r;  // LCOV_EXCL_BR_LINE
+        }
+        // Then continue processing the current event
     }
 
     switch (action->type) { // LCOV_EXCL_BR_LINE
