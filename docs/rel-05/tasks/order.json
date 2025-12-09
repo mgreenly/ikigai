@@ -1,6 +1,12 @@
 {
   "todo": [
     {
+      "task": "arrow-burst-integration.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "high"
+    },
+    {
       "task": "agent-ctx-struct.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
@@ -269,6 +275,48 @@
       "group": "Notification System",
       "model": "sonnet",
       "thinking": "low"
+    },
+    {
+      "task": "render-buffer-reuse.md",
+      "group": "Render Performance",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "render-batch-newlines.md",
+      "group": "Render Performance",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "render-dirty-regions.md",
+      "group": "Render Performance",
+      "model": "opus",
+      "thinking": "high"
+    },
+    {
+      "task": "render-scrollback-bsearch.md",
+      "group": "Render Performance",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "render-escape-direct.md",
+      "group": "Render Performance",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "render-ascii-width-fast.md",
+      "group": "Render Performance",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "render-sync-output.md",
+      "group": "Render Performance",
+      "model": "sonnet",
+      "thinking": "low"
     }
   ],
   "done": [
@@ -349,6 +397,12 @@
       "group": "Bug Fix",
       "model": "opus",
       "thinking": "low"
+    },
+    {
+      "task": "arrow-burst-detector.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "high"
     }
   ]
 }

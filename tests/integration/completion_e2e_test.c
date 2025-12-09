@@ -113,7 +113,7 @@ static void type_str(ik_repl_ctx_t *repl, const char *s) {
 static void press_tab(ik_repl_ctx_t *r) { ik_input_action_t a = {.type = IK_INPUT_TAB}; ik_repl_process_action(r, &a); }
 static void press_esc(ik_repl_ctx_t *r) { ik_input_action_t a = {.type = IK_INPUT_ESCAPE}; ik_repl_process_action(r, &a); }
 static void __attribute__((unused)) press_down(ik_repl_ctx_t *r) { ik_input_action_t a = {.type = IK_INPUT_ARROW_DOWN}; ik_repl_process_action(r, &a); }
-static void press_up(ik_repl_ctx_t *r) { ik_input_action_t a = {.type = IK_INPUT_ARROW_UP}; ik_repl_process_action(r, &a); }
+// Removed press_up - use Ctrl+P for history navigation (rel-05)
 
 /* Test: Full command completion workflow */
 START_TEST(test_completion_full_workflow)
@@ -272,7 +272,9 @@ START_TEST(test_completion_history_no_conflict)
     ck_assert(!ik_history_is_browsing(repl->shared->history));
 
     ik_input_buffer_clear(repl->input_buffer);
-    press_up(repl);
+    // Use Ctrl+P for explicit history navigation (rel-05: arrow keys now handled by burst detector)
+    ik_input_action_t hist_action = {.type = IK_INPUT_CTRL_P};
+    ik_repl_process_action(repl, &hist_action);
     ck_assert(ik_history_is_browsing(repl->shared->history));
 
     ik_repl_cleanup(repl);

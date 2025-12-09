@@ -203,5 +203,20 @@
     "event": "start",
     "task": "agent-ctx-struct.md",
     "time": "2025-12-09T00:31:19.537Z"
+  },
+  {
+    "event": "start",
+    "task": "arrow-burst-detector.md",
+    "time": "2025-12-09T05:14:51.831Z"
+  },
+  {
+    "event": "done",
+    "task": "arrow-burst-detector.md",
+    "time": "2025-12-09T05:32:00.103Z"
+  },
+  {
+    "event": "start",
+    "task": "arrow-burst-integration.md",
+    "time": "2025-12-09T05:32:15.786Z"
   }
 ]

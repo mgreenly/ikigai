@@ -68,11 +68,31 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             break;
         }
 
-        // Handle timeout (spinner animation)
+        // Handle timeout (spinner animation and arrow burst)
         // Note: Don't continue here - curl events must still be processed
-        if (ready == 0 && repl->spinner_state.visible) {
-            ik_spinner_advance(&repl->spinner_state);
-            CHECK(ik_repl_render_frame(repl));
+        if (ready == 0) {
+            // Advance spinner if visible
+            if (repl->spinner_state.visible) {
+                ik_spinner_advance(&repl->spinner_state);
+                CHECK(ik_repl_render_frame(repl));
+            }
+
+            // Check arrow burst timeout
+            if (repl->arrow_detector != NULL) {
+                struct timespec ts;
+                clock_gettime(CLOCK_MONOTONIC, &ts);
+                int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+                ik_arrow_burst_result_t burst_result = ik_arrow_burst_check_timeout(
+                    repl->arrow_detector, now_ms);
+
+                if (burst_result == IK_ARROW_BURST_RESULT_CURSOR_UP) {
+                    ik_input_buffer_cursor_up(repl->input_buffer);
+                    CHECK(ik_repl_render_frame(repl));
+                } else if (burst_result == IK_ARROW_BURST_RESULT_CURSOR_DOWN) {
+                    ik_input_buffer_cursor_down(repl->input_buffer);
+                    CHECK(ik_repl_render_frame(repl));
+                }
+            }
         }
 
         // Handle debug pipes

@@ -5,6 +5,7 @@
 #include "render.h"
 #include "input_buffer/core.h"
 #include "input.h"
+#include "arrow_burst.h"
 #include "scrollback.h"
 #include "layer.h"
 #include "layer_wrappers.h"
@@ -54,6 +55,7 @@ typedef struct ik_repl_ctx_t {
     ik_scrollback_t *scrollback;      // Scrollback buffer (Phase 4)
     size_t viewport_offset;           // Physical row offset for scrolling (0 = bottom)
     atomic_bool quit;           // Exit flag (atomic for thread safety)
+    ik_arrow_burst_detector_t *arrow_detector;  // Arrow burst detector (rel-05)
 
     // Layer-based rendering (Phase 1.3)
     ik_layer_cake_t *layer_cake;      // Layer cake manager

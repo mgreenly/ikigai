@@ -7,6 +7,7 @@
 #include "scrollback.h"
 #include "input_buffer/core.h"
 #include <assert.h>
+#include <time.h>
 
 /**
  * @brief Append multi-line output to scrollback (splits by newlines)
@@ -44,6 +45,38 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(action != NULL);   /* LCOV_EXCL_BR_LINE */
+
+    // Intercept arrow up/down events for burst detection (rel-05)
+    if ((action->type == IK_INPUT_ARROW_UP || action->type == IK_INPUT_ARROW_DOWN) &&
+        repl->arrow_detector != NULL) {
+        // Get current time for burst detection
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+
+        // Process through arrow burst detector
+        ik_arrow_burst_result_t result = ik_arrow_burst_process(
+            repl->arrow_detector, action->type, now_ms);
+
+        // Route based on burst detection result
+        switch (result) {  // LCOV_EXCL_BR_LINE
+            case IK_ARROW_BURST_RESULT_SCROLL_UP:
+                return ik_repl_handle_scroll_up_action(repl);
+            case IK_ARROW_BURST_RESULT_SCROLL_DOWN:
+                return ik_repl_handle_scroll_down_action(repl);
+            case IK_ARROW_BURST_RESULT_CURSOR_UP:
+                ik_repl_dismiss_completion(repl);
+                repl->viewport_offset = 0;
+                return ik_input_buffer_cursor_up(repl->input_buffer);
+            case IK_ARROW_BURST_RESULT_CURSOR_DOWN:
+                ik_repl_dismiss_completion(repl);
+                repl->viewport_offset = 0;
+                return ik_input_buffer_cursor_down(repl->input_buffer);
+            case IK_ARROW_BURST_RESULT_NONE:
+                // Still buffering, don't process yet
+                return OK(NULL);
+        }
+    }
 
     switch (action->type) { // LCOV_EXCL_BR_LINE
         case IK_INPUT_CHAR: {
@@ -117,6 +150,10 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
         case IK_INPUT_CTRL_K:
             repl->viewport_offset = 0;
             return ik_input_buffer_kill_to_line_end(repl->input_buffer);
+        case IK_INPUT_CTRL_N:
+            return ik_repl_handle_history_next_action(repl);
+        case IK_INPUT_CTRL_P:
+            return ik_repl_handle_history_prev_action(repl);
         case IK_INPUT_CTRL_U:
             repl->viewport_offset = 0;
             return ik_input_buffer_kill_line(repl->input_buffer);

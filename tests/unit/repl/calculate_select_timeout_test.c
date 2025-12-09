@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include "repl.h"
 #include "repl_event_handlers.h"
+#include "arrow_burst.h"
 #include "wrapper.h"
 
 /* Test fixtures */
@@ -25,6 +26,9 @@ static void setup(void)
 
     /* Set initial state */
     repl->state = IK_REPL_STATE_IDLE;
+
+    /* Initialize arrow burst detector (rel-05) */
+    repl->arrow_detector = ik_arrow_burst_create(repl);
 }
 
 static void teardown(void)
