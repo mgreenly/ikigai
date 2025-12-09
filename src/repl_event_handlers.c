@@ -23,14 +23,6 @@
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl);
 static void persist_assistant_msg(ik_repl_ctx_t *repl);
 
-// Get monotonic time in milliseconds
-static int64_t get_monotonic_time_ms(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-}
-
 long calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
 {
     // Spinner timer: 80ms when visible, no timeout when hidden
@@ -42,16 +34,8 @@ long calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
     pthread_mutex_unlock_(&repl->tool_thread_mutex);
     long tool_poll_timeout_ms = (current_state == IK_REPL_STATE_EXECUTING_TOOL) ? 50 : -1;
 
-    // Arrow burst timeout: check if detector has pending events
-    long arrow_burst_timeout_ms = -1;
-    if (repl->arrow_detector != NULL) {
-        int64_t now_ms = get_monotonic_time_ms();
-        int64_t burst_timeout = ik_arrow_burst_get_timeout_ms(repl->arrow_detector, now_ms);
-        arrow_burst_timeout_ms = (burst_timeout >= 0) ? (long)burst_timeout : -1;
-    }
-
-    // Collect all timeouts
-    long timeouts[] = {spinner_timeout_ms, curl_timeout_ms, tool_poll_timeout_ms, arrow_burst_timeout_ms};
+    // Collect all timeouts (scroll accumulator has no timeout)
+    long timeouts[] = {spinner_timeout_ms, curl_timeout_ms, tool_poll_timeout_ms};
     long min_timeout = -1;
 
     for (size_t i = 0; i < sizeof(timeouts) / sizeof(timeouts[0]); i++) {

@@ -77,22 +77,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
                 CHECK(ik_repl_render_frame(repl));
             }
 
-            // Check arrow burst timeout
-            if (repl->arrow_detector != NULL) {
-                struct timespec ts;
-                clock_gettime(CLOCK_MONOTONIC, &ts);
-                int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-                ik_arrow_burst_result_t burst_result = ik_arrow_burst_check_timeout(
-                    repl->arrow_detector, now_ms);
-
-                if (burst_result == IK_ARROW_BURST_RESULT_CURSOR_UP) {
-                    ik_input_buffer_cursor_up(repl->input_buffer);
-                    CHECK(ik_repl_render_frame(repl));
-                } else if (burst_result == IK_ARROW_BURST_RESULT_CURSOR_DOWN) {
-                    ik_input_buffer_cursor_down(repl->input_buffer);
-                    CHECK(ik_repl_render_frame(repl));
-                }
-            }
+            // Scroll accumulator has no timeout to check (synchronous algorithm)
         }
 
         // Handle debug pipes

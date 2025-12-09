@@ -65,8 +65,8 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Initialize viewport offset to 0 (at bottom)
     repl->viewport_offset = 0;
 
-    // Initialize arrow burst detector (rel-05)
-    repl->arrow_detector = ik_arrow_burst_create(repl);
+    // Initialize scroll accumulator (rel-05)
+    repl->scroll_acc = ik_scroll_accumulator_create(repl);
 
     // Set quit flag to false
     repl->quit = false;

@@ -179,13 +179,14 @@ END_TEST START_TEST(test_autoscroll_on_cursor_navigation)
         test_action_autoscrolls(&left_right_actions[i], true);
     }
 
-    // Arrow up/down should NOT autoscroll - they scroll the viewport instead
+    // Arrow up/down with slow timing (keyboard) SHOULD autoscroll and move cursor
+    // Mouse scroll (rapid arrows) would NOT autoscroll, but this test sends slow arrows
     ik_input_action_t up_down_actions[] = {
         { .type = IK_INPUT_ARROW_UP },
         { .type = IK_INPUT_ARROW_DOWN }
     };
     for (size_t i = 0; i < sizeof(up_down_actions) / sizeof(up_down_actions[0]); i++) {
-        test_action_autoscrolls(&up_down_actions[i], false);
+        test_action_autoscrolls(&up_down_actions[i], true);
     }
 }
 
