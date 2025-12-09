@@ -176,28 +176,6 @@ res_t ik_scrollback_find_logical_line_at_physical_row(ik_scrollback_t *scrollbac
                                                       size_t *row_offset_out);
 
 /**
- * @brief Get byte offset at a given physical row within a logical line
- *
- * For a wrapped line, finds the byte offset where the specified physical
- * row begins. Used for partial line rendering when scrolling.
- *
- * @param scrollback Scrollback buffer
- * @param line_index Logical line index (0-based)
- * @param row_offset Physical row within line (0 = first row)
- * @param byte_offset_out Pointer to receive byte offset
- * @return RES_OK on success, RES_ERR if row_offset >= line's physical_lines
- *
- * Assertions:
- * - scrollback must not be NULL
- * - line_index must be < line count
- * - byte_offset_out must not be NULL
- */
-res_t ik_scrollback_get_byte_offset_at_row(ik_scrollback_t *scrollback,
-                                           size_t line_index,
-                                           size_t row_offset,
-                                           size_t *byte_offset_out);
-
-/**
  * @brief Clear all lines from the scrollback buffer
  *
  * Removes all lines from the scrollback buffer, resetting it to an empty state.

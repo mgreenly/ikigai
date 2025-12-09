@@ -363,64 +363,6 @@ res_t ik_scrollback_find_logical_line_at_physical_row(
                physical_row);
 }
 
-res_t ik_scrollback_get_byte_offset_at_row(ik_scrollback_t *scrollback,
-                                           size_t line_index,
-                                           size_t row_offset,
-                                           size_t *byte_offset_out)
-{
-    assert(scrollback != NULL);       // LCOV_EXCL_BR_LINE
-    assert(line_index < scrollback->count);  // LCOV_EXCL_BR_LINE
-    assert(byte_offset_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    // Row 0 always starts at byte 0
-    if (row_offset == 0) {
-        *byte_offset_out = 0;
-        return OK(NULL);
-    }
-
-    // Check row_offset is valid
-    if (row_offset >= scrollback->layouts[line_index].physical_lines) {
-        return ERR(scrollback, INVALID_ARG, "row_offset exceeds line's physical rows");
-    }
-
-    // Get line text
-    const char *text = scrollback->text_buffer + scrollback->text_offsets[line_index];
-    size_t text_len = scrollback->text_lengths[line_index];
-    int32_t terminal_width = scrollback->cached_width;
-
-    // Target column = row_offset * terminal_width
-    size_t target_col = row_offset * (size_t)terminal_width;
-
-    // Walk UTF-8 text counting display columns until we reach target
-    size_t byte_pos = 0;
-    size_t col = 0;
-
-    while (byte_pos < text_len && col < target_col) {
-        // Decode UTF-8 codepoint
-        utf8proc_int32_t cp;
-        utf8proc_ssize_t bytes = utf8proc_iterate(
-            (const utf8proc_uint8_t *)(text + byte_pos),
-            (utf8proc_ssize_t)(text_len - byte_pos),
-            &cp);
-
-        if (bytes <= 0) {
-            // Invalid UTF-8 - treat as 1 byte, 1 col
-            byte_pos++;
-            col++;
-        } else {
-            // Get display width
-            int32_t width = utf8proc_charwidth(cp);
-            if (width > 0) {
-                col += (size_t)width;
-            }
-            byte_pos += (size_t)bytes;
-        }
-    }
-
-    *byte_offset_out = byte_pos;
-    return OK(NULL);
-}
-
 void ik_scrollback_clear(ik_scrollback_t *scrollback)
 {
     assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE

@@ -83,17 +83,8 @@ static void scrollback_render(const ik_layer_t *layer,
         res = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
         (void)res;  // Suppress unused variable warning
 
-        // For first line, skip bytes for start_row_offset
-        size_t render_start = 0;
-        if (i == start_line_idx && start_row_offset > 0) {
-            res = ik_scrollback_get_byte_offset_at_row(scrollback, i, start_row_offset, &render_start);
-            if (is_err(&res)) {
-                render_start = 0;  // Fallback to full line
-            }
-        }
-
-        // Copy line text from render_start, converting \n to \r\n
-        for (size_t j = render_start; j < line_len; j++) {
+        // Copy line text, converting \n to \r\n
+        for (size_t j = 0; j < line_len; j++) {
             if (line_text[j] == '\n') {
                 ik_output_buffer_append(output, "\r\n", 2);
             } else {

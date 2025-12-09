@@ -252,101 +252,6 @@ START_TEST(test_scrollback_find_line_out_of_range)
 
 END_TEST
 
-// Test 1: Get byte offset at row 0 (should be 0)
-START_TEST(test_get_byte_offset_at_row_zero)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_scrollback_t *sb = ik_scrollback_create(ctx, 10);  // 10 cols wide
-    // "Hello World!" = 12 chars, wraps to 2 rows at width 10
-    res_t res = ik_scrollback_append_line(sb, "Hello World!", 12);
-    ck_assert(is_ok(&res));
-
-    size_t byte_offset = 999;
-    res = ik_scrollback_get_byte_offset_at_row(sb, 0, 0, &byte_offset);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_eq(byte_offset, 0);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test 2: Get byte offset at row 1 of wrapped line
-START_TEST(test_get_byte_offset_at_row_one)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_scrollback_t *sb = ik_scrollback_create(ctx, 10);
-    // "Hello World!" wraps: "Hello Worl" (row 0), "d!" (row 1)
-    res_t res = ik_scrollback_append_line(sb, "Hello World!", 12);
-    ck_assert(is_ok(&res));
-
-    size_t byte_offset = 0;
-    res = ik_scrollback_get_byte_offset_at_row(sb, 0, 1, &byte_offset);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_eq(byte_offset, 10);  // Start at "d!"
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test 3: UTF-8 handling (multi-byte chars)
-START_TEST(test_get_byte_offset_at_row_utf8)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_scrollback_t *sb = ik_scrollback_create(ctx, 5);
-    // "héllo" = 6 bytes (é is 2 bytes), 5 display cols, fits in 1 row
-    // "héllo wörld" = 13 bytes, 11 display cols, wraps to 3 rows at width 5
-    res_t res = ik_scrollback_append_line(sb, "héllo wörld", 13);
-    ck_assert(is_ok(&res));
-
-    size_t byte_offset = 0;
-    res = ik_scrollback_get_byte_offset_at_row(sb, 0, 1, &byte_offset);
-    ck_assert(is_ok(&res));
-    // Row 0: "héllo" (6 bytes, 5 cols)
-    // Row 1 starts at byte 6
-    ck_assert_uint_eq(byte_offset, 6);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test 4: Row beyond line's physical rows returns error
-START_TEST(test_get_byte_offset_at_row_out_of_range)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_scrollback_t *sb = ik_scrollback_create(ctx, 10);
-    res_t res = ik_scrollback_append_line(sb, "Short", 5);  // 1 row
-    ck_assert(is_ok(&res));
-
-    size_t byte_offset = 0;
-    res = ik_scrollback_get_byte_offset_at_row(sb, 0, 1, &byte_offset);
-    ck_assert(is_err(&res));
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test 5: Wide characters (CJK) - each takes 2 columns
-START_TEST(test_get_byte_offset_at_row_wide_chars)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_scrollback_t *sb = ik_scrollback_create(ctx, 6);
-    // "日本語" = 9 bytes, 6 display cols (each char is 3 bytes, 2 cols)
-    // At width 6, fits in 1 row
-    // "日本語x" = 10 bytes, 7 cols, wraps to 2 rows
-    res_t res = ik_scrollback_append_line(sb, "日本語x", 10);
-    ck_assert(is_ok(&res));
-
-    size_t byte_offset = 0;
-    res = ik_scrollback_get_byte_offset_at_row(sb, 0, 1, &byte_offset);
-    ck_assert(is_ok(&res));
-    // Row 0: "日本語" (9 bytes, 6 cols)
-    // Row 1: "x" starts at byte 9
-    ck_assert_uint_eq(byte_offset, 9);
-
-    talloc_free(ctx);
-}
-END_TEST
-
 static Suite *scrollback_query_suite(void)
 {
     Suite *s = suite_create("Scrollback Query");
@@ -363,11 +268,6 @@ static Suite *scrollback_query_suite(void)
     tcase_add_test(tc_core, test_scrollback_find_line_single);
     tcase_add_test(tc_core, test_scrollback_find_line_wrapping);
     tcase_add_test(tc_core, test_scrollback_find_line_out_of_range);
-    tcase_add_test(tc_core, test_get_byte_offset_at_row_zero);
-    tcase_add_test(tc_core, test_get_byte_offset_at_row_one);
-    tcase_add_test(tc_core, test_get_byte_offset_at_row_utf8);
-    tcase_add_test(tc_core, test_get_byte_offset_at_row_out_of_range);
-    tcase_add_test(tc_core, test_get_byte_offset_at_row_wide_chars);
 
     suite_add_tcase(s, tc_core);
     return s;

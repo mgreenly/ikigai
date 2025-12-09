@@ -187,31 +187,6 @@ END_TEST START_TEST(test_scrollback_render_end_row_beyond_content)
 
 END_TEST
 
-// Test that scrollback render respects start_row_offset
-START_TEST(test_scrollback_layer_render_with_row_offset)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    // Setup: Create scrollback with a line that wraps
-    ik_scrollback_t *sb = ik_scrollback_create(ctx, 10);
-    ik_scrollback_append_line(sb, "AAAAAAAAAA", 10);  // Line 0: 1 row (physical row 0)
-    ik_scrollback_append_line(sb, "BBBBBBBBBBCCCCCCCCCC", 20);  // Line 1: 2 rows (physical rows 1-2)
-
-    // Create layer
-    ik_layer_t *layer = ik_scrollback_layer_create(ctx, "scrollback", sb);
-
-    // Render starting at physical row 2 (second row of line 1)
-    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 256);
-    layer->render(layer, output, 10, 2, 1);  // start_row=2, row_count=1
-
-    // Should render "CCCCCCCCCC" (second physical row of line 1), not "BBBBBBBBBB..."
-    // Note: render adds \r\n after each line
-    ck_assert_str_eq(output->data, "CCCCCCCCCC\r\n");
-
-    talloc_free(ctx);
-}
-END_TEST
-
 static Suite *scrollback_layer_suite(void)
 {
     Suite *s = suite_create("Scrollback Layer");
@@ -226,7 +201,6 @@ static Suite *scrollback_layer_suite(void)
     tcase_add_test(tc_core, test_scrollback_layer_render_start_row_beyond_content);
     tcase_add_test(tc_core, test_scrollback_layer_render_newline_conversion);
     tcase_add_test(tc_core, test_scrollback_render_end_row_beyond_content);
-    tcase_add_test(tc_core, test_scrollback_layer_render_with_row_offset);
     suite_add_tcase(s, tc_core);
 
     return s;
