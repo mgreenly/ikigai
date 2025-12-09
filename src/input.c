@@ -226,6 +226,63 @@ static bool parse_arrow_keys(ik_input_parser_t *parser, char byte,
     return false; // Not an arrow key
 }
 
+// Handle mouse SGR sequences: ESC [ < button ; col ; row M/m
+static bool parse_mouse_sgr(ik_input_parser_t *parser, char byte,
+                             ik_input_action_t *action_out)
+{
+    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
+    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Mouse SGR sequences must start with ESC [ <
+    if (parser->esc_len < 2 || parser->esc_buf[1] != '<') {
+        return false;
+    }
+
+    // Mouse sequences end with 'M' (press) or 'm' (release)
+    if (byte != 'M' && byte != 'm') {
+        return false;
+    }
+
+    // We only care about scroll events (button 64 = scroll up, 65 = scroll down)
+    // Parse the button number from esc_buf[2] onwards until first ';'
+    size_t button_start = 2;
+    size_t button_end = button_start;
+
+    while (button_end < parser->esc_len && parser->esc_buf[button_end] != ';') {
+        button_end++;
+    }
+
+    // Check if we found a valid button field
+    if (button_end >= parser->esc_len) {
+        return false;
+    }
+
+    // Extract button number (only support 2-digit buttons for scroll: 64, 65)
+    if (button_end - button_start == 2) {
+        char b0 = parser->esc_buf[button_start];
+        char b1 = parser->esc_buf[button_start + 1];
+
+        // Scroll up: button 64
+        if (b0 == '6' && b1 == '4') {
+            reset_escape_state(parser);
+            action_out->type = IK_INPUT_SCROLL_UP;
+            return true;
+        }
+
+        // Scroll down: button 65
+        if (b0 == '6' && b1 == '5') {
+            reset_escape_state(parser);
+            action_out->type = IK_INPUT_SCROLL_DOWN;
+            return true;
+        }
+    }
+
+    // Other mouse events (clicks, drags) - discard
+    reset_escape_state(parser);
+    action_out->type = IK_INPUT_UNKNOWN;
+    return true;
+}
+
 // Handle 3-character tilde-terminated sequences: ESC [ N ~
 static bool parse_tilde_sequences(ik_input_parser_t *parser, char byte,
                                    ik_input_action_t *action_out)
@@ -289,6 +346,11 @@ static void parse_escape_sequence(ik_input_parser_t *parser, char byte,
 
     // Try parsing as arrow key
     if (parse_arrow_keys(parser, byte, action_out)) {
+        return; // Handled
+    }
+
+    // Try parsing as mouse SGR sequence
+    if (parse_mouse_sgr(parser, byte, action_out)) {
         return; // Handled
     }
 
