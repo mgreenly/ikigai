@@ -318,142 +318,10 @@ START_TEST(test_message_submission_no_db_ctx)
 }
 
 END_TEST
-// Test message submission when session_id is 0 (no active session)
-START_TEST(test_message_submission_no_session)
-{
-    // Set session_id to 0 (no active session)
-    repl->shared->db_ctx = mock_db_ctx;
-    repl->shared->session_id = 0;
-
-    // Set up: Insert text into input buffer
-    const char *test_text = "Test without session";
-    for (const char *p = test_text; *p; p++) {
-        res_t r = ik_byte_array_append(repl->input_buffer->text, (uint8_t)*p);
-        ck_assert(is_ok(&r));
-    }
-
-    // Create newline action
-    ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
-
-    // Process newline action (should skip DB persistence)
-    res_t result = ik_repl_process_action(repl, &action);
-    ck_assert(is_ok(&result));
-
-    // Verify the user message was still added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
-
-    // No DB operation should have occurred, so no error logged
-    fflush(repl->shared->db_debug_pipe->write_end);
-    fd_set readfds;
-    FD_ZERO(&readfds);
-    FD_SET(db_debug_pipe_fds[0], &readfds);
-    struct timeval timeout = {0, 0};
-    int ready = select(db_debug_pipe_fds[0] + 1, &readfds, NULL, NULL, &timeout);
-    ck_assert_int_eq(ready, 0);
-}
-
-END_TEST
-// Test DB error when db_debug_pipe->write_end is NULL (but db_debug_pipe exists)
-START_TEST(test_db_error_null_write_end)
-{
-    // Set write_end to NULL but keep db_debug_pipe allocated
-    fclose(repl->shared->db_debug_pipe->write_end);
-    repl->shared->db_debug_pipe->write_end = NULL;
-
-    // Set up: Insert text into input buffer
-    const char *test_text = "Test with null write_end";
-    for (const char *p = test_text; *p; p++) {
-        res_t r = ik_byte_array_append(repl->input_buffer->text, (uint8_t)*p);
-        ck_assert(is_ok(&r));
-    }
-
-    // Enable DB error simulation
-    mock_message_insert_should_fail = true;
-
-    // Create newline action
-    ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
-
-    // Process newline action (should handle error without crashing)
-    res_t result = ik_repl_process_action(repl, &action);
-    ck_assert(is_ok(&result));
-
-    // Verify the user message was still added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
-}
-
-END_TEST
-
-// Test backspace success path (line 79 error path is defensive)
-START_TEST(test_backspace_error_path)
-{
-    // Note: line 79 is a defensive error check in backspace handling
-    // The actual error path is very difficult to trigger without mocking
-    // ik_input_buffer_backspace, as it would require cursor manipulation
-    // failures which are themselves defensive checks
-
-    // Test the normal success path to ensure backspace handling works
-    const char *test_text = "xy";
-    for (const char *p = test_text; *p; p++) {
-        ik_input_action_t insert_action = {.type = IK_INPUT_CHAR, .codepoint = (uint32_t)*p};
-        res_t r = ik_repl_process_action(repl, &insert_action);
-        ck_assert(is_ok(&r));
-    }
-
-    // Process backspace action - should delete 'y'
-    ik_input_action_t action = {.type = IK_INPUT_BACKSPACE};
-    res_t result = ik_repl_process_action(repl, &action);
-    ck_assert(is_ok(&result));
-
-    // Verify one character was deleted
-    size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
-    ck_assert_uint_eq(len, 1);
-    ck_assert_int_eq(text[0], 'x');
-}
-END_TEST
-
-// Test ESC with completion original_input revert (lines 134-137)
-START_TEST(test_escape_revert_original_input)
-{
-    // Set up completion with original_input
-    repl->completion = talloc_zero_(repl, sizeof(ik_completion_t));
-    ck_assert_ptr_nonnull(repl->completion);
-
-    // Set original input
-    const char *original = "original text";
-    repl->completion->original_input = talloc_strdup_(repl->completion, original);
-    ck_assert_ptr_nonnull(repl->completion->original_input);
-
-    // Put different text in the input buffer
-    const char *current = "modified text";
-    for (const char *p = current; *p; p++) {
-        res_t r = ik_byte_array_append(repl->input_buffer->text, (uint8_t)*p);
-        ck_assert(is_ok(&r));
-    }
-
-    // Process ESC action - should revert to original
-    ik_input_action_t action = {.type = IK_INPUT_ESCAPE};
-    res_t result = ik_repl_process_action(repl, &action);
-    ck_assert(is_ok(&result));
-
-    // Verify input was reverted to original
-    size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
-    ck_assert_uint_eq(len, strlen(original));
-    ck_assert_mem_eq(text, original, len);
-
-    // Verify completion was dismissed
-    ck_assert_ptr_null(repl->completion);
-}
-END_TEST
 
 static Suite *repl_actions_db_error_suite(void)
 {
-    Suite *s = suite_create("REPL Actions DB Error");
+    Suite *s = suite_create("REPL Actions DB Error Basic");
     TCase *tc_core = tcase_create("Core");
 
     tcase_add_checked_fixture(tc_core, setup, teardown);
@@ -461,10 +329,6 @@ static Suite *repl_actions_db_error_suite(void)
     tcase_add_test(tc_core, test_db_message_insert_success);
     tcase_add_test(tc_core, test_db_message_insert_error_no_debug_pipe);
     tcase_add_test(tc_core, test_message_submission_no_db_ctx);
-    tcase_add_test(tc_core, test_message_submission_no_session);
-    tcase_add_test(tc_core, test_db_error_null_write_end);
-    tcase_add_test(tc_core, test_backspace_error_path);
-    tcase_add_test(tc_core, test_escape_revert_original_input);
 
     suite_add_tcase(s, tc_core);
 
