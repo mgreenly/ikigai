@@ -173,5 +173,35 @@
     "event": "start",
     "task": "full-viewport-separator-bug.md",
     "time": "2025-12-09T00:00:00.195Z"
+  },
+  {
+    "event": "done",
+    "task": "full-viewport-separator-bug.md",
+    "time": "2025-12-09T00:07:24.538Z"
+  },
+  {
+    "event": "start",
+    "task": "mouse-scroll-scrollback-bug.md",
+    "time": "2025-12-09T00:07:40.699Z"
+  },
+  {
+    "event": "done",
+    "task": "mouse-scroll-scrollback-bug.md",
+    "time": "2025-12-09T00:13:49.056Z"
+  },
+  {
+    "event": "start",
+    "task": "cursor-position-separator-bug.md",
+    "time": "2025-12-09T00:13:59.759Z"
+  },
+  {
+    "event": "done",
+    "task": "cursor-position-separator-bug.md",
+    "time": "2025-12-09T00:31:06.793Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-ctx-struct.md",
+    "time": "2025-12-09T00:31:19.537Z"
   }
 ]

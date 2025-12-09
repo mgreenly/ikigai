@@ -209,6 +209,15 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 
     ik_layer_cake_render(repl->layer_cake, output, (size_t)repl->shared->term->screen_cols);
 
+    // Bug fix: When rendered content fills the terminal, the trailing \r\n
+    // causes the terminal to scroll up by 1 row. This makes cursor positioning
+    // land on the wrong row. Remove trailing \r\n when content fills screen.
+    if (document_height >= (size_t)terminal_rows && output->size >= 2) {
+        if (output->data[output->size - 2] == '\r' && output->data[output->size - 1] == '\n') {
+            output->size -= 2;
+        }
+    }
+
     // Calculate cursor position (offset by scrollback rows if input buffer is visible)
     cursor_screen_pos_t input_cursor_pos = {0};
     int32_t final_cursor_row = 0;
@@ -221,13 +230,12 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
                                                   &input_cursor_pos);
         assert(is_ok(&result));  // LCOV_EXCL_BR_LINE
         // Offset cursor by viewport position of input buffer
-        // BUG FIX: Add 1 to account for separator row when using layer-based rendering
-        final_cursor_row = (int32_t)viewport.input_buffer_start_row + input_cursor_pos.screen_row + 1;
+        // input_buffer_start_row already accounts for separator (it's input_buffer_start_doc_row - first_visible_row)
+        final_cursor_row = (int32_t)viewport.input_buffer_start_row + input_cursor_pos.screen_row;
         final_cursor_col = input_cursor_pos.screen_col;
     } else if (input_buffer_visible) {
         // Empty input buffer - cursor at start of input area
-        // BUG FIX: Add 1 to account for separator row when using layer-based rendering
-        final_cursor_row = (int32_t)viewport.input_buffer_start_row + 1;
+        final_cursor_row = (int32_t)viewport.input_buffer_start_row;
         final_cursor_col = 0;
     }
 

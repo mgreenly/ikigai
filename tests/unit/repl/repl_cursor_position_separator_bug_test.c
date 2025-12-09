@@ -230,25 +230,22 @@ START_TEST(test_cursor_position_with_one_blank_line) {
     //   - Row 18: lower separator
     // Total document height: 19 rows
     // Terminal: 20 rows (0-19)
-    // Document fits with 1 blank row at top:
-    //   - Terminal row 0: blank (empty)
-    //   - Terminal rows 1-16: scrollback (16 lines)
-    //   - Terminal row 17: separator
-    //   - Terminal row 18: input "/clear" with cursor
-    //   - Terminal row 19: lower separator
-    // Cursor should be at terminal row 18 (0-indexed) = row 19 (1-indexed)
+    // Document starts at row 0 (fits entirely):
+    //   - Terminal rows 0-15: scrollback (16 lines)
+    //   - Terminal row 16: separator
+    //   - Terminal row 17: input "/clear" with cursor
+    //   - Terminal row 18: lower separator
+    // Cursor should be at terminal row 17 (0-indexed) = row 18 (1-indexed)
 
-    // The BUG places cursor one row too high - at row 19 instead of input row 18
-    // CORRECT behavior: cursor on row 19 (input line in 1-indexed)
-
-    int32_t expected_cursor_row = 19;  // Input line (1-indexed)
+    int32_t expected_cursor_row = 18;  // Input line (1-indexed)
     int32_t expected_cursor_col = 7;   // After "/clear" (6 chars + 1 for 1-indexed)
 
     printf("Expected cursor: row %d, col %d\n", expected_cursor_row, expected_cursor_col);
     printf("\n");
 
-    // Key assertion: cursor should NOT be on lower separator line (row 20)
-    ck_assert_int_ne(cursor_row, 20);
+    // Key assertion: cursor should NOT be on separator line (row 17) or lower separator (row 19)
+    ck_assert_int_ne(cursor_row, 17);
+    ck_assert_int_ne(cursor_row, 19);
 
     // Cursor should be on input line
     ck_assert_int_eq(cursor_row, expected_cursor_row);
@@ -325,9 +322,13 @@ START_TEST(test_cursor_position_viewport_full) {
                                          &cursor_row, &cursor_col);
     ck_assert(found);
 
-    // Cursor should be visible and on input line (last visible row)
-    // Input buffer should be at bottom of viewport
-    ck_assert_int_eq(cursor_row, 20);  // Bottom row (1-indexed)
+    // Document: 100 scrollback + 1 separator + 1 input + 1 lower separator = 103 rows
+    // Terminal: 20 rows, showing document rows 83-102 (last 20)
+    // Input is at document row 101, first visible is 83
+    // Screen row = 101 - 83 = 18 (0-indexed) = row 19 (1-indexed)
+    // Lower separator is at row 20, cursor should NOT be there
+    ck_assert_int_ne(cursor_row, 20);  // Not on lower separator
+    ck_assert_int_eq(cursor_row, 19);  // On input line (1-indexed)
     ck_assert_int_eq(cursor_col, 5);   // After "test" (4 chars + 1)
 
     talloc_free(ctx);
@@ -395,14 +396,248 @@ START_TEST(test_cursor_position_viewport_half_full) {
                                          &cursor_row, &cursor_col);
     ck_assert(found);
 
-    // With 5 scrollback lines, separator, input, lower_separator:
-    // - Rows 1-5: scrollback
-    // - Row 6: separator
-    // - Row 7: input "hi" (cursor should be here)
-    // - Row 8: lower separator
-    // Cursor at row 7, col 3 (after "hi" in 0-indexed becomes row 8 in 1-indexed with +1 fix)
-    ck_assert_int_eq(cursor_row, 8);
+    // Document: 5 scrollback + 1 separator + 1 input + 1 lower separator = 8 rows
+    // Terminal: 20 rows, document fits entirely starting at row 0
+    // - Rows 0-4: scrollback (5 lines)
+    // - Row 5: separator
+    // - Row 6: input "hi" (cursor should be here)
+    // - Row 7: lower separator
+    // Screen row 6 (0-indexed) = row 7 (1-indexed)
+    ck_assert_int_eq(cursor_row, 7);  // Input line (1-indexed)
     ck_assert_int_eq(cursor_col, 3);  // After "hi"
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/**
+ * Test: Cursor position in 10-row terminal with WRAPPED lines scrolled
+ *
+ * Simulates the exact bug scenario:
+ * - 10 row terminal, 80 cols
+ * - Scrollback with lines that WRAP to multiple physical rows
+ * - Content scrolls off top
+ * - Empty input buffer
+ */
+START_TEST(test_cursor_position_10row_wrapped_scrolled) {
+    void *ctx = talloc_new(NULL);
+
+    // Terminal: 10 rows x 80 cols
+    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    term->screen_rows = 10;
+    term->screen_cols = 80;
+    term->tty_fd = 1;
+
+    res_t res;
+
+    // Create EMPTY input buffer
+    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    ik_input_buffer_ensure_layout(input_buf, 80);
+
+    // Create scrollback with lines that wrap
+    // Simulating: "You are a helpful..." (1 line) + "hi" + blank + long response (2 lines) + blank
+    // = 6 logical lines but more physical rows due to wrapping
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+
+    // Line 1: "You are a helpful coding assistant." (will scroll off)
+    res = ik_scrollback_append_line(scrollback, "You are a helpful coding assistant.", 36);
+    ck_assert(is_ok(&res));
+
+    // Line 2: blank
+    res = ik_scrollback_append_line(scrollback, "", 0);
+    ck_assert(is_ok(&res));
+
+    // Line 3: "hi"
+    res = ik_scrollback_append_line(scrollback, "hi", 2);
+    ck_assert(is_ok(&res));
+
+    // Line 4: blank
+    res = ik_scrollback_append_line(scrollback, "", 0);
+    ck_assert(is_ok(&res));
+
+    // Line 5: Long response that wraps (>80 chars)
+    const char *long_response = "Hi - how can I help you today? (I can answer questions, help with code, write or edit text, debug, explain concepts, etc.)";
+    res = ik_scrollback_append_line(scrollback, long_response, strlen(long_response));
+    ck_assert(is_ok(&res));
+
+    // Line 6: blank
+    res = ik_scrollback_append_line(scrollback, "", 0);
+    ck_assert(is_ok(&res));
+
+    // Line 7: Another line to force scrolling
+    res = ik_scrollback_append_line(scrollback, "Extra line to force scroll", 26);
+    ck_assert(is_ok(&res));
+
+    ik_scrollback_ensure_layout(scrollback, 80);
+
+    size_t physical_lines = ik_scrollback_get_total_physical_lines(scrollback);
+    printf("\n=== Wrapped Scrollback Test ===\n");
+    printf("Logical lines: %zu\n", ik_scrollback_get_line_count(scrollback));
+    printf("Physical lines: %zu\n", physical_lines);
+
+    // Create render context
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context with layers
+    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render;
+    repl->input_buffer = input_buf;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
+
+    init_layer_cake(repl, term->screen_rows);
+
+    // Reset mock and render
+    mock_write_calls = 0;
+    mock_write_buffer_len = 0;
+    res = ik_repl_render_frame(repl);
+    ck_assert(is_ok(&res));
+
+    // Extract cursor position
+    int32_t cursor_row = 0, cursor_col = 0;
+    bool found = extract_cursor_position(mock_write_buffer, mock_write_buffer_len,
+                                         &cursor_row, &cursor_col);
+    ck_assert(found);
+
+    // Document model:
+    // Physical lines = 7 (1 + 1 + 1 + 1 + 2 + 1 for wrapped response)
+    // Document = 7 scrollback + 1 separator + 1 input + 1 lower_sep = 10 rows
+    // Terminal = 10 rows - should just fit OR scroll by 1
+    //
+    // If scrolled: first_visible_row = 1, input at doc row 8
+    // input_buffer_start_row = 8 - 1 = 7
+    // cursor at row 7 (0-indexed) = row 8 (1-indexed)
+    // lower separator at row 9 (1-indexed)
+
+    printf("Terminal: %d rows x %d cols\n", term->screen_rows, term->screen_cols);
+    printf("Cursor position (1-indexed): row %d, col %d\n", cursor_row, cursor_col);
+
+    // Calculate expected based on actual physical lines
+    // Document height = physical_lines + 1 (sep) + 1 (input) + 1 (lower_sep)
+    size_t doc_height = physical_lines + 3;
+    printf("Document height: %zu\n", doc_height);
+
+    if (doc_height <= 10) {
+        // No scrolling - input at physical_lines + 1 (after scrollback + separator)
+        int32_t expected = (int32_t)(physical_lines + 1 + 1);  // +1 for sep, +1 for 1-indexed
+        printf("Expected cursor (no scroll): row %d\n", expected);
+        ck_assert_int_eq(cursor_row, expected);
+    } else {
+        // Scrolling - more complex calculation
+        size_t first_visible = doc_height - 10;
+        size_t input_doc_row = physical_lines + 1;  // After scrollback + separator
+        int32_t expected = (int32_t)(input_doc_row - first_visible + 1);  // +1 for 1-indexed
+        printf("Expected cursor (scrolled, first_visible=%zu): row %d\n", first_visible, expected);
+        // Cursor should NOT be on lower separator
+        ck_assert_int_ne(cursor_row, 10);
+        ck_assert_int_eq(cursor_row, expected);
+    }
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/**
+ * Test: Cursor position in 10-row terminal when content scrolls off top
+ *
+ * Simulates the user's exact bug scenario:
+ * - 10 row terminal
+ * - 8 rows of scrollback (causes 1 row to scroll off top)
+ * - Empty input buffer
+ */
+START_TEST(test_cursor_position_10row_terminal_scrolled) {
+    void *ctx = talloc_new(NULL);
+
+    // Terminal: 10 rows x 80 cols (user's exact scenario)
+    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    term->screen_rows = 10;
+    term->screen_cols = 80;
+    term->tty_fd = 1;
+
+    res_t res;
+
+    // Create EMPTY input buffer (user's scenario after pressing enter)
+    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    ik_input_buffer_ensure_layout(input_buf, 80);
+
+    // Create scrollback with 8 lines (causes scrolling)
+    // Document: 8 scrollback + 1 separator + 1 input + 1 lower_sep = 11 rows
+    // Only 10 rows visible, so 1 row scrolls off top
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+    for (int32_t i = 0; i < 8; i++) {
+        char buf[64];
+        snprintf(buf, sizeof(buf), "scrollback line %" PRId32, i);
+        res = ik_scrollback_append_line(scrollback, buf, strlen(buf));
+        ck_assert(is_ok(&res));
+    }
+    ik_scrollback_ensure_layout(scrollback, 80);
+
+    // Create render context
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context with layers
+    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render;
+    repl->input_buffer = input_buf;
+    repl->scrollback = scrollback;
+    repl->viewport_offset = 0;
+
+    init_layer_cake(repl, term->screen_rows);
+
+    // Reset mock and render
+    mock_write_calls = 0;
+    mock_write_buffer_len = 0;
+    res = ik_repl_render_frame(repl);
+    ck_assert(is_ok(&res));
+
+    // Extract cursor position
+    int32_t cursor_row = 0, cursor_col = 0;
+    bool found = extract_cursor_position(mock_write_buffer, mock_write_buffer_len,
+                                         &cursor_row, &cursor_col);
+    ck_assert(found);
+
+    // Debug output
+    printf("\n=== 10-Row Terminal Scrolled Test ===\n");
+    printf("Terminal: %d rows x %d cols\n", term->screen_rows, term->screen_cols);
+    printf("Scrollback lines: %zu\n", ik_scrollback_get_line_count(scrollback));
+    printf("Cursor position (1-indexed): row %d, col %d\n", cursor_row, cursor_col);
+
+    // Document model (0-indexed document rows):
+    //   - Rows 0-7: scrollback (8 lines)
+    //   - Row 8: separator
+    //   - Row 9: input (empty, but still 1 row)
+    //   - Row 10: lower separator
+    // Total document height: 11 rows
+    //
+    // Terminal: 10 rows, showing document rows 1-10 (row 0 scrolled off)
+    // first_visible_row = 1
+    // input_buffer_start_doc_row = 8 + 1 = 9
+    // input_buffer_start_row = 9 - 1 = 8 (0-indexed screen row)
+    // Cursor should be at screen row 8 (0-indexed) = row 9 (1-indexed)
+    // Lower separator is at screen row 9 (0-indexed) = row 10 (1-indexed)
+
+    int32_t expected_cursor_row = 9;  // Input line (1-indexed)
+    int32_t expected_cursor_col = 1;  // Column 1 (empty input, cursor at start)
+
+    printf("Expected cursor: row %d, col %d\n", expected_cursor_row, expected_cursor_col);
+    printf("\n");
+
+    // Cursor should NOT be on lower separator (row 10)
+    ck_assert_msg(cursor_row != 10, "Cursor on lower separator (row 10), should be on input (row 9)");
+
+    // Cursor should be on input line (row 9)
+    ck_assert_int_eq(cursor_row, expected_cursor_row);
+    ck_assert_int_eq(cursor_col, expected_cursor_col);
 
     talloc_free(ctx);
 }
@@ -418,6 +653,8 @@ static Suite *cursor_position_suite(void)
     tcase_add_test(tc_core, test_cursor_position_with_one_blank_line);
     tcase_add_test(tc_core, test_cursor_position_viewport_full);
     tcase_add_test(tc_core, test_cursor_position_viewport_half_full);
+    tcase_add_test(tc_core, test_cursor_position_10row_wrapped_scrolled);
+    tcase_add_test(tc_core, test_cursor_position_10row_terminal_scrolled);
     suite_add_tcase(s, tc_core);
 
     return s;

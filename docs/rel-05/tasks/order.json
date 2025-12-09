@@ -1,24 +1,6 @@
 {
   "todo": [
     {
-      "task": "full-viewport-separator-bug.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "mouse-scroll-scrollback-bug.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "cursor-position-separator-bug.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
       "task": "agent-ctx-struct.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
@@ -342,6 +324,30 @@
       "task": "clear-autocomplete-bug.md",
       "group": "Bug Fix",
       "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "full-viewport-separator-bug.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mouse-scroll-scrollback-bug.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "cursor-position-separator-bug.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "trailing-newline-scroll-bug.md",
+      "group": "Bug Fix",
+      "model": "opus",
       "thinking": "low"
     }
   ]
