@@ -26,6 +26,7 @@ Phase 0: Shared Context DI - Step 5 (history field migration)
 - tests/unit/history/*.c
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `cfg`, `term`, `render`, `db_ctx`, `session_id` already migrated to shared context
 - History implementation exists from rel-04
@@ -90,3 +91,4 @@ This is the final field migration for Phase 0.
 - History creation and loading happens in shared_ctx_init
 - All history access uses `repl->shared->history` pattern
 - 100% test coverage maintained
+- Working tree is clean (all changes committed)

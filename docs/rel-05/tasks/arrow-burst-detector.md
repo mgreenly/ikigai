@@ -26,6 +26,7 @@ Bug Fix: Distinguish mouse wheel scroll (rapid arrow bursts) from keyboard arrow
 - tests/unit/history/history_test.c (state machine testing patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 
 ## Background
@@ -356,6 +357,7 @@ Run `make check` - expect tests to FAIL (module doesn't exist yet).
 - Module is pure logic, no I/O, no clock calls
 - All timestamps injected for testability
 - 100% test coverage on new module
+- Working tree is clean (all changes committed)
 
 ## Notes
 

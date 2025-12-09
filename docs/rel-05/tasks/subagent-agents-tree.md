@@ -18,6 +18,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Agent hierarchy exists
 - /agents command lists agents
 
@@ -69,3 +70,4 @@ Implement tree traversal with proper indentation and branch characters.
 - /agents shows tree hierarchy
 - Correct tree characters
 - All tests pass
+- Working tree is clean (all changes committed)

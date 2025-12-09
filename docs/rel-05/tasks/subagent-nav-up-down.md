@@ -19,6 +19,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Ctrl+Left/Right navigation works (sibling cycling)
 - Agent hierarchy (parent/children) exists
 
@@ -60,3 +61,4 @@ Add input action parsing and handler logic.
 - Ctrl+Up/Down navigate hierarchy
 - No-op when direction unavailable
 - All tests pass
+- Working tree is clean (all changes committed)

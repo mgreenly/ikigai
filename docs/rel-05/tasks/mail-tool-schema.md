@@ -33,6 +33,7 @@ Supports User Stories:
 - tests/test_utils.h (test helper functions)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - `/mail` command registered and working (mail-cmd-register.md complete)
@@ -720,6 +721,7 @@ void ik_tool_add_integer_param(yyjson_mut_doc *doc,
   - `function.name: "mail"`
   - `function.description` mentions agents/messages
   - `function.parameters.properties.action` has enum constraint
+- Working tree is clean (all changes committed)
   - `function.parameters.properties.to` is string type
   - `function.parameters.properties.body` is string type
   - `function.parameters.properties.id` is integer type

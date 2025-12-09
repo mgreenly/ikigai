@@ -20,6 +20,7 @@ Render Performance Optimization - Avoid library calls for common ASCII character
 - tests/unit/render/*.c (render test patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `utf8proc_charwidth()` is called for every character during cursor calculation
 
@@ -134,3 +135,4 @@ for each byte:
 - ASCII characters (0x20-0x7E) bypass `utf8proc_charwidth()` call
 - UTF-8 and ANSI sequences still handled correctly
 - Same width values produced (behavioral equivalence)
+- Working tree is clean (all changes committed)

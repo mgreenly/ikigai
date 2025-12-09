@@ -27,6 +27,7 @@ User Story: 10-independent-scrollback.md (foundation for per-agent message stora
 - tests/unit/db/message_test.c (message tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Database migration system exists
 - Messages table exists with session_id column
@@ -124,3 +125,4 @@ CREATE INDEX idx_messages_agent ON messages(session_id, agent_id);
 - Existing messages have agent_id = '0/'
 - Migration is idempotent
 - Schema version updated
+- Working tree is clean (all changes committed)

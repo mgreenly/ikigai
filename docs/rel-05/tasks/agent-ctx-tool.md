@@ -26,6 +26,7 @@ Phase 1: Agent Context Extraction - Step 6 (tool fields migration)
 - tests/unit/agent/agent_test.c
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Display, input, conversation, and LLM fields already migrated
 - `repl->agent` exists with LLM state
@@ -141,3 +142,4 @@ After this task:
 - Tool execution functions work with agent context
 - All tool state access uses `repl->agent->*` pattern
 - 100% test coverage maintained
+- Working tree is clean (all changes committed)

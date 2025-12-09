@@ -46,6 +46,7 @@ Supports User Stories:
 - tests/test_utils.h (test helper functions)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - `ik_tool_build_mail_schema()` implemented (from mail-tool-schema.md)
@@ -1462,6 +1463,7 @@ if (strcmp(tool_name, "mail") == 0) {
   - Database error handling
   - Memory ownership and leak prevention
   - Dispatcher integration
+- Working tree is clean (all changes committed)
 
 ## Notes
 

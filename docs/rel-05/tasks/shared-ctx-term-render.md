@@ -25,6 +25,7 @@ Phase 0: Shared Context DI - Step 3 (term + render field migration)
 - tests/unit/shared/shared_test.c
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `cfg` already migrated to shared context
 - `repl->shared->cfg` access pattern established
@@ -98,6 +99,7 @@ Note: Terminal and render initialization moves from repl_init to shared_ctx_init
 4. Run `make lint` - verify clean
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 - `make check` passes
 - `term` and `render` are in `ik_shared_ctx_t`, not `ik_repl_ctx_t`
 - `ik_shared_ctx_init()` creates term and render

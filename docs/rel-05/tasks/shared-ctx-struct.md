@@ -25,6 +25,7 @@ Phase 0: Shared Context DI - Step 1 (Empty struct infrastructure)
 - tests/unit/repl/*.c (existing repl test patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - No `ik_shared_ctx_t` exists yet
 
@@ -102,3 +103,4 @@ The shared context will be a **sibling** of repl_ctx under root_ctx (not a child
 - `ik_shared_ctx_init()` allocates and returns shared context
 - Test file exists with basic creation tests
 - No changes to existing repl initialization yet
+- Working tree is clean (all changes committed)

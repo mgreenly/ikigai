@@ -40,6 +40,7 @@ Supports User Stories:
 - tests/test_utils.h (test helper functions)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - `ik_mail_msg_t` struct defined with fields: id, from_agent_id, to_agent_id, body, timestamp, read
@@ -1210,6 +1211,7 @@ This function implements steps 4-9 and 11. Command parsing (steps 1-3) and separ
   - "N minutes ago" for 1-59 minutes
   - "N hours ago" for 1-23 hours
   - "yesterday" for 24-47 hours
+- Working tree is clean (all changes committed)
   - "N days ago" for >= 48 hours
 - Tests verify:
   - Relative time formatting (all ranges, singular/plural, edge cases)

@@ -26,6 +26,7 @@ Phase 1: Agent Context Extraction - Final Verification
 - tests/helpers/test_contexts.h
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - All Phase 1 field migrations complete
 - `repl->agent` holds single agent with all per-agent state
@@ -140,3 +141,4 @@ This is a verification/polish task, not new implementation.
 - Documentation comments added
 - Test helpers updated
 - **Phase 1 complete - ready for multi-agent work**
+- Working tree is clean (all changes committed)

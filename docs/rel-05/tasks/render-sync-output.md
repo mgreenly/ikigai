@@ -22,6 +22,7 @@ Render Performance Optimization - Prevent screen tearing on supported terminals
 - tests/unit/terminal/*.c (terminal test patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - No synchronized output support exists
 
@@ -114,6 +115,7 @@ Terminals that don't support it will simply ignore the sequences.
 3. Run `make lint` - verify clean
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 - `make check` passes
 - `IK_ESC_SYNC_START` and `IK_ESC_SYNC_END` constants exist
 - `ik_terminal_t` has `sync_output_enabled` field

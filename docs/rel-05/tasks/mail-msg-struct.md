@@ -31,6 +31,7 @@ Supports User Stories:
 - tests/unit/msg/msg_test.c (simple struct creation tests if exists)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Phase 2 (agent-spawned-sub-agents) complete
 - No `src/mail/` directory exists yet
@@ -432,4 +433,5 @@ res_t ik_mail_msg_create(TALLOC_CTX *parent,
   - String copying verified
   - Edge cases (empty body, zero id, large body)
 - Directory structure created: `src/mail/`, `tests/unit/mail/`
+- Working tree is clean (all changes committed)
 - No changes to existing code (pure addition)

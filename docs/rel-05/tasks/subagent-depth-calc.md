@@ -16,6 +16,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Hierarchy fields exist in `ik_agent_ctx_t` (parent, children, etc.)
 
 ## Task
@@ -52,3 +53,4 @@ Implement by counting parent traversals + 1.
 
 - `ik_agent_depth()` correctly calculates depth
 - All tests pass
+- Working tree is clean (all changes committed)

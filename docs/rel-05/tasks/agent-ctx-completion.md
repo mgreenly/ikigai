@@ -23,6 +23,7 @@ Phase 1: Agent Context Extraction - Step 8 (completion field migration)
 - tests/unit/agent/agent_test.c
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Display, input, conversation, LLM, tool, and spinner fields already migrated
 - `repl->agent` exists with all previous state
@@ -87,3 +88,4 @@ After this task:
 - Tab completion works correctly with agent context
 - All completion access uses `repl->agent->completion` pattern
 - 100% test coverage maintained
+- Working tree is clean (all changes committed)

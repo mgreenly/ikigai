@@ -22,6 +22,7 @@ User Story: docs/rel-05/user-stories/49-mouse-scroll-scrollback-not-history.md
 - src/scrollback.c (scrollback viewport scrolling)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Keyboard input history navigation works (Up/Down arrows)
 - Bug present: mouse wheel scrolls input history instead of scrollback viewport
@@ -119,5 +120,6 @@ Fix the mouse scroll event routing so mouse wheel scrolls the scrollback viewpor
 - Mouse wheel scrolls scrollback viewport
 - Mouse wheel does NOT navigate input history
 - Input buffer content unchanged during mouse scrolling
+- Working tree is clean (all changes committed)
 - Keyboard Up/Down still navigate input history correctly
 - Test exists verifying mouse scroll behavior

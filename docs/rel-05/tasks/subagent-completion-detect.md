@@ -20,6 +20,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Sub-agent can be spawned via tool
 - Agent state machine exists (IDLE, STREAMING, EXECUTING_TOOL)
 
@@ -57,3 +58,4 @@ Add completion check in state transition to IDLE for sub-agents.
 - Sub-agents correctly detect completion
 - Final response captured
 - All tests pass
+- Working tree is clean (all changes committed)

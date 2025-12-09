@@ -25,6 +25,7 @@ Phase 1: Agent Context Extraction - Step 3 (input fields migration)
 - tests/unit/agent/agent_test.c
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Display fields already migrated to agent context
 - `repl->agent` exists
@@ -133,3 +134,4 @@ Note: `input_parser` stays in repl_ctx (it's stateless, shared).
 - Layer pointers reference agent's fields
 - All input access uses `repl->agent->*` pattern
 - 100% test coverage maintained
+- Working tree is clean (all changes committed)

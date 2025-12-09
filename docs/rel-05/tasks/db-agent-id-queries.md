@@ -28,6 +28,7 @@ User Story: 10-independent-scrollback.md (per-agent message isolation)
 - tests/unit/db/replay_test.c (replay tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - db-agent-id-schema.md complete (agent_id column exists)
 - Message persistence functions exist
@@ -137,3 +138,4 @@ ORDER BY created_at ASC;
 - Session replay filters by agent_id
 - Messages from different agents are isolated
 - No cross-agent message leakage possible
+- Working tree is clean (all changes committed)

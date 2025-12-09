@@ -22,6 +22,7 @@ Bug Fix: Replace timing-based scroll detection with deferred event detection to 
 - src/repl_event_handlers.c (event loop, select timeout calculation)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 
 ## Background
@@ -395,6 +396,7 @@ END_TEST
    - Key repeat works smoothly
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 
 - `make check` passes
 - Mouse wheel correctly emits SCROLL events

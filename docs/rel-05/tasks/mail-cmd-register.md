@@ -51,6 +51,7 @@ Supports User Stories:
 - tests/test_utils.h (test helper functions)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - `ik_mail_send()` implemented in src/mail/send.h - validates recipient, body; persists to DB and inbox
@@ -1279,6 +1280,7 @@ Usage: /mail [send|read] ...
 - commands.c updated with mail command registration
 - `/help` shows mail command with description
 
+- Working tree is clean (all changes committed)
 ## Notes
 
 ### Subcommand Parsing Algorithm

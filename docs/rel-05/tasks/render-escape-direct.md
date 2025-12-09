@@ -20,6 +20,7 @@ Render Performance Optimization - Eliminate format string parsing overhead
 - tests/unit/render/*.c (render test patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Cursor positioning uses `talloc_asprintf_()` with format strings
 - render-buffer-reuse.md task is complete (pre-allocated cursor buffer exists)
@@ -124,6 +125,7 @@ size_t len = ik_escape_cursor_pos(buf, sizeof(buf), row, col);
 3. Run `make lint` - verify clean
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 - `make check` passes
 - `src/escape.h` and `src/escape.c` exist with fast escape builders
 - No `snprintf`/`talloc_asprintf_` in hot render path for escape sequences

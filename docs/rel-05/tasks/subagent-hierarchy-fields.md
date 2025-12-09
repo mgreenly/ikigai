@@ -20,6 +20,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Multi-Agent Implementation complete (agents[] array exists)
 - `ik_agent_ctx_t` exists with identity fields (agent_id, numeric_id)
 
@@ -63,3 +64,4 @@ Add fields to struct, update initialization code.
 - `ik_agent_ctx_t` contains hierarchy fields
 - Top-level agents initialize with parent=NULL, is_sub_agent=false
 - All tests pass
+- Working tree is clean (all changes committed)

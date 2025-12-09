@@ -42,6 +42,7 @@ Supports User Stories:
 - tests/test_utils.h (test helper functions)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - mail-separator-unread.md complete: Separator shows [mail:N] when unread > 0
@@ -1293,6 +1294,7 @@ void ik_repl_check_mail_notification(ik_repl_ctx_t *repl);
 - No notification when:
   - `unread_count == 0`
   - `mail_notification_pending == true`
+- Working tree is clean (all changes committed)
   - `current_agent == NULL`
   - `inbox == NULL`
 - Tests cover:

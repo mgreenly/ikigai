@@ -30,6 +30,7 @@ Bug Fix: Wire arrow burst detector into REPL so mouse wheel scrolls buffer while
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Arrow burst detector module exists (`src/arrow_burst.c`, `src/arrow_burst.h`)
 - Arrow burst detector has passing unit tests
@@ -319,6 +320,7 @@ Run `make check` - all tests should pass.
 - Ctrl+P/N navigate history
 - Terminal right-click and selection still work
 - 100% test coverage maintained
+- Working tree is clean (all changes committed)
 
 ## Notes
 

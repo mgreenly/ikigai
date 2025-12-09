@@ -27,6 +27,7 @@ Phase 0: Shared Context DI - Step 4 (db_ctx + current_session_id migration)
 - tests/unit/db/*.c (database test patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `cfg`, `term`, `render` already migrated to shared context
 - Database connection logic exists in repl_init.c
@@ -102,6 +103,7 @@ Note: Rename `current_session_id` to `session_id` for clarity (it's the session,
 4. Run `make lint` - verify clean
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 - `make check` passes
 - `db_ctx` and `session_id` are in `ik_shared_ctx_t`, not `ik_repl_ctx_t`
 - Database connection happens in shared_ctx_init

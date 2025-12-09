@@ -1,120 +1,80 @@
-# Mouse Scroll Bug Investigation
+# Mouse Scroll Bug Investigation - Current State
 
-## Architecture
+## Problem Summary
 
-### Terminal Mode
-- Mode 1007 (`\x1b[?1007h`) - Alternate scroll mode
-- Converts mouse wheel events to arrow key escape sequences
-- Required: without it, no scroll events at all
+Mouse wheel scrolling works partially but stops having visual effect when scrolling within a wrapped line.
 
-### Event Flow
-```
-Mouse wheel notch
-  → Terminal sends arrow escape sequences (3 events per notch, rapid)
-  → Input parser emits IK_INPUT_ARROW_UP/DOWN
-  → Scroll accumulator classifies (wheel vs keyboard)
-  → If wheel: SCROLL_UP/DOWN → scroll handler → viewport_offset changes
-  → If keyboard: PASS → arrow handler → cursor movement only
-```
+## Root Cause Chain
 
-### Scroll Accumulator Algorithm
+### 1. Scroll Detection (FIXED)
+- Terminal mode 1007 converts mouse wheel to arrow escape sequences
+- Mouse wheel sends 2 rapid ARROW_UP/DOWN events per notch (~0-1ms apart)
+- `scroll_accumulator.c` uses deferred detection to distinguish wheel from keyboard:
+  - First arrow → buffered (NONE)
+  - Second arrow within 10ms → SCROLL_UP/DOWN emitted
+  - Both arrows consumed, pending cleared
+
+### 2. Event Routing (FIXED)
+- `repl_actions.c` intercepts arrow events, routes through scroll_accumulator
+- SCROLL_UP/DOWN → calls scroll handler → increments viewport_offset
+- Timeout handler in `repl.c` calls arrow handlers directly (not through scroll_acc)
+
+### 3. Viewport Calculation (WORKING)
+- `repl_viewport.c` calculates `first_visible_row` based on viewport_offset
+- Log shows first_visible correctly decrements: 120 → 119 → 118 → 117 → 116 → 115
+
+### 4. Scrollback Rendering (BUG HERE)
+**File:** `src/layer_scrollback.c`, function `scrollback_render`
+
 ```c
-Constants:
-  ACCUMULATOR_MAX = 15
-  ACCUMULATOR_DRAIN = 5
-  KEYBOARD_THRESHOLD_MS = 15
+// Line 56-57: Gets physical row offset within logical line
+res = ik_scrollback_find_logical_line_at_physical_row(scrollback, start_row,
+                                                      &start_line_idx, &start_row_offset);
 
-On arrow event:
-  elapsed = current_time - previous_time
-
-  if (elapsed > 15ms):
-    return PASS  // keyboard arrow, let through
-
-  accumulator -= 5
-  if (accumulator < 1):
-    accumulator = 15  // reset
-    return SCROLL_UP/DOWN  // wheel detected
-
-  return NONE  // swallow, still accumulating
-```
-
-- 3 rapid events (< 15ms apart) → drains 15 to 0 → emits 1 SCROLL
-- Slow events (> 15ms apart) → PASS (keyboard)
-
-### Event Types (must be distinct)
-| Event | Source | Handler | Action |
-|-------|--------|---------|--------|
-| SCROLL_UP/DOWN | Wheel (via accumulator) | scroll handler | viewport_offset ± 1 |
-| PASS → ARROW_UP/DOWN | Keyboard | arrow handler | cursor movement |
-| Ctrl+P/N | Keyboard | history handler | history navigation |
-
-## The Bug
-
-### Symptom
-- Scrolling works when input buffer is visible on screen
-- Scrolling stops when input buffer scrolls off screen
-- "Accumulated" scrolls must be "undone" before viewport moves again
-- Affects both fast and slow scrolling
-
-### Key Observation
-Something changes when input buffer visibility changes. The issue is NOT in the accumulator (it emits correctly). The issue is in how events are HANDLED after emission.
-
-## Files Involved
-
-- `src/terminal.c` - Mode 1007 enable/disable
-- `src/input.c` - Parses escape sequences to IK_INPUT_* events
-- `src/scroll_accumulator.c` - Classifies arrows as wheel vs keyboard
-- `src/repl_actions.c` - Routes events to handlers (lines 49-86)
-- `src/repl_actions_viewport.c` - Scroll handlers (scroll_up/down_action)
-- `src/repl_actions_history.c` - Arrow handlers (cursor movement)
-- `src/repl_viewport.c` - Viewport calculation, rendering
-
-## Changes Made (may have broken things)
-
-1. Changed accumulator result enum:
-   - Removed: ARROW_UP, ARROW_DOWN
-   - Added: PASS
-   - Now: SCROLL_UP, SCROLL_DOWN, NONE, PASS
-
-2. Changed accumulator logic:
-   - `elapsed > 15ms` → returns PASS (was returning ARROW_UP/DOWN)
-
-3. Changed repl_actions.c intercept:
-   - PASS now breaks and falls through to main switch
-   - Main switch handles IK_INPUT_ARROW_UP/DOWN via arrow handlers
-
-4. Simplified arrow handlers:
-   - Removed: viewport_offset check that converted arrows to scroll
-   - Removed: history navigation on arrow keys
-   - Now: only cursor movement + completion navigation
-
-## Viewport Offset Clamping
-
-In `repl_viewport.c` rendering (lines 49-54):
-```c
-size_t offset = repl->viewport_offset;
-if (offset > max_offset) {
-    offset = max_offset;  // LOCAL variable clamped, not repl->viewport_offset
+// Line 79-97: Renders full logical lines - IGNORES start_row_offset!
+for (size_t i = start_line_idx; i <= end_line_idx; i++) {
+    // ... renders entire logical line
 }
 ```
 
-This clamps a LOCAL copy. If viewport_offset exceeds max_offset, the display is clamped but the actual value isn't. This could cause the "accumulation" symptom.
+**The bug:** When a logical line wraps across multiple physical rows, scrolling changes `first_visible_row` but the rendering always shows the full logical line. So scrolling within a wrapped line has no visual effect.
 
-But scroll_up_action DOES clamp:
-```c
-repl->viewport_offset = (new_offset > max_offset) ? max_offset : new_offset;
-```
+**Example:**
+- Logical line 10 wraps into physical rows 115-119 (5 rows)
+- Scroll to first_visible=118 → still renders full logical line 10
+- Scroll to first_visible=117 → still renders full logical line 10
+- Scroll to first_visible=116 → still renders full logical line 10
+- Visual doesn't change until you scroll past the entire wrapped line
+
+## Fix Options
+
+### Option 1: Per-logical-line scrolling (simpler)
+- Accept that scroll granularity is per-logical-line
+- Modify viewport_offset increments to jump by full logical lines
+- Simpler but less smooth scrolling
+
+### Option 2: Per-physical-row scrolling (proper)
+- Modify `scrollback_render` to skip `start_row_offset` physical rows from first line
+- Need to track character positions for wrapped lines
+- More complex but smoother scrolling
+
+## Files Modified (with debug logging)
+
+- `src/scroll_accumulator.c` - Fixed: don't buffer after SCROLL
+- `src/repl_actions.c` - Fixed: removed viewport_offset=0 on NONE; added logging
+- `src/repl.c` - Fixed: call arrow handlers directly from timeout
+- `src/repl_actions_viewport.c` - Added scroll_up logging
+- `src/repl_viewport.c` - Added render_viewport logging
 
 ## Debug Logging Added
 
-In repl_actions.c - logs to file (not stderr):
-- Which result accumulator returns
-- viewport_offset and max_offset values
-- Whether offset changes
+```json
+{"event":"input_parsed","type":"ARROW_UP"}
+{"event":"scroll_acc_result","result":"SCROLL_UP","now_ms":...}
+{"event":"scroll_up","max_offset":120,"old":4,"new":5}
+{"event":"render_viewport","viewport_offset":5,"max_offset":120,"first_visible":115}
+```
 
-## Unknowns
+## Next Step
 
-1. Why does behavior change when input buffer scrolls off screen?
-2. Are scroll events reaching the scroll handler when scrolled up?
-3. Is viewport_offset actually changing?
-4. Is max_offset calculated correctly in all cases?
+Decide on fix approach for `layer_scrollback.c` rendering.

@@ -70,6 +70,18 @@ You must:
 {{#if args}}
 You are the task orchestrator for `{{args}}`.
 
+## MANDATORY: CLEAN WORKING TREE PRECHECK
+
+Before starting ANY orchestration, you MUST verify the working tree is clean:
+
+1. Run: `git status --porcelain`
+2. If there is ANY output (uncommitted changes exist):
+   - Report: `✗ Orchestration ABORTED: Uncommitted changes detected.`
+   - Show the output of `git status --short`
+   - Tell the user: "Please commit or stash your changes before running /orchestrate."
+   - **STOP IMMEDIATELY. Do not proceed with any tasks.**
+3. Only if the output is empty (clean working tree), proceed with orchestration.
+
 ## MANDATORY: SEQUENTIAL EXECUTION
 
 You MUST execute tasks ONE AT A TIME. This is non-negotiable.
@@ -81,6 +93,8 @@ You MUST execute tasks ONE AT A TIME. This is non-negotiable.
 - All tasks share the same codebase and build system - parallel execution corrupts state
 
 **Your workflow (strictly sequential):**
+
+0. **PRECHECK:** Run `git status --porcelain`. If output is not empty, abort with error message. Do not proceed.
 
 1. Run: `deno run --allow-read .ikigai/scripts/tasks/next.ts {{args}}/order.json`
 2. Parse the JSON response

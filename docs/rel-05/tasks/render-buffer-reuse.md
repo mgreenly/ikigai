@@ -22,6 +22,7 @@ Render Performance Optimization - Eliminate per-frame memory allocation
 - tests/unit/layer/*.c (layer test patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Framebuffer and output buffer are allocated fresh each frame in `ik_repl_render_frame()`
 
@@ -81,6 +82,7 @@ Instead, allocate these once during REPL initialization and reset/reuse on each 
 3. Run `make lint` - verify clean
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 - `make check` passes
 - Render buffers are allocated once in REPL init
 - `ik_repl_render_frame()` reuses buffers instead of allocating

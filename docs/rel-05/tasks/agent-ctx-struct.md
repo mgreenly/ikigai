@@ -27,6 +27,7 @@ Phase 1: Agent Context Extraction - Step 1 (Empty struct with identity)
 - tests/unit/shared/shared_test.c (context test patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Phase 0 complete (ik_shared_ctx_t exists with all shared fields)
 - No `ik_agent_ctx_t` exists yet
@@ -132,3 +133,4 @@ For now, repl_ctx will hold a single agent. Multi-agent array comes later (manua
 - `ik_agent_create()` allocates and initializes agent context
 - Test file exists with basic creation tests
 - No changes to repl_ctx yet (agent not integrated)
+- Working tree is clean (all changes committed)

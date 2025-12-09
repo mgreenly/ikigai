@@ -20,6 +20,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Hierarchy fields exist in `ik_agent_ctx_t`
 - Depth calculation works
 
@@ -61,3 +62,4 @@ Implement with dynamic array (realloc pattern via talloc_realloc).
 - Child array management functions work correctly
 - Children are properly talloc-parented
 - All tests pass
+- Working tree is clean (all changes committed)

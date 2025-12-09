@@ -21,6 +21,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Tool schema registered
 - Child array management works
 - Depth calculation works
@@ -72,3 +73,4 @@ Implement handler with validation and creation logic.
 - Validation enforces limits
 - Parent-child links established
 - All tests pass
+- Working tree is clean (all changes committed)

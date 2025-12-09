@@ -26,6 +26,7 @@ User Story: 06-list-agents.md
 - tests/unit/commands/commands_test.c (command tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - repl-agent-array.md complete (agents[] array)
 - DI-1 complete: agents have state field (ik_repl_state_t)
@@ -141,3 +142,4 @@ res_t cmd_agents(ik_repl_ctx_t *repl, const char *args)
 - States shown as human-readable names
 - Help text includes /agents
 - Output appears in current agent's scrollback
+- Working tree is clean (all changes committed)

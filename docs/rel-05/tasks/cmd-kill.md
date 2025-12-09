@@ -33,6 +33,7 @@ User Stories: 07-kill-current-agent.md, 08-kill-specific-agent.md, 09-kill-agent
 - tests/unit/commands/commands_test.c (command tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - repl-agent-array.md complete (agents[] array)
 - agent-switch.md complete (ik_repl_switch_agent)
@@ -219,3 +220,4 @@ static int64_t find_agent_idx(ik_repl_ctx_t *repl, const char *agent_id)
 - Resources properly freed via talloc
 - Confirmation message displayed
 - Error messages for invalid operations
+- Working tree is clean (all changes committed)

@@ -27,6 +27,7 @@ User Stories: 02-switch-next-agent.md, 03-switch-prev-agent.md, 04-switch-wrap-f
 - tests/unit/input/sgr_test.c (escape sequence tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Input parser handles arrow keys (Up, Down, Left, Right)
 - Input parser handles Ctrl modifiers for some keys
@@ -138,3 +139,4 @@ if (final_byte == 'C') {  // Right arrow
 - Ctrl+Right parses to AGENT_NEXT
 - Plain Left/Right arrows unchanged
 - No action handler yet (just parsing) - that comes in agent-switch.md
+- Working tree is clean (all changes committed)

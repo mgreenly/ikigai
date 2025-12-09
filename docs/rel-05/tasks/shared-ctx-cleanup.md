@@ -24,6 +24,7 @@ Phase 0: Shared Context DI - Final Verification
 - tests/helpers/test_contexts.h
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - All Phase 0 field migrations complete
 - Test helpers created
@@ -111,6 +112,7 @@ This is a verification/polish task, not new implementation.
    - [ ] Field access uses `repl->shared->field` pattern
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 - `make check` passes
 - `make lint` passes
 - `make coverage` shows 100%

@@ -36,6 +36,7 @@ User Stories: All (agents always run - core architecture principle)
 - tests/unit/openai/client_multi_test.c (curl_multi tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - repl-agent-array.md complete (agents[] array exists)
 - DI-1 complete: each agent owns its own curl_multi handle
@@ -169,3 +170,4 @@ void ik_agent_process_events(ik_agent_ctx_t *agent)
 - Only current agent triggers terminal render
 - Switching agents shows accumulated state from background processing
 - `ik_agent_process_events()` is the central agent event handler
+- Working tree is clean (all changes committed)

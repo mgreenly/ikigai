@@ -24,6 +24,7 @@ Phase 0: Shared Context DI - Step 2 (cfg field migration)
 - tests/unit/shared/shared_test.c (existing shared tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `ik_shared_ctx_t` exists (empty struct)
 - `ik_shared_ctx_init()` works
@@ -133,6 +134,7 @@ After this task:
 3. Run `make lint` - verify clean
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 - `make check` passes (after `make clean`)
 - `cfg` is in `ik_shared_ctx_t`, not `ik_repl_ctx_t`
 - `ik_repl_init()` receives shared context

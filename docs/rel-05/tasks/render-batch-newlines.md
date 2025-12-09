@@ -19,6 +19,7 @@ Render Performance Optimization - Eliminate character-by-character append overhe
 
 ## Pre-read Tests (patterns)
 - tests/unit/layer/*.c (layer test patterns)
+- Working tree is clean (`git status --porcelain` returns empty)
 
 ## Pre-conditions
 - `make check` passes

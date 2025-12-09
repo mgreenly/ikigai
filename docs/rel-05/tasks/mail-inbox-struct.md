@@ -34,6 +34,7 @@ Supports User Stories:
 - tests/unit/history/core_test.c (container operation tests, comprehensive coverage)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - `ik_mail_msg_t` struct defined with fields: id, from_agent_id, to_agent_id, body, timestamp, read
@@ -925,3 +926,4 @@ Handler sorts messages: unread first, then by timestamp descending
   - Edge cases (all read, all unread, same timestamp)
 - Directory structure: `src/mail/inbox.h`, `src/mail/inbox.c`
 - No changes to existing code beyond Makefile and wrapper additions
+- Working tree is clean (all changes committed)

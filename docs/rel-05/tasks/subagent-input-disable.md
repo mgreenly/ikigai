@@ -19,6 +19,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Sub-agents exist with `is_sub_agent = true`
 - Navigation to sub-agents works
 
@@ -55,3 +56,4 @@ Add input gating based on `is_sub_agent` flag.
 - Sub-agents are observe-only
 - Navigation still works
 - All tests pass
+- Working tree is clean (all changes committed)

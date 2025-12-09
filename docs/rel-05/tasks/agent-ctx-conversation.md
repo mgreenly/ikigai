@@ -25,6 +25,7 @@ Phase 1: Agent Context Extraction - Step 4 (conversation fields migration)
 - tests/unit/agent/agent_test.c
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Display and input fields already migrated to agent context
 - `repl->agent` exists with scrollback, input_buffer
@@ -121,3 +122,4 @@ After this task:
 - `ik_agent_create()` initializes all conversation state
 - All conversation access uses `repl->agent->*` pattern
 - 100% test coverage maintained
+- Working tree is clean (all changes committed)

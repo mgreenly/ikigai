@@ -45,6 +45,7 @@ Supports User Stories:
 - tests/test_utils.h (ik_test_db_* helpers, transaction isolation)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - migrations/002-mail-table.sql exists
@@ -1312,6 +1313,7 @@ UPDATE mail SET read = 1 WHERE id = $1
   - Memory ownership is correct
   - Foreign key violations return errors
 - 100% test coverage maintained
+- Working tree is clean (all changes committed)
 
 ## Notes
 

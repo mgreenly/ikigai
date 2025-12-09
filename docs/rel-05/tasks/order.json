@@ -1,10 +1,10 @@
 {
   "todo": [
     {
-      "task": "scroll-deferred-detection.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "thinking"
+      "task": "scroll-debug-log-cleanup.md",
+      "group": "Cleanup",
+      "model": "haiku",
+      "thinking": "low"
     },
     {
       "task": "agent-ctx-struct.md",
@@ -412,6 +412,18 @@
     },
     {
       "task": "scroll-accumulator-rewrite.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "scroll-deferred-detection.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "scrollback-render-row-offset.md",
       "group": "Bug Fix",
       "model": "sonnet",
       "thinking": "low"

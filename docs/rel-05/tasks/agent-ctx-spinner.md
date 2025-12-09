@@ -24,6 +24,7 @@ Phase 1: Agent Context Extraction - Step 7 (spinner field migration)
 - tests/unit/agent/agent_test.c
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Display, input, conversation, LLM, and tool fields already migrated
 - `repl->agent` exists with all previous state
@@ -97,3 +98,4 @@ After this task:
 - Spinner layer references agent's spinner_state
 - All spinner access uses `repl->agent->spinner_state` pattern
 - 100% test coverage maintained
+- Working tree is clean (all changes committed)

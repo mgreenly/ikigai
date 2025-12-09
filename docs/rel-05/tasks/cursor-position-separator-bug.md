@@ -21,6 +21,7 @@ User Story: docs/rel-05/user-stories/50-cursor-position-separator-bug.md
 - src/repl.h (layer structure)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Cursor renders correctly when scrollback doesn't fill viewport
 - Bug present: when viewport has exactly one blank line at bottom, cursor renders on separator instead of input line
@@ -118,3 +119,4 @@ Fix the cursor positioning bug that occurs when scrollback content leaves exactl
 - Cursor never renders on separator line
 - Cursor position correct at all viewport fill levels
 - Test exists verifying cursor position when viewport is constrained
+- Working tree is clean (all changes committed)

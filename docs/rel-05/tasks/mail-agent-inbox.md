@@ -31,6 +31,7 @@ Supports User Stories:
 - tests/unit/mail/inbox_test.c (inbox operation tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - `ik_inbox_t` struct defined with fields: messages, count, unread_count, capacity
@@ -340,6 +341,7 @@ repl_ctx (coordinator)
   - Multiple agents have separate inboxes
 - No changes to inbox.h or inbox.c (pure integration)
 - src/agent.h includes mail/inbox.h
+- Working tree is clean (all changes committed)
 
 ## Notes
 

@@ -20,6 +20,7 @@ Render Performance Optimization - O(log n) scrollback line lookup instead of O(n
 - tests/unit/scrollback/*.c (scrollback test patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `ik_scrollback_get_line_at_physical_row()` uses O(n) linear scan
 
@@ -108,6 +109,7 @@ This is O(n) and becomes slow with thousands of lines. Maintain a prefix sum arr
 3. Run `make lint` - verify clean
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 - `make check` passes
 - `ik_scrollback_t` has `prefix_sums` array
 - Line lookup is O(log n) via binary search

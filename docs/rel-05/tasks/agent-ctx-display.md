@@ -27,6 +27,7 @@ Phase 1: Agent Context Extraction - Step 2 (display fields migration)
 - tests/unit/agent/agent_test.c
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `ik_agent_ctx_t` exists with identity fields
 - `ik_agent_create()` works
@@ -144,3 +145,4 @@ Note: This is a large migration. Layer creation moves from repl_init to agent_cr
 - `repl->agent` pointer exists
 - All display access uses `repl->agent->*` pattern
 - 100% test coverage maintained
+- Working tree is clean (all changes committed)

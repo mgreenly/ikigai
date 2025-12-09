@@ -40,6 +40,7 @@ User Stories: 02-switch-next-agent.md, 03-switch-prev-agent.md, 04-switch-wrap-f
 - tests/unit/scrollback/scrollback_test.c (reflow tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - repl-agent-array.md complete (agents[] array exists)
 - input-ctrl-arrow-actions.md complete (AGENT_PREV/NEXT actions exist)
@@ -196,3 +197,4 @@ if (target_agent->needs_reflow) {
 - Lazy reflow applied on switch if SIGWINCH occurred while away
 - Full terminal redraw on switch
 - Single agent: Ctrl+arrows are no-op (switch to self)
+- Working tree is clean (all changes committed)

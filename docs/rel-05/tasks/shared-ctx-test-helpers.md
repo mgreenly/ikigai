@@ -23,6 +23,7 @@ Phase 0: Shared Context DI - Test Infrastructure
 - tests/unit/repl/*.c (tests that need shared context)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - All Phase 0 field migrations complete
 - Multiple test files need to create shared + repl contexts together
@@ -147,3 +148,4 @@ The helpers should support:
 - At least one existing test file uses new helpers
 - Helpers documented for future test authors
 - 100% test coverage maintained
+- Working tree is clean (all changes committed)

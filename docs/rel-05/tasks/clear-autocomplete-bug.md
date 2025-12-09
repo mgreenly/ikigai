@@ -21,6 +21,7 @@ User Story: docs/rel-05/user-stories/47-clear-hides-autocomplete.md
 - src/layer_completion.c (completion layer rendering)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Autocomplete system works correctly during typing
 - `/clear` command clears scrollback, messages, and marks
@@ -94,3 +95,4 @@ Fix the bug where autocomplete suggestions remain visible after executing `/clea
 - Autocomplete suggestions do not persist after `/clear` executes
 - Test exists verifying autocomplete is cleared
 - Manual testing confirms fix
+- Working tree is clean (all changes committed)

@@ -32,6 +32,7 @@ User Stories: 01-spawn-agent.md, 13-max-agents-limit.md
 - tests/unit/commands/commands_test.c (command tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - repl-agent-array.md complete (agents[] array, next_agent_serial)
 - agent-switch.md complete (ik_repl_switch_agent)
@@ -146,3 +147,4 @@ static const ik_command_t commands[] = {
 - Displays confirmation message
 - Refuses to exceed 20 agents with clear error
 - Help text includes /spawn
+- Working tree is clean (all changes committed)

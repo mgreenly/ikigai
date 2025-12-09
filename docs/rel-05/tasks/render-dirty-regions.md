@@ -22,6 +22,7 @@ Render Performance Optimization - Reduce terminal output by only updating change
 - tests/unit/repl/*.c (existing repl test patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Every render clears entire screen with `\x1b[2J\x1b[H`
 - render-buffer-reuse.md task is complete (reusable buffers exist)
@@ -97,6 +98,7 @@ For single-character input on a large scrollback, this can reduce terminal outpu
 4. Run `make lint` - verify clean
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 - `make check` passes
 - First render and resize do full screen redraw
 - Subsequent renders only update changed lines

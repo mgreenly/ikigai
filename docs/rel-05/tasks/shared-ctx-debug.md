@@ -24,6 +24,7 @@ Phase 0: Shared Context DI - Step 6 (debug fields migration)
 - tests/unit/shared/shared_test.c
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `cfg`, `term`, `render`, `db_ctx`, `session_id`, `history` already migrated to shared context
 
@@ -102,6 +103,7 @@ After this task:
 3. Run `make lint` - verify clean
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 - `make check` passes
 - Debug fields are in `ik_shared_ctx_t`, not `ik_repl_ctx_t`
 - Debug infrastructure creation happens in shared_ctx_init

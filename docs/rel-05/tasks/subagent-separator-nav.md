@@ -18,6 +18,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Hierarchy navigation (Ctrl+Up/Down) works
 - Separator displays agent ID
 
@@ -59,3 +60,4 @@ Update separator render to include navigation context.
 - Separator shows complete navigation context
 - All directions displayed correctly
 - All tests pass
+- Working tree is clean (all changes committed)

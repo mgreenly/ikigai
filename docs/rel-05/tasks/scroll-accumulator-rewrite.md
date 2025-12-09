@@ -23,6 +23,7 @@ Bug Fix: Replace arrow burst detector with simpler accumulator-based scroll dete
 - tests/unit/arrow_burst/arrow_burst_test.c (existing tests to replace)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 
 ## Background
@@ -404,6 +405,7 @@ END_TEST
 4. Manual test: mouse wheel scrolls, keyboard arrows move cursor
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 
 - `make check` passes
 - Old `arrow_burst` module removed

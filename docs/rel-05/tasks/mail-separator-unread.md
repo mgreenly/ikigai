@@ -36,6 +36,7 @@ Supports User Stories:
 - tests/unit/mail/inbox_test.c (inbox fixture patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - mail-tool-handler.md complete: All mail operations working
@@ -767,6 +768,7 @@ The mail indicator consumes width: ` [mail:N] ` = 9 + digits(N) characters
 - No indicator when unread_count == 0 (never shows `[mail:0]`)
 - Indicator updates immediately when:
   - New mail received (count increases)
+- Working tree is clean (all changes committed)
   - Message read (count decreases to 0 = disappears)
   - Agent switch (shows new agent's count)
 - Width calculation accounts for indicator length

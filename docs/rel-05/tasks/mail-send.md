@@ -40,6 +40,7 @@ Supports User Stories:
 - tests/test_utils.h (test helper functions)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - `ik_mail_msg_t` struct defined with fields: id, from_agent_id, to_agent_id, body, timestamp, read
@@ -1032,6 +1033,7 @@ This function implements steps 4-9. Command parsing (steps 1-3) and display (ste
   - Sequential IDs from multiple sends
   - Database insert called with correct arguments
   - Current timestamp used
+- Working tree is clean (all changes committed)
   - Message added to recipient inbox
   - Message fields populated correctly
   - Sub-agent IDs work for both sender and recipient

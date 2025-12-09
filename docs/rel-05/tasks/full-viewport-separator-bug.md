@@ -24,6 +24,7 @@ User Story: docs/rel-05/user-stories/48-full-viewport-separator-bug.md
 - src/repl.h (layer cake structure)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Layer system works correctly when scrollback doesn't fill viewport
 - Bug present: when scrollback fills viewport, extra blank line appears and bottom separator missing
@@ -132,3 +133,4 @@ Fix the layer positioning bug that occurs when scrollback content fills the enti
 - Bottom separator always visible
 - Layout correct at all terminal sizes
 - Test exists verifying layer positions when viewport is full
+- Working tree is clean (all changes committed)

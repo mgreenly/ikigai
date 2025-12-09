@@ -35,6 +35,7 @@ User Stories: All (foundational infrastructure for multi-agent)
 - tests/unit/agent/agent_test.c (agent tests from DI-1)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - DI-0 complete: `ik_shared_ctx_t` exists with all shared fields
 - DI-1 complete: `ik_agent_ctx_t` exists with all per-agent fields
@@ -142,6 +143,7 @@ root_ctx
    - Decision: Fixed at 20 (simpler, matches max limit)
 
 ## Post-conditions
+- Working tree is clean (all changes committed)
 - `make check` passes
 - `ik_repl_ctx_t` has agents array instead of single agent pointer
 - Agent 0/ automatically created on startup

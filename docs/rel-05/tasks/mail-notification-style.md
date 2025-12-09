@@ -34,6 +34,7 @@ Supports User Stories:
 - tests/unit/scrollback/scrollback_test.c (scrollback append patterns)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - mail-notification-inject.md complete:
@@ -719,6 +720,7 @@ This is already implemented, so no changes needed to width calculation.
 - Format: `\x1b[2m{content}\x1b[0m`
 - Plain text output when colors disabled (NO_COLOR, TERM=dumb)
 - Display width calculation excludes ANSI sequences
+- Working tree is clean (all changes committed)
 - Style reset prevents bleeding into subsequent content
 - `ik_event_renders_visible("notification")` returns true
 - Tests cover:

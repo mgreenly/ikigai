@@ -60,10 +60,14 @@ Each file specifies:
 - **Target** - Which user story it supports
 - **Agent model** - (now in order.json, but task file can specify for reference)
 - **Pre-read sections** - Skills, docs, source patterns, test patterns
-- **Pre-conditions** - What must be true before starting
+- **Pre-conditions** - What must be true before starting (implicit: clean working tree)
 - **Task** - One clear, testable goal
 - **TDD Cycle** - Red (failing test), Green (minimal impl), Refactor (clean up)
 - **Post-conditions** - What must be true after completion
+
+**Required Skill:** All task files MUST include `scm` in their Pre-read Skills section. This ensures agents commit after every testable change and never lose work.
+
+**Implicit Pre-condition (ALL tasks):** Working tree must be clean (`git status --porcelain` returns empty). If uncommitted changes exist, abort immediately without making any changes.
 
 ## Scripts
 
@@ -104,12 +108,24 @@ The orchestrator:
 
 ## Sub-agent Responsibilities
 
-1. Read their own task file (100% self-contained)
-2. Verify pre-conditions
-3. Execute TDD cycle
-4. Verify post-conditions
-5. Commit their own changes
-6. Return JSON response
+1. **FIRST: Verify clean working tree** - Run `git status --porcelain`. If ANY output exists, abort immediately with `{"ok": false, "reason": "Uncommitted changes in working tree"}`. Do not proceed.
+2. Read their own task file (100% self-contained)
+3. Verify pre-conditions
+4. Execute TDD cycle
+5. Verify post-conditions
+6. **LAST: Leave working tree clean** - Either commit all changes OR roll back all changes. Never leave uncommitted files.
+7. Return JSON response
+
+**Critical: Clean Exit Requirement**
+
+Sub-agents MUST leave the working tree clean before returning, regardless of success or failure:
+
+- **On success:** Commit all changes with descriptive message
+- **On failure:** Either commit partial progress (if useful) OR `git checkout .` to discard all changes
+- **NEVER** return `{"ok": false, ...}` with uncommitted changes
+- Run `git status --porcelain` before returning - if not empty, you haven't finished cleanup
+
+This ensures the next task (or retry) starts with a clean slate.
 
 **Response format:**
 ```json

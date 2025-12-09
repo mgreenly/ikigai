@@ -20,6 +20,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Agent hierarchy exists
 - /kill command works for single agents
 
@@ -61,3 +62,4 @@ Implement recursive kill with depth-first traversal.
 - /kill cascades through descendants
 - Correct depth-first order
 - All tests pass
+- Working tree is clean (all changes committed)

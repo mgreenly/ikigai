@@ -38,6 +38,7 @@ Supports User Stories:
 - tests/test_utils.h (test helper functions)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - `ik_mail_msg_t` struct defined with fields: id, from_agent_id, to_agent_id, body, timestamp, read
@@ -1154,6 +1155,7 @@ Inbox for agent 0/:
   - Empty inbox format
   - Single message (read/unread)
   - Multiple messages with ordering
+- Working tree is clean (all changes committed)
   - Preview truncation (short, exact 50, over 50)
   - Preview with empty body, multiline, special chars
   - Line width truncation

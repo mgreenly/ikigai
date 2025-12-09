@@ -16,6 +16,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Tool infrastructure exists
 - Agent hierarchy fields exist
 
@@ -65,3 +66,4 @@ Add schema definition to tool registry.
 - `spawn_sub_agent` tool registered
 - Schema matches specification
 - All tests pass
+- Working tree is clean (all changes committed)

@@ -5,6 +5,7 @@
   "log",
   "naming",
   "quality",
+  "scm",
   "style",
   "tdd"
 ]

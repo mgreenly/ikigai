@@ -32,6 +32,7 @@ Supports User Stories:
 - tests/unit/db/message_test.c (database operation tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - `make lint` passes
 - `ik_mail_msg_t` struct defined with fields: id, from_agent_id, to_agent_id, body, timestamp, read
@@ -913,6 +914,7 @@ ORDER BY read ASC, timestamp DESC
   - Query sort order matches user story 46 pattern
   - Sub-agent IDs stored correctly
   - Empty and large body text supported
+- Working tree is clean (all changes committed)
 
 ## Notes
 

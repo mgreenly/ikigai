@@ -19,6 +19,7 @@
 
 ## Pre-conditions
 
+- Working tree is clean (`git status --porcelain` returns empty)
 - Sub-agent completion detection works
 - Tool handler blocks on sub-agent
 
@@ -56,3 +57,4 @@ Implement result delivery in tool handler completion path.
 - Results flow from sub-agent to parent
 - Sub-agent resources freed
 - All tests pass
+- Working tree is clean (all changes committed)

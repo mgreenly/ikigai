@@ -30,6 +30,7 @@ User Story: 12-separator-shows-agent.md
 - tests/unit/layer/layer_test.c (layer tests)
 
 ## Pre-conditions
+- Working tree is clean (`git status --porcelain` returns empty)
 - `make check` passes
 - Separator layer exists and renders horizontal line
 - DI-1 complete: agents have agent_id field
@@ -131,3 +132,4 @@ void separator_render(ik_layer_t *layer, ik_render_ctx_t *render)
 - Updates on agent switch
 - Adjusts to terminal width
 - No additional status info yet (Phase 1 scope)
+- Working tree is clean (all changes committed)
