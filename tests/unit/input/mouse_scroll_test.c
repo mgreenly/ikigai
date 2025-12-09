@@ -60,6 +60,153 @@ START_TEST(test_mouse_scroll_down_parsing)
 }
 END_TEST
 
+// Test: Mouse sequence without button field separator should be discarded
+START_TEST(test_mouse_sequence_missing_separator)
+{
+    void *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // Malformed sequence: ESC [ < 64 M (missing semicolon separator)
+    const char sequence[] = "\x1b[<64M";
+
+    for (size_t i = 0; i < sizeof(sequence) - 1; i++) {
+        ik_input_parse_byte(parser, sequence[i], &action);
+    }
+
+    // Should return UNKNOWN for malformed sequence
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: Mouse click event (button 0) should be discarded
+START_TEST(test_mouse_click_discarded)
+{
+    void *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // Mouse click: ESC [ < 0 ; 1 ; 1 M
+    const char sequence[] = "\x1b[<0;1;1M";
+
+    for (size_t i = 0; i < sizeof(sequence) - 1; i++) {
+        ik_input_parse_byte(parser, sequence[i], &action);
+    }
+
+    // Should return UNKNOWN for non-scroll mouse events
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: Mouse release event (m) should be handled
+START_TEST(test_mouse_release_event)
+{
+    void *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // Mouse release: ESC [ < 0 ; 1 ; 1 m (lowercase m)
+    const char sequence[] = "\x1b[<0;1;1m";
+
+    for (size_t i = 0; i < sizeof(sequence) - 1; i++) {
+        ik_input_parse_byte(parser, sequence[i], &action);
+    }
+
+    // Should return UNKNOWN for non-scroll mouse events
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: Mouse button with single digit should be discarded
+START_TEST(test_mouse_single_digit_button)
+{
+    void *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // Single digit button: ESC [ < 1 ; 1 ; 1 M
+    const char sequence[] = "\x1b[<1;1;1M";
+
+    for (size_t i = 0; i < sizeof(sequence) - 1; i++) {
+        ik_input_parse_byte(parser, sequence[i], &action);
+    }
+
+    // Should return UNKNOWN for non-2-digit buttons
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: Mouse button with triple digits should be discarded
+START_TEST(test_mouse_triple_digit_button)
+{
+    void *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // Triple digit button: ESC [ < 100 ; 1 ; 1 M
+    const char sequence[] = "\x1b[<100;1;1M";
+
+    for (size_t i = 0; i < sizeof(sequence) - 1; i++) {
+        ik_input_parse_byte(parser, sequence[i], &action);
+    }
+
+    // Should return UNKNOWN for non-2-digit buttons
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: Mouse button 63 (not scroll) should be discarded
+START_TEST(test_mouse_button_63)
+{
+    void *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // Button 63: ESC [ < 63 ; 1 ; 1 M
+    const char sequence[] = "\x1b[<63;1;1M";
+
+    for (size_t i = 0; i < sizeof(sequence) - 1; i++) {
+        ik_input_parse_byte(parser, sequence[i], &action);
+    }
+
+    // Should return UNKNOWN for non-scroll buttons
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: Mouse button 66 (not scroll) should be discarded
+START_TEST(test_mouse_button_66)
+{
+    void *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // Button 66: ESC [ < 66 ; 1 ; 1 M
+    const char sequence[] = "\x1b[<66;1;1M";
+
+    for (size_t i = 0; i < sizeof(sequence) - 1; i++) {
+        ik_input_parse_byte(parser, sequence[i], &action);
+    }
+
+    // Should return UNKNOWN for non-scroll buttons
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Create test suite
 static Suite *mouse_scroll_suite(void)
 {
@@ -69,6 +216,13 @@ static Suite *mouse_scroll_suite(void)
     tcase_set_timeout(tc_parse, 30);
     tcase_add_test(tc_parse, test_mouse_scroll_up_parsing);
     tcase_add_test(tc_parse, test_mouse_scroll_down_parsing);
+    tcase_add_test(tc_parse, test_mouse_sequence_missing_separator);
+    tcase_add_test(tc_parse, test_mouse_click_discarded);
+    tcase_add_test(tc_parse, test_mouse_release_event);
+    tcase_add_test(tc_parse, test_mouse_single_digit_button);
+    tcase_add_test(tc_parse, test_mouse_triple_digit_button);
+    tcase_add_test(tc_parse, test_mouse_button_63);
+    tcase_add_test(tc_parse, test_mouse_button_66);
     suite_add_tcase(s, tc_parse);
 
     return s;

@@ -190,6 +190,23 @@ START_TEST(test_negative_limit)
 END_TEST
 
 /*
+ * Test: Should continue when cfg is NULL (no limit enforcement)
+ */
+START_TEST(test_should_continue_when_cfg_is_null)
+{
+    /* Set up: cfg is NULL (defensive check) */
+    repl->shared->cfg = NULL;
+    repl->tool_iteration_count = 10;  // Any value
+    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+
+    /* Should continue - when cfg is NULL, no limit is enforced */
+    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    ck_assert(should_continue);
+}
+
+END_TEST
+
+/*
  * Test suite
  */
 static Suite *tool_loop_limit_suite(void)
@@ -207,6 +224,7 @@ static Suite *tool_loop_limit_suite(void)
     tcase_add_test(tc_core, test_should_continue_at_limit_minus_one);
     tcase_add_test(tc_core, test_zero_limit_means_no_tool_calls);
     tcase_add_test(tc_core, test_negative_limit);
+    tcase_add_test(tc_core, test_should_continue_when_cfg_is_null);
     suite_add_tcase(s, tc_core);
 
     return s;

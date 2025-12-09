@@ -143,21 +143,15 @@ static void teardown(void)
 
 // Test: Clear with database error on clear event persist
 START_TEST(test_clear_db_error_clear_event) {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-
     // Create minimal config (no system message for this test)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
-    // Create shared context
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    shared->cfg = cfg;
-    repl->shared = shared;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
 
     // Set up debug pipe to capture error
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -167,6 +161,11 @@ START_TEST(test_clear_db_error_clear_event) {
     ck_assert_int_eq(pipe(pipefd), 0);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
     repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on first call (clear event)
@@ -188,21 +187,15 @@ END_TEST
 // Test: Clear with database error on system message persist
 START_TEST(test_clear_db_error_system_message)
 {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-
     // Create config with system message
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant");
-    // Create shared context
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    shared->cfg = cfg;
-    repl->shared = shared;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
 
     // Set up debug pipe to capture error
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -212,6 +205,11 @@ START_TEST(test_clear_db_error_system_message)
     ck_assert_int_eq(pipe(pipefd), 0);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
     repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on second call (system message)
@@ -256,21 +254,20 @@ END_TEST
 // Test: Clear with DB error but no debug pipe (silent failure)
 START_TEST(test_clear_db_error_no_debug_pipe)
 {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-
     // Create minimal config (no system message)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
-    // Create shared context
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    shared->cfg = cfg;
-    repl->shared = shared;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // No debug pipe set - db_debug_pipe is NULL
     repl->shared->db_debug_pipe = NULL;
@@ -291,21 +288,20 @@ END_TEST
 // Test: Clear with system message DB error but no debug pipe
 START_TEST(test_clear_system_db_error_no_debug_pipe)
 {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-
     // Create config with system message
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are helpful");
-    // Create shared context
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    shared->cfg = cfg;
-    repl->shared = shared;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // No debug pipe set - db_debug_pipe is NULL
     repl->shared->db_debug_pipe = NULL;
@@ -328,26 +324,25 @@ END_TEST
 // Test: Clear with DB error and debug pipe but write_end is NULL
 START_TEST(test_clear_db_error_write_end_null)
 {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-
     // Create minimal config
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
-    // Create shared context
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    shared->cfg = cfg;
-    repl->shared = shared;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
 
     // Create debug pipe but with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = NULL;  // NULL write_end
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
     repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on first call (clear event)
@@ -366,26 +361,25 @@ END_TEST
 // Test: Clear with system message DB error and write_end is NULL
 START_TEST(test_clear_system_db_error_write_end_null)
 {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-
     // Create config with system message
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are helpful");
-    // Create shared context
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    shared->cfg = cfg;
-    repl->shared = shared;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
 
     // Create debug pipe but with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = NULL;  // NULL write_end
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
     repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on second call (system message)
