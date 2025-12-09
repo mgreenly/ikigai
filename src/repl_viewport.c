@@ -221,11 +221,13 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
                                                   &input_cursor_pos);
         assert(is_ok(&result));  // LCOV_EXCL_BR_LINE
         // Offset cursor by viewport position of input buffer
-        final_cursor_row = (int32_t)viewport.input_buffer_start_row + input_cursor_pos.screen_row;
+        // BUG FIX: Add 1 to account for separator row when using layer-based rendering
+        final_cursor_row = (int32_t)viewport.input_buffer_start_row + input_cursor_pos.screen_row + 1;
         final_cursor_col = input_cursor_pos.screen_col;
     } else if (input_buffer_visible) {
         // Empty input buffer - cursor at start of input area
-        final_cursor_row = (int32_t)viewport.input_buffer_start_row;
+        // BUG FIX: Add 1 to account for separator row when using layer-based rendering
+        final_cursor_row = (int32_t)viewport.input_buffer_start_row + 1;
         final_cursor_col = 0;
     }
 
