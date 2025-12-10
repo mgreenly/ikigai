@@ -60,12 +60,18 @@ static void separator_render(const ik_layer_t *layer,
     size_t debug_len = 0;
 
     if (data->debug.viewport_offset != NULL) {
+        // Calculate scrollback rows from doc height: doc = sb + 1 + input(1) + 1
+        size_t sb_rows = 0;
+        if (data->debug.document_height && *data->debug.document_height >= 3) {
+            sb_rows = *data->debug.document_height - 3;
+        }
         debug_len = (size_t)snprintf(debug_str, sizeof(debug_str),
-            " off=%zu row=%zu h=%zu doc=%zu ",
+            " off=%zu row=%zu h=%zu doc=%zu sb=%zu ",
             data->debug.viewport_offset ? *data->debug.viewport_offset : 0,
             data->debug.viewport_row ? *data->debug.viewport_row : 0,
             data->debug.viewport_height ? *data->debug.viewport_height : 0,
-            data->debug.document_height ? *data->debug.document_height : 0);
+            data->debug.document_height ? *data->debug.document_height : 0,
+            sb_rows);
     }
 
     // Calculate how many separator chars to draw (leave room for debug)
