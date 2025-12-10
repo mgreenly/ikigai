@@ -71,6 +71,8 @@ static void scrollback_render(const ik_layer_t *layer,
     if (!is_ok(&res)) {
         // End row is beyond scrollback, render to the last line
         end_line_idx = total_lines - 1;
+        // For end_row_offset, use last row of last line
+        end_row_offset = scrollback->layouts[end_line_idx].physical_lines - 1;
     }
 
     // Render logical lines from start_line_idx to end_line_idx (inclusive)
@@ -83,8 +85,36 @@ static void scrollback_render(const ik_layer_t *layer,
         res = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
         (void)res;  // Suppress unused variable warning
 
-        // Copy line text, converting \n to \r\n
-        for (size_t j = 0; j < line_len; j++) {
+        // Calculate byte range to render for this line
+        size_t render_start = 0;
+        size_t render_end = line_len;
+        bool is_line_end = true;  // Are we rendering to end of logical line?
+
+        // For first line: skip start_row_offset worth of display columns
+        if (i == start_line_idx && start_row_offset > 0) {
+            size_t skip_cols = start_row_offset * width;
+            res = ik_scrollback_get_byte_offset_at_display_col(scrollback, i, skip_cols, &render_start);
+            if (is_err(&res)) {
+                render_start = 0;
+            }
+        }
+
+        // For last line: only render up to (end_row_offset + 1) * width display columns
+        if (i == end_line_idx) {
+            size_t line_physical_rows = scrollback->layouts[i].physical_lines;
+            // Are we stopping before end of this logical line?
+            if (end_row_offset + 1 < line_physical_rows) {
+                size_t stop_cols = (end_row_offset + 1) * width;
+                res = ik_scrollback_get_byte_offset_at_display_col(scrollback, i, stop_cols, &render_end);
+                if (is_err(&res)) {
+                    render_end = line_len;
+                }
+                is_line_end = false;  // We're stopping mid-line
+            }
+        }
+
+        // Copy line text from render_start to render_end, converting \n to \r\n
+        for (size_t j = render_start; j < render_end; j++) {
             if (line_text[j] == '\n') {
                 ik_output_buffer_append(output, "\r\n", 2);
             } else {
@@ -92,8 +122,10 @@ static void scrollback_render(const ik_layer_t *layer,
             }
         }
 
-        // Add \r\n at end of each line
-        ik_output_buffer_append(output, "\r\n", 2);
+        // Add \r\n only if we rendered to end of logical line
+        if (is_line_end) {
+            ik_output_buffer_append(output, "\r\n", 2);
+        }
     }
 }
 
