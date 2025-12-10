@@ -193,9 +193,9 @@ START_TEST(test_mouse_wheel_burst_absorbs)
     ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);
     ck_assert_int_eq(det->state, IK_SCROLL_STATE_ABSORBING);
 
-    // Arrow 3: absorbed (returns NONE)
+    // Arrow 3: absorbed (returns ABSORBED)
     r = ik_scroll_detector_process_arrow(det, IK_INPUT_ARROW_UP, 1002);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
+    ck_assert_int_eq(r, IK_SCROLL_RESULT_ABSORBED);
     ck_assert_int_eq(det->state, IK_SCROLL_STATE_ABSORBING);
 
     // Timeout: ABSORBING -> IDLE (no additional output)

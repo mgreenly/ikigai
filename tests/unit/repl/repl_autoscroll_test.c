@@ -170,7 +170,7 @@ END_TEST START_TEST(test_autoscroll_on_delete)
 
 END_TEST START_TEST(test_autoscroll_on_cursor_navigation)
 {
-    // Arrow left/right should autoscroll
+    // Arrow left/right should autoscroll (not affected by scroll detector)
     ik_input_action_t left_right_actions[] = {
         { .type = IK_INPUT_ARROW_LEFT },
         { .type = IK_INPUT_ARROW_RIGHT }
@@ -179,14 +179,17 @@ END_TEST START_TEST(test_autoscroll_on_cursor_navigation)
         test_action_autoscrolls(&left_right_actions[i], true);
     }
 
-    // Arrow up/down with slow timing (keyboard) SHOULD autoscroll and move cursor
-    // Mouse scroll (rapid arrows) would NOT autoscroll, but this test sends slow arrows
+    // Arrow up/down should NOT autoscroll - they scroll the viewport instead.
+    // When viewport is already scrolled, up/down continue scrolling rather
+    // than jumping to bottom. This allows the user to navigate scrollback.
+    // Note: These go through the scroll detector which buffers them, so we
+    // won't see the scroll action immediately - offset stays unchanged.
     ik_input_action_t up_down_actions[] = {
         { .type = IK_INPUT_ARROW_UP },
         { .type = IK_INPUT_ARROW_DOWN }
     };
     for (size_t i = 0; i < sizeof(up_down_actions) / sizeof(up_down_actions[0]); i++) {
-        test_action_autoscrolls(&up_down_actions[i], true);
+        test_action_autoscrolls(&up_down_actions[i], false);
     }
 }
 
