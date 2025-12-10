@@ -26,6 +26,7 @@ typedef struct {
 // Result of processing an arrow event
 typedef enum {
     IK_SCROLL_RESULT_NONE,        // Event buffered, waiting for more
+    IK_SCROLL_RESULT_ABSORBED,    // Arrow absorbed (part of burst, already emitted wheel)
     IK_SCROLL_RESULT_SCROLL_UP,   // Emit scroll up (mouse wheel detected)
     IK_SCROLL_RESULT_SCROLL_DOWN, // Emit scroll down (mouse wheel detected)
     IK_SCROLL_RESULT_ARROW_UP,    // Emit arrow up (keyboard detected)

@@ -4,7 +4,9 @@
 #include "shared.h"
 #include "scrollback.h"
 #include "input_buffer/core.h"
+#include "logger.h"
 #include <assert.h>
+#include <inttypes.h>
 
 #define MOUSE_SCROLL_LINES 1
 
@@ -84,8 +86,20 @@ res_t ik_repl_handle_scroll_up_action(ik_repl_ctx_t *repl)
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
     size_t max_offset = ik_repl_calculate_max_viewport_offset(repl);
+    size_t old_offset = repl->viewport_offset;
     size_t new_offset = repl->viewport_offset + MOUSE_SCROLL_LINES;
     repl->viewport_offset = (new_offset > max_offset) ? max_offset : new_offset;
+
+    {
+        yyjson_mut_doc *doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "scroll_up");
+        yyjson_mut_obj_add_uint(doc, root, "old", old_offset);
+        yyjson_mut_obj_add_uint(doc, root, "new", repl->viewport_offset);
+        yyjson_mut_obj_add_uint(doc, root, "max", max_offset);
+        ik_log_debug_json(doc);
+    }
+
     return OK(NULL);
 }
 
@@ -101,10 +115,21 @@ res_t ik_repl_handle_scroll_down_action(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
+    size_t old_offset = repl->viewport_offset;
     if (repl->viewport_offset >= MOUSE_SCROLL_LINES) {
         repl->viewport_offset -= MOUSE_SCROLL_LINES;
     } else {
         repl->viewport_offset = 0;
     }
+
+    {
+        yyjson_mut_doc *doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "scroll_down");
+        yyjson_mut_obj_add_uint(doc, root, "old", old_offset);
+        yyjson_mut_obj_add_uint(doc, root, "new", repl->viewport_offset);
+        ik_log_debug_json(doc);
+    }
+
     return OK(NULL);
 }

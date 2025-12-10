@@ -77,6 +77,9 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
                 // If this turns out to be mouse scroll, the scroll handler will adjust it
                 repl->viewport_offset = 0;
                 return OK(NULL);
+            case IK_SCROLL_RESULT_ABSORBED:
+                // Arrow absorbed as part of burst - don't reset viewport_offset
+                return OK(NULL);
         }
     }
 

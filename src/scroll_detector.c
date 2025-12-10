@@ -142,7 +142,7 @@ ik_scroll_result_t ik_scroll_detector_process_arrow(
                     yyjson_mut_obj_add_int(doc, root, "elapsed_ms", elapsed);
                     ik_log_debug_json(doc);
                 }
-                return IK_SCROLL_RESULT_NONE;
+                return IK_SCROLL_RESULT_ABSORBED;
             }
             // Timer expired while absorbing - new burst starting
             // Transition back to WAITING with this arrow
