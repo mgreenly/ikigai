@@ -72,10 +72,8 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
                 // Fall through to handle as normal arrow down
                 break;
             case IK_SCROLL_RESULT_NONE:
-                // Buffered, waiting for more
-                // Reset viewport_offset speculatively (keyboard arrows should autoscroll)
-                // If this turns out to be mouse scroll, the scroll handler will adjust it
-                repl->viewport_offset = 0;
+                // Buffered, waiting for more - don't touch viewport_offset
+                // If it turns out to be keyboard arrow, the arrow handler will reset it
                 return OK(NULL);
             case IK_SCROLL_RESULT_ABSORBED:
                 // Arrow absorbed as part of burst - don't reset viewport_offset

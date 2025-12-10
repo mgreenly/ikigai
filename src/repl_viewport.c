@@ -3,6 +3,7 @@
 #include "panic.h"
 #include "wrapper.h"
 #include "render_cursor.h"
+#include "logger.h"
 #include <assert.h>
 #include <talloc.h>
 #include <string.h>

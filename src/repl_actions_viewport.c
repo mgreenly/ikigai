@@ -91,12 +91,31 @@ res_t ik_repl_handle_scroll_up_action(ik_repl_ctx_t *repl)
     repl->viewport_offset = (new_offset > max_offset) ? max_offset : new_offset;
 
     {
+        // Also calculate first_visible_row for debugging
+        size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
+        size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
+        size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
+        size_t document_height = scrollback_rows + 1 + input_buffer_display_rows + 1;
+        int32_t terminal_rows = repl->shared->term->screen_rows;
+
+        size_t first_visible_row = 0;
+        if (document_height > (size_t)terminal_rows) {
+            size_t calc_max_offset = document_height - (size_t)terminal_rows;
+            size_t offset = repl->viewport_offset;
+            if (offset > calc_max_offset) offset = calc_max_offset;
+            size_t last_visible_row = document_height - 1 - offset;
+            first_visible_row = last_visible_row + 1 - (size_t)terminal_rows;
+        }
+
         yyjson_mut_doc *doc = ik_log_create();
         yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
         yyjson_mut_obj_add_str(doc, root, "event", "scroll_up");
         yyjson_mut_obj_add_uint(doc, root, "old", old_offset);
         yyjson_mut_obj_add_uint(doc, root, "new", repl->viewport_offset);
         yyjson_mut_obj_add_uint(doc, root, "max", max_offset);
+        yyjson_mut_obj_add_uint(doc, root, "doc_height", document_height);
+        yyjson_mut_obj_add_int(doc, root, "term_rows", terminal_rows);
+        yyjson_mut_obj_add_uint(doc, root, "first_visible", first_visible_row);
         ik_log_debug_json(doc);
     }
 

@@ -108,21 +108,6 @@ res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_e
         return OK(NULL);
     }
 
-    // Debug: log every raw byte read (to diagnose missing arrow events)
-    {
-        yyjson_mut_doc *doc = ik_log_create();
-        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
-        yyjson_mut_obj_add_str(doc, root, "event", "raw_byte");
-        yyjson_mut_obj_add_int(doc, root, "byte", (unsigned char)byte);
-        if (byte == 0x1b) {
-            yyjson_mut_obj_add_str(doc, root, "char", "ESC");
-        } else if (byte >= 0x20 && byte < 0x7f) {
-            char ch[2] = {byte, '\0'};
-            yyjson_mut_obj_add_str(doc, root, "char", ch);
-        }
-        ik_log_debug_json(doc);
-    }
-
     // Parse and process action
     ik_input_action_t action;
     ik_input_parse_byte(repl->input_parser, byte, &action);
