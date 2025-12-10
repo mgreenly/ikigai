@@ -376,6 +376,86 @@ void ik_scrollback_clear(ik_scrollback_t *scrollback)
     // (no need to free/reallocate arrays)
 }
 
+res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,
+                                                    size_t line_index,
+                                                    size_t display_col,
+                                                    size_t *byte_offset_out)
+{
+    assert(scrollback != NULL);       // LCOV_EXCL_BR_LINE
+    assert(byte_offset_out != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Validate line index
+    if (line_index >= scrollback->count) {
+        return ERR(scrollback, OUT_OF_RANGE,
+                   "Line index %zu out of range (count=%zu)",
+                   line_index, scrollback->count);
+    }
+
+    // Column 0 always starts at byte 0
+    if (display_col == 0) {
+        *byte_offset_out = 0;
+        return OK(NULL);
+    }
+
+    // Get line text
+    const char *text = scrollback->text_buffer + scrollback->text_offsets[line_index];
+    size_t length = scrollback->text_lengths[line_index];
+
+    // Walk through text, tracking display columns
+    size_t pos = 0;
+    size_t col = 0;
+
+    while (pos < length && col < display_col) {
+        // Skip ANSI escape sequences (0 display width)
+        size_t skip = ik_ansi_skip_csi(text, length, pos);
+        if (skip > 0) {
+            pos += skip;
+            continue;
+        }
+
+        // Decode UTF-8 codepoint
+        utf8proc_int32_t cp;
+        utf8proc_ssize_t bytes = utf8proc_iterate(
+            (const utf8proc_uint8_t *)(text + pos),
+            (utf8proc_ssize_t)(length - pos),
+            &cp);
+
+        if (bytes <= 0) {
+            // Invalid UTF-8 - treat as 1 byte, 1 column
+            col++;
+            pos++;
+            continue;
+        }
+
+        // Skip newlines (they don't contribute to display width)
+        if (cp == '\n') {
+            pos += (size_t)bytes;
+            continue;
+        }
+
+        // Get character display width
+        int32_t width = utf8proc_charwidth(cp);
+        if (width > 0) {
+            col += (size_t)width;
+        }
+
+        pos += (size_t)bytes;
+    }
+
+    // Skip any ANSI sequences that precede the character at target column
+    while (pos < length) {
+        size_t skip = ik_ansi_skip_csi(text, length, pos);
+        if (skip > 0) {
+            pos += skip;
+        } else {
+            break;
+        }
+    }
+
+    *byte_offset_out = pos;
+    return OK(NULL);
+}
+
 char *ik_scrollback_trim_trailing(void *parent, const char *text, size_t length)
 {
     assert(parent != NULL);  // LCOV_EXCL_BR_LINE

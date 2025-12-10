@@ -189,6 +189,34 @@ res_t ik_scrollback_find_logical_line_at_physical_row(ik_scrollback_t *scrollbac
 void ik_scrollback_clear(ik_scrollback_t *scrollback);
 
 /**
+ * @brief Get byte offset at a given display column within a line
+ *
+ * Iterates through the line text, tracking display width while skipping
+ * ANSI escape sequences, to find the byte offset where the specified
+ * display column begins. Used for partial line rendering when scrolling.
+ *
+ * @param scrollback Scrollback buffer
+ * @param line_index Logical line index (0-based)
+ * @param display_col Target display column (0-based)
+ * @param byte_offset_out Pointer to receive byte offset
+ * @return RES_OK on success, RES_ERR if line_index is out of range
+ *
+ * Notes:
+ * - If display_col is beyond the line's display width, returns end of line
+ * - ANSI escape sequences are skipped (they have 0 display width)
+ * - UTF-8 multi-byte characters are handled correctly
+ * - Wide characters (CJK) are counted as 2 display columns
+ *
+ * Assertions:
+ * - scrollback must not be NULL
+ * - byte_offset_out must not be NULL
+ */
+res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,
+                                                    size_t line_index,
+                                                    size_t display_col,
+                                                    size_t *byte_offset_out);
+
+/**
  * @brief Trim trailing whitespace from string
  *
  * Returns a new string with trailing whitespace removed.
