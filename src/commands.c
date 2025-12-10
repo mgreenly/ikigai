@@ -154,7 +154,10 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Clear autocomplete state so suggestions don't persist
-    ik_completion_clear(repl->completion);
+    if (repl->completion != NULL) {
+        talloc_free(repl->completion);
+        repl->completion = NULL;
+    }
 
     // Persist clear event to database (Integration Point 3)
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {

@@ -103,11 +103,11 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
         write_lengths[write_call_count] = count;
 
         if (count >= 8) {
-            const char mouse_enable[] = "\x1b[?1006h";
+            const char mouse_enable[] = "\x1b[?1007h";
             if (memcmp(buf, mouse_enable, sizeof(mouse_enable) - 1) == 0) {
                 mouse_enable_count++;
             }
-            const char mouse_disable[] = "\x1b[?1006l";
+            const char mouse_disable[] = "\x1b[?1007l";
             if (memcmp(buf, mouse_disable, sizeof(mouse_disable) - 1) == 0) {
                 mouse_disable_count++;
             }

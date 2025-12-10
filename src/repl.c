@@ -7,6 +7,7 @@
 #include "panic.h"
 #include "render_cursor.h"
 #include "repl_actions.h"
+#include "repl_actions_internal.h"
 #include "repl_event_handlers.h"
 #include "shared.h"
 #include "signal_handler.h"
@@ -69,7 +70,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             break;
         }
 
-        // Handle timeout (spinner animation and scroll accumulator)
+        // Handle timeout (spinner animation and scroll detector)
         // Note: Don't continue here - curl events must still be processed
         if (ready == 0) {
             // Advance spinner if visible
@@ -78,22 +79,20 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
                 CHECK(ik_repl_render_frame(repl));
             }
 
-            // Check scroll accumulator timeout
-            if (repl->scroll_acc != NULL) {
+            // Check scroll detector timeout
+            if (repl->scroll_det != NULL) {
                 struct timespec ts;
                 clock_gettime(CLOCK_MONOTONIC, &ts);
                 int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-                ik_scroll_result_t timeout_result = ik_scroll_accumulator_check_timeout(
-                    repl->scroll_acc, now_ms);
+                ik_scroll_result_t timeout_result = ik_scroll_detector_check_timeout(
+                    repl->scroll_det, now_ms);
 
-                // Process any flushed arrow
+                // Process any flushed arrow - call handlers directly to bypass detector
                 if (timeout_result == IK_SCROLL_RESULT_ARROW_UP) {
-                    ik_input_action_t action = {.type = IK_INPUT_ARROW_UP};
-                    CHECK(ik_repl_process_action(repl, &action));
+                    CHECK(ik_repl_handle_arrow_up_action(repl));
                     CHECK(ik_repl_render_frame(repl));
                 } else if (timeout_result == IK_SCROLL_RESULT_ARROW_DOWN) {
-                    ik_input_action_t action = {.type = IK_INPUT_ARROW_DOWN};
-                    CHECK(ik_repl_process_action(repl, &action));
+                    CHECK(ik_repl_handle_arrow_down_action(repl));
                     CHECK(ik_repl_render_frame(repl));
                 }
             }

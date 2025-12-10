@@ -49,15 +49,15 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
 
     // Intercept arrow up/down events for scroll detection (rel-05)
     if ((action->type == IK_INPUT_ARROW_UP || action->type == IK_INPUT_ARROW_DOWN) &&
-        repl->scroll_acc != NULL) {
+        repl->scroll_det != NULL) {
         // Get current time for scroll detection
         struct timespec ts;
         clock_gettime(CLOCK_MONOTONIC, &ts);
         int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 
-        // Process through scroll accumulator
-        ik_scroll_result_t result = ik_scroll_accumulator_process_arrow(
-            repl->scroll_acc, action->type, now_ms);
+        // Process through scroll detector
+        ik_scroll_result_t result = ik_scroll_detector_process_arrow(
+            repl->scroll_det, action->type, now_ms);
 
         // Route based on scroll detection result
         switch (result) {  // LCOV_EXCL_BR_LINE
@@ -81,11 +81,11 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
     }
 
     // For non-arrow events, flush any pending arrow
-    if (repl->scroll_acc != NULL && action->type != IK_INPUT_ARROW_UP &&
+    if (repl->scroll_det != NULL && action->type != IK_INPUT_ARROW_UP &&
         action->type != IK_INPUT_ARROW_DOWN && action->type != IK_INPUT_UNKNOWN) {
-        ik_scroll_result_t flush_result = ik_scroll_accumulator_flush(repl->scroll_acc);
+        ik_scroll_result_t flush_result = ik_scroll_detector_flush(repl->scroll_det);
 
-        // If we flushed an arrow, handle it directly (don't go through scroll_acc again)
+        // If we flushed an arrow, handle it directly (don't go through scroll_det again)
         if (flush_result == IK_SCROLL_RESULT_ARROW_UP) {
             res_t r = ik_repl_handle_arrow_up_action(repl);
             if (is_err(&r)) return r;  // LCOV_EXCL_BR_LINE

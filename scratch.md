@@ -1,80 +1,72 @@
-# Mouse Scroll Bug Investigation - Current State
+# Mouse Wheel Detection - Current State
 
-## Problem Summary
+## What We're Doing
+Detecting mouse wheel scroll events vs keyboard arrow presses in terminal mode 1007h (alternate scroll mode).
 
-Mouse wheel scrolling works partially but stops having visual effect when scrolling within a wrapped line.
+## How 1007h Mode Works
+- Mouse wheel events are converted to arrow escape sequences (ESC [ A / ESC [ B)
+- Wheel events arrive as rapid pairs (~5ms apart)
+- Keyboard arrows arrive as single events (human speed)
+- Detection strategy: buffer first arrow, wait 10ms for second, decide based on timing
 
-## Root Cause Chain
+## Timer Detection Implementation Status
 
-### 1. Scroll Detection (FIXED)
-- Terminal mode 1007 converts mouse wheel to arrow escape sequences
-- Mouse wheel sends 2 rapid ARROW_UP/DOWN events per notch (~0-1ms apart)
-- `scroll_accumulator.c` uses deferred detection to distinguish wheel from keyboard:
-  - First arrow → buffered (NONE)
-  - Second arrow within 10ms → SCROLL_UP/DOWN emitted
-  - Both arrows consumed, pending cleared
-
-### 2. Event Routing (FIXED)
-- `repl_actions.c` intercepts arrow events, routes through scroll_accumulator
-- SCROLL_UP/DOWN → calls scroll handler → increments viewport_offset
-- Timeout handler in `repl.c` calls arrow handlers directly (not through scroll_acc)
-
-### 3. Viewport Calculation (WORKING)
-- `repl_viewport.c` calculates `first_visible_row` based on viewport_offset
-- Log shows first_visible correctly decrements: 120 → 119 → 118 → 117 → 116 → 115
-
-### 4. Scrollback Rendering (BUG HERE)
-**File:** `src/layer_scrollback.c`, function `scrollback_render`
-
+### Terminal Mode (WORKING)
+`src/terminal.c:16` - Using 1007h mode (alternate scroll):
 ```c
-// Line 56-57: Gets physical row offset within logical line
-res = ik_scrollback_find_logical_line_at_physical_row(scrollback, start_row,
-                                                      &start_line_idx, &start_row_offset);
-
-// Line 79-97: Renders full logical lines - IGNORES start_row_offset!
-for (size_t i = start_line_idx; i <= end_line_idx; i++) {
-    // ... renders entire logical line
-}
+#define ESC_MOUSE_ENABLE "\x1b[?1007h"  // Converts wheel -> arrows
 ```
 
-**The bug:** When a logical line wraps across multiple physical rows, scrolling changes `first_visible_row` but the rendering always shows the full logical line. So scrolling within a wrapped line has no visual effect.
+### Detection Module (RENAMED, LOGIC EXISTS)
+Just renamed `scroll_detumulator` -> `scroll_detector` because the name was confusing.
 
-**Example:**
-- Logical line 10 wraps into physical rows 115-119 (5 rows)
-- Scroll to first_visible=118 → still renders full logical line 10
-- Scroll to first_visible=117 → still renders full logical line 10
-- Scroll to first_visible=116 → still renders full logical line 10
-- Visual doesn't change until you scroll past the entire wrapped line
+The module implements timer-based detection:
+- `ik_scroll_detector_process_arrow()` - Called when arrow arrives
+  - First arrow: buffer it, return NONE (triggers select timeout setup)
+  - Second arrow within 10ms: emit SCROLL_UP/DOWN, re-buffer current
+  - Second arrow after 10ms: emit ARROW_UP/DOWN, re-buffer current
+- `ik_scroll_detector_check_timeout()` - Called when select() times out (10ms expired)
+  - Flushes buffered arrow as ARROW_UP/DOWN
+- `ik_scroll_detector_get_timeout_ms()` - Tells select() when to wake up
+  - Returns remaining time until flush (0-10ms)
 
-## Fix Options
+### Select Loop Integration (WORKING)
+`src/repl_event_handlers.c:59` - Includes scroll timeout in select() calculation
+`src/repl.c:86` - Calls check_timeout() when select() expires
 
-### Option 1: Per-logical-line scrolling (simpler)
-- Accept that scroll granularity is per-logical-line
-- Modify viewport_offset increments to jump by full logical lines
-- Simpler but less smooth scrolling
+### Current Problem
+**Logs show ONLY arrow events, NO mousewheel scroll events.**
 
-### Option 2: Per-physical-row scrolling (proper)
-- Modify `scrollback_render` to skip `start_row_offset` physical rows from first line
-- Need to track character positions for wrapped lines
-- More complex but smoother scrolling
+This means:
+1. Either mousewheel isn't sending two arrows in 1007h mode, OR
+2. The second arrow isn't arriving within the 10ms window, OR
+3. The re-buffering logic (lines 53-55 in scroll_detector.c) is wrong
 
-## Files Modified (with debug logging)
+## Key Timing Values
+- Burst threshold: 10ms (`IK_SCROLL_BURST_THRESHOLD_MS`)
+- Expected mousewheel spacing: ~5ms
+- Margin: 5ms buffer should be enough
 
-- `src/scroll_accumulator.c` - Fixed: don't buffer after SCROLL
-- `src/repl_actions.c` - Fixed: removed viewport_offset=0 on NONE; added logging
-- `src/repl.c` - Fixed: call arrow handlers directly from timeout
-- `src/repl_actions_viewport.c` - Added scroll_up logging
-- `src/repl_viewport.c` - Added render_viewport logging
+## Debug Logging (ADDED)
+`src/scroll_detector.c` has debug logging via `ik_log_debug_json()`:
+- Logs MOUSE_WHEEL detection (rapid burst)
+- Logs ARROW detection (timeout or slow_followup)
 
-## Debug Logging Added
+**Important:** Uses `ik_log_debug_json()` NOT `ik_log_debug()` because stdout is invisible in alternate buffer mode.
 
-```json
-{"event":"input_parsed","type":"ARROW_UP"}
-{"event":"scroll_acc_result","result":"SCROLL_UP","now_ms":...}
-{"event":"scroll_up","max_offset":120,"old":4,"new":5}
-{"event":"render_viewport","viewport_offset":5,"max_offset":120,"first_visible":115}
-```
+## Next Steps
+1. Verify mousewheel actually sends two arrow sequences in 1007h mode
+2. Check if both sequences are being parsed (input.c parser state)
+3. Verify timing - are they arriving within 10ms?
+4. Investigate re-buffering logic - should it clear pending instead?
 
-## Next Step
+## Key Files
+- `src/scroll_detector.{c,h}` - Timer detection implementation
+- `src/terminal.c` - 1007h mode setup
+- `src/repl_event_handlers.c` - select() timeout calculation
+- `src/repl.c` - timeout handling
+- `src/repl_actions.c:59` - Routes arrows through detector
+- `src/input.c` - Escape sequence parser
 
-Decide on fix approach for `layer_scrollback.c` rendering.
+## Log Location
+`.ikigai/logs/current/log` - tail this with grep for scroll_detect events

@@ -1,12 +1,12 @@
-#ifndef IK_SCROLL_ACCUMULATOR_H
-#define IK_SCROLL_ACCUMULATOR_H
+#ifndef IK_SCROLL_DETECTOR_H
+#define IK_SCROLL_DETECTOR_H
 
 #include <inttypes.h>
 #include <stdbool.h>
 
 #include "input.h"
 
-// Scroll accumulator for mouse wheel detection using deferred event detection
+// Scroll detector for mouse wheel detection using deferred event detection
 typedef struct {
     // Deferred detection state
     bool pending;                      // Is an arrow event buffered?
@@ -15,7 +15,7 @@ typedef struct {
 
     // Constants
     int64_t burst_threshold_ms;        // Max time between events to be a burst (10ms)
-} ik_scroll_accumulator_t;
+} ik_scroll_detector_t;
 
 // Result of processing an arrow event
 typedef enum {
@@ -28,13 +28,13 @@ typedef enum {
 
 #define IK_SCROLL_BURST_THRESHOLD_MS 10
 
-// Create accumulator (talloc-based)
-ik_scroll_accumulator_t *ik_scroll_accumulator_create(void *parent);
+// Create detector (talloc-based)
+ik_scroll_detector_t *ik_scroll_detector_create(void *parent);
 
 // Process an arrow event
 // May return NONE (buffered), SCROLL_*, or ARROW_*
-ik_scroll_result_t ik_scroll_accumulator_process_arrow(
-    ik_scroll_accumulator_t *acc,
+ik_scroll_result_t ik_scroll_detector_process_arrow(
+    ik_scroll_detector_t *det,
     ik_input_action_type_t arrow_type,  // ARROW_UP or ARROW_DOWN
     int64_t timestamp_ms
 );
@@ -42,22 +42,22 @@ ik_scroll_result_t ik_scroll_accumulator_process_arrow(
 // Check if timeout expired and flush pending event
 // Called from event loop when select() times out
 // Returns ARROW_* if pending event flushed, NONE otherwise
-ik_scroll_result_t ik_scroll_accumulator_check_timeout(
-    ik_scroll_accumulator_t *acc,
+ik_scroll_result_t ik_scroll_detector_check_timeout(
+    ik_scroll_detector_t *det,
     int64_t timestamp_ms
 );
 
 // Get timeout for select() (returns -1 if no pending, else ms until flush)
-int64_t ik_scroll_accumulator_get_timeout_ms(
-    ik_scroll_accumulator_t *acc,
+int64_t ik_scroll_detector_get_timeout_ms(
+    ik_scroll_detector_t *det,
     int64_t timestamp_ms
 );
 
 // Flush pending event immediately (for non-arrow input)
 // Returns ARROW_* if pending event flushed, NONE otherwise
-ik_scroll_result_t ik_scroll_accumulator_flush(ik_scroll_accumulator_t *acc);
+ik_scroll_result_t ik_scroll_detector_flush(ik_scroll_detector_t *det);
 
 // Reset to initial state
-void ik_scroll_accumulator_reset(ik_scroll_accumulator_t *acc);
+void ik_scroll_detector_reset(ik_scroll_detector_t *det);
 
-#endif // IK_SCROLL_ACCUMULATOR_H
+#endif // IK_SCROLL_DETECTOR_H

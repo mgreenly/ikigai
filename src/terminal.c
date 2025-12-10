@@ -13,8 +13,8 @@
 // Terminal escape sequences
 #define ESC_ALT_SCREEN_ENTER "\x1b[?1049h"
 #define ESC_ALT_SCREEN_EXIT "\x1b[?1049l"
-#define ESC_MOUSE_ENABLE "\x1b[?1006h"  // SGR mouse mode (button events with coordinates)
-#define ESC_MOUSE_DISABLE "\x1b[?1006l"
+#define ESC_MOUSE_ENABLE "\x1b[?1007h"  // Alternate scroll mode (wheel -> arrows)
+#define ESC_MOUSE_DISABLE "\x1b[?1007l"
 #define ESC_TERMINAL_RESET "\x1b[?25h\x1b[0m"  // Show cursor + reset attributes
 
 // Initialize terminal (raw mode + alternate screen)

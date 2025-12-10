@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include "repl.h"
 #include "repl_event_handlers.h"
-#include "scroll_accumulator.h"
+#include "scroll_detector.h"
 #include "wrapper.h"
 
 /* Test fixtures */
@@ -27,8 +27,8 @@ static void setup(void)
     /* Set initial state */
     repl->state = IK_REPL_STATE_IDLE;
 
-    /* Initialize scroll accumulator (rel-05) */
-    repl->scroll_acc = ik_scroll_accumulator_create(repl);
+    /* Initialize scroll detector (rel-05) */
+    repl->scroll_det = ik_scroll_detector_create(repl);
 }
 
 static void teardown(void)
