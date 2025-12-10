@@ -70,7 +70,7 @@ res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
         return ERR(parent, IO, "Failed to enter alternate screen");
     }
 
-    // Enable alternate scroll mode (wheel -> arrows)
+    // Enable alternate scroll mode (1007h - wheel -> arrows)
     if (posix_write_(tty_fd, ESC_MOUSE_ENABLE, 8) < 0) {
         (void)posix_write_(tty_fd, ESC_ALT_SCREEN_EXIT, 8);
         posix_tcsetattr_(tty_fd, TCSANOW, &ctx->orig_termios);
@@ -104,8 +104,8 @@ void ik_term_cleanup(ik_term_ctx_t *ctx)
     }
 
     // Disable alternate scroll mode and exit alternate screen
+    // Note: Avoid extra escape sequences here - they can corrupt Ghostty state
     (void)posix_write_(ctx->tty_fd, ESC_MOUSE_DISABLE, 8);
-    (void)posix_write_(ctx->tty_fd, ESC_TERMINAL_RESET, 10);
     (void)posix_write_(ctx->tty_fd, ESC_ALT_SCREEN_EXIT, 8);
 
     // Restore original termios settings (immediate, no blocking)

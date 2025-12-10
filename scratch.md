@@ -1,72 +1,63 @@
-# Mouse Wheel Detection - Current State
+# Decision Log
 
-## What We're Doing
-Detecting mouse wheel scroll events vs keyboard arrow presses in terminal mode 1007h (alternate scroll mode).
+## Mouse Mode: 1007h (Alternate Scroll Mode)
 
-## How 1007h Mode Works
-- Mouse wheel events are converted to arrow escape sequences (ESC [ A / ESC [ B)
-- Wheel events arrive as rapid pairs (~5ms apart)
-- Keyboard arrows arrive as single events (human speed)
-- Detection strategy: buffer first arrow, wait 10ms for second, decide based on timing
+**Decision:** Use terminal mode 1007h which converts mouse wheel scrolls into arrow key sequences (ESC [ A for scroll up, ESC [ B for scroll down).
 
-## Timer Detection Implementation Status
+**Rationale:** Mode 1007h does NOT capture mouse button clicks, allowing the parent terminal application (Ghostty) to retain full mouse control for text selection, right-click menus, etc.
 
-### Terminal Mode (WORKING)
-`src/terminal.c:16` - Using 1007h mode (alternate scroll):
-```c
-#define ESC_MOUSE_ENABLE "\x1b[?1007h"  // Converts wheel -> arrows
+**Alternative Rejected:** Mode 1006h + 1000h (SGR mouse tracking) would send proper mouse events for both scrolls and clicks, but captures ALL mouse events, preventing the terminal from handling clicks.
+
+**Implementation:** See `src/terminal.c:16` - `ESC_MOUSE_ENABLE "\x1b[?1007h"`
+
+## Current Behavior (2025-12-09)
+
+**Problem:** One mouse wheel scroll notch sends only 1 arrow sequence, which times out after 16ms and is classified as keyboard arrow (not mouse wheel).
+
+**Expected:** Mode 1007h should send multiple arrows per scroll (docs say 3-4), allowing timer-based detection to distinguish mouse wheel from keyboard.
+
+**Log Evidence:**
+```json
+{"event": "input_parsed", "type": "ARROW_UP"}
+{"event": "arrow_arrival", "dir": "UP", "pending": false, "t_ms": 210460116}
+{"event": "scroll_detect", "type": "ARROW", "dir": "UP", "t_ms": 210460132, "elapsed_ms": 16, "reason": "timeout"}
 ```
 
-### Detection Module (RENAMED, LOGIC EXISTS)
-Just renamed `scroll_detumulator` -> `scroll_detector` because the name was confusing.
+**Analysis:** Only 1 arrow arrives, waits 15ms threshold, then times out. No second arrow detected. Same terminal session (Ghostty) was sending 2 arrows per scroll yesterday with identical code.
 
-The module implements timer-based detection:
-- `ik_scroll_detector_process_arrow()` - Called when arrow arrives
-  - First arrow: buffer it, return NONE (triggers select timeout setup)
-  - Second arrow within 10ms: emit SCROLL_UP/DOWN, re-buffer current
-  - Second arrow after 10ms: emit ARROW_UP/DOWN, re-buffer current
-- `ik_scroll_detector_check_timeout()` - Called when select() times out (10ms expired)
-  - Flushes buffered arrow as ARROW_UP/DOWN
-- `ik_scroll_detector_get_timeout_ms()` - Tells select() when to wake up
-  - Returns remaining time until flush (0-10ms)
+## Investigation Focus
 
-### Select Loop Integration (WORKING)
-`src/repl_event_handlers.c:59` - Includes scroll timeout in select() calculation
-`src/repl.c:86` - Calls check_timeout() when select() expires
+**Known Fact:** The mouse wheel DOES emit multiple arrow events - this was confirmed working yesterday in the same terminal session.
 
-### Current Problem
-**Logs show ONLY arrow events, NO mousewheel scroll events.**
+**Current Mystery:** We're only seeing 1 arrow event in the logs, not the multiple events we know are being sent.
 
-This means:
-1. Either mousewheel isn't sending two arrows in 1007h mode, OR
-2. The second arrow isn't arriving within the 10ms window, OR
-3. The re-buffering logic (lines 53-55 in scroll_detector.c) is wrong
+**Primary Problem to Troubleshoot:** Why are we not receiving/seeing the multiple arrow events that the terminal is sending? The protocol information about "3-4 arrows" may be incorrect, but we know for certain that Ghostty was sending at least 2 arrows per scroll yesterday. Something in our code is either:
+- Not reading all available bytes from the terminal fd
+- Consuming/discarding arrow events somewhere
+- Processing them in a way that prevents them from being logged
 
-## Key Timing Values
-- Burst threshold: 10ms (`IK_SCROLL_BURST_THRESHOLD_MS`)
-- Expected mousewheel spacing: ~5ms
-- Margin: 5ms buffer should be enough
+**Next Steps:** Investigate the input reading and parsing pipeline to find where the additional arrow events are being lost.
 
-## Debug Logging (ADDED)
-`src/scroll_detector.c` has debug logging via `ik_log_debug_json()`:
-- Logs MOUSE_WHEEL detection (rapid burst)
-- Logs ARROW detection (timeout or slow_followup)
+## Finding: ESC_TERMINAL_RESET Corrupts Ghostty State (2025-12-09)
 
-**Important:** Uses `ik_log_debug_json()` NOT `ik_log_debug()` because stdout is invisible in alternate buffer mode.
+**Root Cause:** Sending `\x1b[?25h\x1b[0m` (show cursor + reset attributes) during cleanup was corrupting Ghostty's 1007h handling, reducing arrows-per-scroll from 3 to 1.
 
-## Next Steps
-1. Verify mousewheel actually sends two arrow sequences in 1007h mode
-2. Check if both sequences are being parsed (input.c parser state)
-3. Verify timing - are they arriving within 10ms?
-4. Investigate re-buffering logic - should it clear pending instead?
+**Fix:** Remove ESC_TERMINAL_RESET from cleanup. Only send:
+```
+\x1b[?1007l   (disable 1007h)
+\x1b[?1049l   (exit alternate screen)
+```
 
-## Key Files
-- `src/scroll_detector.{c,h}` - Timer detection implementation
-- `src/terminal.c` - 1007h mode setup
-- `src/repl_event_handlers.c` - select() timeout calculation
-- `src/repl.c` - timeout handling
-- `src/repl_actions.c:59` - Routes arrows through detector
-- `src/input.c` - Escape sequence parser
+**Verification:** Created `test1007.sh` to test terminal behavior independently. After fix, running ikigai no longer corrupts Ghostty - test1007.sh shows consistent 3 arrows before and after.
 
-## Log Location
-`.ikigai/logs/current/log` - tail this with grep for scroll_detect events
+## Arrows Per Scroll by Terminal (2025-12-09)
+
+| Terminal       | Arrows per notch |
+|----------------|------------------|
+| Ghostty        | 3                |
+| gnome-terminal | 3                |
+| foot           | 3                |
+| xterm          | 5                |
+| Kitty          | 10               |
+
+**Conclusion:** All terminals send N > 1 arrows per scroll. Detection strategy should rely on "multiple arrows in rapid succession" rather than a specific count.

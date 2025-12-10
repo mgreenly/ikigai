@@ -103,6 +103,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             ik_debug_mgr_handle_ready(repl->shared->debug_mgr, &read_fds, repl->scrollback, repl->shared->debug_enabled);  // LCOV_EXCL_LINE
         }
 
+        // Handle terminal input
         if (FD_ISSET(repl->shared->term->tty_fd, &read_fds)) {  // LCOV_EXCL_BR_LINE
             CHECK(handle_terminal_input(repl, repl->shared->term->tty_fd, &should_exit));
             if (should_exit) break;

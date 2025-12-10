@@ -68,7 +68,8 @@ START_TEST(test_timeout_flushes_arrow)
     ik_scroll_detector_t *det = ik_scroll_detector_create(ctx);
 
     ik_scroll_detector_process_arrow(det, IK_INPUT_ARROW_UP, 1000);
-    ik_scroll_result_t r = ik_scroll_detector_check_timeout(det, 1015);
+    // Check at threshold + 1ms to ensure elapsed > threshold
+    ik_scroll_result_t r = ik_scroll_detector_check_timeout(det, 1000 + IK_SCROLL_BURST_THRESHOLD_MS + 1);
     ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
 }
 END_TEST
@@ -93,13 +94,13 @@ START_TEST(test_get_timeout_ms)
     int64_t t = ik_scroll_detector_get_timeout_ms(det, 1000);
     ck_assert_int_eq(t, -1);
 
-    // With pending at t=1000, check at t=1003 - should return 7ms
+    // With pending at t=1000, check at t=1003 - should return threshold - 3
     ik_scroll_detector_process_arrow(det, IK_INPUT_ARROW_UP, 1000);
     t = ik_scroll_detector_get_timeout_ms(det, 1003);
-    ck_assert_int_eq(t, 7);
+    ck_assert_int_eq(t, IK_SCROLL_BURST_THRESHOLD_MS - 3);
 
-    // At t=1015 - already expired, return 0
-    t = ik_scroll_detector_get_timeout_ms(det, 1015);
+    // At threshold + 1 - already expired, return 0
+    t = ik_scroll_detector_get_timeout_ms(det, 1000 + IK_SCROLL_BURST_THRESHOLD_MS + 1);
     ck_assert_int_eq(t, 0);
 }
 END_TEST
@@ -226,14 +227,14 @@ START_TEST(test_at_threshold)
 }
 END_TEST
 
-// Test 14: Just above threshold (11ms)
+// Test 14: Just above threshold
 START_TEST(test_above_threshold)
 {
     ik_scroll_detector_t *det = ik_scroll_detector_create(ctx);
 
     ik_scroll_detector_process_arrow(det, IK_INPUT_ARROW_UP, 1000);
     ik_scroll_result_t r = ik_scroll_detector_process_arrow(
-        det, IK_INPUT_ARROW_UP, 1011);  // 11ms - above threshold
+        det, IK_INPUT_ARROW_UP, 1000 + IK_SCROLL_BURST_THRESHOLD_MS + 1);  // Above threshold
     ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
 }
 END_TEST

@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <talloc.h>
 #include "input.h"
+#include "logger.h"
 #include "panic.h"
 #include "wrapper.h"
 
@@ -205,11 +206,23 @@ static bool parse_arrow_keys(ik_input_parser_t *parser, char byte,
     if (byte == 'A') {
         reset_escape_state(parser);
         action_out->type = IK_INPUT_ARROW_UP;
+        // Debug: log arrow parse
+        yyjson_mut_doc *doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "input_parsed");
+        yyjson_mut_obj_add_str(doc, root, "type", "ARROW_UP");
+        ik_log_debug_json(doc);
         return true;
     }
     if (byte == 'B') {
         reset_escape_state(parser);
         action_out->type = IK_INPUT_ARROW_DOWN;
+        // Debug: log arrow parse
+        yyjson_mut_doc *doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "input_parsed");
+        yyjson_mut_obj_add_str(doc, root, "type", "ARROW_DOWN");
+        ik_log_debug_json(doc);
         return true;
     }
     if (byte == 'C') {
