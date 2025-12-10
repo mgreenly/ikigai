@@ -96,6 +96,13 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Create separator layer
     repl->separator_layer = ik_separator_layer_create(repl, "separator", &repl->separator_visible);
 
+    // Set debug info on upper separator (for debugging viewport issues)
+    ik_separator_layer_set_debug(repl->separator_layer,
+                                 &repl->debug_viewport_offset,
+                                 &repl->debug_viewport_row,
+                                 &repl->debug_viewport_height,
+                                 &repl->debug_document_height);
+
     // Create lower separator layer
     repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &repl->lower_separator_visible);
 

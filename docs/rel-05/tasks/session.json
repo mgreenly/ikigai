@@ -258,5 +258,20 @@
     "event": "done",
     "task": "scrollback-render-row-offset.md",
     "time": "2025-12-09T18:46:59.373Z"
+  },
+  {
+    "event": "done",
+    "task": "scrollback-byte-offset-api.md",
+    "time": "2025-12-10T04:23:13.087Z"
+  },
+  {
+    "event": "start",
+    "task": "scrollback-render-partial-line.md",
+    "time": "2025-12-10T04:23:26.904Z"
+  },
+  {
+    "event": "done",
+    "task": "scrollback-render-partial-line.md",
+    "time": "2025-12-10T04:29:00.509Z"
   }
 ]

@@ -205,6 +205,12 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     repl->layer_cake->viewport_row = first_visible_row;
     repl->layer_cake->viewport_height = (size_t)terminal_rows;
 
+    // Update debug info for separator display
+    repl->debug_viewport_offset = repl->viewport_offset;
+    repl->debug_viewport_row = first_visible_row;
+    repl->debug_viewport_height = (size_t)terminal_rows;
+    repl->debug_document_height = document_height;
+
     // Render layers to output buffer
     ik_output_buffer_t *output = ik_output_buffer_create(repl, 4096);
 

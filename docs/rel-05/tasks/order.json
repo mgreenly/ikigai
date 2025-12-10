@@ -1,18 +1,6 @@
 {
   "todo": [
     {
-      "task": "scrollback-byte-offset-api.md",
-      "group": "Bug Fix",
-      "model": "opus",
-      "thinking": "high"
-    },
-    {
-      "task": "scrollback-render-partial-line.md",
-      "group": "Bug Fix",
-      "model": "opus",
-      "thinking": "high"
-    },
-    {
       "task": "scroll-debug-log-cleanup.md",
       "group": "Cleanup",
       "model": "haiku",
@@ -439,6 +427,18 @@
       "group": "Bug Fix",
       "model": "sonnet",
       "thinking": "low"
+    },
+    {
+      "task": "scrollback-byte-offset-api.md",
+      "group": "Bug Fix",
+      "model": "opus",
+      "thinking": "high"
+    },
+    {
+      "task": "scrollback-render-partial-line.md",
+      "group": "Bug Fix",
+      "model": "opus",
+      "thinking": "high"
     }
   ]
 }

@@ -74,6 +74,12 @@ typedef struct ik_repl_ctx_t {
     const char *input_text;           // Input text pointer
     size_t input_text_len;            // Input text length
 
+    // Debug info for separator (updated before each render)
+    size_t debug_viewport_offset;     // viewport_offset value
+    size_t debug_viewport_row;        // first_visible_row
+    size_t debug_viewport_height;     // terminal_rows
+    size_t debug_document_height;     // total document height
+
     // Event loop integration (Phase 1.6)
     struct ik_openai_multi *multi;    // curl_multi handle for non-blocking HTTP
     int curl_still_running;           // Number of active curl transfers
