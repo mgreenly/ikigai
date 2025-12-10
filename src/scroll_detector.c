@@ -15,12 +15,23 @@ ik_scroll_detector_t *ik_scroll_detector_create(void *parent)
     ik_scroll_detector_t *det = talloc_zero(parent, ik_scroll_detector_t);
     if (det == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    det->pending = false;
+    det->state = IK_SCROLL_STATE_IDLE;
     det->pending_dir = IK_INPUT_ARROW_UP;  // Arbitrary initial value
-    det->pending_time_ms = 0;
+    det->timer_start_ms = 0;
     det->burst_threshold_ms = IK_SCROLL_BURST_THRESHOLD_MS;
 
     return det;
+}
+
+// Helper to get state name for logging
+static const char *state_name(ik_scroll_state_t state)
+{
+    switch (state) {
+        case IK_SCROLL_STATE_IDLE: return "IDLE";
+        case IK_SCROLL_STATE_WAITING: return "WAITING";
+        case IK_SCROLL_STATE_ABSORBING: return "ABSORBING";
+        default: return "UNKNOWN";  // LCOV_EXCL_LINE
+    }
 }
 
 // Process an arrow event with explicit timestamp
@@ -33,75 +44,125 @@ ik_scroll_result_t ik_scroll_detector_process_arrow(
     assert(det != NULL);  // LCOV_EXCL_BR_LINE
     assert(arrow_type == IK_INPUT_ARROW_UP || arrow_type == IK_INPUT_ARROW_DOWN);  // LCOV_EXCL_BR_LINE
 
+    int64_t elapsed = timestamp_ms - det->timer_start_ms;
+
     // Debug: log every arrow arrival
     {
         yyjson_mut_doc *doc = ik_log_create();
         yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
         yyjson_mut_obj_add_str(doc, root, "event", "arrow_arrival");
         yyjson_mut_obj_add_str(doc, root, "dir", arrow_type == IK_INPUT_ARROW_UP ? "UP" : "DOWN");
-        yyjson_mut_obj_add_bool(doc, root, "pending", det->pending);
+        yyjson_mut_obj_add_str(doc, root, "state", state_name(det->state));
         yyjson_mut_obj_add_int(doc, root, "t_ms", timestamp_ms);
-        if (det->pending) {
-            yyjson_mut_obj_add_int(doc, root, "elapsed_ms", timestamp_ms - det->pending_time_ms);
-        }
-        ik_log_debug_json(doc);
-    }
-
-    if (!det->pending) {
-        // First arrow after idle - buffer it
-        det->pending = true;
-        det->pending_dir = arrow_type;
-        det->pending_time_ms = timestamp_ms;
-        return IK_SCROLL_RESULT_NONE;
-    }
-
-    // There's a pending arrow - check elapsed time
-    int64_t elapsed = timestamp_ms - det->pending_time_ms;
-
-    if (elapsed <= det->burst_threshold_ms) {
-        // Rapid follow-up = mouse wheel burst
-        ik_scroll_result_t scroll_result = (det->pending_dir == IK_INPUT_ARROW_UP)
-            ? IK_SCROLL_RESULT_SCROLL_UP
-            : IK_SCROLL_RESULT_SCROLL_DOWN;
-
-        // Buffer current event as new pending
-        det->pending_dir = arrow_type;
-        det->pending_time_ms = timestamp_ms;
-
-        {
-            yyjson_mut_doc *doc = ik_log_create();
-            yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
-            yyjson_mut_obj_add_str(doc, root, "event", "scroll_detect");
-            yyjson_mut_obj_add_str(doc, root, "type", "MOUSE_WHEEL");
-            yyjson_mut_obj_add_str(doc, root, "dir", scroll_result == IK_SCROLL_RESULT_SCROLL_UP ? "UP" : "DOWN");
-            yyjson_mut_obj_add_int(doc, root, "t_ms", timestamp_ms);
+        if (det->state != IK_SCROLL_STATE_IDLE) {
             yyjson_mut_obj_add_int(doc, root, "elapsed_ms", elapsed);
-            ik_log_debug_json(doc);
         }
-        return scroll_result;
-    }
-
-    // Slow follow-up = keyboard
-    ik_scroll_result_t arrow_result = (det->pending_dir == IK_INPUT_ARROW_UP)
-        ? IK_SCROLL_RESULT_ARROW_UP
-        : IK_SCROLL_RESULT_ARROW_DOWN;
-
-    // Buffer current event as new pending
-    det->pending_dir = arrow_type;
-    det->pending_time_ms = timestamp_ms;
-
-    {
-        yyjson_mut_doc *doc = ik_log_create();
-        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
-        yyjson_mut_obj_add_str(doc, root, "event", "scroll_detect");
-        yyjson_mut_obj_add_str(doc, root, "type", "ARROW");
-        yyjson_mut_obj_add_str(doc, root, "dir", arrow_result == IK_SCROLL_RESULT_ARROW_UP ? "UP" : "DOWN");
-        yyjson_mut_obj_add_int(doc, root, "t_ms", timestamp_ms);
-        yyjson_mut_obj_add_int(doc, root, "elapsed_ms", elapsed);
-        yyjson_mut_obj_add_str(doc, root, "reason", "slow_followup");
         ik_log_debug_json(doc);
     }
-    return arrow_result;
+
+    switch (det->state) {
+        case IK_SCROLL_STATE_IDLE:
+            // First arrow - start timer, transition to WAITING
+            det->state = IK_SCROLL_STATE_WAITING;
+            det->pending_dir = arrow_type;
+            det->timer_start_ms = timestamp_ms;
+            {
+                yyjson_mut_doc *doc = ik_log_create();
+                yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+                yyjson_mut_obj_add_str(doc, root, "event", "scroll_state");
+                yyjson_mut_obj_add_str(doc, root, "transition", "IDLE->WAITING");
+                yyjson_mut_obj_add_str(doc, root, "dir", arrow_type == IK_INPUT_ARROW_UP ? "UP" : "DOWN");
+                yyjson_mut_obj_add_int(doc, root, "t_ms", timestamp_ms);
+                ik_log_debug_json(doc);
+            }
+            return IK_SCROLL_RESULT_NONE;
+
+        case IK_SCROLL_STATE_WAITING:
+            if (elapsed <= det->burst_threshold_ms) {
+                // Second arrow within timer - it's a mouse wheel burst!
+                // Emit WHEEL, transition to ABSORBING
+                ik_scroll_result_t result = (det->pending_dir == IK_INPUT_ARROW_UP)
+                    ? IK_SCROLL_RESULT_SCROLL_UP
+                    : IK_SCROLL_RESULT_SCROLL_DOWN;
+
+                det->state = IK_SCROLL_STATE_ABSORBING;
+                // Reset timer for absorbing additional arrows
+                det->timer_start_ms = timestamp_ms;
+
+                {
+                    yyjson_mut_doc *doc = ik_log_create();
+                    yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+                    yyjson_mut_obj_add_str(doc, root, "event", "scroll_detect");
+                    yyjson_mut_obj_add_str(doc, root, "type", "MOUSE_WHEEL");
+                    yyjson_mut_obj_add_str(doc, root, "dir", result == IK_SCROLL_RESULT_SCROLL_UP ? "UP" : "DOWN");
+                    yyjson_mut_obj_add_str(doc, root, "transition", "WAITING->ABSORBING");
+                    yyjson_mut_obj_add_int(doc, root, "t_ms", timestamp_ms);
+                    yyjson_mut_obj_add_int(doc, root, "elapsed_ms", elapsed);
+                    ik_log_debug_json(doc);
+                }
+                return result;
+            }
+            // Timer expired while waiting - treat pending as keyboard arrow
+            // This shouldn't normally happen (timeout handler should catch it)
+            // but handle it for robustness: emit pending arrow, start fresh
+            {
+                ik_scroll_result_t result = (det->pending_dir == IK_INPUT_ARROW_UP)
+                    ? IK_SCROLL_RESULT_ARROW_UP
+                    : IK_SCROLL_RESULT_ARROW_DOWN;
+
+                // Start fresh with this new arrow
+                det->pending_dir = arrow_type;
+                det->timer_start_ms = timestamp_ms;
+                // Stay in WAITING state
+
+                {
+                    yyjson_mut_doc *doc = ik_log_create();
+                    yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+                    yyjson_mut_obj_add_str(doc, root, "event", "scroll_detect");
+                    yyjson_mut_obj_add_str(doc, root, "type", "ARROW");
+                    yyjson_mut_obj_add_str(doc, root, "dir", result == IK_SCROLL_RESULT_ARROW_UP ? "UP" : "DOWN");
+                    yyjson_mut_obj_add_str(doc, root, "reason", "slow_followup");
+                    yyjson_mut_obj_add_int(doc, root, "t_ms", timestamp_ms);
+                    yyjson_mut_obj_add_int(doc, root, "elapsed_ms", elapsed);
+                    ik_log_debug_json(doc);
+                }
+                return result;
+            }
+
+        case IK_SCROLL_STATE_ABSORBING:
+            if (elapsed <= det->burst_threshold_ms) {
+                // Additional arrow within timer - absorb it, reset timer
+                det->timer_start_ms = timestamp_ms;
+                {
+                    yyjson_mut_doc *doc = ik_log_create();
+                    yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+                    yyjson_mut_obj_add_str(doc, root, "event", "scroll_absorb");
+                    yyjson_mut_obj_add_str(doc, root, "dir", arrow_type == IK_INPUT_ARROW_UP ? "UP" : "DOWN");
+                    yyjson_mut_obj_add_int(doc, root, "t_ms", timestamp_ms);
+                    yyjson_mut_obj_add_int(doc, root, "elapsed_ms", elapsed);
+                    ik_log_debug_json(doc);
+                }
+                return IK_SCROLL_RESULT_NONE;
+            }
+            // Timer expired while absorbing - new burst starting
+            // Transition back to WAITING with this arrow
+            det->state = IK_SCROLL_STATE_WAITING;
+            det->pending_dir = arrow_type;
+            det->timer_start_ms = timestamp_ms;
+            {
+                yyjson_mut_doc *doc = ik_log_create();
+                yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+                yyjson_mut_obj_add_str(doc, root, "event", "scroll_state");
+                yyjson_mut_obj_add_str(doc, root, "transition", "ABSORBING->WAITING");
+                yyjson_mut_obj_add_str(doc, root, "dir", arrow_type == IK_INPUT_ARROW_UP ? "UP" : "DOWN");
+                yyjson_mut_obj_add_int(doc, root, "t_ms", timestamp_ms);
+                yyjson_mut_obj_add_int(doc, root, "elapsed_ms", elapsed);
+                ik_log_debug_json(doc);
+            }
+            return IK_SCROLL_RESULT_NONE;
+    }
+
+    return IK_SCROLL_RESULT_NONE;  // LCOV_EXCL_LINE
 }
 
 // Check if timeout expired and flush pending event
@@ -112,32 +173,52 @@ ik_scroll_result_t ik_scroll_detector_check_timeout(
 {
     assert(det != NULL);  // LCOV_EXCL_BR_LINE
 
-    if (!det->pending) {
+    if (det->state == IK_SCROLL_STATE_IDLE) {
         return IK_SCROLL_RESULT_NONE;
     }
 
-    int64_t elapsed = timestamp_ms - det->pending_time_ms;
-    if (elapsed > det->burst_threshold_ms) {
-        // Timeout expired - flush as arrow
+    int64_t elapsed = timestamp_ms - det->timer_start_ms;
+
+    if (elapsed <= det->burst_threshold_ms) {
+        return IK_SCROLL_RESULT_NONE;
+    }
+
+    // Timer expired
+    if (det->state == IK_SCROLL_STATE_WAITING) {
+        // Only got one arrow - it's a keyboard arrow
         ik_scroll_result_t result = (det->pending_dir == IK_INPUT_ARROW_UP)
             ? IK_SCROLL_RESULT_ARROW_UP
             : IK_SCROLL_RESULT_ARROW_DOWN;
 
-        det->pending = false;
+        det->state = IK_SCROLL_STATE_IDLE;
+
         {
             yyjson_mut_doc *doc = ik_log_create();
             yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
             yyjson_mut_obj_add_str(doc, root, "event", "scroll_detect");
             yyjson_mut_obj_add_str(doc, root, "type", "ARROW");
             yyjson_mut_obj_add_str(doc, root, "dir", result == IK_SCROLL_RESULT_ARROW_UP ? "UP" : "DOWN");
+            yyjson_mut_obj_add_str(doc, root, "reason", "timeout");
+            yyjson_mut_obj_add_str(doc, root, "transition", "WAITING->IDLE");
             yyjson_mut_obj_add_int(doc, root, "t_ms", timestamp_ms);
             yyjson_mut_obj_add_int(doc, root, "elapsed_ms", elapsed);
-            yyjson_mut_obj_add_str(doc, root, "reason", "timeout");
             ik_log_debug_json(doc);
         }
         return result;
     }
 
+    // ABSORBING state - timer expired, go back to IDLE
+    det->state = IK_SCROLL_STATE_IDLE;
+    {
+        yyjson_mut_doc *doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "scroll_state");
+        yyjson_mut_obj_add_str(doc, root, "transition", "ABSORBING->IDLE");
+        yyjson_mut_obj_add_str(doc, root, "reason", "timeout");
+        yyjson_mut_obj_add_int(doc, root, "t_ms", timestamp_ms);
+        yyjson_mut_obj_add_int(doc, root, "elapsed_ms", elapsed);
+        ik_log_debug_json(doc);
+    }
     return IK_SCROLL_RESULT_NONE;
 }
 
@@ -149,11 +230,11 @@ int64_t ik_scroll_detector_get_timeout_ms(
 {
     assert(det != NULL);  // LCOV_EXCL_BR_LINE
 
-    if (!det->pending) {
-        return -1;  // No pending event
+    if (det->state == IK_SCROLL_STATE_IDLE) {
+        return -1;  // No timeout needed
     }
 
-    int64_t elapsed = timestamp_ms - det->pending_time_ms;
+    int64_t elapsed = timestamp_ms - det->timer_start_ms;
     int64_t remaining = det->burst_threshold_ms - elapsed;
 
     if (remaining < 0) {
@@ -168,16 +249,19 @@ ik_scroll_result_t ik_scroll_detector_flush(ik_scroll_detector_t *det)
 {
     assert(det != NULL);  // LCOV_EXCL_BR_LINE
 
-    if (!det->pending) {
-        return IK_SCROLL_RESULT_NONE;
+    if (det->state == IK_SCROLL_STATE_WAITING) {
+        // Flush the pending arrow
+        ik_scroll_result_t result = (det->pending_dir == IK_INPUT_ARROW_UP)
+            ? IK_SCROLL_RESULT_ARROW_UP
+            : IK_SCROLL_RESULT_ARROW_DOWN;
+
+        det->state = IK_SCROLL_STATE_IDLE;
+        return result;
     }
 
-    ik_scroll_result_t result = (det->pending_dir == IK_INPUT_ARROW_UP)
-        ? IK_SCROLL_RESULT_ARROW_UP
-        : IK_SCROLL_RESULT_ARROW_DOWN;
-
-    det->pending = false;
-    return result;
+    // IDLE or ABSORBING - nothing to flush (ABSORBING has already emitted WHEEL)
+    det->state = IK_SCROLL_STATE_IDLE;
+    return IK_SCROLL_RESULT_NONE;
 }
 
 // Reset to initial state
@@ -185,6 +269,6 @@ void ik_scroll_detector_reset(ik_scroll_detector_t *det)
 {
     assert(det != NULL);  // LCOV_EXCL_BR_LINE
 
-    det->pending = false;
-    det->pending_time_ms = 0;
+    det->state = IK_SCROLL_STATE_IDLE;
+    det->timer_start_ms = 0;
 }

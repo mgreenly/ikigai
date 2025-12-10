@@ -6,15 +6,21 @@
 
 #include "input.h"
 
-// Scroll detector for mouse wheel detection using deferred event detection
+// State machine for scroll detection
+typedef enum {
+    IK_SCROLL_STATE_IDLE,      // No pending event
+    IK_SCROLL_STATE_WAITING,   // First arrow received, waiting to classify
+    IK_SCROLL_STATE_ABSORBING, // Burst detected, absorbing remaining arrows
+} ik_scroll_state_t;
+
+// Scroll detector for mouse wheel detection using state machine
 typedef struct {
-    // Deferred detection state
-    bool pending;                      // Is an arrow event buffered?
-    ik_input_action_type_t pending_dir; // ARROW_UP or ARROW_DOWN
-    int64_t pending_time_ms;           // When pending event arrived
+    ik_scroll_state_t state;           // Current state
+    ik_input_action_type_t pending_dir; // ARROW_UP or ARROW_DOWN (valid in WAITING/ABSORBING)
+    int64_t timer_start_ms;            // When timer started
 
     // Constants
-    int64_t burst_threshold_ms;        // Max time between events to be a burst (10ms)
+    int64_t burst_threshold_ms;        // Timer duration (20ms)
 } ik_scroll_detector_t;
 
 // Result of processing an arrow event
@@ -26,7 +32,7 @@ typedef enum {
     IK_SCROLL_RESULT_ARROW_DOWN,  // Emit arrow down (keyboard detected)
 } ik_scroll_result_t;
 
-#define IK_SCROLL_BURST_THRESHOLD_MS 15
+#define IK_SCROLL_BURST_THRESHOLD_MS 20
 
 // Create detector (talloc-based)
 ik_scroll_detector_t *ik_scroll_detector_create(void *parent);
