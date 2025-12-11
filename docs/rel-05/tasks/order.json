@@ -1,6 +1,12 @@
 {
   "todo": [
     {
+      "task": "csi-u-xkbcommon-translate.md",
+      "group": "Input Handling",
+      "model": "opus",
+      "thinking": "high"
+    },
+    {
       "task": "scroll-debug-log-cleanup.md",
       "group": "Cleanup",
       "model": "haiku",
