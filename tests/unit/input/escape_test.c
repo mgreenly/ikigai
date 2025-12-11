@@ -401,6 +401,136 @@ START_TEST(test_input_parse_double_escape)
 
 END_TEST
 
+// Test: CSI u plain Enter emits NEWLINE (submit)
+START_TEST(test_csi_u_plain_enter)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[13;1u = plain Enter
+    const char seq[] = "\x1b[13;1u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_NEWLINE);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Shift+Enter emits INSERT_NEWLINE
+START_TEST(test_csi_u_shift_enter)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[13;2u = Shift+Enter
+    const char seq[] = "\x1b[13;2u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_INSERT_NEWLINE);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Ctrl+Enter emits INSERT_NEWLINE
+START_TEST(test_csi_u_ctrl_enter)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[13;5u = Ctrl+Enter
+    const char seq[] = "\x1b[13;5u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_INSERT_NEWLINE);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Alt+Enter emits INSERT_NEWLINE
+START_TEST(test_csi_u_alt_enter)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[13;3u = Alt+Enter
+    const char seq[] = "\x1b[13;3u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_INSERT_NEWLINE);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Ctrl+Shift+Enter emits INSERT_NEWLINE
+START_TEST(test_csi_u_ctrl_shift_enter)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[13;6u = Ctrl+Shift+Enter (1 + 1 + 4)
+    const char seq[] = "\x1b[13;6u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_INSERT_NEWLINE);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: Alacritty modifier-only events are ignored
+START_TEST(test_csi_u_modifier_only_ignored)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[57441;2u = Shift key alone (Alacritty)
+    const char seq[] = "\x1b[57441;2u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: Ctrl+J still works (not CSI u)
+START_TEST(test_ctrl_j_still_works)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // Ctrl+J = 0x0A (LF)
+    ik_input_parse_byte(parser, 0x0A, &action);
+
+    ck_assert_int_eq(action.type, IK_INPUT_INSERT_NEWLINE);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test suite
 static Suite *input_escape_suite(void)
 {
@@ -423,6 +553,13 @@ static Suite *input_escape_suite(void)
     tcase_add_test(tc_core, test_input_parse_unrecognized_csi_middle_letter);
     tcase_add_test(tc_core, test_input_parse_unrecognized_single_char_escape);
     tcase_add_test(tc_core, test_input_parse_double_escape);
+    tcase_add_test(tc_core, test_csi_u_plain_enter);
+    tcase_add_test(tc_core, test_csi_u_shift_enter);
+    tcase_add_test(tc_core, test_csi_u_ctrl_enter);
+    tcase_add_test(tc_core, test_csi_u_alt_enter);
+    tcase_add_test(tc_core, test_csi_u_ctrl_shift_enter);
+    tcase_add_test(tc_core, test_csi_u_modifier_only_ignored);
+    tcase_add_test(tc_core, test_ctrl_j_still_works);
 
     suite_add_tcase(s, tc_core);
     return s;

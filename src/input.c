@@ -284,6 +284,70 @@ static bool parse_mouse_sgr(ik_input_parser_t *parser, char byte,
     return true;
 }
 
+// Parse CSI u sequence: ESC [ keycode ; modifiers u
+// Returns true if valid CSI u sequence parsed
+static bool parse_csi_u_sequence(const ik_input_parser_t *parser,
+                                  ik_input_action_t *action_out)
+{
+    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
+    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Minimum: ESC [ digit u = 4 chars in buffer (excluding ESC)
+    // Format: [keycode;modifiers u
+    if (parser->esc_len < 3) {
+        return false;
+    }
+
+    // Must end with 'u'
+    if (parser->esc_buf[parser->esc_len - 1] != 'u') {
+        return false;
+    }
+
+    // Parse keycode and modifiers
+    int32_t keycode = 0;
+    int32_t modifiers = 1;  // Default: no modifiers
+
+    size_t i = 1;  // Skip '[' (buf[0] is '[')
+
+    // Parse keycode
+    while (i < parser->esc_len && parser->esc_buf[i] >= '0' && parser->esc_buf[i] <= '9') {
+        keycode = keycode * 10 + (parser->esc_buf[i] - '0');
+        i++;
+    }
+
+    // Parse modifiers if present
+    if (i < parser->esc_len && parser->esc_buf[i] == ';') {
+        i++;
+        modifiers = 0;
+        while (i < parser->esc_len && parser->esc_buf[i] >= '0' && parser->esc_buf[i] <= '9') {
+            modifiers = modifiers * 10 + (parser->esc_buf[i] - '0');
+            i++;
+        }
+    }
+
+    // Filter Alacritty modifier-only events (keycode > 50000)
+    if (keycode > 50000) {
+        action_out->type = IK_INPUT_UNKNOWN;
+        return true;
+    }
+
+    // Handle Enter key (keycode 13)
+    if (keycode == 13) {
+        if (modifiers == 1) {
+            // Plain Enter - submit
+            action_out->type = IK_INPUT_NEWLINE;
+        } else {
+            // Modified Enter (Shift/Ctrl/Alt) - insert newline
+            action_out->type = IK_INPUT_INSERT_NEWLINE;
+        }
+        return true;
+    }
+
+    // Other CSI u keys - not handled yet
+    action_out->type = IK_INPUT_UNKNOWN;
+    return true;
+}
+
 // Handle 3-character tilde-terminated sequences: ESC [ N ~
 static bool parse_tilde_sequences(ik_input_parser_t *parser, char byte,
                                    ik_input_action_t *action_out)
@@ -358,6 +422,22 @@ static void parse_escape_sequence(ik_input_parser_t *parser, char byte,
     // Try parsing as tilde-terminated sequence
     if (parse_tilde_sequences(parser, byte, action_out)) {
         return; // Handled
+    }
+
+    // Try parsing as CSI u sequence when byte is 'u'
+    if (byte == 'u') {
+        parser->esc_buf[parser->esc_len++] = byte;
+        parser->esc_buf[parser->esc_len] = '\0';
+
+        if (parse_csi_u_sequence(parser, action_out)) {
+            reset_escape_state(parser);
+            return;
+        }
+
+        // Not a recognized CSI u sequence
+        action_out->type = IK_INPUT_UNKNOWN;
+        reset_escape_state(parser);
+        return;
     }
 
     // Check for unrecognized CSI sequences to discard (SGR and others)
