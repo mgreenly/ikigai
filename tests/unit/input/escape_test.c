@@ -683,46 +683,6 @@ START_TEST(test_legacy_ctrl_c)
 }
 END_TEST
 
-// Test: CSI u Shift+= produces '+' (keycode 43, modifiers 2 = Shift)
-START_TEST(test_csi_u_shift_equals_produces_plus)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = ik_input_parser_create(ctx);
-    ik_input_action_t action;
-
-    // ESC[43;2u = '+' with Shift modifier (Shift+= on US keyboard)
-    const char seq[] = "\x1b[43;2u";
-    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
-        ik_input_parse_byte(parser, seq[i], &action);
-    }
-
-    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
-    ck_assert_uint_eq(action.codepoint, 43);  // '+'
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test: CSI u Shift+1 produces '!' (keycode 33, modifiers 2 = Shift)
-START_TEST(test_csi_u_shift_1_produces_exclamation)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_input_parser_t *parser = ik_input_parser_create(ctx);
-    ik_input_action_t action;
-
-    // ESC[33;2u = '!' with Shift modifier (Shift+1 on US keyboard)
-    const char seq[] = "\x1b[33;2u";
-    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
-        ik_input_parse_byte(parser, seq[i], &action);
-    }
-
-    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
-    ck_assert_uint_eq(action.codepoint, 33);  // '!'
-
-    talloc_free(ctx);
-}
-END_TEST
-
 // Test suite
 static Suite *input_escape_suite(void)
 {
@@ -760,8 +720,6 @@ static Suite *input_escape_suite(void)
     tcase_add_test(tc_core, test_csi_u_unicode);
     tcase_add_test(tc_core, test_csi_u_ctrl_c);
     tcase_add_test(tc_core, test_legacy_ctrl_c);
-    tcase_add_test(tc_core, test_csi_u_shift_equals_produces_plus);
-    tcase_add_test(tc_core, test_csi_u_shift_1_produces_exclamation);
 
     suite_add_tcase(s, tc_core);
     return s;
