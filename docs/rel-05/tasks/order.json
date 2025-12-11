@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "csi-u-parse-enter.md",
-      "group": "Input Handling",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
       "task": "scroll-debug-log-cleanup.md",
       "group": "Cleanup",
       "model": "haiku",
@@ -454,6 +448,12 @@
     },
     {
       "task": "csi-u-terminal-support.md",
+      "group": "Input Handling",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "csi-u-parse-enter.md",
       "group": "Input Handling",
       "model": "sonnet",
       "thinking": "low"

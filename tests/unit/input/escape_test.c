@@ -531,6 +531,158 @@ START_TEST(test_ctrl_j_still_works)
 }
 END_TEST
 
+// Test: CSI u character 'a' (keycode 97)
+START_TEST(test_csi_u_char_a)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[97;1u = 'a' with no modifiers
+    const char seq[] = "\x1b[97;1u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, 97);  // 'a'
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u space character (keycode 32)
+START_TEST(test_csi_u_char_space)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[32;1u = space with no modifiers
+    const char seq[] = "\x1b[32;1u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, 32);  // space
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Tab key (keycode 9)
+START_TEST(test_csi_u_tab)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[9;1u = Tab with no modifiers
+    const char seq[] = "\x1b[9;1u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_TAB);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Backspace key (keycode 127)
+START_TEST(test_csi_u_backspace)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[127;1u = Backspace with no modifiers
+    const char seq[] = "\x1b[127;1u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_BACKSPACE);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Escape key (keycode 27)
+START_TEST(test_csi_u_escape)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[27;1u = Escape with no modifiers
+    const char seq[] = "\x1b[27;1u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_ESCAPE);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Unicode character (e.g., é = U+00E9 = 233)
+START_TEST(test_csi_u_unicode)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[233;1u = 'é' with no modifiers
+    const char seq[] = "\x1b[233;1u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, 233);  // é
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Ctrl+C (keycode 99 = 'c', modifiers 5 = Ctrl)
+START_TEST(test_csi_u_ctrl_c)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[99;5u = Ctrl+C (keycode 99 = 'c', modifiers 5 = 1 + 4 = Ctrl)
+    const char seq[] = "\x1b[99;5u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_C);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: Legacy Ctrl+C (0x03) still works
+START_TEST(test_legacy_ctrl_c)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // Legacy Ctrl+C = 0x03
+    ik_input_parse_byte(parser, 0x03, &action);
+
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_C);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test suite
 static Suite *input_escape_suite(void)
 {
@@ -560,6 +712,14 @@ static Suite *input_escape_suite(void)
     tcase_add_test(tc_core, test_csi_u_ctrl_shift_enter);
     tcase_add_test(tc_core, test_csi_u_modifier_only_ignored);
     tcase_add_test(tc_core, test_ctrl_j_still_works);
+    tcase_add_test(tc_core, test_csi_u_char_a);
+    tcase_add_test(tc_core, test_csi_u_char_space);
+    tcase_add_test(tc_core, test_csi_u_tab);
+    tcase_add_test(tc_core, test_csi_u_backspace);
+    tcase_add_test(tc_core, test_csi_u_escape);
+    tcase_add_test(tc_core, test_csi_u_unicode);
+    tcase_add_test(tc_core, test_csi_u_ctrl_c);
+    tcase_add_test(tc_core, test_legacy_ctrl_c);
 
     suite_add_tcase(s, tc_core);
     return s;

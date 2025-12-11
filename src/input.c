@@ -343,7 +343,45 @@ static bool parse_csi_u_sequence(const ik_input_parser_t *parser,
         return true;
     }
 
-    // Other CSI u keys - not handled yet
+    // Handle Ctrl+C (keycode 99 = 'c', modifiers 5 = Ctrl)
+    if (keycode == 99 && modifiers == 5) {
+        action_out->type = IK_INPUT_CTRL_C;
+        return true;
+    }
+
+    // Handle Tab key (keycode 9)
+    if (keycode == 9 && modifiers == 1) {
+        action_out->type = IK_INPUT_TAB;
+        return true;
+    }
+
+    // Handle Backspace (keycode 127)
+    if (keycode == 127 && modifiers == 1) {
+        action_out->type = IK_INPUT_BACKSPACE;
+        return true;
+    }
+
+    // Handle Escape key (keycode 27)
+    if (keycode == 27 && modifiers == 1) {
+        action_out->type = IK_INPUT_ESCAPE;
+        return true;
+    }
+
+    // Handle printable ASCII characters (32-126) with no modifiers
+    if (keycode >= 32 && keycode <= 126 && modifiers == 1) {
+        action_out->type = IK_INPUT_CHAR;
+        action_out->codepoint = (uint32_t)keycode;
+        return true;
+    }
+
+    // Handle Unicode characters (above ASCII) with no modifiers
+    if (keycode > 126 && keycode <= 0x10FFFF && modifiers == 1) {
+        action_out->type = IK_INPUT_CHAR;
+        action_out->codepoint = (uint32_t)keycode;
+        return true;
+    }
+
+    // Other CSI u keys (modified keys, function keys, etc.) - ignore for now
     action_out->type = IK_INPUT_UNKNOWN;
     return true;
 }
@@ -426,9 +464,6 @@ static void parse_escape_sequence(ik_input_parser_t *parser, char byte,
 
     // Try parsing as CSI u sequence when byte is 'u'
     if (byte == 'u') {
-        parser->esc_buf[parser->esc_len++] = byte;
-        parser->esc_buf[parser->esc_len] = '\0';
-
         if (parse_csi_u_sequence(parser, action_out)) {
             reset_escape_state(parser);
             return;
