@@ -1,18 +1,6 @@
 {
   "todo": [
     {
-      "task": "scroll-threshold-reduce.md",
-      "group": "Input Handling",
-      "model": "haiku",
-      "thinking": "low"
-    },
-    {
-      "task": "csi-u-terminal-support.md",
-      "group": "Input Handling",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
       "task": "csi-u-parse-enter.md",
       "group": "Input Handling",
       "model": "sonnet",
@@ -457,6 +445,18 @@
       "group": "Bug Fix",
       "model": "opus",
       "thinking": "high"
+    },
+    {
+      "task": "scroll-threshold-reduce.md",
+      "group": "Input Handling",
+      "model": "haiku",
+      "thinking": "low"
+    },
+    {
+      "task": "csi-u-terminal-support.md",
+      "group": "Input Handling",
+      "model": "sonnet",
+      "thinking": "low"
     }
   ]
 }
