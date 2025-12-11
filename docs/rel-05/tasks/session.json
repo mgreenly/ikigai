@@ -273,5 +273,10 @@
     "event": "done",
     "task": "scrollback-render-partial-line.md",
     "time": "2025-12-10T04:29:00.509Z"
+  },
+  {
+    "event": "start",
+    "task": "scroll-threshold-reduce.md",
+    "time": "2025-12-11T21:20:40.589Z"
   }
 ]
