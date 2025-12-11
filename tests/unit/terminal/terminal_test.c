@@ -153,23 +153,23 @@ START_TEST(test_term_init_success) {
     ck_assert_int_eq(term->screen_rows, 24);
     ck_assert_int_eq(term->screen_cols, 80);
 
-    // Verify write was called for alternate screen and mouse enable
-    ck_assert_int_eq(mock_write_count, 2);
+    // Verify write was called for alternate screen
+    ck_assert_int_eq(mock_write_count, 1);
 
     // Cleanup
     ik_term_cleanup(term);
     talloc_free(ctx);
 
     // Verify cleanup operations
-    ck_assert_int_eq(mock_write_count, 4); // mouse disable + alt screen exit (no terminal reset to avoid Ghostty state corruption)
+    ck_assert_int_eq(mock_write_count, 2); // alt screen exit
     ck_assert_int_eq(mock_tcsetattr_count, 2); // restore termios
     ck_assert_int_eq(mock_tcflush_count, 2); // flush after set raw + cleanup
     ck_assert_int_eq(mock_close_count, 1);
 }
 END_TEST
 
-// Test: SGR mouse sequences are written during init and cleanup
-START_TEST(test_term_mouse_sequences)
+// Test: alternate screen sequences are written during init and cleanup
+START_TEST(test_term_alt_screen_sequences)
 {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -178,9 +178,8 @@ START_TEST(test_term_mouse_sequences)
     res_t res = ik_term_init(ctx, &term);
     ck_assert(is_ok(&res));
 
-    // Verify mouse enable sequences are present in init output
-    // Expected: alternate screen "\x1b[?1049h" + mouse enable "\x1b[?1007h"
-    ck_assert(strstr(mock_write_buffer, "\x1b[?1007h") != NULL);
+    // Verify alternate screen enter sequence is present in init output
+    ck_assert(strstr(mock_write_buffer, "\x1b[?1049h") != NULL);
 
     // Reset buffer to capture cleanup output
     memset(mock_write_buffer, 0, MOCK_WRITE_BUFFER_SIZE);
@@ -188,9 +187,8 @@ START_TEST(test_term_mouse_sequences)
 
     ik_term_cleanup(term);
 
-    // Verify mouse disable sequences are present in cleanup output
-    // Expected: mouse disable "\x1b[?1007l" + reset sequence
-    ck_assert(strstr(mock_write_buffer, "\x1b[?1007l") != NULL);
+    // Verify alternate screen exit sequence is present in cleanup output
+    ck_assert(strstr(mock_write_buffer, "\x1b[?1049l") != NULL);
 
     talloc_free(ctx);
 }
@@ -286,35 +284,6 @@ START_TEST(test_term_init_write_fails)
 
 END_TEST
 
-// Test: write fails on mouse enable (second write call)
-START_TEST(test_term_init_write_mouse_enable_fails)
-{
-    reset_mocks();
-    mock_write_fail_on_call = 2;  // Fail on second write (mouse enable)
-
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_term_ctx_t *term = NULL;
-
-    res_t res = ik_term_init(ctx, &term);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_IO);
-    ck_assert_ptr_null(term);
-
-    // Cleanup should have been called
-    // First write succeeds (alternate screen enter)
-    // Second write fails (mouse enable)
-    // Cleanup writes: alt screen exit
-    ck_assert_int_eq(mock_write_count, 3);
-    ck_assert_int_eq(mock_tcsetattr_count, 2); // raw mode + restore
-    ck_assert_int_eq(mock_tcflush_count, 1); // flush after set raw
-    ck_assert_int_eq(mock_close_count, 1);
-
-    talloc_free(ctx);
-}
-
-END_TEST
-
 // Test: ioctl fails (get terminal size)
 START_TEST(test_term_init_ioctl_fails)
 {
@@ -331,7 +300,7 @@ START_TEST(test_term_init_ioctl_fails)
     ck_assert_ptr_null(term);
 
     // Full cleanup should have been called
-    ck_assert_int_eq(mock_write_count, 4); // enter alt screen + mouse enable + mouse disable + exit alt screen (no reset on error path)
+    ck_assert_int_eq(mock_write_count, 2); // enter alt screen + exit alt screen
     ck_assert_int_eq(mock_tcsetattr_count, 2); // raw mode + restore
     ck_assert_int_eq(mock_tcflush_count, 1); // flush after set raw
     ck_assert_int_eq(mock_close_count, 1);
@@ -495,13 +464,12 @@ static Suite *terminal_suite(void)
     tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_term_init_success);
-    tcase_add_test(tc_core, test_term_mouse_sequences);
+    tcase_add_test(tc_core, test_term_alt_screen_sequences);
     tcase_add_test(tc_core, test_term_init_open_fails);
     tcase_add_test(tc_core, test_term_init_tcgetattr_fails);
     tcase_add_test(tc_core, test_term_init_tcsetattr_fails);
     tcase_add_test(tc_core, test_term_init_tcflush_fails);
     tcase_add_test(tc_core, test_term_init_write_fails);
-    tcase_add_test(tc_core, test_term_init_write_mouse_enable_fails);
     tcase_add_test(tc_core, test_term_init_ioctl_fails);
     tcase_add_test(tc_core, test_term_cleanup_null_safe);
     tcase_add_test(tc_core, test_term_get_size_success);

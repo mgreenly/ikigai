@@ -1,10 +1,10 @@
-# Mouse Scroll Detection via Terminal Mode 1007h
+# Mouse Scroll Detection via Terminal Faux Scrolling
 
 This document describes how ikigai distinguishes mouse wheel scrolls from keyboard arrow keys using terminal escape sequences and timing-based burst detection.
 
 ## Problem Statement
 
-Terminal applications receive keyboard and mouse input as byte sequences. When using terminal mode 1007h (Alternate Scroll Mode), mouse wheel scrolls are converted to arrow key sequences—identical to pressing the up/down arrow keys. We need to distinguish between:
+Terminal applications receive keyboard and mouse input as byte sequences. When in the alternate screen buffer, modern terminals implement "faux scrolling" - converting mouse wheel scrolls to arrow key sequences (identical to pressing the up/down arrow keys). We need to distinguish between:
 
 - **Mouse wheel scroll**: User rotates wheel one notch
 - **Keyboard arrow**: User presses up/down arrow key
@@ -22,30 +22,27 @@ Keyboard arrows, even when held for repeat, have ~30ms intervals. By detecting "
 
 ### Entering Alternate Buffer Mode
 
-On startup, send these escape sequences to the terminal:
+On startup, send this escape sequence to the terminal:
 
 ```
 ESC[?1049h    # Enter alternate screen buffer
-ESC[?1007h    # Enable alternate scroll mode (mouse wheel → arrows)
-ESC[?25l      # Hide cursor (optional, for cleaner rendering)
 ```
 
-**Mode 1007h behavior**: Mouse wheel scrolls generate arrow key escape sequences:
+**Faux scrolling behavior**: Most modern terminals (Alacritty, Kitty, Ghostty, GNOME Terminal, etc.) automatically convert mouse wheel scrolls to arrow key sequences when in the alternate screen buffer:
 - Scroll up → `ESC[A` (same as up arrow key)
 - Scroll down → `ESC[B` (same as down arrow key)
 
-**Why 1007h instead of 1006h/1000h (SGR mouse tracking)?** Mode 1007h does NOT capture mouse clicks, allowing the parent terminal to retain text selection, right-click menus, and other mouse functionality.
+**Why not use 1006h/1000h (SGR mouse tracking)?** Mouse tracking captures all mouse events including clicks, which prevents the parent terminal from handling text selection, right-click menus, and other mouse functionality.
+
+**Why not explicitly enable 1007h?** Modern terminals enable faux scrolling by default in alternate screen mode. The xterm-style `ESC[?1007h` sequence is only needed for xterm itself (which has it off by default). Sending `1007h` can cause issues in some terminal/user configurations.
 
 ### Exiting Alternate Buffer Mode
 
 On cleanup, send only:
 
 ```
-ESC[?1007l    # Disable alternate scroll mode
 ESC[?1049l    # Exit alternate screen buffer
 ```
-
-**Critical**: Do NOT send `ESC[?25h` (show cursor) or `ESC[0m` (reset attributes) during cleanup. Some terminals (notably Ghostty) corrupt their 1007h state when receiving these sequences, reducing arrows-per-scroll from 3 to 1.
 
 ## Arrows Per Scroll by Terminal
 

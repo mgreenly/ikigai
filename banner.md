@@ -1,6 +1,7 @@
-# Ikigai 12/09 Dev Stream
+# Ikigai 12/10 Dev Stream
 
-In this session we'll be working on separating the mousescroll up/down  and arrow up/down events emitting seperately.  The issue is they both arrive as arrow-up/down and the only thing that distinquishes them is timing.  The mousewheel events always arrive in pairs a few ms apart.
+  * https://github.com/mgreenly/ikigai
 
-## Alternate Session name: When AI Goes Wrong.
+We're working on the rendering.  We preivously only had page up/down scrolling but added mouse scrolling. With the line by line scrolling created a need to rework some stuff.
 
+Expecting this will mostly be in anteractive session.  Investigation followed, code changes, debugging.  I guess we'll see.

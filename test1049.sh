@@ -7,8 +7,7 @@ while IFS= read -rsn1 c; do
     $'\e')
       read -rsn1 -t0.1 b
       read -rsn1 -t0.1 code
-      [[ $code == 'A' ]] && printf 'UP\r\n'
-      [[ $code == 'B' ]] && printf 'DN\r\n'
+      printf 'got: %s\r\n' "$code"
       ;;
     q) break ;;
   esac

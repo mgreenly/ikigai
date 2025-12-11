@@ -1,6 +1,9 @@
 #include "layer.h"
+
+#include "logger.h"
 #include "panic.h"
 #include "wrapper.h"
+
 #include <assert.h>
 #include <string.h>
 
@@ -146,6 +149,9 @@ void ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *outpu
     size_t current_row = 0;
     size_t viewport_end = cake->viewport_row + cake->viewport_height;
 
+    ik_log_debug("layer_cake_render: vp_row=%zu vp_height=%zu vp_end=%zu width=%zu",
+                 cake->viewport_row, cake->viewport_height, viewport_end, width);
+
     for (size_t i = 0; i < cake->layer_count; i++) {
         ik_layer_t *layer = cake->layers[i];
 
@@ -171,8 +177,14 @@ void ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *outpu
                 row_count -= (layer_end - viewport_end);
             }
 
+            size_t buf_before = output->size;
+
             // Render this layer's portion
             layer->render(layer, output, width, start_row, row_count);
+
+            size_t buf_after = output->size;
+            ik_log_debug("  layer[%zu]: height=%zu start=%zu rows=%zu buf_delta=%zu",
+                         i, layer_height, start_row, row_count, buf_after - buf_before);
         }
 
         current_row = layer_end;
