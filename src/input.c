@@ -367,8 +367,9 @@ static bool parse_csi_u_sequence(const ik_input_parser_t *parser,
         return true;
     }
 
-    // Handle printable ASCII characters (32-126) with no modifiers
-    if (keycode >= 32 && keycode <= 126 && modifiers == 1) {
+    // Handle printable ASCII characters (32-126) with no modifiers or Shift
+    // Shift (modifiers == 2) is needed for characters like +, !, @, #, etc.
+    if (keycode >= 32 && keycode <= 126 && (modifiers == 1 || modifiers == 2)) {
         action_out->type = IK_INPUT_CHAR;
         action_out->codepoint = (uint32_t)keycode;
         return true;

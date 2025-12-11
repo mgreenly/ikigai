@@ -1,7 +1,13 @@
-# Ikigai 12/10 Dev Stream
+# Ikigai 12/11 Dev Stream
 
   * https://github.com/mgreenly/ikigai
 
-We're working on the rendering.  We preivously only had page up/down scrolling but added mouse scrolling. With the line by line scrolling created a need to rework some stuff.
+During the last few evenings I've gone down a rabbit hole trying to figure out the
+optimal solution for the terminal emulator mode and how to handle keyboard and mouse
+input from both modern and legacy terminal emulators.  Specifically not capturing
+mouse control, leaving it to the terminal, while still being able to interpret mouse-
+wheel events separate from arrow keys, as well as supporting shift+enter, ctrl+enter
+when possible. This is all working now but there's a bunch of rendering quirks/bugs
+to work through now.
 
-Expecting this will mostly be in anteractive session.  Investigation followed, code changes, debugging.  I guess we'll see.
+So that will be tonights interactive session.
