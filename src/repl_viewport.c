@@ -296,5 +296,14 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
         return ERR(repl, IO, "Failed to write frame to terminal");
     }
 
+    // Compute elapsed render time (for next frame's debug display)
+    if (repl->render_start_us != 0) {
+        struct timespec ts_end;
+        clock_gettime(CLOCK_MONOTONIC, &ts_end);
+        uint64_t end_us = (uint64_t)ts_end.tv_sec * 1000000 + (uint64_t)ts_end.tv_nsec / 1000;
+        repl->render_elapsed_us = end_us - repl->render_start_us;
+        repl->render_start_us = 0;  // Reset so we don't re-compute on non-input renders
+    }
+
     return OK(repl);
 }

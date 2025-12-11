@@ -108,6 +108,11 @@ res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_e
         return OK(NULL);
     }
 
+    // Capture render start time (input received)
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    repl->render_start_us = (uint64_t)ts.tv_sec * 1000000 + (uint64_t)ts.tv_nsec / 1000;
+
     // Parse and process action
     ik_input_action_t action;
     ik_input_parse_byte(repl->input_parser, byte, &action);

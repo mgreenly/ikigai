@@ -101,7 +101,8 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
                                  &repl->debug_viewport_offset,
                                  &repl->debug_viewport_row,
                                  &repl->debug_viewport_height,
-                                 &repl->debug_document_height);
+                                 &repl->debug_document_height,
+                                 &repl->render_elapsed_us);
 
     // Create lower separator layer
     repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &repl->lower_separator_visible);

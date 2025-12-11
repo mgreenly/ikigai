@@ -79,6 +79,8 @@ typedef struct ik_repl_ctx_t {
     size_t debug_viewport_row;        // first_visible_row
     size_t debug_viewport_height;     // terminal_rows
     size_t debug_document_height;     // total document height
+    uint64_t render_start_us;         // Timestamp when input received (0 = not set)
+    uint64_t render_elapsed_us;       // Elapsed time from previous render (computed at end of render)
 
     // Event loop integration (Phase 1.6)
     struct ik_openai_multi *multi;    // curl_multi handle for non-blocking HTTP

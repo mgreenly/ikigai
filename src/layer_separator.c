@@ -17,6 +17,7 @@ typedef struct {
     size_t *viewport_row;        // First visible row
     size_t *viewport_height;     // Terminal rows
     size_t *document_height;     // Total document height
+    uint64_t *render_elapsed_us; // Elapsed time from previous render
 } ik_separator_debug_t;
 
 // Separator layer data
@@ -65,13 +66,31 @@ static void separator_render(const ik_layer_t *layer,
         if (data->debug.document_height && *data->debug.document_height >= 3) {
             sb_rows = *data->debug.document_height - 3;
         }
-        debug_len = (size_t)snprintf(debug_str, sizeof(debug_str),
-            " off=%zu row=%zu h=%zu doc=%zu sb=%zu ",
-            data->debug.viewport_offset ? *data->debug.viewport_offset : 0,
-            data->debug.viewport_row ? *data->debug.viewport_row : 0,
-            data->debug.viewport_height ? *data->debug.viewport_height : 0,
-            data->debug.document_height ? *data->debug.document_height : 0,
-            sb_rows);
+        // Get elapsed time from previous render
+        uint64_t render_us = 0;
+        if (data->debug.render_elapsed_us) {
+            render_us = *data->debug.render_elapsed_us;
+        }
+        // Format render time: show in ms if >= 1000us, otherwise us
+        if (render_us >= 1000) {
+            debug_len = (size_t)snprintf(debug_str, sizeof(debug_str),
+                " off=%zu row=%zu h=%zu doc=%zu sb=%zu t=%.1fms ",
+                data->debug.viewport_offset ? *data->debug.viewport_offset : 0,
+                data->debug.viewport_row ? *data->debug.viewport_row : 0,
+                data->debug.viewport_height ? *data->debug.viewport_height : 0,
+                data->debug.document_height ? *data->debug.document_height : 0,
+                sb_rows,
+                (double)render_us / 1000.0);
+        } else {
+            debug_len = (size_t)snprintf(debug_str, sizeof(debug_str),
+                " off=%zu row=%zu h=%zu doc=%zu sb=%zu t=%" PRIu64 "us ",
+                data->debug.viewport_offset ? *data->debug.viewport_offset : 0,
+                data->debug.viewport_row ? *data->debug.viewport_row : 0,
+                data->debug.viewport_height ? *data->debug.viewport_height : 0,
+                data->debug.document_height ? *data->debug.document_height : 0,
+                sb_rows,
+                render_us);
+        }
     }
 
     // Calculate how many separator chars to draw (leave room for debug)
@@ -113,6 +132,7 @@ ik_layer_t *ik_separator_layer_create(TALLOC_CTX *ctx,
     data->debug.viewport_row = NULL;
     data->debug.viewport_height = NULL;
     data->debug.document_height = NULL;
+    data->debug.render_elapsed_us = NULL;
 
     // Create layer
     return ik_layer_create(ctx, name, data,
@@ -126,7 +146,8 @@ void ik_separator_layer_set_debug(ik_layer_t *layer,
                                   size_t *viewport_offset,
                                   size_t *viewport_row,
                                   size_t *viewport_height,
-                                  size_t *document_height)
+                                  size_t *document_height,
+                                  uint64_t *render_elapsed_us)
 {
     assert(layer != NULL);       // LCOV_EXCL_BR_LINE
     assert(layer->data != NULL); // LCOV_EXCL_BR_LINE
@@ -136,4 +157,5 @@ void ik_separator_layer_set_debug(ik_layer_t *layer,
     data->debug.viewport_row = viewport_row;
     data->debug.viewport_height = viewport_height;
     data->debug.document_height = document_height;
+    data->debug.render_elapsed_us = render_elapsed_us;
 }
