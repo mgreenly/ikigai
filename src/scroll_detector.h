@@ -33,7 +33,7 @@ typedef enum {
     IK_SCROLL_RESULT_ARROW_DOWN,  // Emit arrow down (keyboard detected)
 } ik_scroll_result_t;
 
-#define IK_SCROLL_BURST_THRESHOLD_MS 20
+#define IK_SCROLL_BURST_THRESHOLD_MS 10
 
 // Create detector (talloc-based)
 ik_scroll_detector_t *ik_scroll_detector_create(void *parent);

@@ -256,7 +256,7 @@ START_TEST(test_key_repeat)
 }
 END_TEST
 
-// Test 14: Exactly at threshold (20ms) is still a burst
+// Test 14: Exactly at threshold (10ms) is still a burst
 START_TEST(test_at_threshold)
 {
     ik_scroll_detector_t *det = ik_scroll_detector_create(ctx);
