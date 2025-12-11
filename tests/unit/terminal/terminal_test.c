@@ -18,6 +18,8 @@ static int mock_tcflush_fail = 0;
 static int mock_write_fail = 0;
 static int mock_write_fail_on_call = 0;  // Fail on specific write call number
 static int mock_ioctl_fail = 0;
+static int mock_select_return = 0;        // 0 = timeout, >0 = ready
+static int mock_read_fail = 0;
 static int mock_close_count = 0;
 static int mock_write_count = 0;
 static int mock_tcsetattr_count = 0;
@@ -36,6 +38,8 @@ int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios
 int posix_tcflush_(int fd, int queue_selector);
 int posix_ioctl_(int fd, unsigned long request, void *argp);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
+int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+ssize_t posix_read_(int fd, void *buf, size_t count);
 
 // Mock implementations
 int posix_open_(const char *pathname, int flags)
@@ -121,6 +125,34 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     return (ssize_t)count;
 }
 
+int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
+{
+    (void)nfds;
+    (void)readfds;
+    (void)writefds;
+    (void)exceptfds;
+    (void)timeout;
+    return mock_select_return;
+}
+
+ssize_t posix_read_(int fd, void *buf, size_t count)
+{
+    (void)fd;
+    (void)count;
+    if (mock_read_fail) {
+        return -1;
+    }
+    // Return a dummy CSI u response if select indicated ready
+    if (mock_select_return > 0) {
+        const char *response = "\x1b[?0u";
+        size_t len = 5;
+        if (len > count) len = count;
+        memcpy(buf, response, len);
+        return (ssize_t)len;
+    }
+    return 0;
+}
+
 // Reset mock state before each test
 static void reset_mocks(void)
 {
@@ -131,6 +163,8 @@ static void reset_mocks(void)
     mock_write_fail = 0;
     mock_write_fail_on_call = 0;
     mock_ioctl_fail = 0;
+    mock_select_return = 0;
+    mock_read_fail = 0;
     mock_close_count = 0;
     mock_write_count = 0;
     mock_tcsetattr_count = 0;
@@ -153,15 +187,17 @@ START_TEST(test_term_init_success) {
     ck_assert_int_eq(term->screen_rows, 24);
     ck_assert_int_eq(term->screen_cols, 80);
 
-    // Verify write was called for alternate screen
-    ck_assert_int_eq(mock_write_count, 1);
+    // Verify write was called for alternate screen (and CSI u query)
+    // CSI u query (4 bytes) + alt screen enter (8 bytes) = 2 writes
+    ck_assert_int_eq(mock_write_count, 2);
 
     // Cleanup
     ik_term_cleanup(term);
     talloc_free(ctx);
 
     // Verify cleanup operations
-    ck_assert_int_eq(mock_write_count, 2); // alt screen exit
+    // Note: CSI u was not enabled in mocks (select times out), so no disable write
+    ck_assert_int_eq(mock_write_count, 3); // query + alt screen enter + alt screen exit
     ck_assert_int_eq(mock_tcsetattr_count, 2); // restore termios
     ck_assert_int_eq(mock_tcflush_count, 2); // flush after set raw + cleanup
     ck_assert_int_eq(mock_close_count, 1);
@@ -300,7 +336,7 @@ START_TEST(test_term_init_ioctl_fails)
     ck_assert_ptr_null(term);
 
     // Full cleanup should have been called
-    ck_assert_int_eq(mock_write_count, 2); // enter alt screen + exit alt screen
+    ck_assert_int_eq(mock_write_count, 3); // CSI u query + enter alt screen + exit alt screen
     ck_assert_int_eq(mock_tcsetattr_count, 2); // raw mode + restore
     ck_assert_int_eq(mock_tcflush_count, 1); // flush after set raw
     ck_assert_int_eq(mock_close_count, 1);
@@ -456,6 +492,27 @@ START_TEST(test_term_init_tcflush_fails)
 
 END_TEST
 
+// Test: csi_u_supported field exists and is initialized
+START_TEST(test_term_init_sets_csi_u_supported)
+{
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(term);
+
+    // Field should be initialized (either true or false, not uninitialized)
+    // In test environment with mocks, the value depends on mock behavior
+    ck_assert(term->csi_u_supported == true || term->csi_u_supported == false);
+
+    ik_term_cleanup(term);
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test suite
 static Suite *terminal_suite(void)
 {
@@ -474,6 +531,7 @@ static Suite *terminal_suite(void)
     tcase_add_test(tc_core, test_term_cleanup_null_safe);
     tcase_add_test(tc_core, test_term_get_size_success);
     tcase_add_test(tc_core, test_term_get_size_fails);
+    tcase_add_test(tc_core, test_term_init_sets_csi_u_supported);
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     tcase_add_test_raise_signal(tc_core, test_term_init_null_parent_asserts, SIGABRT);

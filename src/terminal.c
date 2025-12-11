@@ -2,7 +2,9 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
 #include <talloc.h>
 #include <termios.h>
 #include <unistd.h>
@@ -14,6 +16,53 @@
 #define ESC_ALT_SCREEN_ENTER "\x1b[?1049h"
 #define ESC_ALT_SCREEN_EXIT "\x1b[?1049l"
 #define ESC_TERMINAL_RESET "\x1b[?25h\x1b[0m"  // Show cursor + reset attributes
+#define ESC_CSI_U_QUERY "\x1b[?u"              // Query CSI u support
+#define ESC_CSI_U_ENABLE "\x1b[>9u"            // Enable CSI u with flag 9
+#define ESC_CSI_U_DISABLE "\x1b[<u"            // Disable CSI u
+
+// Probe for CSI u support
+static bool probe_csi_u_support(int tty_fd)
+{
+    // Send query
+    const char *query = ESC_CSI_U_QUERY;
+    if (posix_write_(tty_fd, query, 4) < 0) {
+        return false;
+    }
+
+    // Wait for response with timeout
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(tty_fd, &read_fds);
+
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 100000;  // 100ms
+
+    int ready = posix_select_(tty_fd + 1, &read_fds, NULL, NULL, &timeout);
+    if (ready <= 0) {
+        return false;  // Timeout or error - no CSI u support
+    }
+
+    // Read response - format: ESC[?flags u
+    char buf[32];
+    ssize_t n = posix_read_(tty_fd, buf, sizeof(buf) - 1);
+    if (n <= 0) {
+        return false;
+    }
+    buf[n] = '\0';
+
+    // Check for ESC[? prefix and u suffix
+    if (n >= 4 && buf[0] == '\x1b' && buf[1] == '[' && buf[2] == '?') {
+        // Look for 'u' terminator
+        for (ssize_t i = 3; i < n; i++) {
+            if (buf[i] == 'u') {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
 
 // Initialize terminal (raw mode + alternate screen)
 res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
@@ -68,6 +117,16 @@ res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
         return ERR(parent, IO, "Failed to enter alternate screen");
     }
 
+    // Probe for CSI u support and enable if available
+    ctx->csi_u_supported = probe_csi_u_support(tty_fd);
+    if (ctx->csi_u_supported) {
+        // Enable CSI u with flag 9 (disambiguate + report all keys)
+        if (posix_write_(tty_fd, ESC_CSI_U_ENABLE, 6) < 0) {
+            // Not critical - continue without CSI u
+            ctx->csi_u_supported = false;
+        }
+    }
+
     // Get terminal size
     struct winsize ws;
     if (posix_ioctl_(tty_fd, TIOCGWINSZ, &ws) < 0) {
@@ -90,6 +149,11 @@ void ik_term_cleanup(ik_term_ctx_t *ctx)
 {
     if (ctx == NULL) {
         return;
+    }
+
+    // Disable CSI u if it was enabled
+    if (ctx->csi_u_supported) {
+        (void)posix_write_(ctx->tty_fd, ESC_CSI_U_DISABLE, 5);
     }
 
     // Exit alternate screen
