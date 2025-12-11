@@ -683,6 +683,90 @@ START_TEST(test_legacy_ctrl_c)
 }
 END_TEST
 
+// Test: CSI u Shift+= produces '+'
+START_TEST(test_csi_u_shift_equals_produces_plus)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[61;2u = '=' (keycode 61) with Shift modifier (2)
+    // Should produce '+' after xkbcommon translation
+    const char seq[] = "\x1b[61;2u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, '+');
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Shift+a produces 'A'
+START_TEST(test_csi_u_shift_a_produces_uppercase)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[97;2u = 'a' (keycode 97) with Shift modifier (2)
+    // Should produce 'A' after xkbcommon translation
+    const char seq[] = "\x1b[97;2u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, 'A');
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Shift+1 produces '!'
+START_TEST(test_csi_u_shift_1_produces_exclamation)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[49;2u = '1' (keycode 49) with Shift modifier (2)
+    // Should produce '!' after xkbcommon translation
+    const char seq[] = "\x1b[49;2u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, '!');
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u Shift+2 produces '@'
+START_TEST(test_csi_u_shift_2_produces_at)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[50;2u = '2' (keycode 50) with Shift modifier (2)
+    // Should produce '@' after xkbcommon translation
+    const char seq[] = "\x1b[50;2u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, '@');
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test suite
 static Suite *input_escape_suite(void)
 {
@@ -720,6 +804,10 @@ static Suite *input_escape_suite(void)
     tcase_add_test(tc_core, test_csi_u_unicode);
     tcase_add_test(tc_core, test_csi_u_ctrl_c);
     tcase_add_test(tc_core, test_legacy_ctrl_c);
+    tcase_add_test(tc_core, test_csi_u_shift_equals_produces_plus);
+    tcase_add_test(tc_core, test_csi_u_shift_a_produces_uppercase);
+    tcase_add_test(tc_core, test_csi_u_shift_1_produces_exclamation);
+    tcase_add_test(tc_core, test_csi_u_shift_2_produces_at);
 
     suite_add_tcase(s, tc_core);
     return s;

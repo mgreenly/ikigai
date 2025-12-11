@@ -1,10 +1,106 @@
 // Input parser module - Convert raw bytes to semantic actions
 #include <assert.h>
+#include <string.h>
 #include <talloc.h>
 #include "input.h"
 #include "logger.h"
 #include "panic.h"
 #include "wrapper.h"
+
+// Build reverse keymap: Unicode codepoint (ASCII) -> X11 keycode
+// Only considers main keyboard keycodes (9-100) to avoid numpad duplicates
+static void build_xkb_reverse_map(struct xkb_keymap *keymap, struct xkb_state *state,
+                                   ik_xkb_reverse_map_t *map)
+{
+    assert(keymap != NULL);  // LCOV_EXCL_BR_LINE
+    assert(state != NULL);   // LCOV_EXCL_BR_LINE
+    assert(map != NULL);     // LCOV_EXCL_BR_LINE
+
+    memset(map, 0, sizeof(*map));
+
+    // Clear modifiers for base key lookup
+    xkb_state_update_mask(state, 0, 0, 0, 0, 0, 0);
+
+    // Walk main keyboard keycodes only (9-100)
+    // This avoids numpad keys that produce the same characters
+    for (xkb_keycode_t kc = 9; kc <= 100; kc++) {
+        xkb_keysym_t sym = xkb_state_key_get_one_sym(state, kc);
+        if (sym == XKB_KEY_NoSymbol) continue;
+
+        uint32_t utf32 = xkb_keysym_to_utf32(sym);
+
+        // Only store ASCII range, prefer lower keycodes (main keyboard)
+        if (utf32 >= 32 && utf32 < 128 && map->keycodes[utf32] == 0) {
+            map->keycodes[utf32] = kc;
+        }
+    }
+}
+
+// Initialize xkbcommon state for keyboard layout translation
+static void init_xkb_state(ik_input_parser_t *parser)
+{
+    assert(parser != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Create context
+    parser->xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    if (parser->xkb_ctx == NULL) {
+        ik_log_warn("Failed to create xkb context, shifted keys will not work");
+        return;
+    }
+
+    // Create keymap from system default (uses RMLVO from environment or defaults)
+    struct xkb_rule_names names = {
+        .rules = NULL,
+        .model = NULL,
+        .layout = NULL,  // Use system default
+        .variant = NULL,
+        .options = NULL
+    };
+
+    parser->xkb_keymap = xkb_keymap_new_from_names(parser->xkb_ctx, &names,
+                                                    XKB_KEYMAP_COMPILE_NO_FLAGS);
+    if (parser->xkb_keymap == NULL) {
+        ik_log_warn("Failed to create xkb keymap, shifted keys will not work");
+        xkb_context_unref(parser->xkb_ctx);
+        parser->xkb_ctx = NULL;
+        return;
+    }
+
+    // Create state
+    parser->xkb_state = xkb_state_new(parser->xkb_keymap);
+    if (parser->xkb_state == NULL) {
+        ik_log_warn("Failed to create xkb state, shifted keys will not work");
+        xkb_keymap_unref(parser->xkb_keymap);
+        xkb_context_unref(parser->xkb_ctx);
+        parser->xkb_keymap = NULL;
+        parser->xkb_ctx = NULL;
+        return;
+    }
+
+    // Get Shift modifier mask
+    xkb_mod_index_t shift_idx = xkb_keymap_mod_get_index(parser->xkb_keymap, XKB_MOD_NAME_SHIFT);
+    parser->shift_mask = (xkb_mod_mask_t)(1U << shift_idx);
+
+    // Build reverse keymap
+    build_xkb_reverse_map(parser->xkb_keymap, parser->xkb_state, &parser->reverse_map);
+
+    parser->xkb_initialized = true;
+}
+
+// Cleanup xkbcommon state (talloc destructor)
+static int xkb_cleanup_destructor(ik_input_parser_t *parser)
+{
+    if (parser->xkb_state != NULL) {
+        xkb_state_unref(parser->xkb_state);
+    }
+    if (parser->xkb_keymap != NULL) {
+        xkb_keymap_unref(parser->xkb_keymap);
+    }
+    if (parser->xkb_ctx != NULL) {
+        xkb_context_unref(parser->xkb_ctx);
+    }
+    return 0;
+}
 
 // Create input parser
 ik_input_parser_t *ik_input_parser_create(void *parent)
@@ -21,6 +117,10 @@ ik_input_parser_t *ik_input_parser_create(void *parent)
     parser->utf8_len = 0;
     parser->utf8_expected = 0;
     parser->in_utf8 = false;
+
+    // Initialize xkbcommon for shifted key translation
+    init_xkb_state(parser);
+    talloc_set_destructor(parser, xkb_cleanup_destructor);
 
     return parser;
 }
@@ -284,9 +384,37 @@ static bool parse_mouse_sgr(ik_input_parser_t *parser, char byte,
     return true;
 }
 
+// Translate CSI u keycode with Shift modifier using xkbcommon
+// Returns the shifted character, or the original codepoint if translation fails
+static uint32_t translate_shifted_key(const ik_input_parser_t *parser, uint32_t codepoint)
+{
+    assert(parser != NULL);  // LCOV_EXCL_BR_LINE
+
+    // If xkb not initialized or codepoint out of ASCII range, return as-is
+    if (!parser->xkb_initialized || codepoint < 32 || codepoint >= 128) {
+        return codepoint;
+    }
+
+    // Look up the X11 keycode for this codepoint
+    xkb_keycode_t kc = parser->reverse_map.keycodes[codepoint];
+    if (kc == 0) {
+        return codepoint;  // No mapping found
+    }
+
+    // Set Shift modifier and get the resulting character
+    xkb_state_update_mask(parser->xkb_state, parser->shift_mask, 0, 0, 0, 0, 0);
+    xkb_keysym_t sym = xkb_state_key_get_one_sym(parser->xkb_state, kc);
+    uint32_t result = xkb_keysym_to_utf32(sym);
+
+    // Clear modifiers for next lookup
+    xkb_state_update_mask(parser->xkb_state, 0, 0, 0, 0, 0, 0);
+
+    return (result != 0) ? result : codepoint;
+}
+
 // Parse CSI u sequence: ESC [ keycode ; modifiers u
 // Returns true if valid CSI u sequence parsed
-static bool parse_csi_u_sequence(const ik_input_parser_t *parser,
+static bool parse_csi_u_sequence(ik_input_parser_t *parser,
                                   ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
@@ -371,6 +499,16 @@ static bool parse_csi_u_sequence(const ik_input_parser_t *parser,
     if (keycode >= 32 && keycode <= 126 && modifiers == 1) {
         action_out->type = IK_INPUT_CHAR;
         action_out->codepoint = (uint32_t)keycode;
+        return true;
+    }
+
+    // Handle printable ASCII characters (32-126) with Shift modifier
+    // CSI u modifier encoding: modifiers = 1 + modifier_bits, Shift = bit 0
+    // So modifiers == 2 means Shift only (1 + 1)
+    if (keycode >= 32 && keycode <= 126 && modifiers == 2) {
+        uint32_t translated = translate_shifted_key(parser, (uint32_t)keycode);
+        action_out->type = IK_INPUT_CHAR;
+        action_out->codepoint = translated;
         return true;
     }
 
