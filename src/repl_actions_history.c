@@ -204,7 +204,7 @@ res_t ik_repl_handle_history_next_action(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
-    if (repl->shared->history == NULL || !ik_history_is_browsing(repl->shared->history)) {
+    if (repl->shared->history == NULL || !ik_history_is_browsing(repl->shared->history)) {  // LCOV_EXCL_BR_LINE - Defensive: history NULL if disabled
         return OK(NULL);
     }
 

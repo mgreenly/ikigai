@@ -197,7 +197,7 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Add system message to scrollback using event renderer (consistent with replay)
-    if (repl->shared->cfg != NULL && repl->shared->cfg->openai_system_message != NULL) {
+    if (repl->shared->cfg != NULL && repl->shared->cfg->openai_system_message != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: cfg always set during init
         res_t render_res = ik_event_render(
             repl->scrollback,
             "system",

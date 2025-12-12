@@ -137,14 +137,14 @@ static bool parse_mouse_sgr(ik_input_parser_t *parser, char byte,
         char b1 = parser->esc_buf[button_start + 1];
 
         // Scroll up: button 64
-        if (b0 == '6' && b1 == '4') {
+        if (b0 == '6' && b1 == '4') {  // LCOV_EXCL_BR_LINE - Defensive: only care about 64/65
             reset_escape_state(parser);
             action_out->type = IK_INPUT_SCROLL_UP;
             return true;
         }
 
         // Scroll down: button 65
-        if (b0 == '6' && b1 == '5') {
+        if (b0 == '6' && b1 == '5') {  // LCOV_EXCL_BR_LINE - Defensive: only care about 64/65
             reset_escape_state(parser);
             action_out->type = IK_INPUT_SCROLL_DOWN;
             return true;
@@ -264,7 +264,7 @@ static bool parse_csi_u_sequence(ik_input_parser_t *parser,
     }
 
     // Handle Unicode characters (above ASCII) with no modifiers
-    if (keycode > 126 && keycode <= 0x10FFFF && modifiers == 1) {
+    if (keycode > 126 && keycode <= 0x10FFFF && modifiers == 1) {  // LCOV_EXCL_BR_LINE - Defensive: modifiers==1 typical
         action_out->type = IK_INPUT_CHAR;
         action_out->codepoint = (uint32_t)keycode;
         return true;

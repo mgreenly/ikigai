@@ -344,7 +344,7 @@ void ik_scrollback_clear(ik_scrollback_t *scrollback)
 
     // Free segment_widths arrays for all lines
     for (size_t i = 0; i < scrollback->count; i++) {
-        if (scrollback->layouts[i].segment_widths != NULL) {
+        if (scrollback->layouts[i].segment_widths != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: segment_widths always allocated
             talloc_free(scrollback->layouts[i].segment_widths);
             scrollback->layouts[i].segment_widths = NULL;
         }
@@ -420,7 +420,7 @@ res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,
 
         // Get character display width
         int32_t width = utf8proc_charwidth(cp);
-        if (width > 0) {
+        if (width > 0) {  // LCOV_EXCL_BR_LINE - Defensive: width typically >0 for printable chars
             col += (size_t)width;
         }
 

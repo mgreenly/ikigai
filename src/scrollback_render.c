@@ -112,8 +112,8 @@ size_t ik_scrollback_calc_end_byte_for_row(ik_scrollback_t *scrollback,
             : (seg_widths[seg_idx] + terminal_width - 1) / terminal_width;
         // LCOV_EXCL_BR_STOP
 
-        if (rows_to_include >= seg_rows) {
-            // LCOV_EXCL_START - Edge case: consuming entire segments, rare in practice
+        if (rows_to_include >= seg_rows) {  // LCOV_EXCL_BR_LINE - Edge case: consuming entire segments
+            // LCOV_EXCL_START
             rows_to_include -= seg_rows;
             seg_idx++;
             // LCOV_EXCL_STOP

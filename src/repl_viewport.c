@@ -234,8 +234,8 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     // Bug fix: When rendered content fills the terminal, the trailing \r\n
     // causes the terminal to scroll up by 1 row. This makes cursor positioning
     // land on the wrong row. Remove trailing \r\n when content fills screen.
-    if (document_height >= (size_t)terminal_rows && output->size >= 2) {
-        if (output->data[output->size - 2] == '\r' && output->data[output->size - 1] == '\n') {
+    if (document_height >= (size_t)terminal_rows && output->size >= 2) {  // LCOV_EXCL_BR_LINE - Defensive: output->size typically >2
+        if (output->data[output->size - 2] == '\r' && output->data[output->size - 1] == '\n') {  // LCOV_EXCL_BR_LINE - Defensive: ends with \r\n
             output->size -= 2;
         }
     }

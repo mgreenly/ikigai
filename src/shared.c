@@ -15,7 +15,7 @@
 static int shared_destructor(ik_shared_ctx_t *shared)
 {
     // Cleanup terminal (restore state)
-    if (shared->term != NULL) {
+    if (shared->term != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: NULL only if init failed
         ik_term_cleanup(shared->term);
     }
     return 0;
@@ -56,7 +56,7 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, ik_shared_ctx_t **out)
         result = ik_db_init_(shared, cfg->db_connection_string, (void **)&shared->db_ctx);
         if (is_err(&result)) {
             // Cleanup already-initialized resources
-            if (shared->term != NULL) {
+            if (shared->term != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: term always set before db init
                 ik_term_cleanup(shared->term);
             }
             talloc_free(shared);
