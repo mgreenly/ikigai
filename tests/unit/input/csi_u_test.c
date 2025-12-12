@@ -468,6 +468,25 @@ START_TEST(test_csi_u_ctrl_wrong_keycode)
 }
 END_TEST
 
+// Test: CSI u with 'c' keycode but wrong modifier (not Ctrl) should return UNKNOWN
+START_TEST(test_csi_u_c_wrong_modifier)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[99;6u = 'c' with Shift+Ctrl (modifiers=6, not just Ctrl=5)
+    const char seq[] = "\x1b[99;6u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test: CSI u with modified Backspace should return UNKNOWN
 START_TEST(test_csi_u_modified_backspace)
 {
@@ -595,6 +614,7 @@ static Suite *input_csi_u_suite(void)
     tcase_add_test(tc_core, test_csi_u_modified_tab_unknown);
     tcase_add_test(tc_core, test_csi_u_modified_key_unknown);
     tcase_add_test(tc_core, test_csi_u_ctrl_wrong_keycode);
+    tcase_add_test(tc_core, test_csi_u_c_wrong_modifier);
     tcase_add_test(tc_core, test_csi_u_modified_backspace);
     tcase_add_test(tc_core, test_csi_u_modified_escape);
     tcase_add_test(tc_core, test_csi_u_unicode_with_modifiers);

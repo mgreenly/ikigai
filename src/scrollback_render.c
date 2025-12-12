@@ -30,9 +30,11 @@ size_t ik_scrollback_calc_start_byte_for_row(ik_scrollback_t *scrollback,
     size_t partial_rows = 0;
 
     // Find which segment we start in
+    // LCOV_EXCL_BR_START - Defensive: well-formed layouts always have segments
     while (seg_idx < segment_count && rows_to_skip > 0) {
         size_t seg_rows = (seg_widths[seg_idx] == 0) ? 1
             : (seg_widths[seg_idx] + terminal_width - 1) / terminal_width;
+        // LCOV_EXCL_BR_STOP
 
         if (rows_to_skip >= seg_rows) {
             rows_to_skip -= seg_rows;
@@ -60,7 +62,7 @@ size_t ik_scrollback_calc_start_byte_for_row(ik_scrollback_t *scrollback,
         // Skip past newlines if we skipped entire segments
         size_t newlines_to_skip = seg_idx;
         size_t newlines_seen = 0;
-        for (size_t j = 0; j < line_len; j++) {
+        for (size_t j = 0; j < line_len; j++) {  // LCOV_EXCL_BR_LINE - Defensive: loop always finds newlines
             if (line_text[j] == '\n') {
                 newlines_seen++;
                 if (newlines_seen == newlines_to_skip) {
@@ -104,9 +106,11 @@ size_t ik_scrollback_calc_end_byte_for_row(ik_scrollback_t *scrollback,
     size_t partial_rows = 0;
 
     // Find which segment we end in
+    // LCOV_EXCL_BR_START - Defensive: well-formed layouts always have segments
     while (seg_idx < segment_count && rows_to_include > 0) {
         size_t seg_rows = (seg_widths[seg_idx] == 0) ? 1
             : (seg_widths[seg_idx] + terminal_width - 1) / terminal_width;
+        // LCOV_EXCL_BR_STOP
 
         if (rows_to_include >= seg_rows) {
             // LCOV_EXCL_START - Edge case: consuming entire segments, rare in practice

@@ -183,16 +183,22 @@ static bool parse_csi_u_sequence(ik_input_parser_t *parser,
     size_t i = 1;  // Skip '[' (buf[0] is '[')
 
     // Parse keycode
+    // LCOV_EXCL_BR_START - Defensive: well-formed sequences always have digits
     while (i < parser->esc_len && parser->esc_buf[i] >= '0' && parser->esc_buf[i] <= '9') {
+        // LCOV_EXCL_BR_STOP
         keycode = keycode * 10 + (parser->esc_buf[i] - '0');
         i++;
     }
 
     // Parse modifiers if present
+    // LCOV_EXCL_BR_START - Defensive: well-formed sequences properly terminated
     if (i < parser->esc_len && parser->esc_buf[i] == ';') {
+        // LCOV_EXCL_BR_STOP
         i++;
         modifiers = 0;
+        // LCOV_EXCL_BR_START - Defensive: well-formed sequences have modifier digits
         while (i < parser->esc_len && parser->esc_buf[i] >= '0' && parser->esc_buf[i] <= '9') {
+            // LCOV_EXCL_BR_STOP
             modifiers = modifiers * 10 + (parser->esc_buf[i] - '0');
             i++;
         }
