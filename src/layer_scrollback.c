@@ -76,130 +76,28 @@ static void scrollback_render(const ik_layer_t *layer,
     }
 
     // Render logical lines from start_line_idx to end_line_idx (inclusive)
-    // end_line_idx is guaranteed to be < total_lines, so the loop is bounded
     assert(end_line_idx < total_lines);  // LCOV_EXCL_BR_LINE
     for (size_t i = start_line_idx; i <= end_line_idx; i++) {
         const char *line_text = NULL;
         size_t line_len = 0;
-        // This cannot fail since i < total_lines (guaranteed by loop bounds)
         res = ik_scrollback_get_line_text(scrollback, i, &line_text, &line_len);
-        (void)res;  // Suppress unused variable warning
+        (void)res;  // Cannot fail since i < total_lines
 
-        // Calculate byte range to render for this line
-        size_t render_start = 0;
-        size_t render_end = line_len;
-        bool is_line_end = true;  // Are we rendering to end of logical line?
-
-        // For first line: skip start_row_offset worth of physical rows
-        // Use segment_widths to handle embedded newlines correctly
-        if (i == start_line_idx && start_row_offset > 0) {
-            size_t rows_to_skip = start_row_offset;
-            size_t segment_count = scrollback->layouts[i].newline_count + 1;
-            size_t *seg_widths = scrollback->layouts[i].segment_widths;
-            size_t seg_idx = 0;
-            size_t partial_rows = 0;
-
-            // Find which segment we start in
-            while (seg_idx < segment_count && rows_to_skip > 0) {
-                size_t seg_rows = (seg_widths[seg_idx] == 0) ? 1
-                    : (seg_widths[seg_idx] + width - 1) / width;
-
-                if (rows_to_skip >= seg_rows) {
-                    // Skip entire segment
-                    rows_to_skip -= seg_rows;
-                    seg_idx++;  // Move to next segment
-                } else {
-                    // Start partway through this segment
-                    partial_rows = rows_to_skip;
-                    rows_to_skip = 0;
-                    // Don't increment seg_idx - we're starting within this segment
-                }
-            }
-
-            // Calculate display columns to skip within the target segment
-            size_t cols_in_prev_segments = 0;
-            for (size_t s = 0; s < seg_idx; s++) {
-                cols_in_prev_segments += seg_widths[s];
-            }
-            size_t cols_to_skip = cols_in_prev_segments + (partial_rows * width);
-
-            res = ik_scrollback_get_byte_offset_at_display_col(scrollback, i, cols_to_skip, &render_start);
-            if (is_err(&res)) {
-                render_start = 0;
-            } else if (seg_idx > 0) {
-                // If we skipped entire segments, we need to skip past their newlines too
-                // Walk through the text to find the seg_idx-th newline
-                size_t newlines_to_skip = seg_idx;
-                size_t newlines_seen = 0;
-                for (size_t j = 0; j < line_len; j++) {
-                    if (line_text[j] == '\n') {
-                        newlines_seen++;
-                        if (newlines_seen == newlines_to_skip) {
-                            render_start = j + 1;  // Start after this newline
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        // For last line: only render up to (end_row_offset + 1) physical rows
-        // Use segment_widths to handle embedded newlines correctly
+        // Calculate which portion of this line to render
+        size_t line_start_row = (i == start_line_idx) ? start_row_offset : 0;
+        size_t line_row_count;
         if (i == end_line_idx) {
-            size_t line_physical_rows = scrollback->layouts[i].physical_lines;
-            // Are we stopping before end of this logical line?
-            if (end_row_offset + 1 < line_physical_rows) {
-                size_t rows_to_include = end_row_offset + 1;
-                size_t segment_count = scrollback->layouts[i].newline_count + 1;
-                size_t *seg_widths = scrollback->layouts[i].segment_widths;
-                size_t seg_idx = 0;
-                size_t partial_rows = 0;
-
-                // Find which segment we end in
-                while (seg_idx < segment_count && rows_to_include > 0) {
-                    size_t seg_rows = (seg_widths[seg_idx] == 0) ? 1
-                        : (seg_widths[seg_idx] + width - 1) / width;
-
-                    if (rows_to_include >= seg_rows) {
-                        // Include entire segment
-                        rows_to_include -= seg_rows;
-                        seg_idx++;  // Move to next segment
-                    } else {
-                        // End partway through this segment
-                        partial_rows = rows_to_include;
-                        rows_to_include = 0;
-                        // Don't increment seg_idx - we're ending within this segment
-                    }
-                }
-
-                // Calculate display columns to include within the target segment
-                size_t cols_in_prev_segments = 0;
-                for (size_t s = 0; s < seg_idx; s++) {
-                    cols_in_prev_segments += seg_widths[s];
-                }
-                size_t cols_to_include = cols_in_prev_segments + (partial_rows * width);
-
-                res = ik_scrollback_get_byte_offset_at_display_col(scrollback, i, cols_to_include, &render_end);
-                if (is_err(&res)) {
-                    render_end = line_len;
-                } else if (seg_idx > 0) {
-                    // If we included entire segments, we need to include their newlines too
-                    // Walk through the text to find the seg_idx-th newline
-                    size_t newlines_to_include = seg_idx;
-                    size_t newlines_seen = 0;
-                    for (size_t j = 0; j < line_len; j++) {
-                        if (line_text[j] == '\n') {
-                            newlines_seen++;
-                            if (newlines_seen == newlines_to_include) {
-                                render_end = j + 1;  // End after this newline
-                                break;
-                            }
-                        }
-                    }
-                }
-                is_line_end = false;  // We're stopping mid-line
-            }
+            line_row_count = end_row_offset - line_start_row + 1;
+        } else {
+            line_row_count = scrollback->layouts[i].physical_lines - line_start_row;
         }
+
+        // Get byte range for this portion
+        size_t render_start, render_end;
+        bool is_line_end;
+        ik_scrollback_calc_byte_range_for_rows(scrollback, i, width,
+                                               line_start_row, line_row_count,
+                                               &render_start, &render_end, &is_line_end);
 
         // Copy line text from render_start to render_end, converting \n to \r\n
         for (size_t j = render_start; j < render_end; j++) {

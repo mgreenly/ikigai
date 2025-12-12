@@ -29,3 +29,9 @@ size_t ik_repl_calculate_max_viewport_offset(ik_repl_ctx_t *repl);
 
 // LLM and slash command actions
 res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl);
+
+// Scroll detection - process arrow keys through scroll detector (rel-05)
+res_t ik_repl_process_scroll_detection(ik_repl_ctx_t *repl, const ik_input_action_t *action);
+
+// Flush pending arrow from scroll detector (rel-05)
+res_t ik_repl_flush_pending_scroll_arrow(ik_repl_ctx_t *repl, const ik_input_action_t *action);
