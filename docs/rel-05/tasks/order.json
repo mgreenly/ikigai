@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "scrollback-newline-counting-bug.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "high"
-    },
-    {
       "task": "scroll-debug-log-cleanup.md",
       "group": "Cleanup",
       "model": "haiku",
@@ -468,6 +462,12 @@
       "task": "csi-u-xkbcommon-translate.md",
       "group": "Input Handling",
       "model": "opus",
+      "thinking": "high"
+    },
+    {
+      "task": "scrollback-newline-counting-bug.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
       "thinking": "high"
     }
   ]

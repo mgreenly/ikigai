@@ -323,5 +323,15 @@
     "event": "start",
     "task": "scrollback-newline-counting-bug.md",
     "time": "2025-12-12T00:13:42.637Z"
+  },
+  {
+    "event": "start",
+    "task": "scrollback-newline-counting-bug.md",
+    "time": "2025-12-12T00:15:16.811Z"
+  },
+  {
+    "event": "done",
+    "task": "scrollback-newline-counting-bug.md",
+    "time": "2025-12-12T00:28:21.474Z"
   }
 ]
