@@ -372,6 +372,83 @@ START_TEST(test_csi_u_shift_2_produces_at)
 }
 END_TEST
 
+// Test: CSI u sequence too short should be ignored
+START_TEST(test_csi_u_too_short)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[u = too short (esc_len == 1, needs >= 3)
+    const char seq[] = "\x1b[u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: Sequence ending with 'u' but not valid CSI u
+START_TEST(test_csi_u_invalid_not_ending_with_u)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[97x = not ending with 'u'
+    const char seq[] = "\x1b[97x";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    // Should be treated as unknown CSI sequence
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u with modified Tab should return UNKNOWN
+START_TEST(test_csi_u_modified_tab_unknown)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[9;5u = Tab with Ctrl (modified Tab not currently handled)
+    const char seq[] = "\x1b[9;5u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u with modifier should return UNKNOWN
+START_TEST(test_csi_u_modified_key_unknown)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[97;4u = 'a' with Alt modifier (not handled, should be UNKNOWN)
+    const char seq[] = "\x1b[97;4u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test suite
 static Suite *input_csi_u_suite(void)
 {
@@ -398,6 +475,10 @@ static Suite *input_csi_u_suite(void)
     tcase_add_test(tc_core, test_csi_u_shift_a_produces_uppercase);
     tcase_add_test(tc_core, test_csi_u_shift_1_produces_exclamation);
     tcase_add_test(tc_core, test_csi_u_shift_2_produces_at);
+    tcase_add_test(tc_core, test_csi_u_too_short);
+    tcase_add_test(tc_core, test_csi_u_invalid_not_ending_with_u);
+    tcase_add_test(tc_core, test_csi_u_modified_tab_unknown);
+    tcase_add_test(tc_core, test_csi_u_modified_key_unknown);
 
     suite_add_tcase(s, tc_core);
     return s;
