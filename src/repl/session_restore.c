@@ -5,6 +5,7 @@
 
 #include "session_restore.h"
 
+#include "../agent.h"
 #include "../db/message.h"
 #include "../db/replay.h"
 #include "../db/session.h"
@@ -94,7 +95,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
 
             // Use universal event renderer for consistent display
             res_t render_res = ik_event_render(
-                repl->scrollback,
+                repl->current->scrollback,
                 msg->kind,
                 msg->content,
                 msg->data_json
@@ -163,7 +164,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
 
             // Add system message to scrollback using event renderer
             res_t render_res = ik_event_render(
-                repl->scrollback,
+                repl->current->scrollback,
                 "system",
                 cfg->openai_system_message,
                 "{}"

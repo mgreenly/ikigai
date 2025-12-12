@@ -1,4 +1,5 @@
 #include "repl.h"
+#include "agent.h"
 #include "shared.h"
 #include "panic.h"
 #include "wrapper.h"
@@ -24,7 +25,7 @@
  */
 static size_t calculate_document_height(const ik_repl_ctx_t *repl)
 {
-    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
     size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
     size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
     size_t completion_rows = (repl->completion != NULL) ? repl->completion->count : 0;
@@ -38,17 +39,17 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     assert(viewport_out != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->shared->term != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->current->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Ensure input buffer layout is up to date
     ik_input_buffer_ensure_layout(repl->input_buffer, repl->shared->term->screen_cols);
 
     // Ensure scrollback layout is up to date
-    ik_scrollback_ensure_layout(repl->scrollback, repl->shared->term->screen_cols);
+    ik_scrollback_ensure_layout(repl->current->scrollback, repl->shared->term->screen_cols);
 
     // Get component sizes
-    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
-    size_t scrollback_line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
+    size_t scrollback_line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     int32_t terminal_rows = repl->shared->term->screen_rows;
 
     // Calculate document dimensions
@@ -68,7 +69,7 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
         // Document overflows - calculate window
         // Clamp viewport_offset to valid range
         size_t max_offset = document_height - (size_t)terminal_rows;
-        size_t offset = repl->viewport_offset;
+        size_t offset = repl->current->viewport_offset;
         if (offset > max_offset) {
             offset = max_offset;
         }
@@ -92,7 +93,7 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
 
         if (scrollback_rows > 0 && first_visible_row < scrollback_rows) {  /* LCOV_EXCL_BR_LINE */
             res_t result = ik_scrollback_find_logical_line_at_physical_row(
-                repl->scrollback,
+                repl->current->scrollback,
                 first_visible_row,
                 &start_line,
                 &row_offset
@@ -106,7 +107,7 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
         size_t lines_count = 0;
         size_t current_row = first_visible_row;
         for (size_t i = start_line; i < scrollback_line_count && current_row < separator_row; i++) {  /* LCOV_EXCL_BR_LINE */
-            current_row += repl->scrollback->layouts[i].physical_lines;
+            current_row += repl->current->scrollback->layouts[i].physical_lines;
             lines_count++;
             if (current_row > last_visible_row) break;
         }
@@ -166,9 +167,9 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     bool input_buffer_visible = viewport.input_buffer_start_row < (size_t)repl->shared->term->screen_rows;
 
     // Fall back to old rendering path if layer cake not initialized (for tests)
-    if (repl->layer_cake == NULL) {
+    if (repl->current->layer_cake == NULL) {
         return ik_render_combined(repl->shared->render,
-                                  repl->scrollback,
+                                  repl->current->scrollback,
                                   viewport.scrollback_start_line,
                                   viewport.scrollback_lines_count,
                                   text,
@@ -208,7 +209,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
         first_visible_row = 0;
     } else {
         size_t max_offset = document_height - (size_t)terminal_rows;
-        size_t offset = repl->viewport_offset;
+        size_t offset = repl->current->viewport_offset;
         if (offset > max_offset) {
             offset = max_offset;
         }
@@ -217,11 +218,11 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     }
 
     // Configure layer cake viewport
-    repl->layer_cake->viewport_row = first_visible_row;
-    repl->layer_cake->viewport_height = (size_t)terminal_rows;
+    repl->current->layer_cake->viewport_row = first_visible_row;
+    repl->current->layer_cake->viewport_height = (size_t)terminal_rows;
 
     // Update debug info for separator display
-    repl->debug_viewport_offset = repl->viewport_offset;
+    repl->debug_viewport_offset = repl->current->viewport_offset;
     repl->debug_viewport_row = first_visible_row;
     repl->debug_viewport_height = (size_t)terminal_rows;
     repl->debug_document_height = document_height;
@@ -229,7 +230,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     // Render layers to output buffer
     ik_output_buffer_t *output = ik_output_buffer_create(repl, 4096);
 
-    ik_layer_cake_render(repl->layer_cake, output, (size_t)repl->shared->term->screen_cols);
+    ik_layer_cake_render(repl->current->layer_cake, output, (size_t)repl->shared->term->screen_cols);
 
     // Bug fix: When rendered content fills the terminal, the trailing \r\n
     // causes the terminal to scroll up by 1 row. This makes cursor positioning

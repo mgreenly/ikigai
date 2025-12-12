@@ -8,6 +8,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include <string.h>
 #include <fcntl.h>
@@ -110,9 +111,9 @@ static void test_action_autoscrolls(ik_input_action_t *action, bool should_autos
     ck_assert(is_ok(&res));
 
     if (should_autoscroll) {
-        ck_assert_uint_eq(repl->viewport_offset, 0);
+        ck_assert_uint_eq(repl->current->viewport_offset, 0);
     } else {
-        ck_assert_uint_ne(repl->viewport_offset, 0);
+        ck_assert_uint_ne(repl->current->viewport_offset, 0);
     }
     talloc_free(ctx);
 }
@@ -137,12 +138,12 @@ END_TEST START_TEST(test_autoscroll_on_backspace)
     ik_input_action_t insert = { .type = IK_INPUT_CHAR, .codepoint = 'x' };
     res_t res = ik_repl_process_action(repl, &insert);
     ck_assert(is_ok(&res));
-    repl->viewport_offset = 20;  // Reset to scrolled position
+    repl->current->viewport_offset = 20;  // Reset to scrolled position
 
     ik_input_action_t action = { .type = IK_INPUT_BACKSPACE };
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
     talloc_free(ctx);
 }
 
@@ -159,12 +160,12 @@ END_TEST START_TEST(test_autoscroll_on_delete)
     ik_input_action_t left = { .type = IK_INPUT_ARROW_LEFT };
     res = ik_repl_process_action(repl, &left);
     ck_assert(is_ok(&res));
-    repl->viewport_offset = 25;  // Reset to scrolled position
+    repl->current->viewport_offset = 25;  // Reset to scrolled position
 
     ik_input_action_t action = { .type = IK_INPUT_DELETE };
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
     talloc_free(ctx);
 }
 
@@ -222,7 +223,7 @@ END_TEST START_TEST(test_no_autoscroll_on_page_down)
     ik_input_action_t action = { .type = IK_INPUT_PAGE_DOWN };
     res_t res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
-    ck_assert_uint_lt(repl->viewport_offset, 20);  // Scrolled down but not to 0
+    ck_assert_uint_lt(repl->current->viewport_offset, 20);  // Scrolled down but not to 0
     talloc_free(ctx);
 }
 

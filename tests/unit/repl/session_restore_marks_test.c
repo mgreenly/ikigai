@@ -1,4 +1,5 @@
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include <string.h>
 
@@ -123,7 +124,7 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
     shared->cfg = talloc_zero_(ctx, sizeof(ik_cfg_t));
     repl->shared = shared;
 
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->shared->session_id = 0;
     repl->marks = NULL;
     repl->mark_count = 0;

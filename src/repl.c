@@ -1,4 +1,5 @@
 #include "repl.h"
+#include "agent.h"
 
 #include "event_render.h"
 #include "input_buffer/core.h"
@@ -100,7 +101,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Handle debug pipes
         if (ready > 0 && repl->shared->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
-            ik_debug_mgr_handle_ready(repl->shared->debug_mgr, &read_fds, repl->scrollback, repl->shared->debug_enabled);  // LCOV_EXCL_LINE
+            ik_debug_mgr_handle_ready(repl->shared->debug_mgr, &read_fds, repl->current->scrollback, repl->shared->debug_enabled);  // LCOV_EXCL_LINE
         }
 
         // Handle terminal input
@@ -169,18 +170,18 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
     }
 
     // Render user message via event renderer
-    if (text_len > 0 && repl->scrollback != NULL) {  // LCOV_EXCL_BR_LINE
+    if (text_len > 0 && repl->current->scrollback != NULL) {  // LCOV_EXCL_BR_LINE
         char *text = talloc_size(NULL, text_len + 1);
         if (text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         memcpy(text, text_data, text_len);
         text[text_len] = '\0';
-        res_t result = ik_event_render(repl->scrollback, "user", text, "{}");
+        res_t result = ik_event_render(repl->current->scrollback, "user", text, "{}");
         talloc_free(text);
         if (is_err(&result)) return result;
     }
 
     ik_input_buffer_clear(repl->input_buffer);
-    repl->viewport_offset = 0; // Auto-scroll to bottom
+    repl->current->viewport_offset = 0; // Auto-scroll to bottom
 
     return OK(NULL);
 }
@@ -189,7 +190,7 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->shared->term != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->current->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->shared->render != NULL);   /* LCOV_EXCL_BR_LINE */
 
@@ -200,7 +201,7 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
     repl->shared->render->rows = rows;
     repl->shared->render->cols = cols;
 
-    ik_scrollback_ensure_layout(repl->scrollback, cols);
+    ik_scrollback_ensure_layout(repl->current->scrollback, cols);
     ik_input_buffer_ensure_layout(repl->input_buffer, cols);
 
     // Trigger immediate redraw with new dimensions

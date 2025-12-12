@@ -7,6 +7,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -73,9 +74,9 @@ START_TEST(test_separator_as_last_visible_line) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
-    repl->viewport_offset = 0;  // Show entire document
+    repl->current->viewport_offset = 0;  // Show entire document
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -189,9 +190,9 @@ START_TEST(test_separator_last_row_input_buffer_offscreen)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
-    repl->viewport_offset = 2;
+    repl->current->viewport_offset = 2;
 
     // Calculate viewport
     ik_viewport_t viewport;

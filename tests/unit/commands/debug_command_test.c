@@ -3,6 +3,7 @@
  * @brief Unit tests for /debug slash command
  */
 
+#include "../../../src/agent.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
@@ -44,7 +45,14 @@ static ik_repl_ctx_t *create_test_repl(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+    r->current = agent;
+
+
     r->shared = shared;
 
     return r;
@@ -70,12 +78,12 @@ START_TEST(test_debug_on) {
     ck_assert(repl->shared->debug_enabled);
 
     // Verify confirmation message in scrollback
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_ge(line_count, 1);
 
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, line_count - 1, &last_line, &last_line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
     ck_assert(is_ok(&res));
     ck_assert_ptr_ne(strstr(last_line, "Debug"), NULL);
 
@@ -103,12 +111,12 @@ START_TEST(test_debug_off)
     ck_assert(!repl->shared->debug_enabled);
 
     // Verify confirmation message in scrollback
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_ge(line_count, 1);
 
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, line_count - 1, &last_line, &last_line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
     ck_assert(is_ok(&res));
     ck_assert_ptr_ne(strstr(last_line, "Debug"), NULL);
 
@@ -131,12 +139,12 @@ START_TEST(test_debug_status)
     ck_assert(is_ok(&res));
 
     // Verify status message in scrollback
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_ge(line_count, 1);
 
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, line_count - 1, &last_line, &last_line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
     ck_assert(is_ok(&res));
     ck_assert_ptr_ne(strstr(last_line, "OFF"), NULL);
 
@@ -160,12 +168,12 @@ START_TEST(test_debug_status_on)
     ck_assert(is_ok(&res));
 
     // Verify status message shows ON
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_ge(line_count, 1);
 
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, line_count - 1, &last_line, &last_line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
     ck_assert(is_ok(&res));
     ck_assert_ptr_ne(strstr(last_line, "ON"), NULL);
 
@@ -188,12 +196,12 @@ START_TEST(test_debug_invalid_arg)
     ck_assert(is_err(&res));
 
     // Verify error message in scrollback
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_ge(line_count, 1);
 
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, line_count - 1, &last_line, &last_line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
     ck_assert(is_ok(&res));
     ck_assert_ptr_ne(strstr(last_line, "Error"), NULL);
     ck_assert_ptr_ne(strstr(last_line, "invalid"), NULL);

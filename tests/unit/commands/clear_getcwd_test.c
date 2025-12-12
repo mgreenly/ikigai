@@ -3,6 +3,7 @@
  * @brief Unit tests for /clear command getcwd failure handling
  */
 
+#include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
@@ -47,7 +48,14 @@ static ik_repl_ctx_t *create_test_repl_minimal(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+    r->current = agent;
+
+
     r->conversation = conv;
     r->shared = shared;
 

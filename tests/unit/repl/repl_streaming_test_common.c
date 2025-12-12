@@ -4,6 +4,7 @@
  */
 
 #include "repl_streaming_test_common.h"
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 
 // Global state for curl mocking
@@ -116,9 +117,9 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     ck_assert_ptr_nonnull(repl);
     repl->shared = shared;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
-    repl->layer_cake = layer_cake;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
+    repl->current->layer_cake = layer_cake;
 
     // Initialize reference fields
     repl->separator_visible = true;

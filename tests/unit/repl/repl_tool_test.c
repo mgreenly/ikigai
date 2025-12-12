@@ -1,4 +1,5 @@
 #include "../../test_utils.h"
+#include "../../../src/agent.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
@@ -89,8 +90,8 @@ static void setup(void)
     repl->conversation = conv_res.ok;
 
     /* Create scrollback */
-    repl->scrollback = ik_scrollback_create(repl, 10);
-    ck_assert_ptr_nonnull(repl->scrollback);
+    repl->current->scrollback = ik_scrollback_create(repl, 10);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
 
     /* Create pending_tool_call with a simple glob call */
     repl->pending_tool_call = ik_tool_call_create(repl,

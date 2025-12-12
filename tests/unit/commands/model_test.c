@@ -3,6 +3,7 @@
  * @brief Unit tests for /model command
  */
 
+#include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
@@ -39,7 +40,14 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+    r->current = agent;
+
+
 
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
@@ -76,10 +84,10 @@ START_TEST(test_model_switch_gpt4) {
     ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-4");
 
     // Verify confirmation message in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Switched to model: gpt-4");
@@ -94,7 +102,7 @@ START_TEST(test_model_switch_gpt4_turbo)
 
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Switched to model: gpt-4-turbo");
@@ -135,10 +143,10 @@ START_TEST(test_model_missing_name)
     ck_assert(is_err(&res));
 
     // Verify error message in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Error: Model name required (usage: /model <name>)");
@@ -155,10 +163,10 @@ START_TEST(test_model_invalid_name)
     ck_assert(is_err(&res));
 
     // Verify error message in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Error: Unknown model 'invalid-model-xyz'");
@@ -187,7 +195,7 @@ START_TEST(test_model_multiple_switches)
     ck_assert_str_eq(repl->shared->cfg->openai_model, "o1-mini");
 
     // Verify all three messages in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 3);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 3);
 }
 
 END_TEST
@@ -218,7 +226,7 @@ START_TEST(test_model_all_valid_models)
     }
 
     // Verify all confirmations in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), model_count);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), model_count);
 }
 
 END_TEST

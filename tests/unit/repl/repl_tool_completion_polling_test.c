@@ -7,6 +7,7 @@
  */
 
 #include "../../test_utils.h"
+#include "../../../src/agent.h"
 #include <check.h>
 #include <talloc.h>
 #include <pthread.h>
@@ -78,8 +79,8 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->input_buffer);
 
     /* Create scrollback */
-    repl->scrollback = ik_scrollback_create(repl, 10);
-    ck_assert_ptr_nonnull(repl->scrollback);
+    repl->current->scrollback = ik_scrollback_create(repl, 10);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
 
     /* Create conversation */
     res_t conv_res = ik_openai_conversation_create(repl);

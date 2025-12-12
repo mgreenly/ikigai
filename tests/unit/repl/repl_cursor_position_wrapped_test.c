@@ -6,6 +6,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -54,24 +55,24 @@ static void init_layer_cake(ik_repl_ctx_t *repl, int32_t rows)
     repl->input_text = "";
     repl->input_text_len = 0;
 
-    repl->layer_cake = ik_layer_cake_create(repl, (size_t)rows);
-    repl->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", repl->scrollback);
-    repl->spinner_layer = ik_spinner_layer_create(repl, "spinner", &repl->spinner_state);
-    repl->separator_layer = ik_separator_layer_create(repl, "separator", &repl->separator_visible);
-    repl->input_layer = ik_input_layer_create(repl, "input", &repl->input_buffer_visible,
+    repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)rows);
+    repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", repl->current->scrollback);
+    repl->current->spinner_layer = ik_spinner_layer_create(repl, "spinner", &repl->spinner_state);
+    repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &repl->separator_visible);
+    repl->current->input_layer = ik_input_layer_create(repl, "input", &repl->input_buffer_visible,
                                               &repl->input_text, &repl->input_text_len);
     repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator",
                                                              &repl->lower_separator_visible);
 
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->scrollback_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->spinner_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->spinner_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->separator_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->separator_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->input_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->input_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->lower_separator_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->lower_separator_layer);
     ck_assert(is_ok(&res));
 }
 
@@ -204,8 +205,8 @@ START_TEST(test_cursor_position_10row_wrapped_scrolled) {
     shared->term = term;
     shared->render = render;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     init_layer_cake(repl, term->screen_rows);
 
@@ -306,8 +307,8 @@ START_TEST(test_cursor_position_10row_terminal_scrolled) {
     shared->term = term;
     shared->render = render;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     init_layer_cake(repl, term->screen_rows);
 

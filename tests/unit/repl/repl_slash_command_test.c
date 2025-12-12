@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
@@ -32,7 +33,7 @@ START_TEST(test_pp_command_clears_input_buffer) {
     res_t res;
 
     /* Create scrollback (needed for submit_line) */
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "/pp" command */
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -83,7 +84,7 @@ START_TEST(test_pp_command_with_args)
     res_t res;
 
     /* Create scrollback (needed for submit_line) */
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "/pp input buffer" command */
     const char *cmd = "/pp input_buffer";
@@ -127,7 +128,7 @@ START_TEST(test_unknown_slash_command)
     res_t res;
 
     /* Create scrollback (needed for error messages) */
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "/unknown" command */
     const char *cmd = "/unknown";
@@ -171,7 +172,7 @@ START_TEST(test_empty_input_buffer_newline)
     res_t res;
 
     /* Create scrollback (needed for submit_line) */
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* input buffer is empty, press NEWLINE */
     ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
@@ -207,7 +208,7 @@ START_TEST(test_slash_in_middle_not_command)
     res_t res;
 
     /* Create scrollback (needed for submit_line) */
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "hello" */
     const char *text = "hello";
@@ -227,7 +228,7 @@ START_TEST(test_slash_in_middle_not_command)
     ck_assert_uint_eq(text_len, 0);
 
     /* Verify "hello" was added to scrollback (content + blank line) */
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(line_count, 2);
 
     talloc_free(ctx);
@@ -255,7 +256,7 @@ START_TEST(test_pp_command_order_in_scrollback)
     res_t res;
 
     /* Create scrollback */
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "/pp" command */
     const char *cmd = "/pp";
@@ -272,13 +273,13 @@ START_TEST(test_pp_command_order_in_scrollback)
 
     /* Check scrollback contents - /pp is a legacy debug command that only outputs its result
      * (doesn't use event renderer, so command text is not added to scrollback) */
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_msg(line_count >= 1, "Expected at least 1 line in scrollback (output)");
 
     /* Get first line - should be PP output (contains "ik_input_buffer_t") */
     const char *line_text = NULL;
     size_t line_len = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line_text, &line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line_text, &line_len);
     ck_assert(is_ok(&res));
     ck_assert_msg(line_len > 0, "Expected PP output in first line");
 
@@ -307,7 +308,7 @@ START_TEST(test_pp_output_trailing_newline)
     res_t res;
 
     /* Create scrollback */
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* Insert "/pp" command */
     const char *cmd = "/pp";
@@ -325,14 +326,14 @@ START_TEST(test_pp_output_trailing_newline)
     /* Verify scrollback has output lines from /pp
      * /pp is a legacy debug command - command text is NOT added, only output
      * PP output ends with \n, which creates a trailing empty line that should be skipped */
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_msg(line_count >= 1, "Expected at least 1 line, got %zu", line_count);
 
     /* Verify all lines are pp output (not empty from trailing newline) */
     const char *line_text = NULL;
     size_t line_len = 0;
     for (size_t i = 0; i < line_count; i++) {
-        res = ik_scrollback_get_line_text(repl->scrollback, i, &line_text, &line_len);
+        res = ik_scrollback_get_line_text(repl->current->scrollback, i, &line_text, &line_len);
         ck_assert(is_ok(&res));
         /* Each line should have content (trailing empty line should be skipped) */
         ck_assert_msg(line_len > 0, "Line %zu should not be empty", i);

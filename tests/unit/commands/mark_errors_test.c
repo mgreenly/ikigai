@@ -3,6 +3,7 @@
  * @brief Tests for mark/rewind command error paths with mocked DB failures
  */
 
+#include "../../../src/agent.h"
 #include "../../../src/commands_mark.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
@@ -145,7 +146,14 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
 
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+    r->current = agent;
+
+
     r->conversation = conv;
     r->shared = shared;
     r->marks = NULL;
@@ -266,7 +274,7 @@ START_TEST(test_rewind_mark_not_found)
     ck_assert(is_ok(&res));  // Command doesn't propagate error
 
     // Verify error was appended to scrollback
-    ck_assert(repl->scrollback->count > 0);
+    ck_assert(repl->current->scrollback->count > 0);
 }
 
 END_TEST

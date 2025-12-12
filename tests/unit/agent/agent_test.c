@@ -166,6 +166,90 @@ START_TEST(test_agent_shared_matches_input)
 }
 END_TEST
 
+// Test agent->scrollback is initialized
+START_TEST(test_agent_scrollback_initialized)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_nonnull(agent->scrollback);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->layer_cake is initialized
+START_TEST(test_agent_layer_cake_initialized)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_nonnull(agent->layer_cake);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test all layer pointers are non-NULL
+START_TEST(test_agent_all_layers_initialized)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_nonnull(agent->scrollback_layer);
+    ck_assert_ptr_nonnull(agent->spinner_layer);
+    ck_assert_ptr_nonnull(agent->separator_layer);
+    ck_assert_ptr_nonnull(agent->input_layer);
+    ck_assert_ptr_nonnull(agent->completion_layer);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->viewport_offset is 0 initially
+START_TEST(test_agent_viewport_offset_zero)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_uint_eq(agent->viewport_offset, 0);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test agent_ctx is allocated under provided parent
 START_TEST(test_agent_allocated_under_parent)
 {
@@ -265,6 +349,10 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_agent_parent_uuid_null_for_root);
     tcase_add_test(tc_core, test_agent_parent_uuid_matches_input);
     tcase_add_test(tc_core, test_agent_shared_matches_input);
+    tcase_add_test(tc_core, test_agent_scrollback_initialized);
+    tcase_add_test(tc_core, test_agent_layer_cake_initialized);
+    tcase_add_test(tc_core, test_agent_all_layers_initialized);
+    tcase_add_test(tc_core, test_agent_viewport_offset_zero);
     tcase_add_test(tc_core, test_agent_allocated_under_parent);
     tcase_add_test(tc_core, test_agent_can_be_freed);
     tcase_add_test(tc_core, test_generate_uuid_returns_valid_string);

@@ -4,6 +4,7 @@
  */
 
 #include "repl_run_test_common.h"
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 
 /* Test: curl_multi_fdset() error (should propagate error and exit) */
@@ -36,8 +37,8 @@ START_TEST(test_repl_run_curl_multi_fdset_error) {
     repl->shared = shared;
     shared->term = term;
     shared->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
 
@@ -85,8 +86,8 @@ START_TEST(test_repl_run_curl_multi_perform_error)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
 
@@ -138,8 +139,8 @@ START_TEST(test_repl_run_curl_multi_timeout_error)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
 

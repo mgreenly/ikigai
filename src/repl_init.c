@@ -1,6 +1,7 @@
 // REPL initialization and cleanup
 #include "repl.h"
 
+#include "agent.h"
 #include "repl/session_restore.h"
 #include "config.h"
 #include "db/connection.h"
@@ -53,17 +54,18 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Wire up successfully initialized components
     repl->shared = shared;
 
+    // Create agent context (owns display state)
+    result = ik_agent_create(repl, repl->shared, NULL, &repl->current);
+    if (is_err(&result)) {
+        talloc_free(repl);
+        return result;
+    }
+
     // Initialize input buffer
     repl->input_buffer = ik_input_buffer_create(repl);
 
     // Initialize input parser
     repl->input_parser = ik_input_parser_create(repl);
-
-    // Initialize scrollback buffer (Phase 4)
-    repl->scrollback = ik_scrollback_create(repl, repl->shared->term->screen_cols);
-
-    // Initialize viewport offset to 0 (at bottom)
-    repl->viewport_offset = 0;
 
     // Initialize scroll detector (rel-05)
     repl->scroll_det = ik_scroll_detector_create(repl);
@@ -84,53 +86,11 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Initialize completion context to NULL (inactive) (rel-04)
     repl->completion = NULL;
 
-    // Create layer cake
-    repl->layer_cake = ik_layer_cake_create(repl, (size_t)repl->shared->term->screen_rows);
-
-    // Create scrollback layer
-    repl->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", repl->scrollback);
-
-    // Create spinner layer (Phase 1.4)
-    repl->spinner_layer = ik_spinner_layer_create(repl, "spinner", &repl->spinner_state);
-
-    // Create separator layer
-    repl->separator_layer = ik_separator_layer_create(repl, "separator", &repl->separator_visible);
-
-    // Set debug info on upper separator (for debugging viewport issues)
-    ik_separator_layer_set_debug(repl->separator_layer,
-                                 &repl->debug_viewport_offset,
-                                 &repl->debug_viewport_row,
-                                 &repl->debug_viewport_height,
-                                 &repl->debug_document_height,
-                                 &repl->render_elapsed_us);
-
-    // Create lower separator layer
+    // Create lower separator layer (not part of agent - stays in repl)
     repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &repl->lower_separator_visible);
 
-    // Create input layer
-    repl->input_layer = ik_input_layer_create(repl, "input", &repl->input_buffer_visible,
-                                              &repl->input_text, &repl->input_text_len);
-
-    // Create completion layer (rel-04)
-    repl->completion_layer = ik_completion_layer_create(repl, "completion", &repl->completion);
-
-    // Add layers to cake (in order: scrollback, spinner, separator, input, lower_separator, completion)
-    result = ik_layer_cake_add_layer(repl->layer_cake, repl->scrollback_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
-
-    result = ik_layer_cake_add_layer(repl->layer_cake, repl->spinner_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
-
-    result = ik_layer_cake_add_layer(repl->layer_cake, repl->separator_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
-
-    result = ik_layer_cake_add_layer(repl->layer_cake, repl->input_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
-
-    result = ik_layer_cake_add_layer(repl->layer_cake, repl->lower_separator_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
-
-    result = ik_layer_cake_add_layer(repl->layer_cake, repl->completion_layer);
+    // Add lower separator to agent's layer cake
+    result = ik_layer_cake_add_layer(repl->current->layer_cake, repl->lower_separator_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
     // Initialize curl_multi handle for non-blocking HTTP (Phase 1.6)

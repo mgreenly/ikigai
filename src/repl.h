@@ -22,6 +22,7 @@
 
 // Forward declarations
 typedef struct ik_shared_ctx ik_shared_ctx_t;
+typedef struct ik_agent_ctx ik_agent_ctx_t;
 
 // REPL state machine (Phase 1.6)
 typedef enum {
@@ -50,21 +51,17 @@ typedef struct ik_repl_ctx_t {
     // Shared infrastructure (DI - not owned, just referenced)
     // See shared.h for what's available via this pointer
     ik_shared_ctx_t *shared;
+
+    // Current agent (owns display state)
+    ik_agent_ctx_t *current;
+
     ik_input_buffer_t *input_buffer;  // Input buffer
     ik_input_parser_t *input_parser;  // Input parser
-    ik_scrollback_t *scrollback;      // Scrollback buffer (Phase 4)
-    size_t viewport_offset;           // Physical row offset for scrolling (0 = bottom)
     atomic_bool quit;           // Exit flag (atomic for thread safety)
     ik_scroll_detector_t *scroll_det;  // Scroll detector (rel-05)
 
     // Layer-based rendering (Phase 1.3)
-    ik_layer_cake_t *layer_cake;      // Layer cake manager
-    ik_layer_t *scrollback_layer;     // Scrollback layer
-    ik_layer_t *spinner_layer;        // Spinner layer (Phase 1.4)
-    ik_layer_t *separator_layer;      // Separator layer (upper)
-    ik_layer_t *input_layer;          // Input buffer layer
     ik_layer_t *lower_separator_layer; // Separator layer (lower) - below input
-    ik_layer_t *completion_layer;     // Completion layer (rel-04)
 
     // Reference fields for layers (updated before each render)
     ik_spinner_state_t spinner_state; // Spinner state (Phase 1.4)

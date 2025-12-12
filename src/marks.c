@@ -4,6 +4,7 @@
 #include "openai/client.h"
 #include "panic.h"
 #include "repl.h"
+#include "agent.h"
 #include "scrollback.h"
 #include "shared.h"
 #include "wrapper.h"
@@ -90,7 +91,7 @@ res_t ik_mark_create(ik_repl_ctx_t *repl, const char *label)
     }
     if (data_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t result = ik_event_render(repl->scrollback, "mark", NULL, data_json);
+    res_t result = ik_event_render(repl->current->scrollback, "mark", NULL, data_json);
     talloc_free(data_json);
     if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
 
@@ -159,18 +160,18 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
     repl->mark_count = target_index + 1;
 
     // Rebuild scrollback from remaining conversation
-    ik_scrollback_clear(repl->scrollback);
+    ik_scrollback_clear(repl->current->scrollback);
 
     // Render system message first (if configured)
     if (repl->shared->cfg != NULL && repl->shared->cfg->openai_system_message != NULL) {
-        result = ik_event_render(repl->scrollback, "system", repl->shared->cfg->openai_system_message, "{}");
+        result = ik_event_render(repl->current->scrollback, "system", repl->shared->cfg->openai_system_message, "{}");
         if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
     }
 
     // Render conversation messages using event renderer (no role prefixes)
     for (size_t i = 0; i < repl->conversation->message_count; i++) {
         ik_msg_t *msg = repl->conversation->messages[i];
-        result = ik_event_render(repl->scrollback, msg->kind, msg->content, "{}");
+        result = ik_event_render(repl->current->scrollback, msg->kind, msg->content, "{}");
         if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
     }
 
@@ -185,7 +186,7 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
         }
         if (data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-        result = ik_event_render(repl->scrollback, "mark", NULL, data_json);
+        result = ik_event_render(repl->current->scrollback, "mark", NULL, data_json);
         talloc_free(data_json);
         if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
     }

@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -52,9 +53,9 @@ START_TEST(test_page_up_with_4_lines) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Initialize input parser (not needed for this test)
     repl->input_parser = NULL;
@@ -64,7 +65,7 @@ START_TEST(test_page_up_with_4_lines) {
     fprintf(stderr, "Input buffer lines: 1 (empty)\n");
     fprintf(stderr, "Document height: 4 + 1 (upper_sep) + 1 (input) + 1 (lower_sep) = 7 rows\n");
     fprintf(stderr, "Terminal rows: 5\n");
-    fprintf(stderr, "viewport_offset: %zu\n", repl->viewport_offset);
+    fprintf(stderr, "viewport_offset: %zu\n", repl->current->viewport_offset);
 
     // Ensure layouts
     ik_scrollback_ensure_layout(scrollback, 80);
@@ -109,7 +110,7 @@ START_TEST(test_page_up_with_4_lines) {
     res = ik_repl_process_action(repl, &page_up_action);
     ck_assert(is_ok(&res));
 
-    fprintf(stderr, "After Page Up, viewport_offset: %zu\n", repl->viewport_offset);
+    fprintf(stderr, "After Page Up, viewport_offset: %zu\n", repl->current->viewport_offset);
 
     // Calculate what should be visible
     size_t max_offset = (document_height > (size_t)term->screen_rows) ?
@@ -119,7 +120,7 @@ START_TEST(test_page_up_with_4_lines) {
     if (document_height <= (size_t)term->screen_rows) {
         fprintf(stderr, "Document fits entirely in terminal\n");
     } else {
-        size_t last_visible_row = document_height - 1 - repl->viewport_offset;
+        size_t last_visible_row = document_height - 1 - repl->current->viewport_offset;
         size_t first_visible_row = last_visible_row + 1 - (size_t)term->screen_rows;
         fprintf(stderr, "Visible rows: %zu-%zu\n", first_visible_row, last_visible_row);
     }

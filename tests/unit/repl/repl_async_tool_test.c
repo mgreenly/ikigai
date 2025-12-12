@@ -1,4 +1,5 @@
 #include "../../test_utils.h"
+#include "../../../src/agent.h"
 #include <check.h>
 #include <talloc.h>
 #include <pthread.h>
@@ -83,8 +84,8 @@ static void setup(void)
     repl->conversation = conv_res.ok;
 
     /* Create scrollback */
-    repl->scrollback = ik_scrollback_create(repl, 10);
-    ck_assert_ptr_nonnull(repl->scrollback);
+    repl->current->scrollback = ik_scrollback_create(repl, 10);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
 
     /* Initialize thread infrastructure */
     pthread_mutex_init_(&repl->tool_thread_mutex, NULL);

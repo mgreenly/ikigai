@@ -7,6 +7,7 @@
 #include "logger.h"
 #include "panic.h"
 #include "repl.h"
+#include "agent.h"
 #include "scrollback.h"
 #include "shared.h"
 
@@ -164,7 +165,7 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             if (repl->shared->history != NULL && ik_history_is_browsing(repl->shared->history)) {  // LCOV_EXCL_BR_LINE
                 ik_history_stop_browsing(repl->shared->history);  // LCOV_EXCL_LINE
             }
-            repl->viewport_offset = 0;
+            repl->current->viewport_offset = 0;
 
             // Insert the character first
             res_t res = ik_input_buffer_insert_codepoint(repl->input_buffer, action->codepoint);
@@ -178,12 +179,12 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             return OK(NULL);
         }
         case IK_INPUT_INSERT_NEWLINE:
-            repl->viewport_offset = 0;
+            repl->current->viewport_offset = 0;
             return ik_input_buffer_insert_newline(repl->input_buffer);
         case IK_INPUT_NEWLINE:
             return ik_repl_handle_newline_action(repl);
         case IK_INPUT_BACKSPACE: {
-            repl->viewport_offset = 0;
+            repl->current->viewport_offset = 0;
             res_t res = ik_input_buffer_backspace(repl->input_buffer);
             if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
                 return res;  // LCOV_EXCL_LINE
@@ -195,15 +196,15 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             return OK(NULL);
         }
         case IK_INPUT_DELETE:
-            repl->viewport_offset = 0;
+            repl->current->viewport_offset = 0;
             return ik_input_buffer_delete(repl->input_buffer);
         case IK_INPUT_ARROW_LEFT:
             ik_repl_dismiss_completion(repl);
-            repl->viewport_offset = 0;
+            repl->current->viewport_offset = 0;
             return ik_input_buffer_cursor_left(repl->input_buffer);
         case IK_INPUT_ARROW_RIGHT:
             ik_repl_dismiss_completion(repl);
-            repl->viewport_offset = 0;
+            repl->current->viewport_offset = 0;
             return ik_input_buffer_cursor_right(repl->input_buffer);
         case IK_INPUT_ARROW_UP:
             return ik_repl_handle_arrow_up_action(repl);
@@ -218,23 +219,23 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
         case IK_INPUT_SCROLL_DOWN:
             return ik_repl_handle_scroll_down_action(repl);
         case IK_INPUT_CTRL_A:
-            repl->viewport_offset = 0;
+            repl->current->viewport_offset = 0;
             return ik_input_buffer_cursor_to_line_start(repl->input_buffer);
         case IK_INPUT_CTRL_E:
-            repl->viewport_offset = 0;
+            repl->current->viewport_offset = 0;
             return ik_input_buffer_cursor_to_line_end(repl->input_buffer);
         case IK_INPUT_CTRL_K:
-            repl->viewport_offset = 0;
+            repl->current->viewport_offset = 0;
             return ik_input_buffer_kill_to_line_end(repl->input_buffer);
         case IK_INPUT_CTRL_N:
             return ik_repl_handle_history_next_action(repl);
         case IK_INPUT_CTRL_P:
             return ik_repl_handle_history_prev_action(repl);
         case IK_INPUT_CTRL_U:
-            repl->viewport_offset = 0;
+            repl->current->viewport_offset = 0;
             return ik_input_buffer_kill_line(repl->input_buffer);
         case IK_INPUT_CTRL_W:
-            repl->viewport_offset = 0;
+            repl->current->viewport_offset = 0;
             return ik_input_buffer_delete_word_backward(repl->input_buffer);
         case IK_INPUT_CTRL_C:
             repl->quit = true;

@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -58,9 +59,9 @@ START_TEST(test_exact_user_scenario) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Document: 4 scrollback + 1 (upper sep) + 1 input + 1 (lower sep) = 7 rows
     // (input buffer always occupies 1 row even when empty, for cursor visibility)
@@ -104,7 +105,7 @@ START_TEST(test_exact_user_scenario) {
     ck_assert_ptr_ne(strstr(output1, "D"), NULL);
 
     // Now press Page Up
-    repl->viewport_offset = 5;
+    repl->current->viewport_offset = 5;
 
     fprintf(stderr, "\n=== After Page Up ===\n");
 

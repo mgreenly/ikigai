@@ -8,6 +8,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -69,7 +70,7 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
 
     // Document structure:
@@ -83,7 +84,7 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
     // When offset = 33, we show document lines 10-19 (all scrollback)
     // last_visible_row = 53 - 1 - 33 = 19
     // first_visible_row = 19 + 1 - 10 = 10
-    repl->viewport_offset = 33;
+    repl->current->viewport_offset = 33;
 
     // Capture stdout to verify output
     int pipefd[2];
@@ -185,12 +186,12 @@ START_TEST(test_scrollback_visible_when_scrolled_to_top)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
 
     // Document: 50 scrollback + 1 sep + 1 input buffer = 52 lines
     // Max offset = 52 - 10 = 42, shows lines 0-9
-    repl->viewport_offset = 100;  // Will be clamped to 42
+    repl->current->viewport_offset = 100;  // Will be clamped to 42
 
     // Capture output
     int pipefd[2];

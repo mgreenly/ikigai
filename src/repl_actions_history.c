@@ -1,6 +1,7 @@
 // REPL action processing - history navigation
 #include "repl_actions_internal.h"
 #include "repl.h"
+#include "agent.h"
 #include "shared.h"
 #include "panic.h"
 #include "history.h"
@@ -43,7 +44,7 @@ res_t ik_repl_handle_arrow_up_action(ik_repl_ctx_t *repl)
     assert(repl->input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     // If viewport is scrolled, scroll up instead of navigating history
-    if (repl->viewport_offset > 0) {
+    if (repl->current->viewport_offset > 0) {
         return ik_repl_handle_scroll_up_action(repl);
     }
 
@@ -111,7 +112,7 @@ res_t ik_repl_handle_arrow_down_action(ik_repl_ctx_t *repl)
     assert(repl->input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     // If viewport is scrolled, scroll down instead of navigating history
-    if (repl->viewport_offset > 0) {
+    if (repl->current->viewport_offset > 0) {
         return ik_repl_handle_scroll_down_action(repl);
     }
 

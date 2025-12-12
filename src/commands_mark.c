@@ -10,6 +10,7 @@
 #include "marks.h"
 #include "panic.h"
 #include "repl.h"
+#include "agent.h"
 #include "scrollback.h"
 #include "shared.h"
 #include "wrapper.h"
@@ -123,7 +124,7 @@ res_t ik_cmd_rewind(void *ctx, ik_repl_ctx_t *repl, const char *args)
         // Show error message in scrollback
         char *err_msg = talloc_asprintf(ctx, "Error: %s", find_result.err->msg);
         if (err_msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        ik_scrollback_append_line(repl->scrollback, err_msg, strlen(err_msg));
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
         talloc_free(err_msg);
         talloc_free(find_result.err);
         return OK(NULL);  // Don't propagate error, just show it

@@ -3,6 +3,7 @@
  * @brief Unit tests for /clear command core functionality
  */
 
+#include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
@@ -49,7 +50,14 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+    r->current = agent;
+
+
     r->conversation = conv;
     r->shared = shared;
 
@@ -73,7 +81,7 @@ static void teardown(void)
 // Test: Clear empty scrollback and conversation
 START_TEST(test_clear_empty) {
     // Verify initially empty
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->conversation->message_count, 0);
 
     // Execute /clear
@@ -81,7 +89,7 @@ START_TEST(test_clear_empty) {
     ck_assert(is_ok(&res));
 
     // Verify still empty
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->conversation->message_count, 0);
 }
 END_TEST
@@ -89,22 +97,22 @@ END_TEST
 START_TEST(test_clear_scrollback_with_content)
 {
     // Add some lines to scrollback
-    res_t res = ik_scrollback_append_line(repl->scrollback, "Line 1", 6);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
-    res = ik_scrollback_append_line(repl->scrollback, "Line 2", 6);
+    res = ik_scrollback_append_line(repl->current->scrollback, "Line 2", 6);
     ck_assert(is_ok(&res));
-    res = ik_scrollback_append_line(repl->scrollback, "Line 3", 6);
+    res = ik_scrollback_append_line(repl->current->scrollback, "Line 3", 6);
     ck_assert(is_ok(&res));
 
     // Verify content exists
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 3);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 3);
 
     // Execute /clear
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
     // Verify scrollback is empty
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
@@ -143,9 +151,9 @@ END_TEST
 START_TEST(test_clear_both_scrollback_and_conversation)
 {
     // Add scrollback content
-    res_t res = ik_scrollback_append_line(repl->scrollback, "User message", 12);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "User message", 12);
     ck_assert(is_ok(&res));
-    res = ik_scrollback_append_line(repl->scrollback, "Assistant response", 18);
+    res = ik_scrollback_append_line(repl->current->scrollback, "Assistant response", 18);
     ck_assert(is_ok(&res));
 
     // Add conversation messages
@@ -162,7 +170,7 @@ START_TEST(test_clear_both_scrollback_and_conversation)
     ck_assert(is_ok(&res));
 
     // Verify both have content
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->conversation->message_count, 2);
 
     // Execute /clear
@@ -170,7 +178,7 @@ START_TEST(test_clear_both_scrollback_and_conversation)
     ck_assert(is_ok(&res));
 
     // Verify both are empty
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->conversation->message_count, 0);
 }
 
@@ -182,18 +190,18 @@ START_TEST(test_clear_with_null_conversation)
     repl->conversation = NULL;
 
     // Add scrollback content
-    res_t res = ik_scrollback_append_line(repl->scrollback, "Line 1", 6);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
 
     // Verify scrollback has content
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 
     // Execute /clear (should not crash)
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
     // Verify scrollback is cleared
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
@@ -201,7 +209,7 @@ END_TEST
 START_TEST(test_clear_with_ignored_arguments)
 {
     // Add content
-    res_t res = ik_scrollback_append_line(repl->scrollback, "Line 1", 6);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
 
     // Execute /clear with extra arguments (should be ignored)
@@ -209,7 +217,7 @@ START_TEST(test_clear_with_ignored_arguments)
     ck_assert(is_ok(&res));
 
     // Verify still cleared
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
@@ -217,7 +225,7 @@ END_TEST
 START_TEST(test_clear_with_marks)
 {
     // Add some content and marks
-    res_t res = ik_scrollback_append_line(repl->scrollback, "Line 1", 6);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
 
     res = ik_openai_msg_create(ctx, "user", "Message");
@@ -245,7 +253,7 @@ START_TEST(test_clear_with_marks)
     ck_assert_ptr_null(repl->marks);
 
     // Verify scrollback and conversation also cleared
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->conversation->message_count, 0);
 }
 
@@ -266,13 +274,13 @@ START_TEST(test_clear_with_system_message_displays_in_scrollback)
     repl->shared = shared;
 
     // Add some content to scrollback first
-    res_t res = ik_scrollback_append_line(repl->scrollback, "User message", 12);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "User message", 12);
     ck_assert(is_ok(&res));
-    res = ik_scrollback_append_line(repl->scrollback, "Assistant response", 18);
+    res = ik_scrollback_append_line(repl->current->scrollback, "Assistant response", 18);
     ck_assert(is_ok(&res));
 
     // Verify scrollback has content
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
 
     // Execute /clear
     res = ik_cmd_dispatch(ctx, repl, "/clear");
@@ -280,19 +288,19 @@ START_TEST(test_clear_with_system_message_displays_in_scrollback)
 
     // After /clear with system message configured,
     // scrollback should have 2 lines (the system message + blank line), not 0
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
 
     // Verify the content is the system message (with color styling)
     const char *line = NULL;
     size_t line_len = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &line_len);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     // System messages are colored with gray 242
     ck_assert_ptr_nonnull(strstr(line, "You are a helpful assistant."));
 
     // Verify the second line is blank
-    res = ik_scrollback_get_line_text(repl->scrollback, 1, &line, &line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 1, &line, &line_len);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(line_len, 0);
 }
@@ -313,18 +321,18 @@ START_TEST(test_clear_without_system_message_empty_scrollback)
     repl->shared = shared;
 
     // Add some content to scrollback
-    res_t res = ik_scrollback_append_line(repl->scrollback, "User message", 12);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "User message", 12);
     ck_assert(is_ok(&res));
 
     // Verify scrollback has content
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 
     // Execute /clear
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
     // Without system message, scrollback should be empty
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
@@ -354,7 +362,7 @@ START_TEST(test_clear_with_system_message_append_failure)
     repl->shared = shared;
 
     // Add some content to scrollback first
-    res_t res = ik_scrollback_append_line(repl->scrollback, "Initial content", 15);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "Initial content", 15);
     ck_assert(is_ok(&res));
 
     // Reset counter after setup, so we can count reallocs during /clear

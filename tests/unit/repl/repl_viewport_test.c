@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include "../../../src/repl.h"
@@ -41,8 +42,8 @@ START_TEST(test_viewport_empty_scrollback) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -96,8 +97,8 @@ START_TEST(test_viewport_small_scrollback)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;  // At bottom
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;  // At bottom
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -157,8 +158,8 @@ START_TEST(test_viewport_large_scrollback)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;  // At bottom
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;  // At bottom
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -212,8 +213,8 @@ START_TEST(test_viewport_offset_clamping)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 100;  // Try to scroll way past top
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 100;  // Try to scroll way past top
 
     // Calculate viewport - should clamp to valid range
     ik_viewport_t viewport;
@@ -271,8 +272,8 @@ START_TEST(test_viewport_no_scrollback_room)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Calculate viewport
     ik_viewport_t viewport;

@@ -6,6 +6,7 @@
  */
 
 #include "repl_streaming_test_common.h"
+#include "../../../src/agent.h"
 
 /* Test: Streaming callback receives data and appends to scrollback */
 START_TEST(test_streaming_callback_appends_to_scrollback) {
@@ -46,7 +47,7 @@ START_TEST(test_streaming_callback_appends_to_scrollback) {
     // Verify streaming data was appended to scrollback
     // The scrollback should now have the user message "Test" + blank line
     // Note: "Hello world" (no trailing newline) is buffered but not added to scrollback yet
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(line_count, 2); // User message + blank line (streamed content has no newline)
 
     // Verify assistant_response was accumulated
@@ -139,7 +140,7 @@ START_TEST(test_streaming_callback_empty_chunk)
     ck_assert(is_ok(&res));
 
     // Get initial scrollback line count (should have user message)
-    size_t initial_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t initial_count = ik_scrollback_get_line_count(repl->current->scrollback);
 
     // Simulate receiving SSE data with empty content
     const char *sse_empty = "data: {\"choices\":[{\"delta\":{\"content\":\"\"}}]}\n\n";
@@ -152,7 +153,7 @@ START_TEST(test_streaming_callback_empty_chunk)
     ck_assert(is_ok(&res));
 
     // Verify scrollback count unchanged (empty chunk should not add lines)
-    size_t after_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t after_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(after_count, initial_count);
 
     // However, assistant_response should still be initialized (even if empty)
@@ -188,7 +189,7 @@ START_TEST(test_streaming_callback_content_ending_with_newline)
     res_t res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    size_t initial_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t initial_count = ik_scrollback_get_line_count(repl->current->scrollback);
 
     // Simulate receiving SSE data with content ending with newline
     // "Test\\n" should add one line "Test" and leave nothing in the buffer
@@ -202,7 +203,7 @@ START_TEST(test_streaming_callback_content_ending_with_newline)
     ck_assert(is_ok(&res));
 
     // Verify scrollback has one new line added
-    size_t after_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t after_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(after_count, initial_count + 1);
 
     // Verify the streaming buffer is empty (newline was consumed)

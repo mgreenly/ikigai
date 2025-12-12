@@ -11,6 +11,7 @@
  */
 
 #include "repl.h"
+#include "../../../src/agent.h"
 #include "repl_event_handlers.h"
 #include "repl_callbacks.h"
 #include "openai/client.h"
@@ -54,7 +55,7 @@ static void setup(void)
     shared->cfg = cfg;
     repl->shared = shared;
 
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->assistant_response = NULL;
     repl->streaming_line_buffer = NULL;
     repl->http_error_message = NULL;

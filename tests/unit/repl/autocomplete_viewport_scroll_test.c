@@ -7,6 +7,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -75,9 +76,9 @@ START_TEST(test_autocomplete_viewport_includes_completion_height) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->completion = completion;
-    repl->viewport_offset = 0;  // At bottom
+    repl->current->viewport_offset = 0;  // At bottom
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -165,9 +166,9 @@ START_TEST(test_autocomplete_viewport_without_completion) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->completion = NULL;  // No completion
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Calculate viewport
     ik_viewport_t viewport;

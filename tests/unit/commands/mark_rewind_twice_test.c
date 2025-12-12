@@ -3,6 +3,7 @@
  * @brief Test that marks can be reused after rewind (Bug 7)
  */
 
+#include "../../../src/agent.h"
 #include "../../../src/commands_mark.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
@@ -23,6 +24,11 @@ START_TEST(test_rewind_to_same_mark_twice) {
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
 
     // Create minimal config
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -45,7 +51,7 @@ START_TEST(test_rewind_to_same_mark_twice) {
     repl->mark_count = 0;
 
     // Initialize scrollback
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    agent->scrollback = ik_scrollback_create(repl, 80);
 
     // Step 1: Add initial message
     ik_msg_t *msg1 = talloc_zero(repl->conversation, ik_msg_t);
@@ -108,6 +114,11 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
+
     // Create minimal config
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
@@ -129,7 +140,7 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     repl->mark_count = 0;
 
     // Initialize scrollback
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    agent->scrollback = ik_scrollback_create(repl, 80);
 
     // Add initial message
     ik_msg_t *msg1 = talloc_zero(repl->conversation, ik_msg_t);

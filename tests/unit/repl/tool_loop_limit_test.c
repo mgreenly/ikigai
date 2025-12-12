@@ -7,6 +7,7 @@
  */
 
 #include "repl.h"
+#include "../../../src/agent.h"
 #include "config.h"
 #include "../../../src/shared.h"
 #include "scrollback.h"
@@ -32,7 +33,7 @@ static void setup(void)
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
     repl->shared = shared;
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* Create conversation */
     res_t res = ik_openai_conversation_create(ctx);

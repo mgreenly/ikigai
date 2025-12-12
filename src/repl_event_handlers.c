@@ -7,6 +7,7 @@
 #include "openai/client_multi.h"
 #include "panic.h"
 #include "repl.h"
+#include "agent.h"
 #include "repl_actions.h"
 #include "repl_callbacks.h"
 #include "shared.h"
@@ -177,7 +178,7 @@ static void handle_request_error(ik_repl_ctx_t *repl)
     memcpy(full_error + prefix_len, repl->http_error_message, error_len);
     full_error[prefix_len + error_len] = '\0';
 
-    ik_scrollback_append_line(repl->scrollback, full_error, prefix_len + error_len);
+    ik_scrollback_append_line(repl->current->scrollback, full_error, prefix_len + error_len);
     talloc_free(full_error);
 
     // Clear error message
@@ -239,7 +240,7 @@ static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
                                                limit_reached);
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
         const char *err_msg = error_message(result.err);  // LCOV_EXCL_LINE
-        ik_scrollback_append_line(repl->scrollback, err_msg, strlen(err_msg));  // LCOV_EXCL_LINE
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));  // LCOV_EXCL_LINE
         ik_repl_transition_to_idle(repl);  // LCOV_EXCL_LINE
         talloc_free(result.err);  // LCOV_EXCL_LINE
     } else {

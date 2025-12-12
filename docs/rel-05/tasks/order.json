@@ -1,24 +1,6 @@
 {
   "todo": [
     {
-      "task": "remove-legacy-logger.md",
-      "group": "Cleanup",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "scroll-debug-log-cleanup.md",
-      "group": "Cleanup",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "agent-ctx-struct.md",
-      "group": "Agent Context Extraction",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "agent-ctx-display.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
@@ -79,5 +61,24 @@
       "thinking": "thinking"
     }
   ],
-  "done": []
+  "done": [
+    {
+      "task": "remove-legacy-logger.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "scroll-debug-log-cleanup.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-ctx-struct.md",
+      "group": "Agent Context Extraction",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
+  ]
 }

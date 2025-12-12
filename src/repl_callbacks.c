@@ -1,6 +1,7 @@
 // REPL HTTP callback handlers implementation
 #include "repl_callbacks.h"
 #include "repl.h"
+#include "agent.h"
 #include "repl_actions.h"
 #include "shared.h"
 #include "panic.h"
@@ -51,16 +52,16 @@ res_t ik_repl_streaming_callback(const char *chunk, void *ctx)
                 memcpy(line + buffer_len, chunk + start, prefix_len);
                 line[total_len] = '\0';
 
-                ik_scrollback_append_line(repl->scrollback, line, total_len);
+                ik_scrollback_append_line(repl->current->scrollback, line, total_len);
                 talloc_free(line);
                 talloc_free(repl->streaming_line_buffer);
                 repl->streaming_line_buffer = NULL;
             } else if (prefix_len > 0) {
                 // No buffer, just flush the prefix
-                ik_scrollback_append_line(repl->scrollback, chunk + start, prefix_len);
+                ik_scrollback_append_line(repl->current->scrollback, chunk + start, prefix_len);
             } else {
                 // Empty line (just a newline)
-                ik_scrollback_append_line(repl->scrollback, "", 0);
+                ik_scrollback_append_line(repl->current->scrollback, "", 0);
             }
 
             // Start next segment after newline
@@ -129,14 +130,14 @@ res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, v
     // Flush any remaining buffered line content (streaming ended without final newline)
     if (repl->streaming_line_buffer != NULL) {
         size_t buffer_len = strlen(repl->streaming_line_buffer);
-        ik_scrollback_append_line(repl->scrollback, repl->streaming_line_buffer, buffer_len);
+        ik_scrollback_append_line(repl->current->scrollback, repl->streaming_line_buffer, buffer_len);
         talloc_free(repl->streaming_line_buffer);
         repl->streaming_line_buffer = NULL;
     }
 
     // Add blank line after assistant response (spacing)
     if (completion->type == IK_HTTP_SUCCESS) {
-        ik_scrollback_append_line(repl->scrollback, "", 0);
+        ik_scrollback_append_line(repl->current->scrollback, "", 0);
     }
 
     // Clear any previous error

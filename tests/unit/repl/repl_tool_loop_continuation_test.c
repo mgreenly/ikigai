@@ -7,6 +7,7 @@
  */
 
 #include "repl.h"
+#include "../../../src/agent.h"
 #include "config.h"
 #include "shared.h"
 #include "scrollback.h"
@@ -29,7 +30,7 @@ static void setup(void)
     shared->cfg->max_tool_turns = 10;  /* Set reasonable limit */
     repl->shared = shared;
 
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->response_finish_reason = NULL;
     repl->tool_iteration_count = 0;  /* Initialize iteration count */
 }

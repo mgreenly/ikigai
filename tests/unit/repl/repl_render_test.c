@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <signal.h>
 #include <talloc.h>
@@ -71,8 +72,8 @@ START_TEST(test_repl_render_frame_empty_input_buffer) {
     repl->shared = shared;
     shared->render = render;
     shared->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Reset mock state
     mock_write_calls = 0;
@@ -130,8 +131,8 @@ START_TEST(test_repl_render_frame_multiline)
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     mock_write_calls = 0;
     mock_write_buffer_len = 0;
@@ -178,8 +179,8 @@ START_TEST(test_repl_render_frame_cursor_positions)
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Test cursor at end
     mock_write_calls = 0;
@@ -249,8 +250,8 @@ START_TEST(test_repl_render_frame_utf8)
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     mock_write_calls = 0;
     res = ik_repl_render_frame(repl);

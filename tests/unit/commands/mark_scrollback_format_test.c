@@ -7,6 +7,7 @@
  * - System message from config should be rendered first
  */
 
+#include "../../../src/agent.h"
 #include <check.h>
 #include <string.h>
 #include <talloc.h>
@@ -48,7 +49,14 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
 
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+    r->current = agent;
+
+
     r->conversation = conv;
     r->shared = shared;
     r->marks = NULL;
@@ -138,14 +146,14 @@ START_TEST(test_rewind_no_role_prefixes) {
     // Line 7: blank line
 
     // Get scrollback line count (each event + blank line = 8 lines total)
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(line_count, 8);
 
     // Get lines and verify content
-    const char *line0 = get_line_text(repl->scrollback, 0);
-    const char *line2 = get_line_text(repl->scrollback, 2);
-    const char *line4 = get_line_text(repl->scrollback, 4);
-    const char *line6 = get_line_text(repl->scrollback, 6);
+    const char *line0 = get_line_text(repl->current->scrollback, 0);
+    const char *line2 = get_line_text(repl->current->scrollback, 2);
+    const char *line4 = get_line_text(repl->current->scrollback, 4);
+    const char *line6 = get_line_text(repl->current->scrollback, 6);
 
     // Verify system message is first (with color styling)
     ck_assert_ptr_nonnull(strstr(line0, "You are a helpful assistant for testing."));
@@ -188,7 +196,7 @@ START_TEST(test_rewind_includes_system_message)
     ck_assert(is_ok(&rewind_res));
 
     // Verify system message is first line (with color styling)
-    const char *line0 = get_line_text(repl->scrollback, 0);
+    const char *line0 = get_line_text(repl->current->scrollback, 0);
     ck_assert_ptr_nonnull(strstr(line0, "You are a helpful assistant for testing."));
 }
 
@@ -225,7 +233,7 @@ START_TEST(test_rewind_without_system_message)
     ck_assert(is_ok(&rewind_res));
 
     // First line should be user message (no system message)
-    const char *line0 = get_line_text(repl->scrollback, 0);
+    const char *line0 = get_line_text(repl->current->scrollback, 0);
     ck_assert_str_eq(line0, "Hello");
 }
 
@@ -261,7 +269,7 @@ START_TEST(test_rewind_with_null_config)
     ck_assert(is_ok(&rewind_res));
 
     // First line should be user message (no system message since no config)
-    const char *line0 = get_line_text(repl->scrollback, 0);
+    const char *line0 = get_line_text(repl->current->scrollback, 0);
     ck_assert_str_eq(line0, "Test message");
 }
 

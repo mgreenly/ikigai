@@ -7,6 +7,7 @@
  */
 
 #include "repl.h"
+#include "../../../src/agent.h"
 #include "repl_callbacks.h"
 #include "shared.h"
 #include "scrollback.h"
@@ -32,7 +33,7 @@ static void setup(void)
     /* Create minimal REPL context for testing callback */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->shared = shared;
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->streaming_line_buffer = NULL;
     repl->http_error_message = NULL;
     repl->response_model = NULL;

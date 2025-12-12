@@ -7,6 +7,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include <string.h>
 #include <talloc.h>
 #include "../../../src/shared.h"
@@ -42,9 +43,9 @@ START_TEST(test_ctrl_p_starts_browsing_empty)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->shared->history = history;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Press Ctrl+P - should start browsing and show most recent entry
     ik_input_action_t action = {.type = IK_INPUT_CTRL_P};
@@ -95,9 +96,9 @@ START_TEST(test_ctrl_p_starts_browsing_with_text)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->shared->history = history;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Press Ctrl+P - should save "hel" as pending and start browsing
     ik_input_action_t action = {.type = IK_INPUT_CTRL_P};
@@ -141,9 +142,9 @@ START_TEST(test_ctrl_p_moves_to_previous)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->shared->history = history;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Press Ctrl+P once - should show "second entry"
     ik_input_action_t action = {.type = IK_INPUT_CTRL_P};
@@ -186,9 +187,9 @@ START_TEST(test_ctrl_p_at_oldest_entry)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->shared->history = history;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Press Ctrl+P once - should show "only entry"
     ik_input_action_t action = {.type = IK_INPUT_CTRL_P};
@@ -238,9 +239,9 @@ START_TEST(test_ctrl_n_when_not_browsing)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->shared->history = history;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Press Ctrl+N - should do nothing
     ik_input_action_t action = {.type = IK_INPUT_CTRL_N};
@@ -284,9 +285,9 @@ START_TEST(test_ctrl_n_moves_to_next)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->shared->history = history;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Press Ctrl+P twice to get to "first entry"
     ik_input_action_t action_p = {.type = IK_INPUT_CTRL_P};
@@ -339,9 +340,9 @@ START_TEST(test_ctrl_n_at_newest_returns_pending)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->shared->history = history;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Press Ctrl+P twice to go back to "first entry"
     ik_input_action_t action_p = {.type = IK_INPUT_CTRL_P};

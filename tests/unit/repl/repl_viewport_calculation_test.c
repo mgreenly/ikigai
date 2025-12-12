@@ -6,6 +6,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -70,21 +71,21 @@ START_TEST(test_separator_debug_simple_case) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
 
     // Desired view: document rows 20-29
     // last_visible_row = 29
     // last_visible_row = document_height - 1 - offset
     // 29 = 52 - 1 - offset
     // offset = 22
-    repl->viewport_offset = 22;
+    repl->current->viewport_offset = 22;
 
     // Calculate what SHOULD be visible
-    size_t expected_last_visible_row = document_height - 1 - repl->viewport_offset;
+    size_t expected_last_visible_row = document_height - 1 - repl->current->viewport_offset;
     size_t expected_first_visible_row = expected_last_visible_row + 1 - (size_t)term->screen_rows;
 
     printf("=== Expected Viewport ===\n");
-    printf("viewport_offset: %zu\n", repl->viewport_offset);
+    printf("viewport_offset: %zu\n", repl->current->viewport_offset);
     printf("first_visible_row: %zu (expected)\n", expected_first_visible_row);
     printf("last_visible_row: %zu (expected)\n", expected_last_visible_row);
     printf("Visible rows: %zu-%zu (should be 10 rows of scrollback)\n\n",

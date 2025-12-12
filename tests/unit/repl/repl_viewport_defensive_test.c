@@ -9,6 +9,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -129,8 +130,8 @@ START_TEST(test_viewport_input_buffer_before_viewport) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;  // At bottom
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;  // At bottom
 
     // Calculate viewport
     // Document: 5 scrollback + 1 separator + 10 input buffer = 16 rows

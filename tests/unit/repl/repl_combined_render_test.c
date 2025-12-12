@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <stdlib.h>
@@ -73,8 +74,8 @@ START_TEST(test_render_frame_empty_scrollback) {
     shared->term = term;
     shared->render = render;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Render frame - should succeed even with empty scrollback
     res = ik_repl_render_frame(repl);
@@ -151,8 +152,8 @@ START_TEST(test_render_frame_with_scrollback)
     shared->term = term;
     shared->render = render;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Render frame - should render both scrollback and input buffer
     res = ik_repl_render_frame(repl);

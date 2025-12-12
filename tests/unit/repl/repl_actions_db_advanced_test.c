@@ -1,4 +1,5 @@
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include <string.h>
 #include <stdio.h>
@@ -105,8 +106,8 @@ static void setup(void)
     shared->cfg->openai_max_completion_tokens = 2048;
 
     // Create scrollback
-    repl->scrollback = ik_scrollback_create(repl, 80);
-    ck_assert_ptr_nonnull(repl->scrollback);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create input buffer
     repl->input_buffer = ik_input_buffer_create(repl);
@@ -138,7 +139,7 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->shared->db_debug_pipe->write_end);
 
     // Set viewport offset
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Initialize curl_still_running
     repl->curl_still_running = 0;

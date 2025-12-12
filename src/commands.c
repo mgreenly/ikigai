@@ -14,6 +14,7 @@
 #include "openai/client.h"
 #include "panic.h"
 #include "repl.h"
+#include "agent.h"
 #include "scrollback.h"
 #include "shared.h"
 #include "wrapper.h"
@@ -76,7 +77,7 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
         if (!msg) {         // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
-        ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return ERR(ctx, INVALID_ARG, "Empty command");
     }
 
@@ -114,7 +115,7 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
     if (!msg) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
     return ERR(ctx, INVALID_ARG, "Unknown command '%s'", cmd_name);
 }
 
@@ -136,7 +137,7 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     ik_log_reinit(cwd);
 
     // Clear scrollback buffer
-    ik_scrollback_clear(repl->scrollback);
+    ik_scrollback_clear(repl->current->scrollback);
 
     // Clear conversation (session messages)
     if (repl->conversation != NULL) {  // LCOV_EXCL_BR_LINE
@@ -199,7 +200,7 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Add system message to scrollback using event renderer (consistent with replay)
     if (repl->shared->cfg != NULL && repl->shared->cfg->openai_system_message != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: cfg always set during init
         res_t render_res = ik_event_render(
-            repl->scrollback,
+            repl->current->scrollback,
             "system",
             repl->shared->cfg->openai_system_message,
             "{}"
@@ -223,7 +224,7 @@ static res_t cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args)
     if (!header) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
-    res_t result = ik_scrollback_append_line(repl->scrollback, header, strlen(header));
+    res_t result = ik_scrollback_append_line(repl->current->scrollback, header, strlen(header));
     talloc_free(header);
     if (is_err(&result)) {  /* LCOV_EXCL_BR_LINE */
         return result;  // LCOV_EXCL_LINE
@@ -240,7 +241,7 @@ static res_t cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args)
         if (!cmd_line) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
-        result = ik_scrollback_append_line(repl->scrollback, cmd_line, strlen(cmd_line));
+        result = ik_scrollback_append_line(repl->current->scrollback, cmd_line, strlen(cmd_line));
         talloc_free(cmd_line);
         if (is_err(&result)) {  /* LCOV_EXCL_BR_LINE */
             return result;  // LCOV_EXCL_LINE
@@ -261,7 +262,7 @@ static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
         if (!msg) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
-        ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return ERR(ctx, INVALID_ARG, "Model name required");
     }
 
@@ -294,7 +295,7 @@ static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
         if (!msg) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
-        ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return ERR(ctx, INVALID_ARG, "Unknown model '%s'", args);
     }
 
@@ -312,7 +313,7 @@ static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
     if (!msg) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
     return OK(NULL);
 }
 
@@ -349,7 +350,7 @@ static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
     }
 
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
     return OK(NULL);
 }
 
@@ -386,10 +387,10 @@ static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args)
         if (!msg) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
-        ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return ERR(ctx, INVALID_ARG, "Invalid argument '%s'", args);
     }
 
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
     return OK(NULL);
 }

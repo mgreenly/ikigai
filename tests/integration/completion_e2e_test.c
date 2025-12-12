@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../src/agent.h"
 #include <fcntl.h>
 #include <inttypes.h>
 #include <pthread.h>
@@ -239,7 +240,7 @@ START_TEST(test_completion_no_matches)
     type_str(repl, "/xyz");
     press_tab(repl);
     ck_assert_ptr_null(repl->completion);
-    ck_assert(!repl->completion_layer->is_visible(repl->completion_layer));
+    ck_assert(!repl->current->completion_layer->is_visible(repl->current->completion_layer));
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -299,12 +300,12 @@ START_TEST(test_completion_layer_visibility)
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
-    ck_assert(!repl->completion_layer->is_visible(repl->completion_layer));
+    ck_assert(!repl->current->completion_layer->is_visible(repl->current->completion_layer));
 
     type_str(repl, "/m");
     press_tab(repl);
     // Tab accepts and dismisses, so layer should be hidden after
-    ck_assert(!repl->completion_layer->is_visible(repl->completion_layer));
+    ck_assert(!repl->current->completion_layer->is_visible(repl->current->completion_layer));
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);

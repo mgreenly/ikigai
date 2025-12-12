@@ -3,6 +3,7 @@
  * @brief Unit tests for /help command
  */
 
+#include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
@@ -50,7 +51,14 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+    r->current = agent;
+
+
     r->conversation = conv;
     r->marks = NULL;
     r->mark_count = 0;
@@ -81,7 +89,7 @@ START_TEST(test_help_shows_header) {
     // First line should be header
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Available commands:");
@@ -98,7 +106,7 @@ START_TEST(test_help_includes_all_commands)
     ik_cmd_get_all(&cmd_count);
 
     // Should have header + one line per command
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(line_count, cmd_count + 1);
 }
 
@@ -112,7 +120,7 @@ START_TEST(test_help_lists_clear)
     // Line 1 should be /clear (line 0 is header)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 1, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 1, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -130,7 +138,7 @@ START_TEST(test_help_lists_mark)
     // Line 2 should be /mark
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 2, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -148,7 +156,7 @@ START_TEST(test_help_lists_rewind)
     // Line 3 should be /rewind
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 3, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 3, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -166,7 +174,7 @@ START_TEST(test_help_lists_help)
     // Line 4 should be /help
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 4, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 4, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -184,7 +192,7 @@ START_TEST(test_help_lists_model)
     // Line 5 should be /model
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 5, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 5, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -202,7 +210,7 @@ START_TEST(test_help_lists_system)
     // Line 6 should be /system
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 6, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 6, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -220,7 +228,7 @@ START_TEST(test_help_with_arguments)
     // Should still show normal help output
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Available commands:");

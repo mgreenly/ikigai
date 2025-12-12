@@ -3,5 +3,35 @@
     "event": "start",
     "task": "remove-legacy-logger.md",
     "time": "2025-12-12T22:11:57.051Z"
+  },
+  {
+    "event": "done",
+    "task": "remove-legacy-logger.md",
+    "time": "2025-12-12T22:25:46.422Z"
+  },
+  {
+    "event": "start",
+    "task": "scroll-debug-log-cleanup.md",
+    "time": "2025-12-12T22:26:03.367Z"
+  },
+  {
+    "event": "done",
+    "task": "scroll-debug-log-cleanup.md",
+    "time": "2025-12-12T22:29:49.786Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-ctx-struct.md",
+    "time": "2025-12-12T22:30:07.142Z"
+  },
+  {
+    "event": "done",
+    "task": "agent-ctx-struct.md",
+    "time": "2025-12-12T22:38:38.063Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-ctx-display.md",
+    "time": "2025-12-12T22:38:54.546Z"
   }
 ]

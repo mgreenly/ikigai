@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <signal.h>
 #include <talloc.h>
@@ -71,29 +72,29 @@ START_TEST(test_separator_renders_on_empty_scrollback)
     repl->shared = shared;
     shared->render = render;
     shared->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Initialize layer cake
-    repl->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
+    repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
 
     // Create layers
     bool separator_visible = true;
-    repl->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
+    repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
 
-    repl->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
+    repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
 
     const char *input_text_ptr = (const char *)input_buf->text->data;
     size_t input_text_len = ik_byte_array_size(input_buf->text);
     bool input_visible = true;
-    repl->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
+    repl->current->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
 
     // Add layers to cake
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->scrollback_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->separator_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->separator_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->input_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->input_layer);
     ck_assert(is_ok(&res));
 
     mock_write_calls = 0;
@@ -170,29 +171,29 @@ START_TEST(test_separator_renders_with_scrollback)
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Initialize layer cake
-    repl->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
+    repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
 
     // Create layers
     bool separator_visible = true;
-    repl->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
+    repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
 
-    repl->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
+    repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
 
     const char *input_text_ptr = (const char *)input_buf->text->data;
     size_t input_text_len = ik_byte_array_size(input_buf->text);
     bool input_visible = true;
-    repl->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
+    repl->current->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
 
     // Add layers to cake
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->scrollback_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->separator_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->separator_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->input_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->input_layer);
     ck_assert(is_ok(&res));
 
     mock_write_calls = 0;
@@ -269,29 +270,29 @@ START_TEST(test_separator_not_renders_when_invisible)
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Initialize layer cake
-    repl->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
+    repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
 
     // Create layers - SEPARATOR IS INVISIBLE
     bool separator_visible = false;  // Intentionally false
-    repl->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
+    repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
 
-    repl->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
+    repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
 
     const char *input_text_ptr = (const char *)input_buf->text->data;
     size_t input_text_len = ik_byte_array_size(input_buf->text);
     bool input_visible = true;
-    repl->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
+    repl->current->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
 
     // Add layers to cake
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->scrollback_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->separator_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->separator_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->input_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->input_layer);
     ck_assert(is_ok(&res));
 
     mock_write_calls = 0;

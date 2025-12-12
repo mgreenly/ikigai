@@ -6,6 +6,7 @@
  */
 
 #include "../../../src/commands.h"
+#include "../../../src/agent.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/db/message.h"
@@ -139,8 +140,8 @@ START_TEST(test_rewind_persists_correct_target_message_index)
     repl->shared = shared;
 
     // Create scrollback
-    repl->scrollback = ik_scrollback_create(repl, 80);
-    ck_assert_ptr_nonnull(repl->scrollback);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create conversation
     res_t conv_res = ik_openai_conversation_create(repl);

@@ -10,6 +10,7 @@
  */
 
 #include "repl.h"
+#include "../../../src/agent.h"
 #include "openai/client.h"
 #include "tool.h"
 #include "scrollback.h"
@@ -33,7 +34,7 @@ static void setup(void)
     repl->conversation = res.ok;
     ck_assert_ptr_nonnull(repl->conversation);
 
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
 }
 
 static void teardown(void)

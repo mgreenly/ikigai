@@ -7,6 +7,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include <string.h>
 #include "../../../src/repl.h"
@@ -65,9 +66,9 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     repl->input_buffer = input_buf;
     repl->shared->render = render;
     repl->shared->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
-    repl->layer_cake = layer_cake;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
+    repl->current->layer_cake = layer_cake;
 
     // Initialize reference fields
     repl->separator_visible = true;
@@ -265,7 +266,7 @@ START_TEST(test_submit_message_api_request_failure)
     ck_assert_uint_eq(text_len, 0);
 
     // Verify error message was added to scrollback
-    ck_assert_uint_gt(repl->scrollback->count, 0);
+    ck_assert_uint_gt(repl->current->scrollback->count, 0);
 
     // Verify user message was added to conversation (error happens after message creation)
     ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);

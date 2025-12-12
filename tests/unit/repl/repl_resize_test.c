@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include <termios.h>
 #include <sys/ioctl.h>
@@ -158,12 +159,12 @@ START_TEST(test_resize_invalidates_scrollback_layout)
     // 200 character line: at 80 cols = 3 lines, at 120 cols = 2 lines
     const char *line1 =
         "This is a very long line that will definitely wrap differently at different terminal widths and needs to be reflowed when the terminal is resized to a different width than what it was originally laid out at";
-    result = ik_scrollback_append_line(repl->scrollback, line1, strlen(line1));
+    result = ik_scrollback_append_line(repl->current->scrollback, line1, strlen(line1));
     ck_assert(is_ok(&result));
 
     // Ensure layout at 80 cols
-    ik_scrollback_ensure_layout(repl->scrollback, 80);
-    size_t physical_lines_80 = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    ik_scrollback_ensure_layout(repl->current->scrollback, 80);
+    size_t physical_lines_80 = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
 
     // Change to 120 cols and handle resize
     mock_screen_cols = 120;
@@ -171,11 +172,11 @@ START_TEST(test_resize_invalidates_scrollback_layout)
     ck_assert(is_ok(&result));
 
     // Layout should be recalculated (fewer physical lines at wider width)
-    size_t physical_lines_120 = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    size_t physical_lines_120 = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
     ck_assert_uint_lt(physical_lines_120, physical_lines_80);
 
     // Verify cached_width was updated
-    ck_assert_int_eq(repl->scrollback->cached_width, 120);
+    ck_assert_int_eq(repl->current->scrollback->cached_width, 120);
 
     talloc_free(ctx);
 }

@@ -6,6 +6,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -74,7 +75,7 @@ START_TEST(test_separator_with_wrapped_lines) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
 
     // Scroll to show document rows 20-29 (which should be lines 10-14)
@@ -82,7 +83,7 @@ START_TEST(test_separator_with_wrapped_lines) {
     // - Line 0-9: rows 0-19
     // - Line 10-14: rows 20-29
     // viewport_offset = 62 - 1 - 29 = 32
-    repl->viewport_offset = 32;
+    repl->current->viewport_offset = 32;
 
     // Calculate viewport
     ik_viewport_t viewport;

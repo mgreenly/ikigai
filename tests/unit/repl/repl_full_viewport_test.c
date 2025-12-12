@@ -7,6 +7,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -55,35 +56,35 @@ static void create_test_repl(TALLOC_CTX *ctx, int32_t rows, int32_t cols, ik_rep
     repl->shared = shared;
     shared->render = render;
     shared->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Initialize layer cake
-    repl->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
+    repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
 
     // Create layers
-    repl->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
+    repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
 
     repl->separator_visible = true;
-    repl->separator_layer = ik_separator_layer_create(repl, "separator", &repl->separator_visible);
+    repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &repl->separator_visible);
 
     repl->input_buffer_visible = true;
     repl->input_text = "";
     repl->input_text_len = 0;
-    repl->input_layer = ik_input_layer_create(repl, "input", &repl->input_buffer_visible,
+    repl->current->input_layer = ik_input_layer_create(repl, "input", &repl->input_buffer_visible,
                                                &repl->input_text, &repl->input_text_len);
 
     repl->lower_separator_visible = true;
     repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &repl->lower_separator_visible);
 
     // Add layers to cake (scrollback, separator, input, lower_separator)
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->scrollback_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->separator_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->separator_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->input_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->input_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->lower_separator_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->lower_separator_layer);
     ck_assert(is_ok(&res));
 
     *repl_out = repl;
@@ -122,10 +123,10 @@ START_TEST(test_layer_positions_when_viewport_full) {
     for (int32_t i = 0; i < 15; i++) {
         char buf[64];
         snprintf(buf, sizeof(buf), "scrollback line %d - content here", i + 1);
-        res = ik_scrollback_append_line(repl->scrollback, buf, strlen(buf));
+        res = ik_scrollback_append_line(repl->current->scrollback, buf, strlen(buf));
         ck_assert(is_ok(&res));
     }
-    ik_scrollback_ensure_layout(repl->scrollback, 80);
+    ik_scrollback_ensure_layout(repl->current->scrollback, 80);
 
     // Add text to input buffer
     res = ik_input_buffer_insert_codepoint(repl->input_buffer, '*');
@@ -139,7 +140,7 @@ START_TEST(test_layer_positions_when_viewport_full) {
     repl->input_text_len = text_len;
 
     // Calculate viewport (viewport_offset = 0 means showing bottom of document)
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     ik_viewport_t viewport;
     res = ik_repl_calculate_viewport(repl, &viewport);
@@ -159,7 +160,7 @@ START_TEST(test_layer_positions_when_viewport_full) {
     // But we're showing the bottom of the document, so need to calculate properly
 
     // Get actual component sizes
-    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
     size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
 
     // Document model (CORRECT - including lower separator):
@@ -185,10 +186,10 @@ START_TEST(test_layer_positions_when_viewport_full) {
     for (int32_t i = 15; i < 20; i++) {
         char buf[64];
         snprintf(buf, sizeof(buf), "scrollback line %d - content here", i + 1);
-        res = ik_scrollback_append_line(repl->scrollback, buf, strlen(buf));
+        res = ik_scrollback_append_line(repl->current->scrollback, buf, strlen(buf));
         ck_assert(is_ok(&res));
     }
-    ik_scrollback_ensure_layout(repl->scrollback, 80);
+    ik_scrollback_ensure_layout(repl->current->scrollback, 80);
 
     // Recompute viewport with larger scrollback
     res = ik_repl_calculate_viewport(repl, &viewport);
@@ -199,7 +200,7 @@ START_TEST(test_layer_positions_when_viewport_full) {
     // Expected: showing bottom of document (viewport_offset = 0)
     // Document rows 3-22 should be visible (20 rows)
 
-    scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
     expected_document_height = scrollback_rows + 1 + input_buffer_rows + 1;  // 20 + 1 + 1 + 1 = 23
 
     // With BUGGY code: document_height = 20 + 1 + 1 = 22 (missing lower_sep)
@@ -224,7 +225,7 @@ START_TEST(test_layer_positions_when_viewport_full) {
     // there's no gap
 
     // Calculate total visible height using layer cake
-    size_t total_layer_height = ik_layer_cake_get_total_height(repl->layer_cake, 80);
+    size_t total_layer_height = ik_layer_cake_get_total_height(repl->current->layer_cake, 80);
 
     // Expected: scrollback (15) + upper_sep (1) + input (1) + lower_sep (1) = 18 rows
     ck_assert_msg(total_layer_height == expected_document_height,
@@ -252,10 +253,10 @@ START_TEST(test_document_height_includes_lower_separator) {
     for (int32_t i = 0; i < 5; i++) {
         char buf[64];
         snprintf(buf, sizeof(buf), "line %d", i + 1);
-        res = ik_scrollback_append_line(repl->scrollback, buf, strlen(buf));
+        res = ik_scrollback_append_line(repl->current->scrollback, buf, strlen(buf));
         ck_assert(is_ok(&res));
     }
-    ik_scrollback_ensure_layout(repl->scrollback, 80);
+    ik_scrollback_ensure_layout(repl->current->scrollback, 80);
 
     // Add text to input buffer (1 line)
     res = ik_input_buffer_insert_codepoint(repl->input_buffer, 'x');
@@ -269,7 +270,7 @@ START_TEST(test_document_height_includes_lower_separator) {
     repl->input_text_len = text_len;
 
     // Calculate total visible height using layer cake
-    size_t total_layer_height = ik_layer_cake_get_total_height(repl->layer_cake, 80);
+    size_t total_layer_height = ik_layer_cake_get_total_height(repl->current->layer_cake, 80);
 
     // Expected: scrollback (5) + upper_sep (1) + input (1) + lower_sep (1) = 8 rows
     size_t expected_height = 5 + 1 + 1 + 1;
@@ -300,10 +301,10 @@ START_TEST(test_bottom_separator_visible_when_viewport_full) {
     for (int32_t i = 0; i < 17; i++) {
         char buf[64];
         snprintf(buf, sizeof(buf), "scrollback line %d", i + 1);
-        res = ik_scrollback_append_line(repl->scrollback, buf, strlen(buf));
+        res = ik_scrollback_append_line(repl->current->scrollback, buf, strlen(buf));
         ck_assert(is_ok(&res));
     }
-    ik_scrollback_ensure_layout(repl->scrollback, 80);
+    ik_scrollback_ensure_layout(repl->current->scrollback, 80);
 
     // Add text to input buffer
     res = ik_input_buffer_insert_codepoint(repl->input_buffer, '*');
@@ -318,10 +319,10 @@ START_TEST(test_bottom_separator_visible_when_viewport_full) {
 
     // Render frame to test that lower separator is within viewport
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 4096);
-    repl->layer_cake->viewport_row = 0;
-    repl->layer_cake->viewport_height = 20;
+    repl->current->layer_cake->viewport_row = 0;
+    repl->current->layer_cake->viewport_height = 20;
 
-    ik_layer_cake_render(repl->layer_cake, output, 80);
+    ik_layer_cake_render(repl->current->layer_cake, output, 80);
 
     // Verify output contains separator characters
     // The lower separator renders as a line of Unicode box-drawing characters (─)

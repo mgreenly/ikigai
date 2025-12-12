@@ -4,6 +4,7 @@
  */
 
 #include "repl_run_test_common.h"
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 
@@ -37,8 +38,8 @@ START_TEST(test_repl_run_initial_render_error) {
     repl->shared = shared;
     shared->term = term;
     shared->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
 
@@ -88,8 +89,8 @@ START_TEST(test_repl_run_render_error_in_loop)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
 
@@ -137,8 +138,8 @@ START_TEST(test_repl_run_spinner_render_error)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
 
@@ -210,8 +211,8 @@ START_TEST(test_repl_run_spinner_timeout_success)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
 
@@ -283,8 +284,8 @@ START_TEST(test_repl_process_action_invalid_codepoint)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
 
     // Create action with invalid Unicode codepoint (> 0x10FFFF)
@@ -332,8 +333,8 @@ START_TEST(test_handle_terminal_input_success)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
 
     // Mock input with a simple ASCII character

@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include "../../../src/repl.h"
@@ -41,8 +42,8 @@ START_TEST(test_scroll_up_increases_offset)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 5;  // Start at offset 5
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 5;  // Start at offset 5
 
     // Process scroll up action
     ik_input_action_t action = {.type = IK_INPUT_SCROLL_UP};
@@ -50,7 +51,7 @@ START_TEST(test_scroll_up_increases_offset)
     ck_assert(is_ok(&res));
 
     // Viewport offset should increase by 3
-    ck_assert_uint_eq(repl->viewport_offset, 8);
+    ck_assert_uint_eq(repl->current->viewport_offset, 8);
 
     talloc_free(ctx);
 }
@@ -85,8 +86,8 @@ START_TEST(test_scroll_down_decreases_offset)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 5;  // Start at offset 5
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 5;  // Start at offset 5
 
     // Process scroll down action
     ik_input_action_t action = {.type = IK_INPUT_SCROLL_DOWN};
@@ -94,7 +95,7 @@ START_TEST(test_scroll_down_decreases_offset)
     ck_assert(is_ok(&res));
 
     // Viewport offset should decrease by 3
-    ck_assert_uint_eq(repl->viewport_offset, 2);
+    ck_assert_uint_eq(repl->current->viewport_offset, 2);
 
     talloc_free(ctx);
 }
@@ -131,8 +132,8 @@ START_TEST(test_scroll_up_clamps_at_max)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 13;  // Already at max
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 13;  // Already at max
 
     // Process scroll up action
     ik_input_action_t action = {.type = IK_INPUT_SCROLL_UP};
@@ -140,7 +141,7 @@ START_TEST(test_scroll_up_clamps_at_max)
     ck_assert(is_ok(&res));
 
     // Should stay at max (13), not go to 14
-    ck_assert_uint_eq(repl->viewport_offset, 13);
+    ck_assert_uint_eq(repl->current->viewport_offset, 13);
 
     talloc_free(ctx);
 }
@@ -174,8 +175,8 @@ START_TEST(test_scroll_down_clamps_at_zero)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;  // Already at bottom
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;  // Already at bottom
 
     // Process scroll down action
     ik_input_action_t action = {.type = IK_INPUT_SCROLL_DOWN};
@@ -183,7 +184,7 @@ START_TEST(test_scroll_down_clamps_at_zero)
     ck_assert(is_ok(&res));
 
     // Should stay at 0
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
 
     talloc_free(ctx);
 }
@@ -225,8 +226,8 @@ START_TEST(test_scroll_preserves_input_buffer)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 5;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 5;
 
     // Get original input buffer content
     size_t original_len = 0;
@@ -287,8 +288,8 @@ START_TEST(test_scroll_up_empty_input_buffer)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 5;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 5;
 
     // Process scroll up action
     ik_input_action_t action = {.type = IK_INPUT_SCROLL_UP};
@@ -296,7 +297,7 @@ START_TEST(test_scroll_up_empty_input_buffer)
     ck_assert(is_ok(&res));
 
     // Viewport offset should increase by 3
-    ck_assert_uint_eq(repl->viewport_offset, 8);
+    ck_assert_uint_eq(repl->current->viewport_offset, 8);
 
     talloc_free(ctx);
 }
@@ -334,8 +335,8 @@ START_TEST(test_scroll_up_small_document)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Process scroll up action
     ik_input_action_t action = {.type = IK_INPUT_SCROLL_UP};
@@ -343,7 +344,7 @@ START_TEST(test_scroll_up_small_document)
     ck_assert(is_ok(&res));
 
     // Offset should stay at 0 since document fits entirely on screen
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
 
     talloc_free(ctx);
 }

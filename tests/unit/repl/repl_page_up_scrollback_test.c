@@ -7,6 +7,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -73,9 +74,9 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Document: 9 scrollback + 1 upper_separator + 1 input buffer + 1 lower_separator = 12 rows
     // (input buffer always occupies 1 row even when empty, for cursor visibility)
@@ -106,7 +107,7 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
 
     // Now press Page Up (scroll to max offset to see earliest lines)
     // Document height = 12, terminal = 5, max offset = 7
-    repl->viewport_offset = 7;
+    repl->current->viewport_offset = 7;
 
     // After Page Up to max, showing rows 0-4:
     //   Row 0: initial0 (scrollback line 0)

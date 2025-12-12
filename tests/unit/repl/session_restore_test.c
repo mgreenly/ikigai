@@ -1,4 +1,5 @@
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include <string.h>
 
@@ -107,7 +108,7 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
     ik_shared_ctx_t *shared = talloc_zero_(ctx, sizeof(ik_shared_ctx_t));
     shared->cfg = talloc_zero_(ctx, sizeof(ik_cfg_t));
     repl->shared = shared;
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->shared->session_id = 0;
     repl->conversation = ik_openai_conversation_create(repl).ok;
     return repl;
@@ -247,7 +248,7 @@ START_TEST(test_restore_no_active_session_scrollback_empty)
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->current->scrollback), 0);
 
     talloc_free(ctx);
 }
@@ -271,7 +272,7 @@ START_TEST(test_restore_new_session_system_message_in_scrollback)
 
     ck_assert(is_ok(&res));
     // System message should be in scrollback (Bug 6 fix) - with blank line = 2 lines
-    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->current->scrollback), 2);
 
     talloc_free(ctx);
 }
@@ -321,7 +322,7 @@ START_TEST(test_restore_active_session_populates_scrollback)
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 4);
+    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->current->scrollback), 4);
 
     talloc_free(ctx);
 }
@@ -347,7 +348,7 @@ START_TEST(test_restore_active_session_no_messages)
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->current->scrollback), 0);
 
     talloc_free(ctx);
 }
@@ -399,7 +400,7 @@ START_TEST(test_restore_multiple_clears_only_after_last)
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->current->scrollback), 2);
 
     talloc_free(ctx);
 }
@@ -432,7 +433,7 @@ START_TEST(test_restore_active_session_empty_string_content_skipped)
 
     ck_assert(is_ok(&res));
     // User message renders (with blank line), clear/rewind don't render visible content
-    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_int_eq((int)ik_scrollback_get_line_count(repl->current->scrollback), 2);
 
     talloc_free(ctx);
 }

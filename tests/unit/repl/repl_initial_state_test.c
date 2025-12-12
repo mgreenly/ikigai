@@ -7,6 +7,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -103,9 +104,9 @@ START_TEST(test_initial_state_cursor_visible) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
-    repl->viewport_offset = 0;  // At bottom (initial state)
+    repl->current->viewport_offset = 0;  // At bottom (initial state)
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -113,7 +114,7 @@ START_TEST(test_initial_state_cursor_visible) {
     ck_assert(is_ok(&res));
 
     fprintf(stderr, "\n=== Initial State (empty input buffer) ===\n");
-    fprintf(stderr, "viewport_offset: %zu\n", repl->viewport_offset);
+    fprintf(stderr, "viewport_offset: %zu\n", repl->current->viewport_offset);
     fprintf(stderr, "input_buffer_start_row: %zu\n", viewport.input_buffer_start_row);
     fprintf(stderr, "separator_visible: %d\n", viewport.separator_visible);
     fprintf(stderr, "terminal_rows: %d\n", term->screen_rows);
@@ -195,9 +196,9 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -275,9 +276,9 @@ START_TEST(test_scrolled_up_cursor_hidden)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
-    repl->viewport_offset = 5;  // Scrolled up
+    repl->current->viewport_offset = 5;  // Scrolled up
 
     // Calculate viewport
     ik_viewport_t viewport;

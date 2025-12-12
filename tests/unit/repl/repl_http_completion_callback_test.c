@@ -7,6 +7,7 @@
  */
 
 #include "repl.h"
+#include "../../../src/agent.h"
 #include "repl_callbacks.h"
 #include "shared.h"
 #include "scrollback.h"
@@ -32,7 +33,7 @@ static void setup(void)
     /* Create minimal REPL context for testing callback */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->shared = shared;
-    repl->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->streaming_line_buffer = NULL;
     repl->http_error_message = NULL;
     repl->response_model = NULL;
@@ -67,7 +68,7 @@ START_TEST(test_completion_flushes_streaming_buffer) {
 
     /* Verify buffer was flushed to scrollback (content + blank line) and cleared */
     ck_assert_ptr_null(repl->streaming_line_buffer);
-    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->current->scrollback), 2);
 }
 END_TEST
 /* Test: Completion clears previous error message */
@@ -281,7 +282,7 @@ START_TEST(test_completion_flushes_buffer_and_stores_error)
 
     /* Verify buffer was flushed */
     ck_assert_ptr_null(repl->streaming_line_buffer);
-    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->current->scrollback), 1);
 
     /* Verify error was stored */
     ck_assert_ptr_nonnull(repl->http_error_message);

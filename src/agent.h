@@ -1,6 +1,8 @@
 #pragma once
 
 #include "error.h"
+#include "layer.h"
+#include "scrollback.h"
 
 #include <talloc.h>
 #include <stdbool.h>
@@ -19,7 +21,17 @@ typedef struct ik_agent_ctx {
     // Reference to shared infrastructure
     ik_shared_ctx_t *shared;
 
-    // Fields will be migrated here incrementally
+    // Display state (per-agent)
+    ik_scrollback_t *scrollback;
+    ik_layer_cake_t *layer_cake;
+    ik_layer_t *scrollback_layer;
+    ik_layer_t *spinner_layer;
+    ik_layer_t *separator_layer;
+    ik_layer_t *input_layer;
+    ik_layer_t *completion_layer;
+
+    // Viewport state
+    size_t viewport_offset;
 } ik_agent_ctx_t;
 
 // Create agent context

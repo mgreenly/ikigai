@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -57,9 +58,9 @@ static ik_repl_ctx_t *create_test_repl(void *ctx)
     repl->shared = shared;
     shared->render = render;
     shared->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
-    repl->layer_cake = layer_cake;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
+    repl->current->layer_cake = layer_cake;
 
     // Initialize reference fields
     repl->separator_visible = true;

@@ -8,6 +8,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -93,7 +94,7 @@ START_TEST(test_separator_partial_first_line) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
 
     // To show document rows 1-10:
@@ -103,7 +104,7 @@ START_TEST(test_separator_partial_first_line) {
     // last_visible_row = document_height - 1 - offset
     // 10 = 32 - 1 - offset
     // offset = 21
-    repl->viewport_offset = 21;
+    repl->current->viewport_offset = 21;
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -187,7 +188,7 @@ START_TEST(test_separator_row_offset_impact)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
 
     // Show rows 1-5 (starts in middle of line 0)
@@ -205,7 +206,7 @@ START_TEST(test_separator_row_offset_impact)
     //
     // last_visible = 5, first_visible = 1
     // offset = 43 - 1 - 5 = 37
-    repl->viewport_offset = 37;
+    repl->current->viewport_offset = 37;
 
     ik_viewport_t viewport;
     res = ik_repl_calculate_viewport(repl, &viewport);

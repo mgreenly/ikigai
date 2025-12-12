@@ -6,6 +6,7 @@
  */
 
 #include "repl_streaming_test_common.h"
+#include "../../../src/agent.h"
 
 /* Test: Streaming callback with empty lines in content (Task 6.2: line length branch) */
 START_TEST(test_streaming_callback_with_empty_lines)
@@ -30,7 +31,7 @@ START_TEST(test_streaming_callback_with_empty_lines)
     res_t res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    size_t initial_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t initial_count = ik_scrollback_get_line_count(repl->current->scrollback);
 
     // Simulate receiving SSE data with content containing empty lines in the middle
     // "Hello\n\nWorld" should create 3 lines: "Hello", "", "World"
@@ -46,7 +47,7 @@ START_TEST(test_streaming_callback_with_empty_lines)
     // Verify scrollback has new lines added
     // Should have: initial + "Hello" + "" = initial + 2
     // Note: "World" (no trailing newline) is buffered but not added to scrollback yet
-    size_t after_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t after_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(after_count, initial_count + 2);
 
     // Verify the content of the added lines
@@ -54,13 +55,13 @@ START_TEST(test_streaming_callback_with_empty_lines)
     size_t line_len = 0;
 
     // First line should be "Hello"
-    res = ik_scrollback_get_line_text(repl->scrollback, initial_count, &line_text, &line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, initial_count, &line_text, &line_len);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(line_len, 5);
     ck_assert_mem_eq(line_text, "Hello", 5);
 
     // Second line should be empty
-    res = ik_scrollback_get_line_text(repl->scrollback, initial_count + 1, &line_text, &line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, initial_count + 1, &line_text, &line_len);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(line_len, 0);
 
@@ -97,7 +98,7 @@ START_TEST(test_streaming_callback_buffered_line_flush)
     res_t res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    size_t initial_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t initial_count = ik_scrollback_get_line_count(repl->current->scrollback);
 
     // First chunk: content without trailing newline (gets buffered)
     const char *chunk1 = "data: {\"choices\":[{\"delta\":{\"content\":\"First\"}}]}\n\n";
@@ -109,7 +110,7 @@ START_TEST(test_streaming_callback_buffered_line_flush)
     ck_assert(is_ok(&res));
 
     // Verify "First" is buffered (not in scrollback yet)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), initial_count);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), initial_count);
     ck_assert_ptr_nonnull(repl->streaming_line_buffer);
     ck_assert_str_eq(repl->streaming_line_buffer, "First");
 
@@ -122,12 +123,12 @@ START_TEST(test_streaming_callback_buffered_line_flush)
     ck_assert(is_ok(&res));
 
     // Verify "First part" was flushed to scrollback
-    size_t after_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t after_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(after_count, initial_count + 1);
 
     const char *line_text = NULL;
     size_t line_len = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, initial_count, &line_text, &line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, initial_count, &line_text, &line_len);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(line_len, 10);
     ck_assert_mem_eq(line_text, "First part", 10);

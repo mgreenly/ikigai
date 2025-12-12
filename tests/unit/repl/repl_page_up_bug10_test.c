@@ -12,6 +12,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -56,9 +57,9 @@ START_TEST(test_page_up_shows_earliest_line) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Simulate: type a, Enter
     res = ik_input_buffer_insert_codepoint(input_buf, 'a');
@@ -124,7 +125,7 @@ START_TEST(test_page_up_shows_earliest_line) {
     // After Page Up, viewport_offset should be 5 (clamped to max_offset)
     // max_offset = document_height - terminal_rows = 11 - 5 = 6
     // offset = min(0 + 5, 6) = 5
-    ck_assert_uint_eq(repl->viewport_offset, 5);
+    ck_assert_uint_eq(repl->current->viewport_offset, 5);
 
     // Calculate viewport after Page Up
     ik_viewport_t viewport_up;

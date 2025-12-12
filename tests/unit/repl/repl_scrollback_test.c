@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include <string.h>
 #include <fcntl.h>
@@ -100,15 +101,15 @@ START_TEST(test_repl_context_with_scrollback) {
     ck_assert_ptr_nonnull(scrollback);
 
     // Assign to REPL context
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Verify scrollback is accessible through REPL
-    ck_assert_ptr_nonnull(repl->scrollback);
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
 
     // Verify scrollback is empty initially
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(line_count, 0);
 
     // Cleanup
@@ -136,11 +137,11 @@ START_TEST(test_repl_scrollback_terminal_width)
     ik_scrollback_t *scrollback = ik_scrollback_create(repl, term->screen_cols);
     ck_assert_ptr_nonnull(scrollback);
 
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Verify scrollback uses correct terminal width
-    ck_assert_int_eq(repl->scrollback->cached_width, 120);
+    ck_assert_int_eq(repl->current->scrollback->cached_width, 120);
 
     // Cleanup
     talloc_free(ctx);
@@ -165,7 +166,7 @@ START_TEST(test_page_down_scrolling)
     ck_assert(is_ok(&res));
 
     // Start scrolled up (viewport_offset = 48, i.e., 2 pages up)
-    repl->viewport_offset = 48;
+    repl->current->viewport_offset = 48;
 
     // Simulate Page Down action
     ik_input_action_t action = {.type = IK_INPUT_PAGE_DOWN};
@@ -173,7 +174,7 @@ START_TEST(test_page_down_scrolling)
     ck_assert(is_ok(&res));
 
     // Should decrease by screen_rows (24)
-    ck_assert_uint_eq(repl->viewport_offset, 24);
+    ck_assert_uint_eq(repl->current->viewport_offset, 24);
 
     // Cleanup
     talloc_free(ctx);
@@ -198,7 +199,7 @@ START_TEST(test_page_down_at_bottom)
     ck_assert(is_ok(&res));
 
     // Start at bottom (viewport_offset = 0)
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Simulate Page Down action
     ik_input_action_t action = {.type = IK_INPUT_PAGE_DOWN};
@@ -206,7 +207,7 @@ START_TEST(test_page_down_at_bottom)
     ck_assert(is_ok(&res));
 
     // Should stay at 0
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
 
     // Cleanup
     talloc_free(ctx);
@@ -231,7 +232,7 @@ START_TEST(test_page_down_small_offset)
     ck_assert(is_ok(&res));
 
     // Start with small offset (less than screen_rows)
-    repl->viewport_offset = 10;
+    repl->current->viewport_offset = 10;
 
     // Simulate Page Down action
     ik_input_action_t action = {.type = IK_INPUT_PAGE_DOWN};
@@ -239,7 +240,7 @@ START_TEST(test_page_down_small_offset)
     ck_assert(is_ok(&res));
 
     // Should clamp to 0 (not go negative)
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
 
     // Cleanup
     talloc_free(ctx);
@@ -267,12 +268,12 @@ START_TEST(test_page_up_scrolling)
     for (int i = 0; i < 50; i++) {
         char line[100];
         snprintf(line, sizeof(line), "Line %d with some text content", i);
-        res = ik_scrollback_append_line(repl->scrollback, line, strlen(line));
+        res = ik_scrollback_append_line(repl->current->scrollback, line, strlen(line));
         ck_assert(is_ok(&res));
     }
 
     // Start at bottom (viewport_offset = 0)
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Simulate Page Up action
     ik_input_action_t action = {.type = IK_INPUT_PAGE_UP};
@@ -280,7 +281,7 @@ START_TEST(test_page_up_scrolling)
     ck_assert(is_ok(&res));
 
     // Should increase by screen_rows (24)
-    ck_assert_uint_eq(repl->viewport_offset, 24);
+    ck_assert_uint_eq(repl->current->viewport_offset, 24);
 
     // Cleanup
     talloc_free(ctx);
@@ -305,10 +306,10 @@ START_TEST(test_page_up_empty_scrollback)
     ck_assert(is_ok(&res));
 
     // Verify scrollback is empty
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 
     // Start at bottom (viewport_offset = 0)
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Simulate Page Up action
     ik_input_action_t action = {.type = IK_INPUT_PAGE_UP};
@@ -316,7 +317,7 @@ START_TEST(test_page_up_empty_scrollback)
     ck_assert(is_ok(&res));
 
     // Should clamp to 0 (can't scroll up with no content)
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
 
     // Cleanup
     talloc_free(ctx);
@@ -344,7 +345,7 @@ START_TEST(test_page_up_clamping)
     for (int i = 0; i < 30; i++) {
         char line[100];
         snprintf(line, sizeof(line), "Line %d", i);
-        res = ik_scrollback_append_line(repl->scrollback, line, strlen(line));
+        res = ik_scrollback_append_line(repl->current->scrollback, line, strlen(line));
         ck_assert(is_ok(&res));
     }
 
@@ -352,7 +353,7 @@ START_TEST(test_page_up_clamping)
     // document_height = scrollback (30) + upper_separator (1) + MAX(input buffer, 1) + lower_separator (1) = 33 rows
     // input buffer always occupies at least 1 row (for cursor visibility when empty)
     // max_offset = 33 - 24 = 9
-    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
     ik_input_buffer_ensure_layout(repl->input_buffer, repl->shared->term->screen_cols);
     size_t input_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
     size_t input_display_rows = (input_rows == 0) ? 1 : input_rows;
@@ -360,7 +361,7 @@ START_TEST(test_page_up_clamping)
     size_t expected_max = document_height - (size_t)repl->shared->term->screen_rows;
 
     // Start near top
-    repl->viewport_offset = (expected_max > 10) ? expected_max - 10 : 0;
+    repl->current->viewport_offset = (expected_max > 10) ? expected_max - 10 : 0;
 
     // Simulate Page Up action (should hit ceiling)
     ik_input_action_t action = {.type = IK_INPUT_PAGE_UP};
@@ -368,7 +369,7 @@ START_TEST(test_page_up_clamping)
     ck_assert(is_ok(&res));
 
     // Should clamp to max offset (document model)
-    ck_assert_uint_eq(repl->viewport_offset, expected_max);
+    ck_assert_uint_eq(repl->current->viewport_offset, expected_max);
 
     // Cleanup
     talloc_free(ctx);
@@ -409,7 +410,7 @@ START_TEST(test_submit_line_to_scrollback)
     ck_assert(is_ok(&res));
 
     // Verify scrollback has two lines (content + blank line)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
 
     // Verify input buffer is cleared
     ck_assert_uint_eq(ik_byte_array_size(repl->input_buffer->text), 0);
@@ -437,7 +438,7 @@ START_TEST(test_submit_line_auto_scroll)
     ck_assert(is_ok(&res));
 
     // Scroll up (viewport_offset > 0)
-    repl->viewport_offset = 100;
+    repl->current->viewport_offset = 100;
 
     // Add text to input buffer
     const char *test_text = "Test line";
@@ -452,7 +453,7 @@ START_TEST(test_submit_line_auto_scroll)
     ck_assert(is_ok(&res));
 
     // Verify viewport_offset is reset to 0 (auto-scroll to bottom)
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
 
     // Cleanup
     talloc_free(ctx);
@@ -484,7 +485,7 @@ START_TEST(test_submit_empty_line)
     ck_assert(is_ok(&res));
 
     // Verify scrollback is still empty (no line added)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 
     // Cleanup
     talloc_free(ctx);

@@ -10,6 +10,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
@@ -49,9 +50,9 @@ START_TEST(test_page_up_after_typing_in_input_buffer) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     shared->render = render;
-    repl->viewport_offset = 0;
+    repl->current->viewport_offset = 0;
 
     // Step 1-4: Type a, b, c, d (with Enter after each)
     for (char ch = 'a'; ch <= 'd'; ch++) {
@@ -96,7 +97,7 @@ START_TEST(test_page_up_after_typing_in_input_buffer) {
     ik_input_buffer_ensure_layout(input_buf, 80);
 
     // After typing 'e', auto-scroll should reset to bottom
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
 
     // Document now: 8 (scrollback with blank lines) + 1 (upper_sep) + 1 (input buffer 'e') + 1 (lower_sep) = 11 rows
     // Terminal: 5 rows
@@ -112,7 +113,7 @@ START_TEST(test_page_up_after_typing_in_input_buffer) {
     ck_assert(is_ok(&res));
 
     printf("At bottom after typing 'e':\n");
-    printf("  viewport_offset: %zu\n", repl->viewport_offset);
+    printf("  viewport_offset: %zu\n", repl->current->viewport_offset);
     printf("  scrollback_start_line: %zu\n", viewport_at_bottom.scrollback_start_line);
     printf("  scrollback_lines_count: %zu\n", viewport_at_bottom.scrollback_lines_count);
     printf("  input_buffer_start_row: %zu\n", viewport_at_bottom.input_buffer_start_row);
@@ -126,11 +127,11 @@ START_TEST(test_page_up_after_typing_in_input_buffer) {
     ck_assert(is_ok(&res));
 
     printf("\nAfter Page Up:\n");
-    printf("  viewport_offset: %zu\n", repl->viewport_offset);
+    printf("  viewport_offset: %zu\n", repl->current->viewport_offset);
 
     // max_offset = 11 - 5 = 6
     // After Page Up: offset = min(0 + 5, 6) = 5
-    ck_assert_uint_eq(repl->viewport_offset, 5);
+    ck_assert_uint_eq(repl->current->viewport_offset, 5);
 
     ik_viewport_t viewport_after_pageup;
     res = ik_repl_calculate_viewport(repl, &viewport_after_pageup);

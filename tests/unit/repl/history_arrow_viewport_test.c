@@ -8,6 +8,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include <inttypes.h>
 #include <string.h>
 #include <talloc.h>
@@ -53,9 +54,9 @@ START_TEST(test_arrow_up_with_viewport_offset_scrolls)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->shared->history = history;
-    repl->viewport_offset = 5;  // Already scrolled up
+    repl->current->viewport_offset = 5;  // Already scrolled up
 
     // Press Arrow Up - should scroll viewport, not navigate history
     ik_input_action_t action = {.type = IK_INPUT_ARROW_UP};
@@ -63,7 +64,7 @@ START_TEST(test_arrow_up_with_viewport_offset_scrolls)
     ck_assert(is_ok(&res));
 
     // Verify: viewport_offset increased by 3
-    ck_assert_uint_eq(repl->viewport_offset, 8);
+    ck_assert_uint_eq(repl->current->viewport_offset, 8);
 
     // Verify: Input buffer unchanged (still "h")
     size_t text_len = 0;
@@ -110,9 +111,9 @@ START_TEST(test_arrow_down_with_viewport_offset_scrolls)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->shared->history = history;
-    repl->viewport_offset = 5;  // Already scrolled up
+    repl->current->viewport_offset = 5;  // Already scrolled up
 
     // Press Arrow Down - should scroll viewport, not navigate history
     ik_input_action_t action = {.type = IK_INPUT_ARROW_DOWN};
@@ -120,7 +121,7 @@ START_TEST(test_arrow_down_with_viewport_offset_scrolls)
     ck_assert(is_ok(&res));
 
     // Verify: viewport_offset decreased by 3
-    ck_assert_uint_eq(repl->viewport_offset, 2);
+    ck_assert_uint_eq(repl->current->viewport_offset, 2);
 
     // Verify: Input buffer unchanged (still "h")
     size_t text_len = 0;
@@ -159,9 +160,9 @@ START_TEST(test_arrow_up_with_zero_offset_navigates_history)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->shared->history = history;
-    repl->viewport_offset = 0;  // At bottom
+    repl->current->viewport_offset = 0;  // At bottom
 
     // Press Arrow Up - should navigate history
     ik_input_action_t action = {.type = IK_INPUT_ARROW_UP};
@@ -178,7 +179,7 @@ START_TEST(test_arrow_up_with_zero_offset_navigates_history)
     ck_assert(ik_history_is_browsing(history));
 
     // Verify: viewport_offset still 0
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
 
     talloc_free(ctx);
 }
@@ -219,9 +220,9 @@ START_TEST(test_arrow_down_to_bottom_then_history)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current->scrollback = scrollback;
     repl->shared->history = history;
-    repl->viewport_offset = 1;  // Scrolled up by 1
+    repl->current->viewport_offset = 1;  // Scrolled up by 1
 
     // Press Arrow Down - should scroll viewport down to 0
     ik_input_action_t action = {.type = IK_INPUT_ARROW_DOWN};
@@ -229,7 +230,7 @@ START_TEST(test_arrow_down_to_bottom_then_history)
     ck_assert(is_ok(&res));
 
     // Verify: viewport_offset is now 0
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
 
     // Verify: Input buffer unchanged (still "h")
     size_t text_len = 0;

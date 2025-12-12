@@ -2,6 +2,7 @@
 #include "repl_actions.h"
 #include "repl_actions_internal.h"
 #include "repl.h"
+#include "agent.h"
 #include "repl_callbacks.h"
 #include "panic.h"
 #include "shared.h"
@@ -44,7 +45,7 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
     // Append output to scrollback buffer (split by newlines)
     const char *output = ik_format_get_string(buf);
     size_t output_len = strlen(output);
-    ik_repl_append_multiline_to_scrollback(repl->scrollback, output, output_len);
+    ik_repl_append_multiline_to_scrollback(repl->current->scrollback, output, output_len);
 
     // Clean up format buffer
     talloc_free(buf);
@@ -120,7 +121,7 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
                                          ik_repl_http_completion_callback, repl, false);
     if (is_err(&result)) {
         const char *err_msg = error_message(result.err);
-        ik_scrollback_append_line(repl->scrollback, err_msg, strlen(err_msg));
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
         ik_repl_transition_to_idle(repl);
         talloc_free(result.err);
     } else {
@@ -156,7 +157,7 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
 
     if (is_slash_command) {
         ik_input_buffer_clear(repl->input_buffer);
-        repl->viewport_offset = 0;
+        repl->current->viewport_offset = 0;
     } else {
         ik_repl_submit_line(repl);
     }

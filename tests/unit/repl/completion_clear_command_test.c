@@ -7,6 +7,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include "../../../src/shared.h"
 #include "../../../src/repl.h"
@@ -32,8 +33,8 @@ START_TEST(test_clear_command_clears_autocomplete)
     ck_assert_ptr_nonnull(repl->input_buffer);
 
     // Create scrollback (80 columns for test)
-    repl->scrollback = ik_scrollback_create(ctx, 80);
-    ck_assert_ptr_nonnull(repl->scrollback);
+    repl->current->scrollback = ik_scrollback_create(ctx, 80);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create minimal shared context
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
@@ -83,7 +84,7 @@ START_TEST(test_clear_command_clears_autocomplete)
 
     // Verify the clear command actually executed by checking scrollback was cleared
     // and system message was added
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     // After clear, scrollback should only have the system message (if configured)
     // Since we have a cfg with system_message, expect 1 line
     if (repl->shared->cfg->openai_system_message != NULL) {
