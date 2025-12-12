@@ -449,6 +449,121 @@ START_TEST(test_csi_u_modified_key_unknown)
 }
 END_TEST
 
+// Test: CSI u with Ctrl+C but wrong keycode should return UNKNOWN
+START_TEST(test_csi_u_ctrl_wrong_keycode)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[98;5u = 'b' with Ctrl (not Ctrl+C, should be UNKNOWN)
+    const char seq[] = "\x1b[98;5u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u with modified Backspace should return UNKNOWN
+START_TEST(test_csi_u_modified_backspace)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[127;2u = Backspace with Shift (not handled, should be UNKNOWN)
+    const char seq[] = "\x1b[127;2u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u with modified Escape should return UNKNOWN
+START_TEST(test_csi_u_modified_escape)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[27;2u = Escape with Shift (not handled, should be UNKNOWN)
+    const char seq[] = "\x1b[27;2u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u with Unicode and modifiers should return UNKNOWN
+START_TEST(test_csi_u_unicode_with_modifiers)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[233;2u = 'é' with Shift modifier (not handled, should be UNKNOWN)
+    const char seq[] = "\x1b[233;2u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u with large Unicode codepoint (4-digit hex)
+START_TEST(test_csi_u_large_unicode)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[8364;1u = € symbol (U+20AC = 8364 decimal)
+    const char seq[] = "\x1b[8364;1u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CHAR);
+    ck_assert_uint_eq(action.codepoint, 8364);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u with codepoint beyond valid Unicode range
+START_TEST(test_csi_u_beyond_unicode_range)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[1114112;1u = beyond U+10FFFF (max valid Unicode)
+    const char seq[] = "\x1b[1114112;1u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test suite
 static Suite *input_csi_u_suite(void)
 {
@@ -479,6 +594,12 @@ static Suite *input_csi_u_suite(void)
     tcase_add_test(tc_core, test_csi_u_invalid_not_ending_with_u);
     tcase_add_test(tc_core, test_csi_u_modified_tab_unknown);
     tcase_add_test(tc_core, test_csi_u_modified_key_unknown);
+    tcase_add_test(tc_core, test_csi_u_ctrl_wrong_keycode);
+    tcase_add_test(tc_core, test_csi_u_modified_backspace);
+    tcase_add_test(tc_core, test_csi_u_modified_escape);
+    tcase_add_test(tc_core, test_csi_u_unicode_with_modifiers);
+    tcase_add_test(tc_core, test_csi_u_large_unicode);
+    tcase_add_test(tc_core, test_csi_u_beyond_unicode_range);
 
     suite_add_tcase(s, tc_core);
     return s;
