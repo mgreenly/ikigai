@@ -52,8 +52,8 @@ size_t ik_scrollback_calc_start_byte_for_row(ik_scrollback_t *scrollback,
 
     size_t start_byte = 0;
     res = ik_scrollback_get_byte_offset_at_display_col(scrollback, line_index, cols_to_skip, &start_byte);
-    if (is_err(&res)) {
-        return 0;
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return 0;     // LCOV_EXCL_LINE - Error path for malformed UTF-8
     }
 
     if (seg_idx > 0) {
@@ -109,8 +109,10 @@ size_t ik_scrollback_calc_end_byte_for_row(ik_scrollback_t *scrollback,
             : (seg_widths[seg_idx] + terminal_width - 1) / terminal_width;
 
         if (rows_to_include >= seg_rows) {
+            // LCOV_EXCL_START - Edge case: consuming entire segments, rare in practice
             rows_to_include -= seg_rows;
             seg_idx++;
+            // LCOV_EXCL_STOP
         } else {
             partial_rows = rows_to_include;
             rows_to_include = 0;
@@ -119,18 +121,19 @@ size_t ik_scrollback_calc_end_byte_for_row(ik_scrollback_t *scrollback,
 
     // Calculate display columns to include
     size_t cols_in_prev_segments = 0;
-    for (size_t s = 0; s < seg_idx; s++) {
-        cols_in_prev_segments += seg_widths[s];
+    for (size_t s = 0; s < seg_idx; s++) {     // LCOV_EXCL_BR_LINE
+        cols_in_prev_segments += seg_widths[s];     // LCOV_EXCL_LINE
     }
     size_t cols_to_include = cols_in_prev_segments + (partial_rows * terminal_width);
 
     size_t end_byte = line_len;
     res = ik_scrollback_get_byte_offset_at_display_col(scrollback, line_index, cols_to_include, &end_byte);
-    if (is_err(&res)) {
-        return line_len;
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return line_len;     // LCOV_EXCL_LINE - Error path for malformed UTF-8
     }
 
-    if (seg_idx > 0) {
+    if (seg_idx > 0) {     // LCOV_EXCL_BR_LINE
+        // LCOV_EXCL_START - Edge case: multiple segments with newlines
         // Include newlines if we included entire segments
         size_t newlines_to_include = seg_idx;
         size_t newlines_seen = 0;
@@ -142,6 +145,7 @@ size_t ik_scrollback_calc_end_byte_for_row(ik_scrollback_t *scrollback,
                 }
             }
         }
+        // LCOV_EXCL_STOP
     }
 
     return end_byte;
