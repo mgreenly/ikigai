@@ -112,14 +112,24 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     shared->term = term;
     shared->render = render;
 
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
+    // Override agent's display state with test fixtures
+    talloc_free(agent->scrollback);
+    agent->scrollback = scrollback;
+    talloc_free(agent->layer_cake);
+    agent->layer_cake = layer_cake;
+    agent->viewport_offset = 0;
+
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->shared = shared;
+    repl->current = agent;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
-    repl->current->viewport_offset = 0;
-    repl->current->layer_cake = layer_cake;
 
     // Initialize reference fields
     repl->separator_visible = true;
