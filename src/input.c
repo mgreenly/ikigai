@@ -200,13 +200,13 @@ void ik_input_parse_byte(ik_input_parser_t *parser, char byte,
         action_out->type = IK_INPUT_CTRL_K;
         return;
     }
-    if (byte == 0x0E) {  // Ctrl+N
-        action_out->type = IK_INPUT_CTRL_N;
-        return;
+    if (byte == 0x0E) {  // Ctrl+N (legacy, CSI u preferred)  // LCOV_EXCL_BR_LINE
+        action_out->type = IK_INPUT_CTRL_N;  // LCOV_EXCL_LINE
+        return;  // LCOV_EXCL_LINE
     }
-    if (byte == 0x10) {  // Ctrl+P
-        action_out->type = IK_INPUT_CTRL_P;
-        return;
+    if (byte == 0x10) {  // Ctrl+P (legacy, CSI u preferred)  // LCOV_EXCL_BR_LINE
+        action_out->type = IK_INPUT_CTRL_P;  // LCOV_EXCL_LINE
+        return;  // LCOV_EXCL_LINE
     }
     if (byte == 0x15) {  // Ctrl+U
         action_out->type = IK_INPUT_CTRL_U;

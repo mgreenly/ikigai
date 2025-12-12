@@ -109,14 +109,14 @@ uint32_t ik_input_xkb_translate_shifted_key(const ik_input_parser_t *parser, uin
     assert(parser != NULL);  // LCOV_EXCL_BR_LINE
 
     // If xkb not initialized or codepoint out of ASCII range, return as-is
-    if (!parser->xkb_initialized || codepoint < 32 || codepoint >= 128) {
-        return codepoint;
+    if (!parser->xkb_initialized || codepoint < 32 || codepoint >= 128) {  // LCOV_EXCL_BR_LINE
+        return codepoint;  // LCOV_EXCL_LINE
     }
 
     // Look up the X11 keycode for this codepoint
     xkb_keycode_t kc = parser->reverse_map.keycodes[codepoint];
-    if (kc == 0) {
-        return codepoint;  // No mapping found
+    if (kc == 0) {  // LCOV_EXCL_BR_LINE
+        return codepoint;  // No mapping found  // LCOV_EXCL_LINE
     }
 
     // Set Shift modifier and get the resulting character

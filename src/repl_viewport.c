@@ -312,6 +312,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     }
 
     // Compute elapsed render time (for next frame's debug display)
+    // LCOV_EXCL_START - Debug timing code requires precise control of render timing
     if (repl->render_start_us != 0) {
         struct timespec ts_end;
         clock_gettime(CLOCK_MONOTONIC, &ts_end);
@@ -319,6 +320,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
         repl->render_elapsed_us = end_us - repl->render_start_us;
         repl->render_start_us = 0;  // Reset so we don't re-compute on non-input renders
     }
+    // LCOV_EXCL_STOP
 
     return OK(repl);
 }

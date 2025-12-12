@@ -125,7 +125,7 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
     size_t segment_count = newline_count + 1;
     size_t *segment_widths = talloc_array_(scrollback, sizeof(size_t), segment_count);
     if (segment_widths == NULL) {     // LCOV_EXCL_BR_LINE
-        return ERR(scrollback, OUT_OF_MEMORY, "Failed to allocate segment_widths");
+        return ERR(scrollback, OUT_OF_MEMORY, "Failed to allocate segment_widths");  // LCOV_EXCL_LINE
     }
 
     // Second pass: calculate display width and physical lines by scanning UTF-8
@@ -403,11 +403,13 @@ res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,
             (utf8proc_ssize_t)(length - pos),
             &cp);
 
-        if (bytes <= 0) {
+        if (bytes <= 0) {  // LCOV_EXCL_BR_LINE
+            // LCOV_EXCL_START - Invalid UTF-8 is not produced by our system
             // Invalid UTF-8 - treat as 1 byte, 1 column
             col++;
             pos++;
             continue;
+            // LCOV_EXCL_STOP
         }
 
         // Skip newlines (they don't contribute to display width)

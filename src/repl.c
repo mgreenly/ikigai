@@ -88,10 +88,10 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
                     repl->scroll_det, now_ms);  // LCOV_EXCL_LINE
 
                 // Process any flushed arrow - call handlers directly to bypass detector
-                if (timeout_result == IK_SCROLL_RESULT_ARROW_UP) {  // LCOV_EXCL_BR_LINE
+                if (timeout_result == IK_SCROLL_RESULT_ARROW_UP) {  // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
                     CHECK(ik_repl_handle_arrow_up_action(repl));  // LCOV_EXCL_LINE
                     CHECK(ik_repl_render_frame(repl));  // LCOV_EXCL_LINE
-                } else if (timeout_result == IK_SCROLL_RESULT_ARROW_DOWN) {  // LCOV_EXCL_BR_LINE
+                } else if (timeout_result == IK_SCROLL_RESULT_ARROW_DOWN) {  // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
                     CHECK(ik_repl_handle_arrow_down_action(repl));  // LCOV_EXCL_LINE
                     CHECK(ik_repl_render_frame(repl));  // LCOV_EXCL_LINE
                 }

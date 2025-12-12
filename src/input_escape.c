@@ -171,9 +171,9 @@ static bool parse_csi_u_sequence(ik_input_parser_t *parser,
         return false;
     }
 
-    // Must end with 'u'
-    if (parser->esc_buf[parser->esc_len - 1] != 'u') {
-        return false;
+    // Must end with 'u'  (defensive check - caller only invokes when byte == 'u')
+    if (parser->esc_buf[parser->esc_len - 1] != 'u') {  // LCOV_EXCL_BR_LINE
+        return false;  // LCOV_EXCL_LINE
     }
 
     // Parse keycode and modifiers

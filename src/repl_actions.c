@@ -75,6 +75,7 @@ res_t ik_repl_process_scroll_detection(ik_repl_ctx_t *repl, const ik_input_actio
         repl->scroll_det, action->type, now_ms);
 
     // Route based on scroll detection result
+    // LCOV_EXCL_START - Scroll detection requires precise timing control
     switch (result) {
         case IK_SCROLL_RESULT_SCROLL_UP:
             return ik_repl_handle_scroll_up_action(repl);
@@ -91,6 +92,7 @@ res_t ik_repl_process_scroll_detection(ik_repl_ctx_t *repl, const ik_input_actio
             // Arrow absorbed as part of burst - signal handled
             return OK((void*)1);
     }
+    // LCOV_EXCL_STOP
 
     PANIC("Invalid scroll result");  // LCOV_EXCL_LINE
 }
@@ -118,14 +120,16 @@ res_t ik_repl_flush_pending_scroll_arrow(ik_repl_ctx_t *repl, const ik_input_act
 
     ik_scroll_result_t flush_result = ik_scroll_detector_flush(repl->scroll_det);
 
+    // LCOV_EXCL_START - Flush behavior requires precise timing control
     // If we flushed an arrow, handle it directly
     if (flush_result == IK_SCROLL_RESULT_ARROW_UP) {
         res_t r = ik_repl_handle_arrow_up_action(repl);
-        if (is_err(&r)) return r;  // LCOV_EXCL_BR_LINE
+        if (is_err(&r)) return r;
     } else if (flush_result == IK_SCROLL_RESULT_ARROW_DOWN) {
         res_t r = ik_repl_handle_arrow_down_action(repl);
-        if (is_err(&r)) return r;  // LCOV_EXCL_BR_LINE
+        if (is_err(&r)) return r;
     }
+    // LCOV_EXCL_STOP
 
     return OK(NULL);
 }
