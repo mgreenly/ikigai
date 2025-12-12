@@ -40,9 +40,11 @@ void ik_input_xkb_init_state(ik_input_parser_t *parser)
 
     // Create context
     parser->xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    if (parser->xkb_ctx == NULL) {
+    if (parser->xkb_ctx == NULL) {     // LCOV_EXCL_BR_LINE
+        // LCOV_EXCL_START - Cannot test XKB library initialization failure
         ik_log_warn("Failed to create xkb context, shifted keys will not work");
         return;
+        // LCOV_EXCL_STOP
     }
 
     // Create keymap from system default (uses RMLVO from environment or defaults)
@@ -56,22 +58,26 @@ void ik_input_xkb_init_state(ik_input_parser_t *parser)
 
     parser->xkb_keymap = xkb_keymap_new_from_names(parser->xkb_ctx, &names,
                                                     XKB_KEYMAP_COMPILE_NO_FLAGS);
-    if (parser->xkb_keymap == NULL) {
+    if (parser->xkb_keymap == NULL) {     // LCOV_EXCL_BR_LINE
+        // LCOV_EXCL_START - Cannot test XKB keymap creation failure
         ik_log_warn("Failed to create xkb keymap, shifted keys will not work");
         xkb_context_unref(parser->xkb_ctx);
         parser->xkb_ctx = NULL;
         return;
+        // LCOV_EXCL_STOP
     }
 
     // Create state
     parser->xkb_state = xkb_state_new(parser->xkb_keymap);
-    if (parser->xkb_state == NULL) {
+    if (parser->xkb_state == NULL) {     // LCOV_EXCL_BR_LINE
+        // LCOV_EXCL_START - Cannot test XKB state creation failure
         ik_log_warn("Failed to create xkb state, shifted keys will not work");
         xkb_keymap_unref(parser->xkb_keymap);
         xkb_context_unref(parser->xkb_ctx);
         parser->xkb_keymap = NULL;
         parser->xkb_ctx = NULL;
         return;
+        // LCOV_EXCL_STOP
     }
 
     // Get Shift modifier mask
