@@ -82,6 +82,20 @@ Located in `.ikigai/scripts/tasks/`:
 
 See `.ikigai/scripts/tasks/README.md` for full API documentation.
 
+## Creating Tasks
+
+When creating a new task file:
+
+1. Write the task file to the appropriate `tasks/` or `fixes/` directory
+2. Add entry to `order.json` (in `todo` array at appropriate position)
+3. **Commit immediately** - task files must be committed before orchestration:
+   ```bash
+   git add tasks/new-task.md tasks/order.json
+   git commit -m "chore: add <task-name> task"
+   ```
+
+This ensures orchestration starts with a clean working tree.
+
 ## Workflow
 
 1. **User stories** define requirements with example transcripts
