@@ -152,6 +152,8 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
         command_text[text_len] = '\0';
     }
 
+    ik_repl_dismiss_completion(repl);
+
     if (is_slash_command) {
         ik_input_buffer_clear(repl->input_buffer);
         repl->viewport_offset = 0;
