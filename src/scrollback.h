@@ -219,22 +219,6 @@ res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,
                                                     size_t *byte_offset_out);
 
 /**
- * @brief Trim trailing whitespace from string
- *
- * Returns a new string with trailing whitespace removed.
- * Original string is not modified.
- *
- * @param parent Talloc parent context
- * @param text Input string (NULL returns empty string)
- * @param length Length of input string
- * @return New string with trailing whitespace removed (owned by parent)
- *
- * Assertions:
- * - parent must not be NULL
- */
-char *ik_scrollback_trim_trailing(void *parent, const char *text, size_t length);
-
-/**
  * @brief Calculate starting byte offset for rendering from a row offset
  *
  * Given a logical line and a starting row offset, calculates the corresponding

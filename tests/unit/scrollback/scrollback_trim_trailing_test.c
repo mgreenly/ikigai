@@ -6,7 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include "../../../src/scrollback.h"
+#include "../../../src/scrollback_utils.h"
 #include "../../test_utils.h"
 
 /* Test: NULL input returns empty string */

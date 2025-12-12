@@ -8,6 +8,7 @@
 #include "ansi.h"
 #include "panic.h"
 #include "scrollback.h"
+#include "scrollback_utils.h"
 #include "vendor/yyjson/yyjson.h"
 #include "wrapper.h"
 
