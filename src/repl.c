@@ -152,7 +152,11 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
         result = ik_history_append_entry(text);
         if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - File IO errors tested in history file_io_errors_test.c
             // Log warning but continue (file write failure shouldn't block REPL)
-            ik_log_warn("Failed to append to history file: %s", result.err->msg);  // LCOV_EXCL_LINE
+            yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+            yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, root, "message", "Failed to append to history file");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, root, "error", result.err->msg);  // LCOV_EXCL_LINE
+            ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
             talloc_free(result.err);  // LCOV_EXCL_LINE
         }
 

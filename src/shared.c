@@ -74,7 +74,11 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, ik_shared_ctx_t **out)
     result = ik_history_load(shared, shared->history);
     if (is_err(&result)) {
         // Log warning but continue with empty history (graceful degradation)
-        ik_log_warn("Failed to load history: %s", result.err->msg);
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+        yyjson_mut_obj_add_str(log_doc, root, "message", "Failed to load history");
+        yyjson_mut_obj_add_str(log_doc, root, "error", result.err->msg);
+        ik_log_warn_json(log_doc);
         talloc_free(result.err);
     }
 

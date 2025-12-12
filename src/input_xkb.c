@@ -2,7 +2,6 @@
 #include "input_xkb.h"
 
 #include "input.h"
-#include "logger.h"
 
 #include <assert.h>
 #include <string.h>
@@ -44,7 +43,6 @@ void ik_input_xkb_init_state(ik_input_parser_t *parser)
     parser->xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     if (parser->xkb_ctx == NULL) {     // LCOV_EXCL_BR_LINE
         // LCOV_EXCL_START - Cannot test XKB library initialization failure
-        ik_log_warn("Failed to create xkb context, shifted keys will not work");
         return;
         // LCOV_EXCL_STOP
     }
@@ -62,7 +60,6 @@ void ik_input_xkb_init_state(ik_input_parser_t *parser)
                                                     XKB_KEYMAP_COMPILE_NO_FLAGS);
     if (parser->xkb_keymap == NULL) {     // LCOV_EXCL_BR_LINE
         // LCOV_EXCL_START - Cannot test XKB keymap creation failure
-        ik_log_warn("Failed to create xkb keymap, shifted keys will not work");
         xkb_context_unref(parser->xkb_ctx);
         parser->xkb_ctx = NULL;
         return;
@@ -73,7 +70,6 @@ void ik_input_xkb_init_state(ik_input_parser_t *parser)
     parser->xkb_state = xkb_state_new(parser->xkb_keymap);
     if (parser->xkb_state == NULL) {     // LCOV_EXCL_BR_LINE
         // LCOV_EXCL_START - Cannot test XKB state creation failure
-        ik_log_warn("Failed to create xkb state, shifted keys will not work");
         xkb_keymap_unref(parser->xkb_keymap);
         xkb_context_unref(parser->xkb_ctx);
         parser->xkb_keymap = NULL;

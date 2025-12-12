@@ -335,7 +335,10 @@ res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
         yyjson_doc *doc = yyjson_read_(line, strlen(line), 0);
         if (doc == NULL) {
             // Malformed JSON - log warning and skip
-            ik_log_warn("Skipping malformed history line: %s", line);
+            yyjson_mut_doc *log_doc = ik_log_create();
+            yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+            yyjson_mut_obj_add_str(log_doc, root, "message", "Skipping malformed history line: not valid json");
+            ik_log_warn_json(log_doc);
             line = next_line;
             continue;
         }
@@ -343,7 +346,10 @@ res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
         yyjson_val *root = yyjson_doc_get_root_(doc);
         if (!root || !yyjson_is_obj(root)) {  // LCOV_EXCL_BR_LINE - vendor function defensive check
             // Not an object - skip
-            ik_log_warn("Skipping non-object history line");
+            yyjson_mut_doc *log_doc = ik_log_create();
+            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+            yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping non-object history line");
+            ik_log_warn_json(log_doc);
             yyjson_doc_free(doc);
             line = next_line;
             continue;
@@ -353,7 +359,10 @@ res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
         yyjson_val *cmd_val = yyjson_obj_get_(root, "cmd");
         if (!cmd_val || !yyjson_is_str(cmd_val)) {
             // Missing or invalid cmd field - skip
-            ik_log_warn("Skipping history line with missing/invalid cmd field");
+            yyjson_mut_doc *log_doc = ik_log_create();
+            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+            yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping history line with missing/invalid cmd field");
+            ik_log_warn_json(log_doc);
             yyjson_doc_free(doc);
             line = next_line;
             continue;

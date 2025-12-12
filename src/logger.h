@@ -6,15 +6,6 @@
 
 #include "vendor/yyjson/yyjson.h"
 
-// Legacy printf-style logging (to be deprecated)
-void ik_log_debug(const char *fmt, ...);
-void ik_log_info(const char *fmt, ...);
-void ik_log_warn(const char *fmt, ...);
-void ik_log_error(const char *fmt, ...);
-
-// Reset timestamp detection (for testing only)
-void ik_log_reset_timestamp_check(void);
-
 // Logger initialization and shutdown
 void ik_log_init(const char *working_dir);
 void ik_log_shutdown(void);
