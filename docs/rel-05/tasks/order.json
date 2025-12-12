@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "autocomplete-viewport-scroll.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
       "task": "remove-legacy-logger.md",
       "group": "Cleanup",
       "model": "sonnet",
@@ -493,6 +487,12 @@
       "group": "Input Handling",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "autocomplete-viewport-scroll.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "low"
     }
   ]
 }
