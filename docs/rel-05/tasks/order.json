@@ -1,6 +1,18 @@
 {
   "todo": [
     {
+      "task": "autocomplete-viewport-scroll.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
+      "task": "remove-legacy-logger.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "low"
+    },
+    {
       "task": "scroll-debug-log-cleanup.md",
       "group": "Cleanup",
       "model": "haiku",
