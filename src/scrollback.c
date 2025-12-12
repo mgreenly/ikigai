@@ -61,6 +61,48 @@ static size_t calculate_display_width_(const char *text, size_t length)
     return display_width;
 }
 
+/**
+ * Count embedded newlines in text.
+ *
+ * @param text   Text to scan
+ * @param length Length of text
+ * @return       Number of newline characters found
+ */
+static size_t count_newlines_(const char *text, size_t length)
+{
+    size_t newline_count = 0;
+    size_t pos = 0;
+
+    while (pos < length) {
+        // Skip ANSI escape sequences
+        size_t skip = ik_ansi_skip_csi(text, length, pos);
+        if (skip > 0) {
+            pos += skip;
+            continue;
+        }
+
+        // Decode UTF-8 codepoint
+        utf8proc_int32_t cp;
+        utf8proc_ssize_t bytes = utf8proc_iterate(
+            (const utf8proc_uint8_t *)(text + pos),
+            (utf8proc_ssize_t)(length - pos),
+            &cp);
+
+        if (bytes <= 0) {
+            pos++;
+            continue;
+        }
+
+        if (cp == '\n') {
+            newline_count++;
+        }
+
+        pos += (size_t)bytes;
+    }
+
+    return newline_count;
+}
+
 ik_scrollback_t *ik_scrollback_create(void *parent, int32_t terminal_width)
 {
     assert(terminal_width > 0);  // LCOV_EXCL_BR_LINE
@@ -163,10 +205,21 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
     scrollback->text_buffer[scrollback->buffer_used] = '\0';
     scrollback->buffer_used++;
 
-    // Calculate display width and physical lines by scanning UTF-8
-    // Handle newlines: each newline starts a new physical line
+    // First pass: count newlines to allocate segment_widths array
+    size_t newline_count = count_newlines_(text, length);
+
+    // Allocate segment_widths array (newline_count + 1 segments)
+    size_t segment_count = newline_count + 1;
+    size_t *segment_widths = talloc_array_(scrollback, sizeof(size_t), segment_count);
+    if (segment_widths == NULL) {     // LCOV_EXCL_BR_LINE
+        return ERR(scrollback, OUT_OF_MEMORY, "Failed to allocate segment_widths");
+    }
+
+    // Second pass: calculate display width and physical lines by scanning UTF-8
+    // Handle newlines: each newline starts a new segment
     size_t physical_lines = 0;
     size_t line_width = 0;
+    size_t current_segment = 0;
     size_t pos = 0;
     bool has_any_content = false;  // Track if we've seen any non-newline characters
     bool ends_with_newline = false;  // Track if last character was \n
@@ -197,16 +250,18 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
 
         // Handle newlines
         if (cp == '\n') {
-            // Finalize current line
+            // Finalize current segment
+            segment_widths[current_segment] = line_width;
             if (line_width == 0) {
-                physical_lines += 1;  // Empty line takes 1 row
+                physical_lines += 1;  // Empty segment takes 1 row
             } else {
-                // Calculate rows for this line: ceil(line_width / terminal_width)
+                // Calculate rows for this segment: ceil(line_width / terminal_width)
                 size_t line_rows = (line_width + (size_t)scrollback->cached_width - 1) /
                                    (size_t)scrollback->cached_width;
                 physical_lines += line_rows;
             }
-            // Start new line
+            // Start new segment
+            current_segment++;
             line_width = 0;
             ends_with_newline = true;
             pos += (size_t)bytes;
@@ -224,26 +279,29 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
         pos += (size_t)bytes;
     }
 
-    // Finalize last line (or only line if no newlines)
+    // Finalize last segment (or only segment if no newlines)
+    segment_widths[current_segment] = line_width;
     if (line_width == 0 && physical_lines == 0) {
         physical_lines = 1;  // Empty line still takes 1 row
     } else if (line_width > 0) {
-        // Calculate rows for last line: ceil(line_width / terminal_width)
+        // Calculate rows for last segment: ceil(line_width / terminal_width)
         size_t line_rows = (line_width + (size_t)scrollback->cached_width - 1) /
                            (size_t)scrollback->cached_width;
         physical_lines += line_rows;
     } else if (ends_with_newline && has_any_content) {
-        // Trailing empty line after content that ended with newline
+        // Trailing empty segment after content that ended with newline
         // (line_width == 0 && physical_lines > 0 at this point)
         physical_lines += 1;
     }
 
-    // Calculate total display width for the layout (sum of all line widths)
+    // Calculate total display width for the layout (sum of all segment widths)
     size_t display_width = calculate_display_width_(text, length);
 
     // Store layout
     scrollback->layouts[scrollback->count].display_width = display_width;
     scrollback->layouts[scrollback->count].physical_lines = physical_lines;
+    scrollback->layouts[scrollback->count].newline_count = newline_count;
+    scrollback->layouts[scrollback->count].segment_widths = segment_widths;
 
     // Update totals
     scrollback->total_physical_lines += physical_lines;
@@ -264,18 +322,22 @@ void ik_scrollback_ensure_layout(ik_scrollback_t *scrollback,
     }
 
     // Recalculate physical_lines for all lines with new width
-    // This is O(n) arithmetic - no UTF-8 rescanning needed
+    // Use segment_widths to correctly handle embedded newlines
     size_t new_total_physical_lines = 0;
     for (size_t i = 0; i < scrollback->count; i++) {
-        size_t display_width = scrollback->layouts[i].display_width;
-        size_t physical_lines;
+        size_t segment_count = scrollback->layouts[i].newline_count + 1;
+        size_t *seg_widths = scrollback->layouts[i].segment_widths;
+        size_t physical_lines = 0;
 
-        if (display_width == 0) {
-            physical_lines = 1;  // Empty line still takes 1 row
-        } else {
-            // Calculate number of rows: ceil(display_width / terminal_width)
-            physical_lines = (display_width + (size_t)terminal_width - 1) /
-                             (size_t)terminal_width;
+        // Calculate physical lines by summing rows needed for each segment
+        for (size_t seg = 0; seg < segment_count; seg++) {
+            if (seg_widths[seg] == 0) {
+                physical_lines += 1;  // Empty segment = 1 row
+            } else {
+                // Calculate rows for this segment: ceil(seg_width / terminal_width)
+                physical_lines += (seg_widths[seg] + (size_t)terminal_width - 1) /
+                                  (size_t)terminal_width;
+            }
         }
 
         scrollback->layouts[i].physical_lines = physical_lines;
@@ -366,6 +428,14 @@ res_t ik_scrollback_find_logical_line_at_physical_row(
 void ik_scrollback_clear(ik_scrollback_t *scrollback)
 {
     assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Free segment_widths arrays for all lines
+    for (size_t i = 0; i < scrollback->count; i++) {
+        if (scrollback->layouts[i].segment_widths != NULL) {
+            talloc_free(scrollback->layouts[i].segment_widths);
+            scrollback->layouts[i].segment_widths = NULL;
+        }
+    }
 
     // Reset counters to empty state
     scrollback->count = 0;

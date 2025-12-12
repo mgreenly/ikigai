@@ -27,6 +27,8 @@
 typedef struct {
     size_t display_width;    /**< Display width in columns (UTF-8 aware) */
     size_t physical_lines;   /**< Number of terminal rows this line occupies */
+    size_t newline_count;    /**< Number of embedded newlines in text */
+    size_t *segment_widths;  /**< Array of display widths between newlines */
 } ik_line_layout_t;
 
 /**
