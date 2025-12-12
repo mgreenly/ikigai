@@ -7,6 +7,7 @@
 
 #include <check.h>
 #include <talloc.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/shared.h"
 #include "../../../src/repl.h"
@@ -21,11 +22,18 @@ START_TEST(test_tab_wraps_around)
 {
     void *ctx = talloc_new(NULL);
 
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t agent_res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&agent_res));
+
     // Create input buffer and REPL context
     ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
+    repl->current = agent;
     repl->quit = false;
     
     // Create minimal shared context for test
@@ -79,11 +87,18 @@ START_TEST(test_original_input_stored)
 {
     void *ctx = talloc_new(NULL);
 
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t agent_res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&agent_res));
+
     // Create input buffer and REPL context
     ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
+    repl->current = agent;
     repl->quit = false;
     
     // Create minimal shared context for test
@@ -137,11 +152,18 @@ START_TEST(test_multiple_tab_presses)
 {
     void *ctx = talloc_new(NULL);
 
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t agent_res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&agent_res));
+
     // Create input buffer and REPL context
     ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
+    repl->current = agent;
     repl->quit = false;
     
     // Create minimal shared context for test
@@ -193,11 +215,18 @@ START_TEST(test_update_completion_preserves_original_input)
 {
     void *ctx = talloc_new(NULL);
 
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t agent_res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&agent_res));
+
     // Create input buffer and REPL context
     ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
+    repl->current = agent;
     repl->quit = false;
     
     // Create minimal shared context for test
@@ -242,18 +271,19 @@ START_TEST(test_space_commit_no_completion)
 {
     void *ctx = talloc_new(NULL);
 
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t agent_res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&agent_res));
+
     // Create input buffer and REPL context
     ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+    repl->current = agent;
     repl->input_buffer = input_buf;
     repl->quit = false;
-    
-    // Create minimal shared context for test
-    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(repl->shared);
-    repl->shared->history = NULL;  /* No history for this test */
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);

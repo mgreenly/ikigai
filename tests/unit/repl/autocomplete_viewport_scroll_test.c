@@ -70,15 +70,26 @@ START_TEST(test_autocomplete_viewport_includes_completion_height) {
     completion->candidates[1] = talloc_strdup(completion, "/model");
     completion->candidates[2] = talloc_strdup(completion, "/msg");
 
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->term = term;
+
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_agent_create(ctx, shared, NULL, &agent);
+    ck_assert(is_ok(&res));
+
+    // Override scrollback with our test scrollback
+    talloc_free(agent->scrollback);
+    agent->scrollback = scrollback;
+    agent->viewport_offset = 0;  // At bottom
+
     // Create REPL with completion active
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
-    shared->term = term;
+    repl->current = agent;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     repl->completion = completion;
-    repl->current->viewport_offset = 0;  // At bottom
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -160,15 +171,26 @@ START_TEST(test_autocomplete_viewport_without_completion) {
     ik_scrollback_ensure_layout(scrollback, 80);
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(scrollback);
 
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    shared->term = term;
+
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_agent_create(ctx, shared, NULL, &agent);
+    ck_assert(is_ok(&res));
+
+    // Override scrollback with our test scrollback
+    talloc_free(agent->scrollback);
+    agent->scrollback = scrollback;
+    agent->viewport_offset = 0;
+
     // Create REPL WITHOUT completion
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
-    shared->term = term;
+    repl->current = agent;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     repl->completion = NULL;  // No completion
-    repl->current->viewport_offset = 0;
 
     // Calculate viewport
     ik_viewport_t viewport;

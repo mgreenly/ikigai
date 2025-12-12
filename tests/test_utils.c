@@ -1,4 +1,5 @@
 #include "test_utils.h"
+#include "../src/agent.h"
 #include "../src/db/migration.h"
 #include "../src/panic.h"
 #include <libpq-fe.h>
@@ -423,4 +424,22 @@ void ik_test_reset_terminal(void)
     // Write to stdout which is where test output goes.
     const char reset_seq[] = "\x1b[?25h\x1b[0m";
     (void)write(STDOUT_FILENO, reset_seq, sizeof(reset_seq) - 1);
+}
+
+// ========== Agent Test Utilities ==========
+
+res_t ik_test_create_agent(TALLOC_CTX *ctx, ik_agent_ctx_t **out)
+{
+    if (ctx == NULL || out == NULL) {
+        return ERR(NULL, INVALID_ARG, "NULL argument to ik_test_create_agent");
+    }
+
+    // Create minimal shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    if (shared == NULL) {
+        return ERR(ctx, OUT_OF_MEMORY, "Failed to allocate shared context");
+    }
+
+    // Create agent (ik_agent_create will initialize display state)
+    return ik_agent_create(ctx, shared, NULL, out);
 }

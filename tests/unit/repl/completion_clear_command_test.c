@@ -24,15 +24,22 @@ START_TEST(test_clear_command_clears_autocomplete)
 {
     void *ctx = talloc_new(NULL);
 
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t agent_res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&agent_res));
+
     // Create minimal REPL context for testing
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+    repl->current = agent;
 
     // Create input buffer
     repl->input_buffer = ik_input_buffer_create(ctx);
     ck_assert_ptr_nonnull(repl->input_buffer);
 
-    // Create scrollback (80 columns for test)
+    // Override scrollback with test scrollback (80 columns for test)
+    talloc_free(agent->scrollback);
     repl->current->scrollback = ik_scrollback_create(ctx, 80);
     ck_assert_ptr_nonnull(repl->current->scrollback);
 

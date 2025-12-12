@@ -4,7 +4,7 @@
       "task": "agent-ctx-display.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "thinking"
+      "thinking": "extended"
     },
     {
       "task": "agent-ctx-input.md",

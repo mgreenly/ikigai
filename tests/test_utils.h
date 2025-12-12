@@ -7,6 +7,9 @@
 #include "../src/error.h"
 #include "../src/shared.h"
 
+// Forward declarations
+typedef struct ik_agent_ctx ik_agent_ctx_t;
+
 // Test utilities for ikigai test suite
 
 // ========== Wrapper Function Overrides ==========
@@ -171,5 +174,19 @@ res_t ik_test_db_destroy(const char *db_name);
  * Safe to call even if terminal is in normal state.
  */
 void ik_test_reset_terminal(void);
+
+// ========== Agent Test Utilities ==========
+
+/**
+ * Create a minimal agent for testing
+ *
+ * Creates an agent context with a minimal shared context.
+ * The agent will have display state (scrollback, layers, etc.) initialized.
+ *
+ * @param ctx Talloc context for allocation
+ * @param out Output parameter for agent context
+ * @return OK on success, ERR on failure
+ */
+res_t ik_test_create_agent(TALLOC_CTX *ctx, ik_agent_ctx_t **out);
 
 #endif // IK_TEST_UTILS_H

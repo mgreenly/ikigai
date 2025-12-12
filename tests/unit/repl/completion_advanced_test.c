@@ -5,9 +5,9 @@
 
 #include <check.h>
 #include <talloc.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/repl.h"
-#include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
 #include "../../../src/completion.h"
@@ -22,9 +22,15 @@ START_TEST(test_typing_dismisses_on_no_match)
     // Create input buffer
     ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+    repl->current = agent;
     repl->input_buffer = input_buf;
     repl->quit = false;
 
@@ -44,7 +50,7 @@ START_TEST(test_typing_dismisses_on_no_match)
     // Type 'x' to create "/mx" (no matches)
     action.type = IK_INPUT_CHAR;
     action.codepoint = 'x';
-    res_t res = ik_repl_process_action(repl, &action);
+    res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
     // Verify: Completion dismissed (no matches)
@@ -62,9 +68,15 @@ START_TEST(test_left_right_arrow_dismisses)
     // Create input buffer
     ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+    repl->current = agent;
     repl->input_buffer = input_buf;
     repl->quit = false;
 
@@ -83,7 +95,7 @@ START_TEST(test_left_right_arrow_dismisses)
 
     // Press Left arrow
     action.type = IK_INPUT_ARROW_LEFT;
-    res_t res = ik_repl_process_action(repl, &action);
+    res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
     // Verify: Completion dismissed
@@ -117,9 +129,15 @@ START_TEST(test_tab_on_empty_input_no_op)
     // Create input buffer (empty)
     ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+    repl->current = agent;
     repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
@@ -131,7 +149,7 @@ START_TEST(test_tab_on_empty_input_no_op)
 
     // Press TAB on empty input
     ik_input_action_t action = {.type = IK_INPUT_TAB};
-    res_t res = ik_repl_process_action(repl, &action);
+    res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
     // Verify: No completion created
@@ -149,9 +167,15 @@ START_TEST(test_tab_on_non_slash_no_op)
     // Create input buffer
     ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+    repl->current = agent;
     repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
@@ -169,7 +193,7 @@ START_TEST(test_tab_on_non_slash_no_op)
 
     // Press TAB
     action.type = IK_INPUT_TAB;
-    res_t res = ik_repl_process_action(repl, &action);
+    res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
     // Verify: No completion created
@@ -187,9 +211,15 @@ START_TEST(test_cursor_at_end_after_tab_completion)
     // Create input buffer
     ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
+    repl->current = agent;
     repl->input_buffer = input_buf;
     repl->quit = false;
 
@@ -209,7 +239,7 @@ START_TEST(test_cursor_at_end_after_tab_completion)
 
     // Press TAB to accept selection
     action.type = IK_INPUT_TAB;
-    res_t res = ik_repl_process_action(repl, &action);
+    res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
     // Verify: Completion is dismissed after accepting
