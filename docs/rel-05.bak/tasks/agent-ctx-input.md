@@ -9,11 +9,10 @@ Phase 1: Agent Context Extraction - Step 3 (input fields migration)
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
-- .agents/skills/scm.md
 
 ## Pre-read Docs
-- docs/agent-process-model.md (architecture overview)
-- docs/memory.md (talloc ownership)
+- docs/backlog/shared-context-di.md (design document)
+- docs/rel-05/scratch.md (ik_agent_ctx_t input fields)
 
 ## Pre-read Source (patterns)
 - src/agent.h (current agent context)
@@ -42,7 +41,7 @@ Migrate input state fields from `ik_repl_ctx_t` to `ik_agent_ctx_t`:
 After this task:
 - Agent owns its input state
 - Each agent can have independent partial input (preserved on switch)
-- Access pattern becomes `repl->current->input_buffer`, etc.
+- Access pattern becomes `repl->agent->input_buffer`, etc.
 
 Note: `input_parser` stays in repl_ctx (it's stateless, shared).
 
@@ -114,11 +113,11 @@ Note: `input_parser` stays in repl_ctx (it's stateless, shared).
      ```
 
 5. Update ALL files that access input fields:
-   - Change `repl->input_buffer` to `repl->current->input_buffer`
-   - Change `repl->separator_visible` to `repl->current->separator_visible`
-   - Change `repl->input_buffer_visible` to `repl->current->input_buffer_visible`
-   - Change `repl->input_text` to `repl->current->input_text`
-   - Change `repl->input_text_len` to `repl->current->input_text_len`
+   - Change `repl->input_buffer` to `repl->agent->input_buffer`
+   - Change `repl->separator_visible` to `repl->agent->separator_visible`
+   - Change `repl->input_buffer_visible` to `repl->agent->input_buffer_visible`
+   - Change `repl->input_text` to `repl->agent->input_text`
+   - Change `repl->input_text_len` to `repl->agent->input_text_len`
 
 6. Run `make check` - expect pass
 
@@ -130,9 +129,9 @@ Note: `input_parser` stays in repl_ctx (it's stateless, shared).
 
 ## Post-conditions
 - `make check` passes
-- `make lint` passes
 - Input fields are in `ik_agent_ctx_t`, not `ik_repl_ctx_t`
 - `ik_agent_create()` initializes all input state
 - Layer pointers reference agent's fields
-- All input access uses `repl->current->*` pattern
+- All input access uses `repl->agent->*` pattern
+- 100% test coverage maintained
 - Working tree is clean (all changes committed)

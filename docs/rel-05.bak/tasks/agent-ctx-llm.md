@@ -9,19 +9,18 @@ Phase 1: Agent Context Extraction - Step 5 (LLM fields migration)
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
-- .agents/skills/scm.md
 - .agents/skills/patterns/state-machine.md
 
 ## Pre-read Docs
-- docs/agent-process-model.md (architecture overview)
-- docs/memory.md (talloc ownership)
+- docs/backlog/shared-context-di.md (design document)
+- docs/rel-05/scratch.md (ik_agent_ctx_t LLM fields)
 
 ## Pre-read Source (patterns)
 - src/agent.h (current agent context)
 - src/agent.c (current agent create)
 - src/repl.h (LLM fields to migrate, ik_repl_state_t enum)
 - src/repl_init.c (LLM state initialization)
-- src/openai/client_multi.h (ik_openai_multi)
+- src/openai/openai_multi.h (ik_openai_multi)
 - src/repl_event_handlers.c (LLM state usage)
 
 ## Pre-read Tests (patterns)
@@ -50,7 +49,7 @@ Also move `ik_repl_state_t` enum to agent.h (rename to `ik_agent_state_t`).
 After this task:
 - Agent owns its LLM interaction state
 - Each agent can independently stream from LLM
-- Access pattern becomes `repl->current->state`, etc.
+- Access pattern becomes `repl->agent->state`, etc.
 
 ## TDD Cycle
 
@@ -113,14 +112,14 @@ After this task:
    - Remove LLM state initialization (now in agent_create)
 
 4. Update ALL files that access LLM state:
-   - Change `repl->multi` to `repl->current->multi`
-   - Change `repl->curl_still_running` to `repl->current->curl_still_running`
-   - Change `repl->state` to `repl->current->state`
+   - Change `repl->multi` to `repl->agent->multi`
+   - Change `repl->curl_still_running` to `repl->agent->curl_still_running`
+   - Change `repl->state` to `repl->agent->state`
    - Change `IK_REPL_STATE_*` to `IK_AGENT_STATE_*`
    - Change all response field accesses similarly
 
 5. Update state transition functions in repl.h/repl.c:
-   - `ik_repl_transition_to_*` functions now modify `repl->current->state`
+   - `ik_repl_transition_to_*` functions now modify `repl->agent->state`
    - Consider renaming to `ik_agent_transition_to_*` (or keep repl_ prefix for now)
 
 6. Run `make check` - expect pass
@@ -134,9 +133,9 @@ After this task:
 
 ## Post-conditions
 - `make check` passes
-- `make lint` passes
 - LLM fields are in `ik_agent_ctx_t`, not `ik_repl_ctx_t`
 - `ik_agent_state_t` enum defined in agent.h
 - State machine works with agent context
-- All LLM state access uses `repl->current->*` pattern
+- All LLM state access uses `repl->agent->*` pattern
+- 100% test coverage maintained
 - Working tree is clean (all changes committed)

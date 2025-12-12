@@ -9,11 +9,10 @@ Phase 1: Agent Context Extraction - Step 4 (conversation fields migration)
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
-- .agents/skills/scm.md
 
 ## Pre-read Docs
-- docs/agent-process-model.md (architecture overview)
-- docs/memory.md (talloc ownership)
+- docs/backlog/shared-context-di.md (design document)
+- docs/rel-05/scratch.md (ik_agent_ctx_t conversation fields)
 
 ## Pre-read Source (patterns)
 - src/agent.h (current agent context)
@@ -42,7 +41,7 @@ Also move `ik_mark_t` typedef to agent.h (or a separate marks.h if cleaner).
 After this task:
 - Agent owns its conversation history
 - Each agent has independent conversation with LLM
-- Access pattern becomes `repl->current->conversation`, etc.
+- Access pattern becomes `repl->agent->conversation`, etc.
 
 ## TDD Cycle
 
@@ -99,9 +98,9 @@ After this task:
    - Remove marks initialization (now in agent_create)
 
 4. Update ALL files that access conversation fields:
-   - Change `repl->conversation` to `repl->current->conversation`
-   - Change `repl->marks` to `repl->current->marks`
-   - Change `repl->mark_count` to `repl->current->mark_count`
+   - Change `repl->conversation` to `repl->agent->conversation`
+   - Change `repl->marks` to `repl->agent->marks`
+   - Change `repl->mark_count` to `repl->agent->mark_count`
 
 5. Update files that reference `ik_mark_t`:
    - Add include for agent.h where needed
@@ -118,9 +117,9 @@ After this task:
 
 ## Post-conditions
 - `make check` passes
-- `make lint` passes
 - Conversation fields are in `ik_agent_ctx_t`, not `ik_repl_ctx_t`
 - `ik_mark_t` typedef accessible from agent.h
 - `ik_agent_create()` initializes all conversation state
-- All conversation access uses `repl->current->*` pattern
+- All conversation access uses `repl->agent->*` pattern
+- 100% test coverage maintained
 - Working tree is clean (all changes committed)

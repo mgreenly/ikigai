@@ -4,495 +4,80 @@
       "task": "remove-legacy-logger.md",
       "group": "Cleanup",
       "model": "sonnet",
-      "thinking": "low"
+      "thinking": "thinking"
     },
     {
       "task": "scroll-debug-log-cleanup.md",
       "group": "Cleanup",
-      "model": "haiku",
-      "thinking": "low"
+      "model": "sonnet",
+      "thinking": "thinking"
     },
     {
       "task": "agent-ctx-struct.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "low"
+      "thinking": "thinking"
     },
     {
       "task": "agent-ctx-display.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "low"
+      "thinking": "thinking"
     },
     {
       "task": "agent-ctx-input.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "low"
+      "thinking": "thinking"
     },
     {
       "task": "agent-ctx-conversation.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "low"
+      "thinking": "thinking"
     },
     {
       "task": "agent-ctx-llm.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "low"
+      "thinking": "thinking"
     },
     {
       "task": "agent-ctx-tool.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "low"
+      "thinking": "thinking"
     },
     {
       "task": "agent-ctx-spinner.md",
       "group": "Agent Context Extraction",
-      "model": "haiku",
-      "thinking": "low"
+      "model": "sonnet",
+      "thinking": "thinking"
     },
     {
       "task": "agent-ctx-completion.md",
       "group": "Agent Context Extraction",
-      "model": "haiku",
-      "thinking": "low"
+      "model": "sonnet",
+      "thinking": "thinking"
     },
     {
       "task": "agent-ctx-cleanup.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
-      "thinking": "low"
+      "thinking": "thinking"
     },
     {
-      "task": "repl-agent-array.md",
-      "group": "Foundation",
+      "task": "repl-agent-pointer.md",
+      "group": "Agent Context Integration",
       "model": "sonnet",
-      "thinking": "low"
+      "thinking": "thinking"
     },
     {
-      "task": "db-agent-id-schema.md",
-      "group": "Foundation",
+      "task": "repl-single-agent-init.md",
+      "group": "Agent Context Integration",
       "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "db-agent-id-queries.md",
-      "group": "Foundation",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "agent-event-loop.md",
-      "group": "Foundation",
-      "model": "opus",
-      "thinking": "low"
-    },
-    {
-      "task": "input-ctrl-arrow-actions.md",
-      "group": "Navigation",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "agent-switch.md",
-      "group": "Navigation",
-      "model": "opus",
-      "thinking": "low"
-    },
-    {
-      "task": "separator-agent-id.md",
-      "group": "User Interface",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "cmd-spawn.md",
-      "group": "Commands",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "cmd-kill.md",
-      "group": "Commands",
-      "model": "opus",
-      "thinking": "low"
-    },
-    {
-      "task": "cmd-agents.md",
-      "group": "Commands",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-hierarchy-fields.md",
-      "group": "Foundation",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-depth-calc.md",
-      "group": "Foundation",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-child-array.md",
-      "group": "Foundation",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-tool-schema.md",
-      "group": "Tool Implementation",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-tool-handler.md",
-      "group": "Tool Implementation",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-completion-detect.md",
-      "group": "Tool Implementation",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-result-delivery.md",
-      "group": "Tool Implementation",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-nav-up-down.md",
-      "group": "Navigation",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-separator-nav.md",
-      "group": "Navigation",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-cascade-kill.md",
-      "group": "Lifecycle",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-input-disable.md",
-      "group": "Lifecycle",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "subagent-agents-tree.md",
-      "group": "Display",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-msg-struct.md",
-      "group": "Data Structures",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-inbox-struct.md",
-      "group": "Data Structures",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-agent-inbox.md",
-      "group": "Data Structures",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-db-schema.md",
-      "group": "Database Layer",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-db-operations.md",
-      "group": "Database Layer",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-send.md",
-      "group": "Core Operations",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-list.md",
-      "group": "Core Operations",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-read.md",
-      "group": "Core Operations",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-cmd-register.md",
-      "group": "Slash Command",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-tool-schema.md",
-      "group": "Tool Interface",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-tool-handler.md",
-      "group": "Tool Interface",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-separator-unread.md",
-      "group": "Separator Enhancement",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-notification-inject.md",
-      "group": "Notification System",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "mail-notification-style.md",
-      "group": "Notification System",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "render-buffer-reuse.md",
-      "group": "Render Performance",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "render-batch-newlines.md",
-      "group": "Render Performance",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "render-dirty-regions.md",
-      "group": "Render Performance",
-      "model": "opus",
-      "thinking": "high"
-    },
-    {
-      "task": "render-scrollback-bsearch.md",
-      "group": "Render Performance",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "render-escape-direct.md",
-      "group": "Render Performance",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "render-ascii-width-fast.md",
-      "group": "Render Performance",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "render-sync-output.md",
-      "group": "Render Performance",
-      "model": "sonnet",
-      "thinking": "low"
+      "thinking": "thinking"
     }
   ],
-  "done": [
-    {
-      "task": "shared-ctx-struct.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "shared-ctx-cfg.md",
-      "group": "Shared Context DI Refactor",
-      "model": "opus",
-      "thinking": "high"
-    },
-    {
-      "task": "shared-ctx-term-render.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "shared-ctx-db-session.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "shared-ctx-history.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "shared-ctx-debug.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "shared-ctx-test-helpers.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "shared-ctx-cleanup.md",
-      "group": "Shared Context DI Refactor",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "clear-autocomplete-bug.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "full-viewport-separator-bug.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "mouse-scroll-scrollback-bug.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "cursor-position-separator-bug.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "trailing-newline-scroll-bug.md",
-      "group": "Bug Fix",
-      "model": "opus",
-      "thinking": "low"
-    },
-    {
-      "task": "arrow-burst-detector.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "high"
-    },
-    {
-      "task": "arrow-burst-integration.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "high"
-    },
-    {
-      "task": "scroll-accumulator-rewrite.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "scroll-deferred-detection.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "scrollback-render-row-offset.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "scrollback-byte-offset-api.md",
-      "group": "Bug Fix",
-      "model": "opus",
-      "thinking": "high"
-    },
-    {
-      "task": "scrollback-render-partial-line.md",
-      "group": "Bug Fix",
-      "model": "opus",
-      "thinking": "high"
-    },
-    {
-      "task": "scroll-threshold-reduce.md",
-      "group": "Input Handling",
-      "model": "haiku",
-      "thinking": "low"
-    },
-    {
-      "task": "csi-u-terminal-support.md",
-      "group": "Input Handling",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "csi-u-parse-enter.md",
-      "group": "Input Handling",
-      "model": "sonnet",
-      "thinking": "low"
-    },
-    {
-      "task": "csi-u-xkbcommon-translate.md",
-      "group": "Input Handling",
-      "model": "opus",
-      "thinking": "high"
-    },
-    {
-      "task": "scrollback-newline-counting-bug.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "high"
-    },
-    {
-      "task": "scrollback-partial-line-render-bug.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "high"
-    },
-    {
-      "task": "mouse-scroll-lines-increase.md",
-      "group": "Input Handling",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "autocomplete-viewport-scroll.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "low"
-    }
-  ]
+  "done": []
 }

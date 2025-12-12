@@ -8,11 +8,10 @@ Phase 1: Agent Context Extraction - Final Verification
 - .agents/skills/di.md
 - .agents/skills/tdd.md
 - .agents/skills/style.md
-- .agents/skills/scm.md
 
 ## Pre-read Docs
-- docs/agent-process-model.md (architecture overview)
-- docs/memory.md (talloc ownership)
+- docs/backlog/shared-context-di.md (success criteria)
+- docs/rel-05/scratch.md (Phase 1 design)
 
 ## Pre-read Source (patterns)
 - src/agent.h (complete agent context)
@@ -46,18 +45,18 @@ This is a verification/polish task, not new implementation.
 
 ### Red (Verification)
 1. Search codebase for any remaining direct field access that should go through agent:
-   - `repl->scrollback` (should be `repl->current->scrollback`)
-   - `repl->layer_cake` (should be `repl->current->layer_cake`)
-   - `repl->input_buffer` (should be `repl->current->input_buffer`)
-   - `repl->conversation` (should be `repl->current->conversation`)
-   - `repl->state` (should be `repl->current->state`)
-   - `repl->multi` (should be `repl->current->multi`)
-   - `repl->pending_tool_call` (should be `repl->current->pending_tool_call`)
+   - `repl->scrollback` (should be `repl->agent->scrollback`)
+   - `repl->layer_cake` (should be `repl->agent->layer_cake`)
+   - `repl->input_buffer` (should be `repl->agent->input_buffer`)
+   - `repl->conversation` (should be `repl->agent->conversation`)
+   - `repl->state` (should be `repl->agent->state`)
+   - `repl->multi` (should be `repl->agent->multi`)
+   - `repl->pending_tool_call` (should be `repl->agent->pending_tool_call`)
    - All other per-agent fields
 
 2. Verify `ik_repl_ctx_t` now only contains:
    - `ik_shared_ctx_t *shared` - shared infrastructure
-   - `ik_agent_ctx_t *current` - current agent (for now single, later from array)
+   - `ik_agent_ctx_t *agent` - single agent (for now)
    - `ik_input_parser_t *input_parser` - stateless parser
    - `atomic_bool quit` - exit flag
 
@@ -66,7 +65,7 @@ This is a verification/polish task, not new implementation.
    root_ctx
      ├─> shared_ctx (sibling)
      └─> repl_ctx (sibling)
-              └─> current (child of repl)
+              └─> agent (child of repl)
    ```
 
 4. Run `make check` - should already pass
@@ -104,10 +103,9 @@ This is a verification/polish task, not new implementation.
 
 4. Add documentation to `ik_repl_ctx_t` in `src/repl.h`:
    ```c
-   // Current agent (per-agent state)
-   // Currently single agent, will become current selection from array
+   // Per-agent state (currently single agent, will become array)
    // All per-agent fields accessed via this pointer
-   ik_agent_ctx_t *current;
+   ik_agent_ctx_t *agent;
    ```
 
 5. Verify initialization flow in client.c/repl_init.c:
@@ -116,7 +114,6 @@ This is a verification/polish task, not new implementation.
    // 2. Create shared context (infrastructure)
    // 3. Create REPL (receives shared)
    //    3a. Create agent (receives shared for dimensions)
-   //    3b. Set repl->current = agent
    // 4. Run
    // 5. Cleanup (reverse order via talloc)
    ```
@@ -131,10 +128,10 @@ This is a verification/polish task, not new implementation.
 
 2. Verify Phase 1 architecture:
    - [ ] `ik_agent_ctx_t` contains all per-agent state
-   - [ ] `ik_repl_ctx_t` contains only coordinator state + current pointer
-   - [ ] Agent created via `ik_agent_create(repl, shared, NULL, &agent)`
+   - [ ] `ik_repl_ctx_t` contains only coordinator state + agent pointer
+   - [ ] Agent created via `ik_agent_create(repl, shared, 0, &agent)`
    - [ ] Clear ownership hierarchy
-   - [ ] Access pattern: `repl->current->field` for per-agent, `repl->shared->field` for shared
+   - [ ] Access pattern: `repl->agent->field` for per-agent, `repl->shared->field` for shared
 
 ## Post-conditions
 - `make check` passes

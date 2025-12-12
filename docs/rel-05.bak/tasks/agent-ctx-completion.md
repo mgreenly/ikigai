@@ -9,11 +9,9 @@ Phase 1: Agent Context Extraction - Step 8 (completion field migration)
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
-- .agents/skills/scm.md
 
 ## Pre-read Docs
-- docs/agent-process-model.md (architecture overview)
-- docs/memory.md (talloc ownership)
+- docs/backlog/shared-context-di.md (design document)
 
 ## Pre-read Source (patterns)
 - src/agent.h (current agent context)
@@ -39,7 +37,7 @@ This is a small migration - just one field.
 After this task:
 - Agent owns its completion state
 - Each agent has independent tab completion
-- Access pattern becomes `repl->current->completion`
+- Access pattern becomes `repl->agent->completion`
 
 ## TDD Cycle
 
@@ -74,7 +72,7 @@ After this task:
    - Remove completion initialization if present (should already be NULL)
 
 4. Update ALL files that access completion:
-   - Change `repl->completion` to `repl->current->completion`
+   - Change `repl->completion` to `repl->agent->completion`
 
 5. Run `make check` - expect pass
 
@@ -86,8 +84,8 @@ After this task:
 
 ## Post-conditions
 - `make check` passes
-- `make lint` passes
 - `completion` is in `ik_agent_ctx_t`, not `ik_repl_ctx_t`
 - Tab completion works correctly with agent context
-- All completion access uses `repl->current->completion` pattern
+- All completion access uses `repl->agent->completion` pattern
+- 100% test coverage maintained
 - Working tree is clean (all changes committed)

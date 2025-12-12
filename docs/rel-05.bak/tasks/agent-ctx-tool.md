@@ -9,11 +9,10 @@ Phase 1: Agent Context Extraction - Step 6 (tool fields migration)
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
-- .agents/skills/scm.md
 
 ## Pre-read Docs
-- docs/agent-process-model.md (architecture overview)
-- docs/memory.md (talloc ownership)
+- docs/backlog/shared-context-di.md (design document)
+- docs/rel-05/scratch.md (ik_agent_ctx_t tool fields)
 
 ## Pre-read Source (patterns)
 - src/agent.h (current agent context)
@@ -46,7 +45,7 @@ Migrate tool execution state from `ik_repl_ctx_t` to `ik_agent_ctx_t`:
 After this task:
 - Agent owns its tool execution state
 - Each agent can independently execute tools
-- Access pattern becomes `repl->current->pending_tool_call`, etc.
+- Access pattern becomes `repl->agent->pending_tool_call`, etc.
 
 ## TDD Cycle
 
@@ -122,9 +121,9 @@ After this task:
    - Remove mutex destruction (now in agent destructor)
 
 5. Update ALL files that access tool state:
-   - Change `repl->pending_tool_call` to `repl->current->pending_tool_call`
-   - Change `repl->tool_thread` to `repl->current->tool_thread`
-   - Change `repl->tool_thread_mutex` to `repl->current->tool_thread_mutex`
+   - Change `repl->pending_tool_call` to `repl->agent->pending_tool_call`
+   - Change `repl->tool_thread` to `repl->agent->tool_thread`
+   - Change `repl->tool_thread_mutex` to `repl->agent->tool_thread_mutex`
    - Change all other tool field accesses similarly
 
 6. Run `make check` - expect pass
@@ -138,9 +137,9 @@ After this task:
 
 ## Post-conditions
 - `make check` passes
-- `make lint` passes
 - Tool fields are in `ik_agent_ctx_t`, not `ik_repl_ctx_t`
 - Mutex properly managed via talloc destructor
 - Tool execution functions work with agent context
-- All tool state access uses `repl->current->*` pattern
+- All tool state access uses `repl->agent->*` pattern
+- 100% test coverage maintained
 - Working tree is clean (all changes committed)

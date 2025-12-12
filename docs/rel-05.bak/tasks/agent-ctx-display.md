@@ -9,11 +9,10 @@ Phase 1: Agent Context Extraction - Step 2 (display fields migration)
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
-- .agents/skills/scm.md
 
 ## Pre-read Docs
-- docs/agent-process-model.md (architecture overview)
-- docs/memory.md (talloc ownership)
+- docs/backlog/shared-context-di.md (design document)
+- docs/rel-05/scratch.md (ik_agent_ctx_t display fields)
 
 ## Pre-read Source (patterns)
 - src/agent.h (current agent context with identity)
@@ -21,8 +20,8 @@ Phase 1: Agent Context Extraction - Step 2 (display fields migration)
 - src/repl.h (display fields to migrate)
 - src/repl_init.c (display initialization)
 - src/scrollback.h (ik_scrollback_t)
-- src/layer.h (ik_layer_t, ik_layer_cake_t)
-- src/layer_wrappers.h (layer creation functions)
+- src/layer.h (ik_layer_t)
+- src/layer_cake.h (ik_layer_cake_t)
 
 ## Pre-read Tests (patterns)
 - tests/unit/agent/agent_test.c
@@ -46,7 +45,7 @@ Migrate display state fields from `ik_repl_ctx_t` to `ik_agent_ctx_t`:
 
 After this task:
 - Agent owns its display state
-- Access pattern becomes `repl->current->scrollback`, etc.
+- Access pattern becomes `repl->agent->scrollback`, etc.
 
 Note: This is a large migration. Layer creation moves from repl_init to agent_create.
 
@@ -109,27 +108,27 @@ Note: This is a large migration. Layer creation moves from repl_init to agent_cr
 
 2. Update `src/repl.h`:
    - Add forward declaration: `typedef struct ik_agent_ctx ik_agent_ctx_t;`
-   - Add field: `ik_agent_ctx_t *current;`
+   - Add field: `ik_agent_ctx_t *agent;`
    - Remove display fields (scrollback, layer_cake, all layers, viewport_offset)
 
 3. Update `src/repl_init.c`:
    - Create agent after shared context setup:
      ```c
-     res_t result = ik_agent_create(repl, repl->shared, NULL, &repl->current);
+     res_t result = ik_agent_create(repl, repl->shared, 0, &repl->agent);
      ```
    - Remove scrollback creation (now in agent_create)
    - Remove layer_cake creation (now in agent_create)
    - Remove layer creation (now in agent_create)
 
 4. Update ALL files that access display fields:
-   - Change `repl->scrollback` to `repl->current->scrollback`
-   - Change `repl->layer_cake` to `repl->current->layer_cake`
-   - Change `repl->scrollback_layer` to `repl->current->scrollback_layer`
-   - Change `repl->spinner_layer` to `repl->current->spinner_layer`
-   - Change `repl->separator_layer` to `repl->current->separator_layer`
-   - Change `repl->input_layer` to `repl->current->input_layer`
-   - Change `repl->completion_layer` to `repl->current->completion_layer`
-   - Change `repl->viewport_offset` to `repl->current->viewport_offset`
+   - Change `repl->scrollback` to `repl->agent->scrollback`
+   - Change `repl->layer_cake` to `repl->agent->layer_cake`
+   - Change `repl->scrollback_layer` to `repl->agent->scrollback_layer`
+   - Change `repl->spinner_layer` to `repl->agent->spinner_layer`
+   - Change `repl->separator_layer` to `repl->agent->separator_layer`
+   - Change `repl->input_layer` to `repl->agent->input_layer`
+   - Change `repl->completion_layer` to `repl->agent->completion_layer`
+   - Change `repl->viewport_offset` to `repl->agent->viewport_offset`
 
 5. Run `make check` - expect pass
 
@@ -141,9 +140,9 @@ Note: This is a large migration. Layer creation moves from repl_init to agent_cr
 
 ## Post-conditions
 - `make check` passes
-- `make lint` passes
 - Display fields are in `ik_agent_ctx_t`, not `ik_repl_ctx_t`
 - `ik_agent_create()` initializes all display state
-- `repl->current` pointer exists
-- All display access uses `repl->current->*` pattern
+- `repl->agent` pointer exists
+- All display access uses `repl->agent->*` pattern
+- 100% test coverage maintained
 - Working tree is clean (all changes committed)

@@ -9,17 +9,16 @@ Phase 1: Agent Context Extraction - Step 7 (spinner field migration)
 - .agents/skills/naming.md
 - .agents/skills/style.md
 - .agents/skills/tdd.md
-- .agents/skills/scm.md
 
 ## Pre-read Docs
-- docs/agent-process-model.md (architecture overview)
-- docs/memory.md (talloc ownership)
+- docs/backlog/shared-context-di.md (design document)
 
 ## Pre-read Source (patterns)
 - src/agent.h (current agent context)
 - src/agent.c (current agent create)
 - src/repl.h (spinner_state field)
-- src/layer_wrappers.h (ik_spinner_state_t, spinner layer creation)
+- src/spinner/spinner.h (ik_spinner_state_t)
+- src/layer_wrappers.c (spinner layer creation)
 
 ## Pre-read Tests (patterns)
 - tests/unit/agent/agent_test.c
@@ -39,7 +38,7 @@ This is a small migration - just one field.
 After this task:
 - Agent owns its spinner state
 - Each agent has independent spinner animation
-- Access pattern becomes `repl->current->spinner_state`
+- Access pattern becomes `repl->agent->spinner_state`
 
 ## TDD Cycle
 
@@ -82,8 +81,8 @@ After this task:
    - Remove spinner_state initialization (now in agent_create)
 
 5. Update ALL files that access spinner_state:
-   - Change `repl->spinner_state` to `repl->current->spinner_state`
-   - Change `&repl->spinner_state` to `&repl->current->spinner_state`
+   - Change `repl->spinner_state` to `repl->agent->spinner_state`
+   - Change `&repl->spinner_state` to `&repl->agent->spinner_state`
 
 6. Run `make check` - expect pass
 
@@ -95,8 +94,8 @@ After this task:
 
 ## Post-conditions
 - `make check` passes
-- `make lint` passes
 - `spinner_state` is in `ik_agent_ctx_t`, not `ik_repl_ctx_t`
 - Spinner layer references agent's spinner_state
-- All spinner access uses `repl->current->spinner_state` pattern
+- All spinner access uses `repl->agent->spinner_state` pattern
+- 100% test coverage maintained
 - Working tree is clean (all changes committed)
