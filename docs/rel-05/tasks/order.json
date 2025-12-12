@@ -3,7 +3,7 @@
     {
       "task": "scrollback-newline-counting-bug.md",
       "group": "Bug Fix",
-      "model": "opus",
+      "model": "sonnet",
       "thinking": "high"
     },
     {

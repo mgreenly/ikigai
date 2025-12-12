@@ -318,5 +318,10 @@
     "event": "done",
     "task": "csi-u-xkbcommon-translate.md",
     "time": "2025-12-11T23:47:48.841Z"
+  },
+  {
+    "event": "start",
+    "task": "scrollback-newline-counting-bug.md",
+    "time": "2025-12-12T00:13:42.637Z"
   }
 ]
