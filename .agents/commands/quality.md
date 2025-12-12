@@ -98,6 +98,24 @@ Run `{MAKE_COMMAND}` and fix any issues found.
    - If fixed: commit changes with message "{STEP_NAME}: fix [brief description]"
    - If unable to fix after reasonable attempts: report status "stuck"
 
+## Lint-Specific Guidance (for lint step only)
+
+**Filesize violations are fixable.** When a file exceeds the size limit:
+
+1. **Analyze the file** - Identify logical groupings of functions
+2. **Extract to new module** - Move related functions to a new `.c` file with matching `.h`
+3. **Update includes** - Add `#include` for the new header where needed
+4. **Update Makefile** - Add the new `.c` file to the appropriate `SRCS` or `TEST_SRCS` variable
+5. **Verify** - Run `make check` to ensure nothing broke
+
+**Splitting strategies:**
+- Group by data structure (e.g., `foo_render.c` for rendering functions)
+- Group by operation type (e.g., `foo_parse.c` for parsing functions)
+- Extract helper/utility functions to a `foo_utils.c`
+- For test files: split by test category or feature area
+
+**This IS your job.** Do not report "stuck" for filesize violations. Splitting files into logical modules is exactly what the lint check exists to enforce.
+
 ## Required Response Format
 
 End your response with EXACTLY this JSON block:
