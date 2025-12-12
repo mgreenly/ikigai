@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "mouse-scroll-lines-increase.md",
-      "group": "Input Handling",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "scroll-debug-log-cleanup.md",
       "group": "Cleanup",
       "model": "haiku",
@@ -481,6 +475,12 @@
       "group": "Bug Fix",
       "model": "sonnet",
       "thinking": "high"
+    },
+    {
+      "task": "mouse-scroll-lines-increase.md",
+      "group": "Input Handling",
+      "model": "sonnet",
+      "thinking": "thinking"
     }
   ]
 }
