@@ -102,11 +102,12 @@ res_t ik_repl_handle_scroll_up_action(ik_repl_ctx_t *repl)
         if (document_height > (size_t)terminal_rows) {
             size_t calc_max_offset = document_height - (size_t)terminal_rows;
             size_t offset = repl->viewport_offset;
-            if (offset > calc_max_offset) offset = calc_max_offset;
+            if (offset > calc_max_offset) offset = calc_max_offset;  // LCOV_EXCL_BR_LINE - Defensive clamp
             size_t last_visible_row = document_height - 1 - offset;
             first_visible_row = last_visible_row + 1 - (size_t)terminal_rows;
         }
 
+        // LCOV_EXCL_BR_START - Defensive: yyjson only returns NULL on OOM
         yyjson_mut_doc *doc = ik_log_create();
         yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
         yyjson_mut_obj_add_str(doc, root, "event", "scroll_up");
@@ -117,6 +118,7 @@ res_t ik_repl_handle_scroll_up_action(ik_repl_ctx_t *repl)
         yyjson_mut_obj_add_int(doc, root, "term_rows", terminal_rows);
         yyjson_mut_obj_add_uint(doc, root, "first_visible", first_visible_row);
         ik_log_debug_json(doc);
+        // LCOV_EXCL_BR_STOP
     }
 
     return OK(NULL);
@@ -142,12 +144,14 @@ res_t ik_repl_handle_scroll_down_action(ik_repl_ctx_t *repl)
     }
 
     {
+        // LCOV_EXCL_BR_START - Defensive: yyjson only returns NULL on OOM
         yyjson_mut_doc *doc = ik_log_create();
         yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
         yyjson_mut_obj_add_str(doc, root, "event", "scroll_down");
         yyjson_mut_obj_add_uint(doc, root, "old", old_offset);
         yyjson_mut_obj_add_uint(doc, root, "new", repl->viewport_offset);
         ik_log_debug_json(doc);
+        // LCOV_EXCL_BR_STOP
     }
 
     return OK(NULL);
