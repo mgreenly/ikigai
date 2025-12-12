@@ -333,5 +333,15 @@
     "event": "done",
     "task": "scrollback-newline-counting-bug.md",
     "time": "2025-12-12T00:28:21.474Z"
+  },
+  {
+    "event": "start",
+    "task": "scrollback-partial-line-render-bug.md",
+    "time": "2025-12-12T00:48:12.362Z"
+  },
+  {
+    "event": "done",
+    "task": "scrollback-partial-line-render-bug.md",
+    "time": "2025-12-12T01:00:04.285Z"
   }
 ]

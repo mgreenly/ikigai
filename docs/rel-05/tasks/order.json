@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "scrollback-partial-line-render-bug.md",
-      "group": "Bug Fix",
-      "model": "sonnet",
-      "thinking": "high"
-    },
-    {
       "task": "scroll-debug-log-cleanup.md",
       "group": "Cleanup",
       "model": "haiku",
@@ -472,6 +466,12 @@
     },
     {
       "task": "scrollback-newline-counting-bug.md",
+      "group": "Bug Fix",
+      "model": "sonnet",
+      "thinking": "high"
+    },
+    {
+      "task": "scrollback-partial-line-render-bug.md",
       "group": "Bug Fix",
       "model": "sonnet",
       "thinking": "high"
