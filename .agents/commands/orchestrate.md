@@ -98,7 +98,9 @@ You MUST execute tasks ONE AT A TIME. This is non-negotiable.
 
 1. Run: `deno run --allow-read .ikigai/scripts/tasks/next.ts {{args}}/order.json`
 2. Parse the JSON response
-3. If `data` is null, all tasks complete - report summary and stop
+3. If `data` is null, all tasks complete:
+   - Commit task documents: `git add {{args}}/order.json {{args}}/session.json && git commit -m "chore: update task documents after orchestration"`
+   - Report summary and stop
 4. If `data` has a task:
    - Run: `deno run --allow-read --allow-write .ikigai/scripts/tasks/session.ts {{args}}/session.json start <task>`
    - Spawn ONE sub-agent (do NOT use run_in_background - wait for completion)
@@ -121,6 +123,7 @@ You MUST execute tasks ONE AT A TIME. This is non-negotiable.
      - Loop to step 1 (next.ts will return updated model/thinking)
    - If escalation data is null (at max level):
      - Run: `deno run --allow-read --allow-write .ikigai/scripts/tasks/session.ts {{args}}/session.json done <task>`
+     - Commit task documents: `git add {{args}}/order.json {{args}}/session.json && git commit -m "chore: update task documents after orchestration (stopped at <task>)"`
      - Report: `✗ <task> failed at max level (opus/ultrathink). Human review needed.`
      - Report failure reason from sub-agent
      - Stop and wait for human input
