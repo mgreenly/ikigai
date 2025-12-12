@@ -21,6 +21,7 @@ primary focus sub-agents and concurrency.
 
 enhance logging to support agent ids, session ids, etc...
 
+can't change the system message because the config overwrites it when it loads
 
 
 ------------ NEW ideas --------------------------------
