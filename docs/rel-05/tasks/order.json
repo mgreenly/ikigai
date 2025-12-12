@@ -1,6 +1,12 @@
 {
   "todo": [
     {
+      "task": "scrollback-newline-counting-bug.md",
+      "group": "Bug Fix",
+      "model": "opus",
+      "thinking": "high"
+    },
+    {
       "task": "scroll-debug-log-cleanup.md",
       "group": "Cleanup",
       "model": "haiku",
