@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <inttypes.h>
 
-#define MOUSE_SCROLL_LINES 1
+#define MOUSE_SCROLL_LINES 3
 
 /**
  * @brief Calculate maximum viewport offset

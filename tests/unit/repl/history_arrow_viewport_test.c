@@ -62,8 +62,8 @@ START_TEST(test_arrow_up_with_viewport_offset_scrolls)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    // Verify: viewport_offset increased by 1
-    ck_assert_uint_eq(repl->viewport_offset, 6);
+    // Verify: viewport_offset increased by 3
+    ck_assert_uint_eq(repl->viewport_offset, 8);
 
     // Verify: Input buffer unchanged (still "h")
     size_t text_len = 0;
@@ -119,8 +119,8 @@ START_TEST(test_arrow_down_with_viewport_offset_scrolls)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    // Verify: viewport_offset decreased by 1
-    ck_assert_uint_eq(repl->viewport_offset, 4);
+    // Verify: viewport_offset decreased by 3
+    ck_assert_uint_eq(repl->viewport_offset, 2);
 
     // Verify: Input buffer unchanged (still "h")
     size_t text_len = 0;

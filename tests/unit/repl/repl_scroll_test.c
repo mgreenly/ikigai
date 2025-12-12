@@ -12,7 +12,7 @@
 #include "../../../src/input.h"
 #include "../../test_utils.h"
 
-// Test: Scroll up increases viewport_offset by 1
+// Test: Scroll up increases viewport_offset by 3
 START_TEST(test_scroll_up_increases_offset)
 {
     void *ctx = talloc_new(NULL);
@@ -49,14 +49,14 @@ START_TEST(test_scroll_up_increases_offset)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    // Viewport offset should increase by 1
-    ck_assert_uint_eq(repl->viewport_offset, 6);
+    // Viewport offset should increase by 3
+    ck_assert_uint_eq(repl->viewport_offset, 8);
 
     talloc_free(ctx);
 }
 END_TEST
 
-// Test: Scroll down decreases viewport_offset by 1
+// Test: Scroll down decreases viewport_offset by 3
 START_TEST(test_scroll_down_decreases_offset)
 {
     void *ctx = talloc_new(NULL);
@@ -93,8 +93,8 @@ START_TEST(test_scroll_down_decreases_offset)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    // Viewport offset should decrease by 1
-    ck_assert_uint_eq(repl->viewport_offset, 4);
+    // Viewport offset should decrease by 3
+    ck_assert_uint_eq(repl->viewport_offset, 2);
 
     talloc_free(ctx);
 }
@@ -295,8 +295,8 @@ START_TEST(test_scroll_up_empty_input_buffer)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    // Viewport offset should increase by 1
-    ck_assert_uint_eq(repl->viewport_offset, 6);
+    // Viewport offset should increase by 3
+    ck_assert_uint_eq(repl->viewport_offset, 8);
 
     talloc_free(ctx);
 }

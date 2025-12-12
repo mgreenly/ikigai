@@ -343,5 +343,10 @@
     "event": "done",
     "task": "scrollback-partial-line-render-bug.md",
     "time": "2025-12-12T01:00:04.285Z"
+  },
+  {
+    "event": "start",
+    "task": "mouse-scroll-lines-increase.md",
+    "time": "2025-12-12T01:11:37.378Z"
   }
 ]
