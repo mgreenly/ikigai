@@ -49,11 +49,20 @@ START_TEST(test_arrow_up_with_viewport_offset_scrolls)
     res = ik_history_add(history, "history entry");
     ck_assert(is_ok(&res));
 
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
+    repl->current = agent;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Override agent's scrollback
+    talloc_free(agent->scrollback);
     repl->current->scrollback = scrollback;
     repl->shared->history = history;
     repl->current->viewport_offset = 5;  // Already scrolled up
@@ -111,6 +120,15 @@ START_TEST(test_arrow_down_with_viewport_offset_scrolls)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Override agent scrollback
+    talloc_free(agent->scrollback);
     repl->current->scrollback = scrollback;
     repl->shared->history = history;
     repl->current->viewport_offset = 5;  // Already scrolled up
@@ -160,6 +178,15 @@ START_TEST(test_arrow_up_with_zero_offset_navigates_history)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Override agent scrollback
+    talloc_free(agent->scrollback);
     repl->current->scrollback = scrollback;
     repl->shared->history = history;
     repl->current->viewport_offset = 0;  // At bottom
@@ -220,6 +247,15 @@ START_TEST(test_arrow_down_to_bottom_then_history)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Override agent scrollback
+    talloc_free(agent->scrollback);
     repl->current->scrollback = scrollback;
     repl->shared->history = history;
     repl->current->viewport_offset = 1;  // Scrolled up by 1

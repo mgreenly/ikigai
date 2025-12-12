@@ -43,6 +43,15 @@ START_TEST(test_ctrl_p_starts_browsing_empty)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Override agent scrollback
+    talloc_free(agent->scrollback);
     repl->current->scrollback = scrollback;
     repl->shared->history = history;
     repl->current->viewport_offset = 0;
@@ -96,6 +105,15 @@ START_TEST(test_ctrl_p_starts_browsing_with_text)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Override agent scrollback
+    talloc_free(agent->scrollback);
     repl->current->scrollback = scrollback;
     repl->shared->history = history;
     repl->current->viewport_offset = 0;
@@ -142,6 +160,15 @@ START_TEST(test_ctrl_p_moves_to_previous)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Override agent scrollback
+    talloc_free(agent->scrollback);
     repl->current->scrollback = scrollback;
     repl->shared->history = history;
     repl->current->viewport_offset = 0;
@@ -187,6 +214,15 @@ START_TEST(test_ctrl_p_at_oldest_entry)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Override agent scrollback
+    talloc_free(agent->scrollback);
     repl->current->scrollback = scrollback;
     repl->shared->history = history;
     repl->current->viewport_offset = 0;
@@ -239,6 +275,15 @@ START_TEST(test_ctrl_n_when_not_browsing)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Override agent scrollback
+    talloc_free(agent->scrollback);
     repl->current->scrollback = scrollback;
     repl->shared->history = history;
     repl->current->viewport_offset = 0;
@@ -285,6 +330,15 @@ START_TEST(test_ctrl_n_moves_to_next)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Override agent scrollback
+    talloc_free(agent->scrollback);
     repl->current->scrollback = scrollback;
     repl->shared->history = history;
     repl->current->viewport_offset = 0;
@@ -340,6 +394,15 @@ START_TEST(test_ctrl_n_at_newest_returns_pending)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Override agent scrollback
+    talloc_free(agent->scrollback);
     repl->current->scrollback = scrollback;
     repl->shared->history = history;
     repl->current->viewport_offset = 0;

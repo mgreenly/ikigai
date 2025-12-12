@@ -6,6 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
+#include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/history.h"
 #include "../../../src/input.h"
