@@ -1,13 +1,14 @@
 // Terminal module unit tests
 #include <check.h>
-#include <signal.h>
-#include <talloc.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <signal.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include "../../../src/terminal.h"
+#include <talloc.h>
+#include <unistd.h>
+
 #include "../../../src/error.h"
+#include "../../../src/terminal.h"
 #include "../../test_utils.h"
 
 // Mock control state
@@ -24,6 +25,7 @@ static int mock_close_count = 0;
 static int mock_write_count = 0;
 static int mock_tcsetattr_count = 0;
 static int mock_tcflush_count = 0;
+static const char *mock_read_response = NULL;  // Custom response for read mock
 
 // Buffer to capture write calls
 #define MOCK_WRITE_BUFFER_SIZE 1024
@@ -144,8 +146,8 @@ ssize_t posix_read_(int fd, void *buf, size_t count)
     }
     // Return a dummy CSI u response if select indicated ready
     if (mock_select_return > 0) {
-        const char *response = "\x1b[?0u";
-        size_t len = 5;
+        const char *response = mock_read_response ? mock_read_response : "\x1b[?0u";
+        size_t len = strlen(response);
         if (len > count) len = count;
         memcpy(buf, response, len);
         return (ssize_t)len;
@@ -171,6 +173,7 @@ static void reset_mocks(void)
     mock_tcflush_count = 0;
     memset(mock_write_buffer, 0, MOCK_WRITE_BUFFER_SIZE);
     mock_write_buffer_pos = 0;
+    mock_read_response = NULL;
 }
 
 // Test: successful terminal initialization
@@ -513,6 +516,235 @@ START_TEST(test_term_init_sets_csi_u_supported)
 }
 END_TEST
 
+// Test: CSI u probe write failure
+START_TEST(test_csi_u_probe_write_fails)
+{
+    reset_mocks();
+    // Fail on second write (CSI u query) - first write is alt screen enter
+    mock_write_fail_on_call = 2;
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(term);
+    // CSI u probe failed, so it should be disabled
+    ck_assert(!term->csi_u_supported);
+
+    ik_term_cleanup(term);
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u probe read failure
+START_TEST(test_csi_u_probe_read_fails)
+{
+    reset_mocks();
+    mock_select_return = 1; // Indicate ready to read
+    mock_read_fail = 1;     // But read fails
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(term);
+    // CSI u probe failed, so it should be disabled
+    ck_assert(!term->csi_u_supported);
+
+    ik_term_cleanup(term);
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u probe succeeds and enables CSI u mode
+START_TEST(test_csi_u_probe_succeeds)
+{
+    reset_mocks();
+    mock_select_return = 1; // Indicate ready to read (CSI u response available)
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(term);
+    // CSI u probe succeeded
+    ck_assert(term->csi_u_supported);
+
+    // Verify CSI u enable sequence was written (3rd write after query and alt screen)
+    ck_assert_int_ge(mock_write_count, 3);
+
+    ik_term_cleanup(term);
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u enable fails after successful probe
+START_TEST(test_csi_u_enable_fails)
+{
+    reset_mocks();
+    mock_select_return = 1; // Indicate CSI u is supported
+    // Write sequence: 1=alt screen, 2=CSI u query, 3=CSI u enable
+    mock_write_fail_on_call = 3; // Fail on CSI u enable (3rd write)
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(term);
+    // CSI u enable failed, so it should be marked as unsupported
+    ck_assert(!term->csi_u_supported);
+
+    ik_term_cleanup(term);
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u cleanup disables when enabled
+START_TEST(test_csi_u_cleanup_disables)
+{
+    reset_mocks();
+    mock_select_return = 1; // Enable CSI u
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+    ck_assert(is_ok(&res));
+    ck_assert(term->csi_u_supported);
+
+    // Reset buffer and counts to track cleanup
+    memset(mock_write_buffer, 0, MOCK_WRITE_BUFFER_SIZE);
+    mock_write_buffer_pos = 0;
+    int write_count_before_cleanup = mock_write_count;
+
+    ik_term_cleanup(term);
+
+    // Verify CSI u disable sequence was written
+    ck_assert(strstr(mock_write_buffer, "\x1b[<u") != NULL);
+    ck_assert_int_gt(mock_write_count, write_count_before_cleanup);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u probe with invalid response (no 'u' terminator)
+START_TEST(test_csi_u_probe_invalid_response)
+{
+    reset_mocks();
+    mock_select_return = 1; // Indicate ready to read
+    mock_read_response = "\x1b[?123"; // Response without 'u' terminator
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(term);
+    // CSI u probe failed due to invalid response
+    ck_assert(!term->csi_u_supported);
+
+    ik_term_cleanup(term);
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u probe with response that's too short (< 4 bytes)
+START_TEST(test_csi_u_probe_short_response)
+{
+    reset_mocks();
+    mock_select_return = 1; // Indicate ready to read
+    mock_read_response = "\x1b["; // Response too short
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(term);
+    // CSI u probe failed due to short response
+    ck_assert(!term->csi_u_supported);
+
+    ik_term_cleanup(term);
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u probe with response missing ESC prefix
+START_TEST(test_csi_u_probe_no_esc_prefix)
+{
+    reset_mocks();
+    mock_select_return = 1; // Indicate ready to read
+    mock_read_response = "[?0u"; // Missing ESC
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(term);
+    // CSI u probe failed due to missing ESC prefix
+    ck_assert(!term->csi_u_supported);
+
+    ik_term_cleanup(term);
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u probe with response missing '[' after ESC
+START_TEST(test_csi_u_probe_no_bracket)
+{
+    reset_mocks();
+    mock_select_return = 1; // Indicate ready to read
+    mock_read_response = "\x1b?0u"; // Missing '['
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(term);
+    // CSI u probe failed due to missing '['
+    ck_assert(!term->csi_u_supported);
+
+    ik_term_cleanup(term);
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: CSI u probe with response missing '?' after '['
+START_TEST(test_csi_u_probe_no_question)
+{
+    reset_mocks();
+    mock_select_return = 1; // Indicate ready to read
+    mock_read_response = "\x1b[0u"; // Missing '?'
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, &term);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(term);
+    // CSI u probe failed due to missing '?'
+    ck_assert(!term->csi_u_supported);
+
+    ik_term_cleanup(term);
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test suite
 static Suite *terminal_suite(void)
 {
@@ -532,6 +764,16 @@ static Suite *terminal_suite(void)
     tcase_add_test(tc_core, test_term_get_size_success);
     tcase_add_test(tc_core, test_term_get_size_fails);
     tcase_add_test(tc_core, test_term_init_sets_csi_u_supported);
+    tcase_add_test(tc_core, test_csi_u_probe_write_fails);
+    tcase_add_test(tc_core, test_csi_u_probe_read_fails);
+    tcase_add_test(tc_core, test_csi_u_probe_succeeds);
+    tcase_add_test(tc_core, test_csi_u_enable_fails);
+    tcase_add_test(tc_core, test_csi_u_cleanup_disables);
+    tcase_add_test(tc_core, test_csi_u_probe_invalid_response);
+    tcase_add_test(tc_core, test_csi_u_probe_short_response);
+    tcase_add_test(tc_core, test_csi_u_probe_no_esc_prefix);
+    tcase_add_test(tc_core, test_csi_u_probe_no_bracket);
+    tcase_add_test(tc_core, test_csi_u_probe_no_question);
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     tcase_add_test_raise_signal(tc_core, test_term_init_null_parent_asserts, SIGABRT);
