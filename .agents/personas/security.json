@@ -10,5 +10,6 @@
   "security/secrets",
   "security/secure-c",
   "security/terminal",
-  "security/threat-model"
+  "security/threat-model",
+  "align"
 ]

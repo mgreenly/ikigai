@@ -26,5 +26,6 @@
   "patterns/vtable",
   "style",
   "tasks",
-  "tdd"
+  "tdd",
+  "align"
 ]
