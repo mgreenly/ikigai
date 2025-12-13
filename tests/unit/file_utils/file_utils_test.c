@@ -82,6 +82,7 @@ START_TEST(test_file_read_all_empty_file) {
 }
 END_TEST
 
+#ifndef SKIP_SIGNAL_TESTS
 // Test: Assert on NULL context
 START_TEST(test_file_read_all_null_ctx) {
     char *out_content = NULL;
@@ -116,6 +117,7 @@ START_TEST(test_file_read_all_null_out) {
     talloc_free(ctx);
 }
 END_TEST
+#endif
 
 static Suite *file_utils_suite(void)
 {
@@ -131,9 +133,11 @@ static Suite *file_utils_suite(void)
     suite_add_tcase(s, tc_error);
 
     TCase *tc_assert = tcase_create("Assertion Cases");
+#ifndef SKIP_SIGNAL_TESTS
     tcase_add_test_raise_signal(tc_assert, test_file_read_all_null_ctx, SIGABRT);
     tcase_add_test_raise_signal(tc_assert, test_file_read_all_null_path, SIGABRT);
     tcase_add_test_raise_signal(tc_assert, test_file_read_all_null_out, SIGABRT);
+#endif
     suite_add_tcase(s, tc_assert);
 
     return s;

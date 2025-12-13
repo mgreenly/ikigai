@@ -407,7 +407,7 @@ check-helgrind:
 	@ulimit -n 1024; \
 	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
 		'echo -n "Helgrind: {}... "; \
-		if CK_FORK=no valgrind --tool=helgrind --error-exitcode=1 \
+		if CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 valgrind --tool=helgrind --error-exitcode=1 \
 		            --history-level=approx --quiet \
 		            --suppressions=$(CURDIR)/.suppressions/helgrind.supp \
 		            ./{} > /tmp/helgrind-$$$$.log 2>&1; then \

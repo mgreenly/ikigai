@@ -147,6 +147,7 @@ START_TEST(test_tool_response_success_ex_with_fields) {
 }
 END_TEST
 
+#ifndef SKIP_SIGNAL_TESTS
 START_TEST(test_tool_response_null_ctx) {
     char *result = NULL;
 
@@ -165,6 +166,7 @@ START_TEST(test_tool_response_null_message) {
     talloc_free(ctx);
 }
 END_TEST
+#endif
 
 static Suite *tool_response_suite(void) {
     Suite *s = suite_create("Tool Response");
@@ -181,8 +183,10 @@ static Suite *tool_response_suite(void) {
     suite_add_tcase(s, tc_success);
 
     TCase *tc_null = tcase_create("NULL Arguments");
+#ifndef SKIP_SIGNAL_TESTS
     tcase_add_test_raise_signal(tc_null, test_tool_response_null_ctx, SIGABRT);
     tcase_add_test_raise_signal(tc_null, test_tool_response_null_message, SIGABRT);
+#endif
     suite_add_tcase(s, tc_null);
 
     return s;
