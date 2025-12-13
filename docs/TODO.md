@@ -9,3 +9,5 @@ A /chain command that let's you start a series of prompts, each starting on fres
 A /loop command that let's you start the same prompt if it is still running when it stops becuase of context exhastion.
 
 Context should de-deuplicate
+
+skill file that are dynamic, when read they actually return up-todate info.

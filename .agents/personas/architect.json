@@ -24,6 +24,7 @@
   "patterns/state-machine",
   "patterns/strategy",
   "patterns/vtable",
+  "source-code",
   "style",
   "tasks",
   "tdd",
