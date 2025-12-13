@@ -21,3 +21,23 @@
    fun:calloc
    ...
 }
+
+{
+   Talloc - possibly lost memory from malloc
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   ...
+   obj:*/libtalloc.so*
+   ...
+}
+
+{
+   Talloc - possibly lost memory from realloc
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:realloc
+   ...
+   obj:*/libtalloc.so*
+   ...
+}
