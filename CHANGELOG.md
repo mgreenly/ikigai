@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rel-05] - 2025-12-13
+
+### Added
+
+#### Agent Process Model - Phase 0 (Complete)
+- **Agent context structure**: Created `ik_agent_ctx_t` with UUID-based identity (base64url, 22 chars)
+- **State extraction**: Migrated per-agent state from monolithic repl_ctx to agent_ctx:
+  - Display state (scrollback, viewport, marks)
+  - Input state (input_buffer, saved input)
+  - Conversation state (messages, history)
+  - LLM state (connection, streaming)
+  - Tool state (execution context)
+  - Completion state (tab completion)
+  - Spinner state (activity indicator)
+- **Agent integration**: Added `current` agent pointer to repl_ctx
+- **Architecture ready**: Single agent works, code organized for multi-agent support
+
+#### CSI u Keyboard Protocol (Kitty Protocol)
+- **Protocol support**: Parse CSI u escape sequences for enhanced keyboard input
+- **XKB integration**: libxkbcommon for keyboard layout-aware shifted character translation
+- **Modified keys**: Support for modified Enter sequences and other special keys
+
+#### Scroll Improvements
+- **Scroll detector**: State machine with burst absorption for smooth scrolling
+- **Mouse wheel**: Increased scroll lines from 1 to 3 for faster navigation
+- **Burst threshold**: Reduced from 20ms to 10ms for more responsive mouse wheel
+
+### Changed
+
+#### Build System
+- **Release builds**: Fixed MOCKABLE wrapper issues for NDEBUG builds
+- **Wrapper headers**: Added inline implementations for pthread, stdlib wrappers in release mode
+- **Format warnings**: Fixed format-truncation and format-nonliteral warnings
+
+#### Code Cleanup
+- **Legacy logger**: Removed functions that break alternate buffer mode
+- **Scroll debug**: Removed debug logging from viewport actions
+- **File organization**: Split test files to comply with 16KB size limit
+
+### Development
+
+#### Testing & Quality Gates
+- **Test coverage**: Maintained 100% (lines, functions, branches)
+- **Helgrind fixes**: Fixed mutex destroy false positives and double-destroy issues
+- **Thread safety**: Improved thread handling for sanitizer compliance
+- **New test suites**: scroll_detector, terminal_csi_u, shared context tests
+
+#### Documentation
+- **Agent process model**: Comprehensive design document for multi-agent architecture
+- **Phase 0 tasks**: Complete TDD task files for agent context extraction
+- **Task system**: Enhanced orchestration with model/thinking escalation
+
+### Technical Metrics
+- **Changes**: 514 files modified, +29,127/-24,255 lines
+- **Commits**: 124 commits over development cycle
+- **Test coverage**: 100% lines, functions, and branches
+- **Code quality**: All lint, format, and sanitizer checks pass
+
 ## [rel-04] - 2025-12-07
 
 ### Added
@@ -278,6 +336,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
+[rel-05]: https://github.com/mgreenly/ikigai/releases/tag/rel-05
 [rel-04]: https://github.com/mgreenly/ikigai/releases/tag/rel-04
 [rel-03]: https://github.com/mgreenly/ikigai/releases/tag/rel-03
 [rel-02]: https://github.com/mgreenly/ikigai/releases/tag/rel-02
