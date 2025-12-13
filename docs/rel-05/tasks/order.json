@@ -1,12 +1,5 @@
 {
-  "todo": [
-    {
-      "task": "repl-agent-pointer.md",
-      "group": "Agent Context Integration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    }
-  ],
+  "todo": [],
   "done": [
     {
       "task": "remove-legacy-logger.md",
@@ -76,6 +69,12 @@
     },
     {
       "task": "repl-single-agent-init.md",
+      "group": "Agent Context Integration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "repl-agent-pointer.md",
       "group": "Agent Context Integration",
       "model": "sonnet",
       "thinking": "thinking"
