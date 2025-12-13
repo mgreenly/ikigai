@@ -59,6 +59,9 @@ typedef struct ik_agent_ctx {
     // Input state (per-agent - preserves partial composition)
     ik_input_buffer_t *input_buffer;
 
+    // Tab completion state (per-agent)
+    ik_completion_t *completion;
+
     // Conversation state (per-agent)
     ik_openai_conversation_t *conversation;
     ik_mark_t **marks;

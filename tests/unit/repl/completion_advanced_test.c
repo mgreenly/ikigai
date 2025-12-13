@@ -46,7 +46,7 @@ START_TEST(test_typing_dismisses_on_no_match)
     action.codepoint = 'm';
     ik_repl_process_action(repl, &action);
     // Completion should now be active (no need for TAB)
-    ck_assert_ptr_nonnull(repl->completion);
+    ck_assert_ptr_nonnull(repl->current->completion);
 
     // Type 'x' to create "/mx" (no matches)
     action.type = IK_INPUT_CHAR;
@@ -55,7 +55,7 @@ START_TEST(test_typing_dismisses_on_no_match)
     ck_assert(is_ok(&res));
 
     // Verify: Completion dismissed (no matches)
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     talloc_free(ctx);
 }
@@ -92,7 +92,7 @@ START_TEST(test_left_right_arrow_dismisses)
     action.codepoint = 'm';
     ik_repl_process_action(repl, &action);
     // Completion should now be active (no need for TAB)
-    ck_assert_ptr_nonnull(repl->completion);
+    ck_assert_ptr_nonnull(repl->current->completion);
 
     // Press Left arrow
     action.type = IK_INPUT_ARROW_LEFT;
@@ -100,7 +100,7 @@ START_TEST(test_left_right_arrow_dismisses)
     ck_assert(is_ok(&res));
 
     // Verify: Completion dismissed
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Clear the input and re-type to get completion back
     action.type = IK_INPUT_CTRL_U;
@@ -108,7 +108,7 @@ START_TEST(test_left_right_arrow_dismisses)
     action.type = IK_INPUT_CHAR;
     action.codepoint = '/';
     ik_repl_process_action(repl, &action);
-    ck_assert_ptr_nonnull(repl->completion);
+    ck_assert_ptr_nonnull(repl->current->completion);
 
     // Press Right arrow
     action.type = IK_INPUT_ARROW_RIGHT;
@@ -116,7 +116,7 @@ START_TEST(test_left_right_arrow_dismisses)
     ck_assert(is_ok(&res));
 
     // Verify: Completion dismissed
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     talloc_free(ctx);
 }
@@ -140,7 +140,7 @@ START_TEST(test_tab_on_empty_input_no_op)
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
-    repl->completion = NULL;
+    repl->current->completion = NULL;
     repl->quit = false;
 
     // Create minimal shared context for test
@@ -154,7 +154,7 @@ START_TEST(test_tab_on_empty_input_no_op)
     ck_assert(is_ok(&res));
 
     // Verify: No completion created
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     talloc_free(ctx);
 }
@@ -178,7 +178,7 @@ START_TEST(test_tab_on_non_slash_no_op)
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
-    repl->completion = NULL;
+    repl->current->completion = NULL;
     repl->quit = false;
 
     // Create minimal shared context for test
@@ -198,7 +198,7 @@ START_TEST(test_tab_on_non_slash_no_op)
     ck_assert(is_ok(&res));
 
     // Verify: No completion created
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     talloc_free(ctx);
 }
@@ -236,7 +236,7 @@ START_TEST(test_cursor_at_end_after_tab_completion)
     ik_repl_process_action(repl, &action);
 
     // Verify completion is active
-    ck_assert_ptr_nonnull(repl->completion);
+    ck_assert_ptr_nonnull(repl->current->completion);
 
     // Press TAB to accept selection
     action.type = IK_INPUT_TAB;
@@ -244,7 +244,7 @@ START_TEST(test_cursor_at_end_after_tab_completion)
     ck_assert(is_ok(&res));
 
     // Verify: Completion is dismissed after accepting
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Verify: Input buffer was updated with the selection
     size_t text_len = 0;

@@ -275,13 +275,13 @@ END_TEST
 START_TEST(test_escape_revert_original_input)
 {
     // Set up completion with original_input
-    repl->completion = talloc_zero_(repl, sizeof(ik_completion_t));
-    ck_assert_ptr_nonnull(repl->completion);
+    repl->current->completion = talloc_zero_(repl, sizeof(ik_completion_t));
+    ck_assert_ptr_nonnull(repl->current->completion);
 
     // Set original input
     const char *original = "original text";
-    repl->completion->original_input = talloc_strdup_(repl->completion, original);
-    ck_assert_ptr_nonnull(repl->completion->original_input);
+    repl->current->completion->original_input = talloc_strdup_(repl->current->completion, original);
+    ck_assert_ptr_nonnull(repl->current->completion->original_input);
 
     // Put different text in the input buffer
     const char *current = "modified text";
@@ -302,7 +302,7 @@ START_TEST(test_escape_revert_original_input)
     ck_assert_mem_eq(text, original, len);
 
     // Verify completion was dismissed
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 }
 END_TEST
 

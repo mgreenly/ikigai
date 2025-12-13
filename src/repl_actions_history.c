@@ -49,8 +49,8 @@ res_t ik_repl_handle_arrow_up_action(ik_repl_ctx_t *repl)
     }
 
     // If completion is active, navigate to previous candidate
-    if (repl->completion != NULL) {
-        ik_completion_prev(repl->completion);
+    if (repl->current->completion != NULL) {
+        ik_completion_prev(repl->current->completion);
         return OK(NULL);
     }
 
@@ -117,8 +117,8 @@ res_t ik_repl_handle_arrow_down_action(ik_repl_ctx_t *repl)
     }
 
     // If completion is active, navigate to next candidate
-    if (repl->completion != NULL) {
-        ik_completion_next(repl->completion);
+    if (repl->current->completion != NULL) {
+        ik_completion_next(repl->current->completion);
         return OK(NULL);
     }
 

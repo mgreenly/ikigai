@@ -91,7 +91,7 @@ START_TEST(test_autocomplete_viewport_includes_completion_height) {
     repl->shared = shared;
     repl->current = agent;
     repl->current->input_buffer = input_buf;
-    repl->completion = completion;
+    repl->current->completion = completion;
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -100,7 +100,7 @@ START_TEST(test_autocomplete_viewport_includes_completion_height) {
 
     // Document height calculation (what we WANT)
     size_t input_buffer_display_rows = (input_buf_rows == 0) ? 1 : input_buf_rows;
-    size_t completion_rows = (repl->completion != NULL) ? repl->completion->count : 0;
+    size_t completion_rows = (repl->current->completion != NULL) ? repl->current->completion->count : 0;
     size_t expected_document_height = scrollback_rows + 1 + input_buffer_display_rows + 1 + completion_rows;
 
     // Expected: 8 + 1 + 1 + 1 + 3 = 14 rows
@@ -193,7 +193,7 @@ START_TEST(test_autocomplete_viewport_without_completion) {
     repl->shared = shared;
     repl->current = agent;
     repl->current->input_buffer = input_buf;
-    repl->completion = NULL;  // No completion
+    repl->current->completion = NULL;  // No completion
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -202,7 +202,7 @@ START_TEST(test_autocomplete_viewport_without_completion) {
 
     // Document height should be: 8 + 1 + 1 + 1 = 11 rows (no completion)
     size_t input_buffer_display_rows = (input_buf_rows == 0) ? 1 : input_buf_rows;
-    size_t completion_rows = (repl->completion != NULL) ? repl->completion->count : 0;
+    size_t completion_rows = (repl->current->completion != NULL) ? repl->current->completion->count : 0;
     size_t expected_document_height = scrollback_rows + 1 + input_buffer_display_rows + 1 + completion_rows;
 
     ck_assert_uint_eq(expected_document_height, 11);

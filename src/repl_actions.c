@@ -158,7 +158,7 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
     switch (action->type) { // LCOV_EXCL_BR_LINE
         case IK_INPUT_CHAR: {
             // Handle Space when completion is active - commit selection and dismiss
-            if (action->codepoint == ' ' && repl->completion != NULL) {
+            if (action->codepoint == ' ' && repl->current->completion != NULL) {
                 return ik_repl_handle_completion_space_commit(repl);
             }
 
@@ -244,9 +244,9 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             return ik_repl_handle_tab_action(repl);
         case IK_INPUT_ESCAPE: {
             // If completion is active, revert to original input before ESC dismisses
-            if (repl->completion != NULL && repl->completion->original_input != NULL) {
+            if (repl->current->completion != NULL && repl->current->completion->original_input != NULL) {
                 // Revert to original input
-                const char *original = repl->completion->original_input;
+                const char *original = repl->current->completion->original_input;
                 res_t res = ik_input_buffer_set_text(repl->current->input_buffer,
                                                       original, strlen(original));
                 if (is_err(&res)) {  // LCOV_EXCL_BR_LINE

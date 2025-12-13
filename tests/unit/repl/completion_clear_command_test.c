@@ -58,7 +58,7 @@ START_TEST(test_clear_command_clears_autocomplete)
     repl->shared->db_debug_pipe = NULL;
 
     repl->quit = false;
-    repl->completion = NULL;  // Initialize completion to NULL
+    repl->current->completion = NULL;  // Initialize completion to NULL
 
     agent->conversation = NULL;  // Initialize conversation to NULL
 
@@ -77,8 +77,8 @@ START_TEST(test_clear_command_clears_autocomplete)
     ik_repl_process_action(repl, &action);
 
     // Verify autocomplete is active with suggestions
-    ck_assert_ptr_nonnull(repl->completion);
-    ck_assert_uint_gt(repl->completion->count, 0);
+    ck_assert_ptr_nonnull(repl->current->completion);
+    ck_assert_uint_gt(repl->current->completion->count, 0);
 
     // Execute /clear command by simulating Enter key (NEWLINE)
     action.type = IK_INPUT_NEWLINE;
@@ -87,12 +87,12 @@ START_TEST(test_clear_command_clears_autocomplete)
 
     // CRITICAL: Verify autocomplete state is cleared after /clear
     // This is the main assertion - autocomplete should be NULL or have no matches
-    if (repl->completion != NULL) {
+    if (repl->current->completion != NULL) {
         // If completion still exists, it should have no matches
-        ck_assert_uint_eq(repl->completion->count, 0);
+        ck_assert_uint_eq(repl->current->completion->count, 0);
     }
     // Better yet, completion should be completely cleared (NULL)
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Verify the clear command actually executed by checking scrollback was cleared
     // and system message was added

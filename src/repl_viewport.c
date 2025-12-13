@@ -28,7 +28,7 @@ static size_t calculate_document_height(const ik_repl_ctx_t *repl)
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
     size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
     size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
-    size_t completion_rows = (repl->completion != NULL) ? repl->completion->count : 0;
+    size_t completion_rows = (repl->current->completion != NULL) ? repl->current->completion->count : 0;
 
     return scrollback_rows + 1 + input_buffer_display_rows + 1 + completion_rows;
 }

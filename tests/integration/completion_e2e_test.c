@@ -137,7 +137,7 @@ START_TEST(test_completion_full_workflow)
     type_str(repl, "/m");
     press_tab(repl);
     // First Tab triggers completion and accepts first selection
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
@@ -170,7 +170,7 @@ START_TEST(test_completion_argument_workflow)
     type_str(repl, "/model ");
     press_tab(repl);
     // Tab accepts first selection and dismisses completion
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
@@ -208,7 +208,7 @@ START_TEST(test_completion_escape_dismisses)
     // After typing "/m", if we trigger completion display somehow
     // For now, just verify that ESC works on input without active completion
     press_esc(repl);
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
@@ -239,7 +239,7 @@ START_TEST(test_completion_no_matches)
 
     type_str(repl, "/xyz");
     press_tab(repl);
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
     ck_assert(!repl->current->completion_layer->is_visible(repl->current->completion_layer));
 
     ik_repl_cleanup(repl);
@@ -269,7 +269,7 @@ START_TEST(test_completion_history_no_conflict)
     type_str(repl, "/m");
     press_tab(repl);
     // Tab accepts and dismisses completion
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
     ck_assert(!ik_history_is_browsing(repl->shared->history));
 
     ik_input_buffer_clear(repl->current->input_buffer);
@@ -367,7 +367,7 @@ START_TEST(test_completion_debug_args)
     type_str(repl, "/debug ");
     press_tab(repl);
     // Tab accepts first selection and dismisses completion
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Tab selected one option (either "off" or "on"), now in input_buffer
     size_t len = 0;
@@ -401,7 +401,7 @@ START_TEST(test_completion_partial_arg)
     type_str(repl, "/model ");
     press_tab(repl);
     // Tab accepts first selection and dismisses completion
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Should have selected an argument
     size_t len = 0;

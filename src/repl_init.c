@@ -74,8 +74,7 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Initialize reference fields
     repl->lower_separator_visible = true;  // Lower separator initially visible
 
-    // Initialize completion context to NULL (inactive) (rel-04)
-    repl->completion = NULL;
+    // Note: completion initialization removed - now in agent context (repl->current->completion)
 
     // Create lower separator layer (not part of agent - stays in repl)
     repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &repl->lower_separator_visible);

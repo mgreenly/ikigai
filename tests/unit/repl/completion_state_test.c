@@ -48,11 +48,11 @@ START_TEST(test_tab_cycles_to_next)
     ik_repl_process_action(repl, &action);
 
     // Completion should be active with at least 2 candidates
-    ck_assert_ptr_nonnull(repl->completion);
-    ck_assert(repl->completion->count >= 2);
+    ck_assert_ptr_nonnull(repl->current->completion);
+    ck_assert(repl->current->completion->count >= 2);
 
     // Get first candidate
-    const char *first = ik_completion_get_current(repl->completion);
+    const char *first = ik_completion_get_current(repl->current->completion);
     ck_assert_ptr_nonnull(first);
 
     // Press TAB - should cycle to next and dismiss completion
@@ -61,7 +61,7 @@ START_TEST(test_tab_cycles_to_next)
     ck_assert(is_ok(&res));
 
     // Verify: completion dismissed after accept
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Verify: input buffer was updated with next selection (not first)
     size_t text_len = 0;
@@ -106,10 +106,10 @@ START_TEST(test_tab_updates_input_buffer)
     ik_repl_process_action(repl, &action);
 
     // Completion should be active
-    ck_assert_ptr_nonnull(repl->completion);
+    ck_assert_ptr_nonnull(repl->current->completion);
 
     // Get current selection (just to verify completion is working)
-    const char *selected = ik_completion_get_current(repl->completion);
+    const char *selected = ik_completion_get_current(repl->current->completion);
     ck_assert_ptr_nonnull(selected);
 
     // Press TAB - should cycle to next, update input buffer, and dismiss
@@ -118,7 +118,7 @@ START_TEST(test_tab_updates_input_buffer)
     ck_assert(is_ok(&res));
 
     // Verify: completion dismissed after Tab accept
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Verify: input buffer contains "/" + a selected candidate
     size_t text_len = 0;
@@ -176,8 +176,8 @@ START_TEST(test_esc_reverts_to_original)
     original_copy[2] = '\0';
 
     // Completion is active
-    ck_assert_ptr_nonnull(repl->completion);
-    size_t original_count = repl->completion->count;
+    ck_assert_ptr_nonnull(repl->current->completion);
+    size_t original_count = repl->current->completion->count;
     ck_assert(original_count > 1);
 
     // Save original input to completion context manually before pressing Tab
@@ -191,7 +191,7 @@ START_TEST(test_esc_reverts_to_original)
     ck_assert(is_ok(&res));
 
     // Verify: completion dismissed
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Verify: input reverted to original
     size_t reverted_len = 0;
@@ -236,10 +236,10 @@ START_TEST(test_space_commits_selection)
     ik_repl_process_action(repl, &action);
 
     // Completion is active
-    ck_assert_ptr_nonnull(repl->completion);
+    ck_assert_ptr_nonnull(repl->current->completion);
 
     // Get current selection
-    const char *selected = ik_completion_get_current(repl->completion);
+    const char *selected = ik_completion_get_current(repl->current->completion);
     ck_assert_ptr_nonnull(selected);
     char *selected_copy = talloc_strdup(ctx, selected);
 
@@ -250,7 +250,7 @@ START_TEST(test_space_commits_selection)
     ck_assert(is_ok(&res));
 
     // Verify: completion dismissed
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Verify: input buffer contains "/" + selected + " "
     size_t text_len = 0;
@@ -298,10 +298,10 @@ START_TEST(test_enter_commits_and_submits)
     ik_repl_process_action(repl, &action);
 
     // Completion is active
-    ck_assert_ptr_nonnull(repl->completion);
+    ck_assert_ptr_nonnull(repl->current->completion);
 
     // Verify it's the single match /clear
-    const char *selected = ik_completion_get_current(repl->completion);
+    const char *selected = ik_completion_get_current(repl->current->completion);
     ck_assert_ptr_nonnull(selected);
     ck_assert_str_eq(selected, "clear");
 
@@ -311,7 +311,7 @@ START_TEST(test_enter_commits_and_submits)
     ck_assert(is_ok(&res));
 
     // Verify completion dismissed
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Verify input buffer has the selected command
     size_t text_len = 0;

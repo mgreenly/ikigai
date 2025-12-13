@@ -155,10 +155,10 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Clear autocomplete state so suggestions don't persist
-    if (repl->completion != NULL) {     // LCOV_EXCL_BR_LINE
+    if (repl->current->completion != NULL) {     // LCOV_EXCL_BR_LINE
         // LCOV_EXCL_START - Defensive cleanup, rarely occurs in practice
-        talloc_free(repl->completion);
-        repl->completion = NULL;
+        talloc_free(repl->current->completion);
+        repl->current->completion = NULL;
         // LCOV_EXCL_STOP
     }
 

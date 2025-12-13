@@ -92,6 +92,9 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->input_text = NULL;
     agent->input_text_len = 0;
 
+    // Initialize tab completion state (per-agent)
+    agent->completion = NULL;  // Created on Tab press, destroyed on completion
+
     // Initialize conversation state (per-agent)
     agent->conversation = ik_openai_conversation_create(agent).ok;
     agent->marks = NULL;
@@ -136,11 +139,8 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->input_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
-    // Create completion layer
-    ik_completion_t **completion_ptr = talloc_zero_(agent, sizeof(ik_completion_t *));
-    if (completion_ptr == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    *completion_ptr = NULL;
-    agent->completion_layer = ik_completion_layer_create(agent, "completion", completion_ptr);
+    // Create completion layer (pass pointer to agent's completion field)
+    agent->completion_layer = ik_completion_layer_create(agent, "completion", &agent->completion);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->completion_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 

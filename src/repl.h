@@ -59,9 +59,7 @@ typedef struct ik_repl_ctx_t {
     uint64_t render_start_us;         // Timestamp when input received (0 = not set)
     uint64_t render_elapsed_us;       // Elapsed time from previous render (computed at end of render)
 
-    // Tab completion (rel-04)
-    ik_completion_t *completion;                  // Tab completion context (NULL when inactive)
-
+    // Note: completion removed - now in agent context (repl->current->completion)
     // Note: history removed - now in shared context (repl->shared->history)
     // Note: tool state removed - now in agent context (repl->current->pending_tool_call, etc.)
 } ik_repl_ctx_t;

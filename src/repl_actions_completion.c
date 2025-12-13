@@ -22,9 +22,9 @@ void ik_repl_dismiss_completion(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
-    if (repl->completion != NULL) {
-        talloc_free(repl->completion);
-        repl->completion = NULL;
+    if (repl->current->completion != NULL) {
+        talloc_free(repl->current->completion);
+        repl->current->completion = NULL;
     }
 }
 
@@ -51,8 +51,8 @@ void ik_repl_update_completion_after_char(ik_repl_ctx_t *repl)
     if (text_len > 0 && text[0] == '/') {  // LCOV_EXCL_BR_LINE - defensive: text_len > 0 checked
         // Preserve original_input if it exists (for ESC revert)
         char *original_input = NULL;
-        if (repl->completion != NULL && repl->completion->original_input != NULL) {
-            original_input = talloc_strdup(repl, repl->completion->original_input);
+        if (repl->current->completion != NULL && repl->current->completion->original_input != NULL) {
+            original_input = talloc_strdup(repl, repl->current->completion->original_input);
             if (original_input == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         }
 
@@ -68,11 +68,11 @@ void ik_repl_update_completion_after_char(ik_repl_ctx_t *repl)
 
         // Replace old completion with new one (or NULL if no matches)
         ik_repl_dismiss_completion(repl);
-        repl->completion = new_comp;
+        repl->current->completion = new_comp;
 
         // If new completion created and we have original_input, preserve it
-        if (repl->completion != NULL && original_input != NULL) {
-            repl->completion->original_input = original_input;
+        if (repl->current->completion != NULL && original_input != NULL) {
+            repl->current->completion->original_input = original_input;
         } else if (original_input != NULL) {  // LCOV_EXCL_BR_LINE
             talloc_free(original_input);  // LCOV_EXCL_LINE
         }
@@ -165,9 +165,9 @@ static char *build_completion_buffer_text(ik_repl_ctx_t *repl, ik_completion_t *
 static res_t update_input_with_completion_selection(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
-    assert(repl->completion != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(repl->current->completion != NULL); /* LCOV_EXCL_BR_LINE */
 
-    char *replacement = build_completion_buffer_text(repl, repl->completion, NULL);
+    char *replacement = build_completion_buffer_text(repl, repl->current->completion, NULL);
     if (replacement == NULL) {  // LCOV_EXCL_BR_LINE - defensive
         return OK(NULL);  // LCOV_EXCL_LINE
     }
@@ -201,12 +201,12 @@ res_t ik_repl_handle_completion_space_commit(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
-    if (repl->completion == NULL) {  // LCOV_EXCL_BR_LINE - defensive
+    if (repl->current->completion == NULL) {  // LCOV_EXCL_BR_LINE - defensive
         return OK(NULL);  // LCOV_EXCL_LINE
     }
 
     // Build text with space suffix
-    char *replacement = build_completion_buffer_text(repl, repl->completion, " ");
+    char *replacement = build_completion_buffer_text(repl, repl->current->completion, " ");
     if (replacement == NULL) {  // LCOV_EXCL_BR_LINE - defensive
         ik_repl_dismiss_completion(repl);  // LCOV_EXCL_LINE
         return OK(NULL);  // LCOV_EXCL_LINE
@@ -244,18 +244,18 @@ res_t ik_repl_handle_tab_action(ik_repl_ctx_t *repl)
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
     // If completion is already active, cycle to next
-    if (repl->completion != NULL) {
+    if (repl->current->completion != NULL) {
         // If original_input not set yet (first Tab), set it now
-        if (repl->completion->original_input == NULL) {  // LCOV_EXCL_BR_LINE
+        if (repl->current->completion->original_input == NULL) {  // LCOV_EXCL_BR_LINE
             size_t text_len = 0;
             const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
             char *original = talloc_strndup(repl, text, text_len);
             if (original == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            repl->completion->original_input = original;
+            repl->current->completion->original_input = original;
         }
 
         // Move to next candidate
-        ik_completion_next(repl->completion);
+        ik_completion_next(repl->current->completion);
 
         // Update input buffer with new selection
         res_t res = update_input_with_completion_selection(repl);
@@ -305,7 +305,7 @@ res_t ik_repl_handle_tab_action(ik_repl_ctx_t *repl)
     if (comp != NULL) {
         // Set original_input for ESC revert
         comp->original_input = original_input;
-        repl->completion = comp;
+        repl->current->completion = comp;
 
         // Update input buffer with first selection
         res_t res = update_input_with_completion_selection(repl);

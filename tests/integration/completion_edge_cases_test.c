@@ -130,7 +130,7 @@ START_TEST(test_completion_space_commits)
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/m");
     press_tab(repl);
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert(len >= 2);
@@ -160,7 +160,7 @@ START_TEST(test_completion_tab_wraparound)
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug ");
     press_tab(repl);
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert(len > 7);
@@ -184,7 +184,7 @@ START_TEST(test_completion_single_item)
     type_str(repl, "/debug");
     press_tab(repl);
     // Tab accepts and dismisses completion
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Input buffer should have the selected command
     size_t len = 0;
@@ -217,7 +217,7 @@ START_TEST(test_completion_escape_exact_revert)
     // Press Tab to accept completion
     press_tab(repl);
     // Completion is dismissed after Tab
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Text should have changed to a completion match
     size_t new_len = 0;
@@ -226,7 +226,7 @@ START_TEST(test_completion_escape_exact_revert)
 
     // ESC after Tab has no effect (completion already dismissed)
     press_esc(repl);
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Text stays as is after ESC
     size_t final_len = 0;
@@ -254,7 +254,7 @@ START_TEST(test_completion_tab_cycle_then_space)
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug ");
     press_tab(repl);
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert(len > 7);
@@ -278,7 +278,7 @@ START_TEST(test_completion_space_on_first_tab)
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/d");
     press_tab(repl);
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert(len >= 2);
@@ -309,7 +309,7 @@ START_TEST(test_completion_type_cancels)
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/m");
     press_tab(repl);
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
     size_t len_before = 0;
     ik_input_buffer_get_text(repl->current->input_buffer, &len_before);
     ik_input_action_t a = {.type = IK_INPUT_CHAR, .codepoint = 'x'};
@@ -342,7 +342,7 @@ START_TEST(test_completion_rewind_args)
     type_str(repl, "/rewind ");
     press_tab(repl);
     // No completion available
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
@@ -369,7 +369,7 @@ START_TEST(test_completion_mark_no_args)
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/mark ");
     press_tab(repl);
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
@@ -396,7 +396,7 @@ START_TEST(test_completion_help_no_args)
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/help ");
     press_tab(repl);
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     size_t len = 0;
     const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
