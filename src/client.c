@@ -36,9 +36,12 @@ int main(void)
     // Initialize legacy global logger for backward compatibility during migration
     ik_log_init(cwd);
 
-    // Create shared context (creates DI-based logger internally)
+    // Create DI-based logger for shared context
+    ik_logger_t *logger = ik_logger_create(root_ctx, cwd);
+
+    // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(root_ctx, cfg, cwd, &shared);
+    res_t result = ik_shared_ctx_init(root_ctx, cfg, cwd, ".ikigai", logger, &shared);
     if (is_err(&result)) {
         error_fprintf(stderr, result.err);
         ik_log_shutdown();
