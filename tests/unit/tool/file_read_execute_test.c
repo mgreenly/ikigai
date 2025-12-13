@@ -416,7 +416,7 @@ START_TEST(test_file_read_exec_rewind_error)
 
     yyjson_val *error = yyjson_obj_get(root, "error");
     const char *error_str = yyjson_get_str(error);
-    ck_assert(strstr(error_str, "Cannot rewind file") != NULL);
+    ck_assert(strstr(error_str, "Cannot seek file") != NULL);
 
     yyjson_doc_free(doc);
     mock_fseek_fail_on = -1;
