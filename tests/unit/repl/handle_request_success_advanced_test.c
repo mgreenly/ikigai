@@ -144,18 +144,18 @@ START_TEST(test_request_success_starts_tool_execution)
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
 
     // Create a pending tool call - this will trigger tool execution
-    repl->pending_tool_call = ik_tool_call_create(test_ctx,
+    repl->current->pending_tool_call = ik_tool_call_create(test_ctx,
                                                   "call_test123",
                                                   "glob",
                                                   "{\"pattern\": \"*.c\"}");
-    ck_assert_ptr_nonnull(repl->pending_tool_call);
+    ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 
     // Initialize thread infrastructure for tool execution
-    pthread_mutex_init_(&repl->tool_thread_mutex, NULL);
-    repl->tool_thread_running = false;
-    repl->tool_thread_complete = false;
-    repl->tool_thread_result = NULL;
-    repl->tool_thread_ctx = NULL;
+    pthread_mutex_init_(&repl->current->tool_thread_mutex, NULL);
+    repl->current->tool_thread_running = false;
+    repl->current->tool_thread_complete = false;
+    repl->current->tool_thread_result = NULL;
+    repl->current->tool_thread_ctx = NULL;
 
     // Call handle_request_success - should start tool execution
     handle_request_success(repl);
@@ -170,9 +170,9 @@ START_TEST(test_request_success_starts_tool_execution)
     int max_wait = 200; // 2 seconds max
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
-        pthread_mutex_lock_(&repl->tool_thread_mutex);
-        complete = repl->tool_thread_complete;
-        pthread_mutex_unlock_(&repl->tool_thread_mutex);
+        pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+        complete = repl->current->tool_thread_complete;
+        pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
         if (complete) break;
         usleep(10000); // 10ms
     }
@@ -188,7 +188,7 @@ START_TEST(test_request_success_starts_tool_execution)
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     // Clean up mutex
-    pthread_mutex_destroy_(&repl->tool_thread_mutex);
+    pthread_mutex_destroy_(&repl->current->tool_thread_mutex);
 }
 
 END_TEST
@@ -202,18 +202,18 @@ START_TEST(test_handle_curl_events_tool_execution_state)
     repl->current->assistant_response = talloc_strdup(test_ctx, "Response with tool call");
 
     // Create a pending tool call - this will cause state to become EXECUTING_TOOL
-    repl->pending_tool_call = ik_tool_call_create(test_ctx,
+    repl->current->pending_tool_call = ik_tool_call_create(test_ctx,
                                                   "call_abc",
                                                   "glob",
                                                   "{\"pattern\": \"*.c\"}");
-    ck_assert_ptr_nonnull(repl->pending_tool_call);
+    ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 
     // Initialize thread infrastructure
-    pthread_mutex_init_(&repl->tool_thread_mutex, NULL);
-    repl->tool_thread_running = false;
-    repl->tool_thread_complete = false;
-    repl->tool_thread_result = NULL;
-    repl->tool_thread_ctx = NULL;
+    pthread_mutex_init_(&repl->current->tool_thread_mutex, NULL);
+    repl->current->tool_thread_running = false;
+    repl->current->tool_thread_complete = false;
+    repl->current->tool_thread_result = NULL;
+    repl->current->tool_thread_ctx = NULL;
 
     // Simulate request completion - curl_multi_perform will set running_handles to 0
     simulate_completion = true;
@@ -237,9 +237,9 @@ START_TEST(test_handle_curl_events_tool_execution_state)
     int max_wait = 200; // 2 seconds max
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
-        pthread_mutex_lock_(&repl->tool_thread_mutex);
-        complete = repl->tool_thread_complete;
-        pthread_mutex_unlock_(&repl->tool_thread_mutex);
+        pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+        complete = repl->current->tool_thread_complete;
+        pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
         if (complete) break;
         usleep(10000); // 10ms
     }
@@ -250,7 +250,7 @@ START_TEST(test_handle_curl_events_tool_execution_state)
 
     // Clean up
     simulate_completion = false;
-    pthread_mutex_destroy_(&repl->tool_thread_mutex);
+    pthread_mutex_destroy_(&repl->current->tool_thread_mutex);
 }
 
 END_TEST

@@ -113,7 +113,7 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
         repl->current->streaming_line_buffer = NULL;
     }
 
-    repl->tool_iteration_count = 0;
+    repl->current->tool_iteration_count = 0;
     ik_repl_transition_to_waiting_for_llm(repl);
 
     result = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,

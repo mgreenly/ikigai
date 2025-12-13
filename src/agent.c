@@ -9,6 +9,7 @@
 #include "scrollback.h"
 #include "shared.h"
 #include "wrapper.h"
+#include "wrapper_pthread.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -53,6 +54,12 @@ char *ik_agent_generate_uuid(TALLOC_CTX *ctx)
     uuid[j] = '\0';
 
     return uuid;
+}
+
+static int agent_destructor(ik_agent_ctx_t *agent)
+{
+    pthread_mutex_destroy_(&agent->tool_thread_mutex);
+    return 0;
 }
 
 res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
@@ -139,6 +146,23 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Initialize viewport offset
     agent->viewport_offset = 0;
+
+    // Initialize tool execution state
+    agent->pending_tool_call = NULL;
+    agent->tool_thread_running = false;
+    agent->tool_thread_complete = false;
+    agent->tool_thread_ctx = NULL;
+    agent->tool_thread_result = NULL;
+    agent->tool_iteration_count = 0;
+
+    int mutex_result = pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
+    if (mutex_result != 0) {
+        talloc_free(agent);
+        return ERR(ctx, IO, "Failed to initialize tool thread mutex");
+    }
+
+    // Set destructor to clean up mutex
+    talloc_set_destructor(agent, agent_destructor);
 
     *out = agent;
     return OK(agent);

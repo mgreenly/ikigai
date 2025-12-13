@@ -3,9 +3,11 @@
 #include "error.h"
 #include "layer.h"
 #include "scrollback.h"
+#include "tool.h"
 
 #include <talloc.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 // Forward declarations
 typedef struct ik_shared_ctx ik_shared_ctx_t;
@@ -74,6 +76,16 @@ typedef struct ik_agent_ctx {
     bool input_buffer_visible;
     const char *input_text;
     size_t input_text_len;
+
+    // Tool execution state (per-agent)
+    ik_tool_call_t *pending_tool_call;
+    pthread_t tool_thread;
+    pthread_mutex_t tool_thread_mutex;
+    bool tool_thread_running;
+    bool tool_thread_complete;
+    TALLOC_CTX *tool_thread_ctx;
+    char *tool_thread_result;
+    int32_t tool_iteration_count;
 } ik_agent_ctx_t;
 
 // Create agent context

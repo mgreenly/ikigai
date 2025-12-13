@@ -114,10 +114,10 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         CHECK(handle_curl_events(repl, ready));  // LCOV_EXCL_BR_LINE
 
         // Poll for tool thread completion
-        pthread_mutex_lock_(&repl->tool_thread_mutex);
+        pthread_mutex_lock_(&repl->current->tool_thread_mutex);
         ik_agent_state_t current_state = repl->current->state;
-        bool complete = repl->tool_thread_complete;
-        pthread_mutex_unlock_(&repl->tool_thread_mutex);
+        bool complete = repl->current->tool_thread_complete;
+        pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 
         if (current_state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
             handle_tool_completion(repl);
@@ -213,10 +213,10 @@ void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl)
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Update state with mutex protection for thread safety
-    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
     assert(repl->current->state == IK_AGENT_STATE_IDLE);   /* LCOV_EXCL_BR_LINE */
     repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
-    pthread_mutex_unlock_(&repl->tool_thread_mutex);
+    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 
     // Show spinner, hide input
     repl->spinner_state.visible = true;
@@ -228,10 +228,10 @@ void ik_repl_transition_to_idle(ik_repl_ctx_t *repl)
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Update state with mutex protection for thread safety
-    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
     assert(repl->current->state == IK_AGENT_STATE_WAITING_FOR_LLM);   /* LCOV_EXCL_BR_LINE */
     repl->current->state = IK_AGENT_STATE_IDLE;
-    pthread_mutex_unlock_(&repl->tool_thread_mutex);
+    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 
     // Hide spinner, show input
     repl->spinner_state.visible = false;
@@ -241,19 +241,19 @@ void ik_repl_transition_to_idle(ik_repl_ctx_t *repl)
 void ik_repl_transition_to_executing_tool(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
-    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
     assert(repl->current->state == IK_AGENT_STATE_WAITING_FOR_LLM); /* LCOV_EXCL_BR_LINE */
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;
-    pthread_mutex_unlock_(&repl->tool_thread_mutex);
+    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 }
 
 void ik_repl_transition_from_executing_tool(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
-    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
     assert(repl->current->state == IK_AGENT_STATE_EXECUTING_TOOL); /* LCOV_EXCL_BR_LINE */
     repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
-    pthread_mutex_unlock_(&repl->tool_thread_mutex);
+    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 }
 
 bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl)
@@ -270,7 +270,7 @@ bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl)
     }
 
     /* Check if we've reached the tool iteration limit (if config is available) */
-    if (repl->shared->cfg != NULL && repl->tool_iteration_count >= repl->shared->cfg->max_tool_turns) {
+    if (repl->shared->cfg != NULL && repl->current->tool_iteration_count >= repl->shared->cfg->max_tool_turns) {
         return false;
     }
 

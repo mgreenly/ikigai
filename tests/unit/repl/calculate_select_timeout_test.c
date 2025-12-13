@@ -16,18 +16,18 @@ static void setup(void)
     ctx = talloc_new(NULL);
     repl = talloc_zero(ctx, ik_repl_ctx_t);
 
+    /* Initialize current agent context (minimal setup for testing) */
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current->state = IK_AGENT_STATE_IDLE;
+
     /* Initialize thread infrastructure */
-    pthread_mutex_init_(&repl->tool_thread_mutex, NULL);
-    repl->tool_thread_running = false;
-    repl->tool_thread_complete = false;
+    pthread_mutex_init_(&repl->current->tool_thread_mutex, NULL);
+    repl->current->tool_thread_running = false;
+    repl->current->tool_thread_complete = false;
 
     /* Initialize spinner state */
     repl->spinner_state.visible = false;
     repl->spinner_state.frame_index = 0;
-
-    /* Initialize current agent context (minimal setup for testing) */
-    repl->current = talloc_zero(repl, ik_agent_ctx_t);
-    repl->current->state = IK_AGENT_STATE_IDLE;
 
     /* Initialize scroll detector (rel-05) */
     repl->scroll_det = ik_scroll_detector_create(repl);
@@ -36,7 +36,7 @@ static void setup(void)
 static void teardown(void)
 {
     if (repl != NULL) {
-        pthread_mutex_destroy_(&repl->tool_thread_mutex);
+        pthread_mutex_destroy_(&repl->current->tool_thread_mutex);
     }
     talloc_free(ctx);
     ctx = NULL;

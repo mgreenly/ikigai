@@ -403,10 +403,10 @@ START_TEST(test_thread_infrastructure_init)
     ck_assert_ptr_nonnull(repl);
 
     // Verify thread fields are initialized
-    ck_assert(!repl->tool_thread_running);
-    ck_assert(!repl->tool_thread_complete);
-    ck_assert_ptr_null(repl->tool_thread_ctx);
-    ck_assert_ptr_null(repl->tool_thread_result);
+    ck_assert(!repl->current->tool_thread_running);
+    ck_assert(!repl->current->tool_thread_complete);
+    ck_assert_ptr_null(repl->current->tool_thread_ctx);
+    ck_assert_ptr_null(repl->current->tool_thread_result);
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);

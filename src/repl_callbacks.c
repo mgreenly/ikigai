@@ -177,17 +177,17 @@ res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, v
         repl->current->response_completion_tokens = completion->completion_tokens;
 
         // Store tool_call if present
-        if (repl->pending_tool_call != NULL) {
-            talloc_free(repl->pending_tool_call);
-            repl->pending_tool_call = NULL;
+        if (repl->current->pending_tool_call != NULL) {
+            talloc_free(repl->current->pending_tool_call);
+            repl->current->pending_tool_call = NULL;
         }
         if (completion->tool_call != NULL) {
             // Deep copy the tool_call struct
-            repl->pending_tool_call = ik_tool_call_create(repl,
+            repl->current->pending_tool_call = ik_tool_call_create(repl,
                                                           completion->tool_call->id,
                                                           completion->tool_call->name,
                                                           completion->tool_call->arguments);
-            if (repl->pending_tool_call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            if (repl->current->pending_tool_call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         }
     }
 

@@ -100,11 +100,11 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->current->scrollback);
 
     /* Create pending_tool_call with a simple glob call */
-    repl->pending_tool_call = ik_tool_call_create(repl,
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
                                                   "call_test123",
                                                   "glob",
                                                   "{\"pattern\": \"*.c\"}");
-    ck_assert_ptr_nonnull(repl->pending_tool_call);
+    ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 }
 
 static void teardown(void)
@@ -137,7 +137,7 @@ START_TEST(test_execute_pending_tool_basic) {
     ik_repl_execute_pending_tool(repl);
 
     /* Verify pending_tool_call is cleared */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
     /* Should have 2 messages: tool_call and tool_result */
@@ -157,7 +157,7 @@ END_TEST START_TEST(test_execute_pending_tool_clears_pending)
     ik_repl_execute_pending_tool(repl);
 
     /* Verify pending_tool_call is NULL after execution */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
 END_TEST START_TEST(test_execute_pending_tool_conversation_messages)
@@ -179,8 +179,8 @@ END_TEST START_TEST(test_execute_pending_tool_conversation_messages)
 END_TEST START_TEST(test_execute_pending_tool_file_read)
 {
     /* Change to file_read tool */
-    talloc_free(repl->pending_tool_call);
-    repl->pending_tool_call = ik_tool_call_create(repl,
+    talloc_free(repl->current->pending_tool_call);
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
                                                   "call_read123",
                                                   "file_read",
                                                   "{\"path\": \"/etc/hostname\"}");
@@ -189,7 +189,7 @@ END_TEST START_TEST(test_execute_pending_tool_file_read)
     ik_repl_execute_pending_tool(repl);
 
     /* Verify pending_tool_call is cleared */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added */
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
@@ -211,7 +211,7 @@ END_TEST START_TEST(test_execute_pending_tool_debug_output)
     ik_repl_execute_pending_tool(repl);
 
     /* Verify pending_tool_call is cleared */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Read debug output from pipe */
     fflush(debug_pipe->write_end);
@@ -260,7 +260,7 @@ END_TEST START_TEST(test_execute_pending_tool_no_debug_pipe)
     ik_repl_execute_pending_tool(repl);
 
     /* Verify pending_tool_call is cleared */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
@@ -286,7 +286,7 @@ END_TEST START_TEST(test_execute_pending_tool_debug_pipe_null_write_end)
     ik_repl_execute_pending_tool(repl);
 
     /* Verify pending_tool_call is cleared */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
@@ -307,7 +307,7 @@ START_TEST(test_execute_pending_tool_db_persistence)
     ck_assert_int_eq(db_insert_call_count, 2);
 
     /* Verify pending_tool_call is cleared */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
@@ -328,7 +328,7 @@ START_TEST(test_execute_pending_tool_no_db_ctx)
     ck_assert_int_eq(db_insert_call_count, 0);
 
     /* Verify execution still succeeded */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 }
 
@@ -347,7 +347,7 @@ START_TEST(test_execute_pending_tool_no_session_id)
     ck_assert_int_eq(db_insert_call_count, 0);
 
     /* Verify execution still succeeded */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 }
 

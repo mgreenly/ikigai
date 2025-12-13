@@ -85,7 +85,7 @@ START_TEST(test_separator_scrolls_offscreen) {
     repl->current = agent;
 
     // Initialize mutex (required by render_frame)
-    pthread_mutex_init(&repl->tool_thread_mutex, NULL);
+    pthread_mutex_init(&repl->current->tool_thread_mutex, NULL);
 
     // Add 'x' to input buffer
     res = ik_input_buffer_insert_codepoint(agent->input_buffer, 'x');
@@ -172,7 +172,7 @@ START_TEST(test_input_buffer_scrolls_offscreen)
     repl->current = agent;
 
     // Initialize mutex (required by render_frame)
-    pthread_mutex_init(&repl->tool_thread_mutex, NULL);
+    pthread_mutex_init(&repl->current->tool_thread_mutex, NULL);
 
     // Add distinctive content to input buffer
     const char *input_buf_content = "input buffer_MARKER_TEXT";
@@ -243,7 +243,7 @@ START_TEST(test_scrollback_adjacent_to_separator)
     repl->current = agent;
 
     // Initialize mutex (required by render_frame)
-    pthread_mutex_init(&repl->tool_thread_mutex, NULL);
+    pthread_mutex_init(&repl->current->tool_thread_mutex, NULL);
 
     // Add 'w' to input buffer
     res = ik_input_buffer_insert_codepoint(agent->input_buffer, 'w');

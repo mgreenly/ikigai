@@ -70,7 +70,7 @@ static void setup(void)
     repl->current->response_completion_tokens = 0;
     repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
     repl->current->curl_still_running = 0;
-    repl->tool_iteration_count = 0;  // Initialize tool loop counter
+    repl->current->tool_iteration_count = 0;  // Initialize tool loop counter
 
     /* Use the agent created above */
     agent->scrollback = ik_scrollback_create(repl, 80);

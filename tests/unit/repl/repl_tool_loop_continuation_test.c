@@ -38,7 +38,7 @@ static void setup(void)
 
     repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->current->response_finish_reason = NULL;
-    repl->tool_iteration_count = 0;  /* Initialize iteration count */
+    repl->current->tool_iteration_count = 0;  /* Initialize iteration count */
 }
 
 static void teardown(void)

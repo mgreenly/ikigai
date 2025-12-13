@@ -342,10 +342,10 @@ START_TEST(test_completion_stores_tool_call)
     ck_assert(is_ok(&result));
 
     /* Verify tool_call was stored */
-    ck_assert_ptr_nonnull(repl->pending_tool_call);
-    ck_assert_str_eq(repl->pending_tool_call->id, "call_test123");
-    ck_assert_str_eq(repl->pending_tool_call->name, "glob");
-    ck_assert_str_eq(repl->pending_tool_call->arguments, "{\"pattern\": \"*.c\"}");
+    ck_assert_ptr_nonnull(repl->current->pending_tool_call);
+    ck_assert_str_eq(repl->current->pending_tool_call->id, "call_test123");
+    ck_assert_str_eq(repl->current->pending_tool_call->name, "glob");
+    ck_assert_str_eq(repl->current->pending_tool_call->arguments, "{\"pattern\": \"*.c\"}");
 }
 
 END_TEST
@@ -353,7 +353,7 @@ END_TEST
 START_TEST(test_completion_clears_previous_tool_call)
 {
     /* Set up previous pending_tool_call */
-    repl->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
+    repl->current->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
 
     /* Create new tool_call */
     ik_tool_call_t *tc = ik_tool_call_create(ctx, "new_call", "new_tool", "{\"key\": \"value\"}");
@@ -375,9 +375,9 @@ START_TEST(test_completion_clears_previous_tool_call)
     ck_assert(is_ok(&result));
 
     /* Verify new tool_call replaced old one */
-    ck_assert_ptr_nonnull(repl->pending_tool_call);
-    ck_assert_str_eq(repl->pending_tool_call->id, "new_call");
-    ck_assert_str_eq(repl->pending_tool_call->name, "new_tool");
+    ck_assert_ptr_nonnull(repl->current->pending_tool_call);
+    ck_assert_str_eq(repl->current->pending_tool_call->id, "new_call");
+    ck_assert_str_eq(repl->current->pending_tool_call->name, "new_tool");
 }
 
 END_TEST
@@ -385,7 +385,7 @@ END_TEST
 START_TEST(test_completion_null_tool_call_clears_pending)
 {
     /* Set up previous pending_tool_call */
-    repl->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
+    repl->current->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
 
     /* Create successful completion without tool_call */
     ik_http_completion_t completion = {
@@ -404,7 +404,7 @@ START_TEST(test_completion_null_tool_call_clears_pending)
     ck_assert(is_ok(&result));
 
     /* Verify pending_tool_call was cleared */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
 END_TEST

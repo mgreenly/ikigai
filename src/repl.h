@@ -63,21 +63,8 @@ typedef struct ik_repl_ctx_t {
     // Tab completion (rel-04)
     ik_completion_t *completion;                  // Tab completion context (NULL when inactive)
 
-    // Tool loop iteration tracking (Story 11)
-    int32_t tool_iteration_count;     // Number of tool call iterations in current request
-
-    // Pending tool call (Story 02)
-    ik_tool_call_t *pending_tool_call; // Tool call awaiting execution (NULL if none)
-
-    // Tool thread execution (async tool dispatch)
-    pthread_t tool_thread;              // Worker thread handle
-    pthread_mutex_t tool_thread_mutex;  // Protects tool_thread_* fields
-    bool tool_thread_running;           // Thread is active
-    bool tool_thread_complete;          // Thread finished, result ready
-    TALLOC_CTX *tool_thread_ctx;        // Memory context for thread (owned by main)
-    char *tool_thread_result;           // Result JSON from tool dispatch
-
     // Note: history removed - now in shared context (repl->shared->history)
+    // Note: tool state removed - now in agent context (repl->current->pending_tool_call, etc.)
 } ik_repl_ctx_t;
 
 // Initialize REPL context

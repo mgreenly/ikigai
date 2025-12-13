@@ -99,22 +99,22 @@ static void setup(void)
     repl->current->multi = multi_res.ok;
 
     /* Initialize thread infrastructure */
-    pthread_mutex_init_(&repl->tool_thread_mutex, NULL);
-    repl->tool_thread_running = false;
-    repl->tool_thread_complete = false;
-    repl->tool_thread_result = NULL;
-    repl->tool_thread_ctx = NULL;
+    pthread_mutex_init_(&repl->current->tool_thread_mutex, NULL);
+    repl->current->tool_thread_running = false;
+    repl->current->tool_thread_complete = false;
+    repl->current->tool_thread_result = NULL;
+    repl->current->tool_thread_ctx = NULL;
 
     /* Set initial state to EXECUTING_TOOL to simulate active tool execution */
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;
-    repl->tool_iteration_count = 0;
+    repl->current->tool_iteration_count = 0;
     repl->current->response_finish_reason = NULL;
 }
 
 static void teardown(void)
 {
     if (repl != NULL) {
-        pthread_mutex_destroy_(&repl->tool_thread_mutex);
+        pthread_mutex_destroy_(&repl->current->tool_thread_mutex);
     }
     talloc_free(ctx);
     ctx = NULL;
@@ -135,13 +135,13 @@ static void *quick_complete_thread_func(void *arg)
     ik_repl_ctx_t *repl_ctx = (ik_repl_ctx_t *)arg;
 
     /* Set result immediately */
-    repl_ctx->tool_thread_result = talloc_strdup(repl_ctx->tool_thread_ctx,
+    repl_ctx->current->tool_thread_result = talloc_strdup(repl_ctx->current->tool_thread_ctx,
                                                  "{\"status\":\"success\",\"output\":\"test result\"}");
 
     /* Mark as complete - main thread will join us after seeing this */
-    pthread_mutex_lock_(&repl_ctx->tool_thread_mutex);
-    repl_ctx->tool_thread_complete = true;
-    pthread_mutex_unlock_(&repl_ctx->tool_thread_mutex);
+    pthread_mutex_lock_(&repl_ctx->current->tool_thread_mutex);
+    repl_ctx->current->tool_thread_complete = true;
+    pthread_mutex_unlock_(&repl_ctx->current->tool_thread_mutex);
 
     /* Exit immediately - main thread will handle the rest */
     return NULL;
@@ -158,9 +158,9 @@ static void *quit_after_idle_thread_func(void *arg)
     /* Wait for state to become IDLE (max 10 seconds) */
     for (int i = 0; i < 1000; i++) {
         /* Read state with mutex protection to avoid data race */
-        pthread_mutex_lock_(&repl_ctx->tool_thread_mutex);
+        pthread_mutex_lock_(&repl_ctx->current->tool_thread_mutex);
         ik_agent_state_t current_state = repl_ctx->current->state;
-        pthread_mutex_unlock_(&repl_ctx->tool_thread_mutex);
+        pthread_mutex_unlock_(&repl_ctx->current->tool_thread_mutex);
 
         if (current_state == IK_AGENT_STATE_IDLE) {
             /* Give main loop one more iteration to stabilize */
@@ -183,24 +183,24 @@ static void *quit_after_idle_thread_func(void *arg)
 START_TEST(test_tool_completion_polling_and_handling) {
     /* Set up tool execution state before starting event loop */
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;
-    repl->tool_thread_running = true;
-    repl->tool_thread_complete = false;
+    repl->current->tool_thread_running = true;
+    repl->current->tool_thread_complete = false;
 
     /* Create thread context */
-    repl->tool_thread_ctx = talloc_new(repl);
+    repl->current->tool_thread_ctx = talloc_new(repl);
 
     /* Create pending tool call */
-    repl->pending_tool_call = ik_tool_call_create(repl,
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
                                                   "call_test123",
                                                   "glob",
                                                   "{\"pattern\": \"*.c\"}");
-    ck_assert_ptr_nonnull(repl->pending_tool_call);
+    ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 
     /* Set finish reason to "stop" so we don't continue the tool loop */
     repl->current->response_finish_reason = talloc_strdup(repl, "stop");
 
     /* Start tool thread that will set completion flag */
-    pthread_create_(&repl->tool_thread, NULL, quick_complete_thread_func, repl);
+    pthread_create_(&repl->current->tool_thread, NULL, quick_complete_thread_func, repl);
 
     /* Start a second thread that will set quit after state becomes IDLE */
     pthread_t quit_thread;
@@ -219,14 +219,14 @@ START_TEST(test_tool_completion_polling_and_handling) {
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     /* Verify pending_tool_call was cleared */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
     ck_assert_uint_ge(repl->current->conversation->message_count, 2);
 
     /* Verify thread was joined */
-    ck_assert(!repl->tool_thread_running);
-    ck_assert(!repl->tool_thread_complete);
+    ck_assert(!repl->current->tool_thread_running);
+    ck_assert(!repl->current->tool_thread_complete);
 }
 END_TEST
 
@@ -238,13 +238,13 @@ static void *completion_test_thread_func(void *arg)
     ik_repl_ctx_t *repl_ctx = (ik_repl_ctx_t *)arg;
 
     /* Set result */
-    repl_ctx->tool_thread_result = talloc_strdup(repl_ctx->tool_thread_ctx,
+    repl_ctx->current->tool_thread_result = talloc_strdup(repl_ctx->current->tool_thread_ctx,
                                                  "{\"status\":\"success\",\"output\":\"test\"}");
 
     /* Mark as complete */
-    pthread_mutex_lock_(&repl_ctx->tool_thread_mutex);
-    repl_ctx->tool_thread_complete = true;
-    pthread_mutex_unlock_(&repl_ctx->tool_thread_mutex);
+    pthread_mutex_lock_(&repl_ctx->current->tool_thread_mutex);
+    repl_ctx->current->tool_thread_complete = true;
+    pthread_mutex_unlock_(&repl_ctx->current->tool_thread_mutex);
 
     return NULL;
 }
@@ -256,30 +256,30 @@ static void *completion_test_thread_func(void *arg)
 START_TEST(test_tool_completion_with_continuation) {
     /* Set up tool execution state */
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;
-    repl->tool_thread_running = true;
-    repl->tool_thread_complete = false;
-    repl->tool_iteration_count = 0;
+    repl->current->tool_thread_running = true;
+    repl->current->tool_thread_complete = false;
+    repl->current->tool_iteration_count = 0;
 
     /* Create thread context */
-    repl->tool_thread_ctx = talloc_new(repl);
+    repl->current->tool_thread_ctx = talloc_new(repl);
 
     /* Create pending tool call */
-    repl->pending_tool_call = ik_tool_call_create(repl,
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
                                                   "call_test456",
                                                   "glob",
                                                   "{\"pattern\": \"*.h\"}");
-    ck_assert_ptr_nonnull(repl->pending_tool_call);
+    ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 
     /* Start thread that will complete */
-    pthread_create_(&repl->tool_thread, NULL, completion_test_thread_func, repl);
+    pthread_create_(&repl->current->tool_thread, NULL, completion_test_thread_func, repl);
 
     /* Wait for thread to complete */
     int max_wait = 200;
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
-        pthread_mutex_lock_(&repl->tool_thread_mutex);
-        complete = repl->tool_thread_complete;
-        pthread_mutex_unlock_(&repl->tool_thread_mutex);
+        pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+        complete = repl->current->tool_thread_complete;
+        pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
         if (complete) break;
         usleep(10000);
     }
@@ -292,10 +292,10 @@ START_TEST(test_tool_completion_with_continuation) {
     handle_tool_completion(repl);
 
     /* Verify pending_tool_call was cleared */
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify tool iteration count was incremented */
-    ck_assert_int_eq(repl->tool_iteration_count, 1);
+    ck_assert_int_eq(repl->current->tool_iteration_count, 1);
 }
 END_TEST
 
@@ -322,18 +322,18 @@ static void *wait_then_quit_thread_func(void *arg)
 START_TEST(test_polling_while_tool_executing_not_complete) {
     /* Set up tool execution state with thread NOT complete */
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;
-    repl->tool_thread_running = true;
-    repl->tool_thread_complete = false; /* Key: NOT complete yet */
+    repl->current->tool_thread_running = true;
+    repl->current->tool_thread_complete = false; /* Key: NOT complete yet */
 
     /* Create thread context */
-    repl->tool_thread_ctx = talloc_new(repl);
+    repl->current->tool_thread_ctx = talloc_new(repl);
 
     /* Create pending tool call */
-    repl->pending_tool_call = ik_tool_call_create(repl,
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
                                                   "call_test789",
                                                   "glob",
                                                   "{\"pattern\": \"*.h\"}");
-    ck_assert_ptr_nonnull(repl->pending_tool_call);
+    ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 
     /* Start a thread that will set quit after a delay to allow multiple loop iterations */
     pthread_t quit_thread;
@@ -352,12 +352,12 @@ START_TEST(test_polling_while_tool_executing_not_complete) {
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
 
     /* Verify pending_tool_call is NOT cleared (because completion didn't happen) */
-    ck_assert_ptr_nonnull(repl->pending_tool_call);
+    ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 
     /* Clean up - manually mark as complete and join thread */
-    pthread_mutex_lock_(&repl->tool_thread_mutex);
-    repl->tool_thread_complete = true;
-    pthread_mutex_unlock_(&repl->tool_thread_mutex);
+    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+    repl->current->tool_thread_complete = true;
+    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 }
 END_TEST
 /*
@@ -368,8 +368,8 @@ START_TEST(test_polling_when_idle_state)
 {
     /* Set state to IDLE - not executing a tool */
     repl->current->state = IK_AGENT_STATE_IDLE;
-    repl->tool_thread_running = false;
-    repl->tool_thread_complete = false;
+    repl->current->tool_thread_running = false;
+    repl->current->tool_thread_complete = false;
 
     /* Set quit immediately so we only do one iteration */
     atomic_store(&repl->quit, true);
@@ -393,8 +393,8 @@ START_TEST(test_polling_when_waiting_for_llm_state)
 {
     /* Set state to WAITING_FOR_LLM - not executing a tool */
     repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
-    repl->tool_thread_running = false;
-    repl->tool_thread_complete = false;
+    repl->current->tool_thread_running = false;
+    repl->current->tool_thread_complete = false;
 
     /* Set quit immediately so we only do one iteration */
     atomic_store(&repl->quit, true);

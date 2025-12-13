@@ -43,27 +43,27 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->current->scrollback);
 
     /* Initialize thread infrastructure */
-    pthread_mutex_init_(&repl->tool_thread_mutex, NULL);
-    repl->tool_thread_running = false;
-    repl->tool_thread_complete = false;
-    repl->tool_thread_result = NULL;
-    repl->tool_thread_ctx = NULL;
+    pthread_mutex_init_(&repl->current->tool_thread_mutex, NULL);
+    repl->current->tool_thread_running = false;
+    repl->current->tool_thread_complete = false;
+    repl->current->tool_thread_result = NULL;
+    repl->current->tool_thread_ctx = NULL;
 
     /* Set initial state */
     repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
 
     /* Create pending_tool_call with a simple glob call */
-    repl->pending_tool_call = ik_tool_call_create(repl,
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
                                                   "call_test123",
                                                   "glob",
                                                   "{\"pattern\": \"*.c\"}");
-    ck_assert_ptr_nonnull(repl->pending_tool_call);
+    ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 }
 
 static void teardown(void)
 {
     if (repl != NULL) {
-        pthread_mutex_destroy_(&repl->tool_thread_mutex);
+        pthread_mutex_destroy_(&repl->current->tool_thread_mutex);
     }
     talloc_free(ctx);
     ctx = NULL;
@@ -94,9 +94,9 @@ START_TEST(test_async_tool_debug_pipe_null_write_end) {
     int max_wait = 200; /* 2 seconds total */
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
-        pthread_mutex_lock_(&repl->tool_thread_mutex);
-        complete = repl->tool_thread_complete;
-        pthread_mutex_unlock_(&repl->tool_thread_mutex);
+        pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+        complete = repl->current->tool_thread_complete;
+        pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
         if (complete) break;
         usleep(10000);
     }
@@ -108,7 +108,7 @@ START_TEST(test_async_tool_debug_pipe_null_write_end) {
 
     /* Verify execution succeeded */
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 END_TEST
 /*
@@ -127,9 +127,9 @@ START_TEST(test_async_tool_no_debug_pipe)
     int max_wait = 200; /* 2 seconds total */
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
-        pthread_mutex_lock_(&repl->tool_thread_mutex);
-        complete = repl->tool_thread_complete;
-        pthread_mutex_unlock_(&repl->tool_thread_mutex);
+        pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+        complete = repl->current->tool_thread_complete;
+        pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
         if (complete) break;
         usleep(10000);
     }
@@ -140,7 +140,7 @@ START_TEST(test_async_tool_no_debug_pipe)
 
     /* Verify execution succeeded */
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
 END_TEST
@@ -165,9 +165,9 @@ START_TEST(test_async_tool_with_working_debug_pipe)
     int max_wait = 200; /* 2 seconds total */
     bool complete = false;
     for (int i = 0; i < max_wait; i++) {
-        pthread_mutex_lock_(&repl->tool_thread_mutex);
-        complete = repl->tool_thread_complete;
-        pthread_mutex_unlock_(&repl->tool_thread_mutex);
+        pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+        complete = repl->current->tool_thread_complete;
+        pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
         if (complete) break;
         usleep(10000);
     }
@@ -178,7 +178,7 @@ START_TEST(test_async_tool_with_working_debug_pipe)
 
     /* Verify execution succeeded */
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
-    ck_assert_ptr_null(repl->pending_tool_call);
+    ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
 END_TEST

@@ -77,7 +77,7 @@ START_TEST(test_exact_user_scenario) {
     repl->current = agent;
 
     // Initialize mutex (required by render_frame)
-    pthread_mutex_init(&repl->tool_thread_mutex, NULL);
+    pthread_mutex_init(&repl->current->tool_thread_mutex, NULL);
 
     // Use agent's input buffer
     ik_input_buffer_ensure_layout(agent->input_buffer, 80);

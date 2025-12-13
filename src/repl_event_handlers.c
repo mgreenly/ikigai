@@ -31,9 +31,9 @@ long calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
     long spinner_timeout_ms = repl->spinner_state.visible ? 80 : -1;  // LCOV_EXCL_BR_LINE
 
     // Tool polling: 50ms when executing tool to detect completion quickly
-    pthread_mutex_lock_(&repl->tool_thread_mutex);
+    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
     ik_agent_state_t current_state = repl->current->state;
-    pthread_mutex_unlock_(&repl->tool_thread_mutex);
+    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
     long tool_poll_timeout_ms = (current_state == IK_AGENT_STATE_EXECUTING_TOOL) ? 50 : -1;
 
     // Scroll detector timeout: get time until pending arrow must flush
@@ -219,21 +219,21 @@ void handle_request_success(ik_repl_ctx_t *repl)
     }
 
     // Execute pending tool call (async)
-    if (repl->pending_tool_call != NULL) {
+    if (repl->current->pending_tool_call != NULL) {
         ik_repl_start_tool_execution(repl);
         return; // Exit early - completion handled in event loop
     }
 
     // No tool call - check if tool loop should continue
     if (ik_repl_should_continue_tool_loop(repl)) {
-        repl->tool_iteration_count++;
+        repl->current->tool_iteration_count++;
         submit_tool_loop_continuation(repl);
     }
 }
 
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
 {
-    bool limit_reached = (repl->shared->cfg != NULL && repl->tool_iteration_count >= repl->shared->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
+    bool limit_reached = (repl->shared->cfg != NULL && repl->current->tool_iteration_count >= repl->shared->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
     res_t result = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
                                                ik_repl_streaming_callback, repl,
                                                ik_repl_http_completion_callback, repl,
@@ -261,9 +261,9 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
         ik_openai_multi_info_read(repl->current->multi);
 
         // Detect request completion (was running, now not running)
-        pthread_mutex_lock_(&repl->tool_thread_mutex);
+        pthread_mutex_lock_(&repl->current->tool_thread_mutex);
         ik_agent_state_t current_state = repl->current->state;
-        pthread_mutex_unlock_(&repl->tool_thread_mutex);
+        pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 
         if (prev_running > 0 && repl->current->curl_still_running == 0 && current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
             // Check if request failed (error message set by completion callback)
@@ -276,9 +276,9 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
             // Transition back to IDLE state only if we're still WAITING_FOR_LLM.
             // If handle_request_success started a tool execution, state is now EXECUTING_TOOL
             // and we should NOT transition to IDLE.
-            pthread_mutex_lock_(&repl->tool_thread_mutex);
+            pthread_mutex_lock_(&repl->current->tool_thread_mutex);
             current_state = repl->current->state;
-            pthread_mutex_unlock_(&repl->tool_thread_mutex);
+            pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 
             if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
                 ik_repl_transition_to_idle(repl);
@@ -300,7 +300,7 @@ void handle_tool_completion(ik_repl_ctx_t *repl)
 
     // Check if tool loop should continue
     if (ik_repl_should_continue_tool_loop(repl)) {
-        repl->tool_iteration_count++;
+        repl->current->tool_iteration_count++;
         submit_tool_loop_continuation(repl);
     } else {
         // Tool loop done - transition to IDLE, show input prompt
