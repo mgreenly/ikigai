@@ -1,0 +1,13 @@
+{
+    "openai_api_key": "YOUR_API_KEY_HERE",
+    "openai_model": "gpt-5-mini",
+    "openai_temperature": 1.0,
+    "openai_max_completion_tokens": 4096,
+    "openai_system_message": null,
+    "listen_address": "127.0.0.1",
+    "listen_port": 1984,
+    "db_connection_string": null,
+    "max_tool_turns": 50,
+    "max_output_size": 1048576,
+    "history_size": 10000
+}

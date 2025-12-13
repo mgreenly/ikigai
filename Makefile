@@ -3,6 +3,7 @@ VERSION = $(shell grep '\#define IK_VERSION "' src/version.h | cut -d'"' -f2)
 
 PREFIX ?= /usr/local
 bindir ?= $(PREFIX)/bin
+sysconfdir ?= $(PREFIX)/etc
 
 CC = gcc
 
@@ -300,9 +301,13 @@ clean:
 install: all
 	install -d $(DESTDIR)$(bindir)
 	install -m 755 $(CLIENT_TARGET) $(DESTDIR)$(bindir)/ikigai
+	install -d $(DESTDIR)$(sysconfdir)/ikigai
+	install -m 644 etc/ikigai/config.json $(DESTDIR)$(sysconfdir)/ikigai/config.json
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/ikigai
+	rm -f $(DESTDIR)$(sysconfdir)/ikigai/config.json
+	rmdir $(DESTDIR)$(sysconfdir)/ikigai 2>/dev/null || true
 
 # Individual test run targets (enables parallel execution)
 # Usage: make -j8 check (runs tests in parallel)
