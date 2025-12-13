@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "agent-ctx-conversation.md",
-      "group": "Agent Context Extraction",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "agent-ctx-llm.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
@@ -79,6 +73,12 @@
       "group": "Agent Context Extraction",
       "model": "opus",
       "thinking": "ultrathink"
+    },
+    {
+      "task": "agent-ctx-conversation.md",
+      "group": "Agent Context Extraction",
+      "model": "sonnet",
+      "thinking": "thinking"
     }
   ]
 }
