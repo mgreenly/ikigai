@@ -1,4 +1,5 @@
 #include "agent.h"
+#include "../../../src/logger.h"
 /**
  * @file repl_scrollback_test.c
  * @brief Unit tests for REPL scrollback integration (Phase 4 Task 4.1)
@@ -17,6 +18,7 @@
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../test_utils.h"
+#include "../../../src/logger.h"
 
 // Forward declarations for wrapper functions
 int posix_open_(const char *pathname, int flags);
@@ -169,7 +171,9 @@ START_TEST(test_page_down_scrolling)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -202,7 +206,9 @@ START_TEST(test_page_down_at_bottom)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -235,7 +241,9 @@ START_TEST(test_page_down_small_offset)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -268,7 +276,9 @@ START_TEST(test_page_up_scrolling)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -309,7 +319,9 @@ START_TEST(test_page_up_empty_scrollback)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -345,7 +357,9 @@ START_TEST(test_page_up_clamping)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -397,7 +411,9 @@ START_TEST(test_submit_line_to_scrollback)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -441,7 +457,9 @@ START_TEST(test_submit_line_auto_scroll)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -481,7 +499,9 @@ START_TEST(test_submit_empty_line)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context

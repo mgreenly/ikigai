@@ -1,5 +1,6 @@
 #include "test_contexts.h"
 
+#include "logger.h"
 #include "panic.h"
 #include "wrapper.h"
 
@@ -27,8 +28,10 @@ ik_cfg_t *test_cfg_create(TALLOC_CTX *ctx)
 res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out)
 {
     ik_cfg_t *cfg = test_cfg_create(ctx);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     // Use /tmp for test logger directory
-    return ik_shared_ctx_init(ctx, cfg, "/tmp", out);
+    return ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, out);
 }
 
 res_t test_repl_create(TALLOC_CTX *ctx,
@@ -55,6 +58,8 @@ res_t test_shared_ctx_create_with_cfg(TALLOC_CTX *ctx,
                                        ik_cfg_t *cfg,
                                        ik_shared_ctx_t **out)
 {
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     // Use /tmp for test logger directory
-    return ik_shared_ctx_init(ctx, cfg, "/tmp", out);
+    return ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, out);
 }

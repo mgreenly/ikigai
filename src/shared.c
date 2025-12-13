@@ -21,11 +21,13 @@ static int shared_destructor(ik_shared_ctx_t *shared)
     return 0;
 }
 
-res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, const char *working_dir, ik_shared_ctx_t **out)
+res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, const char *working_dir, const char *ikigai_path, ik_logger_t *logger, ik_shared_ctx_t **out)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);   // LCOV_EXCL_BR_LINE
     assert(working_dir != NULL);   // LCOV_EXCL_BR_LINE
+    assert(ikigai_path != NULL);   // LCOV_EXCL_BR_LINE
+    assert(logger != NULL);   // LCOV_EXCL_BR_LINE
     assert(out != NULL);   // LCOV_EXCL_BR_LINE
 
     ik_shared_ctx_t *shared = talloc_zero_(ctx, sizeof(ik_shared_ctx_t));
@@ -33,8 +35,10 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, const char *working_dir
 
     shared->cfg = cfg;
 
-    // Create logger instance (DI pattern - explicit dependency)
-    shared->logger = ik_logger_create(shared, working_dir);
+    // Use injected logger (DI pattern - explicit dependency)
+    assert(logger != NULL);  // LCOV_EXCL_BR_LINE
+    shared->logger = logger;
+    talloc_steal(shared, logger);  // Transfer ownership
 
     // Initialize terminal (raw mode + alternate screen)
     res_t result = ik_term_init(shared, &shared->term);

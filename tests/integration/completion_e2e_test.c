@@ -127,7 +127,9 @@ START_TEST(test_completion_full_workflow)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -162,7 +164,9 @@ START_TEST(test_completion_argument_workflow)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -195,7 +199,9 @@ START_TEST(test_completion_escape_dismisses)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -232,7 +238,9 @@ START_TEST(test_completion_no_matches)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -259,7 +267,9 @@ START_TEST(test_completion_history_no_conflict)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -295,7 +305,9 @@ START_TEST(test_completion_layer_visibility)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -324,7 +336,9 @@ START_TEST(test_completion_dynamic_update)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -359,7 +373,9 @@ START_TEST(test_completion_debug_args)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -392,7 +408,9 @@ START_TEST(test_completion_partial_arg)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));

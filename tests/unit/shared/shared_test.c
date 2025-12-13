@@ -139,8 +139,11 @@ START_TEST(test_shared_ctx_init_success)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;  // Required for history initialization
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -161,8 +164,11 @@ START_TEST(test_shared_ctx_parent_allocation)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;  // Required for history initialization
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(parent, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(parent, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(parent, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -187,8 +193,11 @@ START_TEST(test_shared_ctx_can_be_freed)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;  // Required for history initialization
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -213,8 +222,11 @@ START_TEST(test_shared_ctx_stores_cfg)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;  // Required for history initialization
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -237,8 +249,11 @@ START_TEST(test_shared_ctx_cfg_accessible)
     cfg->openai_model = talloc_strdup(cfg, "test-model");
     cfg->history_size = 100;  // Required for history initialization
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -261,8 +276,11 @@ START_TEST(test_shared_ctx_term_initialized)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;  // Required for history initialization
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -284,8 +302,11 @@ START_TEST(test_shared_ctx_render_initialized)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;  // Required for history initialization
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -307,8 +328,11 @@ START_TEST(test_shared_ctx_render_matches_term_dimensions)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;  // Required for history initialization
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -335,8 +359,11 @@ START_TEST(test_shared_ctx_db_ctx_null_when_not_configured)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;  // Required for history initialization
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -358,8 +385,11 @@ START_TEST(test_shared_ctx_session_id_zero_when_not_configured)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;  // Required for history initialization
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -381,8 +411,11 @@ START_TEST(test_shared_ctx_history_initialized)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;  // Set history size
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -404,8 +437,11 @@ START_TEST(test_shared_ctx_history_capacity_matches_config)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 250;  // Set custom history size
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -428,8 +464,11 @@ START_TEST(test_shared_ctx_debug_mgr_initialized)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -452,8 +491,11 @@ START_TEST(test_shared_ctx_debug_pipes_created)
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;
 
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -481,12 +523,15 @@ START_TEST(test_shared_ctx_history_load_failure_graceful)
     char unique_dir[256];
     snprintf(unique_dir, sizeof(unique_dir), "/tmp/ikigai_shared_test_history_%d", getpid());
 
+    // Create logger before calling init (using /tmp to avoid mkdir mock interference)
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
     // Mock mkdir to fail only for .ikigai directory creation under unique_dir
     // This will cause history directory creation to fail
     mock_mkdir_fail_path = unique_dir;
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, unique_dir, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, unique_dir, ".ikigai", logger, &shared);
 
     // Should still succeed despite history load failure (graceful degradation)
     ck_assert(is_ok(&res));

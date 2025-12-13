@@ -21,6 +21,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/input.h"
 #include "../../test_utils.h"
+#include "../../../src/logger.h"
 
 // Forward declarations
 int posix_open_(const char *pathname, int flags);
@@ -85,7 +86,9 @@ static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offs
 
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context

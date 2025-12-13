@@ -15,6 +15,7 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/repl/session_restore.h"
 #include "../../test_utils.h"
+#include "../../../src/logger.h"
 
 // Mock state for controlling failures
 static bool mock_db_init_should_fail = false;
@@ -156,7 +157,9 @@ START_TEST(test_repl_init_db_init_failure) {
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context - should fail at db_init
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     // Verify failure at shared_ctx_init level
     ck_assert(is_err(&res));
@@ -182,7 +185,9 @@ START_TEST(test_repl_init_session_restore_failure)
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -210,7 +215,9 @@ START_TEST(test_repl_init_db_success)
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -241,7 +248,9 @@ START_TEST(test_repl_init_signal_handler_failure_with_db)
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context

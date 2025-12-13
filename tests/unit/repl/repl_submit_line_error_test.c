@@ -12,6 +12,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
+#include "../../../src/logger.h"
 
 #include <check.h>
 #include <fcntl.h>
@@ -20,6 +21,7 @@
 #include <talloc.h>
 #include <termios.h>
 #include <unistd.h>
+#include "../../../src/logger.h"
 
 // Mock state for ik_scrollback_append_line_
 static bool mock_scrollback_append_should_fail = false;
@@ -144,7 +146,9 @@ START_TEST(test_submit_line_event_render_fails) {
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context

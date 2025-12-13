@@ -47,5 +47,7 @@ typedef struct ik_shared_ctx {
 // ctx: talloc parent (root_ctx)
 // cfg: configuration pointer (borrowed)
 // working_dir: directory for logger initialization (typically cwd)
+// ikigai_path: path to ikigai directory (e.g., ".ikigai")
+// logger: pre-created logger instance (ownership transferred)
 // out: receives allocated shared context
-res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, const char *working_dir, ik_shared_ctx_t **out);
+res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, const char *working_dir, const char *ikigai_path, ik_logger_t *logger, ik_shared_ctx_t **out);

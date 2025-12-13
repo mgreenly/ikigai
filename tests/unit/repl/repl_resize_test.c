@@ -15,6 +15,7 @@
 #include "../../../src/terminal.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
+#include "../../../src/logger.h"
 
 // Forward declaration for suite function
 static Suite *repl_resize_suite(void);
@@ -110,7 +111,9 @@ START_TEST(test_resize_updates_terminal_dimensions) {
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -148,7 +151,9 @@ START_TEST(test_resize_invalidates_scrollback_layout)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -193,7 +198,9 @@ START_TEST(test_resize_handles_ioctl_failure)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -225,7 +232,9 @@ START_TEST(test_sigwinch_handler_installed)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
