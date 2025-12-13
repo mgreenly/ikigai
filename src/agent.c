@@ -58,6 +58,11 @@ char *ik_agent_generate_uuid(TALLOC_CTX *ctx)
 
 static int agent_destructor(ik_agent_ctx_t *agent)
 {
+    // Ensure mutex is unlocked before destruction (helgrind requirement)
+    // The mutex should already be unlocked because repl_destructor waits
+    // for tool thread completion, but we verify it here for safety.
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
     pthread_mutex_destroy_(&agent->tool_thread_mutex);
     return 0;
 }
