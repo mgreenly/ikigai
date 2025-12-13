@@ -1,4 +1,5 @@
 #include "tool.h"
+#include "tool_response.h"
 
 #include "file_utils.h"
 #include "panic.h"
@@ -21,19 +22,6 @@ res_t ik_tool_exec_file_read(void *parent, const char *path)
     res_t read_result = ik_file_read_all(parent, path, &buffer, &file_size);
 
     if (read_result.is_err) {
-        // Build error JSON
-        yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-        if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        yyjson_mut_val *root = yyjson_mut_obj(doc);
-        if (root == NULL) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-        yyjson_mut_doc_set_root(doc, root);
-
-        yyjson_mut_obj_add_bool(doc, root, "success", false);
-
         // Customize error message based on errno for user-facing tool
         const char *generic_msg = read_result.err->msg;
         char *error_msg = NULL;
@@ -66,19 +54,10 @@ res_t ik_tool_exec_file_read(void *parent, const char *path)
         }
 
         if (error_msg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        yyjson_mut_obj_add_str(doc, root, "error", error_msg);
 
-        char *json = yyjson_mut_write_opts(doc, 0, NULL, NULL, NULL);
-        if (json == NULL) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-
-        char *result = talloc_strdup(parent, json);
-        free(json);
-        yyjson_mut_doc_free(doc);
-
-        if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        // Build error JSON
+        char *result;
+        ik_tool_response_error(parent, error_msg, &result);
         return OK(result);
     }
 
