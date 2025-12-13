@@ -271,6 +271,7 @@ START_TEST(test_logger_reinit_changes_location)
 }
 END_TEST
 
+#ifndef SKIP_SIGNAL_TESTS
 // Test: ik_logger_fatal_json exits process
 START_TEST(test_logger_fatal_exits)
 {
@@ -292,6 +293,7 @@ START_TEST(test_logger_fatal_exits)
     teardown_test();
 }
 END_TEST
+#endif
 
 
 static Suite *logger_di_suite(void)
@@ -309,7 +311,9 @@ static Suite *logger_di_suite(void)
     tcase_add_test(tc_core, test_logger_has_logline_field);
     tcase_add_test(tc_core, test_logger_cleanup_on_talloc_free);
     tcase_add_test(tc_core, test_logger_reinit_changes_location);
+#ifndef SKIP_SIGNAL_TESTS
     tcase_add_exit_test(tc_core, test_logger_fatal_exits, 1);
+#endif
 
     suite_add_tcase(s, tc_core);
     return s;
