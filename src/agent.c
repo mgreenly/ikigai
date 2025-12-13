@@ -157,11 +157,14 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     int mutex_result = pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     if (mutex_result != 0) {
+        // Free agent without calling destructor (mutex not initialized yet)
+        // We need to explicitly free here because agent is allocated on ctx
         talloc_free(agent);
+        *out = NULL;
         return ERR(ctx, IO, "Failed to initialize tool thread mutex");
     }
 
-    // Set destructor to clean up mutex
+    // Set destructor to clean up mutex (only after successful init)
     talloc_set_destructor(agent, agent_destructor);
 
     *out = agent;

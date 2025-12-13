@@ -38,7 +38,9 @@ typedef struct ik_repl_ctx_t {
     // See shared.h for what's available via this pointer
     ik_shared_ctx_t *shared;
 
-    // Current agent (owns display state)
+    // Current agent (per-agent state)
+    // Currently single agent, will become current selection from array
+    // All per-agent fields accessed via this pointer
     ik_agent_ctx_t *current;
 
     ik_input_parser_t *input_parser;  // Input parser

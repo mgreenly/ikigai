@@ -337,7 +337,8 @@ res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
             // Malformed JSON - log warning and skip
             yyjson_mut_doc *log_doc = ik_log_create();
             yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
-            yyjson_mut_obj_add_str(log_doc, root, "message", "Skipping malformed history line: not valid json");
+            if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Skipping malformed history line: not valid json")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
             ik_log_warn_json(log_doc);
             line = next_line;
             continue;
@@ -348,7 +349,8 @@ res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
             // Not an object - skip
             yyjson_mut_doc *log_doc = ik_log_create();
             yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
-            yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping non-object history line");
+            if (log_root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping non-object history line")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
             ik_log_warn_json(log_doc);
             yyjson_doc_free(doc);
             line = next_line;
@@ -361,7 +363,8 @@ res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
             // Missing or invalid cmd field - skip
             yyjson_mut_doc *log_doc = ik_log_create();
             yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
-            yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping history line with missing/invalid cmd field");
+            if (log_root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping history line with missing/invalid cmd field")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
             ik_log_warn_json(log_doc);
             yyjson_doc_free(doc);
             line = next_line;

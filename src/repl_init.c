@@ -57,6 +57,8 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Create agent context (owns display state)
     result = ik_agent_create(repl, repl->shared, NULL, &repl->current);
     if (is_err(&result)) {
+        // Reparent error to parent before freeing repl (error is child of repl)
+        talloc_steal(parent, result.err);
         talloc_free(repl);
         return result;
     }

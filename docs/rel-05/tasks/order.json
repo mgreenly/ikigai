@@ -1,18 +1,6 @@
 {
   "todo": [
     {
-      "task": "agent-ctx-spinner.md",
-      "group": "Agent Context Extraction",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "agent-ctx-completion.md",
-      "group": "Agent Context Extraction",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "agent-ctx-cleanup.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
@@ -76,6 +64,18 @@
     },
     {
       "task": "agent-ctx-tool.md",
+      "group": "Agent Context Extraction",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-ctx-completion.md",
+      "group": "Agent Context Extraction",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-ctx-spinner.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
       "thinking": "thinking"

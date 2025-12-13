@@ -76,8 +76,9 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, ik_shared_ctx_t **out)
         // Log warning but continue with empty history (graceful degradation)
         yyjson_mut_doc *log_doc = ik_log_create();
         yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
-        yyjson_mut_obj_add_str(log_doc, root, "message", "Failed to load history");
-        yyjson_mut_obj_add_str(log_doc, root, "error", result.err->msg);
+        if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Failed to load history")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, root, "error", result.err->msg)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         ik_log_warn_json(log_doc);
         talloc_free(result.err);
     }

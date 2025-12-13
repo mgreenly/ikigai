@@ -30,8 +30,26 @@ typedef struct {
     char *timestamp;          // ISO 8601 timestamp
 } ik_mark_t;
 
-// Per-agent context - state specific to one agent
-// Created as child of repl_ctx (owned by coordinator)
+/**
+ * Per-agent context for ikigai.
+ *
+ * Contains all state specific to one agent:
+ * - Identity (agent_id, numeric_id)
+ * - Display state (scrollback, layers)
+ * - Input state (input_buffer, visibility)
+ * - Conversation (messages, marks)
+ * - LLM interaction (curl_multi, streaming buffers)
+ * - Tool execution (thread, mutex, pending calls)
+ * - UI state (spinner, completion)
+ *
+ * Ownership: Created as child of ik_repl_ctx_t.
+ * Currently single agent per REPL. Multi-agent support
+ * will add agents[] array (manual-top-level-agents work).
+ *
+ * Thread safety: Tool execution uses mutex for thread safety.
+ * Agent fields should only be accessed from main thread
+ * except where explicitly synchronized.
+ */
 typedef struct ik_agent_ctx {
     // Identity (from agent-process-model.md)
     char *uuid;          // Internal unique identifier
