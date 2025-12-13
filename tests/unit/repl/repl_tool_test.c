@@ -91,7 +91,7 @@ static void setup(void)
     /* Create conversation */
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(!conv_res.is_err);
-    repl->conversation = conv_res.ok;
+    repl->current->conversation = conv_res.ok;
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 10);
@@ -139,14 +139,14 @@ START_TEST(test_execute_pending_tool_basic) {
 
     /* Verify messages were added to conversation */
     /* Should have 2 messages: tool_call and tool_result */
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 
     /* First message should be tool_call */
-    ik_msg_t *tc_msg = repl->conversation->messages[0];
+    ik_msg_t *tc_msg = repl->current->conversation->messages[0];
     ck_assert_str_eq(tc_msg->kind, "tool_call");
 
     /* Second message should be tool_result */
-    ik_msg_t *result_msg = repl->conversation->messages[1];
+    ik_msg_t *result_msg = repl->current->conversation->messages[1];
     ck_assert_str_eq(result_msg->kind, "tool_result");
 }
 END_TEST START_TEST(test_execute_pending_tool_clears_pending)
@@ -164,12 +164,12 @@ END_TEST START_TEST(test_execute_pending_tool_conversation_messages)
     ik_repl_execute_pending_tool(repl);
 
     /* First message should be tool_call with correct ID */
-    ik_msg_t *tc_msg = repl->conversation->messages[0];
+    ik_msg_t *tc_msg = repl->current->conversation->messages[0];
     ck_assert_str_eq(tc_msg->kind, "tool_call");
     ck_assert_ptr_nonnull(tc_msg->data_json);
 
     /* Second message should be tool_result with correct ID */
-    ik_msg_t *result_msg = repl->conversation->messages[1];
+    ik_msg_t *result_msg = repl->current->conversation->messages[1];
     ck_assert_str_eq(result_msg->kind, "tool_result");
     ck_assert_ptr_nonnull(result_msg->data_json);
 }
@@ -190,7 +190,7 @@ END_TEST START_TEST(test_execute_pending_tool_file_read)
     ck_assert_ptr_null(repl->pending_tool_call);
 
     /* Verify messages were added */
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 }
 
 END_TEST START_TEST(test_execute_pending_tool_debug_output)
@@ -261,7 +261,7 @@ END_TEST START_TEST(test_execute_pending_tool_no_debug_pipe)
     ck_assert_ptr_null(repl->pending_tool_call);
 
     /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 }
 
 END_TEST START_TEST(test_execute_pending_tool_debug_pipe_null_write_end)
@@ -287,7 +287,7 @@ END_TEST START_TEST(test_execute_pending_tool_debug_pipe_null_write_end)
     ck_assert_ptr_null(repl->pending_tool_call);
 
     /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 }
 
 END_TEST
@@ -308,7 +308,7 @@ START_TEST(test_execute_pending_tool_db_persistence)
     ck_assert_ptr_null(repl->pending_tool_call);
 
     /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 }
 
 END_TEST
@@ -327,7 +327,7 @@ START_TEST(test_execute_pending_tool_no_db_ctx)
 
     /* Verify execution still succeeded */
     ck_assert_ptr_null(repl->pending_tool_call);
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 }
 
 END_TEST
@@ -346,7 +346,7 @@ START_TEST(test_execute_pending_tool_no_session_id)
 
     /* Verify execution still succeeded */
     ck_assert_ptr_null(repl->pending_tool_call);
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 }
 
 END_TEST

@@ -34,7 +34,7 @@ static void setup(void)
     /* Create conversation */
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(!conv_res.is_err);
-    repl->conversation = conv_res.ok;
+    repl->current->conversation = conv_res.ok;
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 10);
@@ -105,7 +105,7 @@ START_TEST(test_async_tool_debug_pipe_null_write_end) {
     ik_repl_complete_tool_execution(repl);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
     ck_assert_ptr_null(repl->pending_tool_call);
 }
 END_TEST
@@ -137,7 +137,7 @@ START_TEST(test_async_tool_no_debug_pipe)
     ik_repl_complete_tool_execution(repl);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
     ck_assert_ptr_null(repl->pending_tool_call);
 }
 
@@ -175,7 +175,7 @@ START_TEST(test_async_tool_with_working_debug_pipe)
     ik_repl_complete_tool_execution(repl);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
     ck_assert_ptr_null(repl->pending_tool_call);
 }
 

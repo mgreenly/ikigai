@@ -53,10 +53,9 @@ static ik_repl_ctx_t *create_test_repl_minimal(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+    agent->conversation = conv;
     r->current = agent;
 
-
-    r->conversation = conv;
     r->shared = shared;
 
     return r;

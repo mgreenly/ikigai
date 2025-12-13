@@ -89,7 +89,7 @@ static void setup(void)
     /* Create conversation */
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(!conv_res.is_err);
-    repl->conversation = conv_res.ok;
+    repl->current->conversation = conv_res.ok;
 
     /* Create curl_multi handle */
     res_t multi_res = ik_openai_multi_create(repl);
@@ -220,7 +220,7 @@ START_TEST(test_tool_completion_polling_and_handling) {
     ck_assert_ptr_null(repl->pending_tool_call);
 
     /* Verify messages were added to conversation */
-    ck_assert_uint_ge(repl->conversation->message_count, 2);
+    ck_assert_uint_ge(repl->current->conversation->message_count, 2);
 
     /* Verify thread was joined */
     ck_assert(!repl->tool_thread_running);

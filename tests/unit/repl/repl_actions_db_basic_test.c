@@ -121,7 +121,7 @@ static void setup(void)
     // Create conversation
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(is_ok(&conv_res));
-    repl->conversation = conv_res.ok;
+    repl->current->conversation = conv_res.ok;
 
     // Create multi client (opaque pointer)
     repl->multi = talloc_zero_(repl, 1);
@@ -205,9 +205,9 @@ START_TEST(test_db_message_insert_error) {
     ck_assert(strstr(buffer, "Mock database error") != NULL);
 
     // Verify the user message was still added to conversation (memory state is authoritative)
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
+    ck_assert_str_eq(repl->current->conversation->messages[0]->content, test_text);
 
     // Verify scrollback has the user input (scrollback may have 1 or 2 lines depending on rendering)
     ck_assert(repl->current->scrollback->count >= 1);
@@ -246,9 +246,9 @@ START_TEST(test_db_message_insert_success)
     ck_assert_int_eq(ready, 0);
 
     // Verify the user message was added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
+    ck_assert_str_eq(repl->current->conversation->messages[0]->content, test_text);
 
     // Verify scrollback has the user input (scrollback may have 1 or 2 lines depending on rendering)
     ck_assert(repl->current->scrollback->count >= 1);
@@ -281,9 +281,9 @@ START_TEST(test_db_message_insert_error_no_debug_pipe)
     ck_assert(is_ok(&result));
 
     // Verify the user message was still added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
+    ck_assert_str_eq(repl->current->conversation->messages[0]->content, test_text);
 }
 
 END_TEST
@@ -309,9 +309,9 @@ START_TEST(test_message_submission_no_db_ctx)
     ck_assert(is_ok(&result));
 
     // Verify the user message was still added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
+    ck_assert_str_eq(repl->current->conversation->messages[0]->content, test_text);
 
     // No DB operation should have occurred, so no error logged
     fflush(repl->shared->db_debug_pipe->write_end);

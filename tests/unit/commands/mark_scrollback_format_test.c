@@ -54,13 +54,14 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+
+
+    agent->conversation = conv;
     r->current = agent;
 
-
-    r->conversation = conv;
     r->shared = shared;
-    r->marks = NULL;
-    r->mark_count = 0;
+    r->current->marks = NULL;
+    r->current->mark_count = 0;
 
     return r;
 }
@@ -101,15 +102,15 @@ static void teardown(void)
 // Test: Rewind should render messages without "You:" and "Assistant:" prefixes
 START_TEST(test_rewind_no_role_prefixes) {
     // Add a user message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "what is 2 + 2");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "what is 2 + 2");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Add an assistant response
-    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "2 + 2 = 4");
+    msg_res = ik_openai_msg_create(repl->current->conversation, "assistant", "2 + 2 = 4");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Create a mark
@@ -117,14 +118,14 @@ START_TEST(test_rewind_no_role_prefixes) {
     ck_assert(is_ok(&mark_res));
 
     // Add another exchange
-    msg_res = ik_openai_msg_create(repl->conversation, "user", "what is 3 + 3");
+    msg_res = ik_openai_msg_create(repl->current->conversation, "user", "what is 3 + 3");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
-    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "3 + 3 = 6");
+    msg_res = ik_openai_msg_create(repl->current->conversation, "assistant", "3 + 3 = 6");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Rewind to mark
@@ -172,9 +173,9 @@ END_TEST
 START_TEST(test_rewind_includes_system_message)
 {
     // Add a user message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "Hello");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "Hello");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Create a mark
@@ -182,9 +183,9 @@ START_TEST(test_rewind_includes_system_message)
     ck_assert(is_ok(&mark_res));
 
     // Add more content
-    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "World");
+    msg_res = ik_openai_msg_create(repl->current->conversation, "assistant", "World");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Rewind
@@ -209,9 +210,9 @@ START_TEST(test_rewind_without_system_message)
     cfg->openai_system_message = NULL;
 
     // Add a user message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "Hello");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "Hello");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Create a mark
@@ -219,9 +220,9 @@ START_TEST(test_rewind_without_system_message)
     ck_assert(is_ok(&mark_res));
 
     // Add more content
-    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "World");
+    msg_res = ik_openai_msg_create(repl->current->conversation, "assistant", "World");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Rewind
@@ -245,9 +246,9 @@ START_TEST(test_rewind_with_null_config)
     repl->shared->cfg = NULL;
 
     // Add a user message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "Test message");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "Test message");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Create a mark
@@ -255,9 +256,9 @@ START_TEST(test_rewind_with_null_config)
     ck_assert(is_ok(&mark_res));
 
     // Add more content
-    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "Response");
+    msg_res = ik_openai_msg_create(repl->current->conversation, "assistant", "Response");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Rewind should succeed even without config

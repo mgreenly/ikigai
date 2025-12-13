@@ -115,7 +115,7 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
 
     repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->shared->session_id = 0;
-    repl->conversation = ik_openai_conversation_create(repl).ok;
+    repl->current->conversation = ik_openai_conversation_create(repl).ok;
     return repl;
 }
 
@@ -468,10 +468,10 @@ START_TEST(test_restore_rebuilds_conversation)
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    ck_assert_int_eq((int)repl->conversation->message_count, 3);
-    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->conversation->messages[1]->kind, "assistant");
-    ck_assert_str_eq(repl->conversation->messages[2]->kind, "user");
+    ck_assert_int_eq((int)repl->current->conversation->message_count, 3);
+    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
+    ck_assert_str_eq(repl->current->conversation->messages[1]->kind, "assistant");
+    ck_assert_str_eq(repl->current->conversation->messages[2]->kind, "user");
 
     talloc_free(ctx);
 }

@@ -10,6 +10,14 @@
 // Forward declarations
 typedef struct ik_shared_ctx ik_shared_ctx_t;
 typedef struct ik_input_buffer_t ik_input_buffer_t;
+typedef struct ik_openai_conversation ik_openai_conversation_t;
+
+// Mark structure for conversation checkpoints
+typedef struct {
+    size_t message_index;     // Position in conversation at time of mark
+    char *label;              // Optional user label (or NULL for unlabeled mark)
+    char *timestamp;          // ISO 8601 timestamp
+} ik_mark_t;
 
 // Per-agent context - state specific to one agent
 // Created as child of repl_ctx (owned by coordinator)
@@ -36,6 +44,11 @@ typedef struct ik_agent_ctx {
 
     // Input state (per-agent - preserves partial composition)
     ik_input_buffer_t *input_buffer;
+
+    // Conversation state (per-agent)
+    ik_openai_conversation_t *conversation;
+    ik_mark_t **marks;
+    size_t mark_count;
 
     // Layer reference fields (updated before each render)
     bool separator_visible;

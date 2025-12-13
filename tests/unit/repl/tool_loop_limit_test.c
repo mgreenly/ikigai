@@ -43,7 +43,7 @@ static void setup(void)
     /* Create conversation */
     res_t res = ik_openai_conversation_create(ctx);
     ck_assert(is_ok(&res));
-    repl->conversation = res.ok;
+    repl->current->conversation = res.ok;
 
     /* Initialize counter to 0 (simulating start of user request) */
     repl->tool_iteration_count = 0;

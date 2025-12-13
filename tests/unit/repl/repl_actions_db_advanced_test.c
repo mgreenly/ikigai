@@ -121,7 +121,7 @@ static void setup(void)
     // Create conversation
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(is_ok(&conv_res));
-    repl->conversation = conv_res.ok;
+    repl->current->conversation = conv_res.ok;
 
     // Create multi client (opaque pointer)
     repl->multi = talloc_zero_(repl, 1);
@@ -194,9 +194,9 @@ START_TEST(test_message_submission_no_session)
     ck_assert(is_ok(&result));
 
     // Verify the user message was still added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
+    ck_assert_str_eq(repl->current->conversation->messages[0]->content, test_text);
 
     // No DB operation should have occurred, so no error logged
     fflush(repl->shared->db_debug_pipe->write_end);
@@ -234,9 +234,9 @@ START_TEST(test_db_error_null_write_end)
     ck_assert(is_ok(&result));
 
     // Verify the user message was still added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_str_eq(repl->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->conversation->messages[0]->content, test_text);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
+    ck_assert_str_eq(repl->current->conversation->messages[0]->content, test_text);
 }
 
 END_TEST

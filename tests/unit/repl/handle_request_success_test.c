@@ -89,8 +89,13 @@ static void setup(void)
     // Create conversation
     res_t res = ik_openai_conversation_create(test_ctx);
     ck_assert(is_ok(&res));
-    repl->conversation = res.ok;
-    ck_assert_ptr_nonnull(repl->conversation);
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+
+    agent->conversation = res.ok;
+    repl->current = agent;
+    ck_assert_ptr_nonnull(repl->current->conversation);
 
     if (!db_available) {
         db = NULL;
@@ -146,7 +151,7 @@ START_TEST(test_no_assistant_response) {
     handle_request_success(repl);
 
     // Nothing should happen, conversation should be empty
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 END_TEST
 
@@ -160,7 +165,7 @@ START_TEST(test_empty_assistant_response)
     handle_request_success(repl);
 
     // Nothing should happen, conversation should be empty
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -174,7 +179,7 @@ START_TEST(test_assistant_response_no_db)
     handle_request_success(repl);
 
     // Message should be added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
 
     // Assistant response should be cleared
     ck_assert_ptr_null(repl->assistant_response);
@@ -192,7 +197,7 @@ START_TEST(test_assistant_response_db_no_session)
     handle_request_success(repl);
 
     // Message should be added to conversation but not persisted
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 
@@ -210,7 +215,7 @@ START_TEST(test_all_metadata_fields)
     handle_request_success(repl);
 
     // Message should be added and persisted
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 
@@ -227,7 +232,7 @@ START_TEST(test_only_model_metadata)
 
     handle_request_success(repl);
 
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 
@@ -244,7 +249,7 @@ START_TEST(test_only_tokens_metadata)
 
     handle_request_success(repl);
 
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 
@@ -261,7 +266,7 @@ START_TEST(test_only_finish_reason_metadata)
 
     handle_request_success(repl);
 
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 
@@ -278,7 +283,7 @@ START_TEST(test_model_tokens_metadata)
 
     handle_request_success(repl);
 
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 
@@ -295,7 +300,7 @@ START_TEST(test_model_finish_reason_metadata)
 
     handle_request_success(repl);
 
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 
@@ -312,7 +317,7 @@ START_TEST(test_tokens_finish_reason_metadata)
 
     handle_request_success(repl);
 
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 
@@ -329,7 +334,7 @@ START_TEST(test_no_metadata)
 
     handle_request_success(repl);
 
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 

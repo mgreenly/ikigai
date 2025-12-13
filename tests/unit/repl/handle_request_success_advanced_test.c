@@ -72,7 +72,7 @@ START_TEST(test_debug_pipe_null_write_end) {
     handle_request_success(repl);
 
     // Message should be added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 END_TEST
@@ -89,7 +89,7 @@ START_TEST(test_debug_pipe_short_message)
     handle_request_success(repl);
 
     // Message should be added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 
     // Clean up
@@ -114,7 +114,7 @@ START_TEST(test_debug_pipe_long_message)
     handle_request_success(repl);
 
     // Message should be added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 
     // Clean up
@@ -164,7 +164,7 @@ START_TEST(test_request_success_starts_tool_execution)
     ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
 
     // Assistant message should be added to conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
 
     // Wait for thread to complete
     int max_wait = 200; // 2 seconds max
@@ -182,7 +182,7 @@ START_TEST(test_request_success_starts_tool_execution)
     ik_repl_complete_tool_execution(repl);
 
     // After completion, tool_call and tool_result messages should be added
-    ck_assert_uint_eq(repl->conversation->message_count, 3);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 3);
 
     // State should transition back to WAITING_FOR_LLM
     ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);

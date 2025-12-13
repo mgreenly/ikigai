@@ -81,13 +81,14 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+
+
+    agent->conversation = conv;
     r->current = agent;
 
-
-    r->conversation = conv;
     r->shared = shared;
-    r->marks = NULL;
-    r->mark_count = 0;
+    r->current->marks = NULL;
+    r->current->mark_count = 0;
 
     return r;
 }
@@ -123,7 +124,7 @@ START_TEST(test_gmtime_failure) {
     ck_assert_str_eq(error_message(res.err), "gmtime failed to convert timestamp");
 
     // Verify no mark was created
-    ck_assert_uint_eq(repl->mark_count, 0);
+    ck_assert_uint_eq(repl->current->mark_count, 0);
 }
 END_TEST
 // Test: strftime failure in get_iso8601_timestamp (line 32)
@@ -140,7 +141,7 @@ START_TEST(test_strftime_failure)
     ck_assert_str_eq(error_message(res.err), "strftime failed to format timestamp");
 
     // Verify no mark was created
-    ck_assert_uint_eq(repl->mark_count, 0);
+    ck_assert_uint_eq(repl->current->mark_count, 0);
 }
 
 END_TEST
@@ -158,7 +159,7 @@ START_TEST(test_gmtime_failure_unlabeled)
     ck_assert_str_eq(error_message(res.err), "gmtime failed to convert timestamp");
 
     // Verify no mark was created
-    ck_assert_uint_eq(repl->mark_count, 0);
+    ck_assert_uint_eq(repl->current->mark_count, 0);
 }
 
 END_TEST
@@ -176,7 +177,7 @@ START_TEST(test_strftime_failure_unlabeled)
     ck_assert_str_eq(error_message(res.err), "strftime failed to format timestamp");
 
     // Verify no mark was created
-    ck_assert_uint_eq(repl->mark_count, 0);
+    ck_assert_uint_eq(repl->current->mark_count, 0);
 }
 
 END_TEST
@@ -187,18 +188,18 @@ START_TEST(test_mark_success_after_gmtime_failure)
     mock_gmtime_should_fail = true;
     res_t res = ik_mark_create(repl, "fail_mark");
     ck_assert(is_err(&res));
-    ck_assert_uint_eq(repl->mark_count, 0);
+    ck_assert_uint_eq(repl->current->mark_count, 0);
 
     // Reset mock and try again
     mock_gmtime_should_fail = false;
     res = ik_mark_create(repl, "success_mark");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
 
     // Verify mark was created properly
-    ck_assert_ptr_nonnull(repl->marks[0]);
-    ck_assert_str_eq(repl->marks[0]->label, "success_mark");
-    ck_assert_ptr_nonnull(repl->marks[0]->timestamp);
+    ck_assert_ptr_nonnull(repl->current->marks[0]);
+    ck_assert_str_eq(repl->current->marks[0]->label, "success_mark");
+    ck_assert_ptr_nonnull(repl->current->marks[0]->timestamp);
 }
 
 END_TEST
@@ -209,18 +210,18 @@ START_TEST(test_mark_success_after_strftime_failure)
     mock_strftime_should_fail = true;
     res_t res = ik_mark_create(repl, "fail_mark");
     ck_assert(is_err(&res));
-    ck_assert_uint_eq(repl->mark_count, 0);
+    ck_assert_uint_eq(repl->current->mark_count, 0);
 
     // Reset mock and try again
     mock_strftime_should_fail = false;
     res = ik_mark_create(repl, "success_mark");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
 
     // Verify mark was created properly
-    ck_assert_ptr_nonnull(repl->marks[0]);
-    ck_assert_str_eq(repl->marks[0]->label, "success_mark");
-    ck_assert_ptr_nonnull(repl->marks[0]->timestamp);
+    ck_assert_ptr_nonnull(repl->current->marks[0]);
+    ck_assert_str_eq(repl->current->marks[0]->label, "success_mark");
+    ck_assert_ptr_nonnull(repl->current->marks[0]->timestamp);
 }
 
 END_TEST
@@ -239,7 +240,7 @@ START_TEST(test_cmd_mark_gmtime_error_propagation)
     ck_assert_str_eq(error_message(res.err), "gmtime failed to convert timestamp");
 
     // Verify no mark was created
-    ck_assert_uint_eq(repl->mark_count, 0);
+    ck_assert_uint_eq(repl->current->mark_count, 0);
 }
 
 END_TEST
@@ -258,7 +259,7 @@ START_TEST(test_cmd_mark_strftime_error_propagation)
     ck_assert_str_eq(error_message(res.err), "strftime failed to format timestamp");
 
     // Verify no mark was created
-    ck_assert_uint_eq(repl->mark_count, 0);
+    ck_assert_uint_eq(repl->current->mark_count, 0);
 }
 
 END_TEST

@@ -116,13 +116,14 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+
+
+    agent->conversation = conv;
     r->current = agent;
 
-
-    r->conversation = conv;
     r->shared = shared;
-    r->marks = NULL;
-    r->mark_count = 0;
+    r->current->marks = NULL;
+    r->current->mark_count = 0;
     r->shared->db_ctx = NULL;
     r->shared->session_id = 0;
     r->shared->db_debug_pipe = NULL;
@@ -176,8 +177,8 @@ START_TEST(test_mark_db_insert_error_with_null_label) {
     ck_assert(is_ok(&res));
 
     // Mark should still be created in memory
-    ck_assert_uint_eq(repl->mark_count, 1);
-    ck_assert_ptr_null(repl->marks[0]->label);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
+    ck_assert_ptr_null(repl->current->marks[0]->label);
 
     // Read debug output to verify error was logged
     rewind(repl->shared->db_debug_pipe->write_end);
@@ -211,8 +212,8 @@ START_TEST(test_mark_db_insert_error_with_label)
     ck_assert(is_ok(&res));
 
     // Mark should still be created in memory
-    ck_assert_uint_eq(repl->mark_count, 1);
-    ck_assert_str_eq(repl->marks[0]->label, "testlabel");
+    ck_assert_uint_eq(repl->current->mark_count, 1);
+    ck_assert_str_eq(repl->current->marks[0]->label, "testlabel");
 
     // Read debug output
     rewind(repl->shared->db_debug_pipe->write_end);
@@ -272,9 +273,9 @@ START_TEST(test_rewind_db_insert_error)
     ck_assert(is_ok(&res));
 
     // Add a message
-    res = ik_openai_msg_create(repl->conversation, "user", "test");
+    res = ik_openai_msg_create(repl->current->conversation, "user", "test");
     ck_assert(is_ok(&res));
-    res = ik_openai_conversation_add_msg(repl->conversation, res.ok);
+    res = ik_openai_conversation_add_msg(repl->current->conversation, res.ok);
     ck_assert(is_ok(&res));
 
     // Rewind - should succeed in memory even with DB issues
@@ -282,7 +283,7 @@ START_TEST(test_rewind_db_insert_error)
     ck_assert(is_ok(&res));
 
     // Rewind should succeed in memory
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 
     fclose(repl->shared->db_debug_pipe->write_end);
 }
@@ -306,7 +307,7 @@ START_TEST(test_mark_db_error_no_debug_pipe)
     // Create mark - should not crash even without debug pipe
     res_t res = ik_cmd_mark(test_ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
 }
 
 END_TEST
@@ -329,7 +330,7 @@ START_TEST(test_mark_db_error_null_write_end)
     // Create mark - should not crash
     res_t res = ik_cmd_mark(test_ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
 }
 
 END_TEST

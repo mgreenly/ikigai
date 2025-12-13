@@ -147,13 +147,14 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+
+
+    agent->conversation = conv;
     r->current = agent;
 
-
-    r->conversation = conv;
     r->shared = shared;
-    r->marks = NULL;
-    r->mark_count = 0;
+    r->current->marks = NULL;
+    r->current->mark_count = 0;
 
     return r;
 }
@@ -190,9 +191,9 @@ START_TEST(test_mark_db_query_no_results) {
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query succeeds but returns 0 rows
@@ -201,7 +202,7 @@ START_TEST(test_mark_db_query_no_results) {
     // Rewind - query returns no results
     res_t res = ik_cmd_rewind(ctx, repl, "findme");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 END_TEST
 // Test: get_mark_db_id with query failure (line 48 branches)
@@ -218,9 +219,9 @@ START_TEST(test_mark_db_query_failure)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query fails
@@ -229,7 +230,7 @@ START_TEST(test_mark_db_query_failure)
     // Rewind - query fails but rewind still succeeds in memory
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -245,15 +246,15 @@ START_TEST(test_mark_db_id_null_ctx)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Rewind - get_mark_db_id returns 0 due to NULL db_ctx
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -271,15 +272,15 @@ START_TEST(test_mark_db_id_invalid_session)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Rewind - get_mark_db_id returns 0 due to invalid session_id
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -297,9 +298,9 @@ START_TEST(test_rewind_unlabeled_mark_db_query)
     ck_assert(is_ok(&mark_res));
 
     // Add a message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "test");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "test");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: SELECT succeeds with NULL label query
@@ -309,7 +310,7 @@ START_TEST(test_rewind_unlabeled_mark_db_query)
     // Rewind to unlabeled mark (triggers lines 40-42)
     res_t res = ik_cmd_rewind(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -327,9 +328,9 @@ START_TEST(test_mark_db_id_sscanf_non_numeric)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query succeeds but returns non-numeric string
@@ -339,7 +340,7 @@ START_TEST(test_mark_db_id_sscanf_non_numeric)
     // Rewind - sscanf fails, mark_id falls back to 0
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -357,9 +358,9 @@ START_TEST(test_mark_db_id_sscanf_empty_string)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query succeeds but returns empty string
@@ -369,7 +370,7 @@ START_TEST(test_mark_db_id_sscanf_empty_string)
     // Rewind - sscanf fails, mark_id falls back to 0
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -387,9 +388,9 @@ START_TEST(test_mark_db_id_sscanf_special_chars)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query succeeds but returns special characters
@@ -399,7 +400,7 @@ START_TEST(test_mark_db_id_sscanf_special_chars)
     // Rewind - sscanf fails, mark_id falls back to 0
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -417,9 +418,9 @@ START_TEST(test_mark_db_id_sscanf_text_only)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query succeeds but returns text
@@ -429,7 +430,7 @@ START_TEST(test_mark_db_id_sscanf_text_only)
     // Rewind - sscanf fails, mark_id falls back to 0
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST

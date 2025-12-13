@@ -70,8 +70,8 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     char *summary = talloc_asprintf(repl, "%s(%s)", tc->name, tc->arguments);
     if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_msg_t *tc_msg = ik_openai_msg_create_tool_call(
-        repl->conversation, tc->id, "function", tc->name, tc->arguments, summary);
-    res_t result = ik_openai_conversation_add_msg(repl->conversation, tc_msg);
+        repl->current->conversation, tc->id, "function", tc->name, tc->arguments, summary);
+    res_t result = ik_openai_conversation_add_msg(repl->current->conversation, tc_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
@@ -89,8 +89,8 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
 
     // 3. Add tool result message to conversation
     ik_msg_t *result_msg = ik_openai_msg_create_tool_result(
-        repl->conversation, tc->id, result_json);
-    result = ik_openai_conversation_add_msg(repl->conversation, result_msg);
+        repl->current->conversation, tc->id, result_json);
+    result = ik_openai_conversation_add_msg(repl->current->conversation, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added
@@ -213,8 +213,8 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
     if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     ik_msg_t *tc_msg = ik_openai_msg_create_tool_call(
-        repl->conversation, tc->id, "function", tc->name, tc->arguments, summary);
-    res_t result = ik_openai_conversation_add_msg(repl->conversation, tc_msg);
+        repl->current->conversation, tc->id, "function", tc->name, tc->arguments, summary);
+    res_t result = ik_openai_conversation_add_msg(repl->current->conversation, tc_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
@@ -227,8 +227,8 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
 
     // 2. Add tool result message to conversation
     ik_msg_t *result_msg = ik_openai_msg_create_tool_result(
-        repl->conversation, tc->id, result_json);
-    result = ik_openai_conversation_add_msg(repl->conversation, result_msg);
+        repl->current->conversation, tc->id, result_json);
+    result = ik_openai_conversation_add_msg(repl->current->conversation, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added

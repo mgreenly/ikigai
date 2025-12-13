@@ -56,12 +56,13 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+
+
+    agent->conversation = conv;
     r->current = agent;
 
-
-    r->conversation = conv;
-    r->marks = NULL;
-    r->mark_count = 0;
+    r->current->marks = NULL;
+    r->current->mark_count = 0;
     r->shared = shared;
 
     return r;

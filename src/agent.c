@@ -3,6 +3,7 @@
 #include "input_buffer/core.h"
 #include "layer.h"
 #include "layer_wrappers.h"
+#include "openai/client.h"
 #include "panic.h"
 #include "scrollback.h"
 #include "shared.h"
@@ -82,6 +83,11 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->input_buffer_visible = true;
     agent->input_text = NULL;
     agent->input_text_len = 0;
+
+    // Initialize conversation state (per-agent)
+    agent->conversation = ik_openai_conversation_create(agent).ok;
+    agent->marks = NULL;
+    agent->mark_count = 0;
 
     // Create and add layers (following pattern from repl_init.c)
     agent->scrollback_layer = ik_scrollback_layer_create(agent, "scrollback", agent->scrollback);

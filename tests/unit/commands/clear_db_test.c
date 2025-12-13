@@ -122,9 +122,9 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+    agent->conversation = conv;
     r->current = agent;
 
-    r->conversation = conv;
     r->shared = shared;
 
     return r;
@@ -184,7 +184,7 @@ START_TEST(test_clear_db_error_clear_event) {
 
     // Verify clear still happened despite DB error
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 
     // Clean up
     fclose(debug_pipe->write_end);
@@ -229,7 +229,7 @@ START_TEST(test_clear_db_error_system_message)
     // Verify clear still happened despite DB error
     // System message should be displayed in scrollback (with blank line after)
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 
     // Clean up
     fclose(debug_pipe->write_end);
@@ -254,7 +254,7 @@ START_TEST(test_clear_without_db_ctx)
 
     // Verify clear happened
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -288,7 +288,7 @@ START_TEST(test_clear_db_error_no_debug_pipe)
 
     // Verify clear happened despite DB error and no error logging
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -323,7 +323,7 @@ START_TEST(test_clear_system_db_error_no_debug_pipe)
     // Verify clear happened
     // System message should be displayed in scrollback (with blank line after)
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -361,7 +361,7 @@ START_TEST(test_clear_db_error_write_end_null)
 
     // Verify clear happened
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -399,7 +399,7 @@ START_TEST(test_clear_system_db_error_write_end_null)
     // Verify clear happened
     // System message should be displayed in scrollback (with blank line after)
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -422,7 +422,7 @@ START_TEST(test_clear_with_invalid_session_id)
 
     // Verify clear happened
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST

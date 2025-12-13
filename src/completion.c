@@ -70,14 +70,14 @@ static arg_provider_result_t provide_debug_args(TALLOC_CTX *ctx, ik_repl_ctx_t *
 /**
  * Provide arguments for /rewind command
  *
- * Returns labeled marks from repl->marks
+ * Returns labeled marks from repl->current->marks
  */
 static arg_provider_result_t provide_rewind_args(TALLOC_CTX *ctx, ik_repl_ctx_t *repl)
 {
     // Count labeled marks first
     size_t labeled_count = 0;
-    for (size_t i = 0; i < repl->mark_count; i++) {     // LCOV_EXCL_BR_LINE
-        if (repl->marks[i]->label != NULL) {     // LCOV_EXCL_BR_LINE
+    for (size_t i = 0; i < repl->current->mark_count; i++) {     // LCOV_EXCL_BR_LINE
+        if (repl->current->marks[i]->label != NULL) {     // LCOV_EXCL_BR_LINE
             labeled_count++;
         }
     }
@@ -92,9 +92,9 @@ static arg_provider_result_t provide_rewind_args(TALLOC_CTX *ctx, ik_repl_ctx_t 
     if (mark_labels == NULL) PANIC("Out of memory");     // LCOV_EXCL_BR_LINE
 
     size_t collected = 0;
-    for (size_t i = 0; i < repl->mark_count; i++) {     // LCOV_EXCL_BR_LINE
-        if (repl->marks[i]->label != NULL) {     // LCOV_EXCL_BR_LINE
-            mark_labels[collected++] = repl->marks[i]->label;
+    for (size_t i = 0; i < repl->current->mark_count; i++) {     // LCOV_EXCL_BR_LINE
+        if (repl->current->marks[i]->label != NULL) {     // LCOV_EXCL_BR_LINE
+            mark_labels[collected++] = repl->current->marks[i]->label;
         }
     }
 

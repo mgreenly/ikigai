@@ -196,10 +196,10 @@ void handle_request_success(ik_repl_ctx_t *repl)
 {
     // Add assistant response to conversation (only if non-empty)
     if (repl->assistant_response != NULL && strlen(repl->assistant_response) > 0) {
-        ik_msg_t *assistant_msg = ik_openai_msg_create(repl->conversation,
+        ik_msg_t *assistant_msg = ik_openai_msg_create(repl->current->conversation,
                                                 "assistant",
                                                 repl->assistant_response).ok;
-        res_t result = ik_openai_conversation_add_msg(repl->conversation, assistant_msg);
+        res_t result = ik_openai_conversation_add_msg(repl->current->conversation, assistant_msg);
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
         if (repl->shared->openai_debug_pipe && repl->shared->openai_debug_pipe->write_end) {
@@ -234,7 +234,7 @@ void handle_request_success(ik_repl_ctx_t *repl)
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
 {
     bool limit_reached = (repl->shared->cfg != NULL && repl->tool_iteration_count >= repl->shared->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
-    res_t result = ik_openai_multi_add_request(repl->multi, repl->shared->cfg, repl->conversation,
+    res_t result = ik_openai_multi_add_request(repl->multi, repl->shared->cfg, repl->current->conversation,
                                                ik_repl_streaming_callback, repl,
                                                ik_repl_http_completion_callback, repl,
                                                limit_reached);

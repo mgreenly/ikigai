@@ -66,6 +66,10 @@ static void setup(void)
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+
     // Create shared context
     repl->shared = talloc_zero(test_ctx, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -73,8 +77,9 @@ static void setup(void)
     // Create conversation
     res_t res = ik_openai_conversation_create(test_ctx);
     ck_assert(is_ok(&res));
-    repl->conversation = res.ok;
-    ck_assert_ptr_nonnull(repl->conversation);
+    agent->conversation = res.ok;
+    ck_assert_ptr_nonnull(agent->conversation);
+    repl->current = agent;
 
     // Set up minimal database context (we use a dummy pointer since we're mocking)
     repl->shared->db_ctx = (ik_db_ctx_t *)0x1;  // Non-NULL dummy pointer
@@ -103,7 +108,7 @@ START_TEST(test_db_error_no_debug_pipe) {
     handle_request_success(repl);
 
     // Message should still be added to conversation despite DB error
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 END_TEST
@@ -131,7 +136,7 @@ START_TEST(test_db_error_with_debug_pipe)
     handle_request_success(repl);
 
     // Message should still be added despite DB error
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 
     // Check that error was written to debug pipe
@@ -175,7 +180,7 @@ START_TEST(test_db_error_with_debug_pipe_null_write_end)
     handle_request_success(repl);
 
     // Message should still be added despite DB error
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
     ck_assert_ptr_null(repl->assistant_response);
 }
 

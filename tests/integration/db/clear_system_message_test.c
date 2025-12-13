@@ -175,11 +175,11 @@ START_TEST(test_clear_persists_system_message_event)
     // Create conversation
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(is_ok(&conv_res));
-    repl->conversation = conv_res.ok;
+    repl->current->conversation = conv_res.ok;
 
     // Initialize marks
-    repl->marks = NULL;
-    repl->mark_count = 0;
+    repl->current->marks = NULL;
+    repl->current->mark_count = 0;
     repl->shared->db_debug_pipe = NULL;
 
     // Verify no messages initially
@@ -232,11 +232,11 @@ START_TEST(test_clear_no_system_message_when_null)
     // Create conversation
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(is_ok(&conv_res));
-    repl->conversation = conv_res.ok;
+    repl->current->conversation = conv_res.ok;
 
     // Initialize marks
-    repl->marks = NULL;
-    repl->mark_count = 0;
+    repl->current->marks = NULL;
+    repl->current->mark_count = 0;
     repl->shared->db_debug_pipe = NULL;
 
     // Execute /clear command

@@ -254,13 +254,13 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
 
     repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->shared->session_id = 0;
-    repl->marks = NULL;
-    repl->mark_count = 0;
+    repl->current->marks = NULL;
+    repl->current->mark_count = 0;
 
     // Create minimal conversation object (needed for session restore)
-    repl->conversation = talloc_zero_(repl, sizeof(ik_openai_conversation_t));
-    repl->conversation->messages = NULL;
-    repl->conversation->message_count = 0;
+    repl->current->conversation = talloc_zero_(repl, sizeof(ik_openai_conversation_t));
+    repl->current->conversation->messages = NULL;
+    repl->current->conversation->message_count = 0;
 
     return repl;
 }

@@ -91,9 +91,6 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     repl->curl_still_running = 0;  // No active transfers initially
     repl->state = IK_REPL_STATE_IDLE;  // Start in IDLE state
 
-    // Initialize conversation for session messages (Phase 1.6)
-    repl->conversation = ik_openai_conversation_create(repl).ok;
-
     // Initialize assistant response accumulator (Phase 1.6)
     repl->assistant_response = NULL;
 
@@ -102,10 +99,6 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
 
     // Initialize HTTP error message (Phase 1.7)
     repl->http_error_message = NULL;
-
-    // Initialize marks array (Phase 1.7)
-    repl->marks = NULL;
-    repl->mark_count = 0;
 
     // Restore session if database is configured (must be after repl allocated)
     if (shared->db_ctx != NULL) {

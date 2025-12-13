@@ -118,7 +118,7 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     // Create conversation
     res = ik_openai_conversation_create(ctx);
     ck_assert(is_ok(&res));
-    repl->conversation = res.ok;
+    repl->current->conversation = res.ok;
 
     // Create multi handle
     res = ik_openai_multi_create(ctx);
@@ -164,7 +164,7 @@ START_TEST(test_submit_message_with_llm_initialized) {
     ck_assert_uint_eq(text_len, 0);
 
     // Verify user message was added to conversation
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     talloc_free(ctx);
 }
@@ -233,7 +233,7 @@ START_TEST(test_submit_message_without_cfg)
     ck_assert_uint_eq(text_len, 0);
 
     // Verify NO message was added to conversation (still 0)
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 0);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 0);
 
     talloc_free(ctx);
 }
@@ -273,7 +273,7 @@ START_TEST(test_submit_message_api_request_failure)
     ck_assert_uint_gt(repl->current->scrollback->count, 0);
 
     // Verify user message was added to conversation (error happens after message creation)
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     talloc_free(ctx);
 }

@@ -62,18 +62,19 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+
+
+    agent->conversation = conv;
     r->current = agent;
 
-
-    r->conversation = conv;
 
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
     shared->cfg = cfg;
     r->shared = shared;
 
-    r->marks = NULL;
-    r->mark_count = 0;
+    r->current->marks = NULL;
+    r->current->mark_count = 0;
 
     return r;
 }
@@ -163,9 +164,9 @@ START_TEST(test_dispatch_mark_with_args)
     ck_assert(is_ok(&res));
 
     // Verify mark was created
-    ck_assert_uint_eq(repl->mark_count, 1);
-    ck_assert_ptr_nonnull(repl->marks);
-    ck_assert_str_eq(repl->marks[0]->label, "checkpoint1");
+    ck_assert_uint_eq(repl->current->mark_count, 1);
+    ck_assert_ptr_nonnull(repl->current->marks);
+    ck_assert_str_eq(repl->current->marks[0]->label, "checkpoint1");
 
     // Verify scrollback received the mark indicator
     const char *line = NULL;

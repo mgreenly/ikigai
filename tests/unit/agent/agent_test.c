@@ -356,6 +356,66 @@ START_TEST(test_agent_can_be_freed)
 }
 END_TEST
 
+// Test agent->conversation is initialized
+START_TEST(test_agent_conversation_initialized)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_nonnull(agent->conversation);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->marks is NULL initially
+START_TEST(test_agent_marks_null_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_null(agent->marks);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->mark_count is 0 initially
+START_TEST(test_agent_mark_count_zero_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_uint_eq(agent->mark_count, 0);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test ik_agent_generate_uuid() returns valid 22-char base64url string
 START_TEST(test_generate_uuid_returns_valid_string)
 {
@@ -416,6 +476,9 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_agent_input_buffer_initialized);
     tcase_add_test(tc_core, test_agent_separator_visible_true);
     tcase_add_test(tc_core, test_agent_input_buffer_visible_true);
+    tcase_add_test(tc_core, test_agent_conversation_initialized);
+    tcase_add_test(tc_core, test_agent_marks_null_initially);
+    tcase_add_test(tc_core, test_agent_mark_count_zero_initially);
     tcase_add_test(tc_core, test_agent_allocated_under_parent);
     tcase_add_test(tc_core, test_agent_can_be_freed);
     tcase_add_test(tc_core, test_generate_uuid_returns_valid_string);

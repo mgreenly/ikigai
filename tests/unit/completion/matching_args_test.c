@@ -28,9 +28,12 @@ static void setup(void)
     test_repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(test_repl);
 
-    // Initialize marks array
-    test_repl->marks = NULL;
-    test_repl->mark_count = 0;
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(test_repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->marks = NULL;
+    agent->mark_count = 0;
+    test_repl->current = agent;
 
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
@@ -101,10 +104,10 @@ START_TEST(test_completion_rewind_arguments)
     mark2->label = talloc_strdup(mark2, "good");
     mark2->message_index = 1;
 
-    test_repl->marks = talloc_array(test_repl, ik_mark_t *, 2);
-    test_repl->marks[0] = mark1;
-    test_repl->marks[1] = mark2;
-    test_repl->mark_count = 2;
+    test_repl->current->marks = talloc_array(test_repl, ik_mark_t *, 2);
+    test_repl->current->marks[0] = mark1;
+    test_repl->current->marks[1] = mark2;
+    test_repl->current->mark_count = 2;
 
     // "/rewind " should show labeled marks
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/rewind ");

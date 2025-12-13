@@ -25,11 +25,11 @@ START_TEST(test_error_handling_no_partial_response) {
     // Add a user message
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     // Initial conversation should have 1 message (user)
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Count scrollback lines before
     size_t lines_before = ik_scrollback_get_line_count(repl->current->scrollback);
@@ -61,7 +61,7 @@ START_TEST(test_error_handling_no_partial_response) {
     ck_assert_ptr_nonnull(strstr(last_line, "Connection timeout"));
 
     // Verify NO assistant message was added to conversation
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Verify state transitioned back to IDLE
     ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
@@ -94,7 +94,7 @@ START_TEST(test_error_handling_with_partial_response)
     // Add a user message
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Tell me a story");
     ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     // Count scrollback lines before
@@ -121,7 +121,7 @@ START_TEST(test_error_handling_with_partial_response)
     ck_assert_ptr_nonnull(strstr(last_line, "Stream interrupted"));
 
     // Verify NO assistant message was added (partial response was discarded)
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Verify error message was cleared
     ck_assert_ptr_null(repl->http_error_message);

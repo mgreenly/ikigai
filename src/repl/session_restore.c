@@ -59,14 +59,14 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
 
         // Rebuild mark stack from replay context
         if (replay_ctx->mark_stack.count > 0) {
-            repl->marks = talloc_array(repl, ik_mark_t *, (unsigned int)replay_ctx->mark_stack.count);
-            if (repl->marks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            repl->current->marks = talloc_array(repl, ik_mark_t *, (unsigned int)replay_ctx->mark_stack.count);
+            if (repl->current->marks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
             for (size_t i = 0; i < replay_ctx->mark_stack.count; i++) {
                 ik_replay_mark_t *replay_mark = &replay_ctx->mark_stack.marks[i];
 
                 // Create mark structure
-                ik_mark_t *mark = talloc_zero(repl->marks, ik_mark_t);
+                ik_mark_t *mark = talloc_zero(repl->current->marks, ik_mark_t);
                 if (mark == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
                 // Set message index from context_idx
@@ -83,10 +83,10 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
                 // Set timestamp to NULL (we don't persist timestamps yet)
                 mark->timestamp = NULL;
 
-                repl->marks[i] = mark;
+                repl->current->marks[i] = mark;
             }
 
-            repl->mark_count = replay_ctx->mark_stack.count;
+            repl->current->mark_count = replay_ctx->mark_stack.count;
         }
 
         // Populate scrollback with replayed messages using event renderer
@@ -121,7 +121,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
             // Add to conversation if not skipped (NULL means skip)
             ik_msg_t *msg = msg_res.ok;
             if (msg != NULL) {
-                res_t add_res = ik_openai_conversation_add_msg_(repl->conversation, msg);
+                res_t add_res = ik_openai_conversation_add_msg_(repl->current->conversation, msg);
                 if (is_err(&add_res)) {
                     talloc_free(tmp);
                     return add_res;

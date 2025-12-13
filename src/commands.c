@@ -140,18 +140,18 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     ik_scrollback_clear(repl->current->scrollback);
 
     // Clear conversation (session messages)
-    if (repl->conversation != NULL) {  // LCOV_EXCL_BR_LINE
-        ik_openai_conversation_clear(repl->conversation);
+    if (repl->current->conversation != NULL) {  // LCOV_EXCL_BR_LINE
+        ik_openai_conversation_clear(repl->current->conversation);
     }
 
     // Clear marks
-    if (repl->marks != NULL) {  // LCOV_EXCL_BR_LINE
-        for (size_t i = 0; i < repl->mark_count; i++) {
-            talloc_free(repl->marks[i]);
+    if (repl->current->marks != NULL) {  // LCOV_EXCL_BR_LINE
+        for (size_t i = 0; i < repl->current->mark_count; i++) {
+            talloc_free(repl->current->marks[i]);
         }
-        talloc_free(repl->marks);
-        repl->marks = NULL;
-        repl->mark_count = 0;
+        talloc_free(repl->current->marks);
+        repl->current->marks = NULL;
+        repl->current->mark_count = 0;
     }
 
     // Clear autocomplete state so suggestions don't persist

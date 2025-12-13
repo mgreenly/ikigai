@@ -15,6 +15,7 @@
 #include "tool.h"
 #include "db/connection.h"
 #include "history.h"
+#include "agent.h"
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdatomic.h>
@@ -22,7 +23,6 @@
 
 // Forward declarations
 typedef struct ik_shared_ctx ik_shared_ctx_t;
-typedef struct ik_agent_ctx ik_agent_ctx_t;
 
 // REPL state machine (Phase 1.6)
 typedef enum {
@@ -30,13 +30,6 @@ typedef enum {
     IK_REPL_STATE_WAITING_FOR_LLM,   // Waiting for LLM response (spinner visible)
     IK_REPL_STATE_EXECUTING_TOOL     // Tool running in background thread
 } ik_repl_state_t;
-
-// Mark structure for conversation checkpoints (Phase 1.7)
-typedef struct {
-    size_t message_index;     // Position in conversation at time of mark
-    char *label;              // Optional user label (or NULL for unlabeled mark)
-    char *timestamp;          // ISO 8601 timestamp
-} ik_mark_t;
 
 // Viewport boundaries for rendering (Phase 4)
 typedef struct {
@@ -80,17 +73,12 @@ typedef struct ik_repl_ctx_t {
     ik_repl_state_t state;            // Current REPL state (IDLE or WAITING_FOR_LLM)
 
     // Configuration and conversation (Phase 1.6)
-    ik_openai_conversation_t *conversation;       // Current conversation (session messages)
     char *assistant_response;                     // Accumulated assistant response (during streaming)
     char *streaming_line_buffer;                  // Buffer for incomplete line during streaming
     char *http_error_message;                     // HTTP error message (if request failed)
     char *response_model;                         // Model name from SSE stream (for database persistence)
     char *response_finish_reason;                 // Finish reason from SSE stream (for database persistence)
     int32_t response_completion_tokens;           // Completion token count from SSE stream (for database persistence)
-
-    // Checkpoint management (Phase 1.7)
-    ik_mark_t **marks;                            // Array of conversation marks
-    size_t mark_count;                            // Number of marks
 
     // Tab completion (rel-04)
     ik_completion_t *completion;                  // Tab completion context (NULL when inactive)

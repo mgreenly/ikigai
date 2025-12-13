@@ -55,10 +55,9 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+    agent->conversation = conv;
     r->current = agent;
 
-
-    r->conversation = conv;
     r->shared = shared;
 
     return r;
@@ -82,7 +81,7 @@ static void teardown(void)
 START_TEST(test_clear_empty) {
     // Verify initially empty
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 
     // Execute /clear
     res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
@@ -90,7 +89,7 @@ START_TEST(test_clear_empty) {
 
     // Verify still empty
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 END_TEST
 // Test: Clear scrollback with content
@@ -124,26 +123,26 @@ START_TEST(test_clear_conversation_with_messages)
     ck_assert(is_ok(&res));
     ik_msg_t *msg1 = res.ok;
 
-    res = ik_openai_conversation_add_msg(repl->conversation, msg1);
+    res = ik_openai_conversation_add_msg(repl->current->conversation, msg1);
     ck_assert(is_ok(&res));
 
     res = ik_openai_msg_create(ctx, "assistant", "Hi there!");
     ck_assert(is_ok(&res));
     ik_msg_t *msg2 = res.ok;
 
-    res = ik_openai_conversation_add_msg(repl->conversation, msg2);
+    res = ik_openai_conversation_add_msg(repl->current->conversation, msg2);
     ck_assert(is_ok(&res));
 
     // Verify messages exist
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 
     // Execute /clear
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
     // Verify conversation is empty
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
-    ck_assert_ptr_null(repl->conversation->messages);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
+    ck_assert_ptr_null(repl->current->conversation->messages);
 }
 
 END_TEST
@@ -160,18 +159,18 @@ START_TEST(test_clear_both_scrollback_and_conversation)
     res = ik_openai_msg_create(ctx, "user", "User message");
     ck_assert(is_ok(&res));
     ik_msg_t *msg1 = res.ok;
-    res = ik_openai_conversation_add_msg(repl->conversation, msg1);
+    res = ik_openai_conversation_add_msg(repl->current->conversation, msg1);
     ck_assert(is_ok(&res));
 
     res = ik_openai_msg_create(ctx, "assistant", "Assistant response");
     ck_assert(is_ok(&res));
     ik_msg_t *msg2 = res.ok;
-    res = ik_openai_conversation_add_msg(repl->conversation, msg2);
+    res = ik_openai_conversation_add_msg(repl->current->conversation, msg2);
     ck_assert(is_ok(&res));
 
     // Verify both have content
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 
     // Execute /clear
     res = ik_cmd_dispatch(ctx, repl, "/clear");
@@ -179,7 +178,7 @@ START_TEST(test_clear_both_scrollback_and_conversation)
 
     // Verify both are empty
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -187,7 +186,7 @@ END_TEST
 START_TEST(test_clear_with_null_conversation)
 {
     // Set conversation to NULL
-    repl->conversation = NULL;
+    repl->current->conversation = NULL;
 
     // Add scrollback content
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
@@ -231,7 +230,7 @@ START_TEST(test_clear_with_marks)
     res = ik_openai_msg_create(ctx, "user", "Message");
     ck_assert(is_ok(&res));
     ik_msg_t *msg = res.ok;
-    res = ik_openai_conversation_add_msg(repl->conversation, msg);
+    res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
     ck_assert(is_ok(&res));
 
     // Create marks
@@ -241,20 +240,20 @@ START_TEST(test_clear_with_marks)
     ck_assert(is_ok(&res));
 
     // Verify marks exist
-    ck_assert_uint_eq(repl->mark_count, 2);
-    ck_assert_ptr_nonnull(repl->marks);
+    ck_assert_uint_eq(repl->current->mark_count, 2);
+    ck_assert_ptr_nonnull(repl->current->marks);
 
     // Execute /clear
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
     // Verify marks are cleared
-    ck_assert_uint_eq(repl->mark_count, 0);
-    ck_assert_ptr_null(repl->marks);
+    ck_assert_uint_eq(repl->current->mark_count, 0);
+    ck_assert_ptr_null(repl->current->marks);
 
     // Verify scrollback and conversation also cleared
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST

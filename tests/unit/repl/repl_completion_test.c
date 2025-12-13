@@ -23,11 +23,11 @@ START_TEST(test_request_completion_adds_to_conversation) {
     // Add a user message first (as would happen during normal flow)
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     // Initial conversation should have 1 message (user)
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Simulate a request that is running
     repl->curl_still_running = 1;
@@ -45,7 +45,7 @@ START_TEST(test_request_completion_adds_to_conversation) {
     ck_assert(is_ok(&result));
 
     // Verify assistant message was added to conversation
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 2);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 2);
 
     // Verify state transitioned back to IDLE
     ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
@@ -75,7 +75,7 @@ START_TEST(test_request_completion_with_null_response)
     // Add a user message
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     // Simulate a running request
@@ -87,7 +87,7 @@ START_TEST(test_request_completion_with_null_response)
     ck_assert(is_ok(&result));
 
     // Verify NO assistant message was added (still only 1 message)
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Verify state transitioned back to IDLE anyway
     ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
@@ -115,7 +115,7 @@ START_TEST(test_request_completion_with_empty_response)
     // Add a user message
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     // Simulate a running request
@@ -127,7 +127,7 @@ START_TEST(test_request_completion_with_empty_response)
     ck_assert(is_ok(&result));
 
     // Verify NO assistant message was added
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Verify state transitioned back to IDLE
     ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
@@ -244,7 +244,7 @@ START_TEST(test_handle_curl_events_render_failure_on_completion)
     // Add a user message first
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     // Simulate a running request
