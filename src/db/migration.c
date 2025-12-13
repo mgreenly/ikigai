@@ -1,5 +1,6 @@
 #include "migration.h"
 #include "../error.h"
+#include "../file_utils.h"
 #include "../panic.h"
 #include "../wrapper.h"
 #include "pg_result.h"
@@ -66,50 +67,28 @@ static res_t read_file_contents(TALLOC_CTX *ctx, const char *path, char **conten
     assert(path != NULL);         // LCOV_EXCL_BR_LINE
     assert(content_out != NULL);  // LCOV_EXCL_BR_LINE
 
-    FILE *f = fopen_(path, "r");
-    if (f == NULL) {
-        return ERR(ctx, IO, "Cannot open migration file: %s", path);
+    // Use shared file utility
+    res_t result = ik_file_read_all(ctx, path, content_out, NULL);
+
+    // Customize error messages to mention "migration file" for better context
+    if (result.is_err) {
+        const char *generic_msg = result.err->msg;
+        if (strstr(generic_msg, "Failed to open")) {
+            return ERR(ctx, IO, "Cannot open migration file: %s", path);
+        } else if (strstr(generic_msg, "Failed to seek")) {
+            return ERR(ctx, IO, "Cannot seek migration file: %s", path);
+        } else if (strstr(generic_msg, "Failed to get size")) {
+            return ERR(ctx, IO, "Cannot get migration file size: %s", path);
+        } else if (strstr(generic_msg, "File too large")) {
+            return ERR(ctx, IO, "Migration file too large: %s", path);
+        } else if (strstr(generic_msg, "Failed to read")) {
+            return ERR(ctx, IO, "Failed to read migration file: %s", path);
+        }
+        // Default: return original error
+        return result;
     }
 
-    // Get file size
-    if (fseek_(f, 0, SEEK_END) != 0) {
-        fclose_(f);
-        return ERR(ctx, IO, "Cannot seek migration file: %s", path);
-    }
-    long size = ftell_(f);
-    if (size < 0) {
-        fclose_(f);
-        return ERR(ctx, IO, "Cannot get migration file size: %s", path);
-    }
-    if (fseek_(f, 0, SEEK_SET) != 0) {
-        fclose_(f);
-        return ERR(ctx, IO, "Cannot rewind migration file: %s", path);
-    }
-
-    // Allocate buffer (safe cast: size is checked to be >= 0)
-    size_t file_size = (size_t)size;
-    // Cast to unsigned for talloc_array (count parameter is unsigned int)
-    if (file_size > (size_t)UINT_MAX - 1) {
-        fclose_(f);
-        return ERR(ctx, IO, "Migration file too large: %s", path);
-    }
-    char *buffer = talloc_array(ctx, char, (unsigned)(file_size + 1));
-    if (buffer == NULL) {      // LCOV_EXCL_BR_LINE
-        fclose_(f);             // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-
-    // Read file
-    size_t bytes_read = fread_(buffer, 1, file_size, f);
-    fclose_(f);
-
-    if (bytes_read != file_size) {
-        return ERR(ctx, IO, "Failed to read migration file: %s", path);
-    }
-
-    buffer[file_size] = '\0';
-    *content_out = buffer;
-    return OK(buffer);
+    return result;
 }
 
 /**
