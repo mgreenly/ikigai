@@ -1,4 +1,5 @@
 #include "history.h"
+#include "file_utils.h"
 #include "json_allocator.h"
 #include "logger.h"
 #include "panic.h"
@@ -305,48 +306,19 @@ res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
         return OK(NULL);  // Empty history
     }
 
-    // Read entire file
-    FILE *f = fopen_(path, "r");
-    if (f == NULL) {  // LCOV_EXCL_BR_LINE
-        return ERR(ctx, IO, "Failed to open %s: %s", path, strerror(errno));
-    }
+    // Read entire file using utility
+    char *contents = NULL;
+    size_t file_size = 0;
+    res_t read_result = ik_file_read_all(ctx, path, &contents, &file_size);
 
-    // Get file size
-    if (fseek_(f, 0, SEEK_END) != 0) {  // LCOV_EXCL_BR_LINE
-        fclose_(f);
-        return ERR(ctx, IO, "Failed to seek in %s: %s", path, strerror(errno));
-    }
-
-    long file_size = ftell_(f);
-    if (file_size < 0) {  // LCOV_EXCL_BR_LINE
-        fclose_(f);
-        return ERR(ctx, IO, "Failed to get size of %s: %s", path, strerror(errno));
-    }
-
-    if (fseek_(f, 0, SEEK_SET) != 0) {  // LCOV_EXCL_BR_LINE
-        fclose_(f);
-        return ERR(ctx, IO, "Failed to seek in %s: %s", path, strerror(errno));
+    if (read_result.is_err) {
+        return read_result;
     }
 
     // Handle empty file
     if (file_size == 0) {
-        fclose_(f);
         return OK(NULL);
     }
-
-    // Read file contents
-    size_t contents_size = (size_t)file_size + 1;
-    char *contents = talloc_array_(ctx, sizeof(char), contents_size);
-    if (contents == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    size_t bytes_read = fread_(contents, 1, (size_t)file_size, f);
-    fclose_(f);
-
-    if (bytes_read != (size_t)file_size) {  // LCOV_EXCL_BR_LINE
-        return ERR(ctx, IO, "Failed to read %s: incomplete read", path);
-    }
-
-    contents[file_size] = '\0';
 
     // Parse JSONL - split by newlines and parse each line
     char *line = contents;
