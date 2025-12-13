@@ -306,6 +306,44 @@ START_TEST(test_repl_init_success_debug_manager)
 }
 
 END_TEST
+/* Test: Agent creation at REPL initialization */
+START_TEST(test_repl_init_creates_agent)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Initialize REPL - should create an agent
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
+
+    // Verify success
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(repl);
+
+    // Verify agent was created
+    ck_assert_ptr_nonnull(repl->current);
+
+    // Verify agent UUID is valid (non-NULL and non-empty)
+    ck_assert_ptr_nonnull(repl->current->uuid);
+    ck_assert(strlen(repl->current->uuid) > 0);
+
+    // Verify agent is root agent (no parent)
+    ck_assert_ptr_null(repl->current->parent_uuid);
+
+    // Verify agent has reference to shared context
+    ck_assert_ptr_eq(repl->current->shared, repl->shared);
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+
+END_TEST
 
 static Suite *repl_init_suite(void)
 {
@@ -322,6 +360,7 @@ static Suite *repl_init_suite(void)
     TCase *tc_success = tcase_create("Successful Init");
     tcase_set_timeout(tc_success, 30);
     tcase_add_test(tc_success, test_repl_init_success_debug_manager);
+    tcase_add_test(tc_success, test_repl_init_creates_agent);
     suite_add_tcase(s, tc_success);
 
     return s;
