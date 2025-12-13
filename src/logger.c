@@ -23,11 +23,11 @@ static FILE *ik_log_file = NULL;
 
 // Format timestamp as ISO 8601 with milliseconds and local timezone offset
 // Format: YYYY-MM-DDTHH:MM:SS.mmm±HH:MM
-// Buffer must be at least 30 bytes to accommodate the full timestamp
+// Buffer must be at least 64 bytes to satisfy release build static analysis
 static void ik_log_format_timestamp(char *buf, size_t buf_len)
 {
     assert(buf != NULL);        // LCOV_EXCL_BR_LINE
-    assert(buf_len >= 30);      // LCOV_EXCL_BR_LINE
+    assert(buf_len >= 64);      // LCOV_EXCL_BR_LINE
 
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -55,11 +55,11 @@ static void ik_log_format_timestamp(char *buf, size_t buf_len)
 
 // Format timestamp for archive filename (filesystem-safe: colons replaced with hyphens)
 // Format: YYYY-MM-DDTHH-MM-SS.sss±HH-MM
-// Buffer must be at least 30 bytes
+// Buffer must be at least 64 bytes to satisfy release build static analysis
 static void ik_log_format_archive_timestamp(char *buf, size_t buf_len)
 {
     assert(buf != NULL);        // LCOV_EXCL_BR_LINE
-    assert(buf_len >= 30);      // LCOV_EXCL_BR_LINE
+    assert(buf_len >= 64);      // LCOV_EXCL_BR_LINE
 
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -96,7 +96,7 @@ static void ik_log_rotate_if_exists(const char *log_path)
     }
 
     // Generate timestamped archive filename
-    char timestamp[30];
+    char timestamp[64];
     ik_log_format_archive_timestamp(timestamp, sizeof(timestamp));
 
     // Construct archive path (replace current.log with timestamp.log)
@@ -274,7 +274,7 @@ static void ik_log_write(const char *level, yyjson_mut_doc *doc)
     yyjson_mut_obj_add_str(wrapper_doc, wrapper_root, "level", level);
 
     // Format and add "timestamp" field with ISO 8601 format
-    char timestamp_buf[30];
+    char timestamp_buf[64];
     ik_log_format_timestamp(timestamp_buf, sizeof(timestamp_buf));
     yyjson_mut_obj_add_str(wrapper_doc, wrapper_root, "timestamp", timestamp_buf);
 

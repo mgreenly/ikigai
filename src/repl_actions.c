@@ -114,6 +114,7 @@ res_t ik_repl_flush_pending_scroll_arrow(ik_repl_ctx_t *repl, const ik_input_act
     assert(action->type != IK_INPUT_ARROW_UP);  /* LCOV_EXCL_BR_LINE */
     assert(action->type != IK_INPUT_ARROW_DOWN);  /* LCOV_EXCL_BR_LINE */
     assert(action->type != IK_INPUT_UNKNOWN);  /* LCOV_EXCL_BR_LINE */
+    (void)action;  // Used only in asserts
 
     if (repl->scroll_det == NULL) {
         return OK(NULL);

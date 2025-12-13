@@ -12,6 +12,7 @@ void ik_input_xkb_build_reverse_map(struct xkb_keymap *keymap, struct xkb_state 
     assert(keymap != NULL);  // LCOV_EXCL_BR_LINE
     assert(state != NULL);   // LCOV_EXCL_BR_LINE
     assert(map != NULL);     // LCOV_EXCL_BR_LINE
+    (void)keymap;  // Used only in assert
 
     memset(map, 0, sizeof(*map));
 

@@ -28,7 +28,11 @@ MOCKABLE struct tm *gmtime_(const time_t *timep)
 
 MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct tm *tm)
 {
+    // Suppress format-nonliteral warning - format string comes from caller
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
     return strftime(s, max, format, tm);
+#pragma GCC diagnostic pop
 }
 
 #else
