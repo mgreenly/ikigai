@@ -4,7 +4,7 @@ This documentation is primarily for AI agents and secondarily for humans.
 
 ## Project Overview
 
-**Ikigai** is a Linux-focused, multi-model coding agent with permanent memory, written in C.
+**Ikigai** is an experiment to build a Linux focused, terminal based coding agent with hierarchical sub-agents, RAG accessible permanent memory, progressive tool discovery and a dynamic sliding context window.
 
 A desktop terminal application that combines:
 - Direct LLM API integration (OpenAI, Anthropic, Google, X.AI)
@@ -26,15 +26,12 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 
 ### Architecture & Design
 - **[architecture.md](architecture.md)** - System architecture, dependencies, and design principles
-- **[autonomous-agents.md](autonomous-agents.md)** - Autonomous agent system: identity, communication, hierarchy, deployment
-- **[services.md](services.md)** - Services infrastructure: nginx, PostgreSQL, runit for dev and production
 - **[decisions/](decisions/)** - Architecture Decision Records (ADRs) for key design choices
 - **[repl/](repl/)** - REPL terminal interface documentation (rel-01 - complete)
 
 ### Development Standards
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
 - **[memory.md](memory.md)** - Memory management with talloc, ownership rules, and patterns
-- **[return_values.md](return_values.md)** - Complete guide to function return patterns and how to use them
 - **[error_handling.md](error_handling.md)** - Error handling philosophy and decision framework
 - **[error_patterns.md](error_patterns.md)** - Error handling patterns and best practices
 - **[error_testing.md](error_testing.md)** - Error handling testing strategy
@@ -47,12 +44,9 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 
 ### Agent Tools & Automation
 - **[agent-scripts.md](agent-scripts.md)** - Script-based tools architecture (vs MCP), JSON output contract, discovery workflow
-- **[task-system.md](task-system.md)** - Hierarchical task execution system architecture and API reference
-- **[task-system-guide.md](task-system-guide.md)** - Task system usage guide with workflows, templates, and examples
 
 ### Internal Analysis
 - **[considerations.md](considerations.md)** - Candidate features and changes to consider for the future
-- **[../fix.md](../fix.md)** - Known issues and technical debt
 
 ## Roadmap
 
@@ -106,6 +100,16 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Shell command execution
 - Code analysis (tree-sitter integration)
 - Results flow back to conversation
+
+### rel-05: Agent Process Foundation
+
+**Objective**: Prepare architecture for multi-agent support with per-agent state isolation
+
+**Tasks**:
+- Agent context structure (`ik_agent_ctx_t`) with UUID-based identity
+- State extraction from monolithic repl_ctx to agent_ctx (display, input, conversation, LLM, tool, spinner)
+- CSI u keyboard protocol (Kitty) with XKB layout-aware key translation
+- Scroll detector state machine with burst absorption for smooth scrolling
 
 ### Future: Background Agents
 
