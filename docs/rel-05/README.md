@@ -24,7 +24,7 @@ Unix/Erlang-inspired process model for ikigai agents. See [agent-process-model.m
 │  └─────────┘ └──────────┘ └──────────┘  │
 └─────────────────────────────────────────┘
                     │
-                    │ current
+                    │ repl_ctx.current
                     ▼
 ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
 │  agent_ctx   │ │  agent_ctx   │ │  agent_ctx   │
@@ -58,17 +58,22 @@ Unix/Erlang-inspired process model for ikigai agents. See [agent-process-model.m
 
 ## Implementation Phases
 
-### Phase 0: Architecture Refactor
+### Phase 0: Architecture Refactor ✓ COMPLETE
 
 Restructure code for multi-agent support. No new features, no user-visible changes.
 
 **Goal**: Single agent still works, but code is organized so adding agents is straightforward.
 
-- Define `shared_ctx` struct (terminal, render, input)
-- Define `agent_ctx` struct (scrollback, llm, history, state)
-- Extract current monolithic code into these two structures
-- `shared_ctx.current` points to single agent
-- All existing functionality preserved
+- ✓ Define `shared_ctx` struct (terminal, render, input)
+- ✓ Define `agent_ctx` struct (scrollback, llm, history, state)
+- ✓ Extract current monolithic code into these two structures
+- ✓ `repl_ctx.current` points to single agent
+- ✓ All existing functionality preserved
+
+**Completed tasks:**
+- Cleanup: removed legacy logger, scroll debug cleanup
+- Agent context extraction: struct, display, input, conversation, LLM, tool, completion, spinner
+- Agent context integration: single agent init, agent pointer in repl_ctx
 
 ### Phase 1: Registry + Identity
 
