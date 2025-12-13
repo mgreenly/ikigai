@@ -135,7 +135,7 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
     repl->current->mark_count = 0;
 
     // Create empty conversation
-    res_t conv_res = ik_openai_conversation_create(repl);
+    res_t conv_res = ik_openai_conversation_create(repl->current);
     repl->current->conversation = conv_res.ok;
 
     return repl;
