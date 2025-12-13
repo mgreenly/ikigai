@@ -189,11 +189,11 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 
     if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
         // When waiting for LLM: hide input, show spinner
-        repl->spinner_state.visible = true;
+        repl->current->spinner_state.visible = true;
         repl->current->input_buffer_visible = false;
     } else {
         // When idle: show input (if in viewport), hide spinner
-        repl->spinner_state.visible = false;
+        repl->current->spinner_state.visible = false;
         repl->current->input_buffer_visible = input_buffer_visible;
     }
 

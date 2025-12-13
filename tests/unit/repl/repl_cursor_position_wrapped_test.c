@@ -48,8 +48,8 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
 static void init_layer_cake(ik_repl_ctx_t *repl, int32_t rows)
 {
     res_t res;
-    repl->spinner_state.frame_index = 0;
-    repl->spinner_state.visible = false;
+    repl->current->spinner_state.frame_index = 0;
+    repl->current->spinner_state.visible = false;
     repl->current->separator_visible = true;
     repl->lower_separator_visible = true;
     repl->current->input_buffer_visible = true;
@@ -58,7 +58,7 @@ static void init_layer_cake(ik_repl_ctx_t *repl, int32_t rows)
 
     repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)rows);
     repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", repl->current->scrollback);
-    repl->current->spinner_layer = ik_spinner_layer_create(repl, "spinner", &repl->spinner_state);
+    repl->current->spinner_layer = ik_spinner_layer_create(repl, "spinner", &repl->current->spinner_state);
     repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &repl->current->separator_visible);
     repl->current->input_layer = ik_input_layer_create(repl, "input", &repl->current->input_buffer_visible,
                                               &repl->current->input_text, &repl->current->input_text_len);

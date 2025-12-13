@@ -75,8 +75,8 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         // Note: Don't continue here - curl events must still be processed
         if (ready == 0) {
             // Advance spinner if visible
-            if (repl->spinner_state.visible) {
-                ik_spinner_advance(&repl->spinner_state);
+            if (repl->current->spinner_state.visible) {
+                ik_spinner_advance(&repl->current->spinner_state);
                 CHECK(ik_repl_render_frame(repl));
             }
 
@@ -219,7 +219,7 @@ void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl)
     pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 
     // Show spinner, hide input
-    repl->spinner_state.visible = true;
+    repl->current->spinner_state.visible = true;
     repl->current->input_buffer_visible = false;
 }
 
@@ -234,7 +234,7 @@ void ik_repl_transition_to_idle(ik_repl_ctx_t *repl)
     pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 
     // Hide spinner, show input
-    repl->spinner_state.visible = false;
+    repl->current->spinner_state.visible = false;
     repl->current->input_buffer_visible = true;
 }
 

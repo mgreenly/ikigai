@@ -81,8 +81,8 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     repl->current->input_buffer_visible = true;
     repl->current->input_text = "";
     repl->current->input_text_len = 0;
-    repl->spinner_state.frame_index = 0;
-    repl->spinner_state.visible = false;
+    repl->current->spinner_state.frame_index = 0;
+    repl->current->spinner_state.visible = false;
 
     // Initialize state to IDLE
     repl->current->state = IK_AGENT_STATE_IDLE;
@@ -90,7 +90,7 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     // Create layers
     ik_layer_t *scrollback_layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
-    ik_layer_t *spinner_layer = ik_spinner_layer_create(ctx, "spinner", &repl->spinner_state);
+    ik_layer_t *spinner_layer = ik_spinner_layer_create(ctx, "spinner", &repl->current->spinner_state);
 
     ik_layer_t *separator_layer = ik_separator_layer_create(ctx, "separator", &repl->current->separator_visible);
 

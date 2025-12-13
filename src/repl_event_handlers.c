@@ -28,7 +28,7 @@ static void persist_assistant_msg(ik_repl_ctx_t *repl);
 long calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
 {
     // Spinner timer: 80ms when visible, no timeout when hidden
-    long spinner_timeout_ms = repl->spinner_state.visible ? 80 : -1;  // LCOV_EXCL_BR_LINE
+    long spinner_timeout_ms = repl->current->spinner_state.visible ? 80 : -1;  // LCOV_EXCL_BR_LINE
 
     // Tool polling: 50ms when executing tool to detect completion quickly
     pthread_mutex_lock_(&repl->current->tool_thread_mutex);

@@ -458,13 +458,13 @@ START_TEST(test_transition_to_executing_tool)
     // Transition to WAITING_FOR_LLM first
     ik_repl_transition_to_waiting_for_llm(repl);
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
-    ck_assert(repl->spinner_state.visible);
+    ck_assert(repl->current->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     // Transition to EXECUTING_TOOL
     ik_repl_transition_to_executing_tool(repl);
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
-    ck_assert(repl->spinner_state.visible);  // Spinner stays visible
+    ck_assert(repl->current->spinner_state.visible);  // Spinner stays visible
     ck_assert(!repl->current->input_buffer_visible);  // Input stays hidden
 
     ik_repl_cleanup(repl);

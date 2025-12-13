@@ -73,8 +73,8 @@ static ik_repl_ctx_t *create_test_repl(void *ctx)
     repl->current->input_buffer_visible = true;
     repl->current->input_text = "";
     repl->current->input_text_len = 0;
-    repl->spinner_state.frame_index = 0;
-    repl->spinner_state.visible = false;
+    repl->current->spinner_state.frame_index = 0;
+    repl->current->spinner_state.visible = false;
 
     // Initialize state to IDLE (default)
     repl->current->state = IK_AGENT_STATE_IDLE;
@@ -82,7 +82,7 @@ static ik_repl_ctx_t *create_test_repl(void *ctx)
     // Create layers
     ik_layer_t *scrollback_layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
-    ik_layer_t *spinner_layer = ik_spinner_layer_create(ctx, "spinner", &repl->spinner_state);
+    ik_layer_t *spinner_layer = ik_spinner_layer_create(ctx, "spinner", &repl->current->spinner_state);
 
     ik_layer_t *separator_layer = ik_separator_layer_create(ctx, "separator", &repl->current->separator_visible);
 
@@ -127,7 +127,7 @@ START_TEST(test_repl_state_idle_visibility)
     ck_assert(is_ok(&res));
 
     // Verify: spinner hidden, input visible
-    ck_assert(!repl->spinner_state.visible);
+    ck_assert(!repl->current->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);
 
     talloc_free(ctx);
@@ -148,7 +148,7 @@ START_TEST(test_repl_state_waiting_for_llm_visibility)
     ck_assert(is_ok(&res));
 
     // Verify: spinner visible, input hidden
-    ck_assert(repl->spinner_state.visible);
+    ck_assert(repl->current->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     talloc_free(ctx);
@@ -165,14 +165,14 @@ START_TEST(test_repl_state_transition_idle_to_waiting)
     repl->current->state = IK_AGENT_STATE_IDLE;
     res_t res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
-    ck_assert(!repl->spinner_state.visible);
+    ck_assert(!repl->current->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);
 
     // Transition to WAITING_FOR_LLM
     repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
     res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
-    ck_assert(repl->spinner_state.visible);
+    ck_assert(repl->current->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     talloc_free(ctx);
@@ -189,14 +189,14 @@ START_TEST(test_repl_state_transition_waiting_to_idle)
     repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
     res_t res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
-    ck_assert(repl->spinner_state.visible);
+    ck_assert(repl->current->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     // Transition to IDLE
     repl->current->state = IK_AGENT_STATE_IDLE;
     res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
-    ck_assert(!repl->spinner_state.visible);
+    ck_assert(!repl->current->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);
 
     talloc_free(ctx);
@@ -211,7 +211,7 @@ START_TEST(test_repl_transition_to_waiting_for_llm_function)
 
     // Start in IDLE state (default)
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
-    ck_assert(!repl->spinner_state.visible);
+    ck_assert(!repl->current->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);
 
     // Call transition function
@@ -219,7 +219,7 @@ START_TEST(test_repl_transition_to_waiting_for_llm_function)
 
     // Verify state changed
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
-    ck_assert(repl->spinner_state.visible);
+    ck_assert(repl->current->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     talloc_free(ctx);
@@ -234,11 +234,11 @@ START_TEST(test_repl_transition_to_idle_function)
 
     // Start in WAITING_FOR_LLM state
     repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
-    repl->spinner_state.visible = true;
+    repl->current->spinner_state.visible = true;
     repl->current->input_buffer_visible = false;
 
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
-    ck_assert(repl->spinner_state.visible);
+    ck_assert(repl->current->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     // Call transition function
@@ -246,7 +246,7 @@ START_TEST(test_repl_transition_to_idle_function)
 
     // Verify state changed
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
-    ck_assert(!repl->spinner_state.visible);
+    ck_assert(!repl->current->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);
 
     talloc_free(ctx);
@@ -265,13 +265,13 @@ START_TEST(test_repl_state_full_cycle)
     // Transition to WAITING_FOR_LLM
     ik_repl_transition_to_waiting_for_llm(repl);
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
-    ck_assert(repl->spinner_state.visible);
+    ck_assert(repl->current->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     // Transition back to IDLE
     ik_repl_transition_to_idle(repl);
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
-    ck_assert(!repl->spinner_state.visible);
+    ck_assert(!repl->current->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);
 
     talloc_free(ctx);

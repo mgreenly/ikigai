@@ -109,17 +109,17 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->response_finish_reason = NULL;
     agent->response_completion_tokens = 0;
 
+    // Initialize spinner state (per-agent - embedded in agent struct)
+    agent->spinner_state.frame_index = 0;
+    agent->spinner_state.visible = false;
+
     // Create and add layers (following pattern from repl_init.c)
     agent->scrollback_layer = ik_scrollback_layer_create(agent, "scrollback", agent->scrollback);
     res_t result = ik_layer_cake_add_layer(agent->layer_cake, agent->scrollback_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
-    // Create spinner layer (initially hidden)
-    ik_spinner_state_t *spinner_state = talloc_zero_(agent, sizeof(ik_spinner_state_t));
-    if (spinner_state == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    spinner_state->frame_index = 0;
-    spinner_state->visible = false;
-    agent->spinner_layer = ik_spinner_layer_create(agent, "spinner", spinner_state);
+    // Create spinner layer (pass pointer to agent's spinner_state)
+    agent->spinner_layer = ik_spinner_layer_create(agent, "spinner", &agent->spinner_state);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->spinner_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 

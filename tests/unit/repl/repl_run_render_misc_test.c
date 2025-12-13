@@ -160,8 +160,8 @@ START_TEST(test_repl_run_spinner_render_error)
     init_repl_multi_handle(repl);
 
     // Set spinner visible (simulates WAITING_FOR_LLM state)
-    repl->spinner_state.visible = true;
-    repl->spinner_state.frame_index = 0;
+    repl->current->spinner_state.visible = true;
+    repl->current->spinner_state.frame_index = 0;
 
     // Mock select to return 0 (timeout) on first call, then set quit flag
     mock_select_return_value = 0;
@@ -238,8 +238,8 @@ START_TEST(test_repl_run_spinner_timeout_success)
     init_repl_multi_handle(repl);
 
     // Set spinner visible (simulates WAITING_FOR_LLM state)
-    repl->spinner_state.visible = true;
-    repl->spinner_state.frame_index = 0;
+    repl->current->spinner_state.visible = true;
+    repl->current->spinner_state.frame_index = 0;
 
     // Mock select to return 0 (timeout) on first call, then 1 (ready) on second call
     mock_select_return_value = 0;
@@ -261,7 +261,7 @@ START_TEST(test_repl_run_spinner_timeout_success)
     ck_assert(is_ok(&res));
 
     // Verify spinner was advanced (frame index should have incremented from 0)
-    ck_assert_uint_ne((unsigned int)repl->spinner_state.frame_index, 0);
+    ck_assert_uint_ne((unsigned int)repl->current->spinner_state.frame_index, 0);
 
     // Reset mocks
     mock_select_return_value = -999;

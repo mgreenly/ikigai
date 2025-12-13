@@ -392,7 +392,7 @@ START_TEST(test_repl_run_select_timeout)
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
-    repl->spinner_state.visible = false;  // Spinner not visible
+    repl->current->spinner_state.visible = false;  // Spinner not visible
     init_repl_multi_handle(repl);
 
     // Simulate select timeout (return 0) on first call only, then return to normal behavior
@@ -453,7 +453,7 @@ START_TEST(test_repl_run_active_curl_transfers)
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
-    repl->spinner_state.visible = false;
+    repl->current->spinner_state.visible = false;
     init_repl_multi_handle(repl);
     repl->current->curl_still_running = 1;  // Simulate active curl transfer
 

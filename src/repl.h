@@ -49,7 +49,6 @@ typedef struct ik_repl_ctx_t {
     ik_layer_t *lower_separator_layer; // Separator layer (lower) - below input
 
     // Reference fields for layers (updated before each render)
-    ik_spinner_state_t spinner_state; // Spinner state (Phase 1.4)
     bool lower_separator_visible;     // Separator visibility flag (lower)
 
     // Debug info for separator (updated before each render)

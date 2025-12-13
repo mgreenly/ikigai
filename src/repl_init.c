@@ -72,8 +72,6 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
 
     // Initialize layer-based rendering (Phase 1.3)
     // Initialize reference fields
-    repl->spinner_state.frame_index = 0;
-    repl->spinner_state.visible = false;  // Initially hidden
     repl->lower_separator_visible = true;  // Lower separator initially visible
 
     // Initialize completion context to NULL (inactive) (rel-04)

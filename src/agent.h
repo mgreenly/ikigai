@@ -2,6 +2,7 @@
 
 #include "error.h"
 #include "layer.h"
+#include "layer_wrappers.h"
 #include "scrollback.h"
 #include "tool.h"
 
@@ -51,6 +52,9 @@ typedef struct ik_agent_ctx {
 
     // Viewport state
     size_t viewport_offset;
+
+    // Spinner state (per-agent)
+    ik_spinner_state_t spinner_state;
 
     // Input state (per-agent - preserves partial composition)
     ik_input_buffer_t *input_buffer;
