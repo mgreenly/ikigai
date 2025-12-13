@@ -147,6 +147,36 @@ START_TEST(test_tool_response_success_ex_with_fields) {
 }
 END_TEST
 
+START_TEST(test_tool_response_success_ex_without_fields) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    char *result = NULL;
+
+    res_t res = ik_tool_response_success_ex(ctx, "Basic output", NULL, NULL, &result);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(result);
+
+    // Parse and verify JSON structure
+    yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    yyjson_val *success = yyjson_obj_get(root, "success");
+    ck_assert(yyjson_get_bool(success));
+
+    yyjson_val *output = yyjson_obj_get(root, "output");
+    ck_assert_str_eq(yyjson_get_str(output), "Basic output");
+
+    // Verify no custom fields were added
+    yyjson_val *exit_code = yyjson_obj_get(root, "exit_code");
+    ck_assert_ptr_null(exit_code);
+
+    yyjson_doc_free(doc);
+    talloc_free(ctx);
+}
+END_TEST
+
 #ifndef SKIP_SIGNAL_TESTS
 START_TEST(test_tool_response_null_ctx) {
     char *result = NULL;
@@ -180,6 +210,7 @@ static Suite *tool_response_suite(void) {
     tcase_add_test(tc_success, test_tool_response_success_basic);
     tcase_add_test(tc_success, test_tool_response_success_empty_output);
     tcase_add_test(tc_success, test_tool_response_success_ex_with_fields);
+    tcase_add_test(tc_success, test_tool_response_success_ex_without_fields);
     suite_add_tcase(s, tc_success);
 
     TCase *tc_null = tcase_create("NULL Arguments");

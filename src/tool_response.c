@@ -5,9 +5,9 @@
 #include <string.h>
 
 res_t ik_tool_response_error(TALLOC_CTX *ctx, const char *error_msg, char **out) {
-    assert(ctx != NULL);
-    assert(error_msg != NULL);
-    assert(out != NULL);
+    assert(ctx != NULL);       // LCOV_EXCL_BR_LINE
+    assert(error_msg != NULL); // LCOV_EXCL_BR_LINE
+    assert(out != NULL);       // LCOV_EXCL_BR_LINE
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -38,9 +38,9 @@ res_t ik_tool_response_error(TALLOC_CTX *ctx, const char *error_msg, char **out)
 }
 
 res_t ik_tool_response_success(TALLOC_CTX *ctx, const char *output, char **out) {
-    assert(ctx != NULL);
-    assert(output != NULL);
-    assert(out != NULL);
+    assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
+    assert(output != NULL); // LCOV_EXCL_BR_LINE
+    assert(out != NULL);   // LCOV_EXCL_BR_LINE
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -75,9 +75,9 @@ res_t ik_tool_response_success_ex(TALLOC_CTX *ctx,
                                    ik_tool_field_adder_t add_fields,
                                    void *user_ctx,
                                    char **out) {
-    assert(ctx != NULL);
-    assert(output != NULL);
-    assert(out != NULL);
+    assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
+    assert(output != NULL); // LCOV_EXCL_BR_LINE
+    assert(out != NULL);    // LCOV_EXCL_BR_LINE
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE

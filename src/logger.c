@@ -441,12 +441,6 @@ static void ik_logger_write(ik_logger_t *logger, const char *level, yyjson_mut_d
     assert(logger != NULL); // LCOV_EXCL_BR_LINE
     assert(level != NULL);  // LCOV_EXCL_BR_LINE
 
-    // If logger file not initialized, free doc and return silently
-    if (logger->file == NULL) {
-        yyjson_mut_doc_free(doc);
-        return;
-    }
-
     // Get original root object from doc
     yyjson_mut_val *original_root = yyjson_mut_doc_get_root(doc);
 

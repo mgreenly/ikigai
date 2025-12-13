@@ -8,9 +8,11 @@
 #include "../../test_utils.h"
 
 #include <check.h>
+#include <errno.h>
 #include <talloc.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -21,6 +23,7 @@ static int mock_tcsetattr_fail = 0;
 static int mock_tcflush_fail = 0;
 static int mock_write_fail = 0;
 static int mock_ioctl_fail = 0;
+static const char *mock_mkdir_fail_path = NULL;
 
 // Mock function prototypes
 int posix_open_(const char *pathname, int flags);
@@ -30,6 +33,7 @@ int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios
 int posix_tcflush_(int fd, int queue_selector);
 int posix_ioctl_(int fd, unsigned long request, void *argp);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
+int posix_mkdir_(const char *pathname, mode_t mode);
 
 // Mock implementations for POSIX functions
 int posix_open_(const char *pathname, int flags)
@@ -102,6 +106,16 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     return (ssize_t)count;
 }
 
+// Mock mkdir to fail for specific path
+int posix_mkdir_(const char *pathname, mode_t mode)
+{
+    if (mock_mkdir_fail_path != NULL && strstr(pathname, mock_mkdir_fail_path) != NULL) {
+        errno = EACCES;  // Permission denied
+        return -1;
+    }
+    return mkdir(pathname, mode);
+}
+
 static void reset_mocks(void)
 {
     mock_open_fail = 0;
@@ -110,6 +124,7 @@ static void reset_mocks(void)
     mock_tcflush_fail = 0;
     mock_write_fail = 0;
     mock_ioctl_fail = 0;
+    mock_mkdir_fail_path = NULL;
 }
 
 // Test that ik_shared_ctx_init() succeeds
@@ -450,6 +465,41 @@ START_TEST(test_shared_ctx_debug_pipes_created)
 }
 END_TEST
 
+// Test that history load failure is gracefully handled
+START_TEST(test_shared_ctx_history_load_failure_graceful)
+{
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create minimal cfg for test
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;
+
+    // Use a unique temporary directory that doesn't exist yet
+    char unique_dir[256];
+    snprintf(unique_dir, sizeof(unique_dir), "/tmp/ikigai_shared_test_history_%d", getpid());
+
+    // Mock mkdir to fail only for .ikigai directory creation under unique_dir
+    // This will cause history directory creation to fail
+    mock_mkdir_fail_path = unique_dir;
+
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, unique_dir, &shared);
+
+    // Should still succeed despite history load failure (graceful degradation)
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    ck_assert_ptr_nonnull(shared->history);
+
+    // Reset mock after test
+    mock_mkdir_fail_path = NULL;
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *shared_suite(void)
 {
     Suite *s = suite_create("Shared Context");
@@ -469,6 +519,7 @@ static Suite *shared_suite(void)
     tcase_add_test(tc_core, test_shared_ctx_history_capacity_matches_config);
     tcase_add_test(tc_core, test_shared_ctx_debug_mgr_initialized);
     tcase_add_test(tc_core, test_shared_ctx_debug_pipes_created);
+    tcase_add_test(tc_core, test_shared_ctx_history_load_failure_graceful);
     suite_add_tcase(s, tc_core);
 
     return s;

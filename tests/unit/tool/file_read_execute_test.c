@@ -1,5 +1,6 @@
 #include <check.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -303,12 +304,16 @@ int fseek_(FILE *stream, long offset, int whence)
     return fseek(stream, offset, whence);
 }
 
-// Mock ftell to fail
+// Mock ftell to fail or return large value
 static int mock_ftell_should_fail = 0;
+static long mock_ftell_large_value = -1;
 long ftell_(FILE *stream)
 {
     if (mock_ftell_should_fail) {
         return -1;
+    }
+    if (mock_ftell_large_value >= 0) {
+        return mock_ftell_large_value;
     }
     return ftell(stream);
 }
@@ -480,6 +485,40 @@ START_TEST(test_file_read_exec_generic_fopen_error)
 
 END_TEST
 
+// Test: file too large error (generic error path)
+START_TEST(test_file_read_exec_file_too_large)
+{
+    char test_file[] = "/tmp/ikigai-file-read-test-XXXXXX";
+    int fd = mkstemp(test_file);
+    ck_assert(fd >= 0);
+    write(fd, "test", 4);
+    close(fd);
+
+    // Mock ftell to return a size that triggers "File too large"
+    // UINT_MAX is typically 4294967295, so we return that value
+    mock_ftell_large_value = (long)UINT_MAX;
+
+    res_t res = ik_tool_exec_file_read(ctx, test_file);
+    ck_assert(!res.is_err);
+
+    char *json = res.ok;
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *success = yyjson_obj_get(root, "success");
+    ck_assert(yyjson_get_bool(success) == false);
+
+    yyjson_val *error = yyjson_obj_get(root, "error");
+    const char *error_str = yyjson_get_str(error);
+    // This should hit the generic error path and pass through the original message
+    ck_assert(strstr(error_str, "File too large") != NULL);
+
+    yyjson_doc_free(doc);
+    mock_ftell_large_value = -1;
+    unlink(test_file);
+}
+
+END_TEST
+
 // Test suite
 static Suite *file_read_execute_suite(void)
 {
@@ -498,6 +537,7 @@ static Suite *file_read_execute_suite(void)
     tcase_add_test(tc_file_read_exec, test_file_read_exec_rewind_error);
     tcase_add_test(tc_file_read_exec, test_file_read_exec_fread_error);
     tcase_add_test(tc_file_read_exec, test_file_read_exec_generic_fopen_error);
+    tcase_add_test(tc_file_read_exec, test_file_read_exec_file_too_large);
     suite_add_tcase(s, tc_file_read_exec);
 
     return s;

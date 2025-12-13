@@ -1,6 +1,7 @@
 // Unit tests for DI-based logger API (ik_logger_t context)
 
 #include <check.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -208,6 +209,91 @@ START_TEST(test_logger_cleanup_on_talloc_free)
 }
 END_TEST
 
+// Test: ik_logger_reinit changes log file location
+START_TEST(test_logger_reinit_changes_location)
+{
+    setup_test();
+
+    ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);
+    ck_assert_ptr_nonnull(logger);
+
+    // Write initial log
+    yyjson_mut_doc *doc1 = ik_log_create();
+    yyjson_mut_val *root1 = yyjson_mut_doc_get_root(doc1);
+    yyjson_mut_obj_add_str(doc1, root1, "event", "before_reinit");
+    ik_logger_info_json(logger, doc1);
+
+    // Verify initial log was written
+    char *output1 = read_log_file();
+    ck_assert_ptr_nonnull(output1);
+    ck_assert(strstr(output1, "before_reinit") != NULL);
+
+    // Create new directory for reinit
+    char new_dir[256];
+    snprintf(new_dir, sizeof(new_dir), "/tmp/ikigai_logger_di_test_new_%d", getpid());
+    mkdir(new_dir, 0755);
+
+    char new_log_file[512];
+    snprintf(new_log_file, sizeof(new_log_file), "%s/.ikigai/logs/current.log", new_dir);
+
+    // Reinit to new location
+    ik_logger_reinit(logger, new_dir);
+
+    // Write log to new location
+    yyjson_mut_doc *doc2 = ik_log_create();
+    yyjson_mut_val *root2 = yyjson_mut_doc_get_root(doc2);
+    yyjson_mut_obj_add_str(doc2, root2, "event", "after_reinit");
+    ik_logger_info_json(logger, doc2);
+
+    // Verify new log file exists and contains new log
+    FILE *f = fopen(new_log_file, "r");
+    ck_assert_ptr_nonnull(f);
+
+    char buffer[4096];
+    size_t len = fread(buffer, 1, sizeof(buffer) - 1, f);
+    buffer[len] = '\0';
+    fclose(f);
+
+    ck_assert(strstr(buffer, "after_reinit") != NULL);
+    ck_assert(strstr(buffer, "before_reinit") == NULL); // Old log not in new file
+
+    // Cleanup new directory
+    unlink(new_log_file);
+    char new_logs_dir[512];
+    snprintf(new_logs_dir, sizeof(new_logs_dir), "%s/.ikigai/logs", new_dir);
+    rmdir(new_logs_dir);
+    char new_ikigai_dir[512];
+    snprintf(new_ikigai_dir, sizeof(new_ikigai_dir), "%s/.ikigai", new_dir);
+    rmdir(new_ikigai_dir);
+    rmdir(new_dir);
+
+    teardown_test();
+}
+END_TEST
+
+// Test: ik_logger_fatal_json exits process
+START_TEST(test_logger_fatal_exits)
+{
+    setup_test();
+
+    ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);
+    ck_assert_ptr_nonnull(logger);
+
+    yyjson_mut_doc *doc = ik_log_create();
+    yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+    yyjson_mut_obj_add_str(doc, root, "event", "fatal_error");
+
+    // This should exit(1) - test framework will catch it
+    ik_logger_fatal_json(logger, doc);
+
+    // Should not reach here
+    ck_abort_msg("Should have exited");
+
+    teardown_test();
+}
+END_TEST
+
+
 static Suite *logger_di_suite(void)
 {
     Suite *s;
@@ -222,6 +308,8 @@ static Suite *logger_di_suite(void)
     tcase_add_test(tc_core, test_logger_has_timestamp_field);
     tcase_add_test(tc_core, test_logger_has_logline_field);
     tcase_add_test(tc_core, test_logger_cleanup_on_talloc_free);
+    tcase_add_test(tc_core, test_logger_reinit_changes_location);
+    tcase_add_exit_test(tc_core, test_logger_fatal_exits, 1);
 
     suite_add_tcase(s, tc_core);
     return s;
