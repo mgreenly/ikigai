@@ -31,6 +31,7 @@ Don't enumerate or read the other files I list here unless you need to.
 
 * See `source-code` skill for a map of all src/*.c files organized by functional area.
 * See `makefile` skill for all make targets organized by category.
+* See `git` skill for commit policy and permitted git operations.
 
 ## Scripts
 
