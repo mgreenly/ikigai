@@ -32,6 +32,10 @@ START_TEST(test_pp_command_clears_input_buffer) {
     repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
 
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     /* Create scrollback (needed for submit_line) */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
 
@@ -83,6 +87,10 @@ START_TEST(test_pp_command_with_args)
     repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
 
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     /* Create scrollback (needed for submit_line) */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
 
@@ -126,6 +134,10 @@ START_TEST(test_unknown_slash_command)
     /* Create input buffer */
     repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
+
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     /* Create scrollback (needed for error messages) */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
@@ -171,6 +183,10 @@ START_TEST(test_empty_input_buffer_newline)
     repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
 
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     /* Create scrollback (needed for submit_line) */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
 
@@ -206,6 +222,10 @@ START_TEST(test_slash_in_middle_not_command)
     /* Create input buffer */
     repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
+
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     /* Create scrollback (needed for submit_line) */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
@@ -254,6 +274,10 @@ START_TEST(test_pp_command_order_in_scrollback)
     /* Create input buffer */
     repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
+
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
@@ -306,6 +330,10 @@ START_TEST(test_pp_output_trailing_newline)
     /* Create input buffer */
     repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
+
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 80);

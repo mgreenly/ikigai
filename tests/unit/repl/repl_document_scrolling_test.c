@@ -67,8 +67,12 @@ START_TEST(test_separator_scrolls_offscreen) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->scrollback = scrollback;
 
     // Document height = 50 (scrollback) + 1 (separator) + 1 (input_buf) = 52 lines
     // Terminal shows 10 lines
@@ -166,8 +170,12 @@ START_TEST(test_input_buffer_scrolls_offscreen)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->scrollback = scrollback;
 
     // Scroll to middle of scrollback (input buffer is off-screen)
     repl->current->viewport_offset = 30;
@@ -246,8 +254,12 @@ START_TEST(test_scrollback_adjacent_to_separator)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->scrollback = scrollback;
 
     // Scrolled to bottom (offset = 0) - all scrollback visible
     repl->current->viewport_offset = 0;

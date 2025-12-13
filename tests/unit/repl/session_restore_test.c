@@ -108,6 +108,11 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
     ik_shared_ctx_t *shared = talloc_zero_(ctx, sizeof(ik_shared_ctx_t));
     shared->cfg = talloc_zero_(ctx, sizeof(ik_cfg_t));
     repl->shared = shared;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero_(repl, sizeof(ik_agent_ctx_t));
+    repl->current = agent;
+
     repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->shared->session_id = 0;
     repl->conversation = ik_openai_conversation_create(repl).ok;

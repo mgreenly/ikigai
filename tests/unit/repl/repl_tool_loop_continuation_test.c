@@ -30,6 +30,10 @@ static void setup(void)
     shared->cfg->max_tool_turns = 10;  /* Set reasonable limit */
     repl->shared = shared;
 
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->response_finish_reason = NULL;
     repl->tool_iteration_count = 0;  /* Initialize iteration count */

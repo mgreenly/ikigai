@@ -72,6 +72,10 @@ START_TEST(test_separator_renders_on_empty_scrollback)
     repl->shared = shared;
     shared->render = render;
     shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
@@ -171,6 +175,10 @@ START_TEST(test_separator_renders_with_scrollback)
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
@@ -270,6 +278,10 @@ START_TEST(test_separator_not_renders_when_invisible)
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 

@@ -70,6 +70,10 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     shared->render = render_ctx;
 
@@ -186,6 +190,10 @@ START_TEST(test_scrollback_visible_when_scrolled_to_top)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     shared->render = render_ctx;
 

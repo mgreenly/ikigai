@@ -53,8 +53,12 @@ START_TEST(test_page_up_with_4_lines) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
     // Initialize input parser (not needed for this test)

@@ -55,6 +55,10 @@ static void setup(void)
     shared->cfg = cfg;
     repl->shared = shared;
 
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->assistant_response = NULL;
     repl->streaming_line_buffer = NULL;

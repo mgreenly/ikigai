@@ -104,8 +104,12 @@ START_TEST(test_initial_state_cursor_visible) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;  // At bottom (initial state)
 
     // Calculate viewport
@@ -196,8 +200,12 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
     // Calculate viewport
@@ -276,8 +284,12 @@ START_TEST(test_scrolled_up_cursor_hidden)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 5;  // Scrolled up
 
     // Calculate viewport

@@ -37,6 +37,10 @@ START_TEST(test_repl_run_simple_char_input) {
     repl->shared = shared;
     shared->term = term;
     shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
@@ -89,6 +93,10 @@ START_TEST(test_repl_run_multiple_chars)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
@@ -144,6 +152,10 @@ START_TEST(test_repl_run_with_newline)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
@@ -197,6 +209,10 @@ START_TEST(test_repl_run_with_backspace)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
@@ -248,6 +264,10 @@ START_TEST(test_repl_run_read_eof)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
@@ -300,6 +320,10 @@ START_TEST(test_repl_run_unknown_action)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
@@ -353,6 +377,10 @@ START_TEST(test_repl_run_select_timeout)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
@@ -409,6 +437,10 @@ START_TEST(test_repl_run_active_curl_transfers)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;

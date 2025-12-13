@@ -28,6 +28,10 @@ static void setup(void)
     /* Create minimal REPL context for testing */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
 
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     /* Create conversation */
     res_t res = ik_openai_conversation_create(ctx);
     ck_assert(is_ok(&res));

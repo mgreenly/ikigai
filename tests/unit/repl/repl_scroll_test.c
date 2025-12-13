@@ -42,6 +42,10 @@ START_TEST(test_scroll_up_increases_offset)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 5;  // Start at offset 5
 
@@ -86,6 +90,10 @@ START_TEST(test_scroll_down_decreases_offset)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 5;  // Start at offset 5
 
@@ -132,6 +140,10 @@ START_TEST(test_scroll_up_clamps_at_max)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 13;  // Already at max
 
@@ -175,6 +187,10 @@ START_TEST(test_scroll_down_clamps_at_zero)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;  // Already at bottom
 
@@ -226,6 +242,10 @@ START_TEST(test_scroll_preserves_input_buffer)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 5;
 
@@ -288,6 +308,10 @@ START_TEST(test_scroll_up_empty_input_buffer)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 5;
 
@@ -335,6 +359,10 @@ START_TEST(test_scroll_up_small_document)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 

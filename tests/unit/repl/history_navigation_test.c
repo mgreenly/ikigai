@@ -41,6 +41,12 @@ START_TEST(test_history_up_from_empty_input)
     repl->shared->history = history;
     repl->quit = false;
 
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
+    repl->current->viewport_offset = 0;
+
     // Press Up arrow (cursor is at position 0 in empty buffer)
     ik_input_action_t action = {.type = IK_INPUT_ARROW_UP};
     res = ik_repl_process_action(repl, &action);
@@ -92,6 +98,12 @@ START_TEST(test_history_up_multiple_times)
     ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = history;
     repl->quit = false;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
+    repl->current->viewport_offset = 0;
 
     // Press Up arrow first time
     ik_input_action_t action = {.type = IK_INPUT_ARROW_UP};
@@ -158,6 +170,12 @@ START_TEST(test_history_down_restores_pending)
     ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = history;
     repl->quit = false;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
+    repl->current->viewport_offset = 0;
 
     // Type some text (pending input)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'h'};
@@ -227,6 +245,12 @@ START_TEST(test_history_up_with_cursor_not_at_zero)
     ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = history;
     repl->quit = false;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
+    repl->current->viewport_offset = 0;
 
     // Type multi-line text: "line1\nline2"
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'l'};
@@ -305,6 +329,12 @@ START_TEST(test_history_navigation_with_multiline)
     repl->shared->history = history;
     repl->quit = false;
 
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
+    repl->current->viewport_offset = 0;
+
     // Type multi-line text: "line1\nline2"
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'l'};
     ik_repl_process_action(repl, &action);
@@ -358,6 +388,12 @@ START_TEST(test_history_empty)
     ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = history;
     repl->quit = false;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
+    repl->current->viewport_offset = 0;
 
     // Press Up arrow in empty history
     ik_input_action_t action = {.type = IK_INPUT_ARROW_UP};

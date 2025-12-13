@@ -37,6 +37,10 @@ START_TEST(test_repl_run_curl_multi_fdset_error) {
     repl->shared = shared;
     shared->term = term;
     shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
@@ -86,6 +90,10 @@ START_TEST(test_repl_run_curl_multi_perform_error)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
@@ -139,6 +147,10 @@ START_TEST(test_repl_run_curl_multi_timeout_error)
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;

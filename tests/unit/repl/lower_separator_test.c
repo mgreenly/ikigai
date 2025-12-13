@@ -87,6 +87,11 @@ START_TEST(test_lower_separator_renders_with_layers)
     repl->shared = shared;
     shared->render = render;
     shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
@@ -170,6 +175,11 @@ START_TEST(test_lower_separator_visibility_flag)
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
@@ -227,6 +237,11 @@ START_TEST(test_lower_separator_layer_order)
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
 
     // Initialize layer cake
     repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);

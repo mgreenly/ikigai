@@ -33,6 +33,11 @@ static void setup(void)
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
     repl->shared = shared;
+
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* Create conversation */

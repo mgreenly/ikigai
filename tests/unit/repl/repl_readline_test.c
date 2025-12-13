@@ -6,6 +6,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
+#include "../../../src/agent.h"
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
@@ -47,6 +48,10 @@ START_TEST(test_repl_process_action_ctrl_a) {
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     // Cursor is at byte 11 (after "hello\nworld"), grapheme 11
     size_t byte_offset = 0;
@@ -107,6 +112,10 @@ START_TEST(test_repl_process_action_ctrl_e)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     // Move cursor to start of "world" line
     res = ik_input_buffer_cursor_to_line_start(input_buf);
@@ -182,6 +191,10 @@ START_TEST(test_repl_process_action_ctrl_k)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     // Move cursor to middle of "world" line (after "wo")
     // Cursor is at byte 16 (after "hello\nworld\ntest")
@@ -265,6 +278,10 @@ START_TEST(test_repl_process_action_ctrl_u)
     repl->input_buffer = input_buf;
     repl->quit = false;
 
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     // Move cursor to middle of "world" line (after "wo")
     size_t text_len = 0;
     const char *text = ik_input_buffer_get_text(input_buf, &text_len);
@@ -344,6 +361,10 @@ START_TEST(test_repl_process_action_ctrl_w)
     ck_assert_ptr_nonnull(repl);
     repl->input_buffer = input_buf;
     repl->quit = false;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     // Cursor is at byte 16 (after "hello world test")
     size_t byte_offset = 0;

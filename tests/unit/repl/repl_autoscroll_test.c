@@ -94,10 +94,10 @@ static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offs
     for (int32_t i = 0; i < 50; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "scrollback line %d", i);
-        res = ik_scrollback_append_line((*repl_out)->scrollback, buf, strlen(buf));
+        res = ik_scrollback_append_line((*repl_out)->current->scrollback, buf, strlen(buf));
         ck_assert(is_ok(&res));
     }
-    (*repl_out)->viewport_offset = offset;
+    (*repl_out)->current->viewport_offset = offset;
 }
 
 // Helper: Test action auto-scrolls to bottom

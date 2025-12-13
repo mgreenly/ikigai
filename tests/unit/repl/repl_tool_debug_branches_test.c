@@ -27,6 +27,10 @@ static void setup(void)
     repl->shared->db_ctx = NULL;  /* No database for this test */
     repl->shared->session_id = 0;
 
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     /* Create conversation */
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(!conv_res.is_err);

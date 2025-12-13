@@ -74,6 +74,10 @@ START_TEST(test_render_frame_empty_scrollback) {
     shared->term = term;
     shared->render = render;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
@@ -152,6 +156,10 @@ START_TEST(test_render_frame_with_scrollback)
     shared->term = term;
     shared->render = render;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 

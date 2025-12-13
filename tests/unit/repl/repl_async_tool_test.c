@@ -78,6 +78,10 @@ static void setup(void)
     /* Create shared context */
     repl->shared = talloc_zero(ctx, ik_shared_ctx_t);
 
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     /* Create conversation */
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(!conv_res.is_err);

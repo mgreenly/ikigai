@@ -86,6 +86,10 @@ START_TEST(test_repl_render_frame_with_layers_visible_input) {
     repl->shared = shared;
     shared->render = render;
     shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;  // No offset - input buffer will be visible
 
@@ -167,6 +171,10 @@ START_TEST(test_repl_render_frame_with_layers_scrolling)
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 100;  // Set very large offset to test clamping logic
 
@@ -231,6 +239,10 @@ START_TEST(test_repl_render_frame_write_failure)
     repl->input_buffer = input_buf;
     shared->render = render;
     shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 

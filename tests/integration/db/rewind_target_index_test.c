@@ -139,6 +139,10 @@ START_TEST(test_rewind_persists_correct_target_message_index)
     ck_assert_ptr_nonnull(shared->cfg);
     repl->shared = shared;
 
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     // Create scrollback
     repl->current->scrollback = ik_scrollback_create(repl, 80);
     ck_assert_ptr_nonnull(repl->current->scrollback);

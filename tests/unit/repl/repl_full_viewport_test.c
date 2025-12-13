@@ -56,6 +56,10 @@ static void create_test_repl(TALLOC_CTX *ctx, int32_t rows, int32_t cols, ik_rep
     repl->shared = shared;
     shared->render = render;
     shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 

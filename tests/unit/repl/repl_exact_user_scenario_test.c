@@ -59,8 +59,12 @@ START_TEST(test_exact_user_scenario) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
     // Document: 4 scrollback + 1 (upper sep) + 1 input + 1 (lower sep) = 7 rows

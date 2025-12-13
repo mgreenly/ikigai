@@ -98,6 +98,11 @@ static void setup(void)
     ck_assert_ptr_nonnull(shared);
     repl->shared = shared;
 
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero_(repl, sizeof(ik_agent_ctx_t));
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
+
     // Create config
     shared->cfg = talloc_zero_(test_ctx, sizeof(ik_cfg_t));
     ck_assert_ptr_nonnull(shared->cfg);

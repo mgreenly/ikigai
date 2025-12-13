@@ -94,8 +94,12 @@ START_TEST(test_separator_partial_first_line) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->scrollback = scrollback;
 
     // To show document rows 1-10:
     // last_visible_row = 10
@@ -188,8 +192,12 @@ START_TEST(test_separator_row_offset_impact)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
-    repl->current->scrollback = scrollback;
     shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->scrollback = scrollback;
 
     // Show rows 1-5 (starts in middle of line 0)
     // Line 0: rows 0-1

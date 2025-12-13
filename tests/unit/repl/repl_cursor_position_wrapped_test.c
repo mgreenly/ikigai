@@ -205,6 +205,10 @@ START_TEST(test_cursor_position_10row_wrapped_scrolled) {
     shared->term = term;
     shared->render = render;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
@@ -307,6 +311,10 @@ START_TEST(test_cursor_position_10row_terminal_scrolled) {
     shared->term = term;
     shared->render = render;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 

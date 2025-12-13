@@ -96,6 +96,10 @@ START_TEST(test_repl_context_with_scrollback) {
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+
     // Create scrollback with terminal width of 80
     ik_scrollback_t *scrollback = ik_scrollback_create(repl, 80);
     ck_assert_ptr_nonnull(scrollback);
@@ -132,6 +136,10 @@ START_TEST(test_repl_scrollback_terminal_width)
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     // Create scrollback with terminal width
     ik_scrollback_t *scrollback = ik_scrollback_create(repl, term->screen_cols);

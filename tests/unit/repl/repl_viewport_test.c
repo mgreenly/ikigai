@@ -42,6 +42,10 @@ START_TEST(test_viewport_empty_scrollback) {
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
@@ -97,6 +101,10 @@ START_TEST(test_viewport_small_scrollback)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;  // At bottom
 
@@ -158,6 +166,10 @@ START_TEST(test_viewport_large_scrollback)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;  // At bottom
 
@@ -213,6 +225,10 @@ START_TEST(test_viewport_offset_clamping)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 100;  // Try to scroll way past top
 
@@ -272,6 +288,10 @@ START_TEST(test_viewport_no_scrollback_room)
     repl->shared = shared;
     shared->term = term;
     repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 

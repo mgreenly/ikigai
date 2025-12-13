@@ -3,8 +3,8 @@
     {
       "task": "agent-ctx-display.md",
       "group": "Agent Context Extraction",
-      "model": "sonnet",
-      "thinking": "extended"
+      "model": "opus",
+      "thinking": "ultrathink"
     },
     {
       "task": "agent-ctx-input.md",
