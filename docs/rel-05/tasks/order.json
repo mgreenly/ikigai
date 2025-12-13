@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "agent-ctx-cleanup.md",
-      "group": "Agent Context Extraction",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "repl-agent-pointer.md",
       "group": "Agent Context Integration",
       "model": "sonnet",
@@ -76,6 +70,12 @@
     },
     {
       "task": "agent-ctx-spinner.md",
+      "group": "Agent Context Extraction",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-ctx-cleanup.md",
       "group": "Agent Context Extraction",
       "model": "sonnet",
       "thinking": "thinking"
