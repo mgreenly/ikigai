@@ -18,5 +18,35 @@
     "event": "done",
     "task": "logger-dependency-injection.md",
     "time": "2025-12-13T19:36:08.939Z"
+  },
+  {
+    "event": "start",
+    "task": "shared-ctx-signature.md",
+    "time": "2025-12-13T21:06:06.843Z"
+  },
+  {
+    "event": "done",
+    "task": "shared-ctx-signature.md",
+    "time": "2025-12-13T21:16:56.779Z"
+  },
+  {
+    "event": "start",
+    "task": "shared-ctx-callsites.md",
+    "time": "2025-12-13T21:17:08.666Z"
+  },
+  {
+    "event": "done",
+    "task": "shared-ctx-callsites.md",
+    "time": "2025-12-13T21:21:03.597Z"
+  },
+  {
+    "event": "start",
+    "task": "shared-ctx-coverage.md",
+    "time": "2025-12-13T21:21:16.269Z"
+  },
+  {
+    "event": "done",
+    "task": "shared-ctx-coverage.md",
+    "time": "2025-12-13T21:35:11.270Z"
   }
 ]

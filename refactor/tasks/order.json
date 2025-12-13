@@ -1,24 +1,5 @@
 {
-  "todo": [
-    {
-      "task": "shared-ctx-signature.md",
-      "group": "Shared Context DI",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "shared-ctx-callsites.md",
-      "group": "Shared Context DI",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "shared-ctx-coverage.md",
-      "group": "Shared Context DI",
-      "model": "sonnet",
-      "thinking": "thinking"
-    }
-  ],
+  "todo": [],
   "done": [
     {
       "task": "delete-unused-conversation.md",
@@ -49,6 +30,24 @@
       "group": "Dependency Injection",
       "model": "opus",
       "thinking": "ultrathink"
+    },
+    {
+      "task": "shared-ctx-signature.md",
+      "group": "Shared Context DI",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "shared-ctx-callsites.md",
+      "group": "Shared Context DI",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "shared-ctx-coverage.md",
+      "group": "Shared Context DI",
+      "model": "sonnet",
+      "thinking": "thinking"
     }
   ]
 }
