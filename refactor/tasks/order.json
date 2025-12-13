@@ -1,0 +1,35 @@
+{
+  "todo": [
+    {
+      "task": "delete-unused-conversation.md",
+      "group": "Dead Code Removal",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "extract-file-reader.md",
+      "group": "Code Deduplication",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "extract-tool-response-builders.md",
+      "group": "Code Deduplication",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "fix-msg-db-circular-dep.md",
+      "group": "Architectural Fixes",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "logger-dependency-injection.md",
+      "group": "Dependency Injection",
+      "model": "sonnet",
+      "thinking": "extended"
+    }
+  ],
+  "done": []
+}
