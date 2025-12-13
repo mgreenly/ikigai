@@ -80,8 +80,14 @@ res_t ik_tool_exec_file_read(void *parent, const char *path)
         PANIC("Out of memory"); // LCOV_EXCL_LINE
     }
 
-    yyjson_mut_obj_add_str(doc, data, "output", buffer);
-    yyjson_mut_obj_add_val(doc, root, "data", data);
+    if (!yyjson_mut_obj_add_str(doc, data, "output", buffer)) {  // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc_free(doc);  // LCOV_EXCL_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+    if (!yyjson_mut_obj_add_val(doc, root, "data", data)) {  // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc_free(doc);  // LCOV_EXCL_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
 
     char *json = yyjson_mut_write_opts(doc, 0, NULL, NULL, NULL);
     if (json == NULL) { // LCOV_EXCL_BR_LINE

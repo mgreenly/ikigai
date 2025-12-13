@@ -81,11 +81,10 @@ static res_t read_file_contents(TALLOC_CTX *ctx, const char *path, char **conten
             return ERR(ctx, IO, "Cannot get migration file size: %s", path);
         } else if (strstr(generic_msg, "File too large")) {
             return ERR(ctx, IO, "Migration file too large: %s", path);
-        } else if (strstr(generic_msg, "Failed to read")) {
+        } else {
+            // Failed to read or any future error type
             return ERR(ctx, IO, "Failed to read migration file: %s", path);
         }
-        // Default: return original error
-        return result;
     }
 
     return result;

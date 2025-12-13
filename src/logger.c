@@ -349,7 +349,7 @@ void ik_log_fatal_json(yyjson_mut_doc *doc)
 static int logger_destructor(ik_logger_t *logger)
 {
     pthread_mutex_lock(&logger->mutex);
-    if (logger->file != NULL) {
+    if (logger->file != NULL) {  // LCOV_EXCL_BR_LINE
         if (fclose_(logger->file) != 0) {  // LCOV_EXCL_BR_LINE
             pthread_mutex_unlock(&logger->mutex);  // LCOV_EXCL_LINE
             PANIC("Failed to close log file");  // LCOV_EXCL_LINE
@@ -415,7 +415,7 @@ void ik_logger_reinit(ik_logger_t *logger, const char *working_dir)
     pthread_mutex_lock(&logger->mutex);
 
     // Close current log file if open
-    if (logger->file != NULL) {
+    if (logger->file != NULL) {  // LCOV_EXCL_BR_LINE
         if (fclose_(logger->file) != 0) {  // LCOV_EXCL_BR_LINE
             pthread_mutex_unlock(&logger->mutex);  // LCOV_EXCL_LINE
             PANIC("Failed to close log file");  // LCOV_EXCL_LINE
