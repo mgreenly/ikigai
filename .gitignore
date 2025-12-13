@@ -25,6 +25,7 @@ coverage_html/
 .ikigai/history
 .agents/db/
 .agents/deno/
+.ikigai/deno/
 
 # Nginx runtime
 .agents/httpd/pid/
