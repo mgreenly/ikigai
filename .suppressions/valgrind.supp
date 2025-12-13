@@ -1,0 +1,23 @@
+{
+   Check library - still reachable memory from malloc
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+}
+
+{
+   Check library - still reachable memory from realloc
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   ...
+}
+
+{
+   Check library - still reachable memory from calloc
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   ...
+}
