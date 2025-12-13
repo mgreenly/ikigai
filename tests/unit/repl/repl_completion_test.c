@@ -16,9 +16,9 @@ START_TEST(test_request_completion_adds_to_conversation) {
     simulate_completion = false;
 
     // Manually set up state to simulate an active request
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-    repl->assistant_response = talloc_strdup(repl, "This is the assistant response");
-    ck_assert_ptr_nonnull(repl->assistant_response);
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->assistant_response = talloc_strdup(repl, "This is the assistant response");
+    ck_assert_ptr_nonnull(repl->current->assistant_response);
 
     // Add a user message first (as would happen during normal flow)
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
@@ -30,7 +30,7 @@ START_TEST(test_request_completion_adds_to_conversation) {
     ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Simulate a request that is running
-    repl->curl_still_running = 1;
+    repl->current->curl_still_running = 1;
 
     // Enable completion simulation - when multi_perform is called, it will set still_running to 0
     simulate_completion = true;
@@ -48,10 +48,10 @@ START_TEST(test_request_completion_adds_to_conversation) {
     ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 2);
 
     // Verify state transitioned back to IDLE
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Verify assistant_response was cleared
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_ptr_null(repl->current->assistant_response);
 
     // Clean up
     simulate_completion = false;
@@ -69,8 +69,8 @@ START_TEST(test_request_completion_with_null_response)
     simulate_completion = false;
 
     // Set up state to simulate a request that completed but has no response
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-    repl->assistant_response = NULL;  // No response
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->assistant_response = NULL;  // No response
 
     // Add a user message
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
@@ -79,7 +79,7 @@ START_TEST(test_request_completion_with_null_response)
     ck_assert(is_ok(&add_res));
 
     // Simulate a running request
-    repl->curl_still_running = 1;
+    repl->current->curl_still_running = 1;
     simulate_completion = true;
 
     // Call handle_curl_events_ - should complete but not add assistant message
@@ -90,7 +90,7 @@ START_TEST(test_request_completion_with_null_response)
     ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Verify state transitioned back to IDLE anyway
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Clean up
     simulate_completion = false;
@@ -108,9 +108,9 @@ START_TEST(test_request_completion_with_empty_response)
     simulate_completion = false;
 
     // Set up state with empty response
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-    repl->assistant_response = talloc_strdup(repl, "");  // Empty string
-    ck_assert_ptr_nonnull(repl->assistant_response);
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->assistant_response = talloc_strdup(repl, "");  // Empty string
+    ck_assert_ptr_nonnull(repl->current->assistant_response);
 
     // Add a user message
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
@@ -119,7 +119,7 @@ START_TEST(test_request_completion_with_empty_response)
     ck_assert(is_ok(&add_res));
 
     // Simulate a running request
-    repl->curl_still_running = 1;
+    repl->current->curl_still_running = 1;
     simulate_completion = true;
 
     // Call handle_curl_events_
@@ -130,7 +130,7 @@ START_TEST(test_request_completion_with_empty_response)
     ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Verify state transitioned back to IDLE
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Clean up
     simulate_completion = false;
@@ -148,11 +148,11 @@ START_TEST(test_handle_curl_events_not_waiting_state)
     simulate_completion = false;
 
     // Set state to IDLE (not WAITING_FOR_LLM)
-    repl->state = IK_REPL_STATE_IDLE;
-    repl->assistant_response = talloc_strdup(repl, "Some response");
+    repl->current->state = IK_AGENT_STATE_IDLE;
+    repl->current->assistant_response = talloc_strdup(repl, "Some response");
 
     // Simulate a request completing
-    repl->curl_still_running = 1;
+    repl->current->curl_still_running = 1;
     simulate_completion = true;
 
     // Call handle_curl_events_ - should NOT process completion since state is wrong
@@ -160,10 +160,10 @@ START_TEST(test_handle_curl_events_not_waiting_state)
     ck_assert(is_ok(&result));
 
     // State should remain IDLE
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     // assistant_response should still be there (not cleared)
-    ck_assert_ptr_nonnull(repl->assistant_response);
+    ck_assert_ptr_nonnull(repl->current->assistant_response);
 
     // Clean up
     simulate_completion = false;
@@ -181,8 +181,8 @@ START_TEST(test_handle_curl_events_with_ready_zero)
     simulate_completion = false;
 
     // Set up for a running request
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-    repl->curl_still_running = 1;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->curl_still_running = 1;
 
     // Call with ready=0 (select timeout)
     simulate_completion = true;
@@ -205,11 +205,11 @@ START_TEST(test_handle_curl_events_request_still_running)
     simulate_completion = false;
 
     // Set state to WAITING_FOR_LLM
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-    repl->assistant_response = talloc_strdup(repl, "Partial response");
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->assistant_response = talloc_strdup(repl, "Partial response");
 
     // Simulate a running request that does NOT complete
-    repl->curl_still_running = 1;
+    repl->current->curl_still_running = 1;
     simulate_completion = false;  // Request stays running
 
     // Call handle_curl_events_ - request is still running
@@ -217,10 +217,10 @@ START_TEST(test_handle_curl_events_request_still_running)
     ck_assert(is_ok(&result));
 
     // State should remain WAITING_FOR_LLM (no completion)
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     // assistant_response should still be there (not cleared)
-    ck_assert_ptr_nonnull(repl->assistant_response);
+    ck_assert_ptr_nonnull(repl->current->assistant_response);
 
     // Clean up
     talloc_free(ctx);
@@ -238,8 +238,8 @@ START_TEST(test_handle_curl_events_render_failure_on_completion)
     mock_write_should_fail = false;
 
     // Set up state to simulate a request completing
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-    repl->assistant_response = talloc_strdup(repl, "Test response");
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->assistant_response = talloc_strdup(repl, "Test response");
 
     // Add a user message first
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
@@ -248,7 +248,7 @@ START_TEST(test_handle_curl_events_render_failure_on_completion)
     ck_assert(is_ok(&add_res));
 
     // Simulate a running request
-    repl->curl_still_running = 1;
+    repl->current->curl_still_running = 1;
     simulate_completion = true;
 
     // Make render fail by making posix_write_ fail

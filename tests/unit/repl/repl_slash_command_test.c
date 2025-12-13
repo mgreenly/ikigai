@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_slash_command_test.c
  * @brief Unit tests for REPL slash command handling

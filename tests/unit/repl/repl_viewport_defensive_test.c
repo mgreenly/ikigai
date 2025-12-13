@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_viewport_defensive_test.c
  * @brief Tests for defensive boundary checks in repl_viewport.c
@@ -126,6 +127,7 @@ START_TEST(test_viewport_input_buffer_before_viewport) {
     ck_assert_uint_eq(scrollback_rows, 5);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;

@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_tool_loop_continuation_test.c
  * @brief Unit tests for REPL tool loop continuation check
@@ -23,6 +24,7 @@ static void setup(void)
 
     /* Create minimal REPL context for testing */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
 
     /* Create shared context */
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
@@ -35,7 +37,7 @@ static void setup(void)
     repl->current = agent;
 
     repl->current->scrollback = ik_scrollback_create(repl, 80);
-    repl->response_finish_reason = NULL;
+    repl->current->response_finish_reason = NULL;
     repl->tool_iteration_count = 0;  /* Initialize iteration count */
 }
 
@@ -49,7 +51,7 @@ static void teardown(void)
  */
 START_TEST(test_should_continue_with_tool_calls) {
     /* Set finish_reason to "tool_calls" */
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should return true */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -63,7 +65,7 @@ END_TEST
 START_TEST(test_should_not_continue_with_stop)
 {
     /* Set finish_reason to "stop" */
-    repl->response_finish_reason = talloc_strdup(repl, "stop");
+    repl->current->response_finish_reason = talloc_strdup(repl, "stop");
 
     /* Should return false */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -77,7 +79,7 @@ END_TEST
 START_TEST(test_should_not_continue_with_length)
 {
     /* Set finish_reason to "length" */
-    repl->response_finish_reason = talloc_strdup(repl, "length");
+    repl->current->response_finish_reason = talloc_strdup(repl, "length");
 
     /* Should return false */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -91,7 +93,7 @@ END_TEST
 START_TEST(test_should_not_continue_with_null)
 {
     /* finish_reason is NULL */
-    repl->response_finish_reason = NULL;
+    repl->current->response_finish_reason = NULL;
 
     /* Should return false */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -105,7 +107,7 @@ END_TEST
 START_TEST(test_should_not_continue_with_empty_string)
 {
     /* Set finish_reason to empty string */
-    repl->response_finish_reason = talloc_strdup(repl, "");
+    repl->current->response_finish_reason = talloc_strdup(repl, "");
 
     /* Should return false */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -119,7 +121,7 @@ END_TEST
 START_TEST(test_should_not_continue_with_unknown)
 {
     /* Set finish_reason to unknown value */
-    repl->response_finish_reason = talloc_strdup(repl, "content_filter");
+    repl->current->response_finish_reason = talloc_strdup(repl, "content_filter");
 
     /* Should return false */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);

@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_streaming_test_common.c
  * @brief Common mock infrastructure implementation for streaming tests
@@ -123,6 +124,7 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->shared = shared;
     repl->current = agent;
@@ -133,7 +135,7 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     repl->spinner_state.visible = false;
 
     // Initialize state to IDLE
-    repl->state = IK_REPL_STATE_IDLE;
+    repl->current->state = IK_AGENT_STATE_IDLE;
 
     // Create layers
     ik_layer_t *scrollback_layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
@@ -175,13 +177,13 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     // Create multi handle
     res = ik_openai_multi_create(ctx);
     ck_assert(is_ok(&res));
-    repl->multi = res.ok;
+    repl->current->multi = res.ok;
 
     // Initialize curl_still_running
-    repl->curl_still_running = 0;
+    repl->current->curl_still_running = 0;
 
     // Initialize assistant_response to NULL
-    repl->assistant_response = NULL;
+    repl->current->assistant_response = NULL;
 
     return repl;
 }

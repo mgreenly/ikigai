@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_http_completion_callback_test.c
  * @brief Unit tests for REPL HTTP completion callback
@@ -32,17 +33,18 @@ static void setup(void)
 
     /* Create minimal REPL context for testing callback */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     repl->shared = shared;
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
     repl->current->scrollback = ik_scrollback_create(repl, 80);
-    repl->streaming_line_buffer = NULL;
-    repl->http_error_message = NULL;
-    repl->response_model = NULL;
-    repl->response_finish_reason = NULL;
-    repl->response_completion_tokens = 0;
+    repl->current->streaming_line_buffer = NULL;
+    repl->current->http_error_message = NULL;
+    repl->current->response_model = NULL;
+    repl->current->response_finish_reason = NULL;
+    repl->current->response_completion_tokens = 0;
 }
 
 static void teardown(void)
@@ -53,7 +55,7 @@ static void teardown(void)
 /* Test: Flush remaining buffered line content when completion occurs */
 START_TEST(test_completion_flushes_streaming_buffer) {
     /* Simulate partial streaming content in buffer */
-    repl->streaming_line_buffer = talloc_strdup(repl, "Partial line content");
+    repl->current->streaming_line_buffer = talloc_strdup(repl, "Partial line content");
 
     /* Create successful completion */
     ik_http_completion_t completion = {
@@ -71,7 +73,7 @@ START_TEST(test_completion_flushes_streaming_buffer) {
     ck_assert(is_ok(&result));
 
     /* Verify buffer was flushed to scrollback (content + blank line) and cleared */
-    ck_assert_ptr_null(repl->streaming_line_buffer);
+    ck_assert_ptr_null(repl->current->streaming_line_buffer);
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->current->scrollback), 2);
 }
 END_TEST
@@ -79,7 +81,7 @@ END_TEST
 START_TEST(test_completion_clears_previous_error)
 {
     /* Set up previous error */
-    repl->http_error_message = talloc_strdup(repl, "Previous error");
+    repl->current->http_error_message = talloc_strdup(repl, "Previous error");
 
     /* Create successful completion */
     ik_http_completion_t completion = {
@@ -97,7 +99,7 @@ START_TEST(test_completion_clears_previous_error)
     ck_assert(is_ok(&result));
 
     /* Verify error was cleared */
-    ck_assert_ptr_null(repl->http_error_message);
+    ck_assert_ptr_null(repl->current->http_error_message);
 }
 
 END_TEST
@@ -121,8 +123,8 @@ START_TEST(test_completion_stores_error_on_failure)
     ck_assert(is_ok(&result));
 
     /* Verify error message was stored */
-    ck_assert_ptr_nonnull(repl->http_error_message);
-    ck_assert_str_eq(repl->http_error_message, "HTTP 500 server error");
+    ck_assert_ptr_nonnull(repl->current->http_error_message);
+    ck_assert_str_eq(repl->current->http_error_message, "HTTP 500 server error");
 }
 
 END_TEST
@@ -147,11 +149,11 @@ START_TEST(test_completion_stores_metadata_on_success)
     ck_assert(is_ok(&result));
 
     /* Verify metadata was stored */
-    ck_assert_ptr_nonnull(repl->response_model);
-    ck_assert_str_eq(repl->response_model, "gpt-4-turbo");
-    ck_assert_ptr_nonnull(repl->response_finish_reason);
-    ck_assert_str_eq(repl->response_finish_reason, "stop");
-    ck_assert_int_eq(repl->response_completion_tokens, 42);
+    ck_assert_ptr_nonnull(repl->current->response_model);
+    ck_assert_str_eq(repl->current->response_model, "gpt-4-turbo");
+    ck_assert_ptr_nonnull(repl->current->response_finish_reason);
+    ck_assert_str_eq(repl->current->response_finish_reason, "stop");
+    ck_assert_int_eq(repl->current->response_completion_tokens, 42);
 }
 
 END_TEST
@@ -159,9 +161,9 @@ END_TEST
 START_TEST(test_completion_clears_previous_metadata)
 {
     /* Set up previous metadata */
-    repl->response_model = talloc_strdup(repl, "old-model");
-    repl->response_finish_reason = talloc_strdup(repl, "old-reason");
-    repl->response_completion_tokens = 99;
+    repl->current->response_model = talloc_strdup(repl, "old-model");
+    repl->current->response_finish_reason = talloc_strdup(repl, "old-reason");
+    repl->current->response_completion_tokens = 99;
 
     /* Create successful completion with new metadata */
     char *model = talloc_strdup(ctx, "new-model");
@@ -181,9 +183,9 @@ START_TEST(test_completion_clears_previous_metadata)
     ck_assert(is_ok(&result));
 
     /* Verify old metadata was replaced */
-    ck_assert_str_eq(repl->response_model, "new-model");
-    ck_assert_str_eq(repl->response_finish_reason, "new-reason");
-    ck_assert_int_eq(repl->response_completion_tokens, 50);
+    ck_assert_str_eq(repl->current->response_model, "new-model");
+    ck_assert_str_eq(repl->current->response_finish_reason, "new-reason");
+    ck_assert_int_eq(repl->current->response_completion_tokens, 50);
 }
 
 END_TEST
@@ -206,9 +208,9 @@ START_TEST(test_completion_null_metadata)
     ck_assert(is_ok(&result));
 
     /* Verify no metadata was stored */
-    ck_assert_ptr_null(repl->response_model);
-    ck_assert_ptr_null(repl->response_finish_reason);
-    ck_assert_int_eq(repl->response_completion_tokens, 0);
+    ck_assert_ptr_null(repl->current->response_model);
+    ck_assert_ptr_null(repl->current->response_finish_reason);
+    ck_assert_int_eq(repl->current->response_completion_tokens, 0);
 }
 
 END_TEST
@@ -232,8 +234,8 @@ START_TEST(test_completion_network_error)
     ck_assert(is_ok(&result));
 
     /* Verify error message was stored */
-    ck_assert_ptr_nonnull(repl->http_error_message);
-    ck_assert_str_eq(repl->http_error_message, "Connection error: Failed to connect");
+    ck_assert_ptr_nonnull(repl->current->http_error_message);
+    ck_assert_str_eq(repl->current->http_error_message, "Connection error: Failed to connect");
 }
 
 END_TEST
@@ -257,8 +259,8 @@ START_TEST(test_completion_client_error)
     ck_assert(is_ok(&result));
 
     /* Verify error message was stored */
-    ck_assert_ptr_nonnull(repl->http_error_message);
-    ck_assert_str_eq(repl->http_error_message, "HTTP 401 error");
+    ck_assert_ptr_nonnull(repl->current->http_error_message);
+    ck_assert_str_eq(repl->current->http_error_message, "HTTP 401 error");
 }
 
 END_TEST
@@ -266,7 +268,7 @@ END_TEST
 START_TEST(test_completion_flushes_buffer_and_stores_error)
 {
     /* Set up partial streaming content */
-    repl->streaming_line_buffer = talloc_strdup(repl, "Incomplete response");
+    repl->current->streaming_line_buffer = talloc_strdup(repl, "Incomplete response");
 
     /* Create failed completion */
     char *error_msg = talloc_strdup(ctx, "Request timeout");
@@ -285,12 +287,12 @@ START_TEST(test_completion_flushes_buffer_and_stores_error)
     ck_assert(is_ok(&result));
 
     /* Verify buffer was flushed */
-    ck_assert_ptr_null(repl->streaming_line_buffer);
+    ck_assert_ptr_null(repl->current->streaming_line_buffer);
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->current->scrollback), 1);
 
     /* Verify error was stored */
-    ck_assert_ptr_nonnull(repl->http_error_message);
-    ck_assert_str_eq(repl->http_error_message, "Request timeout");
+    ck_assert_ptr_nonnull(repl->current->http_error_message);
+    ck_assert_str_eq(repl->current->http_error_message, "Request timeout");
 }
 
 END_TEST
@@ -313,7 +315,7 @@ START_TEST(test_completion_error_null_message)
     ck_assert(is_ok(&result));
 
     /* Verify no error message was stored (NULL && branch) */
-    ck_assert_ptr_null(repl->http_error_message);
+    ck_assert_ptr_null(repl->current->http_error_message);
 }
 
 END_TEST

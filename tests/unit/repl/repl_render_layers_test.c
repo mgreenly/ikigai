@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_render_layers_test.c
  * @brief Unit tests for REPL render_frame function with layer-based rendering
@@ -80,6 +81,7 @@ START_TEST(test_repl_render_frame_with_layers_visible_input) {
 
     // Create REPL with layer cake
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
@@ -165,6 +167,7 @@ START_TEST(test_repl_render_frame_with_layers_scrolling)
 
     // Create REPL with layer cake
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
@@ -233,6 +236,7 @@ START_TEST(test_repl_render_frame_write_failure)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;

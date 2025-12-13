@@ -1,3 +1,4 @@
+#include "agent.h"
 #include <check.h>
 #include "../../../src/agent.h"
 #include <talloc.h>
@@ -124,8 +125,8 @@ static void setup(void)
     repl->current->conversation = conv_res.ok;
 
     // Create multi client (opaque pointer)
-    repl->multi = talloc_zero_(repl, 1);
-    ck_assert_ptr_nonnull(repl->multi);
+    repl->current->multi = talloc_zero_(repl, 1);
+    ck_assert_ptr_nonnull(repl->current->multi);
 
     // Create terminal context
     repl->shared->term = talloc_zero_(repl, sizeof(ik_term_ctx_t));
@@ -147,7 +148,7 @@ static void setup(void)
     repl->current->viewport_offset = 0;
 
     // Initialize curl_still_running
-    repl->curl_still_running = 0;
+    repl->current->curl_still_running = 0;
 
     // Reset mock state
     mock_message_insert_should_fail = false;

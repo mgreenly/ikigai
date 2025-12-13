@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_initial_state_test.c
  * @brief Test REPL initial state at startup (Bug #10 regression test)
@@ -100,6 +101,7 @@ START_TEST(test_initial_state_cursor_visible) {
 
     // Create REPL at bottom (offset=0)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
@@ -196,6 +198,7 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible)
 
     // Create REPL at bottom (offset=0)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
@@ -280,6 +283,7 @@ START_TEST(test_scrolled_up_cursor_hidden)
 
     // Create REPL scrolled up (offset=5)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;

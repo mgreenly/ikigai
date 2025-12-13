@@ -1,3 +1,4 @@
+#include "agent.h"
 #include <check.h>
 #include "../../../src/agent.h"
 #include <talloc.h>
@@ -20,6 +21,7 @@ static void setup(void)
 {
     ctx = talloc_new(NULL);
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
 
     /* Create minimal shared context for test */
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
@@ -48,7 +50,7 @@ static void setup(void)
     repl->tool_thread_ctx = NULL;
 
     /* Set initial state */
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
 
     /* Create pending_tool_call with a simple glob call */
     repl->pending_tool_call = ik_tool_call_create(repl,

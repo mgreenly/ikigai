@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_cursor_position_wrapped_test.c
  * @brief Test for cursor position with wrapped and scrolled content
@@ -200,6 +201,7 @@ START_TEST(test_cursor_position_10row_wrapped_scrolled) {
 
     // Create REPL context with layers
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
@@ -313,6 +315,7 @@ START_TEST(test_cursor_position_10row_terminal_scrolled) {
 
     // Create REPL context with layers
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;

@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_tool_loop_integration_test.c
  * @brief Integration tests for complete tool loop
@@ -32,6 +33,7 @@ static void setup(void)
 
     /* Create minimal REPL context for testing */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
 
     /* Create agent context */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
@@ -46,7 +48,7 @@ static void setup(void)
     /* Create multi-handle */
     res = ik_openai_multi_create(ctx);
     ck_assert(is_ok(&res));
-    repl->multi = res.ok;
+    repl->current->multi = res.ok;
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -60,14 +62,14 @@ static void setup(void)
     shared->cfg = cfg;
     repl->shared = shared;
 
-    repl->assistant_response = NULL;
-    repl->streaming_line_buffer = NULL;
-    repl->http_error_message = NULL;
-    repl->response_model = NULL;
-    repl->response_finish_reason = NULL;
-    repl->response_completion_tokens = 0;
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-    repl->curl_still_running = 0;
+    repl->current->assistant_response = NULL;
+    repl->current->streaming_line_buffer = NULL;
+    repl->current->http_error_message = NULL;
+    repl->current->response_model = NULL;
+    repl->current->response_finish_reason = NULL;
+    repl->current->response_completion_tokens = 0;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->curl_still_running = 0;
     repl->tool_iteration_count = 0;  // Initialize tool loop counter
 
     /* Use the agent created above */
@@ -87,12 +89,12 @@ static void teardown(void)
  */
 START_TEST(test_handle_request_success_with_tool_calls_continues_loop) {
     /* Simulate Response A: finish_reason = "tool_calls" */
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
-    repl->response_model = talloc_strdup(repl, "gpt-4");
-    repl->response_completion_tokens = 42;
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->response_model = talloc_strdup(repl, "gpt-4");
+    repl->current->response_completion_tokens = 42;
 
     /* Simulate accumulated assistant response (could be empty for tool calls) */
-    repl->assistant_response = talloc_strdup(repl, "");
+    repl->current->assistant_response = talloc_strdup(repl, "");
 
     /* Add initial user message to conversation */
     ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files").ok;
@@ -106,9 +108,9 @@ START_TEST(test_handle_request_success_with_tool_calls_continues_loop) {
      * 2. curl_still_running should be set to 1 (new request initiated)
      * 3. Assistant response should be cleared
      */
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
-    ck_assert_int_eq(repl->curl_still_running, 1);
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->curl_still_running, 1);
+    ck_assert_ptr_null(repl->current->assistant_response);
 }
 END_TEST
 /*
@@ -119,12 +121,12 @@ END_TEST
 START_TEST(test_handle_request_success_with_stop_ends_loop)
 {
     /* Simulate Response B: finish_reason = "stop" */
-    repl->response_finish_reason = talloc_strdup(repl, "stop");
-    repl->response_model = talloc_strdup(repl, "gpt-4");
-    repl->response_completion_tokens = 24;
+    repl->current->response_finish_reason = talloc_strdup(repl, "stop");
+    repl->current->response_model = talloc_strdup(repl, "gpt-4");
+    repl->current->response_completion_tokens = 24;
 
     /* Simulate accumulated assistant response */
-    repl->assistant_response = talloc_strdup(repl, "I found 3 C files.");
+    repl->current->assistant_response = talloc_strdup(repl, "I found 3 C files.");
 
     /* Add initial user message to conversation */
     ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files").ok;
@@ -144,8 +146,8 @@ START_TEST(test_handle_request_success_with_stop_ends_loop)
     ck_assert_uint_eq(repl->current->conversation->message_count, initial_count + 1);
     ck_assert_str_eq(repl->current->conversation->messages[initial_count]->kind, "assistant");
     ck_assert_str_eq(repl->current->conversation->messages[initial_count]->content, "I found 3 C files.");
-    ck_assert_int_eq(repl->curl_still_running, 0);
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_int_eq(repl->current->curl_still_running, 0);
+    ck_assert_ptr_null(repl->current->assistant_response);
 }
 
 END_TEST
@@ -155,8 +157,8 @@ END_TEST
 START_TEST(test_handle_request_success_with_null_finish_reason)
 {
     /* Simulate response with NULL finish_reason */
-    repl->response_finish_reason = NULL;
-    repl->assistant_response = talloc_strdup(repl, "Response text");
+    repl->current->response_finish_reason = NULL;
+    repl->current->assistant_response = talloc_strdup(repl, "Response text");
 
     /* Add initial user message to conversation */
     ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Test").ok;
@@ -166,7 +168,7 @@ START_TEST(test_handle_request_success_with_null_finish_reason)
     handle_request_success(repl);
 
     /* Verify: curl_still_running should still be 0 (no new request) */
-    ck_assert_int_eq(repl->curl_still_running, 0);
+    ck_assert_int_eq(repl->current->curl_still_running, 0);
 }
 
 END_TEST
@@ -180,26 +182,26 @@ START_TEST(test_multiple_tool_loop_iterations)
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* First iteration: finish_reason = "tool_calls" */
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
-    repl->assistant_response = talloc_strdup(repl, "");
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->assistant_response = talloc_strdup(repl, "");
 
     handle_request_success(repl);
 
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
-    ck_assert_int_eq(repl->curl_still_running, 1);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->curl_still_running, 1);
 
     /* Reset for second iteration */
-    talloc_free(repl->response_finish_reason);
-    repl->curl_still_running = 0;
+    talloc_free(repl->current->response_finish_reason);
+    repl->current->curl_still_running = 0;
 
     /* Second iteration: finish_reason = "stop" */
-    repl->response_finish_reason = talloc_strdup(repl, "stop");
-    repl->assistant_response = talloc_strdup(repl, "Done!");
+    repl->current->response_finish_reason = talloc_strdup(repl, "stop");
+    repl->current->assistant_response = talloc_strdup(repl, "Done!");
 
     handle_request_success(repl);
 
     /* Verify loop stops */
-    ck_assert_int_eq(repl->curl_still_running, 0);
+    ck_assert_int_eq(repl->current->curl_still_running, 0);
 }
 
 END_TEST
@@ -213,8 +215,8 @@ START_TEST(test_tool_loop_with_empty_content)
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Set finish_reason to "tool_calls" with empty response */
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
-    repl->assistant_response = NULL;  /* NULL response */
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->assistant_response = NULL;  /* NULL response */
 
     size_t initial_count = repl->current->conversation->message_count;
 
@@ -224,7 +226,7 @@ START_TEST(test_tool_loop_with_empty_content)
     ck_assert_uint_eq(repl->current->conversation->message_count, initial_count);
 
     /* Verify: Follow-up request was initiated */
-    ck_assert_int_eq(repl->curl_still_running, 1);
+    ck_assert_int_eq(repl->current->curl_still_running, 1);
 }
 
 END_TEST
@@ -261,16 +263,16 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
 
     /* ===== First iteration: glob tool call ===== */
     /* Response A: finish_reason = "tool_calls", empty content (tool call only) */
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
-    repl->assistant_response = talloc_strdup(repl, "");
-    repl->response_model = talloc_strdup(repl, "gpt-4");
-    repl->response_completion_tokens = 10;
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->assistant_response = talloc_strdup(repl, "");
+    repl->current->response_model = talloc_strdup(repl, "gpt-4");
+    repl->current->response_completion_tokens = 10;
 
     handle_request_success(repl);
 
     /* Verify: Still in WAITING_FOR_LLM state (loop continues) */
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
-    ck_assert_int_eq(repl->curl_still_running, 1);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->curl_still_running, 1);
 
     /* Simulate tool execution: Add tool result to conversation */
     /* In real scenario, tool dispatcher would add this */
@@ -283,21 +285,21 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 
     /* Reset for next iteration */
-    talloc_free(repl->response_finish_reason);
-    repl->curl_still_running = 0;
+    talloc_free(repl->current->response_finish_reason);
+    repl->current->curl_still_running = 0;
 
     /* ===== Second iteration: file_read tool call ===== */
     /* Response B: finish_reason = "tool_calls", empty content (tool call only) */
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
-    repl->assistant_response = talloc_strdup(repl, "");
-    repl->response_model = talloc_strdup(repl, "gpt-4");
-    repl->response_completion_tokens = 15;
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->assistant_response = talloc_strdup(repl, "");
+    repl->current->response_model = talloc_strdup(repl, "gpt-4");
+    repl->current->response_completion_tokens = 15;
 
     handle_request_success(repl);
 
     /* Verify: Still in WAITING_FOR_LLM state (loop continues) */
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
-    ck_assert_int_eq(repl->curl_still_running, 1);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->curl_still_running, 1);
 
     /* Simulate tool execution: Add second tool result to conversation */
     ik_msg_t *tool_result_2 = ik_openai_msg_create(repl->current->conversation, "tool",
@@ -308,20 +310,20 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     ck_assert_uint_eq(repl->current->conversation->message_count, 3);
 
     /* Reset for final iteration */
-    talloc_free(repl->response_finish_reason);
-    repl->curl_still_running = 0;
+    talloc_free(repl->current->response_finish_reason);
+    repl->current->curl_still_running = 0;
 
     /* ===== Final iteration: text response ===== */
     /* Response C: finish_reason = "stop", final text content */
-    repl->response_finish_reason = talloc_strdup(repl, "stop");
-    repl->assistant_response = talloc_strdup(repl, "I found config.json with debug:true");
-    repl->response_model = talloc_strdup(repl, "gpt-4");
-    repl->response_completion_tokens = 20;
+    repl->current->response_finish_reason = talloc_strdup(repl, "stop");
+    repl->current->assistant_response = talloc_strdup(repl, "I found config.json with debug:true");
+    repl->current->response_model = talloc_strdup(repl, "gpt-4");
+    repl->current->response_completion_tokens = 20;
 
     handle_request_success(repl);
 
     /* Verify: Loop stops (no new request initiated) */
-    ck_assert_int_eq(repl->curl_still_running, 0);
+    ck_assert_int_eq(repl->current->curl_still_running, 0);
 
     /* Verify final conversation state: 4 messages total */
     /* - user: "Find config file and show contents"

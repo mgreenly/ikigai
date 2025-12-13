@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_separator_debug_test.c
  * @brief Debug test for Separator visibility with detailed output
@@ -67,6 +68,7 @@ START_TEST(test_separator_debug_simple_case) {
     // Create REPL and scroll to middle of scrollback
     // We want to view scrollback lines 20-29 (10 lines)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;

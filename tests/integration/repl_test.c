@@ -1,3 +1,4 @@
+#include "agent.h"
 #include "../../src/agent.h"
 #include "../../src/repl.h"
 #include "../../src/shared.h"
@@ -335,6 +336,7 @@ START_TEST(test_repl_cleanup_null_term)
     // This simulates a partially initialized REPL (e.g., if term init failed
     // but we still need to cleanup the repl structure)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create a minimal shared context with NULL term
@@ -455,13 +457,13 @@ START_TEST(test_transition_to_executing_tool)
 
     // Transition to WAITING_FOR_LLM first
     ik_repl_transition_to_waiting_for_llm(repl);
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     ck_assert(repl->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     // Transition to EXECUTING_TOOL
     ik_repl_transition_to_executing_tool(repl);
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
     ck_assert(repl->spinner_state.visible);  // Spinner stays visible
     ck_assert(!repl->current->input_buffer_visible);  // Input stays hidden
 
@@ -490,11 +492,11 @@ START_TEST(test_transition_from_executing_tool)
     // Set up state: IDLE -> WAITING_FOR_LLM -> EXECUTING_TOOL
     ik_repl_transition_to_waiting_for_llm(repl);
     ik_repl_transition_to_executing_tool(repl);
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
 
     // Transition from EXECUTING_TOOL back to WAITING_FOR_LLM
     ik_repl_transition_from_executing_tool(repl);
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);

@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_separator_last_line_test.c
  * @brief Test separator visibility when it's the last visible line
@@ -70,6 +71,7 @@ START_TEST(test_separator_as_last_visible_line) {
 
     // Create REPL at bottom (offset=0)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
@@ -190,6 +192,7 @@ START_TEST(test_separator_last_row_input_buffer_offscreen)
 
     // Create REPL
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;

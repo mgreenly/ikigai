@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_readline_test.c
  * @brief Unit tests for REPL readline-style editing shortcuts
@@ -45,6 +46,7 @@ START_TEST(test_repl_process_action_ctrl_a) {
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -109,6 +111,7 @@ START_TEST(test_repl_process_action_ctrl_e)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -188,6 +191,7 @@ START_TEST(test_repl_process_action_ctrl_k)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -274,6 +278,7 @@ START_TEST(test_repl_process_action_ctrl_u)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -358,6 +363,7 @@ START_TEST(test_repl_process_action_ctrl_w)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state

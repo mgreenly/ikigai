@@ -190,8 +190,8 @@ void init_repl_multi_handle(ik_repl_ctx_t *repl)
     if (is_err(&res)) {
         // If we can't create the multi handle, set it to NULL
         // This shouldn't happen in tests, but handle it gracefully
-        repl->multi = NULL;
+        repl->current->multi = NULL;
     } else {
-        repl->multi = (struct ik_openai_multi *)res.ok;
+        repl->current->multi = (struct ik_openai_multi *)res.ok;
     }
 }

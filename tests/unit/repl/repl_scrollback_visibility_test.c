@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_scrollback_visibility_test.c
  * @brief Test scrollback visibility when scrolled up
@@ -66,6 +67,7 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
@@ -186,6 +188,7 @@ START_TEST(test_scrollback_visible_when_scrolled_to_top)
 
     // Create REPL and scroll to top (maximum offset)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;

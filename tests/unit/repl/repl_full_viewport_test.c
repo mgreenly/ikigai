@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_full_viewport_test.c
  * @brief Test for layer positioning when viewport is full
@@ -46,6 +47,7 @@ static void create_test_repl(TALLOC_CTX *ctx, int32_t rows, int32_t cols, ik_rep
 
     // Create REPL with layer cake
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;

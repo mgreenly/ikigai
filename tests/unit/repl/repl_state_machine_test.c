@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_state_machine_test.c
  * @brief Unit tests for REPL state machine (Phase 1.6 Task 6.4)
@@ -52,6 +53,7 @@ static ik_repl_ctx_t *create_test_repl(void *ctx)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
@@ -75,7 +77,7 @@ static ik_repl_ctx_t *create_test_repl(void *ctx)
     repl->spinner_state.visible = false;
 
     // Initialize state to IDLE (default)
-    repl->state = IK_REPL_STATE_IDLE;
+    repl->current->state = IK_AGENT_STATE_IDLE;
 
     // Create layers
     ik_layer_t *scrollback_layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
@@ -106,7 +108,7 @@ START_TEST(test_repl_initial_state_is_idle) {
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Verify initial state is IDLE
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     talloc_free(ctx);
 }
@@ -118,7 +120,7 @@ START_TEST(test_repl_state_idle_visibility)
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Set state to IDLE
-    repl->state = IK_REPL_STATE_IDLE;
+    repl->current->state = IK_AGENT_STATE_IDLE;
 
     // Call render_frame to update visibility flags
     res_t res = ik_repl_render_frame(repl);
@@ -139,7 +141,7 @@ START_TEST(test_repl_state_waiting_for_llm_visibility)
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Set state to WAITING_FOR_LLM
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
 
     // Call render_frame to update visibility flags
     res_t res = ik_repl_render_frame(repl);
@@ -160,14 +162,14 @@ START_TEST(test_repl_state_transition_idle_to_waiting)
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Start in IDLE state
-    repl->state = IK_REPL_STATE_IDLE;
+    repl->current->state = IK_AGENT_STATE_IDLE;
     res_t res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
     ck_assert(!repl->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);
 
     // Transition to WAITING_FOR_LLM
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
     res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
     ck_assert(repl->spinner_state.visible);
@@ -184,14 +186,14 @@ START_TEST(test_repl_state_transition_waiting_to_idle)
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Start in WAITING_FOR_LLM state
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
     res_t res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
     ck_assert(repl->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     // Transition to IDLE
-    repl->state = IK_REPL_STATE_IDLE;
+    repl->current->state = IK_AGENT_STATE_IDLE;
     res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
     ck_assert(!repl->spinner_state.visible);
@@ -208,7 +210,7 @@ START_TEST(test_repl_transition_to_waiting_for_llm_function)
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Start in IDLE state (default)
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
     ck_assert(!repl->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);
 
@@ -216,7 +218,7 @@ START_TEST(test_repl_transition_to_waiting_for_llm_function)
     ik_repl_transition_to_waiting_for_llm(repl);
 
     // Verify state changed
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     ck_assert(repl->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
@@ -231,11 +233,11 @@ START_TEST(test_repl_transition_to_idle_function)
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Start in WAITING_FOR_LLM state
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
     repl->spinner_state.visible = true;
     repl->current->input_buffer_visible = false;
 
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     ck_assert(repl->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
@@ -243,7 +245,7 @@ START_TEST(test_repl_transition_to_idle_function)
     ik_repl_transition_to_idle(repl);
 
     // Verify state changed
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
     ck_assert(!repl->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);
 
@@ -258,17 +260,17 @@ START_TEST(test_repl_state_full_cycle)
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Start in IDLE
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Transition to WAITING_FOR_LLM
     ik_repl_transition_to_waiting_for_llm(repl);
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     ck_assert(repl->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     // Transition back to IDLE
     ik_repl_transition_to_idle(repl);
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
     ck_assert(!repl->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);
 

@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_debug_page_up_test.c
  * @brief Debug Page Up issue with detailed output
@@ -34,6 +35,7 @@ START_TEST(test_page_up_with_4_lines) {
 
     // Create REPL at bottom
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;

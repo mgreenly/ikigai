@@ -104,19 +104,19 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
     }
 
     // Clear previous assistant response
-    if (repl->assistant_response != NULL) {
-        talloc_free(repl->assistant_response);
-        repl->assistant_response = NULL;
+    if (repl->current->assistant_response != NULL) {
+        talloc_free(repl->current->assistant_response);
+        repl->current->assistant_response = NULL;
     }
-    if (repl->streaming_line_buffer != NULL) {
-        talloc_free(repl->streaming_line_buffer);
-        repl->streaming_line_buffer = NULL;
+    if (repl->current->streaming_line_buffer != NULL) {
+        talloc_free(repl->current->streaming_line_buffer);
+        repl->current->streaming_line_buffer = NULL;
     }
 
     repl->tool_iteration_count = 0;
     ik_repl_transition_to_waiting_for_llm(repl);
 
-    result = ik_openai_multi_add_request(repl->multi, repl->shared->cfg, repl->current->conversation,
+    result = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
                                          ik_repl_streaming_callback, repl,
                                          ik_repl_http_completion_callback, repl, false);
     if (is_err(&result)) {
@@ -125,7 +125,7 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
         ik_repl_transition_to_idle(repl);
         talloc_free(result.err);
     } else {
-        repl->curl_still_running = 1;
+        repl->current->curl_still_running = 1;
     }
 }
 

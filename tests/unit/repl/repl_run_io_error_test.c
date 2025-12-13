@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_run_io_error_test.c
  * @brief Unit tests for REPL I/O error handling (read/select errors)
@@ -32,6 +33,7 @@ START_TEST(test_repl_run_read_error_eintr) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_parser = parser;
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
@@ -88,6 +90,7 @@ START_TEST(test_repl_run_read_error_other)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -144,6 +147,7 @@ START_TEST(test_repl_run_select_error_eintr)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -204,6 +208,7 @@ START_TEST(test_repl_run_select_error_other)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);

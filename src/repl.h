@@ -24,13 +24,6 @@
 // Forward declarations
 typedef struct ik_shared_ctx ik_shared_ctx_t;
 
-// REPL state machine (Phase 1.6)
-typedef enum {
-    IK_REPL_STATE_IDLE,              // Normal input mode
-    IK_REPL_STATE_WAITING_FOR_LLM,   // Waiting for LLM response (spinner visible)
-    IK_REPL_STATE_EXECUTING_TOOL     // Tool running in background thread
-} ik_repl_state_t;
-
 // Viewport boundaries for rendering (Phase 4)
 typedef struct {
     size_t scrollback_start_line;   // First scrollback line to render
@@ -66,19 +59,6 @@ typedef struct ik_repl_ctx_t {
     size_t debug_document_height;     // total document height
     uint64_t render_start_us;         // Timestamp when input received (0 = not set)
     uint64_t render_elapsed_us;       // Elapsed time from previous render (computed at end of render)
-
-    // Event loop integration (Phase 1.6)
-    struct ik_openai_multi *multi;    // curl_multi handle for non-blocking HTTP
-    int curl_still_running;           // Number of active curl transfers
-    ik_repl_state_t state;            // Current REPL state (IDLE or WAITING_FOR_LLM)
-
-    // Configuration and conversation (Phase 1.6)
-    char *assistant_response;                     // Accumulated assistant response (during streaming)
-    char *streaming_line_buffer;                  // Buffer for incomplete line during streaming
-    char *http_error_message;                     // HTTP error message (if request failed)
-    char *response_model;                         // Model name from SSE stream (for database persistence)
-    char *response_finish_reason;                 // Finish reason from SSE stream (for database persistence)
-    int32_t response_completion_tokens;           // Completion token count from SSE stream (for database persistence)
 
     // Tab completion (rel-04)
     ik_completion_t *completion;                  // Tab completion context (NULL when inactive)

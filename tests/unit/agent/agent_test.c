@@ -416,6 +416,186 @@ START_TEST(test_agent_mark_count_zero_initially)
 }
 END_TEST
 
+// Test agent->state is IK_AGENT_STATE_IDLE initially
+START_TEST(test_agent_state_idle_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->multi is created initially
+START_TEST(test_agent_multi_created_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_nonnull(agent->multi);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->curl_still_running is 0 initially
+START_TEST(test_agent_curl_still_running_zero_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_int_eq(agent->curl_still_running, 0);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->assistant_response is NULL initially
+START_TEST(test_agent_assistant_response_null_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_null(agent->assistant_response);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->streaming_line_buffer is NULL initially
+START_TEST(test_agent_streaming_line_buffer_null_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_null(agent->streaming_line_buffer);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->http_error_message is NULL initially
+START_TEST(test_agent_http_error_message_null_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_null(agent->http_error_message);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->response_model is NULL initially
+START_TEST(test_agent_response_model_null_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_null(agent->response_model);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->response_finish_reason is NULL initially
+START_TEST(test_agent_response_finish_reason_null_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_null(agent->response_finish_reason);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->response_completion_tokens is 0 initially
+START_TEST(test_agent_response_completion_tokens_zero_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_int_eq(agent->response_completion_tokens, 0);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test ik_agent_generate_uuid() returns valid 22-char base64url string
 START_TEST(test_generate_uuid_returns_valid_string)
 {
@@ -481,6 +661,15 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_agent_mark_count_zero_initially);
     tcase_add_test(tc_core, test_agent_allocated_under_parent);
     tcase_add_test(tc_core, test_agent_can_be_freed);
+    tcase_add_test(tc_core, test_agent_state_idle_initially);
+    tcase_add_test(tc_core, test_agent_multi_created_initially);
+    tcase_add_test(tc_core, test_agent_curl_still_running_zero_initially);
+    tcase_add_test(tc_core, test_agent_assistant_response_null_initially);
+    tcase_add_test(tc_core, test_agent_streaming_line_buffer_null_initially);
+    tcase_add_test(tc_core, test_agent_http_error_message_null_initially);
+    tcase_add_test(tc_core, test_agent_response_model_null_initially);
+    tcase_add_test(tc_core, test_agent_response_finish_reason_null_initially);
+    tcase_add_test(tc_core, test_agent_response_completion_tokens_zero_initially);
     tcase_add_test(tc_core, test_generate_uuid_returns_valid_string);
     tcase_add_test(tc_core, test_generate_uuid_produces_different_uuids);
     suite_add_tcase(s, tc_core);

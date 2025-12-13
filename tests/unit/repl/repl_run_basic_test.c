@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_run_basic_test.c
  * @brief Unit tests for REPL event loop basic functionality
@@ -30,6 +31,7 @@ START_TEST(test_repl_run_simple_char_input) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_parser = parser;
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
@@ -86,6 +88,7 @@ START_TEST(test_repl_run_multiple_chars)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -145,6 +148,7 @@ START_TEST(test_repl_run_with_newline)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -202,6 +206,7 @@ START_TEST(test_repl_run_with_backspace)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -257,6 +262,7 @@ START_TEST(test_repl_run_read_eof)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -313,6 +319,7 @@ START_TEST(test_repl_run_unknown_action)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -370,6 +377,7 @@ START_TEST(test_repl_run_select_timeout)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -430,6 +438,7 @@ START_TEST(test_repl_run_active_curl_transfers)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -446,7 +455,7 @@ START_TEST(test_repl_run_active_curl_transfers)
     repl->quit = false;
     repl->spinner_state.visible = false;
     init_repl_multi_handle(repl);
-    repl->curl_still_running = 1;  // Simulate active curl transfer
+    repl->current->curl_still_running = 1;  // Simulate active curl transfer
 
     mock_select_return_value = -1;  // Use default behavior (returns 1)
     mock_input = "\x03";  // Ctrl+C to exit

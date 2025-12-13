@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file completion_basic_test.c
  * @brief Unit tests for basic completion functionality
@@ -27,6 +28,7 @@ START_TEST(test_tab_triggers_completion)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -77,6 +79,7 @@ START_TEST(test_tab_accepts_selection)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -128,6 +131,7 @@ START_TEST(test_arrow_up_changes_selection)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -184,6 +188,7 @@ START_TEST(test_arrow_down_changes_selection)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -240,6 +245,7 @@ START_TEST(test_escape_dismisses_completion)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -295,6 +301,7 @@ START_TEST(test_typing_updates_completion)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);

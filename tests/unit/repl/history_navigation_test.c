@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file history_navigation_test.c
  * @brief Unit tests for REPL history navigation with up/down arrows
@@ -39,6 +40,7 @@ START_TEST(test_history_up_from_empty_input)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     repl->current = agent;
@@ -97,6 +99,7 @@ START_TEST(test_history_up_multiple_times)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     repl->current = agent;
@@ -169,6 +172,7 @@ START_TEST(test_history_down_restores_pending)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     repl->current = agent;
@@ -244,6 +248,7 @@ START_TEST(test_history_up_with_cursor_not_at_zero)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     repl->current = agent;
@@ -327,6 +332,7 @@ START_TEST(test_history_navigation_with_multiline)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     repl->current = agent;
@@ -387,6 +393,7 @@ START_TEST(test_history_empty)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     repl->current = agent;

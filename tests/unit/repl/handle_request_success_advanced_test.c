@@ -40,7 +40,7 @@ static void setup(void)
     // Initialize common state
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 0;
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
 }
 
 // Per-test teardown
@@ -63,7 +63,7 @@ START_TEST(test_debug_pipe_null_write_end) {
     char long_response[120];
     memset(long_response, 'A', sizeof(long_response) - 1);
     long_response[sizeof(long_response) - 1] = '\0';
-    repl->assistant_response = talloc_strdup(test_ctx, long_response);
+    repl->current->assistant_response = talloc_strdup(test_ctx, long_response);
 
     // Create debug pipe but set write_end to NULL
     repl->shared->openai_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
@@ -73,13 +73,13 @@ START_TEST(test_debug_pipe_null_write_end) {
 
     // Message should be added to conversation
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_ptr_null(repl->current->assistant_response);
 }
 END_TEST
 // Test: openai_debug_pipe with valid write_end and short message
 START_TEST(test_debug_pipe_short_message)
 {
-    repl->assistant_response = talloc_strdup(test_ctx, "Short message");
+    repl->current->assistant_response = talloc_strdup(test_ctx, "Short message");
 
     // Create debug pipe with valid write_end
     repl->shared->openai_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
@@ -90,7 +90,7 @@ START_TEST(test_debug_pipe_short_message)
 
     // Message should be added to conversation
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_ptr_null(repl->current->assistant_response);
 
     // Clean up
     fclose(repl->shared->openai_debug_pipe->write_end);
@@ -104,7 +104,7 @@ START_TEST(test_debug_pipe_long_message)
     char long_response[120];
     memset(long_response, 'B', sizeof(long_response) - 1);
     long_response[sizeof(long_response) - 1] = '\0';
-    repl->assistant_response = talloc_strdup(test_ctx, long_response);
+    repl->current->assistant_response = talloc_strdup(test_ctx, long_response);
 
     // Create debug pipe with valid write_end
     repl->shared->openai_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
@@ -115,7 +115,7 @@ START_TEST(test_debug_pipe_long_message)
 
     // Message should be added to conversation
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_ptr_null(repl->current->assistant_response);
 
     // Clean up
     fclose(repl->shared->openai_debug_pipe->write_end);
@@ -126,14 +126,14 @@ END_TEST
 START_TEST(test_handle_curl_events_already_stopped)
 {
     // Set curl_still_running to 0 (no active transfers)
-    repl->curl_still_running = 0;
+    repl->current->curl_still_running = 0;
 
     // Call handle_curl_events - should exit early without processing
     res_t result = handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // State should remain unchanged
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 }
 
 END_TEST
@@ -141,7 +141,7 @@ END_TEST
 START_TEST(test_request_success_starts_tool_execution)
 {
     // Set up assistant response
-    repl->assistant_response = talloc_strdup(test_ctx, "Test response");
+    repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
 
     // Create a pending tool call - this will trigger tool execution
     repl->pending_tool_call = ik_tool_call_create(test_ctx,
@@ -161,7 +161,7 @@ START_TEST(test_request_success_starts_tool_execution)
     handle_request_success(repl);
 
     // State should be EXECUTING_TOOL (not IDLE)
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
 
     // Assistant message should be added to conversation
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
@@ -185,7 +185,7 @@ START_TEST(test_request_success_starts_tool_execution)
     ck_assert_uint_eq(repl->current->conversation->message_count, 3);
 
     // State should transition back to WAITING_FOR_LLM
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     // Clean up mutex
     pthread_mutex_destroy_(&repl->tool_thread_mutex);
@@ -197,9 +197,9 @@ END_TEST
 START_TEST(test_handle_curl_events_tool_execution_state)
 {
     // Set up a running request
-    repl->curl_still_running = 1;
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-    repl->assistant_response = talloc_strdup(test_ctx, "Response with tool call");
+    repl->current->curl_still_running = 1;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->assistant_response = talloc_strdup(test_ctx, "Response with tool call");
 
     // Create a pending tool call - this will cause state to become EXECUTING_TOOL
     repl->pending_tool_call = ik_tool_call_create(test_ctx,
@@ -228,10 +228,10 @@ START_TEST(test_handle_curl_events_tool_execution_state)
     ck_assert(is_ok(&result));
 
     // Verify state is EXECUTING_TOOL (not IDLE)
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
 
     // Verify curl_still_running is 0
-    ck_assert_int_eq(repl->curl_still_running, 0);
+    ck_assert_int_eq(repl->current->curl_still_running, 0);
 
     // Wait for thread to complete
     int max_wait = 200; // 2 seconds max

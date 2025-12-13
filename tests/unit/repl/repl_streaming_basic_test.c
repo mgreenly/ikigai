@@ -32,7 +32,7 @@ START_TEST(test_streaming_callback_appends_to_scrollback) {
     ck_assert(is_ok(&res));
 
     // Verify state transitioned to WAITING_FOR_LLM
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     // Simulate receiving SSE data
     const char *sse_data = "data: {\"choices\":[{\"delta\":{\"content\":\"Hello world\"}}]}\n\n";
@@ -41,7 +41,7 @@ START_TEST(test_streaming_callback_appends_to_scrollback) {
     invoke_write_callback = true;
 
     // Call multi_perform to trigger the write callback
-    res = ik_openai_multi_perform(repl->multi, &repl->curl_still_running);
+    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify streaming data was appended to scrollback
@@ -51,8 +51,8 @@ START_TEST(test_streaming_callback_appends_to_scrollback) {
     ck_assert_uint_eq(line_count, 2); // User message + blank line (streamed content has no newline)
 
     // Verify assistant_response was accumulated
-    ck_assert_ptr_nonnull(repl->assistant_response);
-    ck_assert(strlen(repl->assistant_response) > 0);
+    ck_assert_ptr_nonnull(repl->current->assistant_response);
+    ck_assert(strlen(repl->current->assistant_response) > 0);
 
     // Clean up
     invoke_write_callback = false;
@@ -89,12 +89,12 @@ START_TEST(test_streaming_callback_accumulates_response)
     mock_response_len = strlen(chunk1);
     invoke_write_callback = true;
 
-    res = ik_openai_multi_perform(repl->multi, &repl->curl_still_running);
+    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify first chunk was accumulated
-    ck_assert_ptr_nonnull(repl->assistant_response);
-    size_t len_after_first = strlen(repl->assistant_response);
+    ck_assert_ptr_nonnull(repl->current->assistant_response);
+    size_t len_after_first = strlen(repl->current->assistant_response);
     ck_assert(len_after_first > 0);
 
     // Simulate second chunk
@@ -102,12 +102,12 @@ START_TEST(test_streaming_callback_accumulates_response)
     mock_response_data = chunk2;
     mock_response_len = strlen(chunk2);
 
-    res = ik_openai_multi_perform(repl->multi, &repl->curl_still_running);
+    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify second chunk was appended
-    ck_assert_ptr_nonnull(repl->assistant_response);
-    size_t len_after_second = strlen(repl->assistant_response);
+    ck_assert_ptr_nonnull(repl->current->assistant_response);
+    size_t len_after_second = strlen(repl->current->assistant_response);
     ck_assert(len_after_second > len_after_first); // Should be longer now
 
     // Clean up
@@ -149,7 +149,7 @@ START_TEST(test_streaming_callback_empty_chunk)
     invoke_write_callback = true;
 
     // Call multi_perform to trigger the write callback with empty content
-    res = ik_openai_multi_perform(repl->multi, &repl->curl_still_running);
+    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify scrollback count unchanged (empty chunk should not add lines)
@@ -157,8 +157,8 @@ START_TEST(test_streaming_callback_empty_chunk)
     ck_assert_uint_eq(after_count, initial_count);
 
     // However, assistant_response should still be initialized (even if empty)
-    ck_assert_ptr_nonnull(repl->assistant_response);
-    ck_assert_uint_eq(strlen(repl->assistant_response), 0);
+    ck_assert_ptr_nonnull(repl->current->assistant_response);
+    ck_assert_uint_eq(strlen(repl->current->assistant_response), 0);
 
     // Clean up
     invoke_write_callback = false;
@@ -199,7 +199,7 @@ START_TEST(test_streaming_callback_content_ending_with_newline)
     invoke_write_callback = true;
 
     // Call multi_perform to trigger the write callback
-    res = ik_openai_multi_perform(repl->multi, &repl->curl_still_running);
+    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify scrollback has one new line added
@@ -207,7 +207,7 @@ START_TEST(test_streaming_callback_content_ending_with_newline)
     ck_assert_uint_eq(after_count, initial_count + 1);
 
     // Verify the streaming buffer is empty (newline was consumed)
-    ck_assert_ptr_null(repl->streaming_line_buffer);
+    ck_assert_ptr_null(repl->current->streaming_line_buffer);
 
     // Clean up
     invoke_write_callback = false;

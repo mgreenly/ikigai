@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file completion_state_advanced_test.c
  * @brief Advanced unit tests for completion state machine
@@ -29,6 +30,7 @@ START_TEST(test_tab_wraps_around)
     ck_assert(is_ok(&agent_res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -93,6 +95,7 @@ START_TEST(test_original_input_stored)
     ck_assert(is_ok(&agent_res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -157,6 +160,7 @@ START_TEST(test_multiple_tab_presses)
     ck_assert(is_ok(&agent_res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -219,6 +223,7 @@ START_TEST(test_update_completion_preserves_original_input)
     ck_assert(is_ok(&agent_res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -273,6 +278,7 @@ START_TEST(test_space_commit_no_completion)
     ck_assert(is_ok(&agent_res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);

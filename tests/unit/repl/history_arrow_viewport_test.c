@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file history_arrow_viewport_test.c
  * @brief Tests for arrow key viewport scrolling behavior
@@ -52,6 +53,7 @@ START_TEST(test_arrow_up_with_viewport_offset_scrolls)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     repl->current = agent;
@@ -117,6 +119,7 @@ START_TEST(test_arrow_down_with_viewport_offset_scrolls)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     repl->current = agent;
@@ -177,6 +180,7 @@ START_TEST(test_arrow_up_with_zero_offset_navigates_history)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     repl->current = agent;
@@ -243,6 +247,7 @@ START_TEST(test_arrow_down_to_bottom_then_history)
 
     // Start with history browsing and viewport offset
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     repl->current = agent;

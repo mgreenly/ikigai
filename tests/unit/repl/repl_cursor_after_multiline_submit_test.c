@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_cursor_after_multiline_submit_test.c
  * @brief Test for cursor positioning after multiline input submission
@@ -35,6 +36,7 @@ static ik_repl_ctx_t *create_test_repl(void *ctx)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     repl->current = agent;

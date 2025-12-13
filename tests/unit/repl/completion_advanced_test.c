@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file completion_advanced_test.c
  * @brief Unit tests for advanced completion scenarios
@@ -27,6 +28,7 @@ START_TEST(test_typing_dismisses_on_no_match)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -72,6 +74,7 @@ START_TEST(test_left_right_arrow_dismisses)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -132,6 +135,7 @@ START_TEST(test_tab_on_empty_input_no_op)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -169,6 +173,7 @@ START_TEST(test_tab_on_non_slash_no_op)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -212,6 +217,7 @@ START_TEST(test_cursor_at_end_after_tab_completion)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);

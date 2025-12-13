@@ -1,3 +1,4 @@
+#include "agent.h"
 #include <check.h>
 #include "../../../src/agent.h"
 #include <stdlib.h>

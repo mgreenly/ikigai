@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_separator_wrapped_test.c
  * @brief Test Separator visibility with wrapped lines (lines that span multiple physical rows)
@@ -71,6 +72,7 @@ START_TEST(test_separator_with_wrapped_lines) {
 
     // Create REPL and scroll to show middle of scrollback
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;

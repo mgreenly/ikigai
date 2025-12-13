@@ -28,12 +28,12 @@ res_t ik_repl_streaming_callback(const char *chunk, void *ctx)
     size_t chunk_len = strlen(chunk);
 
     // Accumulate complete response for adding to conversation later
-    if (repl->assistant_response == NULL) {
-        repl->assistant_response = talloc_strdup(repl, chunk);
+    if (repl->current->assistant_response == NULL) {
+        repl->current->assistant_response = talloc_strdup(repl, chunk);
     } else {
-        repl->assistant_response = talloc_strdup_append(repl->assistant_response, chunk);
+        repl->current->assistant_response = talloc_strdup_append(repl->current->assistant_response, chunk);
     }
-    if (repl->assistant_response == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (repl->current->assistant_response == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Handle streaming display with line buffering
     // Accumulate chunks until we hit a newline, then flush to scrollback
@@ -42,20 +42,20 @@ res_t ik_repl_streaming_callback(const char *chunk, void *ctx)
         if (chunk[i] == '\n') {
             // Flush buffered line (if any) plus characters up to newline
             size_t prefix_len = i - start;  // Characters before newline in this segment
-            if (repl->streaming_line_buffer != NULL) {
+            if (repl->current->streaming_line_buffer != NULL) {
                 // Append prefix to buffer
-                size_t buffer_len = strlen(repl->streaming_line_buffer);
+                size_t buffer_len = strlen(repl->current->streaming_line_buffer);
                 size_t total_len = buffer_len + prefix_len;
                 char *line = talloc_size(repl, total_len + 1);
                 if (line == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-                memcpy(line, repl->streaming_line_buffer, buffer_len);
+                memcpy(line, repl->current->streaming_line_buffer, buffer_len);
                 memcpy(line + buffer_len, chunk + start, prefix_len);
                 line[total_len] = '\0';
 
                 ik_scrollback_append_line(repl->current->scrollback, line, total_len);
                 talloc_free(line);
-                talloc_free(repl->streaming_line_buffer);
-                repl->streaming_line_buffer = NULL;
+                talloc_free(repl->current->streaming_line_buffer);
+                repl->current->streaming_line_buffer = NULL;
             } else if (prefix_len > 0) {
                 // No buffer, just flush the prefix
                 ik_scrollback_append_line(repl->current->scrollback, chunk + start, prefix_len);
@@ -72,14 +72,14 @@ res_t ik_repl_streaming_callback(const char *chunk, void *ctx)
     // Buffer any remaining characters (no newline found)
     if (start < chunk_len) {
         size_t remaining_len = chunk_len - start;
-        if (repl->streaming_line_buffer == NULL) {
-            repl->streaming_line_buffer = talloc_strndup(repl, chunk + start, remaining_len);
+        if (repl->current->streaming_line_buffer == NULL) {
+            repl->current->streaming_line_buffer = talloc_strndup(repl, chunk + start, remaining_len);
         } else {
-            repl->streaming_line_buffer = talloc_strndup_append_buffer(repl->streaming_line_buffer,
+            repl->current->streaming_line_buffer = talloc_strndup_append_buffer(repl->current->streaming_line_buffer,
                                                                        chunk + start,
                                                                        remaining_len);
         }
-        if (repl->streaming_line_buffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (repl->current->streaming_line_buffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
 
     // Trigger re-render to show streaming content
@@ -128,11 +128,11 @@ res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, v
     }
 
     // Flush any remaining buffered line content (streaming ended without final newline)
-    if (repl->streaming_line_buffer != NULL) {
-        size_t buffer_len = strlen(repl->streaming_line_buffer);
-        ik_scrollback_append_line(repl->current->scrollback, repl->streaming_line_buffer, buffer_len);
-        talloc_free(repl->streaming_line_buffer);
-        repl->streaming_line_buffer = NULL;
+    if (repl->current->streaming_line_buffer != NULL) {
+        size_t buffer_len = strlen(repl->current->streaming_line_buffer);
+        ik_scrollback_append_line(repl->current->scrollback, repl->current->streaming_line_buffer, buffer_len);
+        talloc_free(repl->current->streaming_line_buffer);
+        repl->current->streaming_line_buffer = NULL;
     }
 
     // Add blank line after assistant response (spacing)
@@ -141,40 +141,40 @@ res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, v
     }
 
     // Clear any previous error
-    if (repl->http_error_message != NULL) {
-        talloc_free(repl->http_error_message);
-        repl->http_error_message = NULL;
+    if (repl->current->http_error_message != NULL) {
+        talloc_free(repl->current->http_error_message);
+        repl->current->http_error_message = NULL;
     }
 
     // Store error message if request failed
     if (completion->type != IK_HTTP_SUCCESS && completion->error_message != NULL) {
-        repl->http_error_message = talloc_strdup(repl, completion->error_message);
-        if (repl->http_error_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        repl->current->http_error_message = talloc_strdup(repl, completion->error_message);
+        if (repl->current->http_error_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
 
     // Store response metadata for database persistence (on success only)
     if (completion->type == IK_HTTP_SUCCESS) {
         // Clear previous metadata
-        if (repl->response_model != NULL) {
-            talloc_free(repl->response_model);
-            repl->response_model = NULL;
+        if (repl->current->response_model != NULL) {
+            talloc_free(repl->current->response_model);
+            repl->current->response_model = NULL;
         }
-        if (repl->response_finish_reason != NULL) {
-            talloc_free(repl->response_finish_reason);
-            repl->response_finish_reason = NULL;
+        if (repl->current->response_finish_reason != NULL) {
+            talloc_free(repl->current->response_finish_reason);
+            repl->current->response_finish_reason = NULL;
         }
-        repl->response_completion_tokens = 0;
+        repl->current->response_completion_tokens = 0;
 
         // Store new metadata
         if (completion->model != NULL) {
-            repl->response_model = talloc_strdup(repl, completion->model);
-            if (repl->response_model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            repl->current->response_model = talloc_strdup(repl, completion->model);
+            if (repl->current->response_model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         }
         if (completion->finish_reason != NULL) {
-            repl->response_finish_reason = talloc_strdup(repl, completion->finish_reason);
-            if (repl->response_finish_reason == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            repl->current->response_finish_reason = talloc_strdup(repl, completion->finish_reason);
+            if (repl->current->response_finish_reason == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         }
-        repl->response_completion_tokens = completion->completion_tokens;
+        repl->current->response_completion_tokens = completion->completion_tokens;
 
         // Store tool_call if present
         if (repl->pending_tool_call != NULL) {

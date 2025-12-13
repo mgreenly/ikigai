@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_run_curl_error_test.c
  * @brief Unit tests for REPL curl error handling
@@ -30,6 +31,7 @@ START_TEST(test_repl_run_curl_multi_fdset_error) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     repl->input_parser = parser;
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
@@ -83,6 +85,7 @@ START_TEST(test_repl_run_curl_multi_perform_error)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
@@ -100,7 +103,7 @@ START_TEST(test_repl_run_curl_multi_perform_error)
     init_repl_multi_handle(repl);
 
     // Simulate active curl request by setting curl_still_running > 0
-    repl->curl_still_running = 1;
+    repl->current->curl_still_running = 1;
 
     // Make curl_multi_perform_ fail
     mock_curl_multi_perform_should_fail = true;
@@ -140,6 +143,7 @@ START_TEST(test_repl_run_curl_multi_timeout_error)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);

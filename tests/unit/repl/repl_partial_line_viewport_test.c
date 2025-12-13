@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_separator_partial_line_test.c
  * @brief Test Separator visibility: Partial first line in viewport
@@ -90,6 +91,7 @@ START_TEST(test_separator_partial_first_line) {
 
     // Create REPL and scroll to show rows 1-10 (starts mid-line)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
@@ -188,6 +190,7 @@ START_TEST(test_separator_row_offset_impact)
 
     // Create REPL
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;

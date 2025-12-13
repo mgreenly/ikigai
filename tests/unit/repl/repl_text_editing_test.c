@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_text_editing_test.c
  * @brief Unit tests for REPL text editing actions
@@ -22,6 +23,7 @@ START_TEST(test_repl_process_action_char) {
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -72,6 +74,7 @@ START_TEST(test_repl_process_action_newline)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -113,6 +116,7 @@ START_TEST(test_repl_process_action_backspace)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -158,6 +162,7 @@ START_TEST(test_repl_process_action_delete)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -191,6 +196,7 @@ START_TEST(test_repl_process_action_backspace_at_start)
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -226,6 +232,7 @@ START_TEST(test_repl_process_action_delete_at_end)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state

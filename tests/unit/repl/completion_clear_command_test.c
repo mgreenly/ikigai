@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file completion_clear_command_test.c
  * @brief Unit test for /clear command clearing autocomplete state
@@ -31,6 +32,7 @@ START_TEST(test_clear_command_clears_autocomplete)
 
     // Create minimal REPL context for testing
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);

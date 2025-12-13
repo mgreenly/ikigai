@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file tool_loop_limit_test.c
  * @brief Unit tests for tool loop iteration counter and limit detection
@@ -29,6 +30,7 @@ static void setup(void)
 
     /* Create minimal REPL context for testing */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
@@ -68,7 +70,7 @@ END_TEST
 START_TEST(test_counter_increments_after_tool_execution)
 {
     /* Simulate first tool call completed */
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
     repl->tool_iteration_count = 0;
 
     /* Increment counter (simulating what happens after tool execution) */
@@ -93,7 +95,7 @@ START_TEST(test_should_continue_when_under_limit)
 {
     /* Set up: 2 iterations completed, limit is 3 */
     repl->tool_iteration_count = 2;
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should continue - we haven't hit the limit yet */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -108,7 +110,7 @@ START_TEST(test_should_not_continue_when_at_limit)
 {
     /* Set up: 3 iterations completed, limit is 3 */
     repl->tool_iteration_count = 3;
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should NOT continue - we've hit the limit */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -123,7 +125,7 @@ START_TEST(test_should_not_continue_when_over_limit)
 {
     /* Set up: 4 iterations completed, limit is 3 */
     repl->tool_iteration_count = 4;
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should NOT continue - we're over the limit */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -138,7 +140,7 @@ START_TEST(test_should_not_continue_when_finish_reason_is_stop)
 {
     /* Set up: 1 iteration completed, limit is 3, but finish_reason is "stop" */
     repl->tool_iteration_count = 1;
-    repl->response_finish_reason = talloc_strdup(repl, "stop");
+    repl->current->response_finish_reason = talloc_strdup(repl, "stop");
 
     /* Should NOT continue - finish_reason is "stop" */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -154,7 +156,7 @@ START_TEST(test_should_continue_at_limit_minus_one)
     /* Set up: limit is 3, counter at 2 (one more allowed) */
     cfg->max_tool_turns = 3;
     repl->tool_iteration_count = 2;
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should continue */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -170,7 +172,7 @@ START_TEST(test_zero_limit_means_no_tool_calls)
     /* Set up: limit is 0 */
     cfg->max_tool_turns = 0;
     repl->tool_iteration_count = 0;
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should NOT continue - limit is 0 */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -186,7 +188,7 @@ START_TEST(test_negative_limit)
     /* Set up: limit is -1 (invalid config, but we should handle gracefully) */
     cfg->max_tool_turns = -1;
     repl->tool_iteration_count = 0;
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should NOT continue - negative limit should be treated as invalid */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);
@@ -203,7 +205,7 @@ START_TEST(test_should_continue_when_cfg_is_null)
     /* Set up: cfg is NULL (defensive check) */
     repl->shared->cfg = NULL;
     repl->tool_iteration_count = 10;  // Any value
-    repl->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should continue - when cfg is NULL, no limit is enforced */
     bool should_continue = ik_repl_should_continue_tool_loop(repl);

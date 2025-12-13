@@ -1,3 +1,4 @@
+#include "agent.h"
 #include "../../test_utils.h"
 #include "../../../src/agent.h"
 #include <check.h>
@@ -77,6 +78,7 @@ static void setup(void)
 
     /* Create minimal repl context for testing */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
 
     /* Create minimal shared context for test */
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);

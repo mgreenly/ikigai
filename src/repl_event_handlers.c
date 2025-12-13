@@ -32,9 +32,9 @@ long calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
 
     // Tool polling: 50ms when executing tool to detect completion quickly
     pthread_mutex_lock_(&repl->tool_thread_mutex);
-    ik_repl_state_t current_state = repl->state;
+    ik_agent_state_t current_state = repl->current->state;
     pthread_mutex_unlock_(&repl->tool_thread_mutex);
-    long tool_poll_timeout_ms = (current_state == IK_REPL_STATE_EXECUTING_TOOL) ? 50 : -1;
+    long tool_poll_timeout_ms = (current_state == IK_AGENT_STATE_EXECUTING_TOOL) ? 50 : -1;
 
     // Scroll detector timeout: get time until pending arrow must flush
     long scroll_timeout_ms = -1;
@@ -81,7 +81,7 @@ res_t setup_fd_sets(ik_repl_ctx_t *repl,
 
     // Add curl_multi fds
     int curl_max_fd = -1;
-    res_t result = ik_openai_multi_fdset(repl->multi, read_fds, write_fds, exc_fds, &curl_max_fd);
+    res_t result = ik_openai_multi_fdset(repl->current->multi, read_fds, write_fds, exc_fds, &curl_max_fd);
     if (is_err(&result)) {
         return result;
     }
@@ -138,23 +138,23 @@ static void persist_assistant_msg(ik_repl_ctx_t *repl)
     char *data_json = talloc_strdup(repl, "{");
     bool first = true;
 
-    if (repl->response_model != NULL) {
-        data_json = talloc_asprintf_append(data_json, "\"model\":\"%s\"", repl->response_model);
+    if (repl->current->response_model != NULL) {
+        data_json = talloc_asprintf_append(data_json, "\"model\":\"%s\"", repl->current->response_model);
         first = false;
     }
-    if (repl->response_completion_tokens > 0) {
+    if (repl->current->response_completion_tokens > 0) {
         data_json = talloc_asprintf_append(data_json, "%s\"tokens\":%d",
-                                           first ? "" : ",", repl->response_completion_tokens);
+                                           first ? "" : ",", repl->current->response_completion_tokens);
         first = false;
     }
-    if (repl->response_finish_reason != NULL) {
+    if (repl->current->response_finish_reason != NULL) {
         data_json = talloc_asprintf_append(data_json, "%s\"finish_reason\":\"%s\"",
-                                           first ? "" : ",", repl->response_finish_reason);
+                                           first ? "" : ",", repl->current->response_finish_reason);
     }
     data_json = talloc_strdup_append(data_json, "}");
 
     res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                                         "assistant", repl->assistant_response, data_json);
+                                         "assistant", repl->current->assistant_response, data_json);
     if (is_err(&db_res)) {
         if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
             fprintf(repl->shared->db_debug_pipe->write_end,
@@ -171,51 +171,51 @@ static void handle_request_error(ik_repl_ctx_t *repl)
     // Display error in scrollback
     const char *error_prefix = "Error: ";
     size_t prefix_len = strlen(error_prefix);
-    size_t error_len = strlen(repl->http_error_message);
+    size_t error_len = strlen(repl->current->http_error_message);
     char *full_error = talloc_zero_(repl, prefix_len + error_len + 1);
     if (full_error == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     memcpy(full_error, error_prefix, prefix_len);
-    memcpy(full_error + prefix_len, repl->http_error_message, error_len);
+    memcpy(full_error + prefix_len, repl->current->http_error_message, error_len);
     full_error[prefix_len + error_len] = '\0';
 
     ik_scrollback_append_line(repl->current->scrollback, full_error, prefix_len + error_len);
     talloc_free(full_error);
 
     // Clear error message
-    talloc_free(repl->http_error_message);
-    repl->http_error_message = NULL;
+    talloc_free(repl->current->http_error_message);
+    repl->current->http_error_message = NULL;
 
     // Clear accumulated assistant response (partial response on error)
-    if (repl->assistant_response != NULL) {
-        talloc_free(repl->assistant_response);
-        repl->assistant_response = NULL;
+    if (repl->current->assistant_response != NULL) {
+        talloc_free(repl->current->assistant_response);
+        repl->current->assistant_response = NULL;
     }
 }
 
 void handle_request_success(ik_repl_ctx_t *repl)
 {
     // Add assistant response to conversation (only if non-empty)
-    if (repl->assistant_response != NULL && strlen(repl->assistant_response) > 0) {
+    if (repl->current->assistant_response != NULL && strlen(repl->current->assistant_response) > 0) {
         ik_msg_t *assistant_msg = ik_openai_msg_create(repl->current->conversation,
                                                 "assistant",
-                                                repl->assistant_response).ok;
+                                                repl->current->assistant_response).ok;
         res_t result = ik_openai_conversation_add_msg(repl->current->conversation, assistant_msg);
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
         if (repl->shared->openai_debug_pipe && repl->shared->openai_debug_pipe->write_end) {
-            size_t len = strlen(repl->assistant_response);
+            size_t len = strlen(repl->current->assistant_response);
             fprintf(repl->shared->openai_debug_pipe->write_end,
                     len > 80 ? "<< ASSISTANT: %.77s...\n" : "<< ASSISTANT: %s\n",
-                    repl->assistant_response);
+                    repl->current->assistant_response);
             fflush(repl->shared->openai_debug_pipe->write_end);
         }
         persist_assistant_msg(repl);
     }
 
     // Clear the assistant response (whether empty or not)
-    if (repl->assistant_response != NULL) {
-        talloc_free(repl->assistant_response);
-        repl->assistant_response = NULL;
+    if (repl->current->assistant_response != NULL) {
+        talloc_free(repl->current->assistant_response);
+        repl->current->assistant_response = NULL;
     }
 
     // Execute pending tool call (async)
@@ -234,7 +234,7 @@ void handle_request_success(ik_repl_ctx_t *repl)
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
 {
     bool limit_reached = (repl->shared->cfg != NULL && repl->tool_iteration_count >= repl->shared->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
-    res_t result = ik_openai_multi_add_request(repl->multi, repl->shared->cfg, repl->current->conversation,
+    res_t result = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
                                                ik_repl_streaming_callback, repl,
                                                ik_repl_http_completion_callback, repl,
                                                limit_reached);
@@ -244,7 +244,7 @@ static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
         ik_repl_transition_to_idle(repl);  // LCOV_EXCL_LINE
         talloc_free(result.err);  // LCOV_EXCL_LINE
     } else {
-        repl->curl_still_running = 1;
+        repl->current->curl_still_running = 1;
     }
 }
 
@@ -255,19 +255,19 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
     (void)ready;  // Used for select() coordination, not needed here
 
     // Only process when there are active transfers
-    if (repl->curl_still_running > 0) {
-        int prev_running = repl->curl_still_running;
-        CHECK(ik_openai_multi_perform(repl->multi, &repl->curl_still_running));
-        ik_openai_multi_info_read(repl->multi);
+    if (repl->current->curl_still_running > 0) {
+        int prev_running = repl->current->curl_still_running;
+        CHECK(ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running));
+        ik_openai_multi_info_read(repl->current->multi);
 
         // Detect request completion (was running, now not running)
         pthread_mutex_lock_(&repl->tool_thread_mutex);
-        ik_repl_state_t current_state = repl->state;
+        ik_agent_state_t current_state = repl->current->state;
         pthread_mutex_unlock_(&repl->tool_thread_mutex);
 
-        if (prev_running > 0 && repl->curl_still_running == 0 && current_state == IK_REPL_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
+        if (prev_running > 0 && repl->current->curl_still_running == 0 && current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
             // Check if request failed (error message set by completion callback)
-            if (repl->http_error_message != NULL) {
+            if (repl->current->http_error_message != NULL) {
                 handle_request_error(repl);
             } else {
                 handle_request_success(repl);
@@ -277,10 +277,10 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
             // If handle_request_success started a tool execution, state is now EXECUTING_TOOL
             // and we should NOT transition to IDLE.
             pthread_mutex_lock_(&repl->tool_thread_mutex);
-            current_state = repl->state;
+            current_state = repl->current->state;
             pthread_mutex_unlock_(&repl->tool_thread_mutex);
 
-            if (current_state == IK_REPL_STATE_WAITING_FOR_LLM) {
+            if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
                 ik_repl_transition_to_idle(repl);
             }
 

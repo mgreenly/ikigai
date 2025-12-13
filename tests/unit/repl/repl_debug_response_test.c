@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_debug_response_test.c
  * @brief Unit tests for debug output in HTTP completion callback
@@ -32,17 +33,18 @@ static void setup(void)
 
     /* Create minimal REPL context for testing callback */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     repl->shared = shared;
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
     repl->current->scrollback = ik_scrollback_create(repl, 80);
-    repl->streaming_line_buffer = NULL;
-    repl->http_error_message = NULL;
-    repl->response_model = NULL;
-    repl->response_finish_reason = NULL;
-    repl->response_completion_tokens = 0;
+    repl->current->streaming_line_buffer = NULL;
+    repl->current->http_error_message = NULL;
+    repl->current->response_model = NULL;
+    repl->current->response_finish_reason = NULL;
+    repl->current->response_completion_tokens = 0;
 }
 
 static void teardown(void)

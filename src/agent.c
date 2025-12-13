@@ -4,6 +4,7 @@
 #include "layer.h"
 #include "layer_wrappers.h"
 #include "openai/client.h"
+#include "openai/client_multi.h"
 #include "panic.h"
 #include "scrollback.h"
 #include "shared.h"
@@ -88,6 +89,18 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->conversation = ik_openai_conversation_create(agent).ok;
     agent->marks = NULL;
     agent->mark_count = 0;
+
+    // Initialize LLM interaction state (per-agent)
+    agent->multi = ik_openai_multi_create(agent).ok;  // Created immediately for event loop
+    if (agent->multi == NULL) PANIC("Failed to create curl_multi handle");  // LCOV_EXCL_BR_LINE
+    agent->curl_still_running = 0;
+    agent->state = IK_AGENT_STATE_IDLE;
+    agent->assistant_response = NULL;
+    agent->streaming_line_buffer = NULL;
+    agent->http_error_message = NULL;
+    agent->response_model = NULL;
+    agent->response_finish_reason = NULL;
+    agent->response_completion_tokens = 0;
 
     // Create and add layers (following pattern from repl_init.c)
     agent->scrollback_layer = ik_scrollback_layer_create(agent, "scrollback", agent->scrollback);

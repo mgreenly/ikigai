@@ -86,20 +86,6 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     result = ik_layer_cake_add_layer(repl->current->layer_cake, repl->lower_separator_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
-    // Initialize curl_multi handle for non-blocking HTTP (Phase 1.6)
-    repl->multi = TRY(ik_openai_multi_create(repl));  // LCOV_EXCL_BR_LINE
-    repl->curl_still_running = 0;  // No active transfers initially
-    repl->state = IK_REPL_STATE_IDLE;  // Start in IDLE state
-
-    // Initialize assistant response accumulator (Phase 1.6)
-    repl->assistant_response = NULL;
-
-    // Initialize streaming line buffer
-    repl->streaming_line_buffer = NULL;
-
-    // Initialize HTTP error message (Phase 1.7)
-    repl->http_error_message = NULL;
-
     // Restore session if database is configured (must be after repl allocated)
     if (shared->db_ctx != NULL) {
         result = ik_repl_restore_session_(repl, shared->db_ctx, cfg);

@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file lower_separator_test.c
  * @brief Unit tests for lower separator layer rendering
@@ -84,6 +85,7 @@ START_TEST(test_lower_separator_renders_with_layers)
 
     // Create REPL with layer cake
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
@@ -172,6 +174,7 @@ START_TEST(test_lower_separator_visibility_flag)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 40);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
@@ -240,6 +243,7 @@ START_TEST(test_lower_separator_layer_order)
     ik_input_buffer_t *input_buf = agent->input_buffer;
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;

@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_navigation_test.c
  * @brief Unit tests for REPL navigation and control actions
@@ -27,6 +28,7 @@ START_TEST(test_repl_process_action_arrow_left) {
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -71,6 +73,7 @@ START_TEST(test_repl_process_action_arrow_right)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -105,6 +108,7 @@ START_TEST(test_repl_process_action_ctrl_c)
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -134,6 +138,7 @@ START_TEST(test_repl_process_action_left_at_start)
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -172,6 +177,7 @@ START_TEST(test_repl_process_action_right_at_end)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -210,6 +216,7 @@ START_TEST(test_repl_process_action_unknown)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -249,6 +256,7 @@ START_TEST(test_repl_process_action_null_action_asserts)
     ik_input_buffer_t *input_buf = NULL;
     input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
     repl->current->input_buffer = input_buf;
@@ -269,6 +277,7 @@ START_TEST(test_repl_process_action_arrow_up)
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -323,6 +332,7 @@ START_TEST(test_repl_process_action_arrow_down)
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state

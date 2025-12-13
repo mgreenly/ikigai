@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_tool_call_state_mutation_test.c
  * @brief Unit tests for REPL tool call conversation state mutation
@@ -27,6 +28,7 @@ static void setup(void)
 
     /* Create minimal REPL context for testing */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);

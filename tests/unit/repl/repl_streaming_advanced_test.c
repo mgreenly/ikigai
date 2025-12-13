@@ -41,7 +41,7 @@ START_TEST(test_streaming_callback_with_empty_lines)
     invoke_write_callback = true;
 
     // Call multi_perform to trigger the write callback
-    res = ik_openai_multi_perform(repl->multi, &repl->curl_still_running);
+    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify scrollback has new lines added
@@ -66,8 +66,8 @@ START_TEST(test_streaming_callback_with_empty_lines)
     ck_assert_uint_eq(line_len, 0);
 
     // "World" should be in the streaming_line_buffer (not in scrollback yet)
-    ck_assert_ptr_nonnull(repl->streaming_line_buffer);
-    ck_assert_str_eq(repl->streaming_line_buffer, "World");
+    ck_assert_ptr_nonnull(repl->current->streaming_line_buffer);
+    ck_assert_str_eq(repl->current->streaming_line_buffer, "World");
 
     // Clean up
     invoke_write_callback = false;
@@ -106,20 +106,20 @@ START_TEST(test_streaming_callback_buffered_line_flush)
     mock_response_len = strlen(chunk1);
     invoke_write_callback = true;
 
-    res = ik_openai_multi_perform(repl->multi, &repl->curl_still_running);
+    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify "First" is buffered (not in scrollback yet)
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), initial_count);
-    ck_assert_ptr_nonnull(repl->streaming_line_buffer);
-    ck_assert_str_eq(repl->streaming_line_buffer, "First");
+    ck_assert_ptr_nonnull(repl->current->streaming_line_buffer);
+    ck_assert_str_eq(repl->current->streaming_line_buffer, "First");
 
     // Second chunk: content with newline (flushes buffered content)
     const char *chunk2 = "data: {\"choices\":[{\"delta\":{\"content\":\" part\\nSecond part\"}}]}\n\n";
     mock_response_data = chunk2;
     mock_response_len = strlen(chunk2);
 
-    res = ik_openai_multi_perform(repl->multi, &repl->curl_still_running);
+    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify "First part" was flushed to scrollback
@@ -134,8 +134,8 @@ START_TEST(test_streaming_callback_buffered_line_flush)
     ck_assert_mem_eq(line_text, "First part", 10);
 
     // Verify "Second part" is now in the buffer
-    ck_assert_ptr_nonnull(repl->streaming_line_buffer);
-    ck_assert_str_eq(repl->streaming_line_buffer, "Second part");
+    ck_assert_ptr_nonnull(repl->current->streaming_line_buffer);
+    ck_assert_str_eq(repl->current->streaming_line_buffer, "Second part");
 
     // Clean up
     invoke_write_callback = false;
@@ -150,8 +150,8 @@ START_TEST(test_new_message_clears_streaming_buffer)
     ik_repl_ctx_t *repl = create_test_repl_with_llm(ctx);
 
     // Set up streaming_line_buffer with content (simulating previous streaming)
-    repl->streaming_line_buffer = talloc_strdup(repl, "buffered content");
-    ck_assert_ptr_nonnull(repl->streaming_line_buffer);
+    repl->current->streaming_line_buffer = talloc_strdup(repl, "buffered content");
+    ck_assert_ptr_nonnull(repl->current->streaming_line_buffer);
 
     // Reset mock state
     g_write_callback = NULL;
@@ -171,10 +171,10 @@ START_TEST(test_new_message_clears_streaming_buffer)
     ck_assert(is_ok(&res));
 
     // Verify streaming_line_buffer was cleared
-    ck_assert_ptr_null(repl->streaming_line_buffer);
+    ck_assert_ptr_null(repl->current->streaming_line_buffer);
 
     // Verify state transitioned to WAITING_FOR_LLM
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     talloc_free(ctx);
 }
@@ -210,7 +210,7 @@ START_TEST(test_submission_with_debug_enabled)
     ck_assert(is_ok(&res));
 
     // Verify state transitioned to WAITING_FOR_LLM
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     talloc_free(ctx);
 }

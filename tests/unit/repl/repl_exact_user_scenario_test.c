@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_exact_user_scenario_test.c
  * @brief Test exact user scenario: 5-row terminal with A, B, C, D in scrollback
@@ -63,6 +64,7 @@ START_TEST(test_exact_user_scenario) {
 
     // Create REPL at bottom (offset=0)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;

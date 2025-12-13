@@ -1,3 +1,4 @@
+#include "agent.h"
 #include "../../test_utils.h"
 #include "../../../src/agent.h"
 #include <check.h>
@@ -74,6 +75,7 @@ static void setup(void)
     }
 
     repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
 
     /* Create shared context */
     repl->shared = talloc_zero(ctx, ik_shared_ctx_t);
@@ -99,7 +101,7 @@ static void setup(void)
     repl->tool_thread_ctx = NULL;
 
     /* Set initial state */
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
 
     /* Create pending_tool_call with a simple glob call */
     repl->pending_tool_call = ik_tool_call_create(repl,
@@ -149,7 +151,7 @@ START_TEST(test_start_tool_execution) {
     ck_assert(!initial_complete);
 
     /* Verify state transition */
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
 
     /* Verify thread context was created */
     ck_assert_ptr_nonnull(repl->tool_thread_ctx);
@@ -218,7 +220,7 @@ START_TEST(test_complete_tool_execution)
     ck_assert_ptr_null(repl->tool_thread_result);
 
     /* Verify state transition back to WAITING_FOR_LLM */
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 }
 
 END_TEST

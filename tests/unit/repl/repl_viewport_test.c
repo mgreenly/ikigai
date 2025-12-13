@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_viewport_test.c
  * @brief Unit tests for REPL viewport calculation (Phase 4 Task 4.2)
@@ -38,6 +39,7 @@ START_TEST(test_viewport_empty_scrollback) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
@@ -97,6 +99,7 @@ START_TEST(test_viewport_small_scrollback)
     ck_assert_uint_eq(scrollback_rows, 3);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
@@ -162,6 +165,7 @@ START_TEST(test_viewport_large_scrollback)
     ck_assert_uint_eq(scrollback_rows, 20);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
@@ -221,6 +225,7 @@ START_TEST(test_viewport_offset_clamping)
     }
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
@@ -284,6 +289,7 @@ START_TEST(test_viewport_no_scrollback_room)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;

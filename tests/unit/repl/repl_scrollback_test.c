@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_scrollback_test.c
  * @brief Unit tests for REPL scrollback integration (Phase 4 Task 4.1)
@@ -94,6 +95,7 @@ START_TEST(test_repl_context_with_scrollback) {
 
     // Manually construct REPL context (like other tests do)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create agent context for display state
@@ -132,6 +134,7 @@ START_TEST(test_repl_scrollback_terminal_width)
     term->screen_cols = 120;
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;

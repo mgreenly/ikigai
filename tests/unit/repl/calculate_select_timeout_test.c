@@ -1,6 +1,7 @@
 #include <check.h>
 #include <talloc.h>
 #include <pthread.h>
+#include "agent.h"
 #include "repl.h"
 #include "repl_event_handlers.h"
 #include "scroll_detector.h"
@@ -24,8 +25,9 @@ static void setup(void)
     repl->spinner_state.visible = false;
     repl->spinner_state.frame_index = 0;
 
-    /* Set initial state */
-    repl->state = IK_REPL_STATE_IDLE;
+    /* Initialize current agent context (minimal setup for testing) */
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current->state = IK_AGENT_STATE_IDLE;
 
     /* Initialize scroll detector (rel-05) */
     repl->scroll_det = ik_scroll_detector_create(repl);
@@ -47,7 +49,7 @@ static void teardown(void)
 START_TEST(test_calculate_timeout_all_disabled) {
     /* All timeouts disabled */
     repl->spinner_state.visible = false;  // spinner_timeout = -1
-    repl->state = IK_REPL_STATE_IDLE;     // tool_poll_timeout = -1
+    repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = -1;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -64,7 +66,7 @@ START_TEST(test_calculate_timeout_spinner_only)
 {
     /* Only spinner timeout active */
     repl->spinner_state.visible = true;   // spinner_timeout = 80
-    repl->state = IK_REPL_STATE_IDLE;     // tool_poll_timeout = -1
+    repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = -1;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -82,7 +84,7 @@ START_TEST(test_calculate_timeout_curl_only)
 {
     /* Only curl timeout active */
     repl->spinner_state.visible = false;  // spinner_timeout = -1
-    repl->state = IK_REPL_STATE_IDLE;     // tool_poll_timeout = -1
+    repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = 500;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -100,7 +102,7 @@ START_TEST(test_calculate_timeout_tool_poll_only)
 {
     /* Only tool poll timeout active */
     repl->spinner_state.visible = false;            // spinner_timeout = -1
-    repl->state = IK_REPL_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
+    repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = -1;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -118,7 +120,7 @@ START_TEST(test_calculate_timeout_decreasing_spinner_tool)
 {
     /* Spinner (80ms) and tool poll (50ms) both active */
     repl->spinner_state.visible = true;             // spinner_timeout = 80
-    repl->state = IK_REPL_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
+    repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = -1;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -136,7 +138,7 @@ START_TEST(test_calculate_timeout_decreasing_spinner_curl)
 {
     /* Spinner (80ms) and curl (25ms) both active */
     repl->spinner_state.visible = true;   // spinner_timeout = 80
-    repl->state = IK_REPL_STATE_IDLE;     // tool_poll_timeout = -1
+    repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = 25;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -154,7 +156,7 @@ START_TEST(test_calculate_timeout_increasing_spinner_curl)
 {
     /* Spinner (80ms) and curl (500ms) both active */
     repl->spinner_state.visible = true;   // spinner_timeout = 80
-    repl->state = IK_REPL_STATE_IDLE;     // tool_poll_timeout = -1
+    repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = 500;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -172,7 +174,7 @@ START_TEST(test_calculate_timeout_increasing_curl_tool)
 {
     /* Curl (100ms) comes first, tool poll (50ms) comes later */
     repl->spinner_state.visible = false;            // spinner_timeout = -1
-    repl->state = IK_REPL_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
+    repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = 100;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -190,7 +192,7 @@ START_TEST(test_calculate_timeout_all_active_decreasing)
 {
     /* All timeouts active: spinner (80), curl (60), tool (50) */
     repl->spinner_state.visible = true;             // spinner_timeout = 80
-    repl->state = IK_REPL_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
+    repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = 60;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -208,7 +210,7 @@ START_TEST(test_calculate_timeout_all_active_mixed)
 {
     /* All timeouts active: spinner (80), curl (100), tool (50) */
     repl->spinner_state.visible = true;             // spinner_timeout = 80
-    repl->state = IK_REPL_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
+    repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = 100;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -225,7 +227,7 @@ START_TEST(test_calculate_timeout_mixed_disabled_spinner_curl)
 {
     /* Spinner (80ms) and curl (200ms), tool disabled */
     repl->spinner_state.visible = true;   // spinner_timeout = 80
-    repl->state = IK_REPL_STATE_IDLE;     // tool_poll_timeout = -1
+    repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = 200;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -242,7 +244,7 @@ START_TEST(test_calculate_timeout_mixed_disabled_spinner_tool)
 {
     /* Spinner (80ms) and tool (50ms), curl disabled */
     repl->spinner_state.visible = true;             // spinner_timeout = 80
-    repl->state = IK_REPL_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
+    repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = -1;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -259,7 +261,7 @@ START_TEST(test_calculate_timeout_mixed_disabled_curl_tool)
 {
     /* Curl (300ms) and tool (50ms), spinner disabled */
     repl->spinner_state.visible = false;            // spinner_timeout = -1
-    repl->state = IK_REPL_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
+    repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = 300;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -276,7 +278,7 @@ START_TEST(test_calculate_timeout_waiting_for_llm)
 {
     /* Spinner visible, waiting for LLM (no tool poll) */
     repl->spinner_state.visible = true;             // spinner_timeout = 80
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;    // tool_poll_timeout = -1
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;    // tool_poll_timeout = -1
     long curl_timeout_ms = 100;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
@@ -293,7 +295,7 @@ START_TEST(test_calculate_timeout_zero_curl)
 {
     /* Zero timeout is valid and should be chosen */
     repl->spinner_state.visible = true;   // spinner_timeout = 80
-    repl->state = IK_REPL_STATE_IDLE;     // tool_poll_timeout = -1
+    repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = 0;
 
     long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);

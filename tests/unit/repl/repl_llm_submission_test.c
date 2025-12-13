@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_llm_submission_test.c
  * @brief Unit tests for REPL LLM submission flow (Phase 1.6)
@@ -57,6 +58,7 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
     // Create shared context first
@@ -83,7 +85,7 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     repl->spinner_state.visible = false;
 
     // Initialize state to IDLE
-    repl->state = IK_REPL_STATE_IDLE;
+    repl->current->state = IK_AGENT_STATE_IDLE;
 
     // Create layers
     ik_layer_t *scrollback_layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
@@ -123,13 +125,13 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     // Create multi handle
     res = ik_openai_multi_create(ctx);
     ck_assert(is_ok(&res));
-    repl->multi = res.ok;
+    repl->current->multi = res.ok;
 
     // Initialize curl_still_running
-    repl->curl_still_running = 0;
+    repl->current->curl_still_running = 0;
 
     // Initialize assistant_response to NULL
-    repl->assistant_response = NULL;
+    repl->current->assistant_response = NULL;
 
     return repl;
 }
@@ -157,7 +159,7 @@ START_TEST(test_submit_message_with_llm_initialized) {
     ck_assert(is_ok(&res));
 
     // Verify state transitioned to WAITING_FOR_LLM
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     // Verify input buffer was cleared
     text_len = ik_byte_array_size(repl->current->input_buffer->text);
@@ -177,8 +179,8 @@ START_TEST(test_submit_message_clears_previous_assistant_response)
     ik_repl_ctx_t *repl = create_test_repl_with_llm(ctx);
 
     // Set a previous assistant_response
-    repl->assistant_response = talloc_strdup(repl, "Previous response");
-    ck_assert_ptr_nonnull(repl->assistant_response);
+    repl->current->assistant_response = talloc_strdup(repl, "Previous response");
+    ck_assert_ptr_nonnull(repl->current->assistant_response);
 
     // Type a message
     const char *message = "New question";
@@ -194,10 +196,10 @@ START_TEST(test_submit_message_clears_previous_assistant_response)
     ck_assert(is_ok(&res));
 
     // Verify previous assistant_response was cleared
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_ptr_null(repl->current->assistant_response);
 
     // Verify state transitioned to WAITING_FOR_LLM
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     talloc_free(ctx);
 }
@@ -226,7 +228,7 @@ START_TEST(test_submit_message_without_cfg)
     ck_assert(is_ok(&res));
 
     // Verify state did NOT transition to WAITING_FOR_LLM
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Verify input buffer was cleared
     size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
@@ -263,7 +265,7 @@ START_TEST(test_submit_message_api_request_failure)
     ck_assert(is_ok(&res));
 
     // Verify state transitioned back to IDLE (not stuck in WAITING_FOR_LLM)
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Verify input buffer was cleared
     size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);

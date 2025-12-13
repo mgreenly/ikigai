@@ -11,6 +11,14 @@
 typedef struct ik_shared_ctx ik_shared_ctx_t;
 typedef struct ik_input_buffer_t ik_input_buffer_t;
 typedef struct ik_openai_conversation ik_openai_conversation_t;
+struct ik_openai_multi;
+
+// Agent state machine
+typedef enum {
+    IK_AGENT_STATE_IDLE,              // Normal input mode
+    IK_AGENT_STATE_WAITING_FOR_LLM,   // Waiting for LLM response (spinner visible)
+    IK_AGENT_STATE_EXECUTING_TOOL     // Tool running in background thread
+} ik_agent_state_t;
 
 // Mark structure for conversation checkpoints
 typedef struct {
@@ -49,6 +57,17 @@ typedef struct ik_agent_ctx {
     ik_openai_conversation_t *conversation;
     ik_mark_t **marks;
     size_t mark_count;
+
+    // LLM interaction state (per-agent)
+    struct ik_openai_multi *multi;
+    int curl_still_running;
+    ik_agent_state_t state;
+    char *assistant_response;
+    char *streaming_line_buffer;
+    char *http_error_message;
+    char *response_model;
+    char *response_finish_reason;
+    int32_t response_completion_tokens;
 
     // Layer reference fields (updated before each render)
     bool separator_visible;

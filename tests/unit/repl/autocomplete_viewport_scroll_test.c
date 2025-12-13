@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file autocomplete_viewport_scroll_test.c
  * @brief Test that document height includes completion layer
@@ -86,6 +87,7 @@ START_TEST(test_autocomplete_viewport_includes_completion_height) {
 
     // Create REPL with completion active
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     repl->shared = shared;
     repl->current = agent;
     repl->current->input_buffer = input_buf;
@@ -187,6 +189,7 @@ START_TEST(test_autocomplete_viewport_without_completion) {
 
     // Create REPL WITHOUT completion
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     repl->shared = shared;
     repl->current = agent;
     repl->current->input_buffer = input_buf;
