@@ -35,9 +35,6 @@ static void setup(void)
 
 static void teardown(void)
 {
-    if (repl != NULL) {
-        pthread_mutex_destroy_(&repl->current->tool_thread_mutex);
-    }
     talloc_free(ctx);
     ctx = NULL;
     repl = NULL;

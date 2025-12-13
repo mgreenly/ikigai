@@ -186,9 +186,6 @@ START_TEST(test_request_success_starts_tool_execution)
 
     // State should transition back to WAITING_FOR_LLM
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
-
-    // Clean up mutex
-    pthread_mutex_destroy_(&repl->current->tool_thread_mutex);
 }
 
 END_TEST
@@ -250,7 +247,6 @@ START_TEST(test_handle_curl_events_tool_execution_state)
 
     // Clean up
     simulate_completion = false;
-    pthread_mutex_destroy_(&repl->current->tool_thread_mutex);
 }
 
 END_TEST
