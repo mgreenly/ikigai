@@ -72,7 +72,6 @@ static void setup(void)
 
     /* Use the agent created above */
     agent->scrollback = ik_scrollback_create(repl, 80);
-    agent->conversation = NULL;
 }
 
 static void teardown(void)
