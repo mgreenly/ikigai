@@ -41,7 +41,7 @@ An autonomous agent is:
 The simplest agent runs a blocking loop:
 
 ```typescript
-import { Agent } from '@ikigai/agent';
+import { Agent } from 'ikigai/agent';
 
 const agent = new Agent({
   name: 'code-reviewer',
@@ -219,20 +219,24 @@ Tools define what an agent can do. The human designer curates each agent's tools
 
 ## Deployment Modes
 
+Autonomous agents run in [iki-genba](iki-genba.md), the PaaS for external agents. The same runtime works locally or on a server.
+
 | Mode | Always-on provided by | Human access |
 |------|----------------------|--------------|
 | Development | ikigai terminal (C binary) | Direct, at keyboard |
-| Server | ikigai-daemon | Remote agent (transient while logged in) |
+| Server | ikigai-daemon (iki-genba) | Remote agent (transient while logged in) |
 
 ### Development Mode
 
 - Human runs `ikigai` in a git worktree
-- Terminal provides always-on services
+- Terminal provides daemon functionality while running
 - Local postgres, nginx, runit
+- Agents connect to terminal's daemon socket
 
-### Server Mode
+### Server Mode (iki-genba)
 
 - ikigai-daemon keeps everything running
+- Part of iki-genba PaaS (deno, runit, postgres, nginx)
 - Humans connect remotely as transient agents
 - Persistent Linux user identity, transient connection
 - "SSH for agents" - log in, receive events, respond, log out
@@ -290,7 +294,7 @@ Simple approach:
 Agents are TypeScript code in runit service directories:
 
 ```
-.agents/sv/
+.ikigai/sv/
 ├── code-reviewer/
 │   ├── run              # runit script
 │   └── main.ts          # imports from @ikigai/agent
@@ -300,11 +304,12 @@ Agents are TypeScript code in runit service directories:
 └── ...
 ```
 
-The `@ikigai/agent` library provides:
-- Agent class with registration, heartbeat, message loop
-- Database access (history, pub/sub, queues)
+The `ikigai` package provides multiple modules:
+- `ikigai/agent`: Agent class with registration, heartbeat, message loop
+- `ikigai/platform`: Database access (history, pub/sub, queues), LLM integration
 - Tool definition helpers
-- LLM integration
+
+Agents connect to the daemon via Unix socket at `../../daemon.sock` relative to their service directory. This works because agents live in `.ikigai/sv/{agent-name}/` and the daemon socket is at `.ikigai/daemon.sock`.
 
 Human codes at a high level of abstraction. Library handles plumbing.
 

@@ -1,6 +1,6 @@
 # Pillar 3: Autonomous Agents
 
-> This is the third of [four pillars](02-architecture.md). Agents are what you build, long-running processes that use the [Runtime](06-runtime.md) to coordinate.
+> This is the third of [four pillars](02-architecture.md). Agents are what you build, long-running processes that use the [Runtime](06-runtime.md) to coordinate. Agents run in [iki-genba](../iki-genba.md), the PaaS for external agents.
 
 ---
 
@@ -134,9 +134,9 @@ Autonomous agents are event-driven, not request-driven:
 
 ```typescript
 // run.ts - simplified agent structure
-import { Platform } from "@ikigai/platform";
+import { Platform } from "ikigai/platform";
 
-const platform = await Platform.connect();
+const platform = await Platform.connect();  // connects to ../../daemon.sock
 
 // Register signal handlers
 platform.onShutdown(async () => {
@@ -173,12 +173,12 @@ This architecture enables true autonomy: agents respond to multiple signal types
 
 ## LLM Access
 
-Agents access LLM capabilities through the [Ikigai Daemon](06-runtime.md#ikigai-daemon), using the same `@ikigai/platform` package they use for queues and mailboxes.
+Agents access LLM capabilities through the [Ikigai Daemon](06-runtime.md#ikigai-daemon), using the same `ikigai/platform` module they use for queues and mailboxes.
 
 ### Basic Usage
 
 ```typescript
-import { Platform } from "@ikigai/platform";
+import { Platform } from "ikigai/platform";
 
 const platform = await Platform.connect();
 
@@ -316,7 +316,7 @@ The grace period comes from `manifest.json`:
 ### Well-Behaved Agent Pattern
 
 ```typescript
-import { Platform } from "@ikigai/platform";
+import { Platform } from "ikigai/platform";
 
 const platform = await Platform.connect();
 let running = true;

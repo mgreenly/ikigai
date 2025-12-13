@@ -1,5 +1,7 @@
 # Ikigai Services
 
+> This document describes the infrastructure layer also known as [iki-genba](iki-genba.md), the PaaS for running autonomous agents.
+
 ## Vision
 
 Ikigai provides a unified runtime for building and deploying TypeScript applications. The same infrastructure runs in development and production: nginx, PostgreSQL, and runit. In development, these run as child processes. In production, they're system services. Same configs, same structure, no "works on my machine" problems.
@@ -24,7 +26,8 @@ The infrastructure exists but requires manual control via shell scripts. This pr
 ### Directory Structure
 
 ```
-.agents/
+.ikigai/
+├── daemon.sock    # Unix socket for agent communication
 ├── bin/           # Wrapper scripts (added to PATH via direnv)
 │   ├── deno       # Auto-installs deno on first use
 │   ├── nginx      # Wrapper for local nginx
@@ -49,6 +52,8 @@ The infrastructure exists but requires manual control via shell scripts. This pr
             └── run
 ```
 
+Agents in `.ikigai/sv/{name}/` connect to the daemon at `../../daemon.sock`.
+
 ### Manual Service Control
 
 #### Nginx (port 8888)
@@ -61,7 +66,7 @@ nginx -s reload # Reload config
 
 #### PostgreSQL (port 15432)
 ```bash
-.agents/scripts/postgres  # Run foreground (blocking, auto-inits on first run)
+.ikigai/scripts/postgres  # Run foreground (blocking, auto-inits on first run)
 pg_ctl start              # Start as daemon
 pg_ctl stop               # Stop daemon
 psql                      # Connect (defaults to ikigai/ikigai/ikigai)
@@ -79,24 +84,24 @@ runsvdir status    # Check if running
 
 With `runsvdir` running:
 ```bash
-sv status .agents/sv/backend   # Check status
-sv start .agents/sv/backend    # Start
-sv stop .agents/sv/backend     # Stop
-sv restart .agents/sv/backend  # Restart
+sv status .ikigai/sv/backend   # Check status
+sv start .ikigai/sv/backend    # Start
+sv stop .ikigai/sv/backend     # Stop
+sv restart .ikigai/sv/backend  # Restart
 ```
 
 Or set `SVDIR` for shorter commands:
 ```bash
-export SVDIR=$PWD/.agents/sv
+export SVDIR=$PWD/.ikigai/sv
 sv status backend
 sv restart backend
 ```
 
 ### Viewing Logs
 ```bash
-tail -f .agents/logs/backend/current   # Watch backend logs
-tail -f .agents/logs/nginx.log         # Watch nginx logs
-tail -f .agents/logs/postgres.log      # Watch postgres logs
+tail -f .ikigai/logs/backend/current   # Watch backend logs
+tail -f .ikigai/logs/nginx.log         # Watch nginx logs
+tail -f .ikigai/logs/postgres.log      # Watch postgres logs
 ```
 
 ### Quick Start (Manual)

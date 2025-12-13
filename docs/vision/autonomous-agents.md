@@ -17,7 +17,7 @@ An autonomous agent is:
 The simplest agent runs a blocking loop:
 
 ```typescript
-import { Agent } from '@ikigai/agent';
+import { Agent } from 'ikigai/agent';
 
 const agent = new Agent({
   name: 'code-reviewer',
@@ -203,21 +203,22 @@ Simple approach:
 Agents are TypeScript code in runit service directories:
 
 ```
-.agents/sv/
+.ikigai/sv/
 ├── code-reviewer/
 │   ├── run              # runit script
-│   └── main.ts          # imports from @ikigai/agent
+│   └── main.ts          # imports from ikigai/agent
 ├── news-digest/
 │   ├── run
 │   └── main.ts
 └── ...
 ```
 
-The `@ikigai/agent` library provides:
-- Agent class with registration, heartbeat, message loop
-- Database access (history, pub/sub, queues)
+The `ikigai` package provides multiple modules:
+- `ikigai/agent`: Agent class with registration, heartbeat, message loop
+- `ikigai/platform`: Database access (history, pub/sub, queues), LLM integration
 - Tool definition helpers
-- LLM integration
+
+Agents connect to the daemon via Unix socket at `../../daemon.sock` relative to their service directory.
 
 Human codes at a high level of abstraction. Library handles plumbing.
 

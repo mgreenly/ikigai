@@ -6,12 +6,12 @@
 
 ## Purpose
 
-The runtime system provides platform services that agents and webapps consume: task queues, mailboxes, storage, caching, pub/sub, telemetry, and **LLM access via the Ikigai Daemon**. Agents import `@ikigai/platform` and use its APIs. They're built for Ikigai, but they don't need to know which database their queue lives in or which LLM provider handles their prompts.
+The runtime system provides platform services that agents and webapps consume: task queues, mailboxes, storage, caching, pub/sub, telemetry, and **LLM access via the Ikigai Daemon**. Agents import the `ikigai` package and use its APIs. They're built for Ikigai, but they don't need to know which database their queue lives in or which LLM provider handles their prompts.
 
 ```typescript
-import { Platform } from "@ikigai/platform";
+import { Platform } from "ikigai/platform";
 
-const platform = await Platform.connect();
+const platform = await Platform.connect();  // connects to ../../daemon.sock
 const task = await platform.queue("my-tasks").claim();
 await platform.cache.set("key", value);
 await platform.pubsub.publish("topic", message);
@@ -23,7 +23,7 @@ const response = await platform.prompt({
 });
 ```
 
-The platform package is the API contract. Backend implementations are configuration.
+The `ikigai` package provides multiple modules (`ikigai/platform`, `ikigai/agent`, etc.) as the API contract. Backend implementations are configuration.
 
 ---
 
@@ -202,16 +202,16 @@ This avoids polling while keeping operational simplicity. Other backends would u
 
 ## Ikigai Daemon
 
-The Ikigai Daemon exposes `libikigai` to agents over a Unix socket. It's the same intelligence that powers the [Terminal](05-terminal.md), available as a platform service.
+The Ikigai Daemon exposes `libikigai` to agents over a Unix socket at `.ikigai/daemon.sock`. Agents connect via the relative path `../../daemon.sock` from their service directory. It's the same intelligence that powers the [Terminal](05-terminal.md), available as a platform service.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Agent Process                             │
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │              @ikigai/platform client                       │  │
+│  │              ikigai/platform client                        │  │
 │  └─────────────────────────┬─────────────────────────────────┘  │
 └────────────────────────────┼────────────────────────────────────┘
-                             │ Unix socket
+                             │ Unix socket (../../daemon.sock)
 ┌────────────────────────────┴────────────────────────────────────┐
 │                       ikigai-daemon                              │
 │  ┌───────────────────────────────────────────────────────────┐  │
@@ -245,10 +245,10 @@ The daemon gives agents access to all `libikigai` capabilities:
 
 ### Agent API
 
-Agents access LLM capabilities through `@ikigai/platform`:
+Agents access LLM capabilities through `ikigai/platform`:
 
 ```typescript
-import { Platform } from "@ikigai/platform";
+import { Platform } from "ikigai/platform";
 
 const platform = await Platform.connect();
 

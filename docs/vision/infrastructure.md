@@ -15,7 +15,7 @@ Development and production use identical infrastructure:
 - **nginx**: HTTP reverse proxy, static file serving
 - **runit**: Process supervision for agents
 
-The difference is only in how they're started (child processes vs system services) and where data lives (local `.agents/` directory vs `/opt/ikigai/`).
+The difference is only in how they're started (child processes vs system services) and where data lives (local `.ikigai/` directory vs `/opt/ikigai/`).
 
 ### Invisible Plumbing
 
@@ -36,7 +36,7 @@ The infrastructure exists but requires manual control via shell scripts. This pr
 ### Directory Structure
 
 ```
-.agents/
+.ikigai/
 ├── bin/           # Wrapper scripts (added to PATH via direnv)
 │   ├── deno       # Auto-installs deno on first use
 │   ├── nginx      # Wrapper for local nginx
@@ -73,7 +73,7 @@ nginx -s reload # Reload config
 
 #### PostgreSQL (port 15432)
 ```bash
-.agents/scripts/postgres  # Run foreground (blocking, auto-inits on first run)
+.ikigai/scripts/postgres  # Run foreground (blocking, auto-inits on first run)
 pg_ctl start              # Start as daemon
 pg_ctl stop               # Stop daemon
 psql                      # Connect (defaults to ikigai/ikigai/ikigai)
@@ -91,24 +91,24 @@ runsvdir status    # Check if running
 
 With `runsvdir` running:
 ```bash
-sv status .agents/sv/backend   # Check status
-sv start .agents/sv/backend    # Start
-sv stop .agents/sv/backend     # Stop
-sv restart .agents/sv/backend  # Restart
+sv status .ikigai/sv/backend   # Check status
+sv start .ikigai/sv/backend    # Start
+sv stop .ikigai/sv/backend     # Stop
+sv restart .ikigai/sv/backend  # Restart
 ```
 
 Or set `SVDIR` for shorter commands:
 ```bash
-export SVDIR=$PWD/.agents/sv
+export SVDIR=$PWD/.ikigai/sv
 sv status backend
 sv restart backend
 ```
 
 ### Viewing Logs
 ```bash
-tail -f .agents/logs/backend/current   # Watch backend logs
-tail -f .agents/logs/nginx.log         # Watch nginx logs
-tail -f .agents/logs/postgres.log      # Watch postgres logs
+tail -f .ikigai/logs/backend/current   # Watch backend logs
+tail -f .ikigai/logs/nginx.log         # Watch nginx logs
+tail -f .ikigai/logs/postgres.log      # Watch postgres logs
 ```
 
 ---
@@ -152,7 +152,7 @@ The manual scripts become internal implementation details, invisible to the user
 
 ## Platform Services
 
-Agents consume platform services through the `@ikigai/platform` library:
+Agents consume platform services through the `ikigai/platform` module:
 
 | Service | Purpose |
 |---------|---------|
