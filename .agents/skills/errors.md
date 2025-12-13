@@ -40,6 +40,19 @@ typedef struct err {
 } err_t;
 ```
 
+## Error Codes
+
+| Code | Value | Usage |
+|------|-------|-------|
+| `OK` | 0 | Success/no error |
+| `ERR_INVALID_ARG` | 1 | Invalid argument validation |
+| `ERR_OUT_OF_RANGE` | 2 | Out of range values |
+| `ERR_IO` | 3 | File operations, config loading |
+| `ERR_PARSE` | 4 | JSON/protocol parsing |
+| `ERR_DB_CONNECT` | 5 | Database connection failures |
+| `ERR_DB_MIGRATE` | 6 | Database migration failures |
+| `ERR_OUT_OF_MEMORY` | 7 | Memory allocation failures |
+
 ## Macros
 
 - `OK(value)` / `ERR(ctx, CODE, "msg", ...)` - Create results

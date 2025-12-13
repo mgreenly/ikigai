@@ -27,6 +27,11 @@ Don't enumerate or read the other files I list here unless you need to.
 
 **CRITICAL**: Never run multiple `make` commands simultaneously. Different targets use incompatible compiler flags and will corrupt the build.
 
+## Related Skills
+
+* See `source-code` skill for a map of all src/*.c files organized by functional area.
+* See `makefile` skill for all make targets organized by category.
+
 ## Scripts
 
 * Each script directory has `README.md` with: exact command (including Deno permissions), arguments table, JSON output format
