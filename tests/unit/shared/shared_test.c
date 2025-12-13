@@ -125,7 +125,7 @@ START_TEST(test_shared_ctx_init_success)
     cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -147,7 +147,7 @@ START_TEST(test_shared_ctx_parent_allocation)
     cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(parent, cfg, &shared);
+    res_t res = ik_shared_ctx_init(parent, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -173,7 +173,7 @@ START_TEST(test_shared_ctx_can_be_freed)
     cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -199,7 +199,7 @@ START_TEST(test_shared_ctx_stores_cfg)
     cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -223,7 +223,7 @@ START_TEST(test_shared_ctx_cfg_accessible)
     cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -247,7 +247,7 @@ START_TEST(test_shared_ctx_term_initialized)
     cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -270,7 +270,7 @@ START_TEST(test_shared_ctx_render_initialized)
     cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -293,7 +293,7 @@ START_TEST(test_shared_ctx_render_matches_term_dimensions)
     cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -321,7 +321,7 @@ START_TEST(test_shared_ctx_db_ctx_null_when_not_configured)
     cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -344,7 +344,7 @@ START_TEST(test_shared_ctx_session_id_zero_when_not_configured)
     cfg->history_size = 100;  // Required for history initialization
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -367,7 +367,7 @@ START_TEST(test_shared_ctx_history_initialized)
     cfg->history_size = 100;  // Set history size
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -390,7 +390,7 @@ START_TEST(test_shared_ctx_history_capacity_matches_config)
     cfg->history_size = 250;  // Set custom history size
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -414,7 +414,7 @@ START_TEST(test_shared_ctx_debug_mgr_initialized)
     cfg->history_size = 100;
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -438,7 +438,7 @@ START_TEST(test_shared_ctx_debug_pipes_created)
     cfg->history_size = 100;
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);

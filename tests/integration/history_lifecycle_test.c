@@ -87,7 +87,7 @@ START_TEST(test_history_loads_on_init)
     cfg->history_size = 100;
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
@@ -110,7 +110,7 @@ START_TEST(test_history_saves_on_submit)
     cfg->history_size = 100;
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     const char *test_cmd = "my test command";
@@ -144,7 +144,7 @@ START_TEST(test_history_survives_repl_restart)
 
     ik_repl_ctx_t *repl1 = NULL;
     ik_shared_ctx_t *shared1 = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared1); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared1); ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared1, &repl1);
     ck_assert(is_ok(&result));
     const char *test_cmd = "persistent command";
@@ -156,7 +156,7 @@ START_TEST(test_history_survives_repl_restart)
     ik_repl_cleanup(repl1);
     ik_repl_ctx_t *repl2 = NULL;
     ik_shared_ctx_t *shared2 = NULL;
-    r = ik_shared_ctx_init(ctx, cfg, &shared2); ck_assert(is_ok(&r));
+    r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared2); ck_assert(is_ok(&r));
     result = ik_repl_init(ctx, shared2, &repl2);
     ck_assert(is_ok(&result));
     ck_assert_uint_eq(shared2->history->count, 1);
@@ -178,7 +178,7 @@ START_TEST(test_history_respects_config_capacity)
     cfg->history_size = 3;
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     ck_assert_uint_eq(repl->shared->history->capacity, 3);
@@ -198,7 +198,7 @@ START_TEST(test_history_empty_input_not_saved)
     cfg->history_size = 100;
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
@@ -224,7 +224,7 @@ START_TEST(test_history_multiline_preserved)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -273,7 +273,7 @@ START_TEST(test_history_file_corrupt_continues)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -305,7 +305,7 @@ START_TEST(test_history_submit_stops_browsing)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -351,7 +351,7 @@ START_TEST(test_history_file_write_failure)
     ik_repl_ctx_t *repl = NULL;
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context

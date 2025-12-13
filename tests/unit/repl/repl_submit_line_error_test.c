@@ -144,7 +144,7 @@ START_TEST(test_submit_line_event_render_fails) {
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context

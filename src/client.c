@@ -33,12 +33,12 @@ int main(void)
     }
     ik_cfg_t *cfg = cfg_result.ok;
 
-    // Initialize logger with captured working directory
+    // Initialize legacy global logger for backward compatibility during migration
     ik_log_init(cwd);
 
-    // Create shared context
+    // Create shared context (creates DI-based logger internally)
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(root_ctx, cfg, &shared);
+    res_t result = ik_shared_ctx_init(root_ctx, cfg, cwd, &shared);
     if (is_err(&result)) {
         error_fprintf(stderr, result.err);
         ik_log_shutdown();

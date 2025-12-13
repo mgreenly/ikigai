@@ -138,16 +138,20 @@ int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *
 
 int posix_stat_(const char *pathname, struct stat *statbuf)
 {
-    (void)pathname;
-    (void)statbuf;
-
     if (mock_stat_should_fail) {
         errno = EACCES;  // Permission denied
         return -1;
     }
 
-    // Simulate directory exists for .ikigai
-    return -1;  // File doesn't exist (normal case for history file)
+    // For logger directories in /tmp, call real stat
+    // The test uses /tmp as the working directory
+    if (strncmp(pathname, "/tmp", 4) == 0) {
+        return stat(pathname, statbuf);
+    }
+
+    // For history file (non-directory), simulate not exists
+    errno = ENOENT;  // File doesn't exist (normal case for history file)
+    return -1;
 }
 
 int posix_mkdir_(const char *pathname, mode_t mode)
@@ -173,7 +177,7 @@ START_TEST(test_repl_init_terminal_open_failure) {
     // Attempt to initialize shared context - should fail during terminal init
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     // Verify failure (terminal init failed)
     ck_assert(is_err(&res));
@@ -196,7 +200,7 @@ START_TEST(test_repl_init_render_invalid_dimensions)
     // Attempt to initialize shared context - should fail when creating render
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     // Verify failure (render init failed)
     ck_assert(is_err(&res));
@@ -222,7 +226,7 @@ START_TEST(test_repl_init_signal_handler_failure)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -246,15 +250,16 @@ START_TEST(test_repl_init_history_load_failure)
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
-    // Enable mock failure for stat/mkdir (history directory creation)
-    mock_stat_should_fail = true;
-
     // Initialize REPL - should succeed even with history failure
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    // Create shared context
+    // Create shared context (logger needs to initialize first)
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
+
+    // Enable mock failure for stat/mkdir (history directory creation)
+    // Must be set AFTER shared context init because logger also uses stat
+    mock_stat_should_fail = true;
 
     // Create REPL context
     res = ik_repl_init(ctx, shared, &repl);
@@ -285,7 +290,7 @@ START_TEST(test_repl_init_success_debug_manager)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -316,7 +321,7 @@ START_TEST(test_repl_init_creates_agent)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context

@@ -110,7 +110,7 @@ START_TEST(test_resize_updates_terminal_dimensions) {
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -148,7 +148,7 @@ START_TEST(test_resize_invalidates_scrollback_layout)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -193,7 +193,7 @@ START_TEST(test_resize_handles_ioctl_failure)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -225,7 +225,7 @@ START_TEST(test_sigwinch_handler_installed)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t result = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context

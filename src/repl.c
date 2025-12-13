@@ -157,7 +157,7 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
             yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
             yyjson_mut_obj_add_str(log_doc, root, "message", "Failed to append to history file");  // LCOV_EXCL_LINE
             yyjson_mut_obj_add_str(log_doc, root, "error", result.err->msg);  // LCOV_EXCL_LINE
-            ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
+            ik_logger_warn_json(repl->shared->logger, log_doc);  // LCOV_EXCL_LINE
             talloc_free(result.err);  // LCOV_EXCL_LINE
         }
 

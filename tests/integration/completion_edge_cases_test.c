@@ -126,7 +126,7 @@ START_TEST(test_completion_space_commits)
 
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/m");
     press_tab(repl);
@@ -156,7 +156,7 @@ START_TEST(test_completion_tab_wraparound)
 
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug ");
     press_tab(repl);
@@ -179,7 +179,7 @@ START_TEST(test_completion_single_item)
     cfg->history_size = 100;
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug");
     press_tab(repl);
@@ -208,7 +208,7 @@ START_TEST(test_completion_escape_exact_revert)
 
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/mar");
     size_t original_len = 0;
@@ -250,7 +250,7 @@ START_TEST(test_completion_tab_cycle_then_space)
 
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug ");
     press_tab(repl);
@@ -274,7 +274,7 @@ START_TEST(test_completion_space_on_first_tab)
 
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/d");
     press_tab(repl);
@@ -305,7 +305,7 @@ START_TEST(test_completion_type_cancels)
 
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/m");
     press_tab(repl);
@@ -337,7 +337,7 @@ START_TEST(test_completion_rewind_args)
 
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/rewind ");
     press_tab(repl);
@@ -365,7 +365,7 @@ START_TEST(test_completion_mark_no_args)
 
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/mark ");
     press_tab(repl);
@@ -392,7 +392,7 @@ START_TEST(test_completion_help_no_args)
 
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    res_t r = ik_shared_ctx_init(ctx, cfg, &shared); ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared); ck_assert(is_ok(&r));
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/help ");
     press_tab(repl);

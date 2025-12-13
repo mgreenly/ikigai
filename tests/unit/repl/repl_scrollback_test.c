@@ -169,7 +169,7 @@ START_TEST(test_page_down_scrolling)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -202,7 +202,7 @@ START_TEST(test_page_down_at_bottom)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -235,7 +235,7 @@ START_TEST(test_page_down_small_offset)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -268,7 +268,7 @@ START_TEST(test_page_up_scrolling)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -309,7 +309,7 @@ START_TEST(test_page_up_empty_scrollback)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -345,7 +345,7 @@ START_TEST(test_page_up_clamping)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -397,7 +397,7 @@ START_TEST(test_submit_line_to_scrollback)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -441,7 +441,7 @@ START_TEST(test_submit_line_auto_scroll)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -481,7 +481,7 @@ START_TEST(test_submit_empty_line)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context

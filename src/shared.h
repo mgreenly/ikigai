@@ -5,6 +5,7 @@
 #include "debug_pipe.h"
 #include "error.h"
 #include "history.h"
+#include "logger.h"
 #include "render.h"
 #include "terminal.h"
 
@@ -30,6 +31,7 @@
  */
 typedef struct ik_shared_ctx {
     ik_cfg_t *cfg;  // Configuration (borrowed, not owned)
+    ik_logger_t *logger;     // Logger instance (DI pattern)
     ik_term_ctx_t *term;    // Terminal context
     ik_render_ctx_t *render; // Render context
     ik_db_ctx_t *db_ctx;     // Database connection (NULL if not configured)
@@ -44,5 +46,6 @@ typedef struct ik_shared_ctx {
 // Create shared context (facade that will create infrastructure)
 // ctx: talloc parent (root_ctx)
 // cfg: configuration pointer (borrowed)
+// working_dir: directory for logger initialization (typically cwd)
 // out: receives allocated shared context
-res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, ik_shared_ctx_t **out);
+res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, const char *working_dir, ik_shared_ctx_t **out);

@@ -85,7 +85,7 @@ static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offs
 
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context

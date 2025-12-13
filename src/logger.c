@@ -15,10 +15,16 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
-// Global mutex for thread-safe logging
+// Logger context structure (DI pattern)
+struct ik_logger {
+    FILE *file;
+    pthread_mutex_t mutex;
+};
+
+// Global mutex for thread-safe logging (legacy compatibility)
 static pthread_mutex_t ik_log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-// Global log file handle
+// Global log file handle (legacy compatibility)
 static FILE *ik_log_file = NULL;
 
 // Format timestamp as ISO 8601 with milliseconds and local timezone offset
@@ -332,5 +338,188 @@ void ik_log_error_json(yyjson_mut_doc *doc)
 void ik_log_fatal_json(yyjson_mut_doc *doc)
 {
     ik_log_write("fatal", doc);
+    exit(1);
+}
+
+// ============================================================================
+// DI-based Logger API (new pattern with explicit context)
+// ============================================================================
+
+// Destructor for logger context - closes file and cleans up
+static int logger_destructor(ik_logger_t *logger)
+{
+    pthread_mutex_lock(&logger->mutex);
+    if (logger->file != NULL) {
+        if (fclose_(logger->file) != 0) {  // LCOV_EXCL_BR_LINE
+            pthread_mutex_unlock(&logger->mutex);  // LCOV_EXCL_LINE
+            PANIC("Failed to close log file");  // LCOV_EXCL_LINE
+        }
+        logger->file = NULL;
+    }
+    pthread_mutex_unlock(&logger->mutex);
+    pthread_mutex_destroy(&logger->mutex);
+    return 0;
+}
+
+ik_logger_t *ik_logger_create(TALLOC_CTX *ctx, const char *working_dir)
+{
+    assert(ctx != NULL);         // LCOV_EXCL_BR_LINE
+    assert(working_dir != NULL); // LCOV_EXCL_BR_LINE
+
+    // Allocate logger structure
+    ik_logger_t *logger = talloc_zero(ctx, ik_logger_t);
+    if (logger == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Initialize mutex
+    if (pthread_mutex_init(&logger->mutex, NULL) != 0) {  // LCOV_EXCL_BR_LINE
+        talloc_free(logger);  // LCOV_EXCL_LINE
+        PANIC("Failed to initialize mutex");  // LCOV_EXCL_LINE
+    }
+
+    // Set up directories and get log file path
+    char log_path[512];
+    ik_log_setup_directories(working_dir, log_path);
+
+    // Lock mutex before file operations
+    pthread_mutex_lock(&logger->mutex);
+
+    // Rotate existing current.log to timestamped archive if it exists
+    ik_log_rotate_if_exists(log_path);
+
+    // Open new log file in write mode
+    logger->file = fopen_(log_path, "w");
+    if (logger->file == NULL) {  // LCOV_EXCL_BR_LINE
+        pthread_mutex_unlock(&logger->mutex);  // LCOV_EXCL_LINE
+        pthread_mutex_destroy(&logger->mutex);  // LCOV_EXCL_LINE
+        talloc_free(logger);  // LCOV_EXCL_LINE
+        PANIC("Failed to open log file");  // LCOV_EXCL_LINE
+    }
+    pthread_mutex_unlock(&logger->mutex);
+
+    // Set destructor for cleanup
+    talloc_set_destructor(logger, logger_destructor);
+
+    return logger;
+}
+
+void ik_logger_reinit(ik_logger_t *logger, const char *working_dir)
+{
+    assert(logger != NULL);      // LCOV_EXCL_BR_LINE
+    assert(working_dir != NULL); // LCOV_EXCL_BR_LINE
+
+    // Set up directories and get log file path
+    char log_path[512];
+    ik_log_setup_directories(working_dir, log_path);
+
+    // Lock mutex before file operations
+    pthread_mutex_lock(&logger->mutex);
+
+    // Close current log file if open
+    if (logger->file != NULL) {
+        if (fclose_(logger->file) != 0) {  // LCOV_EXCL_BR_LINE
+            pthread_mutex_unlock(&logger->mutex);  // LCOV_EXCL_LINE
+            PANIC("Failed to close log file");  // LCOV_EXCL_LINE
+        }
+        logger->file = NULL;
+    }
+
+    // Rotate existing current.log to timestamped archive if it exists
+    ik_log_rotate_if_exists(log_path);
+
+    // Open new log file in write mode
+    logger->file = fopen_(log_path, "w");
+    if (logger->file == NULL) {  // LCOV_EXCL_BR_LINE
+        pthread_mutex_unlock(&logger->mutex);  // LCOV_EXCL_LINE
+        PANIC("Failed to open log file");  // LCOV_EXCL_LINE
+    }
+    pthread_mutex_unlock(&logger->mutex);
+}
+
+// Internal function to write JSONL with a specific level (DI version)
+static void ik_logger_write(ik_logger_t *logger, const char *level, yyjson_mut_doc *doc)
+{
+    assert(logger != NULL); // LCOV_EXCL_BR_LINE
+    assert(level != NULL);  // LCOV_EXCL_BR_LINE
+
+    // If logger file not initialized, free doc and return silently
+    if (logger->file == NULL) {
+        yyjson_mut_doc_free(doc);
+        return;
+    }
+
+    // Get original root object from doc
+    yyjson_mut_val *original_root = yyjson_mut_doc_get_root(doc);
+
+    // Create new wrapper doc
+    yyjson_mut_doc *wrapper_doc = yyjson_mut_doc_new(NULL);
+    if (wrapper_doc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_val *wrapper_root = yyjson_mut_obj(wrapper_doc);
+    if (wrapper_root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_doc_set_root(wrapper_doc, wrapper_root);
+
+    // Add "level" field with the provided level string
+    yyjson_mut_obj_add_str(wrapper_doc, wrapper_root, "level", level);
+
+    // Format and add "timestamp" field with ISO 8601 format
+    char timestamp_buf[64];
+    ik_log_format_timestamp(timestamp_buf, sizeof(timestamp_buf));
+    yyjson_mut_obj_add_str(wrapper_doc, wrapper_root, "timestamp", timestamp_buf);
+
+    // Add "logline" field with original root object
+    // Copy the original root to the wrapper doc
+    yyjson_mut_val *logline_copy = yyjson_mut_val_mut_copy(wrapper_doc, original_root);
+    if (logline_copy == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_obj_add_val(wrapper_doc, wrapper_root, "logline", logline_copy);
+
+    // Serialize to JSON string (single line)
+    char *json_str = yyjson_mut_write(wrapper_doc, 0, NULL);
+    if (json_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Write to log file with newline
+    pthread_mutex_lock(&logger->mutex);
+    if (fprintf(logger->file, "%s\n", json_str) < 0) {  // LCOV_EXCL_BR_LINE
+        PANIC("Failed to write to log file");  // LCOV_EXCL_LINE
+    }
+    if (fflush(logger->file) != 0) {  // LCOV_EXCL_BR_LINE
+        PANIC("Failed to flush log file");  // LCOV_EXCL_LINE
+    }
+    pthread_mutex_unlock(&logger->mutex);
+
+    // Free JSON string
+    free(json_str);
+
+    // Free wrapper doc
+    yyjson_mut_doc_free(wrapper_doc);
+
+    // Free original doc
+    yyjson_mut_doc_free(doc);
+}
+
+void ik_logger_debug_json(ik_logger_t *logger, yyjson_mut_doc *doc)
+{
+    ik_logger_write(logger, "debug", doc);
+}
+
+void ik_logger_info_json(ik_logger_t *logger, yyjson_mut_doc *doc)
+{
+    ik_logger_write(logger, "info", doc);
+}
+
+void ik_logger_warn_json(ik_logger_t *logger, yyjson_mut_doc *doc)
+{
+    ik_logger_write(logger, "warn", doc);
+}
+
+void ik_logger_error_json(ik_logger_t *logger, yyjson_mut_doc *doc)
+{
+    ik_logger_write(logger, "error", doc);
+}
+
+void ik_logger_fatal_json(ik_logger_t *logger, yyjson_mut_doc *doc)
+{
+    ik_logger_write(logger, "fatal", doc);
     exit(1);
 }

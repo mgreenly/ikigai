@@ -156,7 +156,7 @@ START_TEST(test_repl_init_db_init_failure) {
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context - should fail at db_init
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
 
     // Verify failure at shared_ctx_init level
     ck_assert(is_err(&res));
@@ -182,7 +182,7 @@ START_TEST(test_repl_init_session_restore_failure)
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -210,7 +210,7 @@ START_TEST(test_repl_init_db_success)
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -241,7 +241,7 @@ START_TEST(test_repl_init_signal_handler_failure_with_db)
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
