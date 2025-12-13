@@ -2,6 +2,7 @@ build/
 build-*/
 /bin/
 dist/
+/rel-06/
 coverage/
 .envrc
 tags

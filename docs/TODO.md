@@ -1,29 +1,4 @@
-
-docs/backlog/readline-features.md
-
-quality checks
-
-Refactor
-
-quality checks
-
-Clean up docs
-
-CHANGELOG
-
-do rel-04
-
------------- REL-05 --------------------------------
-
 separate credentials from config
-
-primary focus sub-agents and concurrency.
-
-enhance logging to support agent ids, session ids, etc...
-
-
-
------------- NEW ideas --------------------------------
 
 can't change the system message because the config overwrites it when it loads
 
