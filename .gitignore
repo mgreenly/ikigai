@@ -3,6 +3,7 @@ build-*/
 /bin/
 dist/
 /rel-06/
+/banner.md
 coverage/
 .envrc
 tags
