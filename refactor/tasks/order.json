@@ -1,5 +1,6 @@
 {
-  "todo": [
+  "todo": [],
+  "done": [
     {
       "task": "delete-unused-conversation.md",
       "group": "Dead Code Removal",
@@ -27,9 +28,8 @@
     {
       "task": "logger-dependency-injection.md",
       "group": "Dependency Injection",
-      "model": "sonnet",
-      "thinking": "extended"
+      "model": "opus",
+      "thinking": "ultrathink"
     }
-  ],
-  "done": []
+  ]
 }
