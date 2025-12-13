@@ -218,7 +218,7 @@ The `ikigai` package provides multiple modules:
 - `ikigai/platform`: Database access (history, pub/sub, queues), LLM integration
 - Tool definition helpers
 
-Agents connect to the daemon via Unix socket at `../../daemon.sock` relative to their service directory.
+Agents discover the daemon by walking up the directory tree to find `.ikigai/daemon.sock`, similar to how git finds `.git/`.
 
 Human codes at a high level of abstraction. Library handles plumbing.
 

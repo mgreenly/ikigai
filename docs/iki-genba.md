@@ -55,6 +55,32 @@ Ikigai has tooling to deploy, manage, and communicate with agents running in iki
 
 ---
 
+## Project Structure
+
+Iki-genba lives at the project root, shared across all worktrees:
+
+```
+myproject/
+├── .git/
+├── .ikigai/                    (shared infrastructure)
+│   ├── daemon.sock
+│   ├── db/                     (single postgres, worktree-aware)
+│   ├── bin/
+│   ├── httpd/
+│   └── sv/
+├── main/                       (worktree)
+├── rel-05/                     (worktree)
+└── rel-06/                     (worktree)
+```
+
+**One database, shared services.** All worktrees connect to the same iki-genba instance. The database schema is worktree-aware — agents, messages, and history records know which worktree they belong to.
+
+**One top-level agent per worktree.** When you work in a worktree, you are that worktree's top-level agent. Sub-agents you spawn work in your worktree alongside you.
+
+**Socket discovery.** Agents walk up the directory tree to find `.ikigai/daemon.sock`, similar to how git finds `.git/`.
+
+---
+
 ## Deployment Options
 
 Iki-genba runs wherever you need it:

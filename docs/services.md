@@ -25,34 +25,34 @@ The infrastructure exists but requires manual control via shell scripts. This pr
 
 ### Directory Structure
 
+The `.ikigai/` directory lives at the project root, shared across all worktrees:
+
 ```
-.ikigai/
-├── daemon.sock    # Unix socket for agent communication
-├── bin/           # Wrapper scripts (added to PATH via direnv)
-│   ├── deno       # Auto-installs deno on first use
-│   ├── nginx      # Wrapper for local nginx
-│   ├── psql       # Connects to local postgres
-│   ├── pg_ctl     # Manages local postgres
-│   └── runsvdir   # Service supervisor control
-├── db/            # PostgreSQL data directory
-├── deno/          # Deno installation (auto-provisioned)
-├── httpd/         # Nginx config and web root
-│   ├── nginx.conf
-│   ├── pid/
-│   └── root/      # Static files served at localhost:8888
-│       └── frontend/
-├── logs/          # Service logs
-│   ├── archive/   # Rotated logs
-│   └── backend/   # Backend service logs (via svlogd)
-└── sv/            # Runit service directory
-    └── backend/   # Example deno backend service
-        ├── run
-        ├── main.ts
-        └── log/
-            └── run
+myproject/
+├── .git/
+├── .ikigai/                    # Shared infrastructure
+│   ├── daemon.sock             # Unix socket for agent communication
+│   ├── bin/                    # Wrapper scripts (added to PATH via direnv)
+│   │   ├── deno                # Auto-installs deno on first use
+│   │   ├── nginx               # Wrapper for local nginx
+│   │   ├── psql                # Connects to local postgres
+│   │   ├── pg_ctl              # Manages local postgres
+│   │   └── runsvdir            # Service supervisor control
+│   ├── db/                     # PostgreSQL data directory (worktree-aware schema)
+│   ├── deno/                   # Deno installation (auto-provisioned)
+│   ├── httpd/                  # Nginx config and web root
+│   │   ├── nginx.conf
+│   │   ├── pid/
+│   │   └── root/
+│   ├── logs/                   # Service logs
+│   └── sv/                     # Runit service directory
+│       └── backend/
+├── main/                       # Worktree
+├── rel-05/                     # Worktree
+└── rel-06/                     # Worktree
 ```
 
-Agents in `.ikigai/sv/{name}/` connect to the daemon at `../../daemon.sock`.
+Agents discover the daemon by walking up the directory tree to find `.ikigai/daemon.sock`, similar to how git finds `.git/`.
 
 ### Manual Service Control
 

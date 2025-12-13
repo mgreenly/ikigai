@@ -268,11 +268,21 @@ Agents can have tools that create/modify records that web services read. Web ser
 
 ---
 
+## Worktrees and Agents
+
+**One top-level agent per worktree.** Each worktree has exactly one top-level agent — the human or daemon working in that branch. Sub-agents spawned during a session work in the same worktree as their parent.
+
+**Worktree-aware database.** All agents share one database, but records are tagged with their worktree. Agents in `rel-05` see `rel-05` data by default. Cross-worktree queries are possible when needed (e.g., ikigai terminal showing all worktrees).
+
+**Git as transaction log.** Every conversation exchange with the LLM ends with a git commit. Uncommitted files are auto-committed. This creates a perfect correlation between git history and conversation history — you can roll back both code and context to any point.
+
+---
+
 ## Shared World
 
 All agents in a project share:
-- **Database**: Messages, history, registry, state
-- **Git worktree**: Files, code, configuration
+- **Database**: Messages, history, registry, state (worktree-aware)
+- **Git worktree**: Files, code, configuration (one worktree per top-level agent)
 
 Conflict resolution (multiple agents editing same file) is a software design problem. The human designer writes rules into agent code/config.
 
@@ -309,7 +319,7 @@ The `ikigai` package provides multiple modules:
 - `ikigai/platform`: Database access (history, pub/sub, queues), LLM integration
 - Tool definition helpers
 
-Agents connect to the daemon via Unix socket at `../../daemon.sock` relative to their service directory. This works because agents live in `.ikigai/sv/{agent-name}/` and the daemon socket is at `.ikigai/daemon.sock`.
+Agents discover the daemon by walking up the directory tree to find `.ikigai/daemon.sock`, similar to how git finds `.git/`. This works whether the agent runs from a worktree subdirectory or from the service directory.
 
 Human codes at a high level of abstraction. Library handles plumbing.
 
