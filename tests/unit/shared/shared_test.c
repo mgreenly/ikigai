@@ -24,6 +24,7 @@ static int mock_tcflush_fail = 0;
 static int mock_write_fail = 0;
 static int mock_ioctl_fail = 0;
 static const char *mock_mkdir_fail_path = NULL;
+static const char *mock_stat_fail_path = NULL;
 
 // Mock function prototypes
 int posix_open_(const char *pathname, int flags);
@@ -34,6 +35,7 @@ int posix_tcflush_(int fd, int queue_selector);
 int posix_ioctl_(int fd, unsigned long request, void *argp);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
 int posix_mkdir_(const char *pathname, mode_t mode);
+int posix_stat_(const char *pathname, struct stat *statbuf);
 
 // Mock implementations for POSIX functions
 int posix_open_(const char *pathname, int flags)
@@ -116,6 +118,16 @@ int posix_mkdir_(const char *pathname, mode_t mode)
     return mkdir(pathname, mode);
 }
 
+// Mock stat to fail for specific path
+int posix_stat_(const char *pathname, struct stat *statbuf)
+{
+    if (mock_stat_fail_path != NULL && strstr(pathname, mock_stat_fail_path) != NULL) {
+        errno = ENOENT;  // File not found
+        return -1;
+    }
+    return stat(pathname, statbuf);
+}
+
 static void reset_mocks(void)
 {
     mock_open_fail = 0;
@@ -125,6 +137,7 @@ static void reset_mocks(void)
     mock_write_fail = 0;
     mock_ioctl_fail = 0;
     mock_mkdir_fail_path = NULL;
+    mock_stat_fail_path = NULL;
 }
 
 // Test that ik_shared_ctx_init() succeeds
@@ -523,12 +536,18 @@ START_TEST(test_shared_ctx_history_load_failure_graceful)
     char unique_dir[256];
     snprintf(unique_dir, sizeof(unique_dir), "/tmp/ikigai_shared_test_history_%d", getpid());
 
-    // Create logger before calling init (using /tmp to avoid mkdir mock interference)
+    // Create logger before calling init (using /tmp to avoid mock interference)
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
 
-    // Mock mkdir to fail only for .ikigai directory creation under unique_dir
+    // Mock stat to return ENOENT for .ikigai, forcing mkdir attempt
+    // Then mock mkdir to fail for .ikigai directory creation
     // This will cause history directory creation to fail
-    mock_mkdir_fail_path = unique_dir;
+    // Key: Create logger BEFORE setting mocks.
+    // This allows logger's .ikigai creation to succeed,
+    // but history's .ikigai creation to fail.
+    // Tests graceful degradation when history load fails.
+    mock_stat_fail_path = ".ikigai";
+    mock_mkdir_fail_path = ".ikigai";
 
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, unique_dir, ".ikigai", logger, &shared);
@@ -538,7 +557,8 @@ START_TEST(test_shared_ctx_history_load_failure_graceful)
     ck_assert_ptr_nonnull(shared);
     ck_assert_ptr_nonnull(shared->history);
 
-    // Reset mock after test
+    // Reset mocks after test
+    mock_stat_fail_path = NULL;
     mock_mkdir_fail_path = NULL;
 
     talloc_free(ctx);
