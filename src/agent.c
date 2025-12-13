@@ -1,5 +1,6 @@
 #include "agent.h"
 
+#include "input_buffer/core.h"
 #include "layer.h"
 #include "layer_wrappers.h"
 #include "panic.h"
@@ -75,6 +76,13 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->scrollback = ik_scrollback_create(agent, term_cols);
     agent->layer_cake = ik_layer_cake_create(agent, (size_t)term_rows);
 
+    // Initialize input state (per-agent - preserves partial composition)
+    agent->input_buffer = ik_input_buffer_create(agent);
+    agent->separator_visible = true;
+    agent->input_buffer_visible = true;
+    agent->input_text = NULL;
+    agent->input_text_len = 0;
+
     // Create and add layers (following pattern from repl_init.c)
     agent->scrollback_layer = ik_scrollback_layer_create(agent, "scrollback", agent->scrollback);
     res_t result = ik_layer_cake_add_layer(agent->layer_cake, agent->scrollback_layer);
@@ -89,25 +97,16 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->spinner_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
-    // Create separator layer (upper)
-    bool *separator_visible = talloc_zero_(agent, sizeof(bool));
-    if (separator_visible == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    *separator_visible = true;
-    agent->separator_layer = ik_separator_layer_create(agent, "separator", separator_visible);
+    // Create separator layer (upper) - pass pointer to agent field
+    agent->separator_layer = ik_separator_layer_create(agent, "separator", &agent->separator_visible);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->separator_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
-    // Create input layer
-    bool *input_visible = talloc_zero_(agent, sizeof(bool));
-    if (input_visible == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    *input_visible = true;
-    const char **input_text = talloc_zero_(agent, sizeof(const char *));
-    if (input_text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    *input_text = "";
-    size_t *input_text_len = talloc_zero_(agent, sizeof(size_t));
-    if (input_text_len == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    *input_text_len = 0;
-    agent->input_layer = ik_input_layer_create(agent, "input", input_visible, input_text, input_text_len);
+    // Create input layer - pass pointers to agent fields
+    agent->input_layer = ik_input_layer_create(agent, "input",
+        &agent->input_buffer_visible,
+        &agent->input_text,
+        &agent->input_text_len);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->input_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 

@@ -27,21 +27,6 @@ START_TEST(test_page_up_with_4_lines) {
     term->screen_cols = 80;
     term->tty_fd = 1;
 
-    // Create empty input buffer (1 empty line)
-    ik_input_buffer_t *input_buf = NULL;
-    input_buf = ik_input_buffer_create(ctx);
-
-    // Create scrollback with A, B, C, D
-    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    res = ik_scrollback_append_line(scrollback, "A", 1);
-    ck_assert(is_ok(&res));
-    res = ik_scrollback_append_line(scrollback, "B", 1);
-    ck_assert(is_ok(&res));
-    res = ik_scrollback_append_line(scrollback, "C", 1);
-    ck_assert(is_ok(&res));
-    res = ik_scrollback_append_line(scrollback, "D", 1);
-    ck_assert(is_ok(&res));
-
     // Create render context
     ik_render_ctx_t *render_ctx = NULL;
     res = ik_render_create(ctx, 5, 80, 1, &render_ctx);
@@ -52,14 +37,29 @@ START_TEST(test_page_up_with_4_lines) {
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
-    repl->input_buffer = input_buf;
     shared->render = render_ctx;
 
     // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
     repl->current = agent;
-    repl->current->scrollback = scrollback;
-    repl->current->viewport_offset = 0;
+
+    // Use the agent's input buffer (empty by default)
+    ik_input_buffer_t *input_buf = agent->input_buffer;
+
+    // Use the agent's scrollback and add test content A, B, C, D
+    ik_scrollback_t *scrollback = agent->scrollback;
+    res = ik_scrollback_append_line(scrollback, "A", 1);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "B", 1);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "C", 1);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(scrollback, "D", 1);
+    ck_assert(is_ok(&res));
+
+    agent->viewport_offset = 0;
 
     // Initialize input parser (not needed for this test)
     repl->input_parser = NULL;

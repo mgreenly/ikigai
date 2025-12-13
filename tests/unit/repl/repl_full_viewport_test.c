@@ -31,12 +31,11 @@ ssize_t posix_write_(int fd, const void *buf, size_t count) {
 
 // Helper function to create a basic REPL context for testing
 static void create_test_repl(TALLOC_CTX *ctx, int32_t rows, int32_t cols, ik_repl_ctx_t **repl_out) {
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    res_t res;
 
     // Create render context
     ik_render_ctx_t *render = NULL;
-    res_t res = ik_render_create(ctx, rows, cols, 1, &render);
+    res = ik_render_create(ctx, rows, cols, 1, &render);
     ck_assert(is_ok(&res));
 
     // Create terminal context
@@ -45,50 +44,25 @@ static void create_test_repl(TALLOC_CTX *ctx, int32_t rows, int32_t cols, ik_rep
     term->screen_cols = cols;
     term->tty_fd = 1;
 
-    // Create scrollback
-    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, cols);
-
     // Create REPL with layer cake
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->render = render;
     shared->term = term;
 
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    // Create agent context using ik_test_create_agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
     repl->current = agent;
-    repl->current->scrollback = scrollback;
-    repl->current->viewport_offset = 0;
+    agent->viewport_offset = 0;
 
-    // Initialize layer cake
-    repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
-
-    // Create layers
-    repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
-
-    repl->separator_visible = true;
-    repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &repl->separator_visible);
-
-    repl->input_buffer_visible = true;
-    repl->input_text = "";
-    repl->input_text_len = 0;
-    repl->current->input_layer = ik_input_layer_create(repl, "input", &repl->input_buffer_visible,
-                                               &repl->input_text, &repl->input_text_len);
-
+    // Setup lower separator layer on repl
     repl->lower_separator_visible = true;
     repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &repl->lower_separator_visible);
-
-    // Add layers to cake (scrollback, separator, input, lower_separator)
-    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
-    ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->separator_layer);
-    ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->input_layer);
-    ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->lower_separator_layer);
+    res = ik_layer_cake_add_layer(agent->layer_cake, repl->lower_separator_layer);
     ck_assert(is_ok(&res));
 
     *repl_out = repl;
@@ -133,15 +107,15 @@ START_TEST(test_layer_positions_when_viewport_full) {
     ik_scrollback_ensure_layout(repl->current->scrollback, 80);
 
     // Add text to input buffer
-    res = ik_input_buffer_insert_codepoint(repl->input_buffer, '*');
+    res = ik_input_buffer_insert_codepoint(repl->current->input_buffer, '*');
     ck_assert(is_ok(&res));
-    ik_input_buffer_ensure_layout(repl->input_buffer, 80);
+    ik_input_buffer_ensure_layout(repl->current->input_buffer, 80);
 
     // Update input text pointers
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
-    repl->input_text = text;
-    repl->input_text_len = text_len;
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
+    repl->current->input_text = text;
+    repl->current->input_text_len = text_len;
 
     // Calculate viewport (viewport_offset = 0 means showing bottom of document)
     repl->current->viewport_offset = 0;
@@ -165,7 +139,7 @@ START_TEST(test_layer_positions_when_viewport_full) {
 
     // Get actual component sizes
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
-    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
+    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
 
     // Document model (CORRECT - including lower separator):
     // scrollback_rows (15) + 1 (upper_sep) + input_buffer_rows (1) + 1 (lower_sep) = 18 rows
@@ -263,15 +237,15 @@ START_TEST(test_document_height_includes_lower_separator) {
     ik_scrollback_ensure_layout(repl->current->scrollback, 80);
 
     // Add text to input buffer (1 line)
-    res = ik_input_buffer_insert_codepoint(repl->input_buffer, 'x');
+    res = ik_input_buffer_insert_codepoint(repl->current->input_buffer, 'x');
     ck_assert(is_ok(&res));
-    ik_input_buffer_ensure_layout(repl->input_buffer, 80);
+    ik_input_buffer_ensure_layout(repl->current->input_buffer, 80);
 
     // Update input text pointers
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
-    repl->input_text = text;
-    repl->input_text_len = text_len;
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
+    repl->current->input_text = text;
+    repl->current->input_text_len = text_len;
 
     // Calculate total visible height using layer cake
     size_t total_layer_height = ik_layer_cake_get_total_height(repl->current->layer_cake, 80);
@@ -311,15 +285,15 @@ START_TEST(test_bottom_separator_visible_when_viewport_full) {
     ik_scrollback_ensure_layout(repl->current->scrollback, 80);
 
     // Add text to input buffer
-    res = ik_input_buffer_insert_codepoint(repl->input_buffer, '*');
+    res = ik_input_buffer_insert_codepoint(repl->current->input_buffer, '*');
     ck_assert(is_ok(&res));
-    ik_input_buffer_ensure_layout(repl->input_buffer, 80);
+    ik_input_buffer_ensure_layout(repl->current->input_buffer, 80);
 
     // Update input text pointers
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
-    repl->input_text = text;
-    repl->input_text_len = text_len;
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
+    repl->current->input_text = text;
+    repl->current->input_text_len = text_len;
 
     // Render frame to test that lower separator is within viewport
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 4096);

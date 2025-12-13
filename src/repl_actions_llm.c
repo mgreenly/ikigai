@@ -40,7 +40,7 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
     ik_format_buffer_t *buf = ik_format_buffer_create(repl);
 
     // Pretty-print the input buffer
-    ik_pp_input_buffer(repl->input_buffer, buf, 0);
+    ik_pp_input_buffer(repl->current->input_buffer, buf, 0);
 
     // Append output to scrollback buffer (split by newlines)
     const char *output = ik_format_get_string(buf);
@@ -141,8 +141,8 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
-    const char *text = (const char *)repl->input_buffer->text->data;
-    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
+    const char *text = (const char *)repl->current->input_buffer->text->data;
+    size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
 
     bool is_slash_command = (text_len > 0 && text[0] == '/');
     char *command_text = NULL;
@@ -156,7 +156,7 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
     ik_repl_dismiss_completion(repl);
 
     if (is_slash_command) {
-        ik_input_buffer_clear(repl->input_buffer);
+        ik_input_buffer_clear(repl->current->input_buffer);
         repl->current->viewport_offset = 0;
     } else {
         ik_repl_submit_line(repl);

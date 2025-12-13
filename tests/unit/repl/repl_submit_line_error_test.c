@@ -5,19 +5,21 @@
  * Tests the error path when event rendering fails during line submission.
  */
 
-#include <check.h>
-#include <talloc.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <termios.h>
-#include <unistd.h>
+#include "../../../src/agent.h"
 #include "../../../src/repl.h"
-#include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
+#include "../../../src/shared.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
+
+#include <check.h>
+#include <fcntl.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <talloc.h>
+#include <termios.h>
+#include <unistd.h>
 
 // Mock state for ik_scrollback_append_line_
 static bool mock_scrollback_append_should_fail = false;
@@ -158,7 +160,7 @@ START_TEST(test_submit_line_event_render_fails) {
     }
 
     // Verify input buffer has content
-    size_t ws_len = ik_byte_array_size(repl->input_buffer->text);
+    size_t ws_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_gt(ws_len, 0);
 
     // Make scrollback append fail (which is called by event_render)

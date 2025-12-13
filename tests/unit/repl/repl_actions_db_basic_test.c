@@ -115,8 +115,8 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create input buffer
-    repl->input_buffer = ik_input_buffer_create(repl);
-    ck_assert_ptr_nonnull(repl->input_buffer);
+    repl->current->input_buffer = ik_input_buffer_create(repl);
+    ck_assert_ptr_nonnull(repl->current->input_buffer);
 
     // Create conversation
     res_t conv_res = ik_openai_conversation_create(repl);
@@ -178,7 +178,7 @@ START_TEST(test_db_message_insert_error) {
     // Set up: Insert text into input buffer
     const char *test_text = "Hello, world!";
     for (const char *p = test_text; *p; p++) {
-        res_t r = ik_byte_array_append(repl->input_buffer->text, (uint8_t)*p);
+        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
         ck_assert(is_ok(&r));
     }
 
@@ -219,7 +219,7 @@ START_TEST(test_db_message_insert_success)
     // Set up: Insert text into input buffer
     const char *test_text = "Test message";
     for (const char *p = test_text; *p; p++) {
-        res_t r = ik_byte_array_append(repl->input_buffer->text, (uint8_t)*p);
+        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
         ck_assert(is_ok(&r));
     }
 
@@ -266,7 +266,7 @@ START_TEST(test_db_message_insert_error_no_debug_pipe)
     // Set up: Insert text into input buffer
     const char *test_text = "Test";
     for (const char *p = test_text; *p; p++) {
-        res_t r = ik_byte_array_append(repl->input_buffer->text, (uint8_t)*p);
+        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
         ck_assert(is_ok(&r));
     }
 
@@ -297,7 +297,7 @@ START_TEST(test_message_submission_no_db_ctx)
     // Set up: Insert text into input buffer
     const char *test_text = "Test without DB";
     for (const char *p = test_text; *p; p++) {
-        res_t r = ik_byte_array_append(repl->input_buffer->text, (uint8_t)*p);
+        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
         ck_assert(is_ok(&r));
     }
 

@@ -1,3 +1,4 @@
+#include "../../src/agent.h"
 #include "../../src/history.h"
 #include "../../src/repl.h"
 #include "../../src/shared.h"
@@ -113,7 +114,7 @@ START_TEST(test_history_saves_on_submit)
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     const char *test_cmd = "my test command";
-    result = ik_input_buffer_set_text(repl->input_buffer, test_cmd, strlen(test_cmd));
+    result = ik_input_buffer_set_text(repl->current->input_buffer, test_cmd, strlen(test_cmd));
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
@@ -147,7 +148,7 @@ START_TEST(test_history_survives_repl_restart)
     res_t result = ik_repl_init(ctx, shared1, &repl1);
     ck_assert(is_ok(&result));
     const char *test_cmd = "persistent command";
-    result = ik_input_buffer_set_text(repl1->input_buffer, test_cmd, strlen(test_cmd));
+    result = ik_input_buffer_set_text(repl1->current->input_buffer, test_cmd, strlen(test_cmd));
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl1);
     ck_assert(is_ok(&result));
@@ -232,7 +233,7 @@ START_TEST(test_history_multiline_preserved)
 
     // Submit multiline command
     const char *multiline = "line 1\nline 2\nline 3";
-    result = ik_input_buffer_set_text(repl->input_buffer, multiline, strlen(multiline));
+    result = ik_input_buffer_set_text(repl->current->input_buffer, multiline, strlen(multiline));
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
@@ -312,7 +313,7 @@ START_TEST(test_history_submit_stops_browsing)
     ck_assert(is_ok(&result));
 
     // Add first command
-    result = ik_input_buffer_set_text(repl->input_buffer, "command 1", 9);
+    result = ik_input_buffer_set_text(repl->current->input_buffer, "command 1", 9);
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
@@ -322,7 +323,7 @@ START_TEST(test_history_submit_stops_browsing)
     ck_assert(ik_history_is_browsing(repl->shared->history));
 
     // Submit new command
-    result = ik_input_buffer_set_text(repl->input_buffer, "command 2", 9);
+    result = ik_input_buffer_set_text(repl->current->input_buffer, "command 2", 9);
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
@@ -363,7 +364,7 @@ START_TEST(test_history_file_write_failure)
     chmod(".ikigai", 0555);
 
     // Submit command - should succeed despite file write failure
-    result = ik_input_buffer_set_text(repl->input_buffer, "test command", 12);
+    result = ik_input_buffer_set_text(repl->current->input_buffer, "test command", 12);
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));

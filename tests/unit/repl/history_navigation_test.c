@@ -19,33 +19,33 @@
 START_TEST(test_history_up_from_empty_input)
 {
     void *ctx = talloc_new(NULL);
+    res_t res;
 
-    // Create input buffer and history
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    // Create history
     ik_history_t *history = ik_history_create(ctx, 10);
 
     // Add some history entries
-    res_t res = ik_history_add(history, "first command");
+    res = ik_history_add(history, "first command");
     ck_assert(is_ok(&res));
     res = ik_history_add(history, "second command");
     ck_assert(is_ok(&res));
     res = ik_history_add(history, "third command");
     ck_assert(is_ok(&res));
 
+    // Create agent context (with input_buffer)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    repl->current = agent;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = history;
     repl->quit = false;
-
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(agent);
-    repl->current = agent;
-    repl->current->viewport_offset = 0;
+    ik_input_buffer_t *input_buf = repl->current->input_buffer;
 
     // Press Up arrow (cursor is at position 0 in empty buffer)
     ik_input_action_t action = {.type = IK_INPUT_ARROW_UP};
@@ -77,33 +77,33 @@ END_TEST
 START_TEST(test_history_up_multiple_times)
 {
     void *ctx = talloc_new(NULL);
+    res_t res;
 
-    // Create input buffer and history
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    // Create history
     ik_history_t *history = ik_history_create(ctx, 10);
 
     // Add history entries
-    res_t res = ik_history_add(history, "first");
+    res = ik_history_add(history, "first");
     ck_assert(is_ok(&res));
     res = ik_history_add(history, "second");
     ck_assert(is_ok(&res));
     res = ik_history_add(history, "third");
     ck_assert(is_ok(&res));
 
+    // Create agent context (with input_buffer)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    repl->current = agent;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = history;
     repl->quit = false;
-
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(agent);
-    repl->current = agent;
-    repl->current->viewport_offset = 0;
+    ik_input_buffer_t *input_buf = repl->current->input_buffer;
 
     // Press Up arrow first time
     ik_input_action_t action = {.type = IK_INPUT_ARROW_UP};
@@ -151,31 +151,31 @@ END_TEST
 START_TEST(test_history_down_restores_pending)
 {
     void *ctx = talloc_new(NULL);
+    res_t res;
 
-    // Create input buffer and history
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    // Create history
     ik_history_t *history = ik_history_create(ctx, 10);
 
     // Add history entries
-    res_t res = ik_history_add(history, "first");
+    res = ik_history_add(history, "first");
     ck_assert(is_ok(&res));
     res = ik_history_add(history, "second");
     ck_assert(is_ok(&res));
 
+    // Create agent context (with input_buffer)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    repl->current = agent;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = history;
     repl->quit = false;
-
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(agent);
-    repl->current = agent;
-    repl->current->viewport_offset = 0;
+    ik_input_buffer_t *input_buf = repl->current->input_buffer;
 
     // Type some text (pending input)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'h'};
@@ -228,29 +228,29 @@ END_TEST
 START_TEST(test_history_up_with_cursor_not_at_zero)
 {
     void *ctx = talloc_new(NULL);
+    res_t res;
 
-    // Create input buffer and history
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    // Create history
     ik_history_t *history = ik_history_create(ctx, 10);
 
     // Add history entry
-    res_t res = ik_history_add(history, "history entry");
+    res = ik_history_add(history, "history entry");
+    ck_assert(is_ok(&res));
+
+    // Create agent context (with input_buffer)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    repl->current = agent;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = history;
     repl->quit = false;
-
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(agent);
-    repl->current = agent;
-    repl->current->viewport_offset = 0;
+    ik_input_buffer_t *input_buf = repl->current->input_buffer;
 
     // Type multi-line text: "line1\nline2"
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'l'};
@@ -311,31 +311,31 @@ END_TEST
 START_TEST(test_history_navigation_with_multiline)
 {
     void *ctx = talloc_new(NULL);
+    res_t res;
 
-    // Create input buffer and history
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    // Create history
     ik_history_t *history = ik_history_create(ctx, 10);
 
     // Add history entry
-    res_t res = ik_history_add(history, "from history");
+    res = ik_history_add(history, "from history");
+    ck_assert(is_ok(&res));
+
+    // Create agent context (with input_buffer)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    repl->current = agent;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = history;
     repl->quit = false;
+    ik_input_buffer_t *input_buf = repl->current->input_buffer;
 
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(agent);
-    repl->current = agent;
-    repl->current->viewport_offset = 0;
-
-    // Type multi-line text: "line1\nline2"
+    // Type multi-line text: "l1\nl2"
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'l'};
     ik_repl_process_action(repl, &action);
     action.codepoint = '1';
@@ -375,29 +375,29 @@ END_TEST
 START_TEST(test_history_empty)
 {
     void *ctx = talloc_new(NULL);
+    res_t res;
 
-    // Create input buffer and empty history
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    // Create empty history
     ik_history_t *history = ik_history_create(ctx, 10);
+
+    // Create agent context (with input_buffer)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    repl->current = agent;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = history;
     repl->quit = false;
-
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(agent);
-    repl->current = agent;
-    repl->current->viewport_offset = 0;
+    ik_input_buffer_t *input_buf = repl->current->input_buffer;
 
     // Press Up arrow in empty history
     ik_input_action_t action = {.type = IK_INPUT_ARROW_UP};
-    res_t res = ik_repl_process_action(repl, &action);
+    res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
     // Verify: Input buffer still empty

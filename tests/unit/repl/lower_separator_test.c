@@ -47,10 +47,13 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
 START_TEST(test_lower_separator_renders_with_layers)
 {
     void *ctx = talloc_new(NULL);
-
-    ik_input_buffer_t *input_buf = NULL;
     res_t res;
-    input_buf = ik_input_buffer_create(ctx);
+
+    // Create agent context (with input_buffer)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    ik_input_buffer_t *input_buf = agent->input_buffer;
 
     // Add some text to the input buffer
     const char *text = "test input";
@@ -82,16 +85,13 @@ START_TEST(test_lower_separator_renders_with_layers)
     // Create REPL with layer cake
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
+    repl->current = agent;
     shared->render = render;
     shared->term = term;
 
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(agent);
-    repl->current = agent;
+    // Set agent's scrollback
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
@@ -152,10 +152,13 @@ END_TEST
 START_TEST(test_lower_separator_visibility_flag)
 {
     void *ctx = talloc_new(NULL);
-
-    ik_input_buffer_t *input_buf = NULL;
     res_t res;
-    input_buf = ik_input_buffer_create(ctx);
+
+    // Create agent context (with input_buffer)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    ik_input_buffer_t *input_buf = agent->input_buffer;
 
     ik_render_ctx_t *render = NULL;
     res = ik_render_create(ctx, 8, 40, 1, &render);
@@ -172,14 +175,11 @@ START_TEST(test_lower_separator_visibility_flag)
     ck_assert_ptr_nonnull(repl);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
-    repl->input_buffer = input_buf;
+    repl->current = agent;
     shared->render = render;
     shared->term = term;
 
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(agent);
-    repl->current = agent;
+    // Set agent's scrollback
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
@@ -226,22 +226,25 @@ END_TEST
 START_TEST(test_lower_separator_layer_order)
 {
     void *ctx = talloc_new(NULL);
+    res_t res;
 
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
     term->screen_rows = 10;
     term->screen_cols = 40;
     term->tty_fd = 1;
 
+    // Create agent context (with input_buffer)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    ik_input_buffer_t *input_buf = agent->input_buffer;
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
-    shared->term = term;
-
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(agent);
     repl->current = agent;
+    shared->term = term;
 
     // Initialize layer cake
     repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
@@ -256,14 +259,12 @@ START_TEST(test_lower_separator_layer_order)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 40);
     repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
 
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     const char *input_text_ptr = (const char *)input_buf->text->data;
     size_t input_text_len = ik_byte_array_size(input_buf->text);
     bool input_visible = true;
     repl->current->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
 
     // Add layers in correct order
-    res_t res;
     res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
     ck_assert(is_ok(&res));
     res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->separator_layer);

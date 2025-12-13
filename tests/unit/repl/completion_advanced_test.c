@@ -19,8 +19,6 @@ START_TEST(test_typing_dismisses_on_no_match)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -29,9 +27,10 @@ START_TEST(test_typing_dismisses_on_no_match)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
-    repl->input_buffer = input_buf;
     repl->quit = false;
 
     // Create minimal shared context for test
@@ -65,8 +64,6 @@ START_TEST(test_left_right_arrow_dismisses)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -75,9 +72,10 @@ START_TEST(test_left_right_arrow_dismisses)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
-    repl->input_buffer = input_buf;
     repl->quit = false;
 
     // Create minimal shared context for test
@@ -126,8 +124,6 @@ START_TEST(test_tab_on_empty_input_no_op)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer (empty)
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -136,9 +132,10 @@ START_TEST(test_tab_on_empty_input_no_op)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
-    repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
 
@@ -164,8 +161,6 @@ START_TEST(test_tab_on_non_slash_no_op)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -174,9 +169,10 @@ START_TEST(test_tab_on_non_slash_no_op)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
-    repl->input_buffer = input_buf;
     repl->completion = NULL;
     repl->quit = false;
 
@@ -208,8 +204,6 @@ START_TEST(test_cursor_at_end_after_tab_completion)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -218,9 +212,10 @@ START_TEST(test_cursor_at_end_after_tab_completion)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
-    repl->input_buffer = input_buf;
     repl->quit = false;
 
     // Create minimal shared context for test
@@ -247,14 +242,14 @@ START_TEST(test_cursor_at_end_after_tab_completion)
 
     // Verify: Input buffer was updated with the selection
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     ck_assert_uint_gt(text_len, 2);  // At least "/" + something
     ck_assert_int_eq(text[0], '/');
 
     // Verify: Cursor is at end of text (not at position 0)
     size_t cursor_byte = 0;
     size_t cursor_grapheme = 0;
-    res = ik_input_buffer_get_cursor_position(input_buf, &cursor_byte, &cursor_grapheme);
+    res = ik_input_buffer_get_cursor_position(repl->current->input_buffer, &cursor_byte, &cursor_grapheme);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(cursor_byte, text_len);  // Cursor should be at end of text
 

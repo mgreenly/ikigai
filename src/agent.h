@@ -7,8 +7,9 @@
 #include <talloc.h>
 #include <stdbool.h>
 
-// Forward declaration
+// Forward declarations
 typedef struct ik_shared_ctx ik_shared_ctx_t;
+typedef struct ik_input_buffer_t ik_input_buffer_t;
 
 // Per-agent context - state specific to one agent
 // Created as child of repl_ctx (owned by coordinator)
@@ -32,6 +33,15 @@ typedef struct ik_agent_ctx {
 
     // Viewport state
     size_t viewport_offset;
+
+    // Input state (per-agent - preserves partial composition)
+    ik_input_buffer_t *input_buffer;
+
+    // Layer reference fields (updated before each render)
+    bool separator_visible;
+    bool input_buffer_visible;
+    const char *input_text;
+    size_t input_text_len;
 } ik_agent_ctx_t;
 
 // Create agent context

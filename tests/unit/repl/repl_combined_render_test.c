@@ -52,6 +52,7 @@ static void mock_write_reset(void)
 START_TEST(test_render_frame_empty_scrollback) {
     mock_write_reset();
     void *ctx = talloc_new(NULL);
+    res_t res;
 
     // Create minimal REPL context for rendering
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
@@ -60,26 +61,20 @@ START_TEST(test_render_frame_empty_scrollback) {
     term->tty_fd = -1;  // Not actually writing
 
     ik_render_ctx_t *render = NULL;
-    res_t res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
+    res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
     ck_assert(is_ok(&res));
 
-    ik_input_buffer_t *input_buf = NULL;
-    input_buf = ik_input_buffer_create(ctx);
-
-    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, term->screen_cols);
+    // Create agent context (with input_buffer and layer_cake)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
+    repl->current = agent;
     shared->term = term;
     shared->render = render;
-    repl->input_buffer = input_buf;
-
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    repl->current = agent;
-    repl->current->scrollback = scrollback;
-    repl->current->viewport_offset = 0;
 
     // Render frame - should succeed even with empty scrollback
     res = ik_repl_render_frame(repl);
@@ -91,38 +86,29 @@ START_TEST(test_render_frame_empty_scrollback) {
     // CRITICAL: Verify separator line appears even with empty scrollback
     ck_assert_msg(mock_write_buffer != NULL, "Expected render output");
 
-    // Look for separator line (a line of dashes)
-    // The separator should be a full line of dashes (80 chars in this test)
+    // Look for separator line - using box-drawing character U+2500 (0xE2 0x94 0x80 in UTF-8)
     int found_separator = 0;
-    char *pos = mock_write_buffer;
-    while (*pos != '\0') {
-        // Look for a sequence of dashes
-        if (*pos == '-') {
-            int dash_count = 0;
-            while (*pos == '-') {
-                dash_count++;
-                pos++;
-            }
-            // If we found at least 10 consecutive dashes, it's likely the separator
-            if (dash_count >= 10) {
-                found_separator = 1;
-                break;
-            }
-        } else {
-            pos++;
+    for (size_t i = 0; i + 2 < mock_write_size; i++) {
+        if ((unsigned char)mock_write_buffer[i] == 0xE2 &&
+            (unsigned char)mock_write_buffer[i + 1] == 0x94 &&
+            (unsigned char)mock_write_buffer[i + 2] == 0x80) {
+            found_separator = 1;
+            break;
         }
     }
-    ck_assert_msg(found_separator, "Expected separator line (dashes) even with empty scrollback");
+    ck_assert_msg(found_separator, "Expected separator line (box-drawing) even with empty scrollback");
 
     talloc_free(ctx);
     mock_write_reset();
 }
 END_TEST
+
 /* Test: Render frame with scrollback content */
 START_TEST(test_render_frame_with_scrollback)
 {
     mock_write_reset();
     void *ctx = talloc_new(NULL);
+    res_t res;
 
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
     term->screen_rows = 24;
@@ -130,11 +116,14 @@ START_TEST(test_render_frame_with_scrollback)
     term->tty_fd = -1;
 
     ik_render_ctx_t *render = NULL;
-    res_t res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
+    res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
     ck_assert(is_ok(&res));
 
-    ik_input_buffer_t *input_buf = NULL;
-    input_buf = ik_input_buffer_create(ctx);
+    // Create agent context (with input_buffer and layer_cake)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    ik_input_buffer_t *input_buf = agent->input_buffer;
 
     // Add some content to input buffer
     res = ik_input_buffer_insert_codepoint(input_buf, 'h');
@@ -142,26 +131,18 @@ START_TEST(test_render_frame_with_scrollback)
     res = ik_input_buffer_insert_codepoint(input_buf, 'i');
     ck_assert(is_ok(&res));
 
-    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, term->screen_cols);
-
-    // Add scrollback content
-    res = ik_scrollback_append_line(scrollback, "line 1", 6);
+    // Add scrollback content to the agent's existing scrollback
+    res = ik_scrollback_append_line(agent->scrollback, "line 1", 6);
     ck_assert(is_ok(&res));
-    res = ik_scrollback_append_line(scrollback, "line 2", 6);
+    res = ik_scrollback_append_line(agent->scrollback, "line 2", 6);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
+    repl->current = agent;
     shared->term = term;
     shared->render = render;
-    repl->input_buffer = input_buf;
-
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    repl->current = agent;
-    repl->current->scrollback = scrollback;
-    repl->current->viewport_offset = 0;
 
     // Render frame - should render both scrollback and input buffer
     res = ik_repl_render_frame(repl);

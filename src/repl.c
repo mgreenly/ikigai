@@ -132,8 +132,8 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Get current input buffer text
-    const uint8_t *text_data = repl->input_buffer->text->data;
-    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
+    const uint8_t *text_data = repl->current->input_buffer->text->data;
+    size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
 
     // Add to history (skip empty input)
     if (text_len > 0 && repl->shared->history != NULL) {  // LCOV_EXCL_BR_LINE
@@ -180,7 +180,7 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
         if (is_err(&result)) return result;
     }
 
-    ik_input_buffer_clear(repl->input_buffer);
+    ik_input_buffer_clear(repl->current->input_buffer);
     repl->current->viewport_offset = 0; // Auto-scroll to bottom
 
     return OK(NULL);
@@ -191,7 +191,7 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->shared->term != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->current->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->current->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->shared->render != NULL);   /* LCOV_EXCL_BR_LINE */
 
     int rows, cols;
@@ -202,7 +202,7 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
     repl->shared->render->cols = cols;
 
     ik_scrollback_ensure_layout(repl->current->scrollback, cols);
-    ik_input_buffer_ensure_layout(repl->input_buffer, cols);
+    ik_input_buffer_ensure_layout(repl->current->input_buffer, cols);
 
     // Trigger immediate redraw with new dimensions
     return ik_repl_render_frame(repl);
@@ -220,7 +220,7 @@ void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl)
 
     // Show spinner, hide input
     repl->spinner_state.visible = true;
-    repl->input_buffer_visible = false;
+    repl->current->input_buffer_visible = false;
 }
 
 void ik_repl_transition_to_idle(ik_repl_ctx_t *repl)
@@ -235,7 +235,7 @@ void ik_repl_transition_to_idle(ik_repl_ctx_t *repl)
 
     // Hide spinner, show input
     repl->spinner_state.visible = false;
-    repl->input_buffer_visible = true;
+    repl->current->input_buffer_visible = true;
 }
 
 void ik_repl_transition_to_executing_tool(ik_repl_ctx_t *repl)

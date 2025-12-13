@@ -115,8 +115,8 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create input buffer
-    repl->input_buffer = ik_input_buffer_create(repl);
-    ck_assert_ptr_nonnull(repl->input_buffer);
+    repl->current->input_buffer = ik_input_buffer_create(repl);
+    ck_assert_ptr_nonnull(repl->current->input_buffer);
 
     // Create conversation
     res_t conv_res = ik_openai_conversation_create(repl);
@@ -182,7 +182,7 @@ START_TEST(test_message_submission_no_session)
     // Set up: Insert text into input buffer
     const char *test_text = "Test without session";
     for (const char *p = test_text; *p; p++) {
-        res_t r = ik_byte_array_append(repl->input_buffer->text, (uint8_t)*p);
+        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
         ck_assert(is_ok(&r));
     }
 
@@ -219,7 +219,7 @@ START_TEST(test_db_error_null_write_end)
     // Set up: Insert text into input buffer
     const char *test_text = "Test with null write_end";
     for (const char *p = test_text; *p; p++) {
-        res_t r = ik_byte_array_append(repl->input_buffer->text, (uint8_t)*p);
+        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
         ck_assert(is_ok(&r));
     }
 
@@ -264,7 +264,7 @@ START_TEST(test_backspace_error_path)
 
     // Verify one character was deleted
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert_uint_eq(len, 1);
     ck_assert_int_eq(text[0], 'x');
 }
@@ -285,7 +285,7 @@ START_TEST(test_escape_revert_original_input)
     // Put different text in the input buffer
     const char *current = "modified text";
     for (const char *p = current; *p; p++) {
-        res_t r = ik_byte_array_append(repl->input_buffer->text, (uint8_t)*p);
+        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
         ck_assert(is_ok(&r));
     }
 
@@ -296,7 +296,7 @@ START_TEST(test_escape_revert_original_input)
 
     // Verify input was reverted to original
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert_uint_eq(len, strlen(original));
     ck_assert_mem_eq(text, original, len);
 

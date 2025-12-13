@@ -26,7 +26,7 @@
 static size_t calculate_document_height(const ik_repl_ctx_t *repl)
 {
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
-    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
+    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
     size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
     size_t completion_rows = (repl->completion != NULL) ? repl->completion->count : 0;
 
@@ -38,11 +38,11 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(viewport_out != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->shared->term != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->current->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->current->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Ensure input buffer layout is up to date
-    ik_input_buffer_ensure_layout(repl->input_buffer, repl->shared->term->screen_cols);
+    ik_input_buffer_ensure_layout(repl->current->input_buffer, repl->shared->term->screen_cols);
 
     // Ensure scrollback layout is up to date
     ik_scrollback_ensure_layout(repl->current->scrollback, repl->shared->term->screen_cols);
@@ -146,7 +146,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->shared->render != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->current->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Calculate viewport to determine what to render
     ik_viewport_t viewport;
@@ -155,12 +155,12 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 
     // Get input buffer text
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
 
     // Get cursor byte offset
     size_t cursor_byte_offset = 0;
     size_t cursor_grapheme = 0;
-    ik_input_buffer_get_cursor_position(repl->input_buffer, &cursor_byte_offset, &cursor_grapheme);
+    ik_input_buffer_get_cursor_position(repl->current->input_buffer, &cursor_byte_offset, &cursor_grapheme);
 
     // Determine visibility of separator and input buffer (unified document model)
     bool separator_visible = viewport.separator_visible;
@@ -180,7 +180,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     }
 
     // Update layer reference fields (respecting REPL state)
-    repl->separator_visible = separator_visible;
+    repl->current->separator_visible = separator_visible;
 
     // State-based visibility (Phase 1.6 Task 6.4)
     pthread_mutex_lock_(&repl->tool_thread_mutex);
@@ -190,15 +190,15 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     if (current_state == IK_REPL_STATE_WAITING_FOR_LLM) {
         // When waiting for LLM: hide input, show spinner
         repl->spinner_state.visible = true;
-        repl->input_buffer_visible = false;
+        repl->current->input_buffer_visible = false;
     } else {
         // When idle: show input (if in viewport), hide spinner
         repl->spinner_state.visible = false;
-        repl->input_buffer_visible = input_buffer_visible;
+        repl->current->input_buffer_visible = input_buffer_visible;
     }
 
-    repl->input_text = (text != NULL) ? text : "";
-    repl->input_text_len = text_len;
+    repl->current->input_text = (text != NULL) ? text : "";
+    repl->current->input_text_len = text_len;
 
     // Calculate document dimensions for layer cake viewport
     size_t document_height = calculate_document_height(repl);

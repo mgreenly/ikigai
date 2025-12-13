@@ -168,7 +168,7 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             repl->current->viewport_offset = 0;
 
             // Insert the character first
-            res_t res = ik_input_buffer_insert_codepoint(repl->input_buffer, action->codepoint);
+            res_t res = ik_input_buffer_insert_codepoint(repl->current->input_buffer, action->codepoint);
             if (is_err(&res)) {
                 return res;
             }
@@ -180,12 +180,12 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
         }
         case IK_INPUT_INSERT_NEWLINE:
             repl->current->viewport_offset = 0;
-            return ik_input_buffer_insert_newline(repl->input_buffer);
+            return ik_input_buffer_insert_newline(repl->current->input_buffer);
         case IK_INPUT_NEWLINE:
             return ik_repl_handle_newline_action(repl);
         case IK_INPUT_BACKSPACE: {
             repl->current->viewport_offset = 0;
-            res_t res = ik_input_buffer_backspace(repl->input_buffer);
+            res_t res = ik_input_buffer_backspace(repl->current->input_buffer);
             if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
                 return res;  // LCOV_EXCL_LINE
             }
@@ -197,15 +197,15 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
         }
         case IK_INPUT_DELETE:
             repl->current->viewport_offset = 0;
-            return ik_input_buffer_delete(repl->input_buffer);
+            return ik_input_buffer_delete(repl->current->input_buffer);
         case IK_INPUT_ARROW_LEFT:
             ik_repl_dismiss_completion(repl);
             repl->current->viewport_offset = 0;
-            return ik_input_buffer_cursor_left(repl->input_buffer);
+            return ik_input_buffer_cursor_left(repl->current->input_buffer);
         case IK_INPUT_ARROW_RIGHT:
             ik_repl_dismiss_completion(repl);
             repl->current->viewport_offset = 0;
-            return ik_input_buffer_cursor_right(repl->input_buffer);
+            return ik_input_buffer_cursor_right(repl->current->input_buffer);
         case IK_INPUT_ARROW_UP:
             return ik_repl_handle_arrow_up_action(repl);
         case IK_INPUT_ARROW_DOWN:
@@ -220,23 +220,23 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             return ik_repl_handle_scroll_down_action(repl);
         case IK_INPUT_CTRL_A:
             repl->current->viewport_offset = 0;
-            return ik_input_buffer_cursor_to_line_start(repl->input_buffer);
+            return ik_input_buffer_cursor_to_line_start(repl->current->input_buffer);
         case IK_INPUT_CTRL_E:
             repl->current->viewport_offset = 0;
-            return ik_input_buffer_cursor_to_line_end(repl->input_buffer);
+            return ik_input_buffer_cursor_to_line_end(repl->current->input_buffer);
         case IK_INPUT_CTRL_K:
             repl->current->viewport_offset = 0;
-            return ik_input_buffer_kill_to_line_end(repl->input_buffer);
+            return ik_input_buffer_kill_to_line_end(repl->current->input_buffer);
         case IK_INPUT_CTRL_N:
             return ik_repl_handle_history_next_action(repl);
         case IK_INPUT_CTRL_P:
             return ik_repl_handle_history_prev_action(repl);
         case IK_INPUT_CTRL_U:
             repl->current->viewport_offset = 0;
-            return ik_input_buffer_kill_line(repl->input_buffer);
+            return ik_input_buffer_kill_line(repl->current->input_buffer);
         case IK_INPUT_CTRL_W:
             repl->current->viewport_offset = 0;
-            return ik_input_buffer_delete_word_backward(repl->input_buffer);
+            return ik_input_buffer_delete_word_backward(repl->current->input_buffer);
         case IK_INPUT_CTRL_C:
             repl->quit = true;
             return OK(NULL);
@@ -247,7 +247,7 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             if (repl->completion != NULL && repl->completion->original_input != NULL) {
                 // Revert to original input
                 const char *original = repl->completion->original_input;
-                res_t res = ik_input_buffer_set_text(repl->input_buffer,
+                res_t res = ik_input_buffer_set_text(repl->current->input_buffer,
                                                       original, strlen(original));
                 if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
                     return res;  // LCOV_EXCL_LINE

@@ -67,7 +67,7 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
 
-    repl->input_buffer = input_buf;
+    repl->current->input_buffer = input_buf;
     repl->shared->render = render;
     repl->shared->term = term;
     repl->current->scrollback = scrollback;
@@ -75,10 +75,10 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     repl->current->layer_cake = layer_cake;
 
     // Initialize reference fields
-    repl->separator_visible = true;
-    repl->input_buffer_visible = true;
-    repl->input_text = "";
-    repl->input_text_len = 0;
+    repl->current->separator_visible = true;
+    repl->current->input_buffer_visible = true;
+    repl->current->input_text = "";
+    repl->current->input_text_len = 0;
     repl->spinner_state.frame_index = 0;
     repl->spinner_state.visible = false;
 
@@ -90,10 +90,10 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
 
     ik_layer_t *spinner_layer = ik_spinner_layer_create(ctx, "spinner", &repl->spinner_state);
 
-    ik_layer_t *separator_layer = ik_separator_layer_create(ctx, "separator", &repl->separator_visible);
+    ik_layer_t *separator_layer = ik_separator_layer_create(ctx, "separator", &repl->current->separator_visible);
 
-    ik_layer_t *input_layer = ik_input_layer_create(ctx, "input", &repl->input_buffer_visible,
-                                                    &repl->input_text, &repl->input_text_len);
+    ik_layer_t *input_layer = ik_input_layer_create(ctx, "input", &repl->current->input_buffer_visible,
+                                                    &repl->current->input_text, &repl->current->input_text_len);
 
     // Add layers to cake
     res = ik_layer_cake_add_layer(layer_cake, scrollback_layer);
@@ -148,7 +148,7 @@ START_TEST(test_submit_message_with_llm_initialized) {
     }
 
     // Verify input buffer has the message
-    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
+    size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_eq(text_len, 5);
 
     // Submit the message (triggers LLM submission flow)
@@ -160,7 +160,7 @@ START_TEST(test_submit_message_with_llm_initialized) {
     ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
 
     // Verify input buffer was cleared
-    text_len = ik_byte_array_size(repl->input_buffer->text);
+    text_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     // Verify user message was added to conversation
@@ -229,7 +229,7 @@ START_TEST(test_submit_message_without_cfg)
     ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
 
     // Verify input buffer was cleared
-    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
+    size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     // Verify NO message was added to conversation (still 0)
@@ -266,7 +266,7 @@ START_TEST(test_submit_message_api_request_failure)
     ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
 
     // Verify input buffer was cleared
-    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
+    size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     // Verify error message was added to scrollback

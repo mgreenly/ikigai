@@ -362,8 +362,8 @@ START_TEST(test_page_up_clamping)
     // input buffer always occupies at least 1 row (for cursor visibility when empty)
     // max_offset = 33 - 24 = 9
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
-    ik_input_buffer_ensure_layout(repl->input_buffer, repl->shared->term->screen_cols);
-    size_t input_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
+    ik_input_buffer_ensure_layout(repl->current->input_buffer, repl->shared->term->screen_cols);
+    size_t input_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
     size_t input_display_rows = (input_rows == 0) ? 1 : input_rows;
     size_t document_height = scrollback_rows + 1 + input_display_rows + 1;
     size_t expected_max = document_height - (size_t)repl->shared->term->screen_rows;
@@ -410,7 +410,7 @@ START_TEST(test_submit_line_to_scrollback)
     }
 
     // Verify input buffer has content
-    size_t ws_len = ik_byte_array_size(repl->input_buffer->text);
+    size_t ws_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_gt(ws_len, 0);
 
     // Submit line
@@ -421,7 +421,7 @@ START_TEST(test_submit_line_to_scrollback)
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
 
     // Verify input buffer is cleared
-    ck_assert_uint_eq(ik_byte_array_size(repl->input_buffer->text), 0);
+    ck_assert_uint_eq(ik_byte_array_size(repl->current->input_buffer->text), 0);
 
     // Cleanup
     talloc_free(ctx);
@@ -486,7 +486,7 @@ START_TEST(test_submit_empty_line)
     ck_assert(is_ok(&res));
 
     // Verify input buffer is empty
-    ck_assert_uint_eq(ik_byte_array_size(repl->input_buffer->text), 0);
+    ck_assert_uint_eq(ik_byte_array_size(repl->current->input_buffer->text), 0);
 
     // Submit empty line
     res = ik_repl_submit_line(repl);

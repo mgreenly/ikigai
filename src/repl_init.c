@@ -61,9 +61,6 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
         return result;
     }
 
-    // Initialize input buffer
-    repl->input_buffer = ik_input_buffer_create(repl);
-
     // Initialize input parser
     repl->input_parser = ik_input_parser_create(repl);
 
@@ -77,11 +74,7 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Initialize reference fields
     repl->spinner_state.frame_index = 0;
     repl->spinner_state.visible = false;  // Initially hidden
-    repl->separator_visible = true;
     repl->lower_separator_visible = true;  // Lower separator initially visible
-    repl->input_buffer_visible = true;
-    repl->input_text = "";
-    repl->input_text_len = 0;
 
     // Initialize completion context to NULL (inactive) (rel-04)
     repl->completion = NULL;

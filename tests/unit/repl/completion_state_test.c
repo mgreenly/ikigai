@@ -27,11 +27,10 @@ START_TEST(test_tab_cycles_to_next)
     res_t agent_res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&agent_res));
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
     
@@ -64,7 +63,7 @@ START_TEST(test_tab_cycles_to_next)
 
     // Verify: input buffer was updated with next selection (not first)
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     ck_assert_uint_gt(text_len, 0);
     ck_assert_int_eq(text[0], '/');
     // Should be a command different from original "/m"
@@ -85,11 +84,10 @@ START_TEST(test_tab_updates_input_buffer)
     res_t agent_res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&agent_res));
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
     
@@ -121,7 +119,7 @@ START_TEST(test_tab_updates_input_buffer)
 
     // Verify: input buffer contains "/" + a selected candidate
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     // Input should be "/" + some selected candidate (no trailing space yet)
     ck_assert_uint_gt(text_len, 0);
     ck_assert_int_eq(text[0], '/');
@@ -146,11 +144,10 @@ START_TEST(test_esc_reverts_to_original)
     res_t agent_res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&agent_res));
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
     
@@ -167,7 +164,7 @@ START_TEST(test_esc_reverts_to_original)
 
     // Verify original input
     size_t original_len = 0;
-    const char *original_text = ik_input_buffer_get_text(input_buf, &original_len);
+    const char *original_text = ik_input_buffer_get_text(repl->current->input_buffer, &original_len);
     ck_assert_uint_eq(original_len, 2);
     ck_assert_mem_eq(original_text, "/m", 2);
     char original_copy[3];
@@ -194,7 +191,7 @@ START_TEST(test_esc_reverts_to_original)
 
     // Verify: input reverted to original
     size_t reverted_len = 0;
-    const char *reverted_text = ik_input_buffer_get_text(input_buf, &reverted_len);
+    const char *reverted_text = ik_input_buffer_get_text(repl->current->input_buffer, &reverted_len);
     ck_assert_uint_eq(reverted_len, original_len);
     ck_assert_mem_eq(reverted_text, original_copy, original_len);
 
@@ -213,11 +210,10 @@ START_TEST(test_space_commits_selection)
     res_t agent_res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&agent_res));
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
     
@@ -253,7 +249,7 @@ START_TEST(test_space_commits_selection)
 
     // Verify: input buffer contains "/" + selected + " "
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     // Should be "/" + selected + " ", so ends with space
     ck_assert_uint_gt(text_len, strlen(selected_copy) + 1);  // At least "/" + selected + " "
     ck_assert_int_eq(text[0], '/');
@@ -277,11 +273,10 @@ START_TEST(test_enter_commits_and_submits)
     res_t agent_res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&agent_res));
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
     
@@ -314,7 +309,7 @@ START_TEST(test_enter_commits_and_submits)
 
     // Verify input buffer has the selected command
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     char *text_copy = talloc_strndup(ctx, text, text_len);
     ck_assert_str_eq(text_copy, "/clear");
 

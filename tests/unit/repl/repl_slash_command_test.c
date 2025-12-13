@@ -28,13 +28,14 @@ START_TEST(test_pp_command_clears_input_buffer) {
     shared->history = NULL;
     repl->shared = shared;
 
-    /* Create input buffer */
-    repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+
+    /* Create input buffer */
+    repl->current->input_buffer = ik_input_buffer_create(repl);
 
     /* Create scrollback (needed for submit_line) */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
@@ -52,7 +53,7 @@ START_TEST(test_pp_command_clears_input_buffer) {
     ck_assert(is_ok(&res));
 
     /* Verify input buffer has "/pp" */
-    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
+    size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_eq(text_len, 3);
 
     /* Send NEWLINE to execute command */
@@ -61,7 +62,7 @@ START_TEST(test_pp_command_clears_input_buffer) {
     ck_assert(is_ok(&res));
 
     /* Verify input buffer was cleared */
-    text_len = ik_byte_array_size(repl->input_buffer->text);
+    text_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     talloc_free(ctx);
@@ -83,13 +84,14 @@ START_TEST(test_pp_command_with_args)
     shared->history = NULL;
     repl->shared = shared;
 
-    /* Create input buffer */
-    repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+
+    /* Create input buffer */
+    repl->current->input_buffer = ik_input_buffer_create(repl);
 
     /* Create scrollback (needed for submit_line) */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
@@ -108,7 +110,7 @@ START_TEST(test_pp_command_with_args)
     ck_assert(is_ok(&res));
 
     /* Verify input buffer was cleared */
-    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
+    size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     talloc_free(ctx);
@@ -131,13 +133,14 @@ START_TEST(test_unknown_slash_command)
     shared->history = NULL;
     repl->shared = shared;
 
-    /* Create input buffer */
-    repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+
+    /* Create input buffer */
+    repl->current->input_buffer = ik_input_buffer_create(repl);
 
     /* Create scrollback (needed for error messages) */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
@@ -156,7 +159,7 @@ START_TEST(test_unknown_slash_command)
     ck_assert(is_ok(&res));
 
     /* Unknown command should still clear the input buffer */
-    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
+    size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     talloc_free(ctx);
@@ -179,13 +182,14 @@ START_TEST(test_empty_input_buffer_newline)
     shared->history = NULL;
     repl->shared = shared;
 
-    /* Create input buffer */
-    repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+
+    /* Create input buffer */
+    repl->current->input_buffer = ik_input_buffer_create(repl);
 
     /* Create scrollback (needed for submit_line) */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
@@ -196,7 +200,7 @@ START_TEST(test_empty_input_buffer_newline)
     ck_assert(is_ok(&res));
 
     /* Phase 4 behavior: Enter submits and clears input buffer (even if empty) */
-    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
+    size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     talloc_free(ctx);
@@ -219,13 +223,14 @@ START_TEST(test_slash_in_middle_not_command)
     shared->history = NULL;
     repl->shared = shared;
 
-    /* Create input buffer */
-    repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+
+    /* Create input buffer */
+    repl->current->input_buffer = ik_input_buffer_create(repl);
 
     /* Create scrollback (needed for submit_line) */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
@@ -244,7 +249,7 @@ START_TEST(test_slash_in_middle_not_command)
     ck_assert(is_ok(&res));
 
     /* Phase 4 behavior: Enter submits and clears input buffer */
-    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
+    size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_eq(text_len, 0);
 
     /* Verify "hello" was added to scrollback (content + blank line) */
@@ -271,13 +276,14 @@ START_TEST(test_pp_command_order_in_scrollback)
     shared->history = NULL;
     repl->shared = shared;
 
-    /* Create input buffer */
-    repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+
+    /* Create input buffer */
+    repl->current->input_buffer = ik_input_buffer_create(repl);
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 80);
@@ -327,13 +333,14 @@ START_TEST(test_pp_output_trailing_newline)
     shared->history = NULL;
     repl->shared = shared;
 
-    /* Create input buffer */
-    repl->input_buffer = ik_input_buffer_create(repl);
     res_t res;
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+
+    /* Create input buffer */
+    repl->current->input_buffer = ik_input_buffer_create(repl);
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 80);

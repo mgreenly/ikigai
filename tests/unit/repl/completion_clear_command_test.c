@@ -31,12 +31,14 @@ START_TEST(test_clear_command_clears_autocomplete)
 
     // Create minimal REPL context for testing
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
 
     // Create input buffer
-    repl->input_buffer = ik_input_buffer_create(ctx);
-    ck_assert_ptr_nonnull(repl->input_buffer);
+    repl->current->input_buffer = ik_input_buffer_create(ctx);
+    ck_assert_ptr_nonnull(repl->current->input_buffer);
 
     // Override scrollback with test scrollback (80 columns for test)
     talloc_free(agent->scrollback);

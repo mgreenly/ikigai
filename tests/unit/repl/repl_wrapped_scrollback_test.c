@@ -74,13 +74,13 @@ START_TEST(test_separator_with_wrapped_lines) {
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
-    repl->input_buffer = input_buf;
+    shared->render = render_ctx;
 
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
-    shared->render = render_ctx;
 
     // Scroll to show document rows 20-29 (which should be lines 10-14)
     // Each line is 2 physical rows, so:

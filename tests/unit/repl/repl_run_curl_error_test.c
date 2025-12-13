@@ -31,7 +31,6 @@ START_TEST(test_repl_run_curl_multi_fdset_error) {
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->input_parser = parser;
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
@@ -41,6 +40,7 @@ START_TEST(test_repl_run_curl_multi_fdset_error) {
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
@@ -86,7 +86,6 @@ START_TEST(test_repl_run_curl_multi_perform_error)
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
@@ -94,6 +93,7 @@ START_TEST(test_repl_run_curl_multi_perform_error)
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;
@@ -143,7 +143,6 @@ START_TEST(test_repl_run_curl_multi_timeout_error)
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->input_parser = parser;
     shared->term = term;
     shared->render = render;
@@ -151,6 +150,7 @@ START_TEST(test_repl_run_curl_multi_timeout_error)
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
     repl->quit = false;

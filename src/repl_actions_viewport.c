@@ -21,10 +21,10 @@
 size_t ik_repl_calculate_max_viewport_offset(ik_repl_ctx_t *repl)
 {
     ik_scrollback_ensure_layout(repl->current->scrollback, repl->shared->term->screen_cols);
-    ik_input_buffer_ensure_layout(repl->input_buffer, repl->shared->term->screen_cols);
+    ik_input_buffer_ensure_layout(repl->current->input_buffer, repl->shared->term->screen_cols);
 
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
-    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
+    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
     size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
     size_t document_height = scrollback_rows + 1 + input_buffer_display_rows + 1;  // +1 for lower separator
 

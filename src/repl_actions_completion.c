@@ -1,12 +1,15 @@
 // REPL action processing - completion functionality
 #include "repl_actions_internal.h"
-#include "repl.h"
-#include "panic.h"
+
+#include "agent.h"
 #include "completion.h"
 #include "input_buffer/core.h"
+#include "panic.h"
+#include "repl.h"
+
 #include <assert.h>
-#include <talloc.h>
 #include <string.h>
+#include <talloc.h>
 
 /**
  * @brief Dismiss active completion
@@ -42,7 +45,7 @@ void ik_repl_update_completion_after_char(ik_repl_ctx_t *repl)
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
 
     // Check if input starts with '/'
     if (text_len > 0 && text[0] == '/') {  // LCOV_EXCL_BR_LINE - defensive: text_len > 0 checked
@@ -170,14 +173,14 @@ static res_t update_input_with_completion_selection(ik_repl_ctx_t *repl)
     }
 
     // Replace input buffer with selected completion
-    res_t res = ik_input_buffer_set_text(repl->input_buffer, replacement, strlen(replacement));
+    res_t res = ik_input_buffer_set_text(repl->current->input_buffer, replacement, strlen(replacement));
     talloc_free(replacement);
     if (is_err(&res)) {  // LCOV_EXCL_BR_LINE - OOM in set_text
         return res;  // LCOV_EXCL_LINE
     }
 
     // Move cursor to end of line for completion acceptance
-    res = ik_input_buffer_cursor_to_line_end(repl->input_buffer);
+    res = ik_input_buffer_cursor_to_line_end(repl->current->input_buffer);
     if (is_err(&res)) {  // LCOV_EXCL_BR_LINE - OOM in cursor move
         return res;  // LCOV_EXCL_LINE
     }
@@ -212,14 +215,14 @@ res_t ik_repl_handle_completion_space_commit(ik_repl_ctx_t *repl)
     ik_repl_dismiss_completion(repl);
 
     // Replace input buffer with selected completion + space
-    res_t res = ik_input_buffer_set_text(repl->input_buffer, replacement, strlen(replacement));
+    res_t res = ik_input_buffer_set_text(repl->current->input_buffer, replacement, strlen(replacement));
     talloc_free(replacement);
     if (is_err(&res)) {  // LCOV_EXCL_BR_LINE - OOM in set_text
         return res;  // LCOV_EXCL_LINE
     }
 
     // Move cursor to end of line for space commit
-    res = ik_input_buffer_cursor_to_line_end(repl->input_buffer);
+    res = ik_input_buffer_cursor_to_line_end(repl->current->input_buffer);
     if (is_err(&res)) {  // LCOV_EXCL_BR_LINE - OOM in cursor move
         return res;  // LCOV_EXCL_LINE
     }
@@ -245,7 +248,7 @@ res_t ik_repl_handle_tab_action(ik_repl_ctx_t *repl)
         // If original_input not set yet (first Tab), set it now
         if (repl->completion->original_input == NULL) {  // LCOV_EXCL_BR_LINE
             size_t text_len = 0;
-            const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
+            const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
             char *original = talloc_strndup(repl, text, text_len);
             if (original == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
             repl->completion->original_input = original;
@@ -268,7 +271,7 @@ res_t ik_repl_handle_tab_action(ik_repl_ctx_t *repl)
 
     // No completion active - check if input starts with '/'
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
 
     // Empty input or doesn't start with '/' - do nothing
     if (text_len == 0 || text[0] != '/') {

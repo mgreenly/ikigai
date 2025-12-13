@@ -70,11 +70,11 @@ START_TEST(test_separator_debug_simple_case) {
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
-    repl->input_buffer = input_buf;
 
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
 
     // Desired view: document rows 20-29

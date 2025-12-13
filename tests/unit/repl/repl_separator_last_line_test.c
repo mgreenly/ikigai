@@ -73,11 +73,11 @@ START_TEST(test_separator_as_last_visible_line) {
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
-    repl->input_buffer = input_buf;
 
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
     shared->render = render_ctx;
     repl->current->viewport_offset = 0;  // Show entire document
@@ -193,11 +193,11 @@ START_TEST(test_separator_last_row_input_buffer_offscreen)
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
-    repl->input_buffer = input_buf;
 
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
     shared->render = render_ctx;
     repl->current->viewport_offset = 2;

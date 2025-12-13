@@ -28,11 +28,10 @@ START_TEST(test_tab_wraps_around)
     res_t agent_res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&agent_res));
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
     
@@ -74,7 +73,7 @@ START_TEST(test_tab_wraps_around)
 
     // Verify: input buffer has the single match
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     char *text_copy = talloc_strndup(ctx, text, text_len);
     ck_assert_str_eq(text_copy, "/mark");
 
@@ -93,11 +92,10 @@ START_TEST(test_original_input_stored)
     res_t agent_res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&agent_res));
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
     
@@ -139,7 +137,7 @@ START_TEST(test_original_input_stored)
 
     // Verify input buffer has the full completion
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     char *text_copy = talloc_strndup(ctx, text, text_len);
     ck_assert_str_eq(text_copy, "/model");
 
@@ -158,11 +156,10 @@ START_TEST(test_multiple_tab_presses)
     res_t agent_res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&agent_res));
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
     
@@ -200,7 +197,7 @@ START_TEST(test_multiple_tab_presses)
 
     // Verify input contains a completion (cycling to next)
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     ck_assert_uint_gt(text_len, 0);
     ck_assert_int_eq(text[0], '/');
     // Should be different from original prefix "/m"
@@ -221,11 +218,10 @@ START_TEST(test_update_completion_preserves_original_input)
     res_t agent_res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&agent_res));
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
     
@@ -276,12 +272,11 @@ START_TEST(test_space_commit_no_completion)
     res_t agent_res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&agent_res));
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
-    repl->input_buffer = input_buf;
     repl->quit = false;
 
     // Create minimal shared context for test
@@ -306,7 +301,7 @@ START_TEST(test_space_commit_no_completion)
 
     // Verify space was added
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     ck_assert_uint_eq(text_len, 3);
     ck_assert_mem_eq(text, "hi ", 3);
 

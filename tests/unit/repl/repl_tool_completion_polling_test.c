@@ -74,13 +74,13 @@ static void setup(void)
     res_t render_res = ik_render_create(repl, 24, 80, 1, &repl->shared->render);
     ck_assert(!render_res.is_err);
 
-    /* Create input buffer */
-    repl->input_buffer = ik_input_buffer_create(repl);
-    ck_assert_ptr_nonnull(repl->input_buffer);
-
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+
+    /* Create input buffer */
+    repl->current->input_buffer = ik_input_buffer_create(repl);
+    ck_assert_ptr_nonnull(repl->current->input_buffer);
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 10);

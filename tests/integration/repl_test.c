@@ -1,17 +1,19 @@
+#include "../../src/agent.h"
+#include "../../src/repl.h"
+#include "../../src/shared.h"
+#include "../test_utils.h"
+
 #include <check.h>
+#include <curl/curl.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <pthread.h>
 #include <signal.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
 #include <talloc.h>
 #include <termios.h>
 #include <unistd.h>
-#include <curl/curl.h>
-#include <sys/select.h>
-#include "../../src/repl.h"
-#include "../../src/shared.h"
-#include "../test_utils.h"
 
 // Mock terminal file descriptor
 static int mock_tty_fd = 100;
@@ -307,7 +309,7 @@ START_TEST(test_repl_init) {
     ck_assert_ptr_nonnull(repl);
     ck_assert_ptr_nonnull(repl->shared->term);
     ck_assert_ptr_nonnull(repl->shared->render);
-    ck_assert_ptr_nonnull(repl->input_buffer);
+    ck_assert_ptr_nonnull(repl->current->input_buffer);
     ck_assert_ptr_nonnull(repl->input_parser);
     ck_assert(!repl->quit);
 
@@ -455,13 +457,13 @@ START_TEST(test_transition_to_executing_tool)
     ik_repl_transition_to_waiting_for_llm(repl);
     ck_assert_int_eq(repl->state, IK_REPL_STATE_WAITING_FOR_LLM);
     ck_assert(repl->spinner_state.visible);
-    ck_assert(!repl->input_buffer_visible);
+    ck_assert(!repl->current->input_buffer_visible);
 
     // Transition to EXECUTING_TOOL
     ik_repl_transition_to_executing_tool(repl);
     ck_assert_int_eq(repl->state, IK_REPL_STATE_EXECUTING_TOOL);
     ck_assert(repl->spinner_state.visible);  // Spinner stays visible
-    ck_assert(!repl->input_buffer_visible);  // Input stays hidden
+    ck_assert(!repl->current->input_buffer_visible);  // Input stays hidden
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);

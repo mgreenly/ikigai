@@ -46,12 +46,12 @@ START_TEST(test_repl_process_action_ctrl_a) {
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->quit = false;
 
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->quit = false;
 
     // Cursor is at byte 11 (after "hello\nworld"), grapheme 11
     size_t byte_offset = 0;
@@ -110,12 +110,12 @@ START_TEST(test_repl_process_action_ctrl_e)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->quit = false;
 
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->quit = false;
 
     // Move cursor to start of "world" line
     res = ik_input_buffer_cursor_to_line_start(input_buf);
@@ -189,12 +189,12 @@ START_TEST(test_repl_process_action_ctrl_k)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->quit = false;
 
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->quit = false;
 
     // Move cursor to middle of "world" line (after "wo")
     // Cursor is at byte 16 (after "hello\nworld\ntest")
@@ -275,12 +275,12 @@ START_TEST(test_repl_process_action_ctrl_u)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->quit = false;
 
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->quit = false;
 
     // Move cursor to middle of "world" line (after "wo")
     size_t text_len = 0;
@@ -359,12 +359,12 @@ START_TEST(test_repl_process_action_ctrl_w)
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->quit = false;
 
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->quit = false;
 
     // Cursor is at byte 16 (after "hello world test")
     size_t byte_offset = 0;

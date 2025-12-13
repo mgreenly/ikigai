@@ -20,9 +20,6 @@ START_TEST(test_tab_triggers_completion)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
-
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res_t agent_res = ik_test_create_agent(ctx, &agent);
@@ -30,8 +27,9 @@ START_TEST(test_tab_triggers_completion)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->completion = NULL;
     repl->quit = false;
@@ -71,8 +69,6 @@ START_TEST(test_tab_accepts_selection)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -81,8 +77,9 @@ START_TEST(test_tab_accepts_selection)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
 
@@ -110,7 +107,7 @@ START_TEST(test_tab_accepts_selection)
 
     // Verify: Input buffer was updated with the selection
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     ck_assert_uint_gt(text_len, 2);  // At least "/" + something
     ck_assert_int_eq(text[0], '/');
 
@@ -123,8 +120,6 @@ START_TEST(test_arrow_up_changes_selection)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -133,8 +128,9 @@ START_TEST(test_arrow_up_changes_selection)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
 
@@ -180,8 +176,6 @@ START_TEST(test_arrow_down_changes_selection)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -190,8 +184,9 @@ START_TEST(test_arrow_down_changes_selection)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
 
@@ -237,8 +232,6 @@ START_TEST(test_escape_dismisses_completion)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -247,8 +240,9 @@ START_TEST(test_escape_dismisses_completion)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
 
@@ -267,7 +261,7 @@ START_TEST(test_escape_dismisses_completion)
 
     // Verify original input before Escape
     size_t original_len = 0;
-    ik_input_buffer_get_text(input_buf, &original_len);
+    ik_input_buffer_get_text(repl->current->input_buffer, &original_len);
     ck_assert_uint_eq(original_len, 2); // "/m"
 
     // Press Escape
@@ -280,7 +274,7 @@ START_TEST(test_escape_dismisses_completion)
 
     // Verify: Input buffer unchanged
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     ck_assert_uint_eq(text_len, 2);
     ck_assert_mem_eq(text, "/m", 2);
 
@@ -293,8 +287,6 @@ START_TEST(test_typing_updates_completion)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -303,8 +295,9 @@ START_TEST(test_typing_updates_completion)
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->current = agent;
     repl->quit = false;
 

@@ -69,13 +69,13 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
-    repl->input_buffer = input_buf;
+    shared->render = render_ctx;
 
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
-    shared->render = render_ctx;
 
     // Document structure:
     //   Lines 0-49: scrollback (50 lines)
@@ -189,13 +189,13 @@ START_TEST(test_scrollback_visible_when_scrolled_to_top)
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
     shared->term = term;
-    repl->input_buffer = input_buf;
+    shared->render = render_ctx;
 
     // Create agent context for display state
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
-    shared->render = render_ctx;
 
     // Document: 50 scrollback + 1 sep + 1 input buffer = 52 lines
     // Max offset = 52 - 10 = 42, shows lines 0-9

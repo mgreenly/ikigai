@@ -250,6 +250,66 @@ START_TEST(test_agent_viewport_offset_zero)
 }
 END_TEST
 
+// Test agent->input_buffer is initialized
+START_TEST(test_agent_input_buffer_initialized)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_nonnull(agent->input_buffer);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->separator_visible is true initially
+START_TEST(test_agent_separator_visible_true)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert(agent->separator_visible == true);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->input_buffer_visible is true initially
+START_TEST(test_agent_input_buffer_visible_true)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert(agent->input_buffer_visible == true);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test agent_ctx is allocated under provided parent
 START_TEST(test_agent_allocated_under_parent)
 {
@@ -353,6 +413,9 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_agent_layer_cake_initialized);
     tcase_add_test(tc_core, test_agent_all_layers_initialized);
     tcase_add_test(tc_core, test_agent_viewport_offset_zero);
+    tcase_add_test(tc_core, test_agent_input_buffer_initialized);
+    tcase_add_test(tc_core, test_agent_separator_visible_true);
+    tcase_add_test(tc_core, test_agent_input_buffer_visible_true);
     tcase_add_test(tc_core, test_agent_allocated_under_parent);
     tcase_add_test(tc_core, test_agent_can_be_freed);
     tcase_add_test(tc_core, test_generate_uuid_returns_valid_string);

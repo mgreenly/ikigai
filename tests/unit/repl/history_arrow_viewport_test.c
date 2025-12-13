@@ -26,15 +26,12 @@
 START_TEST(test_arrow_up_with_viewport_offset_scrolls)
 {
     void *ctx = talloc_new(NULL);
+    res_t res;
 
     // Create REPL context with mocked terminal
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
     term->screen_rows = 10;
     term->screen_cols = 80;
-
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
-    res_t res = ik_input_buffer_insert_codepoint(input_buf, 'h');
-    ck_assert(is_ok(&res));
 
     // Create scrollback with enough content
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
@@ -59,7 +56,9 @@ START_TEST(test_arrow_up_with_viewport_offset_scrolls)
     repl->shared = shared;
     repl->current = agent;
     shared->term = term;
-    repl->input_buffer = input_buf;
+    ik_input_buffer_t *input_buf = repl->current->input_buffer;
+    res = ik_input_buffer_insert_codepoint(input_buf, 'h');
+    ck_assert(is_ok(&res));
 
     // Override agent's scrollback
     talloc_free(agent->scrollback);
@@ -92,15 +91,12 @@ END_TEST
 START_TEST(test_arrow_down_with_viewport_offset_scrolls)
 {
     void *ctx = talloc_new(NULL);
+    res_t res;
 
     // Create REPL context with mocked terminal
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
     term->screen_rows = 10;
     term->screen_cols = 80;
-
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
-    res_t res = ik_input_buffer_insert_codepoint(input_buf, 'h');
-    ck_assert(is_ok(&res));
 
     // Create scrollback with enough content
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
@@ -115,17 +111,19 @@ START_TEST(test_arrow_down_with_viewport_offset_scrolls)
     res = ik_history_add(history, "history entry");
     ck_assert(is_ok(&res));
 
-    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
-    repl->shared = shared;
-    shared->term = term;
-    repl->input_buffer = input_buf;
-    
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
+
+    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     repl->current = agent;
+    shared->term = term;
+    ik_input_buffer_t *input_buf = repl->current->input_buffer;
+    res = ik_input_buffer_insert_codepoint(input_buf, 'h');
+    ck_assert(is_ok(&res));
 
     // Override agent scrollback
     talloc_free(agent->scrollback);
@@ -158,32 +156,32 @@ END_TEST
 START_TEST(test_arrow_up_with_zero_offset_navigates_history)
 {
     void *ctx = talloc_new(NULL);
+    res_t res;
 
     // Create REPL context with mocked terminal
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
     term->screen_rows = 10;
     term->screen_cols = 80;
 
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
 
     // Create scrollback
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_history_t *history = ik_history_create(ctx, 10);
-    res_t res = ik_history_add(history, "history entry");
+    res = ik_history_add(history, "history entry");
+    ck_assert(is_ok(&res));
+
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     repl->shared = shared;
-    shared->term = term;
-    repl->input_buffer = input_buf;
-    
-    // Create agent
-    ik_agent_ctx_t *agent = NULL;
-    res = ik_test_create_agent(ctx, &agent);
-    ck_assert(is_ok(&res));
     repl->current = agent;
+    shared->term = term;
+    ik_input_buffer_t *input_buf = repl->current->input_buffer;
 
     // Override agent scrollback
     talloc_free(agent->scrollback);
@@ -216,15 +214,12 @@ END_TEST
 START_TEST(test_arrow_down_to_bottom_then_history)
 {
     void *ctx = talloc_new(NULL);
+    res_t res;
 
     // Create REPL context with mocked terminal
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
     term->screen_rows = 10;
     term->screen_cols = 80;
-
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
-    res_t res = ik_input_buffer_insert_codepoint(input_buf, 'h');
-    ck_assert(is_ok(&res));
 
     // Create scrollback with enough content
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
@@ -241,18 +236,20 @@ START_TEST(test_arrow_down_to_bottom_then_history)
     res = ik_history_add(history, "second");
     ck_assert(is_ok(&res));
 
-    // Start with history browsing and viewport offset
-    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
-    repl->shared = shared;
-    shared->term = term;
-    repl->input_buffer = input_buf;
-    
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
+
+    // Start with history browsing and viewport offset
+    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     repl->current = agent;
+    shared->term = term;
+    ik_input_buffer_t *input_buf = repl->current->input_buffer;
+    res = ik_input_buffer_insert_codepoint(input_buf, 'h');
+    ck_assert(is_ok(&res));
 
     // Override agent scrollback
     talloc_free(agent->scrollback);

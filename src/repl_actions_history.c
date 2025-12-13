@@ -27,7 +27,7 @@ static res_t load_history_entry_(ik_repl_ctx_t *repl, const char *entry)
     assert(entry != NULL); /* LCOV_EXCL_BR_LINE */
 
     size_t entry_len = strlen(entry);
-    return ik_input_buffer_set_text(repl->input_buffer, entry, entry_len);
+    return ik_input_buffer_set_text(repl->current->input_buffer, entry, entry_len);
 }
 
 /**
@@ -41,7 +41,7 @@ static res_t load_history_entry_(ik_repl_ctx_t *repl, const char *entry)
 res_t ik_repl_handle_arrow_up_action(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
-    assert(repl->input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(repl->current->input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     // If viewport is scrolled, scroll up instead of navigating history
     if (repl->current->viewport_offset > 0) {
@@ -56,11 +56,11 @@ res_t ik_repl_handle_arrow_up_action(ik_repl_ctx_t *repl)
 
     size_t byte_offset = 0;
     size_t grapheme_offset = 0;
-    res_t res = ik_input_buffer_get_cursor_position(repl->input_buffer, &byte_offset, &grapheme_offset);
+    res_t res = ik_input_buffer_get_cursor_position(repl->current->input_buffer, &byte_offset, &grapheme_offset);
     if (is_err(&res)) return res;  // LCOV_EXCL_LINE - allocation failure in cursor operations
 
     if (byte_offset != 0) {
-        return ik_input_buffer_cursor_up(repl->input_buffer);
+        return ik_input_buffer_cursor_up(repl->current->input_buffer);
     }
 
     if (repl->shared->history == NULL) {  // LCOV_EXCL_BR_LINE
@@ -68,7 +68,7 @@ res_t ik_repl_handle_arrow_up_action(ik_repl_ctx_t *repl)
     }
 
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
 
     const char *entry = NULL;
     if (!ik_history_is_browsing(repl->shared->history)) {
@@ -109,7 +109,7 @@ res_t ik_repl_handle_arrow_up_action(ik_repl_ctx_t *repl)
 res_t ik_repl_handle_arrow_down_action(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
-    assert(repl->input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
+    assert(repl->current->input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     // If viewport is scrolled, scroll down instead of navigating history
     if (repl->current->viewport_offset > 0) {
@@ -124,11 +124,11 @@ res_t ik_repl_handle_arrow_down_action(ik_repl_ctx_t *repl)
 
     size_t byte_offset = 0;
     size_t grapheme_offset = 0;
-    res_t res = ik_input_buffer_get_cursor_position(repl->input_buffer, &byte_offset, &grapheme_offset);
+    res_t res = ik_input_buffer_get_cursor_position(repl->current->input_buffer, &byte_offset, &grapheme_offset);
     if (is_err(&res)) return res;  // LCOV_EXCL_LINE - allocation failure in cursor operations
 
     if (byte_offset != 0) {  // LCOV_EXCL_BR_LINE
-        return ik_input_buffer_cursor_down(repl->input_buffer);  // LCOV_EXCL_LINE
+        return ik_input_buffer_cursor_down(repl->current->input_buffer);  // LCOV_EXCL_LINE
     }
 
     if (repl->shared->history != NULL && ik_history_is_browsing(repl->shared->history)) {
@@ -139,7 +139,7 @@ res_t ik_repl_handle_arrow_down_action(ik_repl_ctx_t *repl)
         return load_history_entry_(repl, entry);
     }
 
-    return ik_input_buffer_cursor_down(repl->input_buffer);
+    return ik_input_buffer_cursor_down(repl->current->input_buffer);
 }
 
 /**
@@ -160,7 +160,7 @@ res_t ik_repl_handle_history_prev_action(ik_repl_ctx_t *repl)
     }
 
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
 
     const char *entry = NULL;
     if (!ik_history_is_browsing(repl->shared->history)) {

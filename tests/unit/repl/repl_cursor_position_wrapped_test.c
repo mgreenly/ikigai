@@ -49,18 +49,18 @@ static void init_layer_cake(ik_repl_ctx_t *repl, int32_t rows)
     res_t res;
     repl->spinner_state.frame_index = 0;
     repl->spinner_state.visible = false;
-    repl->separator_visible = true;
+    repl->current->separator_visible = true;
     repl->lower_separator_visible = true;
-    repl->input_buffer_visible = true;
-    repl->input_text = "";
-    repl->input_text_len = 0;
+    repl->current->input_buffer_visible = true;
+    repl->current->input_text = "";
+    repl->current->input_text_len = 0;
 
     repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)rows);
     repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", repl->current->scrollback);
     repl->current->spinner_layer = ik_spinner_layer_create(repl, "spinner", &repl->spinner_state);
-    repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &repl->separator_visible);
-    repl->current->input_layer = ik_input_layer_create(repl, "input", &repl->input_buffer_visible,
-                                              &repl->input_text, &repl->input_text_len);
+    repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &repl->current->separator_visible);
+    repl->current->input_layer = ik_input_layer_create(repl, "input", &repl->current->input_buffer_visible,
+                                              &repl->current->input_text, &repl->current->input_text_len);
     repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator",
                                                              &repl->lower_separator_visible);
 
@@ -204,13 +204,20 @@ START_TEST(test_cursor_position_10row_wrapped_scrolled) {
     repl->shared = shared;
     shared->term = term;
     shared->render = render;
-    repl->input_buffer = input_buf;
 
     // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
     repl->current = agent;
-    repl->current->scrollback = scrollback;
-    repl->current->viewport_offset = 0;
+
+    // Override agent's input buffer with our test fixture
+    talloc_free(agent->input_buffer);
+    agent->input_buffer = input_buf;
+    // Override agent's scrollback with our test fixture
+    talloc_free(agent->scrollback);
+    agent->scrollback = scrollback;
+    agent->viewport_offset = 0;
 
     init_layer_cake(repl, term->screen_rows);
 
@@ -310,13 +317,20 @@ START_TEST(test_cursor_position_10row_terminal_scrolled) {
     repl->shared = shared;
     shared->term = term;
     shared->render = render;
-    repl->input_buffer = input_buf;
 
     // Create agent context for display state
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
     repl->current = agent;
-    repl->current->scrollback = scrollback;
-    repl->current->viewport_offset = 0;
+
+    // Override agent's input buffer with our test fixture
+    talloc_free(agent->input_buffer);
+    agent->input_buffer = input_buf;
+    // Override agent's scrollback with our test fixture
+    talloc_free(agent->scrollback);
+    agent->scrollback = scrollback;
+    agent->viewport_offset = 0;
 
     init_layer_cake(repl, term->screen_rows);
 

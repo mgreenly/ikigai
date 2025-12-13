@@ -88,7 +88,7 @@ START_TEST(test_autocomplete_viewport_includes_completion_height) {
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->shared = shared;
     repl->current = agent;
-    repl->input_buffer = input_buf;
+    repl->current->input_buffer = input_buf;
     repl->completion = completion;
 
     // Calculate viewport
@@ -189,7 +189,7 @@ START_TEST(test_autocomplete_viewport_without_completion) {
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->shared = shared;
     repl->current = agent;
-    repl->input_buffer = input_buf;
+    repl->current->input_buffer = input_buf;
     repl->completion = NULL;  // No completion
 
     // Calculate viewport

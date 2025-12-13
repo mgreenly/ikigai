@@ -85,9 +85,6 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
 {
     res_t res;
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
-
     // Create render context
     ik_render_ctx_t *render = NULL;
     res = ik_render_create(ctx, 24, 80, 1, &render);
@@ -112,7 +109,7 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     shared->term = term;
     shared->render = render;
 
-    // Create agent
+    // Create agent (includes input_buffer)
     ik_agent_ctx_t *agent = NULL;
     res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
@@ -129,13 +126,9 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     ck_assert_ptr_nonnull(repl);
     repl->shared = shared;
     repl->current = agent;
-    repl->input_buffer = input_buf;
+    // Use the agent's input_buffer (already created by ik_test_create_agent)
 
-    // Initialize reference fields
-    repl->separator_visible = true;
-    repl->input_buffer_visible = true;
-    repl->input_text = "";
-    repl->input_text_len = 0;
+    // Initialize reference fields (agent fields are already initialized)
     repl->spinner_state.frame_index = 0;
     repl->spinner_state.visible = false;
 
@@ -147,10 +140,10 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
 
     ik_layer_t *spinner_layer = ik_spinner_layer_create(ctx, "spinner", &repl->spinner_state);
 
-    ik_layer_t *separator_layer = ik_separator_layer_create(ctx, "separator", &repl->separator_visible);
+    ik_layer_t *separator_layer = ik_separator_layer_create(ctx, "separator", &repl->current->separator_visible);
 
-    ik_layer_t *input_layer = ik_input_layer_create(ctx, "input", &repl->input_buffer_visible,
-                                                    &repl->input_text, &repl->input_text_len);
+    ik_layer_t *input_layer = ik_input_layer_create(ctx, "input", &repl->current->input_buffer_visible,
+                                                    &repl->current->input_text, &repl->current->input_text_len);
 
     // Add layers to cake
     res = ik_layer_cake_add_layer(layer_cake, scrollback_layer);

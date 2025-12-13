@@ -55,7 +55,6 @@ typedef struct ik_repl_ctx_t {
     // Current agent (owns display state)
     ik_agent_ctx_t *current;
 
-    ik_input_buffer_t *input_buffer;  // Input buffer
     ik_input_parser_t *input_parser;  // Input parser
     atomic_bool quit;           // Exit flag (atomic for thread safety)
     ik_scroll_detector_t *scroll_det;  // Scroll detector (rel-05)
@@ -65,11 +64,7 @@ typedef struct ik_repl_ctx_t {
 
     // Reference fields for layers (updated before each render)
     ik_spinner_state_t spinner_state; // Spinner state (Phase 1.4)
-    bool separator_visible;           // Separator visibility flag (upper)
     bool lower_separator_visible;     // Separator visibility flag (lower)
-    bool input_buffer_visible;        // Input buffer visibility flag
-    const char *input_text;           // Input text pointer
-    size_t input_text_len;            // Input text length
 
     // Debug info for separator (updated before each render)
     size_t debug_viewport_offset;     // viewport_offset value

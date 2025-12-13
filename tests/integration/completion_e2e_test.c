@@ -140,7 +140,7 @@ START_TEST(test_completion_full_workflow)
     ck_assert_ptr_null(repl->completion);
 
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     // Should have a completion selected - check it starts with /
     ck_assert(len > 1);
     ck_assert_mem_eq(text, "/", 1);
@@ -173,7 +173,7 @@ START_TEST(test_completion_argument_workflow)
     ck_assert_ptr_null(repl->completion);
 
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     // Should have selected an argument
     ck_assert(len > 7);
     ck_assert_mem_eq(text, "/model ", 7);
@@ -211,7 +211,7 @@ START_TEST(test_completion_escape_dismisses)
     ck_assert_ptr_null(repl->completion);
 
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert_uint_eq(len, 2);
     ck_assert_mem_eq(text, "/m", 2);
 
@@ -272,7 +272,7 @@ START_TEST(test_completion_history_no_conflict)
     ck_assert_ptr_null(repl->completion);
     ck_assert(!ik_history_is_browsing(repl->shared->history));
 
-    ik_input_buffer_clear(repl->input_buffer);
+    ik_input_buffer_clear(repl->current->input_buffer);
     // Use Ctrl+P for explicit history navigation (rel-05: arrow keys now handled by burst detector)
     ik_input_action_t hist_action = {.type = IK_INPUT_CTRL_P};
     ik_repl_process_action(repl, &hist_action);
@@ -338,7 +338,7 @@ START_TEST(test_completion_dynamic_update)
     ik_repl_process_action(repl, &a);
 
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert_uint_eq(len, 4);
     ck_assert_mem_eq(text, "/mar", 4);
 
@@ -371,7 +371,7 @@ START_TEST(test_completion_debug_args)
 
     // Tab selected one option (either "off" or "on"), now in input_buffer
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert(len > 7);  // "/debug " plus argument
     ck_assert_mem_eq(text, "/debug ", 7);
 
@@ -405,7 +405,7 @@ START_TEST(test_completion_partial_arg)
 
     // Should have selected an argument
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert(len > 7);  // "/model " plus model name
     ck_assert_mem_eq(text, "/model ", 7);
 
