@@ -5,12 +5,6 @@
       "group": "Agent Context Integration",
       "model": "sonnet",
       "thinking": "thinking"
-    },
-    {
-      "task": "repl-single-agent-init.md",
-      "group": "Agent Context Integration",
-      "model": "sonnet",
-      "thinking": "thinking"
     }
   ],
   "done": [
@@ -77,6 +71,12 @@
     {
       "task": "agent-ctx-cleanup.md",
       "group": "Agent Context Extraction",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "repl-single-agent-init.md",
+      "group": "Agent Context Integration",
       "model": "sonnet",
       "thinking": "thinking"
     }
