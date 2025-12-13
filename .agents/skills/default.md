@@ -19,6 +19,7 @@ Don't enumerate or read the other files I list here unless you need to.
 * The docs/decisions folder contains "Architecture Decision Records"
 * Memory: talloc-based with ownership rules (see docs/memory.md)
 * Errors: Result types with OK()/ERR() patterns (see docs/error_handling.md)
+* Database: PostgreSQL via libpq (see .agents/skills/database.md for schema and patterns)
 * Use `make check` to verify tests while working on code changes
 * Use `make lint && make coverage` before commits - 100% coverage is MANDATORY
 * make BUILD={debug|release|sanitize|tsan|coverage} for different build modes
