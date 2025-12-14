@@ -120,3 +120,8 @@ ik_agent_ctx_t *ik_repl_find_agent(ik_repl_ctx_t *repl, const char *uuid_prefix)
 
 // Check if UUID prefix is ambiguous (matches multiple agents)
 bool ik_repl_uuid_ambiguous(ik_repl_ctx_t *repl, const char *uuid_prefix);
+
+// Switch from current agent to new_agent
+// Saves state on outgoing, restores on incoming
+// Returns ERR if new_agent is NULL or same as current
+res_t ik_repl_switch_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *new_agent);

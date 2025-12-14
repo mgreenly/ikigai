@@ -394,3 +394,27 @@ bool ik_repl_uuid_ambiguous(ik_repl_ctx_t *repl, const char *uuid_prefix)
 
     return false;
 }
+
+res_t ik_repl_switch_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *new_agent)
+{
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+
+    if (new_agent == NULL) {
+        return ERR(repl, INVALID_ARG, "Cannot switch to NULL agent");
+    }
+
+    if (new_agent == repl->current) {
+        return OK(NULL);  // No-op, already on this agent
+    }
+
+    // State is already stored on agent_ctx:
+    // - repl->current->input_buffer (per-agent)
+    // - repl->current->viewport_offset (per-agent)
+    // These don't need explicit save/restore because
+    // they're already per-agent fields.
+
+    // Switch current pointer
+    repl->current = new_agent;
+
+    return OK(NULL);
+}

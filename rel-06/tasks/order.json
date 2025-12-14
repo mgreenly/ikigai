@@ -1,24 +1,6 @@
 {
   "todo": [
     {
-      "task": "agent-zero-register.md",
-      "group": "Agent 0 Registration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "repl-agent-array.md",
-      "group": "Multi-Agent Infrastructure",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "repl-agent-lookup.md",
-      "group": "Multi-Agent Infrastructure",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "agent-switch-state.md",
       "group": "Multi-Agent Infrastructure",
       "model": "sonnet",
@@ -185,6 +167,24 @@
     {
       "task": "uuid-refactor.md",
       "group": "Utilities",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-zero-register.md",
+      "group": "Agent 0 Registration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "repl-agent-array.md",
+      "group": "Multi-Agent Infrastructure",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "repl-agent-lookup.md",
+      "group": "Multi-Agent Infrastructure",
       "model": "sonnet",
       "thinking": "thinking"
     }
