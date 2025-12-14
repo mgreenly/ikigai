@@ -55,10 +55,23 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Wire up successfully initialized components
     repl->shared = shared;
 
+    // Initialize agent array
+    repl->agents = NULL;
+    repl->agent_count = 0;
+    repl->agent_capacity = 0;
+
     // Create agent context (owns display state)
     result = ik_agent_create(repl, repl->shared, NULL, &repl->current);
     if (is_err(&result)) {
         // Reparent error to parent before freeing repl (error is child of repl)
+        talloc_steal(parent, result.err);
+        talloc_free(repl);
+        return result;
+    }
+
+    // Add initial agent to array
+    result = ik_repl_add_agent(repl, repl->current);
+    if (is_err(&result)) {
         talloc_steal(parent, result.err);
         talloc_free(repl);
         return result;

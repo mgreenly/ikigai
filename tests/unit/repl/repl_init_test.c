@@ -364,6 +364,93 @@ START_TEST(test_repl_init_creates_agent)
 
 END_TEST
 
+/* Test: Initial agent is added to agents array */
+START_TEST(test_repl_init_agent_in_array)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Initialize REPL
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_shared_ctx_t *shared = NULL;
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    res = ik_repl_init(ctx, shared, &repl);
+    ck_assert(is_ok(&res));
+
+    // Verify agent array is initialized
+    ck_assert_ptr_nonnull(repl->agents);
+    ck_assert_uint_eq(repl->agent_count, 1);
+    ck_assert(repl->agent_capacity >= 1);
+
+    // Verify initial agent is in array
+    ck_assert_ptr_eq(repl->agents[0], repl->current);
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+
+END_TEST
+
+/* Test: ik_repl_find_agent returns correct agent */
+START_TEST(test_repl_find_agent_found)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Initialize REPL
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_shared_ctx_t *shared = NULL;
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    res = ik_repl_init(ctx, shared, &repl);
+    ck_assert(is_ok(&res));
+
+    // Find the initial agent by UUID
+    const char *uuid = repl->current->uuid;
+    ik_agent_ctx_t *found = ik_repl_find_agent(repl, uuid);
+
+    // Verify found agent matches current
+    ck_assert_ptr_eq(found, repl->current);
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+
+END_TEST
+
+/* Test: ik_repl_find_agent returns NULL for unknown UUID */
+START_TEST(test_repl_find_agent_not_found)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Initialize REPL
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_shared_ctx_t *shared = NULL;
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    res = ik_repl_init(ctx, shared, &repl);
+    ck_assert(is_ok(&res));
+
+    // Try to find a non-existent agent
+    ik_agent_ctx_t *found = ik_repl_find_agent(repl, "nonexistent-uuid");
+
+    // Verify NULL is returned
+    ck_assert_ptr_null(found);
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+
+END_TEST
+
 static Suite *repl_init_suite(void)
 {
     Suite *s = suite_create("REPL Initialization");
@@ -380,6 +467,9 @@ static Suite *repl_init_suite(void)
     tcase_set_timeout(tc_success, 30);
     tcase_add_test(tc_success, test_repl_init_success_debug_manager);
     tcase_add_test(tc_success, test_repl_init_creates_agent);
+    tcase_add_test(tc_success, test_repl_init_agent_in_array);
+    tcase_add_test(tc_success, test_repl_find_agent_found);
+    tcase_add_test(tc_success, test_repl_find_agent_not_found);
     suite_add_tcase(s, tc_success);
 
     return s;

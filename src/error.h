@@ -22,6 +22,7 @@ typedef enum {
     ERR_DB_CONNECT,          // Database connection failures
     ERR_DB_MIGRATE,          // Database migration failures
     ERR_OUT_OF_MEMORY,       // Memory allocation failures
+    ERR_AGENT_NOT_FOUND,     // Agent not found in array
 } err_code_t;
 
 // Error with context and embedded message buffer

@@ -43,6 +43,11 @@ typedef struct ik_repl_ctx_t {
     // All per-agent fields accessed via this pointer
     ik_agent_ctx_t *current;
 
+    // Agent array (for navigation and /agents command)
+    ik_agent_ctx_t **agents;     // Array of all loaded agents
+    size_t agent_count;           // Number of agents in array
+    size_t agent_capacity;        // Allocated capacity
+
     ik_input_parser_t *input_parser;  // Input parser
     atomic_bool quit;           // Exit flag (atomic for thread safety)
     ik_scroll_detector_t *scroll_det;  // Scroll detector (rel-05)
@@ -104,3 +109,8 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl);
 
 // Tool loop decision function (Phase 2: Story 02)
 bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl);
+
+// Agent array management
+res_t ik_repl_add_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
+res_t ik_repl_remove_agent(ik_repl_ctx_t *repl, const char *uuid);
+ik_agent_ctx_t *ik_repl_find_agent(ik_repl_ctx_t *repl, const char *uuid);
