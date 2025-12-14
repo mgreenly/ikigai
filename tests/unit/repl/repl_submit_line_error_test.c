@@ -18,6 +18,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <talloc.h>
 #include <termios.h>
 #include <unistd.h>
@@ -45,6 +46,9 @@ int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios
 int posix_tcflush_(int fd, int queue_selector);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
 ssize_t posix_read_(int fd, void *buf, size_t count);
+int posix_stat_(const char *pathname, struct stat *statbuf);
+int posix_mkdir_(const char *pathname, mode_t mode);
+int posix_rename_(const char *oldpath, const char *newpath);
 
 // Mock wrapper functions for terminal operations (required for ik_repl_init)
 int posix_open_(const char *pathname, int flags)
@@ -104,6 +108,30 @@ ssize_t posix_read_(int fd, void *buf, size_t count)
     (void)fd;
     (void)buf;
     (void)count;
+    return 0;
+}
+
+int posix_stat_(const char *pathname, struct stat *statbuf)
+{
+    (void)pathname;
+    (void)statbuf;
+    // Pretend the file/directory doesn't exist so mkdir will be attempted
+    return -1;
+}
+
+int posix_mkdir_(const char *pathname, mode_t mode)
+{
+    (void)pathname;
+    (void)mode;
+    // Always succeed
+    return 0;
+}
+
+int posix_rename_(const char *oldpath, const char *newpath)
+{
+    (void)oldpath;
+    (void)newpath;
+    // Always succeed
     return 0;
 }
 

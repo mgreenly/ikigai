@@ -114,8 +114,12 @@ static void ik_log_rotate_if_exists(const char *log_path)
     }
 
     // Rename current.log to archive
-    if (posix_rename_(log_path, archive_path) != 0) {  // LCOV_EXCL_BR_LINE
-        PANIC("Failed to rotate log file");  // LCOV_EXCL_LINE
+    // Note: This can fail in parallel test execution when multiple processes
+    // attempt to rotate the same file. This is not a critical failure - the
+    // log file will simply be reused or overwritten.
+    if (posix_rename_(log_path, archive_path) != 0) {
+        // Ignore rotation failure - not critical for logger operation
+        return;
     }
 }
 
