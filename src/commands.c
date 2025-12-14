@@ -5,8 +5,11 @@
 
 #include "commands.h"
 
+#include "agent.h"
 #include "commands_mark.h"
 #include "completion.h"
+#include "db/agent.h"
+#include "db/connection.h"
 #include "db/message.h"
 #include "event_render.h"
 #include "logger.h"
@@ -14,7 +17,6 @@
 #include "openai/client.h"
 #include "panic.h"
 #include "repl.h"
-#include "agent.h"
 #include "scrollback.h"
 #include "shared.h"
 #include "wrapper.h"
@@ -404,9 +406,77 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
     (void)ctx;
-    (void)repl;
-    (void)args;
+    (void)args;  // Handled in fork-cmd-prompt.md
 
-    // Stub implementation for TDD Red phase
+    // Concurrency check (Q9)
+    if (repl->shared->fork_pending) {
+        char *err_msg = talloc_strdup(ctx, "Fork already in progress");
+        if (err_msg == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        return OK(NULL);
+    }
+    repl->shared->fork_pending = true;
+
+    // Begin transaction (Q14)
+    res_t res = ik_db_begin(repl->shared->db_ctx);
+    if (is_err(&res)) {
+        repl->shared->fork_pending = false;
+        return res;
+    }
+
+    // Create child agent
+    ik_agent_ctx_t *child = NULL;
+    res = ik_agent_create(repl, repl->shared, repl->current->uuid, &child);
+    if (is_err(&res)) {
+        ik_db_rollback(repl->shared->db_ctx);
+        repl->shared->fork_pending = false;
+        return res;
+    }
+
+    // Insert into registry
+    res = ik_db_agent_insert(repl->shared->db_ctx, child);
+    if (is_err(&res)) {
+        ik_db_rollback(repl->shared->db_ctx);
+        repl->shared->fork_pending = false;
+        return res;
+    }
+
+    // Add to array
+    res = ik_repl_add_agent(repl, child);
+    if (is_err(&res)) {
+        ik_db_rollback(repl->shared->db_ctx);
+        repl->shared->fork_pending = false;
+        return res;
+    }
+
+    // Commit transaction
+    res = ik_db_commit(repl->shared->db_ctx);
+    if (is_err(&res)) {
+        repl->shared->fork_pending = false;
+        return res;
+    }
+
+    // Switch to child (uses ik_repl_switch_agent for state save/restore)
+    const char *parent_uuid = repl->current->uuid;
+    res = ik_repl_switch_agent(repl, child);
+    if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+        repl->shared->fork_pending = false;
+        return res;  // LCOV_EXCL_LINE
+    }
+    repl->shared->fork_pending = false;
+
+    // Display confirmation
+    char msg[64];
+    int32_t written = snprintf(msg, sizeof(msg), "Forked from %.22s", parent_uuid);
+    if (written < 0 || (size_t)written >= sizeof(msg)) {  // LCOV_EXCL_BR_LINE
+        PANIC("snprintf failed");  // LCOV_EXCL_LINE
+    }
+    res = ik_scrollback_append_line(child->scrollback, msg, (size_t)written);
+    if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+        return res;  // LCOV_EXCL_LINE
+    }
+
     return OK(NULL);
 }

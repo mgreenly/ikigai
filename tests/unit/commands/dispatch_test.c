@@ -99,25 +99,29 @@ START_TEST(test_cmd_get_all) {
     const ik_command_t *cmds = ik_cmd_get_all(&count);
 
     ck_assert_ptr_nonnull(cmds);
-    ck_assert_uint_eq(count, 7);     // clear, mark, rewind, help, model, system, debug
+    ck_assert_uint_eq(count, 8);     // clear, mark, rewind, fork, help, model, system, debug
 
     // Verify command names
     ck_assert_str_eq(cmds[0].name, "clear");
     ck_assert_str_eq(cmds[1].name, "mark");
     ck_assert_str_eq(cmds[2].name, "rewind");
-    ck_assert_str_eq(cmds[3].name, "help");
-    ck_assert_str_eq(cmds[4].name, "model");
-    ck_assert_str_eq(cmds[5].name, "system");
+    ck_assert_str_eq(cmds[3].name, "fork");
+    ck_assert_str_eq(cmds[4].name, "help");
+    ck_assert_str_eq(cmds[5].name, "model");
+    ck_assert_str_eq(cmds[6].name, "system");
+    ck_assert_str_eq(cmds[7].name, "debug");
 
     // Verify descriptions exist
     ck_assert_ptr_nonnull(cmds[0].description);
     ck_assert_ptr_nonnull(cmds[1].description);
     ck_assert_ptr_nonnull(cmds[2].description);
+    ck_assert_ptr_nonnull(cmds[3].description);
 
     // Verify handlers exist
     ck_assert_ptr_nonnull(cmds[0].handler);
     ck_assert_ptr_nonnull(cmds[1].handler);
     ck_assert_ptr_nonnull(cmds[2].handler);
+    ck_assert_ptr_nonnull(cmds[3].handler);
 }
 END_TEST
 // Test: Dispatch valid command (clear)

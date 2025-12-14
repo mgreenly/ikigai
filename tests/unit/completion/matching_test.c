@@ -76,17 +76,17 @@ END_TEST
 // Test: Empty prefix (just "/") matches all commands (up to max 10)
 START_TEST(test_empty_prefix_all_commands)
 {
-    // "/" should match all commands (7 total)
+    // "/" should match all commands (8 total)
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/");
     ck_assert_ptr_nonnull(comp);
-    ck_assert_uint_eq(comp->count, 7);  // clear, debug, help, mark, model, rewind, system
+    ck_assert_uint_eq(comp->count, 8);  // clear, debug, fork, help, mark, model, rewind, system
 
     // Verify all commands are present (order determined by fzy score, not alphabetical)
-    bool found[7] = {false};
-    const char *expected[] = {"clear", "debug", "help", "mark", "model", "rewind", "system"};
+    bool found[8] = {false};
+    const char *expected[] = {"clear", "debug", "fork", "help", "mark", "model", "rewind", "system"};
 
     for (size_t i = 0; i < comp->count; i++) {
-        for (size_t j = 0; j < 7; j++) {
+        for (size_t j = 0; j < 8; j++) {
             if (strcmp(comp->candidates[i], expected[j]) == 0) {
                 found[j] = true;
                 break;
@@ -94,7 +94,7 @@ START_TEST(test_empty_prefix_all_commands)
         }
     }
 
-    for (size_t i = 0; i < 7; i++) {
+    for (size_t i = 0; i < 8; i++) {
         ck_assert(found[i]);
     }
 }

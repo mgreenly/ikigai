@@ -103,5 +103,15 @@
     "event": "start",
     "task": "fork-cmd-basic.md",
     "time": "2025-12-14T20:50:19.178Z"
+  },
+  {
+    "event": "retry",
+    "task": "fork-cmd-basic.md",
+    "time": "2025-12-14T20:58:17.867Z"
+  },
+  {
+    "event": "start",
+    "task": "fork-cmd-basic.md",
+    "time": "2025-12-14T20:58:27.233Z"
   }
 ]
