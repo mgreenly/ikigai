@@ -22,6 +22,9 @@
 #include "../../../src/shared.h"
 #include "../../test_utils.h"
 
+// Forward declarations for mocked functions
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid);
+
 // Mock state for ik_db_message_insert
 static bool mock_message_insert_should_fail = false;
 static TALLOC_CTX *mock_err_ctx = NULL;
@@ -70,6 +73,17 @@ res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_
     (void)db_ctx;
     (void)session_id;
     return OK(NULL);
+}
+
+// Mock ik_db_ensure_agent_zero (needed for linking after repl_init changes)
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
+{
+    (void)db;
+    *out_uuid = talloc_strdup(db, "test-agent-zero-uuid");
+    if (*out_uuid == NULL) {
+        return ERR(db, OUT_OF_MEMORY, "Out of memory");
+    }
+    return OK(*out_uuid);
 }
 
 static TALLOC_CTX *test_ctx;

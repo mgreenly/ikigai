@@ -34,6 +34,13 @@ ssize_t posix_read_(int fd, void *buf, size_t count);
 int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
 res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx);
 res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg);
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid);
+res_t ik_db_message_insert(ik_db_ctx_t *db_ctx, int64_t session_id,
+                           const char *kind, const char *content,
+                           const char *data_json);
+res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
+res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
+res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id);
 
 // Forward declaration for suite function
 static Suite *repl_init_db_suite(void);
@@ -67,6 +74,59 @@ res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg)
         return ERR(repl, IO, "Mock session restore failure");
     }
 
+    return OK(NULL);
+}
+
+// Mock ik_db_ensure_agent_zero to provide a test UUID
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
+{
+    (void)db;
+
+    // Return a test UUID
+    *out_uuid = talloc_strdup(db, "test-agent-zero-uuid");
+    if (*out_uuid == NULL) {
+        return ERR(db, OUT_OF_MEMORY, "Out of memory");
+    }
+    return OK(*out_uuid);
+}
+
+// Mock ik_db_message_insert (needed because session_restore calls it)
+res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
+                           int64_t session_id,
+                           const char *kind,
+                           const char *content,
+                           const char *data_json)
+{
+    (void)db_ctx;
+    (void)session_id;
+    (void)kind;
+    (void)content;
+    (void)data_json;
+    return OK(NULL);
+}
+
+// Mock ik_db_session_create (needed because session_restore calls it)
+res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
+{
+    (void)db_ctx;
+    *session_id_out = 1;  // Return a dummy session ID
+    return OK(NULL);
+}
+
+// Mock ik_db_session_get_active (needed because session_restore calls it)
+res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
+{
+    (void)db_ctx;
+    (void)session_id_out;
+    return ERR(db_ctx, IO, "No active session");  // Return not found to trigger session creation
+}
+
+// Mock ik_db_messages_load (needed because session_restore calls it)
+res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id)
+{
+    (void)ctx;
+    (void)db_ctx;
+    (void)session_id;
     return OK(NULL);
 }
 

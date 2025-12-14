@@ -47,6 +47,7 @@ static bool mock_conversation_add_msg_should_fail = false;
 
 // Forward declarations
 res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t *cfg);
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid);
 
 static TALLOC_CTX *mock_err_ctx = NULL;
 
@@ -91,6 +92,17 @@ res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 
     *session_id_out = mock_created_session_id;
     return OK(NULL);
+}
+
+// Mock ik_db_ensure_agent_zero (needed for linking after repl_init changes)
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
+{
+    (void)db;
+    *out_uuid = talloc_strdup(db, "test-agent-zero-uuid");
+    if (*out_uuid == NULL) {
+        return ERR(db, OUT_OF_MEMORY, "Out of memory");
+    }
+    return OK(*out_uuid);
 }
 
 // Mock ik_db_messages_load

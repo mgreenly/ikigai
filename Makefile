@@ -255,6 +255,11 @@ $(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test: $(BUILDDIR)/tests/unit/r
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
+# Special rule for repl_init_db_test (uses mocks, excludes src/db/agent.c)
+$(BUILDDIR)/tests/unit/repl/repl_init_db_test: $(BUILDDIR)/tests/unit/repl/repl_init_db_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
 # Special rule for test_contexts_test (needs test_contexts helper)
 $(BUILDDIR)/tests/unit/helpers/test_contexts_test: $(BUILDDIR)/tests/unit/helpers/test_contexts_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(TEST_CONTEXTS_OBJ)
 	@mkdir -p $(dir $@)
