@@ -43,6 +43,7 @@ jobs:
           libb64-dev \
           libutf8proc-dev \
           libpq-dev \
+          libxkbcommon-dev \
           postgresql-client \
           lcov \
           valgrind
