@@ -113,4 +113,10 @@ bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl);
 // Agent array management
 res_t ik_repl_add_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 res_t ik_repl_remove_agent(ik_repl_ctx_t *repl, const char *uuid);
-ik_agent_ctx_t *ik_repl_find_agent(ik_repl_ctx_t *repl, const char *uuid);
+
+// Find agent by UUID (exact or prefix match)
+// Returns first matching agent, or NULL if no match or ambiguous
+ik_agent_ctx_t *ik_repl_find_agent(ik_repl_ctx_t *repl, const char *uuid_prefix);
+
+// Check if UUID prefix is ambiguous (matches multiple agents)
+bool ik_repl_uuid_ambiguous(ik_repl_ctx_t *repl, const char *uuid_prefix);

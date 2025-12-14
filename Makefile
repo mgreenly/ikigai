@@ -200,6 +200,11 @@ $(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test: $(BUILDDIR)/tests/unit/re
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
+# Special rule for repl_agent_lookup_test that needs test_contexts
+$(BUILDDIR)/tests/unit/repl/repl_agent_lookup_test: $(BUILDDIR)/tests/unit/repl/repl_agent_lookup_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(TEST_CONTEXTS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
 # Special rules for repl streaming/completion tests that need the streaming common object
 $(BUILDDIR)/tests/unit/repl/repl_streaming_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
