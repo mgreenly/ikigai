@@ -11,3 +11,5 @@ A /loop command that let's you start the same prompt if it is still running when
 Context should de-deuplicate
 
 skill file that are dynamic, when read they actually return up-todate info.
+
+A command that extract all the related context of a given prompt from the history of an agent and record it to a structured memory document that can be referenced.  Example, you've been discussing topic Y and you say /store Y to document X.  This then marks all releative memory as hiden and removes it from the active context.  Sort of like selective compatction.  Thoughts...

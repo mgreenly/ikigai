@@ -13,6 +13,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
+#include "../../../src/db/agent.h"
 #include "../../../src/repl/session_restore.h"
 #include "../../test_utils.h"
 #include "../../../src/logger.h"
@@ -40,6 +41,9 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx, int64_t session_id,
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id);
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid);
+res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent);
+res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out);
 
 // Forward declaration for suite function
 static Suite *repl_init_db_suite(void);
@@ -76,8 +80,38 @@ res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg)
     return OK(NULL);
 }
 
-// Note: ik_db_ensure_agent_zero mock removed - now using real implementation
-// from db/agent.c (included in MODULE_SOURCES_NO_DB)
+// Mock ik_db_ensure_agent_zero (needed because repl_init calls it)
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
+{
+    // Return a dummy UUID allocated on the db context
+    *out_uuid = talloc_strdup(db, "agent-zero-uuid");
+    if (*out_uuid == NULL) {  // LCOV_EXCL_BR_LINE
+        return ERR(db, OUT_OF_MEMORY, "Out of memory");  // LCOV_EXCL_LINE
+    }
+    return OK(NULL);
+}
+
+// Mock ik_db_agent_insert (needed because cmd_fork calls it)
+res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
+{
+    (void)db_ctx;
+    (void)agent;
+    return OK(NULL);
+}
+
+// Mock ik_db_agent_get (needed because cmd_fork tests call it)
+res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out)
+{
+    (void)db_ctx;
+    (void)uuid;
+    ik_db_agent_row_t *row = talloc_zero(ctx, ik_db_agent_row_t);
+    if (row == NULL) {  // LCOV_EXCL_BR_LINE
+        return ERR(ctx, OUT_OF_MEMORY, "Out of memory");  // LCOV_EXCL_LINE
+    }
+    row->status = talloc_strdup(row, "running");
+    *out = row;
+    return OK(NULL);
+}
 
 // Mock ik_db_message_insert (needed because session_restore calls it)
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,

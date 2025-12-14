@@ -118,6 +118,9 @@ MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 MODULE_SOURCES_NO_DB = src/error.c src/logger.c src/config.c src/wrapper.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_event_handlers.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/openai/client.c src/openai/client_msg.c src/openai/client_serialize.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_mark.c src/marks.c src/history.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/agent.c src/repl/session_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/ansi.c src/shared.c src/agent.c src/uuid.c
 MODULE_OBJ_NO_DB = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES_NO_DB))
 
+# Module objects excluding db/agent.c (for repl_init_db_test mocking)
+MODULE_OBJ_NO_DB_AGENT = $(filter-out $(BUILDDIR)/db/agent.o,$(MODULE_OBJ_NO_DB))
+
 # Test utilities (linked with all tests)
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
 TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts.o
@@ -261,7 +264,7 @@ $(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test: $(BUILDDIR)/tests/unit/r
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # Special rule for repl_init_db_test (uses mocks, excludes src/db/agent.c)
-$(BUILDDIR)/tests/unit/repl/repl_init_db_test: $(BUILDDIR)/tests/unit/repl/repl_init_db_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_init_db_test: $(BUILDDIR)/tests/unit/repl/repl_init_db_test.o $(MODULE_OBJ_NO_DB_AGENT) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
