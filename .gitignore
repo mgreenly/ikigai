@@ -3,6 +3,7 @@ build-*/
 /bin/
 dist/
 /rel-06/
+/demo.md
 /banner.md
 coverage/
 .envrc
