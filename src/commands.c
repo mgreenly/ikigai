@@ -34,12 +34,16 @@ static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args);
 static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args);
 static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+// Public declaration for cmd_fork (non-static, declared in commands.h)
+res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 // Command registry
 static const ik_command_t commands[] = {
     {"clear", "Clear scrollback, session messages, and marks", cmd_clear},
     {"mark", "Create a checkpoint for rollback (usage: /mark [label])",
      ik_cmd_mark},
     {"rewind", "Rollback to a checkpoint (usage: /rewind [label])", ik_cmd_rewind},
+    {"fork", "Create a child agent (usage: /fork)", cmd_fork},
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},
@@ -392,5 +396,17 @@ static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+    return OK(NULL);
+}
+
+res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    (void)ctx;
+    (void)repl;
+    (void)args;
+
+    // Stub implementation for TDD Red phase
     return OK(NULL);
 }

@@ -60,4 +60,17 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input);
  */
 const ik_command_t *ik_cmd_get_all(size_t *count);
 
+/**
+ * Fork command handler - creates child agent
+ *
+ * Creates a child agent and switches to it. Without prompt argument,
+ * the child inherits the parent's conversation history.
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param args Command arguments (NULL for this basic version)
+ * @return OK on success, ERR on failure
+ */
+res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 #endif // IK_COMMANDS_H
