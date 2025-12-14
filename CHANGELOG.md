@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [rel-05] - 2025-12-13
+## [rel-05] - 2025-12-14
 
 ### Added
 
@@ -22,6 +22,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Agent integration**: Added `current` agent pointer to repl_ctx
 - **Architecture ready**: Single agent works, code organized for multi-agent support
 
+#### Shared Context Architecture (Complete)
+- **Shared context structure**: Created `ik_shared_ctx_t` for global/process-wide state
+- **State migration**: Moved shared state from repl_ctx to shared_ctx:
+  - Configuration (cfg)
+  - Terminal interface (term)
+  - Render context (render)
+  - Database context (db_ctx, session_id)
+  - Command history
+  - Debug infrastructure
+- **Clear separation**: Isolated per-agent state (agent_ctx) from shared state (shared_ctx)
+- **Multi-agent ready**: Foundation for multiple agents sharing common infrastructure
+
+#### Task Orchestration Infrastructure (Complete)
+- **Script-based orchestration**: Deno scripts in `.ikigai/scripts/tasks/` for task management
+- **Task queue management**: `next.ts`, `done.ts`, `escalate.ts`, `session.ts` scripts
+- **Model/thinking escalation**: Automatic capability escalation on task failure with progress
+- **Orchestration command**: `/orchestrate PATH` for automated task execution
+- **Task refactoring**: Removed Agent sections, streamlined task file format
+
 #### CSI u Keyboard Protocol (Kitty Protocol)
 - **Protocol support**: Parse CSI u escape sequences for enhanced keyboard input
 - **XKB integration**: libxkbcommon for keyboard layout-aware shifted character translation
@@ -34,10 +53,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Code Quality & Refactoring
+- **Tool test helpers**: JSON test helpers for cleaner, more maintainable tool tests
+- **Response builders**: Extracted tool response builder utilities to eliminate duplication
+- **File reader extraction**: Created `ik_file_read_all` utility for consistent file reading
+- **Logger dependency injection**: Added DI pattern to logger for better testability
+- **Circular dependency fix**: Broke msg.h → db/replay.h circular dependency
+- **Unused code removal**: Removed conversation.h and other unused modules
+- **Test refactoring**: Applied JSON helpers across all tool execution tests
+
 #### Build System
 - **Release builds**: Fixed MOCKABLE wrapper issues for NDEBUG builds
 - **Wrapper headers**: Added inline implementations for pthread, stdlib wrappers in release mode
 - **Format warnings**: Fixed format-truncation and format-nonliteral warnings
+
+#### Documentation Organization
+- **Directory restructure**: Renamed `docs/` to `project/` for internal design documentation
+- **User documentation**: Created new `docs/` directory for user-facing content
+- **Reference updates**: Updated all internal references from `docs/` to `project/`
+- **Infrastructure docs**: Moved iki-genba from `.agents/` to `.ikigai/` with documentation
 
 #### Code Cleanup
 - **Legacy logger**: Removed functions that break alternate buffer mode
@@ -51,15 +85,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Helgrind fixes**: Fixed mutex destroy false positives and double-destroy issues
 - **Thread safety**: Improved thread handling for sanitizer compliance
 - **New test suites**: scroll_detector, terminal_csi_u, shared context tests
+- **Coverage improvements**: Added LCOV exclusions for defensive branches, achieved clean coverage
+- **Valgrind fixes**: Fixed log rotation race conditions and talloc false positives
 
 #### Documentation
 - **Agent process model**: Comprehensive design document for multi-agent architecture
+- **Shared context design**: Documentation for global state architecture
+- **Task orchestration**: Complete orchestration system documentation with script APIs
 - **Phase 0 tasks**: Complete TDD task files for agent context extraction
-- **Task system**: Enhanced orchestration with model/thinking escalation
+- **Refactor tasks**: Task files for code quality improvements and technical debt reduction
+- **Skill system**: Updated personas and added git, database, and other skill modules
+- **Worktree management**: Documentation for git worktree usage and transaction logs
 
 ### Technical Metrics
-- **Changes**: 514 files modified, +29,127/-24,255 lines
-- **Commits**: 124 commits over development cycle
+- **Changes**: 700+ files modified, +40,000/-15,000 lines (estimated)
+- **Commits**: 187 commits over development cycle
 - **Test coverage**: 100% lines, functions, and branches
 - **Code quality**: All lint, format, and sanitizer checks pass
 
