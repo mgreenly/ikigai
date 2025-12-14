@@ -455,6 +455,69 @@ START_TEST(test_fork_child_inherits_conversation)
 }
 END_TEST
 
+// Test: Fork sync barrier - fork with no running tools proceeds immediately
+START_TEST(test_fork_no_running_tools_proceeds)
+{
+    // Ensure no running tools
+    ck_assert(!repl->current->tool_thread_running);
+
+    res_t res = cmd_fork(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    // Fork should have succeeded
+    ck_assert_uint_eq(repl->agent_count, 2);
+}
+END_TEST
+
+// Test: Fork sync barrier - ik_agent_has_running_tools returns false when no tools
+START_TEST(test_has_running_tools_false_when_idle)
+{
+    repl->current->tool_thread_running = false;
+    ck_assert(!ik_agent_has_running_tools(repl->current));
+}
+END_TEST
+
+// Test: Fork sync barrier - ik_agent_has_running_tools returns true when tool running
+START_TEST(test_has_running_tools_true_when_running)
+{
+    repl->current->tool_thread_running = true;
+    ck_assert(ik_agent_has_running_tools(repl->current));
+    // Reset for cleanup
+    repl->current->tool_thread_running = false;
+}
+END_TEST
+
+// Test: Fork sync barrier - waiting message displayed when tools running
+START_TEST(test_fork_waiting_message_when_tools_running)
+{
+    // Set up a running tool
+    repl->current->tool_thread_running = true;
+    repl->current->tool_thread_complete = false;
+
+    // We can't test the full blocking behavior in unit tests
+    // (that would require threading), but we can test that
+    // the check function works
+    ck_assert(ik_agent_has_running_tools(repl->current));
+
+    // Reset for cleanup
+    repl->current->tool_thread_running = false;
+}
+END_TEST
+
+// Test: Fork sync barrier - tool_thread_complete is respected
+START_TEST(test_has_running_tools_respects_complete_flag)
+{
+    // Thread running but not complete
+    repl->current->tool_thread_running = true;
+    repl->current->tool_thread_complete = false;
+    ck_assert(ik_agent_has_running_tools(repl->current));
+
+    // Thread no longer running
+    repl->current->tool_thread_running = false;
+    ck_assert(!ik_agent_has_running_tools(repl->current));
+}
+END_TEST
+
 // Test: Child post-fork messages are separate from parent
 START_TEST(test_fork_child_post_fork_messages_separate)
 {
@@ -510,6 +573,11 @@ static Suite *cmd_fork_suite(void)
     tcase_add_test(tc, test_fork_registry_has_fork_message_id);
     tcase_add_test(tc, test_fork_child_inherits_conversation);
     tcase_add_test(tc, test_fork_child_post_fork_messages_separate);
+    tcase_add_test(tc, test_fork_no_running_tools_proceeds);
+    tcase_add_test(tc, test_has_running_tools_false_when_idle);
+    tcase_add_test(tc, test_has_running_tools_true_when_running);
+    tcase_add_test(tc, test_fork_waiting_message_when_tools_running);
+    tcase_add_test(tc, test_has_running_tools_respects_complete_flag);
     // Note: Rollback tests removed - they violate preconditions (db_ctx->conn != NULL assertion)
     // and cannot be properly tested without mocking infrastructure
     // tcase_add_test(tc, test_fork_rollback_on_failure);

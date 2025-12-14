@@ -170,3 +170,9 @@ res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *pa
 
     return OK(NULL);
 }
+
+bool ik_agent_has_running_tools(const ik_agent_ctx_t *agent)
+{
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+    return agent->tool_thread_running;
+}

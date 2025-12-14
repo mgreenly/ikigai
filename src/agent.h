@@ -134,3 +134,14 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
  * @return OK on success, ERR on failure
  */
 res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent);
+
+/**
+ * Check if agent has any running tools
+ *
+ * Used by fork sync barrier to wait for tool completion before forking.
+ * A tool is considered running if tool_thread_running is true.
+ *
+ * @param agent Agent context to check
+ * @return true if agent has running tools, false otherwise
+ */
+bool ik_agent_has_running_tools(const ik_agent_ctx_t *agent);

@@ -1,24 +1,6 @@
 {
   "todo": [
     {
-      "task": "messages-agent-uuid.md",
-      "group": "Schema",
-      "model": "opus",
-      "thinking": "ultrathink"
-    },
-    {
-      "task": "fork-history-copy.md",
-      "group": "Fork Command",
-      "model": "opus",
-      "thinking": "extended"
-    },
-    {
-      "task": "startup-replay.md",
-      "group": "Startup Replay",
-      "model": "opus",
-      "thinking": "extended"
-    },
-    {
       "task": "fork-sync-barrier.md",
       "group": "Fork Command",
       "model": "opus",
@@ -187,6 +169,24 @@
       "group": "Fork Command",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "messages-agent-uuid.md",
+      "group": "Schema",
+      "model": "opus",
+      "thinking": "ultrathink"
+    },
+    {
+      "task": "fork-history-copy.md",
+      "group": "Fork Command",
+      "model": "opus",
+      "thinking": "extended"
+    },
+    {
+      "task": "startup-replay.md",
+      "group": "Startup Replay",
+      "model": "opus",
+      "thinking": "extended"
     }
   ]
 }

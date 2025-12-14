@@ -29,6 +29,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 // Forward declarations of command handlers
@@ -524,6 +525,21 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
     (void)ctx;
+
+    // Sync barrier: wait for running tools to complete
+    if (ik_agent_has_running_tools(repl->current)) {
+        const char *wait_msg = "Waiting for tools to complete...";
+        ik_scrollback_append_line(repl->current->scrollback, wait_msg, strlen(wait_msg));
+
+        // Wait for tool completion (polling pattern - event loop handles progress)
+        while (ik_agent_has_running_tools(repl->current)) {
+            // Tool thread will set tool_thread_running to false when complete
+            // In a unit test context, this loop won't execute because we control
+            // the tool_thread_running flag manually
+            struct timespec ts = {.tv_sec = 0, .tv_nsec = 10000000};  // 10ms
+            nanosleep(&ts, NULL);
+        }
+    }
 
     // Parse prompt argument if present
     char *prompt = parse_fork_prompt(ctx, repl, args);
