@@ -30,6 +30,9 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, const char *working_dir
     assert(logger != NULL);   // LCOV_EXCL_BR_LINE
     assert(out != NULL);   // LCOV_EXCL_BR_LINE
 
+    (void)working_dir;  // Reserved for future use
+    (void)ikigai_path;  // Reserved for future use
+
     ik_shared_ctx_t *shared = talloc_zero_(ctx, sizeof(ik_shared_ctx_t));
     if (shared == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
