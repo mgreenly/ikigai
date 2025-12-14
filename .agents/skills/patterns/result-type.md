@@ -23,4 +23,4 @@ if (!result.ok) {
 - Error context propagates up call stack
 - No hidden control flow (unlike exceptions)
 
-**See:** `docs/error_handling.md` for patterns.
+**See:** `project/error_handling.md` for patterns.

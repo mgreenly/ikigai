@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file completion_state_advanced_test.c
  * @brief Advanced unit tests for completion state machine
@@ -7,6 +8,9 @@
 
 #include <check.h>
 #include <talloc.h>
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
+#include "../../../src/shared.h"
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
@@ -19,12 +23,29 @@ START_TEST(test_tab_wraps_around)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t agent_res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&agent_res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+    repl->current = agent;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/mar" to get completion with just ["mark"]
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -37,11 +58,11 @@ START_TEST(test_tab_wraps_around)
     ik_repl_process_action(repl, &action);
 
     // Completion should be active with single candidate
-    ck_assert_ptr_nonnull(repl->completion);
-    ck_assert_uint_eq(repl->completion->count, 1);
+    ck_assert_ptr_nonnull(repl->current->completion);
+    ck_assert_uint_eq(repl->current->completion->count, 1);
 
     // Get the single candidate
-    const char *single = ik_completion_get_current(repl->completion);
+    const char *single = ik_completion_get_current(repl->current->completion);
     ck_assert_str_eq(single, "mark");
 
     // Press TAB - should accept single match and dismiss
@@ -50,11 +71,11 @@ START_TEST(test_tab_wraps_around)
     ck_assert(is_ok(&res));
 
     // Verify: completion dismissed
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Verify: input buffer has the single match
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     char *text_copy = talloc_strndup(ctx, text, text_len);
     ck_assert_str_eq(text_copy, "/mark");
 
@@ -67,12 +88,29 @@ START_TEST(test_original_input_stored)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t agent_res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&agent_res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+    repl->current = agent;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/mod" to get single completion (model)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -85,11 +123,11 @@ START_TEST(test_original_input_stored)
     ik_repl_process_action(repl, &action);
 
     // Completion is active
-    ck_assert_ptr_nonnull(repl->completion);
-    ck_assert_uint_eq(repl->completion->count, 1);
+    ck_assert_ptr_nonnull(repl->current->completion);
+    ck_assert_uint_eq(repl->current->completion->count, 1);
 
     // Get the single match
-    const char *selected = ik_completion_get_current(repl->completion);
+    const char *selected = ik_completion_get_current(repl->current->completion);
     ck_assert_str_eq(selected, "model");
 
     // Press Tab - should accept and dismiss
@@ -98,11 +136,11 @@ START_TEST(test_original_input_stored)
     ck_assert(is_ok(&res));
 
     // Completion should be dismissed
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Verify input buffer has the full completion
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     char *text_copy = talloc_strndup(ctx, text, text_len);
     ck_assert_str_eq(text_copy, "/model");
 
@@ -115,12 +153,29 @@ START_TEST(test_multiple_tab_presses)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t agent_res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&agent_res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+    repl->current = agent;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" to get multiple commands
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -129,11 +184,11 @@ START_TEST(test_multiple_tab_presses)
     ik_repl_process_action(repl, &action);
 
     // Completion should be active with multiple commands
-    ck_assert_ptr_nonnull(repl->completion);
-    ck_assert(repl->completion->count > 1);
+    ck_assert_ptr_nonnull(repl->current->completion);
+    ck_assert(repl->current->completion->count > 1);
 
     // Get first candidate before Tab
-    const char *first = ik_completion_get_current(repl->completion);
+    const char *first = ik_completion_get_current(repl->current->completion);
     ck_assert_ptr_nonnull(first);
 
     // Press TAB - should cycle to next (which wraps to 1) and dismiss
@@ -142,11 +197,11 @@ START_TEST(test_multiple_tab_presses)
     ck_assert(is_ok(&res));
 
     // Verify completion dismissed after first Tab
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Verify input contains a completion (cycling to next)
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     ck_assert_uint_gt(text_len, 0);
     ck_assert_int_eq(text[0], '/');
     // Should be different from original prefix "/m"
@@ -161,12 +216,29 @@ START_TEST(test_update_completion_preserves_original_input)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t agent_res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&agent_res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+    repl->current = agent;
     repl->quit = false;
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
 
     // Type "/m" to trigger initial completion
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -175,11 +247,11 @@ START_TEST(test_update_completion_preserves_original_input)
     ik_repl_process_action(repl, &action);
 
     // Verify completion is active
-    ck_assert_ptr_nonnull(repl->completion);
+    ck_assert_ptr_nonnull(repl->current->completion);
 
     // Manually set original_input (simulating Tab/cycling scenario)
-    repl->completion->original_input = talloc_strdup(repl->completion, "/m");
-    ck_assert_ptr_nonnull(repl->completion->original_input);
+    repl->current->completion->original_input = talloc_strdup(repl->current->completion, "/m");
+    ck_assert_ptr_nonnull(repl->current->completion->original_input);
 
     // Type another character to trigger update_completion_after_char
     // This should preserve the original_input
@@ -187,8 +259,8 @@ START_TEST(test_update_completion_preserves_original_input)
     ik_repl_process_action(repl, &action);
 
     // If completion still exists (matches "/mo"), original_input should be preserved
-    if (repl->completion != NULL && repl->completion->original_input != NULL) {
-        ck_assert_str_eq(repl->completion->original_input, "/m");
+    if (repl->current->completion != NULL && repl->current->completion->original_input != NULL) {
+        ck_assert_str_eq(repl->current->completion->original_input, "/m");
     }
 
     talloc_free(ctx);
@@ -200,13 +272,24 @@ START_TEST(test_space_commit_no_completion)
 {
     void *ctx = talloc_new(NULL);
 
-    // Create input buffer and REPL context
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    // Create agent
+    ik_agent_ctx_t *agent = NULL;
+    res_t agent_res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&agent_res));
+
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+    repl->current = agent;
     repl->quit = false;
-    repl->completion = NULL;  // No active completion
+
+    // Create minimal shared context for test
+    repl->shared = talloc_zero(repl, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
+    repl->shared->history = NULL;  /* No history for this test */
+    repl->current->completion = NULL;  // No active completion
 
     // Type some normal text (not a command)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'h'};
@@ -215,7 +298,7 @@ START_TEST(test_space_commit_no_completion)
     ik_repl_process_action(repl, &action);
 
     // Verify no completion
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Press Space - should just add space normally
     action.codepoint = ' ';
@@ -224,7 +307,7 @@ START_TEST(test_space_commit_no_completion)
 
     // Verify space was added
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
     ck_assert_uint_eq(text_len, 3);
     ck_assert_mem_eq(text, "hi ", 3);
 

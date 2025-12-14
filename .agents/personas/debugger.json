@@ -7,5 +7,6 @@
   "sanitizers",
   "errors",
   "security/memory-safety",
-  "mocking"
+  "mocking",
+  "align"
 ]

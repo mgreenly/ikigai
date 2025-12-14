@@ -1,4 +1,5 @@
 #include "tool.h"
+#include "tool_response.h"
 
 #include "panic.h"
 #include "wrapper.h"
@@ -19,45 +20,20 @@ res_t ik_tool_exec_file_write(void *parent, const char *path, const char *conten
     // Open file for writing (creates file if doesn't exist, truncates if exists)
     FILE *f = fopen_(path, "w");
     if (f == NULL) {
-        // Build error JSON
-        yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-        if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        yyjson_mut_val *root = yyjson_mut_obj(doc);
-        if (root == NULL) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-        yyjson_mut_doc_set_root(doc, root);
-
-        yyjson_mut_obj_add_bool(doc, root, "success", false);
-
         // Determine error message based on errno
+        char *error_msg;
         if (errno == EACCES) {
-            char *msg = talloc_asprintf(parent, "Permission denied: %s", path);
-            if (msg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            yyjson_mut_obj_add_str(doc, root, "error", msg);
+            error_msg = talloc_asprintf(parent, "Permission denied: %s", path);
         } else if (errno == ENOSPC) {
-            char *msg = talloc_asprintf(parent, "No space left on device: %s", path);
-            if (msg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            yyjson_mut_obj_add_str(doc, root, "error", msg);
+            error_msg = talloc_asprintf(parent, "No space left on device: %s", path);
         } else {
-            char *msg = talloc_asprintf(parent, "Cannot open file: %s", path);
-            if (msg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            yyjson_mut_obj_add_str(doc, root, "error", msg);
+            error_msg = talloc_asprintf(parent, "Cannot open file: %s", path);
         }
+        if (error_msg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-        char *json = yyjson_mut_write_opts(doc, 0, NULL, NULL, NULL);
-        if (json == NULL) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-
-        char *result = talloc_strdup(parent, json);
-        free(json);
-        yyjson_mut_doc_free(doc);
-
-        if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        // Build error JSON
+        char *result;
+        ik_tool_response_error(parent, error_msg, &result);
         return OK(result);
     }
 

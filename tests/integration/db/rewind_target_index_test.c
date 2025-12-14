@@ -6,7 +6,9 @@
  */
 
 #include "../../../src/commands.h"
+#include "../../../src/agent.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
@@ -131,27 +133,33 @@ START_TEST(test_rewind_persists_correct_target_message_index)
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
 
-    // Create config
-    repl->cfg = talloc_zero(repl, ik_cfg_t);
-    ck_assert_ptr_nonnull(repl->cfg);
+    // Create shared context with config
+    ik_shared_ctx_t *shared = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared->cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ck_assert_ptr_nonnull(shared->cfg);
+    repl->shared = shared;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     // Create scrollback
-    repl->scrollback = ik_scrollback_create(repl, 80);
-    ck_assert_ptr_nonnull(repl->scrollback);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create conversation
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(is_ok(&conv_res));
-    repl->conversation = conv_res.ok;
+    repl->current->conversation = conv_res.ok;
 
     // Initialize marks
-    repl->marks = NULL;
-    repl->mark_count = 0;
+    repl->current->marks = NULL;
+    repl->current->mark_count = 0;
 
     // Set database context and session ID
-    repl->db_ctx = db;
-    repl->current_session_id = session_id;
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_ctx = db;
+    repl->shared->session_id = session_id;
+    repl->shared->db_debug_pipe = NULL;
 
     // Build scenario from bug report:
     // DB Index 0: user message
@@ -163,16 +171,16 @@ START_TEST(test_rewind_persists_correct_target_message_index)
 
     // Persist user message (DB index 0, conversation index 0)
     ik_db_message_insert(db, session_id, "user", "Question 1", "{}");
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "Question 1");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "Question 1");
     ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     // Persist assistant message (DB index 1, conversation index 1)
     ik_db_message_insert(db, session_id, "assistant", "Answer 1", "{}");
-    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "Answer 1");
+    msg_res = ik_openai_msg_create(repl->current->conversation, "assistant", "Answer 1");
     ck_assert(is_ok(&msg_res));
-    add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     // Create mark "test" (DB index 2, conversation message_index = 2)
@@ -183,20 +191,20 @@ START_TEST(test_rewind_persists_correct_target_message_index)
     mark_res = ik_cmd_dispatch(repl, repl, "/mark checkpoint-a");
     ck_assert(is_ok(&mark_res));
     // Verify we have 2 marks now
-    ck_assert_int_eq((int)repl->mark_count, 2);
-    ck_assert_int_eq((int)repl->marks[1]->message_index, 2);  // Still 2, no new conversation messages
+    ck_assert_int_eq((int)repl->current->mark_count, 2);
+    ck_assert_int_eq((int)repl->current->marks[1]->message_index, 2);  // Still 2, no new conversation messages
 
     // Add more messages after the marks (DB index 4, 5)
     ik_db_message_insert(db, session_id, "user", "Question 2", "{}");
-    msg_res = ik_openai_msg_create(repl->conversation, "user", "Question 2");
+    msg_res = ik_openai_msg_create(repl->current->conversation, "user", "Question 2");
     ck_assert(is_ok(&msg_res));
-    add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     ik_db_message_insert(db, session_id, "assistant", "Answer 2", "{}");
-    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "Answer 2");
+    msg_res = ik_openai_msg_create(repl->current->conversation, "assistant", "Answer 2");
     ck_assert(is_ok(&msg_res));
-    add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     // Query for the database ID of the "checkpoint-a" mark BEFORE rewinding

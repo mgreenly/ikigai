@@ -4,6 +4,7 @@
  */
 
 #include <check.h>
+#include "../../src/agent.h"
 #include <fcntl.h>
 #include <inttypes.h>
 #include <pthread.h>
@@ -14,6 +15,7 @@
 #include <curl/curl.h>
 #include <sys/stat.h>
 #include "../../src/repl.h"
+#include "../../src/shared.h"
 #include "../../src/repl_actions.h"
 #include "../../src/input.h"
 #include "../../src/completion.h"
@@ -112,7 +114,7 @@ static void type_str(ik_repl_ctx_t *repl, const char *s) {
 static void press_tab(ik_repl_ctx_t *r) { ik_input_action_t a = {.type = IK_INPUT_TAB}; ik_repl_process_action(r, &a); }
 static void press_esc(ik_repl_ctx_t *r) { ik_input_action_t a = {.type = IK_INPUT_ESCAPE}; ik_repl_process_action(r, &a); }
 static void __attribute__((unused)) press_down(ik_repl_ctx_t *r) { ik_input_action_t a = {.type = IK_INPUT_ARROW_DOWN}; ik_repl_process_action(r, &a); }
-static void press_up(ik_repl_ctx_t *r) { ik_input_action_t a = {.type = IK_INPUT_ARROW_UP}; ik_repl_process_action(r, &a); }
+// Removed press_up - use Ctrl+P for history navigation (rel-05)
 
 /* Test: Full command completion workflow */
 START_TEST(test_completion_full_workflow)
@@ -123,16 +125,24 @@ START_TEST(test_completion_full_workflow)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     type_str(repl, "/m");
     press_tab(repl);
     // First Tab triggers completion and accepts first selection
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     // Should have a completion selected - check it starts with /
     ck_assert(len > 1);
     ck_assert_mem_eq(text, "/", 1);
@@ -152,16 +162,22 @@ START_TEST(test_completion_argument_workflow)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     type_str(repl, "/model ");
     press_tab(repl);
     // Tab accepts first selection and dismisses completion
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     // Should have selected an argument
     ck_assert(len > 7);
     ck_assert_mem_eq(text, "/model ", 7);
@@ -181,7 +197,13 @@ START_TEST(test_completion_escape_dismisses)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     type_str(repl, "/m");
@@ -192,10 +214,10 @@ START_TEST(test_completion_escape_dismisses)
     // After typing "/m", if we trigger completion display somehow
     // For now, just verify that ESC works on input without active completion
     press_esc(repl);
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert_uint_eq(len, 2);
     ck_assert_mem_eq(text, "/m", 2);
 
@@ -214,13 +236,19 @@ START_TEST(test_completion_no_matches)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     type_str(repl, "/xyz");
     press_tab(repl);
-    ck_assert_ptr_null(repl->completion);
-    ck_assert(!repl->completion_layer->is_visible(repl->completion_layer));
+    ck_assert_ptr_null(repl->current->completion);
+    ck_assert(!repl->current->completion_layer->is_visible(repl->current->completion_layer));
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -237,20 +265,28 @@ START_TEST(test_completion_history_no_conflict)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
-    ik_history_add(repl->history, "prev cmd");
+    ik_history_add(repl->shared->history, "prev cmd");
 
     type_str(repl, "/m");
     press_tab(repl);
     // Tab accepts and dismisses completion
-    ck_assert_ptr_null(repl->completion);
-    ck_assert(!ik_history_is_browsing(repl->history));
+    ck_assert_ptr_null(repl->current->completion);
+    ck_assert(!ik_history_is_browsing(repl->shared->history));
 
-    ik_input_buffer_clear(repl->input_buffer);
-    press_up(repl);
-    ck_assert(ik_history_is_browsing(repl->history));
+    ik_input_buffer_clear(repl->current->input_buffer);
+    // Use Ctrl+P for explicit history navigation (rel-05: arrow keys now handled by burst detector)
+    ik_input_action_t hist_action = {.type = IK_INPUT_CTRL_P};
+    ik_repl_process_action(repl, &hist_action);
+    ck_assert(ik_history_is_browsing(repl->shared->history));
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -267,15 +303,21 @@ START_TEST(test_completion_layer_visibility)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
-    ck_assert(!repl->completion_layer->is_visible(repl->completion_layer));
+    ck_assert(!repl->current->completion_layer->is_visible(repl->current->completion_layer));
 
     type_str(repl, "/m");
     press_tab(repl);
     // Tab accepts and dismisses, so layer should be hidden after
-    ck_assert(!repl->completion_layer->is_visible(repl->completion_layer));
+    ck_assert(!repl->current->completion_layer->is_visible(repl->current->completion_layer));
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -292,7 +334,13 @@ START_TEST(test_completion_dynamic_update)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     type_str(repl, "/ma");
@@ -304,7 +352,7 @@ START_TEST(test_completion_dynamic_update)
     ik_repl_process_action(repl, &a);
 
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert_uint_eq(len, 4);
     ck_assert_mem_eq(text, "/mar", 4);
 
@@ -323,17 +371,23 @@ START_TEST(test_completion_debug_args)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     type_str(repl, "/debug ");
     press_tab(repl);
     // Tab accepts first selection and dismisses completion
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Tab selected one option (either "off" or "on"), now in input_buffer
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert(len > 7);  // "/debug " plus argument
     ck_assert_mem_eq(text, "/debug ", 7);
 
@@ -352,18 +406,24 @@ START_TEST(test_completion_partial_arg)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&shared_res));
+    res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Test argument completion - /model with any model
     type_str(repl, "/model ");
     press_tab(repl);
     // Tab accepts first selection and dismisses completion
-    ck_assert_ptr_null(repl->completion);
+    ck_assert_ptr_null(repl->current->completion);
 
     // Should have selected an argument
     size_t len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
     ck_assert(len > 7);  // "/model " plus model name
     ck_assert_mem_eq(text, "/model ", 7);
 

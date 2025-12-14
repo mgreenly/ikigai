@@ -20,6 +20,14 @@ ik_layer_t *ik_scrollback_layer_create(TALLOC_CTX *ctx, const char *name, ik_scr
 // The layer renders a separator line of dashes across the terminal width
 ik_layer_t *ik_separator_layer_create(TALLOC_CTX *ctx, const char *name, bool *visible_ptr);
 
+// Set debug info pointers on separator layer (optional - for debugging viewport issues)
+void ik_separator_layer_set_debug(ik_layer_t *layer,
+                                  size_t *viewport_offset,
+                                  size_t *viewport_row,
+                                  size_t *viewport_height,
+                                  size_t *document_height,
+                                  uint64_t *render_elapsed_us);
+
 // Create input buffer layer (wraps existing input buffer)
 // The layer delegates to ik_input_buffer_t for height calculation and rendering
 // visible_ptr and text_ptr/len_ptr are raw pointers that must remain valid

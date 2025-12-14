@@ -6,8 +6,11 @@
  * Real database integration tests should be in a separate file without mocks.
  */
 
+#include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/commands_mark.h"
+#include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
@@ -97,15 +100,33 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     ck_assert_ptr_nonnull(conv);
 
     // Create REPL context
+    // Create minimal config
+    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = cfg;
+
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
-    r->conversation = conv;
-    r->marks = NULL;
-    r->mark_count = 0;
-    r->db_ctx = NULL;
-    r->current_session_id = 0;
-    r->db_debug_pipe = NULL;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+
+
+    agent->conversation = conv;
+    r->current = agent;
+
+    r->shared = shared;
+    r->current->marks = NULL;
+    r->current->mark_count = 0;
+    r->shared->db_ctx = NULL;
+    r->shared->session_id = 0;
+    r->shared->db_debug_pipe = NULL;
 
     return r;
 }
@@ -140,33 +161,33 @@ START_TEST(test_mark_db_insert_error_with_null_label) {
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
 
     // Create a debug pipe to capture error messages
-    repl->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    repl->db_debug_pipe->write_end = tmpfile();
-    ck_assert_ptr_nonnull(repl->db_debug_pipe->write_end);
+    repl->shared->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
+    repl->shared->db_debug_pipe->write_end = tmpfile();
+    ck_assert_ptr_nonnull(repl->shared->db_debug_pipe->write_end);
 
     // Create unlabeled mark - DB insert will fail but command succeeds
     res_t res = ik_cmd_mark(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Mark should still be created in memory
-    ck_assert_uint_eq(repl->mark_count, 1);
-    ck_assert_ptr_null(repl->marks[0]->label);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
+    ck_assert_ptr_null(repl->current->marks[0]->label);
 
     // Read debug output to verify error was logged
-    rewind(repl->db_debug_pipe->write_end);
+    rewind(repl->shared->db_debug_pipe->write_end);
     char buffer[256] = {0};
-    size_t bytes_read = fread(buffer, 1, sizeof(buffer) - 1, repl->db_debug_pipe->write_end);
+    size_t bytes_read = fread(buffer, 1, sizeof(buffer) - 1, repl->shared->db_debug_pipe->write_end);
     ck_assert(bytes_read > 0);
     ck_assert(strstr(buffer, "Warning: Failed to persist mark event") != NULL);
 
-    fclose(repl->db_debug_pipe->write_end);
+    fclose(repl->shared->db_debug_pipe->write_end);
 }
 END_TEST
 // Test: DB error during mark persistence with label
@@ -175,33 +196,33 @@ START_TEST(test_mark_db_insert_error_with_label)
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
 
     // Create a debug pipe
-    repl->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    repl->db_debug_pipe->write_end = tmpfile();
-    ck_assert_ptr_nonnull(repl->db_debug_pipe->write_end);
+    repl->shared->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
+    repl->shared->db_debug_pipe->write_end = tmpfile();
+    ck_assert_ptr_nonnull(repl->shared->db_debug_pipe->write_end);
 
     // Create labeled mark - DB insert will fail but command succeeds
     res_t res = ik_cmd_mark(test_ctx, repl, "testlabel");
     ck_assert(is_ok(&res));
 
     // Mark should still be created in memory
-    ck_assert_uint_eq(repl->mark_count, 1);
-    ck_assert_str_eq(repl->marks[0]->label, "testlabel");
+    ck_assert_uint_eq(repl->current->mark_count, 1);
+    ck_assert_str_eq(repl->current->marks[0]->label, "testlabel");
 
     // Read debug output
-    rewind(repl->db_debug_pipe->write_end);
+    rewind(repl->shared->db_debug_pipe->write_end);
     char buffer[256] = {0};
-    size_t bytes_read = fread(buffer, 1, sizeof(buffer) - 1, repl->db_debug_pipe->write_end);
+    size_t bytes_read = fread(buffer, 1, sizeof(buffer) - 1, repl->shared->db_debug_pipe->write_end);
     ck_assert(bytes_read > 0);
     ck_assert(strstr(buffer, "Warning: Failed to persist mark event") != NULL);
 
-    fclose(repl->db_debug_pipe->write_end);
+    fclose(repl->shared->db_debug_pipe->write_end);
 }
 
 END_TEST
@@ -211,8 +232,8 @@ START_TEST(test_rewind_error_handling)
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Create a mark
     res_t res = ik_mark_create(repl, "checkpoint");
@@ -223,7 +244,7 @@ START_TEST(test_rewind_error_handling)
     ck_assert(is_ok(&res));  // Command doesn't propagate error
 
     // Verify error message was added to scrollback
-    ck_assert(repl->scrollback->count > 0);
+    ck_assert(repl->current->scrollback->count > 0);
 }
 
 END_TEST
@@ -236,25 +257,25 @@ START_TEST(test_rewind_db_insert_error)
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
 
     // Create a debug pipe
-    repl->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    repl->db_debug_pipe->write_end = tmpfile();
-    ck_assert_ptr_nonnull(repl->db_debug_pipe->write_end);
+    repl->shared->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
+    repl->shared->db_debug_pipe->write_end = tmpfile();
+    ck_assert_ptr_nonnull(repl->shared->db_debug_pipe->write_end);
 
     // Create a mark in memory only (for rewind to work)
     res_t res = ik_mark_create(repl, "checkpoint");
     ck_assert(is_ok(&res));
 
     // Add a message
-    res = ik_openai_msg_create(repl->conversation, "user", "test");
+    res = ik_openai_msg_create(repl->current->conversation, "user", "test");
     ck_assert(is_ok(&res));
-    res = ik_openai_conversation_add_msg(repl->conversation, res.ok);
+    res = ik_openai_conversation_add_msg(repl->current->conversation, res.ok);
     ck_assert(is_ok(&res));
 
     // Rewind - should succeed in memory even with DB issues
@@ -262,9 +283,9 @@ START_TEST(test_rewind_db_insert_error)
     ck_assert(is_ok(&res));
 
     // Rewind should succeed in memory
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 
-    fclose(repl->db_debug_pipe->write_end);
+    fclose(repl->shared->db_debug_pipe->write_end);
 }
 
 END_TEST
@@ -274,19 +295,19 @@ START_TEST(test_mark_db_error_no_debug_pipe)
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
 
     // Ensure debug pipe is NULL
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Create mark - should not crash even without debug pipe
     res_t res = ik_cmd_mark(test_ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
 }
 
 END_TEST
@@ -296,20 +317,20 @@ START_TEST(test_mark_db_error_null_write_end)
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
-    repl->db_ctx = mock_db;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
 
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
 
     // Create debug pipe with NULL write_end
-    repl->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    repl->db_debug_pipe->write_end = NULL;
+    repl->shared->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
+    repl->shared->db_debug_pipe->write_end = NULL;
 
     // Create mark - should not crash
     res_t res = ik_cmd_mark(test_ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
 }
 
 END_TEST

@@ -24,4 +24,4 @@ root_ctx
 
 **Benefits:** No memory leaks by design. No use-after-free. Clear ownership. Fast bulk deallocation.
 
-**See:** `docs/memory.md` for talloc patterns.
+**See:** `project/memory.md` for talloc patterns.

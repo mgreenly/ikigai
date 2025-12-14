@@ -3,8 +3,10 @@
  * @brief Unit tests for /clear command database error handling
  */
 
+#include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
@@ -103,11 +105,27 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_openai_conversation_t *conv = res.ok;
     ck_assert_ptr_nonnull(conv);
 
+    // Create minimal config
+    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = cfg;
+
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
-    r->conversation = conv;
+
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+    agent->conversation = conv;
+    r->current = agent;
+
+    r->shared = shared;
 
     return r;
 }
@@ -132,18 +150,15 @@ static void teardown(void)
 
 // Test: Clear with database error on clear event persist
 START_TEST(test_clear_db_error_clear_event) {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
-
     // Create minimal config (no system message for this test)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
-    repl->cfg = cfg;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
 
     // Set up debug pipe to capture error
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -153,7 +168,12 @@ START_TEST(test_clear_db_error_clear_event) {
     ck_assert_int_eq(pipe(pipefd), 0);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->db_debug_pipe = debug_pipe;
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on first call (clear event)
     mock_insert_fail_on_call = 1;
@@ -163,8 +183,8 @@ START_TEST(test_clear_db_error_clear_event) {
     ck_assert(is_ok(&res));
 
     // Verify clear still happened despite DB error
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 
     // Clean up
     fclose(debug_pipe->write_end);
@@ -174,18 +194,15 @@ END_TEST
 // Test: Clear with database error on system message persist
 START_TEST(test_clear_db_error_system_message)
 {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
-
     // Create config with system message
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant");
-    repl->cfg = cfg;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
 
     // Set up debug pipe to capture error
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -195,7 +212,12 @@ START_TEST(test_clear_db_error_system_message)
     ck_assert_int_eq(pipe(pipefd), 0);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->db_debug_pipe = debug_pipe;
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on second call (system message)
     mock_insert_fail_on_call = 2;
@@ -206,8 +228,8 @@ START_TEST(test_clear_db_error_system_message)
 
     // Verify clear still happened despite DB error
     // System message should be displayed in scrollback (with blank line after)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 
     // Clean up
     fclose(debug_pipe->write_end);
@@ -219,11 +241,11 @@ END_TEST
 START_TEST(test_clear_without_db_ctx)
 {
     // No database context set (db_ctx is NULL)
-    repl->db_ctx = NULL;
-    repl->current_session_id = 0;
+    repl->shared->db_ctx = NULL;
+    repl->shared->session_id = 0;
 
     // Add content
-    res_t res = ik_scrollback_append_line(repl->scrollback, "Line 1", 6);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
 
     // Execute /clear - should succeed without attempting DB operations
@@ -231,29 +253,31 @@ START_TEST(test_clear_without_db_ctx)
     ck_assert(is_ok(&res));
 
     // Verify clear happened
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
 // Test: Clear with DB error but no debug pipe (silent failure)
 START_TEST(test_clear_db_error_no_debug_pipe)
 {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
-
     // Create minimal config (no system message)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
-    repl->cfg = cfg;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // No debug pipe set - db_debug_pipe is NULL
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Mock will return error on first call (clear event)
     mock_insert_fail_on_call = 1;
@@ -263,29 +287,31 @@ START_TEST(test_clear_db_error_no_debug_pipe)
     ck_assert(is_ok(&res));
 
     // Verify clear happened despite DB error and no error logging
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
 // Test: Clear with system message DB error but no debug pipe
 START_TEST(test_clear_system_db_error_no_debug_pipe)
 {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
-
     // Create config with system message
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are helpful");
-    repl->cfg = cfg;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // No debug pipe set - db_debug_pipe is NULL
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Mock will return error on second call (system message)
     mock_insert_fail_on_call = 2;
@@ -296,8 +322,8 @@ START_TEST(test_clear_system_db_error_no_debug_pipe)
 
     // Verify clear happened
     // System message should be displayed in scrollback (with blank line after)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -305,24 +331,26 @@ END_TEST
 // Test: Clear with DB error and debug pipe but write_end is NULL
 START_TEST(test_clear_db_error_write_end_null)
 {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
-
     // Create minimal config
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
-    repl->cfg = cfg;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
 
     // Create debug pipe but with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = NULL;  // NULL write_end
-    repl->db_debug_pipe = debug_pipe;
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on first call (clear event)
     mock_insert_fail_on_call = 1;
@@ -332,32 +360,34 @@ START_TEST(test_clear_db_error_write_end_null)
     ck_assert(is_ok(&res));
 
     // Verify clear happened
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
 // Test: Clear with system message DB error and write_end is NULL
 START_TEST(test_clear_system_db_error_write_end_null)
 {
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
-
     // Create config with system message
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are helpful");
-    repl->cfg = cfg;
+
+    // Set up database context and session with proper mock structure
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
+    ck_assert_ptr_nonnull(db_ctx);
+    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
 
     // Create debug pipe but with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = NULL;  // NULL write_end
-    repl->db_debug_pipe = debug_pipe;
+
+    // Update repl->shared with all required fields
+    repl->shared->cfg = cfg;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock will return error on second call (system message)
     mock_insert_fail_on_call = 2;
@@ -368,8 +398,8 @@ START_TEST(test_clear_system_db_error_write_end_null)
 
     // Verify clear happened
     // System message should be displayed in scrollback (with blank line after)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 2);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -379,11 +409,11 @@ START_TEST(test_clear_with_invalid_session_id)
 {
     // Set up database context but invalid session_id
     ik_db_ctx_t *db_ctx = (ik_db_ctx_t *)0x1234;  // Fake pointer
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 0;  // Invalid session ID
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 0;  // Invalid session ID
 
     // Add content
-    res_t res = ik_scrollback_append_line(repl->scrollback, "Line 1", 6);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
 
     // Execute /clear - should succeed without attempting DB operations
@@ -391,8 +421,8 @@ START_TEST(test_clear_with_invalid_session_id)
     ck_assert(is_ok(&res));
 
     // Verify clear happened
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST

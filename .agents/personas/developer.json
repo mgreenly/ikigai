@@ -1,9 +1,15 @@
 [
   "default",
+  "database",
   "errors",
   "git",
+  "log",
+  "makefile",
   "naming",
   "quality",
+  "scm",
+  "source-code",
   "style",
-  "tdd"
+  "tdd",
+  "align"
 ]

@@ -5,18 +5,25 @@
  * Tests the error path when event rendering fails during line submission.
  */
 
-#include <check.h>
-#include <talloc.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <termios.h>
-#include <unistd.h>
+#include "../../../src/agent.h"
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
+#include "../../../src/shared.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
+#include "../../../src/logger.h"
+
+#include <check.h>
+#include <fcntl.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <talloc.h>
+#include <termios.h>
+#include <unistd.h>
+#include <errno.h>
+#include "../../../src/logger.h"
 
 // Mock state for ik_scrollback_append_line_
 static bool mock_scrollback_append_should_fail = false;
@@ -40,6 +47,11 @@ int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios
 int posix_tcflush_(int fd, int queue_selector);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
 ssize_t posix_read_(int fd, void *buf, size_t count);
+int posix_stat_(const char *pathname, struct stat *statbuf);
+int posix_mkdir_(const char *pathname, mode_t mode);
+int posix_rename_(const char *oldpath, const char *newpath);
+FILE *fopen_(const char *pathname, const char *mode);
+int fclose_(FILE *stream);
 
 // Mock wrapper functions for terminal operations (required for ik_repl_init)
 int posix_open_(const char *pathname, int flags)
@@ -102,6 +114,36 @@ ssize_t posix_read_(int fd, void *buf, size_t count)
     return 0;
 }
 
+int posix_stat_(const char *pathname, struct stat *statbuf)
+{
+    // Use real stat
+    return stat(pathname, statbuf);
+}
+
+int posix_mkdir_(const char *pathname, mode_t mode)
+{
+    // Use real mkdir
+    return mkdir(pathname, mode);
+}
+
+int posix_rename_(const char *oldpath, const char *newpath)
+{
+    // Use real rename
+    return rename(oldpath, newpath);
+}
+
+FILE *fopen_(const char *pathname, const char *mode)
+{
+    // Use real fopen
+    return fopen(pathname, mode);
+}
+
+int fclose_(FILE *stream)
+{
+    // Use real fclose
+    return fclose(stream);
+}
+
 // Mock ik_scrollback_append_line_ - needs weak attribute for override
 res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length)
 {
@@ -139,7 +181,15 @@ START_TEST(test_submit_line_event_render_fails) {
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
 
     // Add some text to input buffer
@@ -151,7 +201,7 @@ START_TEST(test_submit_line_event_render_fails) {
     }
 
     // Verify input buffer has content
-    size_t ws_len = ik_byte_array_size(repl->input_buffer->text);
+    size_t ws_len = ik_byte_array_size(repl->current->input_buffer->text);
     ck_assert_uint_gt(ws_len, 0);
 
     // Make scrollback append fail (which is called by event_render)

@@ -3,11 +3,16 @@
   "default",
   "errors",
   "lcov",
+  "log",
+  "makefile",
   "mocking",
   "naming",
   "quality-strict",
+  "scm",
+  "source-code",
   "style",
   "tdd-strict",
   "testability",
-  "zero-debt"
+  "zero-debt",
+  "align"
 ]

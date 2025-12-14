@@ -1,0 +1,107 @@
+{
+  "todo": [],
+  "done": [
+    {
+      "task": "delete-unused-conversation.md",
+      "group": "Dead Code Removal",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "extract-file-reader.md",
+      "group": "Code Deduplication",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "extract-tool-response-builders.md",
+      "group": "Code Deduplication",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "fix-msg-db-circular-dep.md",
+      "group": "Architectural Fixes",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "logger-dependency-injection.md",
+      "group": "Dependency Injection",
+      "model": "opus",
+      "thinking": "ultrathink"
+    },
+    {
+      "task": "shared-ctx-signature.md",
+      "group": "Shared Context DI",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "shared-ctx-callsites.md",
+      "group": "Shared Context DI",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "shared-ctx-coverage.md",
+      "group": "Shared Context DI",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "tool-test-helpers.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "refactor-bash-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-file-read-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-file-write-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-glob-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-grep-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-grep-edge-cases-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-tool-limit-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-dispatcher-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
+  ]
+}

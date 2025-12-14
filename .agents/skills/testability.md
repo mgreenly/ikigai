@@ -136,5 +136,5 @@ void wait_for_response(int timeout_sec) {
 
 ## References
 
-- `docs/error_handling.md` - res_t patterns
-- `docs/memory.md` - Ownership affects testability
+- `project/error_handling.md` - res_t patterns
+- `project/memory.md` - Ownership affects testability

@@ -1,6 +1,8 @@
 #include "layer.h"
+
 #include "panic.h"
 #include "wrapper.h"
+
 #include <assert.h>
 #include <string.h>
 

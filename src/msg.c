@@ -4,6 +4,7 @@
  */
 
 #include "msg.h"
+#include "db/replay.h"  /* Full ik_message_t definition needed for field access */
 #include "panic.h"
 #include <assert.h>
 #include <string.h>

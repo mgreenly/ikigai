@@ -1,4 +1,5 @@
 #include "history.h"
+#include "file_utils.h"
 #include "json_allocator.h"
 #include "logger.h"
 #include "panic.h"
@@ -231,6 +232,55 @@ res_t ik_history_ensure_directory(TALLOC_CTX *ctx)
     return OK(NULL);
 }
 
+// Parse a single JSONL history line and extract the cmd field
+// Returns OK(cmd_string) on success, ERR on parse failure, OK(NULL) to skip
+static res_t parse_history_line(TALLOC_CTX *ctx, const char *line)
+{
+    // Parse JSON line
+    yyjson_doc *doc = yyjson_read_(line, strlen(line), 0);
+    if (doc == NULL) {
+        // Malformed JSON - log warning and skip
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+        if (root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Skipping malformed history line: not valid json")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        ik_log_warn_json(log_doc);
+        return OK(NULL);  // Skip this line
+    }
+
+    yyjson_val *root = yyjson_doc_get_root_(doc);
+    if (!root || !yyjson_is_obj(root)) {  // LCOV_EXCL_BR_LINE - vendor function defensive check
+        // Not an object - skip
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+        if (log_root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping non-object history line")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        ik_log_warn_json(log_doc);
+        yyjson_doc_free(doc);
+        return OK(NULL);  // Skip this line
+    }
+
+    // Extract "cmd" field
+    yyjson_val *cmd_val = yyjson_obj_get_(root, "cmd");
+    if (!cmd_val || !yyjson_is_str(cmd_val)) {
+        // Missing or invalid cmd field - skip
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+        if (log_root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping history line with missing/invalid cmd field")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        ik_log_warn_json(log_doc);
+        yyjson_doc_free(doc);
+        return OK(NULL);  // Skip this line
+    }
+
+    const char *cmd = yyjson_get_str_(cmd_val);
+    char *result = talloc_strdup_(ctx, cmd);
+    if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    yyjson_doc_free(doc);
+    return OK(result);
+}
+
 res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
@@ -256,48 +306,19 @@ res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
         return OK(NULL);  // Empty history
     }
 
-    // Read entire file
-    FILE *f = fopen_(path, "r");
-    if (f == NULL) {  // LCOV_EXCL_BR_LINE
-        return ERR(ctx, IO, "Failed to open %s: %s", path, strerror(errno));
-    }
+    // Read entire file using utility
+    char *contents = NULL;
+    size_t file_size = 0;
+    res_t read_result = ik_file_read_all(ctx, path, &contents, &file_size);
 
-    // Get file size
-    if (fseek_(f, 0, SEEK_END) != 0) {  // LCOV_EXCL_BR_LINE
-        fclose_(f);
-        return ERR(ctx, IO, "Failed to seek in %s: %s", path, strerror(errno));
-    }
-
-    long file_size = ftell_(f);
-    if (file_size < 0) {  // LCOV_EXCL_BR_LINE
-        fclose_(f);
-        return ERR(ctx, IO, "Failed to get size of %s: %s", path, strerror(errno));
-    }
-
-    if (fseek_(f, 0, SEEK_SET) != 0) {  // LCOV_EXCL_BR_LINE
-        fclose_(f);
-        return ERR(ctx, IO, "Failed to seek in %s: %s", path, strerror(errno));
+    if (read_result.is_err) {
+        return read_result;
     }
 
     // Handle empty file
     if (file_size == 0) {
-        fclose_(f);
         return OK(NULL);
     }
-
-    // Read file contents
-    size_t contents_size = (size_t)file_size + 1;
-    char *contents = talloc_array_(ctx, sizeof(char), contents_size);
-    if (contents == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    size_t bytes_read = fread_(contents, 1, (size_t)file_size, f);
-    fclose_(f);
-
-    if (bytes_read != (size_t)file_size) {  // LCOV_EXCL_BR_LINE
-        return ERR(ctx, IO, "Failed to read %s: incomplete read", path);
-    }
-
-    contents[file_size] = '\0';
 
     // Parse JSONL - split by newlines and parse each line
     char *line = contents;
@@ -331,50 +352,24 @@ res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
             continue;
         }
 
-        // Parse JSON line
-        yyjson_doc *doc = yyjson_read_(line, strlen(line), 0);
-        if (doc == NULL) {
-            // Malformed JSON - log warning and skip
-            ik_log_warn("Skipping malformed history line: %s", line);
-            line = next_line;
-            continue;
-        }
-
-        yyjson_val *root = yyjson_doc_get_root_(doc);
-        if (!root || !yyjson_is_obj(root)) {  // LCOV_EXCL_BR_LINE - vendor function defensive check
-            // Not an object - skip
-            ik_log_warn("Skipping non-object history line");
-            yyjson_doc_free(doc);
-            line = next_line;
-            continue;
-        }
-
-        // Extract "cmd" field
-        yyjson_val *cmd_val = yyjson_obj_get_(root, "cmd");
-        if (!cmd_val || !yyjson_is_str(cmd_val)) {
-            // Missing or invalid cmd field - skip
-            ik_log_warn("Skipping history line with missing/invalid cmd field");
-            yyjson_doc_free(doc);
-            line = next_line;
-            continue;
-        }
-
-        const char *cmd = yyjson_get_str_(cmd_val);
-
         // Check if we have space
         if (temp_count >= max_entries) {
-            // Stop parsing if we exceed max_entries
-            yyjson_doc_free(doc);
             break;
         }
 
-        // Store entry (talloc makes a copy)
-        temp_entries[temp_count] = talloc_strdup_(parse_ctx, cmd);
-        if (temp_entries[temp_count] == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE - OOM check
+        // Parse line and extract cmd
+        res_t parse_result = parse_history_line(parse_ctx, line);
+        if (parse_result.is_err) {  // LCOV_EXCL_START - parse_history_line never returns error
+            talloc_free(parse_ctx);
+            return parse_result;
+        }  // LCOV_EXCL_STOP
 
-        temp_count++;  // LCOV_EXCL_BR_LINE
+        char *cmd = (char *)parse_result.ok;
+        if (cmd != NULL) {
+            temp_entries[temp_count] = cmd;
+            temp_count++;
+        }
 
-        yyjson_doc_free(doc);
         line = next_line;
     }
 

@@ -1,4 +1,5 @@
 #include "tool.h"
+#include "tool_response.h"
 
 #include "panic.h"
 #include "wrapper.h"
@@ -18,30 +19,8 @@ res_t ik_tool_exec_bash(void *parent, const char *command)
     FILE *fp = popen_(command, "r");
     if (fp == NULL) {
         // popen failed - return error envelope
-        yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-        if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        yyjson_mut_val *root = yyjson_mut_obj(doc);
-        if (root == NULL) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-        yyjson_mut_doc_set_root(doc, root);
-
-        yyjson_mut_obj_add_bool(doc, root, "success", false);
-        yyjson_mut_obj_add_str(doc, root, "error", "Failed to execute command");
-
-        char *json = yyjson_mut_write_opts(doc, 0, NULL, NULL, NULL);
-        if (json == NULL) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-
-        char *result = talloc_strdup(parent, json);
-        free(json);
-        yyjson_mut_doc_free(doc);
-
-        if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        char *result;
+        ik_tool_response_error(parent, "Failed to execute command", &result);
         return OK(result);
     }
 

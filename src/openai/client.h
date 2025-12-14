@@ -36,7 +36,7 @@
  * Container for a sequence of messages that form a conversation.
  * Passed to API to provide context for the request.
  */
-typedef struct {
+typedef struct ik_openai_conversation {
     ik_msg_t **messages;  /* Array of message pointers */
     size_t message_count;         /* Number of messages */
 } ik_openai_conversation_t;

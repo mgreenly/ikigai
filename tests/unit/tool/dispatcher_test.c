@@ -7,6 +7,7 @@
 
 #include "../../../src/error.h"
 #include "../../../src/tool.h"
+#include "../../test_utils.h"
 
 static TALLOC_CTX *ctx = NULL;
 
@@ -27,58 +28,44 @@ START_TEST(test_dispatch_glob_with_valid_json) {
 
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    ck_assert(yyjson_is_obj(root));
-
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_is_bool(success));
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    ck_assert_ptr_nonnull(data);
 
     yyjson_doc_free(doc);
 }
-END_TEST START_TEST(test_dispatch_glob_returns_exec_result)
+END_TEST
+
+START_TEST(test_dispatch_glob_returns_exec_result)
 {
     const char *arguments = "{\"pattern\": \"*.json\"}";
     res_t dispatch_res = ik_tool_dispatch(ctx, "glob", arguments);
 
     ck_assert(!dispatch_res.is_err);
-    char *dispatch_json = dispatch_res.ok;
-    ck_assert_ptr_nonnull(dispatch_json);
 
-    yyjson_doc *doc = yyjson_read(dispatch_json, strlen(dispatch_json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(dispatch_res.ok, &doc);
+    ck_assert_ptr_nonnull(data);
 
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_invalid_json_arguments)
+END_TEST
+
+START_TEST(test_dispatch_invalid_json_arguments)
 {
     const char *arguments = "{invalid json";
     res_t res = ik_tool_dispatch(ctx, "glob", arguments);
 
     ck_assert(!res.is_err);
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
 
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    // Dispatcher errors have only {"error": "..."}, not {"success": false, "error": "..."}
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
     ck_assert_ptr_nonnull(doc);
 
     yyjson_val *root = yyjson_doc_get_root(doc);
-    ck_assert(yyjson_is_obj(root));
-
     yyjson_val *error = yyjson_obj_get(root, "error");
     ck_assert_ptr_nonnull(error);
-    ck_assert(yyjson_is_str(error));
 
     const char *error_msg = yyjson_get_str(error);
     ck_assert_str_eq(error_msg, "Invalid JSON arguments");
@@ -86,16 +73,16 @@ END_TEST START_TEST(test_dispatch_invalid_json_arguments)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_glob_missing_required_pattern)
+END_TEST
+
+START_TEST(test_dispatch_glob_missing_required_pattern)
 {
     const char *arguments = "{\"path\": \"/tmp\"}";
     res_t res = ik_tool_dispatch(ctx, "glob", arguments);
 
     ck_assert(!res.is_err);
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
 
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
     ck_assert_ptr_nonnull(doc);
 
     yyjson_val *root = yyjson_doc_get_root(doc);
@@ -108,16 +95,16 @@ END_TEST START_TEST(test_dispatch_glob_missing_required_pattern)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_unknown_tool)
+END_TEST
+
+START_TEST(test_dispatch_unknown_tool)
 {
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, "unknown_tool", arguments);
 
     ck_assert(!res.is_err);
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
 
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
     ck_assert_ptr_nonnull(doc);
 
     yyjson_val *root = yyjson_doc_get_root(doc);
@@ -130,16 +117,16 @@ END_TEST START_TEST(test_dispatch_unknown_tool)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_null_tool_name)
+END_TEST
+
+START_TEST(test_dispatch_null_tool_name)
 {
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, NULL, arguments);
 
     ck_assert(!res.is_err);
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
 
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
     ck_assert_ptr_nonnull(doc);
 
     yyjson_val *root = yyjson_doc_get_root(doc);
@@ -152,57 +139,16 @@ END_TEST START_TEST(test_dispatch_null_tool_name)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_empty_tool_name)
+END_TEST
+
+START_TEST(test_dispatch_empty_tool_name)
 {
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, "", arguments);
 
     ck_assert(!res.is_err);
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
 
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    ck_assert_ptr_nonnull(error);
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST START_TEST(test_dispatch_file_read_missing_path)
-{
-
-    const char *arguments = "{}";
-    res_t res = ik_tool_dispatch(ctx, "file_read", arguments);
-
-    ck_assert(!res.is_err);
-
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    ck_assert_ptr_nonnull(error);
-    const char *error_msg = yyjson_get_str(error);
-    ck_assert_str_eq(error_msg, "Missing required parameter: path");
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST START_TEST(test_dispatch_file_read_not_found)
-{
-
-    const char *arguments = "{\"path\": \"/nonexistent/file/that/does/not/exist\"}";
-    res_t res = ik_tool_dispatch(ctx, "file_read", arguments);
-
-    ck_assert(!res.is_err);
-
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
     ck_assert_ptr_nonnull(doc);
 
     yyjson_val *root = yyjson_doc_get_root(doc);
@@ -210,122 +156,152 @@ END_TEST START_TEST(test_dispatch_file_read_not_found)
     ck_assert_ptr_nonnull(error);
 
     const char *error_msg = yyjson_get_str(error);
-    ck_assert(strstr(error_msg, "not found") != NULL || strstr(error_msg, "No such file") != NULL);
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST START_TEST(test_dispatch_grep_missing_pattern)
-{
-
-    const char *arguments = "{}";
-    res_t res = ik_tool_dispatch(ctx, "grep", arguments);
-
-    ck_assert(!res.is_err);
-
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    ck_assert_ptr_nonnull(error);
-    const char *error_msg = yyjson_get_str(error);
-    ck_assert_str_eq(error_msg, "Missing required parameter: pattern");
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST START_TEST(test_dispatch_grep_with_matches)
-{
-
-    const char *arguments = "{\"pattern\": \"test\", \"glob\": \"*.c\", \"path\": \"src\"}";
-    res_t res = ik_tool_dispatch(ctx, "grep", arguments);
-
-    ck_assert(!res.is_err);
-
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == true);
+    ck_assert_ptr_nonnull(error_msg);
 
     yyjson_doc_free(doc);
 }
 
 END_TEST
 
-END_TEST START_TEST(test_dispatch_bash_success)
+START_TEST(test_dispatch_file_read_missing_path)
 {
+    const char *arguments = "{}";
+    res_t res = ik_tool_dispatch(ctx, "file_read", arguments);
 
+    ck_assert(!res.is_err);
+
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *error = yyjson_obj_get(root, "error");
+    ck_assert_ptr_nonnull(error);
+
+    const char *error_msg = yyjson_get_str(error);
+    ck_assert_str_eq(error_msg, "Missing required parameter: path");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_dispatch_file_read_not_found)
+{
+    const char *arguments = "{\"path\": \"/nonexistent/file/that/does/not/exist\"}";
+    res_t res = ik_tool_dispatch(ctx, "file_read", arguments);
+
+    ck_assert(!res.is_err);
+
+    // file_read tool returns full success/error envelope
+    yyjson_doc *doc = NULL;
+    const char *error_msg = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error_msg, "not found") != NULL || strstr(error_msg, "No such file") != NULL);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_dispatch_grep_missing_pattern)
+{
+    const char *arguments = "{}";
+    res_t res = ik_tool_dispatch(ctx, "grep", arguments);
+
+    ck_assert(!res.is_err);
+
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *error = yyjson_obj_get(root, "error");
+    ck_assert_ptr_nonnull(error);
+
+    const char *error_msg = yyjson_get_str(error);
+    ck_assert_str_eq(error_msg, "Missing required parameter: pattern");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_dispatch_grep_with_matches)
+{
+    const char *arguments = "{\"pattern\": \"test\", \"glob\": \"*.c\", \"path\": \"src\"}";
+    res_t res = ik_tool_dispatch(ctx, "grep", arguments);
+
+    ck_assert(!res.is_err);
+
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    ck_assert_ptr_nonnull(data);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_dispatch_bash_success)
+{
     const char *arguments = "{\"command\": \"echo test\"}";
     res_t res = ik_tool_dispatch(ctx, "bash", arguments);
 
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
     ck_assert_ptr_nonnull(data);
 
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    ck_assert_ptr_nonnull(output);
-    const char *output_str = yyjson_get_str(output);
+    const char *output_str = ik_test_tool_get_output(data);
     ck_assert(strstr(output_str, "test") != NULL);
 
-    yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
-    ck_assert_ptr_nonnull(exit_code);
-    ck_assert_int_eq(yyjson_get_int(exit_code), 0);
+    int64_t exit_code = ik_test_tool_get_exit_code(data);
+    ck_assert_int_eq(exit_code, 0);
 
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_bash_missing_command)
-{
+END_TEST
 
+START_TEST(test_dispatch_bash_missing_command)
+{
     const char *arguments = "{}";
     res_t res = ik_tool_dispatch(ctx, "bash", arguments);
 
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
+    ck_assert_ptr_nonnull(doc);
 
+    yyjson_val *root = yyjson_doc_get_root(doc);
     yyjson_val *error = yyjson_obj_get(root, "error");
     ck_assert_ptr_nonnull(error);
+
     const char *error_msg = yyjson_get_str(error);
     ck_assert_str_eq(error_msg, "Missing required parameter: command");
 
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_error_format_single_field)
-{
+END_TEST
 
+START_TEST(test_dispatch_error_format_single_field)
+{
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, "nonexistent", arguments);
 
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
+    ck_assert_ptr_nonnull(doc);
 
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *error = yyjson_obj_get(root, "error");
+    ck_assert_ptr_nonnull(error);
+
+    const char *error_msg = yyjson_get_str(error);
+    ck_assert_ptr_nonnull(error_msg);
+
+    // Verify only one field exists
     yyjson_obj_iter iter = yyjson_obj_iter_with(root);
     yyjson_val *key = NULL;
     int field_count = 0;
@@ -339,46 +315,36 @@ END_TEST START_TEST(test_dispatch_error_format_single_field)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_glob_with_null_path)
-{
+END_TEST
 
+START_TEST(test_dispatch_glob_with_null_path)
+{
     const char *arguments = "{\"pattern\": \"Makefile\"}";
     res_t res = ik_tool_dispatch(ctx, "glob", arguments);
 
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    ck_assert_ptr_nonnull(data);
 
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_null_arguments)
-{
+END_TEST
 
+START_TEST(test_dispatch_null_arguments)
+{
     res_t res = ik_tool_dispatch(ctx, "glob", NULL);
 
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
     ck_assert_ptr_nonnull(doc);
 
     yyjson_val *root = yyjson_doc_get_root(doc);
-    ck_assert(yyjson_is_obj(root));
-
     yyjson_val *error = yyjson_obj_get(root, "error");
     ck_assert_ptr_nonnull(error);
-    ck_assert(yyjson_is_str(error));
 
     const char *error_msg = yyjson_get_str(error);
     ck_assert_str_eq(error_msg, "Missing required parameter: pattern");
@@ -386,15 +352,16 @@ END_TEST START_TEST(test_dispatch_null_arguments)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_file_write_missing_path)
+END_TEST
+
+START_TEST(test_dispatch_file_write_missing_path)
 {
     const char *arguments = "{\"content\": \"test\"}";
     res_t res = ik_tool_dispatch(ctx, "file_write", arguments);
 
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
     ck_assert_ptr_nonnull(doc);
 
     yyjson_val *root = yyjson_doc_get_root(doc);
@@ -407,15 +374,16 @@ END_TEST START_TEST(test_dispatch_file_write_missing_path)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_file_write_missing_content)
+END_TEST
+
+START_TEST(test_dispatch_file_write_missing_content)
 {
     const char *arguments = "{\"path\": \"/tmp/test\"}";
     res_t res = ik_tool_dispatch(ctx, "file_write", arguments);
 
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_doc *doc = yyjson_read(res.ok, strlen(res.ok), 0);
     ck_assert_ptr_nonnull(doc);
 
     yyjson_val *root = yyjson_doc_get_root(doc);
@@ -428,9 +396,10 @@ END_TEST START_TEST(test_dispatch_file_write_missing_content)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_file_write_success)
-{
+END_TEST
 
+START_TEST(test_dispatch_file_write_success)
+{
     char test_file[] = "/tmp/ikigai-dispatcher-file-write-test-XXXXXX";
     int fd = mkstemp(test_file);
     ck_assert(fd >= 0);
@@ -446,16 +415,9 @@ END_TEST START_TEST(test_dispatch_file_write_success)
 
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == true);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    ck_assert_ptr_nonnull(data);
 
     yyjson_doc_free(doc);
 

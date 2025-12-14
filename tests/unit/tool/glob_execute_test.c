@@ -7,6 +7,7 @@
 
 #include "../../../src/error.h"
 #include "../../../src/tool.h"
+#include "../../test_utils.h"
 
 // Test fixtures
 static TALLOC_CTX *ctx = NULL;
@@ -53,25 +54,9 @@ START_TEST(test_glob_exec_with_matches) {
     res_t res = ik_tool_exec_glob(ctx, "*.c", dir);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    ck_assert(yyjson_is_obj(root));
-
-    // Verify success: true
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == true);
-
-    // Verify data object exists
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    ck_assert_ptr_nonnull(data);
-    ck_assert(yyjson_is_obj(data));
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output_str = ik_test_tool_get_output(data);
 
     // Verify count is 2
     yyjson_val *count = yyjson_obj_get(data, "count");
@@ -79,10 +64,6 @@ START_TEST(test_glob_exec_with_matches) {
     ck_assert_int_eq(yyjson_get_int(count), 2);
 
     // Verify output contains both .c files
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    ck_assert_ptr_nonnull(output);
-    const char *output_str = yyjson_get_str(output);
-    ck_assert_ptr_nonnull(output_str);
     ck_assert(strstr(output_str, "test1.c") != NULL);
     ck_assert(strstr(output_str, "test2.c") != NULL);
     ck_assert(strstr(output_str, "test.txt") == NULL);
@@ -113,23 +94,13 @@ END_TEST START_TEST(test_glob_exec_no_matches)
     res_t res = ik_tool_exec_glob(ctx, "*.c", dir);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output_str = ik_test_tool_get_output(data);
 
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *count = yyjson_obj_get(data, "count");
     ck_assert_int_eq(yyjson_get_int(count), 0);
 
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
     ck_assert_str_eq(output_str, "");
 
     yyjson_doc_free(doc);
@@ -146,22 +117,10 @@ END_TEST START_TEST(test_glob_exec_no_matches_treated_as_success)
     res_t res = ik_tool_exec_glob(ctx, "[unclosed", "/tmp");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    // Verify success: true (no matches, but not an error)
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == true);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
 
     // Verify count is 0
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *count = yyjson_obj_get(data, "count");
     ck_assert_int_eq(yyjson_get_int(count), 0);
 
@@ -181,22 +140,13 @@ END_TEST START_TEST(test_glob_exec_with_null_path)
     res_t res = ik_tool_exec_glob(ctx, tmpfile, NULL);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output_str = ik_test_tool_get_output(data);
 
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *count = yyjson_obj_get(data, "count");
     ck_assert_int_eq(yyjson_get_int(count), 1);
 
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
     ck_assert(strstr(output_str, tmpfile) != NULL);
 
     yyjson_doc_free(doc);
@@ -225,17 +175,9 @@ END_TEST START_TEST(test_glob_exec_with_empty_path)
     res_t res = ik_tool_exec_glob(ctx, "*.c", "");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
 
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *count = yyjson_obj_get(data, "count");
     ck_assert_int_eq(yyjson_get_int(count), 1);
 
@@ -275,20 +217,14 @@ END_TEST START_TEST(test_glob_exec_multiple_files_output_format)
     res_t res = ik_tool_exec_glob(ctx, "*.c", dir);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output_str = ik_test_tool_get_output(data);
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *count = yyjson_obj_get(data, "count");
     ck_assert_int_eq(yyjson_get_int(count), 3);
 
     // Verify output has newlines separating files
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
-    ck_assert_ptr_nonnull(output_str);
-
     // Count newlines - should be 2 (between 3 files)
     int newline_count = 0;
     for (const char *p = output_str; *p; p++) {

@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_separator_debug_test.c
  * @brief Debug test for Separator visibility with detailed output
@@ -6,6 +7,8 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include <stdio.h>
@@ -65,23 +68,30 @@ START_TEST(test_separator_debug_simple_case) {
     // Create REPL and scroll to middle of scrollback
     // We want to view scrollback lines 20-29 (10 lines)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
 
     // Desired view: document rows 20-29
     // last_visible_row = 29
     // last_visible_row = document_height - 1 - offset
     // 29 = 52 - 1 - offset
     // offset = 22
-    repl->viewport_offset = 22;
+    repl->current->viewport_offset = 22;
 
     // Calculate what SHOULD be visible
-    size_t expected_last_visible_row = document_height - 1 - repl->viewport_offset;
+    size_t expected_last_visible_row = document_height - 1 - repl->current->viewport_offset;
     size_t expected_first_visible_row = expected_last_visible_row + 1 - (size_t)term->screen_rows;
 
     printf("=== Expected Viewport ===\n");
-    printf("viewport_offset: %zu\n", repl->viewport_offset);
+    printf("viewport_offset: %zu\n", repl->current->viewport_offset);
     printf("first_visible_row: %zu (expected)\n", expected_first_visible_row);
     printf("last_visible_row: %zu (expected)\n", expected_last_visible_row);
     printf("Visible rows: %zu-%zu (should be 10 rows of scrollback)\n\n",

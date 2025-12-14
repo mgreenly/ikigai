@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_separator_wrapped_test.c
  * @brief Test Separator visibility with wrapped lines (lines that span multiple physical rows)
@@ -6,6 +7,8 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include <unistd.h>
@@ -69,17 +72,24 @@ START_TEST(test_separator_with_wrapped_lines) {
 
     // Create REPL and scroll to show middle of scrollback
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
 
     // Scroll to show document rows 20-29 (which should be lines 10-14)
     // Each line is 2 physical rows, so:
     // - Line 0-9: rows 0-19
     // - Line 10-14: rows 20-29
     // viewport_offset = 62 - 1 - 29 = 32
-    repl->viewport_offset = 32;
+    repl->current->viewport_offset = 32;
 
     // Calculate viewport
     ik_viewport_t viewport;

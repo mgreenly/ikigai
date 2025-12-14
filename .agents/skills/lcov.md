@@ -98,5 +98,5 @@ grep -A 1000 "SF:.*myfile.c" coverage/coverage.info | grep -m 1 -B 1000 "end_of_
 
 ## References
 
-- `docs/lcov_exclusion_strategy.md` - Full exclusion policy
+- `project/lcov_exclusion_strategy.md` - Full exclusion policy
 - LCOV documentation: https://github.com/linux-test-project/lcov

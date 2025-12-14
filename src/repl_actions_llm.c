@@ -2,8 +2,10 @@
 #include "repl_actions.h"
 #include "repl_actions_internal.h"
 #include "repl.h"
+#include "agent.h"
 #include "repl_callbacks.h"
 #include "panic.h"
+#include "shared.h"
 #include "wrapper.h"
 #include "format.h"
 #include "commands.h"
@@ -38,12 +40,12 @@ static res_t ik_repl_handle_slash_command(ik_repl_ctx_t *repl, const char *comma
     ik_format_buffer_t *buf = ik_format_buffer_create(repl);
 
     // Pretty-print the input buffer
-    ik_pp_input_buffer(repl->input_buffer, buf, 0);
+    ik_pp_input_buffer(repl->current->input_buffer, buf, 0);
 
     // Append output to scrollback buffer (split by newlines)
     const char *output = ik_format_get_string(buf);
     size_t output_len = strlen(output);
-    ik_repl_append_multiline_to_scrollback(repl->scrollback, output, output_len);
+    ik_repl_append_multiline_to_scrollback(repl->current->scrollback, output, output_len);
 
     // Clean up format buffer
     talloc_free(buf);
@@ -76,23 +78,23 @@ static void handle_slash_cmd_(ik_repl_ctx_t *repl, char *command_text)
  */
 static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
 {
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->conversation, "user", message_text).ok;
-    res_t result = ik_openai_conversation_add_msg(repl->conversation, user_msg);
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", message_text).ok;
+    res_t result = ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Persist user message to database
-    if (repl->db_ctx != NULL && repl->current_session_id > 0) {
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         char *data_json = talloc_asprintf(repl,
                                           "{\"model\":\"%s\",\"temperature\":%.2f,\"max_completion_tokens\":%d}",
-                                          repl->cfg->openai_model,
-                                          repl->cfg->openai_temperature,
-                                          repl->cfg->openai_max_completion_tokens);
+                                          repl->shared->cfg->openai_model,
+                                          repl->shared->cfg->openai_temperature,
+                                          repl->shared->cfg->openai_max_completion_tokens);
 
-        res_t db_res = ik_db_message_insert(repl->db_ctx, repl->current_session_id,
+        res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
                                             "user", message_text, data_json);
         if (is_err(&db_res)) {
-            if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
-                fprintf(repl->db_debug_pipe->write_end,
+            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
+                fprintf(repl->shared->db_debug_pipe->write_end,
                         "Warning: Failed to persist user message to database: %s\n",
                         error_message(db_res.err));
             }
@@ -102,28 +104,28 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
     }
 
     // Clear previous assistant response
-    if (repl->assistant_response != NULL) {
-        talloc_free(repl->assistant_response);
-        repl->assistant_response = NULL;
+    if (repl->current->assistant_response != NULL) {
+        talloc_free(repl->current->assistant_response);
+        repl->current->assistant_response = NULL;
     }
-    if (repl->streaming_line_buffer != NULL) {
-        talloc_free(repl->streaming_line_buffer);
-        repl->streaming_line_buffer = NULL;
+    if (repl->current->streaming_line_buffer != NULL) {
+        talloc_free(repl->current->streaming_line_buffer);
+        repl->current->streaming_line_buffer = NULL;
     }
 
-    repl->tool_iteration_count = 0;
+    repl->current->tool_iteration_count = 0;
     ik_repl_transition_to_waiting_for_llm(repl);
 
-    result = ik_openai_multi_add_request(repl->multi, repl->cfg, repl->conversation,
+    result = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
                                          ik_repl_streaming_callback, repl,
                                          ik_repl_http_completion_callback, repl, false);
     if (is_err(&result)) {
         const char *err_msg = error_message(result.err);
-        ik_scrollback_append_line(repl->scrollback, err_msg, strlen(err_msg));
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
         ik_repl_transition_to_idle(repl);
         talloc_free(result.err);
     } else {
-        repl->curl_still_running = 1;
+        repl->current->curl_still_running = 1;
     }
 }
 
@@ -139,8 +141,8 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
-    const char *text = (const char *)repl->input_buffer->text->data;
-    size_t text_len = ik_byte_array_size(repl->input_buffer->text);
+    const char *text = (const char *)repl->current->input_buffer->text->data;
+    size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
 
     bool is_slash_command = (text_len > 0 && text[0] == '/');
     char *command_text = NULL;
@@ -151,9 +153,11 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
         command_text[text_len] = '\0';
     }
 
+    ik_repl_dismiss_completion(repl);
+
     if (is_slash_command) {
-        ik_input_buffer_clear(repl->input_buffer);
-        repl->viewport_offset = 0;
+        ik_input_buffer_clear(repl->current->input_buffer);
+        repl->current->viewport_offset = 0;
     } else {
         ik_repl_submit_line(repl);
     }
@@ -161,7 +165,7 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
     if (is_slash_command) {
         handle_slash_cmd_(repl, command_text);
         talloc_free(command_text);
-    } else if (text_len > 0 && repl->conversation != NULL && repl->cfg != NULL) {
+    } else if (text_len > 0 && repl->current->conversation != NULL && repl->shared->cfg != NULL) {
         char *message_text = talloc_zero_(repl, text_len + 1);
         if (message_text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         memcpy(message_text, text, text_len);

@@ -3,12 +3,14 @@
  * @brief Unit tests for command dispatcher
  */
 
+#include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
 #include "../../../src/error.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/openai/client.h"
+#include "../../../src/shared.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
 
@@ -55,11 +57,24 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
-    r->conversation = conv;
-    r->cfg = cfg;
-    r->marks = NULL;
-    r->mark_count = 0;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+
+
+    agent->conversation = conv;
+    r->current = agent;
+
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    r->shared = shared;
+
+    r->current->marks = NULL;
+    r->current->mark_count = 0;
 
     return r;
 }
@@ -109,16 +124,16 @@ END_TEST
 START_TEST(test_dispatch_clear_command)
 {
     // Add some content to scrollback
-    res_t res = ik_scrollback_append_line(repl->scrollback, "Line 1", 6);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 
     // Dispatch /clear command
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
     // Verify scrollback is now empty (clear was executed)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
@@ -131,13 +146,13 @@ START_TEST(test_dispatch_help_command)
     // Verify scrollback received help header
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Available commands:");
 
     // Verify at least one command is listed
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_gt(line_count, 1);
 }
 
@@ -149,14 +164,14 @@ START_TEST(test_dispatch_mark_with_args)
     ck_assert(is_ok(&res));
 
     // Verify mark was created
-    ck_assert_uint_eq(repl->mark_count, 1);
-    ck_assert_ptr_nonnull(repl->marks);
-    ck_assert_str_eq(repl->marks[0]->label, "checkpoint1");
+    ck_assert_uint_eq(repl->current->mark_count, 1);
+    ck_assert_ptr_nonnull(repl->current->marks);
+    ck_assert_str_eq(repl->current->marks[0]->label, "checkpoint1");
 
     // Verify scrollback received the mark indicator
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "/mark checkpoint1");
@@ -172,7 +187,7 @@ START_TEST(test_dispatch_unknown_command)
     // Verify error message in scrollback
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Error: Unknown command 'unknown'");
@@ -188,7 +203,7 @@ START_TEST(test_dispatch_empty_command)
     // Verify error message in scrollback
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Error: Empty command");
@@ -199,16 +214,16 @@ END_TEST
 START_TEST(test_dispatch_command_with_whitespace)
 {
     // Add content to scrollback
-    res_t res = ik_scrollback_append_line(repl->scrollback, "Test line", 9);
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, "Test line", 9);
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 1);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 
     // Dispatch /clear with whitespace
     res = ik_cmd_dispatch(ctx, repl, "/  clear  ");
     ck_assert(is_ok(&res));
 
     // Verify scrollback is cleared (whitespace was handled correctly)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->scrollback), 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
@@ -221,7 +236,7 @@ START_TEST(test_dispatch_slash_whitespace)
     // Verify error message in scrollback
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Error: Empty command");
@@ -235,12 +250,12 @@ START_TEST(test_dispatch_model_with_arg)
     ck_assert(is_ok(&res));
 
     // Verify model changed
-    ck_assert_str_eq(repl->cfg->openai_model, "gpt-4-turbo");
+    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-4-turbo");
 
     // Verify scrollback received confirmation message
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Switched to model: gpt-4-turbo");
@@ -256,7 +271,7 @@ START_TEST(test_dispatch_rewind_with_arg)
     // Verify scrollback received error message (no marks exist)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Error: No marks found");
@@ -273,7 +288,7 @@ START_TEST(test_dispatch_system_with_multiword_arg)
     // Verify scrollback received the confirmation message
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "System message set to: You are a helpful assistant");

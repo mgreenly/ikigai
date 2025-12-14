@@ -1,9 +1,12 @@
+#include "agent.h"
 /**
  * @file repl_run_render_misc_test.c
  * @brief Unit tests for REPL render errors and miscellaneous tests
  */
 
 #include "repl_run_test_common.h"
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 
 /* Test: Initial render error */
@@ -29,13 +32,20 @@ START_TEST(test_repl_run_initial_render_error) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
 
@@ -78,13 +88,20 @@ START_TEST(test_repl_run_render_error_in_loop)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    shared->term = term;
+    shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
 
@@ -125,19 +142,26 @@ START_TEST(test_repl_run_spinner_render_error)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    shared->term = term;
+    shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
 
     // Set spinner visible (simulates WAITING_FOR_LLM state)
-    repl->spinner_state.visible = true;
-    repl->spinner_state.frame_index = 0;
+    repl->current->spinner_state.visible = true;
+    repl->current->spinner_state.frame_index = 0;
 
     // Mock select to return 0 (timeout) on first call, then set quit flag
     mock_select_return_value = 0;
@@ -196,19 +220,26 @@ START_TEST(test_repl_run_spinner_timeout_success)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    shared->term = term;
+    shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
     init_repl_multi_handle(repl);
 
     // Set spinner visible (simulates WAITING_FOR_LLM state)
-    repl->spinner_state.visible = true;
-    repl->spinner_state.frame_index = 0;
+    repl->current->spinner_state.visible = true;
+    repl->current->spinner_state.frame_index = 0;
 
     // Mock select to return 0 (timeout) on first call, then 1 (ready) on second call
     mock_select_return_value = 0;
@@ -230,7 +261,7 @@ START_TEST(test_repl_run_spinner_timeout_success)
     ck_assert(is_ok(&res));
 
     // Verify spinner was advanced (frame index should have incremented from 0)
-    ck_assert_uint_ne((unsigned int)repl->spinner_state.frame_index, 0);
+    ck_assert_uint_ne((unsigned int)repl->current->spinner_state.frame_index, 0);
 
     // Reset mocks
     mock_select_return_value = -999;
@@ -267,13 +298,20 @@ START_TEST(test_repl_process_action_invalid_codepoint)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    shared->term = term;
+    shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
 
     // Create action with invalid Unicode codepoint (> 0x10FFFF)
@@ -314,13 +352,20 @@ START_TEST(test_handle_terminal_input_success)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
     repl->input_parser = parser;
-    repl->term = term;
-    repl->render = render;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    shared->term = term;
+    shared->render = render;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
     repl->quit = false;
 
     // Mock input with a simple ASCII character

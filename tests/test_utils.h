@@ -5,6 +5,10 @@
 #include "config.h"
 #include "../src/db/connection.h"
 #include "../src/error.h"
+#include "../src/shared.h"
+
+// Forward declarations
+typedef struct ik_agent_ctx ik_agent_ctx_t;
 
 // Test utilities for ikigai test suite
 
@@ -170,5 +174,59 @@ res_t ik_test_db_destroy(const char *db_name);
  * Safe to call even if terminal is in normal state.
  */
 void ik_test_reset_terminal(void);
+
+// ========== Agent Test Utilities ==========
+
+/**
+ * Create a minimal agent for testing
+ *
+ * Creates an agent context with a minimal shared context.
+ * The agent will have display state (scrollback, layers, etc.) initialized.
+ *
+ * @param ctx Talloc context for allocation
+ * @param out Output parameter for agent context
+ * @return OK on success, ERR on failure
+ */
+res_t ik_test_create_agent(TALLOC_CTX *ctx, ik_agent_ctx_t **out);
+
+// ========== Tool JSON Test Helpers ==========
+
+// Forward declaration for yyjson types
+typedef struct yyjson_doc yyjson_doc;
+typedef struct yyjson_val yyjson_val;
+
+/**
+ * Parse JSON tool response and verify success=true
+ *
+ * @param json JSON string to parse
+ * @param out_doc Output parameter for document (caller must free)
+ * @return data object from response
+ */
+yyjson_val *ik_test_tool_parse_success(const char *json, yyjson_doc **out_doc);
+
+/**
+ * Parse JSON tool response and verify success=false
+ *
+ * @param json JSON string to parse
+ * @param out_doc Output parameter for document (caller must free)
+ * @return error message string
+ */
+const char *ik_test_tool_parse_error(const char *json, yyjson_doc **out_doc);
+
+/**
+ * Extract output field from tool data object
+ *
+ * @param data Data object from tool response
+ * @return output string
+ */
+const char *ik_test_tool_get_output(yyjson_val *data);
+
+/**
+ * Extract exit_code field from tool data object
+ *
+ * @param data Data object from tool response
+ * @return exit code integer
+ */
+int64_t ik_test_tool_get_exit_code(yyjson_val *data);
 
 #endif // IK_TEST_UTILS_H

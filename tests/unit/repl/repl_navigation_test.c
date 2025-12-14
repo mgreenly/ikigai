@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_navigation_test.c
  * @brief Unit tests for REPL navigation and control actions
@@ -6,9 +7,11 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
+#include "../../../src/agent.h"
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
+#include "../../../src/shared.h"
 #include "../../test_utils.h"
 
 /* Test: Process ARROW_LEFT action */
@@ -25,8 +28,13 @@ START_TEST(test_repl_process_action_arrow_left) {
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
 
     ik_input_action_t action = {.type = IK_INPUT_ARROW_LEFT};
@@ -65,8 +73,13 @@ START_TEST(test_repl_process_action_arrow_right)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
 
     ik_input_action_t action = {.type = IK_INPUT_ARROW_RIGHT};
@@ -95,8 +108,13 @@ START_TEST(test_repl_process_action_ctrl_c)
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
 
     ik_input_action_t action = {.type = IK_INPUT_CTRL_C};
@@ -120,8 +138,13 @@ START_TEST(test_repl_process_action_left_at_start)
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
 
     ik_input_action_t action = {.type = IK_INPUT_ARROW_LEFT};
 
@@ -154,8 +177,13 @@ START_TEST(test_repl_process_action_right_at_end)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
 
     ik_input_action_t action = {.type = IK_INPUT_ARROW_RIGHT};
 
@@ -188,8 +216,13 @@ START_TEST(test_repl_process_action_unknown)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
 
     ik_input_action_t action = {.type = IK_INPUT_UNKNOWN};
 
@@ -223,7 +256,10 @@ START_TEST(test_repl_process_action_null_action_asserts)
     ik_input_buffer_t *input_buf = NULL;
     input_buf = ik_input_buffer_create(ctx);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->input_buffer = input_buf;
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     ik_repl_process_action(repl, NULL);
     talloc_free(ctx);
 }
@@ -241,9 +277,20 @@ START_TEST(test_repl_process_action_arrow_up)
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
+
+    // Create minimal shared context for history access
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;  // No history for this test
+    repl->shared = shared;
 
     // Insert "a\nb" (line1\nline2)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'a'};
@@ -285,9 +332,20 @@ START_TEST(test_repl_process_action_arrow_down)
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
+
+    // Create minimal shared context for history access
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;  // No history for this test
+    repl->shared = shared;
 
     // Insert "a\nb" (line1\nline2)
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'a'};

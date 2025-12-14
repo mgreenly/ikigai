@@ -1,9 +1,15 @@
 // Input parser module - Convert raw bytes to semantic actions
-#include <assert.h>
-#include <talloc.h>
 #include "input.h"
+
+#include "input_escape.h"
+#include "input_xkb.h"
+#include "logger.h"
 #include "panic.h"
 #include "wrapper.h"
+
+#include <assert.h>
+#include <string.h>
+#include <talloc.h>
 
 // Create input parser
 ik_input_parser_t *ik_input_parser_create(void *parent)
@@ -21,16 +27,11 @@ ik_input_parser_t *ik_input_parser_create(void *parent)
     parser->utf8_expected = 0;
     parser->in_utf8 = false;
 
+    // Initialize xkbcommon for shifted key translation
+    ik_input_xkb_init_state(parser);
+    talloc_set_destructor(parser, ik_input_xkb_cleanup_destructor);
+
     return parser;
-}
-
-// Helper to reset escape sequence state
-static void reset_escape_state(ik_input_parser_t *parser)
-{
-    assert(parser != NULL);  // LCOV_EXCL_BR_LINE
-
-    parser->in_escape = false;
-    parser->esc_len = 0;
 }
 
 // Helper to reset UTF-8 sequence state
@@ -41,25 +42,6 @@ static void reset_utf8_state(ik_input_parser_t *parser)
     parser->in_utf8 = false;
     parser->utf8_len = 0;
     parser->utf8_expected = 0;
-}
-
-// Check if byte completes an unrecognized CSI sequence to discard
-// Handles SGR sequences (m) and other unrecognized sequences (~)
-static bool is_discardable_csi_terminal(const ik_input_parser_t *parser, char byte)
-{
-    assert(parser != NULL);  // LCOV_EXCL_BR_LINE
-
-    // SGR sequences terminate with 'm' (e.g., \x1b[0m or \x1b[38;5;242m)
-    if (byte == 'm' && parser->esc_len >= 1) {  // LCOV_EXCL_BR_LINE - defensive: esc_len >= 1 always true when byte=='m'
-        return true;
-    }
-
-    // Other unrecognized sequences: ESC [ digit ~ (e.g., Insert=2~, Home=1~, End=4~)
-    if (parser->esc_len == 3 && byte == '~') {
-        return true;
-    }
-
-    return false;
 }
 
 // Helper to decode complete UTF-8 sequence into codepoint
@@ -161,162 +143,6 @@ static void parse_utf8_continuation(ik_input_parser_t *parser, char byte,
     action_out->type = IK_INPUT_UNKNOWN;
 }
 
-// Handle first byte after ESC (validation)
-static bool parse_first_escape_byte(ik_input_parser_t *parser, char byte,
-                                     ik_input_action_t *action_out)
-{
-    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
-    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    // If it's '[', continue CSI sequence parsing
-    if (byte == '[') {
-        return false; // Continue processing
-    }
-
-    // If it's ESC again (double ESC), treat first ESC as escape action
-    if (byte == 0x1B) {
-        reset_escape_state(parser);
-        parser->in_escape = true;  // Start new escape sequence
-        parser->esc_len = 0;
-        action_out->type = IK_INPUT_ESCAPE;
-        return true; // Handled
-    }
-
-    // Not '[' - invalid sequence
-    reset_escape_state(parser);
-    action_out->type = IK_INPUT_UNKNOWN;
-    return true; // Handled
-}
-
-
-// Handle arrow key sequences: ESC [ A/B/C/D
-static bool parse_arrow_keys(ik_input_parser_t *parser, char byte,
-                              ik_input_action_t *action_out)
-{
-    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
-    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    // Only handle 2-character sequences
-    if (parser->esc_len != 2) {
-        return false;
-    }
-
-    // Check for arrow keys
-    if (byte == 'A') {
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_ARROW_UP;
-        return true;
-    }
-    if (byte == 'B') {
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_ARROW_DOWN;
-        return true;
-    }
-    if (byte == 'C') {
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_ARROW_RIGHT;
-        return true;
-    }
-    if (byte == 'D') {
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_ARROW_LEFT;
-        return true;
-    }
-
-    return false; // Not an arrow key
-}
-
-// Handle 3-character tilde-terminated sequences: ESC [ N ~
-static bool parse_tilde_sequences(ik_input_parser_t *parser, char byte,
-                                   ik_input_action_t *action_out)
-{
-    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
-    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    // Only handle 3-character sequences ending with '~'
-    if (parser->esc_len != 3 || byte != '~') {
-        return false;
-    }
-
-    // Check for delete: ESC [ 3 ~
-    if (parser->esc_buf[1] == '3') {
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_DELETE;
-        return true;
-    }
-
-    // Check for page up: ESC [ 5 ~
-    if (parser->esc_buf[1] == '5') {  // LCOV_EXCL_BR_LINE
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_PAGE_UP;
-        return true;
-    }
-
-    // Check for page down: ESC [ 6 ~
-    if (parser->esc_buf[1] == '6') {  // LCOV_EXCL_BR_LINE
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_PAGE_DOWN;
-        return true;
-    }
-
-    return false; // Not a recognized tilde sequence
-}
-
-// Handle escape sequence byte
-static void parse_escape_sequence(ik_input_parser_t *parser, char byte,
-                                  ik_input_action_t *action_out)
-{
-    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
-    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    // Buffer the byte
-    parser->esc_buf[parser->esc_len++] = byte;
-    parser->esc_buf[parser->esc_len] = '\0';
-
-    // Buffer overflow protection - reset if we've filled the buffer
-    if (parser->esc_len >= sizeof(parser->esc_buf) - 1) {
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_UNKNOWN;
-        return;
-    }
-
-    // Validate first byte after ESC
-    if (parser->esc_len == 1) {
-        if (parse_first_escape_byte(parser, byte, action_out)) {
-            return; // Handled
-        }
-    }
-
-    // Try parsing as arrow key
-    if (parse_arrow_keys(parser, byte, action_out)) {
-        return; // Handled
-    }
-
-    // Try parsing as tilde-terminated sequence
-    if (parse_tilde_sequences(parser, byte, action_out)) {
-        return; // Handled
-    }
-
-    // Check for unrecognized CSI sequences to discard (SGR and others)
-    if (is_discardable_csi_terminal(parser, byte)) {
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_UNKNOWN;
-        return;
-    }
-
-    // Check for unrecognized 2-character sequences at esc_len == 2
-    // If we have ESC [ <letter> and it's not A/B/C/D, it's complete but unknown
-    // GCC 14.2.0 bug: branch coverage not recorded despite tests covering both branches
-    if (parser->esc_len == 2 && byte >= 'A' && byte <= 'Z') {  // LCOV_EXCL_BR_LINE
-        reset_escape_state(parser);  // LCOV_EXCL_LINE
-        action_out->type = IK_INPUT_UNKNOWN;  // LCOV_EXCL_LINE
-        return;  // LCOV_EXCL_LINE
-    }
-
-    // Incomplete sequence - need more bytes
-    action_out->type = IK_INPUT_UNKNOWN;
-}
-
 // Parse single byte into action
 void ik_input_parse_byte(ik_input_parser_t *parser, char byte,
                          ik_input_action_t *action_out)
@@ -332,7 +158,7 @@ void ik_input_parse_byte(ik_input_parser_t *parser, char byte,
 
     // If we're in escape sequence mode, handle escape byte
     if (parser->in_escape) {
-        parse_escape_sequence(parser, byte, action_out);
+        ik_input_parse_escape_sequence(parser, byte, action_out);
         return;
     }
 
@@ -373,6 +199,14 @@ void ik_input_parse_byte(ik_input_parser_t *parser, char byte,
     if (byte == 0x0B) {  // Ctrl+K
         action_out->type = IK_INPUT_CTRL_K;
         return;
+    }
+    if (byte == 0x0E) {  // Ctrl+N (legacy, CSI u preferred)  // LCOV_EXCL_BR_LINE
+        action_out->type = IK_INPUT_CTRL_N;  // LCOV_EXCL_LINE
+        return;  // LCOV_EXCL_LINE
+    }
+    if (byte == 0x10) {  // Ctrl+P (legacy, CSI u preferred)  // LCOV_EXCL_BR_LINE
+        action_out->type = IK_INPUT_CTRL_P;  // LCOV_EXCL_LINE
+        return;  // LCOV_EXCL_LINE
     }
     if (byte == 0x15) {  // Ctrl+U
         action_out->type = IK_INPUT_CTRL_U;

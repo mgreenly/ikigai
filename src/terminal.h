@@ -2,6 +2,7 @@
 #ifndef IK_TERMINAL_H
 #define IK_TERMINAL_H
 
+#include <stdbool.h>
 #include <termios.h>
 #include "error.h"
 
@@ -11,6 +12,7 @@ typedef struct {
     struct termios orig_termios;   // Original terminal settings
     int screen_rows;               // Terminal height
     int screen_cols;               // Terminal width
+    bool csi_u_supported;          // True if CSI u protocol is available
 } ik_term_ctx_t;
 
 // Initialize terminal (raw mode + alternate screen)

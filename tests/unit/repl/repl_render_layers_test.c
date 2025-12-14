@@ -1,9 +1,12 @@
+#include "agent.h"
 /**
  * @file repl_render_layers_test.c
  * @brief Unit tests for REPL render_frame function with layer-based rendering
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
 #include <signal.h>
 #include <talloc.h>
 #include <string.h>
@@ -78,33 +81,40 @@ START_TEST(test_repl_render_frame_with_layers_visible_input) {
 
     // Create REPL with layer cake
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;  // No offset - input buffer will be visible
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->render = render;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;  // No offset - input buffer will be visible
 
     // Initialize layer cake
-    repl->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
+    repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
 
     // Create layers
     bool separator_visible = true;
-    repl->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
+    repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
 
-    repl->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
+    repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
 
     const char *input_text_ptr = (const char *)input_buf->text->data;
     size_t input_text_len = ik_byte_array_size(input_buf->text);
     bool input_visible = true;
-    repl->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
+    repl->current->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
 
     // Add layers to cake
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->scrollback_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->separator_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->separator_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->input_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->input_layer);
     ck_assert(is_ok(&res));
 
     mock_write_calls = 0;
@@ -157,33 +167,40 @@ START_TEST(test_repl_render_frame_with_layers_scrolling)
 
     // Create REPL with layer cake
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 100;  // Set very large offset to test clamping logic
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->render = render;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 100;  // Set very large offset to test clamping logic
 
     // Initialize layer cake
-    repl->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
+    repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
 
     // Create layers
     bool separator_visible = true;
-    repl->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
+    repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
 
-    repl->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
+    repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
 
     const char *input_text_ptr = (const char *)input_buf->text->data;
     size_t input_text_len = ik_byte_array_size(input_buf->text);
     bool input_visible = true;
-    repl->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
+    repl->current->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
 
     // Add layers to cake
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->scrollback_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->separator_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->separator_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->input_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->input_layer);
     ck_assert(is_ok(&res));
 
     mock_write_calls = 0;
@@ -219,33 +236,40 @@ START_TEST(test_repl_render_frame_write_failure)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->render = render;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Initialize layer cake
-    repl->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
+    repl->current->layer_cake = ik_layer_cake_create(repl, (size_t)term->screen_rows);
 
     // Create layers
     bool separator_visible = true;
-    repl->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
+    repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &separator_visible);
 
-    repl->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
+    repl->current->scrollback_layer = ik_scrollback_layer_create(repl, "scrollback", scrollback);
 
     const char *input_text_ptr = (const char *)input_buf->text->data;
     size_t input_text_len = ik_byte_array_size(input_buf->text);
     bool input_visible = true;
-    repl->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
+    repl->current->input_layer = ik_input_layer_create(repl, "input", &input_visible, &input_text_ptr, &input_text_len);
 
     // Add layers to cake
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->scrollback_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->separator_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->separator_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->layer_cake, repl->input_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->input_layer);
     ck_assert(is_ok(&res));
 
     // Enable write failure

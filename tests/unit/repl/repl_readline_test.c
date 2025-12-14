@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_readline_test.c
  * @brief Unit tests for REPL readline-style editing shortcuts
@@ -6,6 +7,7 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
+#include "../../../src/agent.h"
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
@@ -44,8 +46,13 @@ START_TEST(test_repl_process_action_ctrl_a) {
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
 
     // Cursor is at byte 11 (after "hello\nworld"), grapheme 11
@@ -104,8 +111,13 @@ START_TEST(test_repl_process_action_ctrl_e)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
 
     // Move cursor to start of "world" line
@@ -179,8 +191,13 @@ START_TEST(test_repl_process_action_ctrl_k)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
 
     // Move cursor to middle of "world" line (after "wo")
@@ -261,8 +278,13 @@ START_TEST(test_repl_process_action_ctrl_u)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
 
     // Move cursor to middle of "world" line (after "wo")
@@ -341,8 +363,13 @@ START_TEST(test_repl_process_action_ctrl_w)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
 
     // Cursor is at byte 16 (after "hello world test")

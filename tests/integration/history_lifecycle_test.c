@@ -1,5 +1,7 @@
+#include "../../src/agent.h"
 #include "../../src/history.h"
 #include "../../src/repl.h"
+#include "../../src/shared.h"
 #include "../test_utils.h"
 
 #include <check.h>
@@ -48,81 +50,52 @@ int pthread_mutex_unlock_(pthread_mutex_t *m){return pthread_mutex_unlock(m);}
 int pthread_create_(pthread_t *t,const pthread_attr_t *a,void*(*s)(void*),void *g){return pthread_create(t,a,s,g);}
 int pthread_join_(pthread_t t,void **r){return pthread_join(t,r);}
 
-// Helper to setup test environment in unique directory
 static void setup_test_env(void)
 {
-    // Save original directory
-    if (getcwd(orig_dir, sizeof(orig_dir)) == NULL) {
-        ck_abort_msg("Failed to get current directory");
-    }
-
-    // Create unique test directory using PID
+    if (getcwd(orig_dir, sizeof(orig_dir)) == NULL) ck_abort_msg("getcwd failed");
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_test_%d", getpid());
     mkdir(test_dir, 0755);
-
-    // Change to test directory
-    if (chdir(test_dir) != 0) {
-        ck_abort_msg("Failed to change to test directory %s", test_dir);
-    }
+    if (chdir(test_dir) != 0) ck_abort_msg("chdir failed");
 }
-
-// Helper to teardown test environment
 static void teardown_test_env(void)
 {
-    // Return to original directory
-    if (chdir(orig_dir) != 0) {
-        ck_abort_msg("Failed to return to original directory");
-    }
-
-    // Clean up test directory
+    if (chdir(orig_dir) != 0) ck_abort_msg("chdir failed");
     char cmd[512];
     snprintf(cmd, sizeof(cmd), "rm -rf '%s'", test_dir);
     system(cmd);
 }
-
-// Helper to clean up test directory
 static void cleanup_test_dir(void)
 {
-    // Remove .ikigai/history file
     unlink(".ikigai/history");
-    // Remove .ikigai directory
     rmdir(".ikigai");
 }
-
-// Test: History loads on REPL init
 START_TEST(test_history_loads_on_init)
 {
     setup_test_env();
     cleanup_test_dir();
-
-    // Create test history file
-    int mkdir_result = mkdir(".ikigai", 0755);
-    ck_assert(mkdir_result == 0 || (mkdir_result == -1 && errno == EEXIST));
+    int mr = mkdir(".ikigai", 0755);
+    ck_assert(mr == 0 || (mr == -1 && errno == EEXIST));
     int fd = open(".ikigai/history", O_WRONLY | O_CREAT | O_TRUNC, 0644);
     ck_assert(fd >= 0);
-    const char *line1 = "{\"cmd\": \"test command 1\", \"ts\": \"2025-01-15T10:30:00Z\"}\n";
-    const char *line2 = "{\"cmd\": \"test command 2\", \"ts\": \"2025-01-15T10:31:00Z\"}\n";
-    ssize_t written = write(fd, line1, strlen(line1));
-    ck_assert(written == (ssize_t)strlen(line1));
-    written = write(fd, line2, strlen(line2));
-    ck_assert(written == (ssize_t)strlen(line2));
-    fsync(fd);  // Force data to disk
-    close(fd);
-
+    const char *l1 = "{\"cmd\": \"test command 1\", \"ts\": \"2025-01-15T10:30:00Z\"}\n";
+    const char *l2 = "{\"cmd\": \"test command 2\", \"ts\": \"2025-01-15T10:31:00Z\"}\n";
+    ck_assert(write(fd, l1, strlen(l1)) == (ssize_t)strlen(l1));
+    ck_assert(write(fd, l2, strlen(l2)) == (ssize_t)strlen(l2));
+    fsync(fd); close(fd);
     void *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
-
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
-
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
-    ck_assert_ptr_nonnull(repl->history);
-    ck_assert_uint_eq(repl->history->count, 2);
-    ck_assert_str_eq(repl->history->entries[0], "test command 1");
-    ck_assert_str_eq(repl->history->entries[1], "test command 2");
-
+    ck_assert_uint_eq(repl->shared->history->count, 2);
+    ck_assert_str_eq(repl->shared->history->entries[0], "test command 1");
+    ck_assert_str_eq(repl->shared->history->entries[1], "test command 2");
     ik_repl_cleanup(repl);
     talloc_free(ctx);
     cleanup_test_dir();
@@ -130,39 +103,33 @@ START_TEST(test_history_loads_on_init)
 }
 END_TEST
 
-// Test: History saves on submit
 START_TEST(test_history_saves_on_submit)
 {
     setup_test_env();
     cleanup_test_dir();
-
     void *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
-
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
-
-    // Submit a command
     const char *test_cmd = "my test command";
-    result = ik_input_buffer_set_text(repl->input_buffer, test_cmd, strlen(test_cmd));
+    result = ik_input_buffer_set_text(repl->current->input_buffer, test_cmd, strlen(test_cmd));
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
-
-    // Verify history was updated
-    ck_assert_uint_eq(repl->history->count, 1);
-    ck_assert_str_eq(repl->history->entries[0], "my test command");
-
-    // Verify file was created and contains the command
+    ck_assert_uint_eq(repl->shared->history->count, 1);
+    ck_assert_str_eq(repl->shared->history->entries[0], "my test command");
     FILE *f = fopen(".ikigai/history", "r");
     ck_assert_ptr_nonnull(f);
     char line[256];
     ck_assert_ptr_nonnull(fgets(line, sizeof(line), f));
     ck_assert(strstr(line, "my test command") != NULL);
     fclose(f);
-
     ik_repl_cleanup(repl);
     talloc_free(ctx);
     cleanup_test_dir();
@@ -170,7 +137,6 @@ START_TEST(test_history_saves_on_submit)
 }
 END_TEST
 
-// Test: History survives REPL restart
 START_TEST(test_history_survives_repl_restart)
 {
     setup_test_env();
@@ -180,28 +146,29 @@ START_TEST(test_history_survives_repl_restart)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
-    // First REPL session
     ik_repl_ctx_t *repl1 = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl1);
+    ik_shared_ctx_t *shared1 = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared1); ck_assert(is_ok(&r));
+    res_t result = ik_repl_init(ctx, shared1, &repl1);
     ck_assert(is_ok(&result));
-
-    // Submit command
     const char *test_cmd = "persistent command";
-    result = ik_input_buffer_set_text(repl1->input_buffer, test_cmd, strlen(test_cmd));
+    result = ik_input_buffer_set_text(repl1->current->input_buffer, test_cmd, strlen(test_cmd));
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl1);
     ck_assert(is_ok(&result));
 
     ik_repl_cleanup(repl1);
-
-    // Second REPL session
     ik_repl_ctx_t *repl2 = NULL;
-    result = ik_repl_init(ctx, cfg, &repl2);
+    ik_shared_ctx_t *shared2 = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger2 = ik_logger_create(ctx, "/tmp");
+    r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger2, &shared2); ck_assert(is_ok(&r));
+    result = ik_repl_init(ctx, shared2, &repl2);
     ck_assert(is_ok(&result));
-
-    // Verify history was loaded
-    ck_assert_uint_eq(repl2->history->count, 1);
-    ck_assert_str_eq(repl2->history->entries[0], "persistent command");
+    ck_assert_uint_eq(shared2->history->count, 1);
+    ck_assert_str_eq(shared2->history->entries[0], "persistent command");
 
     ik_repl_cleanup(repl2);
     talloc_free(ctx);
@@ -210,23 +177,21 @@ START_TEST(test_history_survives_repl_restart)
 }
 END_TEST
 
-// Test: History respects config capacity
 START_TEST(test_history_respects_config_capacity)
 {
     setup_test_env();
     cleanup_test_dir();
-
     void *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    cfg->history_size = 3;  // Small capacity for testing
-
+    cfg->history_size = 3;
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
-
-    // Verify capacity is set correctly
-    ck_assert_uint_eq(repl->history->capacity, 3);
-
+    ck_assert_uint_eq(repl->shared->history->capacity, 3);
     ik_repl_cleanup(repl);
     talloc_free(ctx);
     cleanup_test_dir();
@@ -234,27 +199,23 @@ START_TEST(test_history_respects_config_capacity)
 }
 END_TEST
 
-// Test: Empty input not saved to history
 START_TEST(test_history_empty_input_not_saved)
 {
     setup_test_env();
     cleanup_test_dir();
-
     void *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
-
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
-
-    // Submit empty input
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
-
-    // Verify history is still empty
-    ck_assert_uint_eq(repl->history->count, 0);
-
+    ck_assert_uint_eq(repl->shared->history->count, 0);
     ik_repl_cleanup(repl);
     talloc_free(ctx);
     cleanup_test_dir();
@@ -273,19 +234,27 @@ START_TEST(test_history_multiline_preserved)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Submit multiline command
     const char *multiline = "line 1\nline 2\nline 3";
-    result = ik_input_buffer_set_text(repl->input_buffer, multiline, strlen(multiline));
+    result = ik_input_buffer_set_text(repl->current->input_buffer, multiline, strlen(multiline));
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
 
     // Verify multiline was preserved
-    ck_assert_uint_eq(repl->history->count, 1);
-    ck_assert_str_eq(repl->history->entries[0], "line 1\nline 2\nline 3");
+    ck_assert_uint_eq(repl->shared->history->count, 1);
+    ck_assert_str_eq(repl->shared->history->entries[0], "line 1\nline 2\nline 3");
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -316,13 +285,21 @@ START_TEST(test_history_file_corrupt_continues)
 
     // REPL should still initialize successfully
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
 
     // Should have loaded the valid line
-    ck_assert_uint_eq(repl->history->count, 1);
-    ck_assert_str_eq(repl->history->entries[0], "valid command");
+    ck_assert_uint_eq(repl->shared->history->count, 1);
+    ck_assert_str_eq(repl->shared->history->entries[0], "valid command");
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -342,27 +319,35 @@ START_TEST(test_history_submit_stops_browsing)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Add first command
-    result = ik_input_buffer_set_text(repl->input_buffer, "command 1", 9);
+    result = ik_input_buffer_set_text(repl->current->input_buffer, "command 1", 9);
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
 
     // Start browsing
-    ik_history_start_browsing(repl->history, "");
-    ck_assert(ik_history_is_browsing(repl->history));
+    ik_history_start_browsing(repl->shared->history, "");
+    ck_assert(ik_history_is_browsing(repl->shared->history));
 
     // Submit new command
-    result = ik_input_buffer_set_text(repl->input_buffer, "command 2", 9);
+    result = ik_input_buffer_set_text(repl->current->input_buffer, "command 2", 9);
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
 
     // Should no longer be browsing
-    ck_assert(!ik_history_is_browsing(repl->history));
+    ck_assert(!ik_history_is_browsing(repl->shared->history));
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -382,7 +367,15 @@ START_TEST(test_history_file_write_failure)
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Make .ikigai directory read-only to cause write failure
@@ -391,14 +384,14 @@ START_TEST(test_history_file_write_failure)
     chmod(".ikigai", 0555);
 
     // Submit command - should succeed despite file write failure
-    result = ik_input_buffer_set_text(repl->input_buffer, "test command", 12);
+    result = ik_input_buffer_set_text(repl->current->input_buffer, "test command", 12);
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
     ck_assert(is_ok(&result));
 
     // History should still be updated in memory
-    ck_assert_uint_eq(repl->history->count, 1);
-    ck_assert_str_eq(repl->history->entries[0], "test command");
+    ck_assert_uint_eq(repl->shared->history->count, 1);
+    ck_assert_str_eq(repl->shared->history->entries[0], "test command");
 
     // Restore permissions
     chmod(".ikigai", 0755);

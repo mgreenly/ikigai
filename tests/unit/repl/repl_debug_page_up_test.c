@@ -1,9 +1,12 @@
+#include "agent.h"
 /**
  * @file repl_debug_page_up_test.c
  * @brief Debug Page Up issue with detailed output
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include <unistd.h>
@@ -25,12 +28,30 @@ START_TEST(test_page_up_with_4_lines) {
     term->screen_cols = 80;
     term->tty_fd = 1;
 
-    // Create empty input buffer (1 empty line)
-    ik_input_buffer_t *input_buf = NULL;
-    input_buf = ik_input_buffer_create(ctx);
+    // Create render context
+    ik_render_ctx_t *render_ctx = NULL;
+    res = ik_render_create(ctx, 5, 80, 1, &render_ctx);
+    ck_assert(is_ok(&res));
 
-    // Create scrollback with A, B, C, D
-    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+    // Create REPL at bottom
+    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Use the agent's input buffer (empty by default)
+    ik_input_buffer_t *input_buf = agent->input_buffer;
+
+    // Use the agent's scrollback and add test content A, B, C, D
+    ik_scrollback_t *scrollback = agent->scrollback;
     res = ik_scrollback_append_line(scrollback, "A", 1);
     ck_assert(is_ok(&res));
     res = ik_scrollback_append_line(scrollback, "B", 1);
@@ -40,18 +61,7 @@ START_TEST(test_page_up_with_4_lines) {
     res = ik_scrollback_append_line(scrollback, "D", 1);
     ck_assert(is_ok(&res));
 
-    // Create render context
-    ik_render_ctx_t *render_ctx = NULL;
-    res = ik_render_create(ctx, 5, 80, 1, &render_ctx);
-    ck_assert(is_ok(&res));
-
-    // Create REPL at bottom
-    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->render = render_ctx;
-    repl->viewport_offset = 0;
+    agent->viewport_offset = 0;
 
     // Initialize input parser (not needed for this test)
     repl->input_parser = NULL;
@@ -59,9 +69,9 @@ START_TEST(test_page_up_with_4_lines) {
     fprintf(stderr, "\n=== Initial State ===\n");
     fprintf(stderr, "Scrollback lines: 4 (A, B, C, D)\n");
     fprintf(stderr, "Input buffer lines: 1 (empty)\n");
-    fprintf(stderr, "Document height: 4 + 1 + 1 = 6 rows\n");
+    fprintf(stderr, "Document height: 4 + 1 (upper_sep) + 1 (input) + 1 (lower_sep) = 7 rows\n");
     fprintf(stderr, "Terminal rows: 5\n");
-    fprintf(stderr, "viewport_offset: %zu\n", repl->viewport_offset);
+    fprintf(stderr, "viewport_offset: %zu\n", repl->current->viewport_offset);
 
     // Ensure layouts
     ik_scrollback_ensure_layout(scrollback, 80);
@@ -69,7 +79,8 @@ START_TEST(test_page_up_with_4_lines) {
 
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(scrollback);
     size_t input_buf_rows = ik_input_buffer_get_physical_lines(input_buf);
-    size_t document_height = scrollback_rows + 1 + input_buf_rows;
+    size_t input_buf_display_rows = (input_buf_rows == 0) ? 1 : input_buf_rows;
+    size_t document_height = scrollback_rows + 1 + input_buf_display_rows + 1;  // +1 for lower separator
 
     fprintf(stderr, "Calculated: scrollback_rows=%zu, input_buf_rows=%zu, document_height=%zu\n",
             scrollback_rows, input_buf_rows, document_height);
@@ -105,7 +116,7 @@ START_TEST(test_page_up_with_4_lines) {
     res = ik_repl_process_action(repl, &page_up_action);
     ck_assert(is_ok(&res));
 
-    fprintf(stderr, "After Page Up, viewport_offset: %zu\n", repl->viewport_offset);
+    fprintf(stderr, "After Page Up, viewport_offset: %zu\n", repl->current->viewport_offset);
 
     // Calculate what should be visible
     size_t max_offset = (document_height > (size_t)term->screen_rows) ?
@@ -115,7 +126,7 @@ START_TEST(test_page_up_with_4_lines) {
     if (document_height <= (size_t)term->screen_rows) {
         fprintf(stderr, "Document fits entirely in terminal\n");
     } else {
-        size_t last_visible_row = document_height - 1 - repl->viewport_offset;
+        size_t last_visible_row = document_height - 1 - repl->current->viewport_offset;
         size_t first_visible_row = last_visible_row + 1 - (size_t)term->screen_rows;
         fprintf(stderr, "Visible rows: %zu-%zu\n", first_visible_row, last_visible_row);
     }

@@ -1,9 +1,12 @@
+#include "agent.h"
 /**
  * @file repl_streaming_test_common.c
  * @brief Common mock infrastructure implementation for streaming tests
  */
 
 #include "repl_streaming_test_common.h"
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
 
 // Global state for curl mocking
 curl_write_callback g_write_callback = NULL;
@@ -83,9 +86,6 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
 {
     res_t res;
 
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
-
     // Create render context
     ik_render_ctx_t *render = NULL;
     res = ik_render_create(ctx, 24, 80, 1, &render);
@@ -104,36 +104,48 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     ik_layer_cake_t *layer_cake = NULL;
     layer_cake = ik_layer_cake_create(ctx, 24);
 
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->term = term;
+    shared->render = render;
+
+    // Create agent (includes input_buffer)
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
+    // Override agent's display state with test fixtures
+    talloc_free(agent->scrollback);
+    agent->scrollback = scrollback;
+    talloc_free(agent->layer_cake);
+    agent->layer_cake = layer_cake;
+    agent->viewport_offset = 0;
+
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
-    repl->layer_cake = layer_cake;
+    repl->shared = shared;
+    repl->current = agent;
+    // Use the agent's input_buffer (already created by ik_test_create_agent)
 
-    // Initialize reference fields
-    repl->separator_visible = true;
-    repl->input_buffer_visible = true;
-    repl->input_text = "";
-    repl->input_text_len = 0;
-    repl->spinner_state.frame_index = 0;
-    repl->spinner_state.visible = false;
+    // Initialize reference fields (agent fields are already initialized)
+    repl->current->spinner_state.frame_index = 0;
+    repl->current->spinner_state.visible = false;
 
     // Initialize state to IDLE
-    repl->state = IK_REPL_STATE_IDLE;
+    repl->current->state = IK_AGENT_STATE_IDLE;
 
     // Create layers
     ik_layer_t *scrollback_layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
 
-    ik_layer_t *spinner_layer = ik_spinner_layer_create(ctx, "spinner", &repl->spinner_state);
+    ik_layer_t *spinner_layer = ik_spinner_layer_create(ctx, "spinner", &repl->current->spinner_state);
 
-    ik_layer_t *separator_layer = ik_separator_layer_create(ctx, "separator", &repl->separator_visible);
+    ik_layer_t *separator_layer = ik_separator_layer_create(ctx, "separator", &repl->current->separator_visible);
 
-    ik_layer_t *input_layer = ik_input_layer_create(ctx, "input", &repl->input_buffer_visible,
-                                                    &repl->input_text, &repl->input_text_len);
+    ik_layer_t *input_layer = ik_input_layer_create(ctx, "input", &repl->current->input_buffer_visible,
+                                                    &repl->current->input_text, &repl->current->input_text_len);
 
     // Add layers to cake
     res = ik_layer_cake_add_layer(layer_cake, scrollback_layer);
@@ -153,23 +165,25 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant.");
-    repl->cfg = cfg;
+    // Set config in shared context (already created above)
+    shared->cfg = cfg;
 
-    // Create conversation
+    // Create conversation (agent already created above)
     res = ik_openai_conversation_create(ctx);
     ck_assert(is_ok(&res));
-    repl->conversation = res.ok;
+    agent->conversation = res.ok;
+    repl->current = agent;
 
     // Create multi handle
     res = ik_openai_multi_create(ctx);
     ck_assert(is_ok(&res));
-    repl->multi = res.ok;
+    repl->current->multi = res.ok;
 
     // Initialize curl_still_running
-    repl->curl_still_running = 0;
+    repl->current->curl_still_running = 0;
 
     // Initialize assistant_response to NULL
-    repl->assistant_response = NULL;
+    repl->current->assistant_response = NULL;
 
     return repl;
 }

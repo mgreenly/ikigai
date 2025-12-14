@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file handle_request_success_db_error_test.c
  * @brief Tests for database error handling in handle_request_success
@@ -64,17 +65,27 @@ static void setup(void)
 
     // Create REPL context
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
+
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+
+    // Create shared context
+    repl->shared = talloc_zero(test_ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(repl->shared);
 
     // Create conversation
     res_t res = ik_openai_conversation_create(test_ctx);
     ck_assert(is_ok(&res));
-    repl->conversation = res.ok;
-    ck_assert_ptr_nonnull(repl->conversation);
+    agent->conversation = res.ok;
+    ck_assert_ptr_nonnull(agent->conversation);
+    repl->current = agent;
 
     // Set up minimal database context (we use a dummy pointer since we're mocking)
-    repl->db_ctx = (ik_db_ctx_t *)0x1;  // Non-NULL dummy pointer
-    repl->current_session_id = 1;       // Valid session ID
+    repl->shared->db_ctx = (ik_db_ctx_t *)0x1;  // Non-NULL dummy pointer
+    repl->shared->session_id = 1;       // Valid session ID
 }
 
 static void teardown(void)
@@ -89,9 +100,9 @@ static void teardown(void)
 
 // Test: DB error without debug pipe
 START_TEST(test_db_error_no_debug_pipe) {
-    repl->assistant_response = talloc_strdup(test_ctx, "Test response");
-    repl->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->db_debug_pipe = NULL;
+    repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
+    repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
+    repl->shared->db_debug_pipe = NULL;
 
     // Configure mock to fail
     mock_db_insert_should_fail = true;
@@ -99,15 +110,15 @@ START_TEST(test_db_error_no_debug_pipe) {
     handle_request_success(repl);
 
     // Message should still be added to conversation despite DB error
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_ptr_null(repl->current->assistant_response);
 }
 END_TEST
 // Test: DB error with debug pipe
 START_TEST(test_db_error_with_debug_pipe)
 {
-    repl->assistant_response = talloc_strdup(test_ctx, "Test response");
-    repl->response_model = talloc_strdup(test_ctx, "gpt-4");
+    repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
+    repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
 
     // Create debug pipe
     ik_debug_pipe_t *debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
@@ -119,7 +130,7 @@ START_TEST(test_db_error_with_debug_pipe)
 
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Configure mock to fail
     mock_db_insert_should_fail = true;
@@ -127,8 +138,8 @@ START_TEST(test_db_error_with_debug_pipe)
     handle_request_success(repl);
 
     // Message should still be added despite DB error
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_ptr_null(repl->current->assistant_response);
 
     // Check that error was written to debug pipe
     fflush(debug_pipe->write_end);
@@ -156,14 +167,14 @@ END_TEST
 // Test: DB error with debug pipe but NULL write_end
 START_TEST(test_db_error_with_debug_pipe_null_write_end)
 {
-    repl->assistant_response = talloc_strdup(test_ctx, "Test response");
-    repl->response_model = talloc_strdup(test_ctx, "gpt-4");
+    repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
+    repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
 
     // Create debug pipe with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = NULL;
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Configure mock to fail
     mock_db_insert_should_fail = true;
@@ -171,8 +182,8 @@ START_TEST(test_db_error_with_debug_pipe_null_write_end)
     handle_request_success(repl);
 
     // Message should still be added despite DB error
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_ptr_null(repl->current->assistant_response);
 }
 
 END_TEST

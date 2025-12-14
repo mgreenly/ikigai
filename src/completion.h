@@ -141,4 +141,17 @@ ik_completion_t *ik_completion_create_for_arguments(TALLOC_CTX *ctx,
                                                      ik_repl_ctx_t *repl,
                                                      const char *input);
 
+/**
+ * Clear completion context state.
+ *
+ * Resets all completion state fields to initial values (no matches, no selection).
+ * Used by commands like /clear to ensure autocomplete suggestions don't persist.
+ *
+ * @param completion Completion context to clear
+ *
+ * Preconditions:
+ * - completion != NULL
+ */
+void ik_completion_clear(ik_completion_t *completion);
+
 #endif // IK_COMPLETION_H

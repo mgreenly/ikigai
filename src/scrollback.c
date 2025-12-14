@@ -4,62 +4,17 @@
  */
 
 #include "scrollback.h"
+
 #include "ansi.h"
 #include "error.h"
 #include "panic.h"
+#include "scrollback_utils.h"
 #include "wrapper.h"
+
 #include <assert.h>
 #include <string.h>
 #include <talloc.h>
 #include <utf8proc.h>
-
-/**
- * Calculate display width of text, skipping ANSI escape sequences and newlines.
- *
- * @param text   Text to measure
- * @param length Length of text
- * @return       Display width (sum of character widths)
- */
-static size_t calculate_display_width_(const char *text, size_t length)
-{
-    size_t display_width = 0;
-    size_t pos = 0;
-
-    while (pos < length) {
-        // Skip ANSI escape sequences
-        size_t skip = ik_ansi_skip_csi(text, length, pos);
-        if (skip > 0) {
-            pos += skip;
-            continue;
-        }
-
-        utf8proc_int32_t cp;
-        utf8proc_ssize_t bytes = utf8proc_iterate(
-            (const utf8proc_uint8_t *)(text + pos),
-            (utf8proc_ssize_t)(length - pos),
-            &cp);
-
-        if (bytes <= 0) {
-            display_width++;
-            pos++;
-            continue;
-        }
-
-        if (cp == '\n') {
-            pos += (size_t)bytes;
-            continue;
-        }
-
-        int32_t width = utf8proc_charwidth(cp);
-        if (width > 0) {
-            display_width += (size_t)width;
-        }
-
-        pos += (size_t)bytes;
-    }
-
-    return display_width;
-}
 
 ik_scrollback_t *ik_scrollback_create(void *parent, int32_t terminal_width)
 {
@@ -163,10 +118,21 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
     scrollback->text_buffer[scrollback->buffer_used] = '\0';
     scrollback->buffer_used++;
 
-    // Calculate display width and physical lines by scanning UTF-8
-    // Handle newlines: each newline starts a new physical line
+    // First pass: count newlines to allocate segment_widths array
+    size_t newline_count = ik_scrollback_count_newlines(text, length);
+
+    // Allocate segment_widths array (newline_count + 1 segments)
+    size_t segment_count = newline_count + 1;
+    size_t *segment_widths = talloc_array_(scrollback, sizeof(size_t), segment_count);
+    if (segment_widths == NULL) {     // LCOV_EXCL_BR_LINE
+        return ERR(scrollback, OUT_OF_MEMORY, "Failed to allocate segment_widths");  // LCOV_EXCL_LINE
+    }
+
+    // Second pass: calculate display width and physical lines by scanning UTF-8
+    // Handle newlines: each newline starts a new segment
     size_t physical_lines = 0;
     size_t line_width = 0;
+    size_t current_segment = 0;
     size_t pos = 0;
     bool has_any_content = false;  // Track if we've seen any non-newline characters
     bool ends_with_newline = false;  // Track if last character was \n
@@ -197,16 +163,18 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
 
         // Handle newlines
         if (cp == '\n') {
-            // Finalize current line
+            // Finalize current segment
+            segment_widths[current_segment] = line_width;
             if (line_width == 0) {
-                physical_lines += 1;  // Empty line takes 1 row
+                physical_lines += 1;  // Empty segment takes 1 row
             } else {
-                // Calculate rows for this line: ceil(line_width / terminal_width)
+                // Calculate rows for this segment: ceil(line_width / terminal_width)
                 size_t line_rows = (line_width + (size_t)scrollback->cached_width - 1) /
                                    (size_t)scrollback->cached_width;
                 physical_lines += line_rows;
             }
-            // Start new line
+            // Start new segment
+            current_segment++;
             line_width = 0;
             ends_with_newline = true;
             pos += (size_t)bytes;
@@ -224,26 +192,29 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
         pos += (size_t)bytes;
     }
 
-    // Finalize last line (or only line if no newlines)
+    // Finalize last segment (or only segment if no newlines)
+    segment_widths[current_segment] = line_width;
     if (line_width == 0 && physical_lines == 0) {
         physical_lines = 1;  // Empty line still takes 1 row
     } else if (line_width > 0) {
-        // Calculate rows for last line: ceil(line_width / terminal_width)
+        // Calculate rows for last segment: ceil(line_width / terminal_width)
         size_t line_rows = (line_width + (size_t)scrollback->cached_width - 1) /
                            (size_t)scrollback->cached_width;
         physical_lines += line_rows;
     } else if (ends_with_newline && has_any_content) {
-        // Trailing empty line after content that ended with newline
+        // Trailing empty segment after content that ended with newline
         // (line_width == 0 && physical_lines > 0 at this point)
         physical_lines += 1;
     }
 
-    // Calculate total display width for the layout (sum of all line widths)
-    size_t display_width = calculate_display_width_(text, length);
+    // Calculate total display width for the layout (sum of all segment widths)
+    size_t display_width = ik_scrollback_calculate_display_width(text, length);
 
     // Store layout
     scrollback->layouts[scrollback->count].display_width = display_width;
     scrollback->layouts[scrollback->count].physical_lines = physical_lines;
+    scrollback->layouts[scrollback->count].newline_count = newline_count;
+    scrollback->layouts[scrollback->count].segment_widths = segment_widths;
 
     // Update totals
     scrollback->total_physical_lines += physical_lines;
@@ -264,18 +235,22 @@ void ik_scrollback_ensure_layout(ik_scrollback_t *scrollback,
     }
 
     // Recalculate physical_lines for all lines with new width
-    // This is O(n) arithmetic - no UTF-8 rescanning needed
+    // Use segment_widths to correctly handle embedded newlines
     size_t new_total_physical_lines = 0;
     for (size_t i = 0; i < scrollback->count; i++) {
-        size_t display_width = scrollback->layouts[i].display_width;
-        size_t physical_lines;
+        size_t segment_count = scrollback->layouts[i].newline_count + 1;
+        size_t *seg_widths = scrollback->layouts[i].segment_widths;
+        size_t physical_lines = 0;
 
-        if (display_width == 0) {
-            physical_lines = 1;  // Empty line still takes 1 row
-        } else {
-            // Calculate number of rows: ceil(display_width / terminal_width)
-            physical_lines = (display_width + (size_t)terminal_width - 1) /
-                             (size_t)terminal_width;
+        // Calculate physical lines by summing rows needed for each segment
+        for (size_t seg = 0; seg < segment_count; seg++) {
+            if (seg_widths[seg] == 0) {
+                physical_lines += 1;  // Empty segment = 1 row
+            } else {
+                // Calculate rows for this segment: ceil(seg_width / terminal_width)
+                physical_lines += (seg_widths[seg] + (size_t)terminal_width - 1) /
+                                  (size_t)terminal_width;
+            }
         }
 
         scrollback->layouts[i].physical_lines = physical_lines;
@@ -367,6 +342,14 @@ void ik_scrollback_clear(ik_scrollback_t *scrollback)
 {
     assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
 
+    // Free segment_widths arrays for all lines
+    for (size_t i = 0; i < scrollback->count; i++) {
+        if (scrollback->layouts[i].segment_widths != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: segment_widths always allocated
+            talloc_free(scrollback->layouts[i].segment_widths);
+            scrollback->layouts[i].segment_widths = NULL;
+        }
+    }
+
     // Reset counters to empty state
     scrollback->count = 0;
     scrollback->buffer_used = 0;
@@ -376,27 +359,84 @@ void ik_scrollback_clear(ik_scrollback_t *scrollback)
     // (no need to free/reallocate arrays)
 }
 
-char *ik_scrollback_trim_trailing(void *parent, const char *text, size_t length)
+res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,
+                                                    size_t line_index,
+                                                    size_t display_col,
+                                                    size_t *byte_offset_out)
 {
-    assert(parent != NULL);  // LCOV_EXCL_BR_LINE
+    assert(scrollback != NULL);       // LCOV_EXCL_BR_LINE
+    assert(byte_offset_out != NULL);  // LCOV_EXCL_BR_LINE
 
-    if (text == NULL || length == 0) {
-        char *result = talloc_strdup(parent, "");
-        if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        return result;
+    // Validate line index
+    if (line_index >= scrollback->count) {
+        return ERR(scrollback, OUT_OF_RANGE,
+                   "Line index %zu out of range (count=%zu)",
+                   line_index, scrollback->count);
     }
 
-    // Find last non-whitespace character
-    size_t end = length;
-    while (end > 0) {
-        char c = text[end - 1];
-        if (c != ' ' && c != '\t' && c != '\n' && c != '\r') {
+    // Column 0 always starts at byte 0
+    if (display_col == 0) {
+        *byte_offset_out = 0;
+        return OK(NULL);
+    }
+
+    // Get line text
+    const char *text = scrollback->text_buffer + scrollback->text_offsets[line_index];
+    size_t length = scrollback->text_lengths[line_index];
+
+    // Walk through text, tracking display columns
+    size_t pos = 0;
+    size_t col = 0;
+
+    while (pos < length && col < display_col) {
+        // Skip ANSI escape sequences (0 display width)
+        size_t skip = ik_ansi_skip_csi(text, length, pos);
+        if (skip > 0) {
+            pos += skip;
+            continue;
+        }
+
+        // Decode UTF-8 codepoint
+        utf8proc_int32_t cp;
+        utf8proc_ssize_t bytes = utf8proc_iterate(
+            (const utf8proc_uint8_t *)(text + pos),
+            (utf8proc_ssize_t)(length - pos),
+            &cp);
+
+        if (bytes <= 0) {  // LCOV_EXCL_BR_LINE
+            // LCOV_EXCL_START - Invalid UTF-8 is not produced by our system
+            // Invalid UTF-8 - treat as 1 byte, 1 column
+            col++;
+            pos++;
+            continue;
+            // LCOV_EXCL_STOP
+        }
+
+        // Skip newlines (they don't contribute to display width)
+        if (cp == '\n') {
+            pos += (size_t)bytes;
+            continue;
+        }
+
+        // Get character display width
+        int32_t width = utf8proc_charwidth(cp);
+        if (width > 0) {  // LCOV_EXCL_BR_LINE - Defensive: width typically >0 for printable chars
+            col += (size_t)width;
+        }
+
+        pos += (size_t)bytes;
+    }
+
+    // Skip any ANSI sequences that precede the character at target column
+    while (pos < length) {
+        size_t skip = ik_ansi_skip_csi(text, length, pos);
+        if (skip > 0) {
+            pos += skip;
+        } else {
             break;
         }
-        end--;
     }
 
-    char *result = talloc_strndup(parent, text, end);
-    if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    return result;
+    *byte_offset_out = pos;
+    return OK(NULL);
 }

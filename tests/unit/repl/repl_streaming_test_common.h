@@ -11,6 +11,7 @@
 #include <string.h>
 #include <curl/curl.h>
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/repl_event_handlers.h"
 #include "../../../src/render.h"

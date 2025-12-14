@@ -10,7 +10,9 @@
 #include "marks.h"
 #include "panic.h"
 #include "repl.h"
+#include "agent.h"
 #include "scrollback.h"
+#include "shared.h"
 #include "wrapper.h"
 
 #include <assert.h>
@@ -22,14 +24,14 @@
 // Helper to query database for mark's message ID
 static int64_t get_mark_db_id(TALLOC_CTX *ctx, ik_repl_ctx_t *repl, const char *label)
 {
-    if (repl->db_ctx == NULL || repl->current_session_id <= 0) {
+    if (repl->shared->db_ctx == NULL || repl->shared->session_id <= 0) {
         return 0;
     }
 
     const char *query;
     const char *params[2];
     int32_t param_count;
-    char *session_id_str = talloc_asprintf(ctx, "%lld", (long long)repl->current_session_id);
+    char *session_id_str = talloc_asprintf(ctx, "%lld", (long long)repl->shared->session_id);
     if (session_id_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     if (label != NULL) {
@@ -45,7 +47,7 @@ static int64_t get_mark_db_id(TALLOC_CTX *ctx, ik_repl_ctx_t *repl, const char *
     }
 
     int64_t mark_id = 0;
-    ik_pg_result_wrapper_t *result_wrapper = ik_db_wrap_pg_result(ctx, pq_exec_params_(repl->db_ctx->conn,
+    ik_pg_result_wrapper_t *result_wrapper = ik_db_wrap_pg_result(ctx, pq_exec_params_(repl->shared->db_ctx->conn,
                                                                                        query,
                                                                                        param_count,
                                                                                        NULL,
@@ -81,7 +83,7 @@ res_t ik_cmd_mark(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Persist mark event to database (Integration Point 4)
-    if (repl->db_ctx != NULL && repl->current_session_id > 0) {
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         // Build data JSON with label (may be NULL for auto-numbered marks)
         char *data_json = NULL;
         if (label != NULL) {
@@ -90,12 +92,12 @@ res_t ik_cmd_mark(void *ctx, ik_repl_ctx_t *repl, const char *args)
             data_json = talloc_strdup(repl, "{}");
         }
 
-        res_t db_res = ik_db_message_insert(repl->db_ctx, repl->current_session_id,
+        res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
                                             "mark", NULL, data_json);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
-            if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
-                fprintf(repl->db_debug_pipe->write_end,
+            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
+                fprintf(repl->shared->db_debug_pipe->write_end,
                         "Warning: Failed to persist mark event to database: %s\n",
                         error_message(db_res.err));
             }
@@ -122,7 +124,7 @@ res_t ik_cmd_rewind(void *ctx, ik_repl_ctx_t *repl, const char *args)
         // Show error message in scrollback
         char *err_msg = talloc_asprintf(ctx, "Error: %s", find_result.err->msg);
         if (err_msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        ik_scrollback_append_line(repl->scrollback, err_msg, strlen(err_msg));
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
         talloc_free(err_msg);
         talloc_free(find_result.err);
         return OK(NULL);  // Don't propagate error, just show it
@@ -142,19 +144,19 @@ res_t ik_cmd_rewind(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Persist rewind event to database (Integration Point 5)
-    if (repl->db_ctx != NULL && repl->current_session_id > 0 && target_message_id > 0) {
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0 && target_message_id > 0) {
         // Build data JSON with target message ID and label
         char *data_json = talloc_asprintf(repl,
                                           "{\"target_message_id\":%lld,\"target_label\":%s}",
                                           (long long)target_message_id,
                                           target_label ? talloc_asprintf(repl, "\"%s\"", target_label) : "null");
 
-        res_t db_res = ik_db_message_insert(repl->db_ctx, repl->current_session_id,
+        res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
                                             "rewind", NULL, data_json);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
-            if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
-                fprintf(repl->db_debug_pipe->write_end,
+            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
+                fprintf(repl->shared->db_debug_pipe->write_end,
                         "Warning: Failed to persist rewind event to database: %s\n",
                         error_message(db_res.err));
             }

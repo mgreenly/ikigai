@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_separator_partial_line_test.c
  * @brief Test Separator visibility: Partial first line in viewport
@@ -8,6 +9,8 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include <unistd.h>
@@ -88,10 +91,17 @@ START_TEST(test_separator_partial_first_line) {
 
     // Create REPL and scroll to show rows 1-10 (starts mid-line)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
 
     // To show document rows 1-10:
     // last_visible_row = 10
@@ -100,7 +110,7 @@ START_TEST(test_separator_partial_first_line) {
     // last_visible_row = document_height - 1 - offset
     // 10 = 32 - 1 - offset
     // offset = 21
-    repl->viewport_offset = 21;
+    repl->current->viewport_offset = 21;
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -171,7 +181,7 @@ START_TEST(test_separator_row_offset_impact)
     ik_scrollback_ensure_layout(scrollback, 80);
     ck_assert_uint_eq(scrollback->layouts[0].physical_lines, 2);
 
-    // Total: 20 lines * 2 rows = 40 rows + 1 sep + 1 ws = 42 rows
+    // Total: 20 lines * 2 rows = 40 rows + 1 upper_sep + 1 input + 1 lower_sep = 43 rows
 
     // Create render context
     ik_render_ctx_t *render_ctx = NULL;
@@ -180,10 +190,17 @@ START_TEST(test_separator_row_offset_impact)
 
     // Create REPL
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
 
     // Show rows 1-5 (starts in middle of line 0)
     // Line 0: rows 0-1
@@ -199,8 +216,8 @@ START_TEST(test_separator_row_offset_impact)
     // Should include lines 0, 1, 2 (3 lines)
     //
     // last_visible = 5, first_visible = 1
-    // offset = 42 - 1 - 5 = 36
-    repl->viewport_offset = 36;
+    // offset = 43 - 1 - 5 = 37
+    repl->current->viewport_offset = 37;
 
     ik_viewport_t viewport;
     res = ik_repl_calculate_viewport(repl, &viewport);

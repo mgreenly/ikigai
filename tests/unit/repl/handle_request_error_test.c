@@ -7,6 +7,7 @@
  */
 
 #include "repl_streaming_test_common.h"
+#include "../../../src/agent.h"
 
 /* Test: Error handling without partial response */
 START_TEST(test_error_handling_no_partial_response) {
@@ -17,24 +18,24 @@ START_TEST(test_error_handling_no_partial_response) {
     simulate_completion = false;
 
     // Set up state to simulate a failed request
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-    repl->http_error_message = talloc_strdup(repl, "Connection timeout");
-    repl->assistant_response = NULL;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->http_error_message = talloc_strdup(repl, "Connection timeout");
+    repl->current->assistant_response = NULL;
 
     // Add a user message
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     // Initial conversation should have 1 message (user)
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Count scrollback lines before
-    size_t lines_before = ik_scrollback_get_line_count(repl->scrollback);
+    size_t lines_before = ik_scrollback_get_line_count(repl->current->scrollback);
 
     // Simulate a request that is running
-    repl->curl_still_running = 1;
+    repl->current->curl_still_running = 1;
 
     // Enable completion simulation
     simulate_completion = true;
@@ -44,7 +45,7 @@ START_TEST(test_error_handling_no_partial_response) {
     ck_assert(is_ok(&result));
 
     // Verify error was added to scrollback
-    size_t lines_after = ik_scrollback_get_line_count(repl->scrollback);
+    size_t lines_after = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(lines_after, lines_before + 1);
 
     // Verify the error message is in scrollback
@@ -53,23 +54,23 @@ START_TEST(test_error_handling_no_partial_response) {
     // Get the last line
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res_t line_res = ik_scrollback_get_line_text(repl->scrollback, lines_after - 1, &last_line, &last_line_len);
+    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, lines_after - 1, &last_line, &last_line_len);
     ck_assert(is_ok(&line_res));
     ck_assert_ptr_nonnull(last_line);
     ck_assert_ptr_nonnull(strstr(last_line, "Error:"));
     ck_assert_ptr_nonnull(strstr(last_line, "Connection timeout"));
 
     // Verify NO assistant message was added to conversation
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Verify state transitioned back to IDLE
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Verify error message was cleared
-    ck_assert_ptr_null(repl->http_error_message);
+    ck_assert_ptr_null(repl->current->http_error_message);
 
     // Verify assistant_response remains NULL
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_ptr_null(repl->current->assistant_response);
 
     // Clean up
     simulate_completion = false;
@@ -86,21 +87,21 @@ START_TEST(test_error_handling_with_partial_response)
     simulate_completion = false;
 
     // Set up state to simulate a failed request with partial response
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-    repl->http_error_message = talloc_strdup(repl, "Stream interrupted");
-    repl->assistant_response = talloc_strdup(repl, "Partial response text that was received before error");
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->http_error_message = talloc_strdup(repl, "Stream interrupted");
+    repl->current->assistant_response = talloc_strdup(repl, "Partial response text that was received before error");
 
     // Add a user message
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Tell me a story");
     ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&add_res));
 
     // Count scrollback lines before
-    size_t lines_before = ik_scrollback_get_line_count(repl->scrollback);
+    size_t lines_before = ik_scrollback_get_line_count(repl->current->scrollback);
 
     // Simulate a running request
-    repl->curl_still_running = 1;
+    repl->current->curl_still_running = 1;
     simulate_completion = true;
 
     // Call handle_curl_events - should detect error and call handle_request_error
@@ -108,28 +109,28 @@ START_TEST(test_error_handling_with_partial_response)
     ck_assert(is_ok(&result));
 
     // Verify error was added to scrollback
-    size_t lines_after = ik_scrollback_get_line_count(repl->scrollback);
+    size_t lines_after = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(lines_after, lines_before + 1);
 
     // Verify the error message is in scrollback
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res_t line_res = ik_scrollback_get_line_text(repl->scrollback, lines_after - 1, &last_line, &last_line_len);
+    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, lines_after - 1, &last_line, &last_line_len);
     ck_assert(is_ok(&line_res));
     ck_assert_ptr_nonnull(strstr(last_line, "Error:"));
     ck_assert_ptr_nonnull(strstr(last_line, "Stream interrupted"));
 
     // Verify NO assistant message was added (partial response was discarded)
-    ck_assert_uint_eq((unsigned int)repl->conversation->message_count, 1);
+    ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
     // Verify error message was cleared
-    ck_assert_ptr_null(repl->http_error_message);
+    ck_assert_ptr_null(repl->current->http_error_message);
 
     // Verify partial assistant_response was cleared
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_ptr_null(repl->current->assistant_response);
 
     // Verify state transitioned back to IDLE
-    ck_assert_int_eq(repl->state, IK_REPL_STATE_IDLE);
+    ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Clean up
     simulate_completion = false;
@@ -154,30 +155,30 @@ START_TEST(test_various_error_messages)
         ik_repl_ctx_t *repl = create_test_repl_with_llm(ctx);
 
         simulate_completion = false;
-        repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-        repl->http_error_message = talloc_strdup(repl, test_errors[i]);
-        repl->assistant_response = NULL;
+        repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+        repl->current->http_error_message = talloc_strdup(repl, test_errors[i]);
+        repl->current->assistant_response = NULL;
 
         // Simulate request completion
-        repl->curl_still_running = 1;
+        repl->current->curl_still_running = 1;
         simulate_completion = true;
 
         res_t result = handle_curl_events(repl, 1);
         ck_assert(is_ok(&result));
 
         // Verify error was added to scrollback
-        size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+        size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
         ck_assert_uint_gt(line_count, 0);
 
         const char *last_line = NULL;
         size_t last_line_len = 0;
-        res_t line_res = ik_scrollback_get_line_text(repl->scrollback, line_count - 1, &last_line, &last_line_len);
+        res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
         ck_assert(is_ok(&line_res));
         ck_assert_ptr_nonnull(strstr(last_line, "Error:"));
         ck_assert_ptr_nonnull(strstr(last_line, test_errors[i]));
 
         // Verify error was cleared
-        ck_assert_ptr_null(repl->http_error_message);
+        ck_assert_ptr_null(repl->current->http_error_message);
 
         simulate_completion = false;
         talloc_free(ctx);
@@ -192,36 +193,36 @@ START_TEST(test_long_error_message)
     ik_repl_ctx_t *repl = create_test_repl_with_llm(ctx);
 
     simulate_completion = false;
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
 
     // Create a very long error message
     char long_error[512];
     memset(long_error, 'X', sizeof(long_error) - 1);
     long_error[sizeof(long_error) - 1] = '\0';
 
-    repl->http_error_message = talloc_strdup(repl, long_error);
-    repl->assistant_response = NULL;
+    repl->current->http_error_message = talloc_strdup(repl, long_error);
+    repl->current->assistant_response = NULL;
 
     // Simulate request completion
-    repl->curl_still_running = 1;
+    repl->current->curl_still_running = 1;
     simulate_completion = true;
 
     res_t result = handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // Verify error was added to scrollback
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_gt(line_count, 0);
 
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res_t line_res = ik_scrollback_get_line_text(repl->scrollback, line_count - 1, &last_line, &last_line_len);
+    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
     ck_assert(is_ok(&line_res));
     ck_assert_ptr_nonnull(strstr(last_line, "Error:"));
     ck_assert_ptr_nonnull(strstr(last_line, long_error));
 
     // Verify error was cleared
-    ck_assert_ptr_null(repl->http_error_message);
+    ck_assert_ptr_null(repl->current->http_error_message);
 
     simulate_completion = false;
     talloc_free(ctx);
@@ -235,39 +236,39 @@ START_TEST(test_error_with_long_partial_response)
     ik_repl_ctx_t *repl = create_test_repl_with_llm(ctx);
 
     simulate_completion = false;
-    repl->state = IK_REPL_STATE_WAITING_FOR_LLM;
-    repl->http_error_message = talloc_strdup(repl, "Connection lost");
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->http_error_message = talloc_strdup(repl, "Connection lost");
 
     // Create a long partial response
     char long_response[2048];
     memset(long_response, 'A', sizeof(long_response) - 1);
     long_response[sizeof(long_response) - 1] = '\0';
 
-    repl->assistant_response = talloc_strdup(repl, long_response);
+    repl->current->assistant_response = talloc_strdup(repl, long_response);
 
     // Simulate request completion
-    repl->curl_still_running = 1;
+    repl->current->curl_still_running = 1;
     simulate_completion = true;
 
     res_t result = handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // Verify error was added to scrollback
-    size_t line_count = ik_scrollback_get_line_count(repl->scrollback);
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_gt(line_count, 0);
 
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res_t line_res = ik_scrollback_get_line_text(repl->scrollback, line_count - 1, &last_line, &last_line_len);
+    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
     ck_assert(is_ok(&line_res));
     ck_assert_ptr_nonnull(strstr(last_line, "Error:"));
     ck_assert_ptr_nonnull(strstr(last_line, "Connection lost"));
 
     // Verify partial response was cleared
-    ck_assert_ptr_null(repl->assistant_response);
+    ck_assert_ptr_null(repl->current->assistant_response);
 
     // Verify error was cleared
-    ck_assert_ptr_null(repl->http_error_message);
+    ck_assert_ptr_null(repl->current->http_error_message);
 
     simulate_completion = false;
     talloc_free(ctx);

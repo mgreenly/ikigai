@@ -1,11 +1,14 @@
 // REPL action processing - viewport and scrolling
 #include "repl_actions_internal.h"
 #include "repl.h"
+#include "agent.h"
+#include "shared.h"
 #include "scrollback.h"
 #include "input_buffer/core.h"
 #include <assert.h>
+#include <inttypes.h>
 
-#define MOUSE_SCROLL_LINES 1
+#define MOUSE_SCROLL_LINES 3
 
 /**
  * @brief Calculate maximum viewport offset
@@ -17,16 +20,16 @@
  */
 size_t ik_repl_calculate_max_viewport_offset(ik_repl_ctx_t *repl)
 {
-    ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
-    ik_input_buffer_ensure_layout(repl->input_buffer, repl->term->screen_cols);
+    ik_scrollback_ensure_layout(repl->current->scrollback, repl->shared->term->screen_cols);
+    ik_input_buffer_ensure_layout(repl->current->input_buffer, repl->shared->term->screen_cols);
 
-    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
-    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
+    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
+    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
     size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
-    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows;
+    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows + 1;  // +1 for lower separator
 
-    if (document_height > (size_t)repl->term->screen_rows) {
-        return document_height - (size_t)repl->term->screen_rows;
+    if (document_height > (size_t)repl->shared->term->screen_rows) {
+        return document_height - (size_t)repl->shared->term->screen_rows;
     }
     return 0;
 }
@@ -44,8 +47,8 @@ res_t ik_repl_handle_page_up_action(ik_repl_ctx_t *repl)
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
     size_t max_offset = ik_repl_calculate_max_viewport_offset(repl);
-    size_t new_offset = repl->viewport_offset + (size_t)repl->term->screen_rows;
-    repl->viewport_offset = (new_offset > max_offset) ? max_offset : new_offset;
+    size_t new_offset = repl->current->viewport_offset + (size_t)repl->shared->term->screen_rows;
+    repl->current->viewport_offset = (new_offset > max_offset) ? max_offset : new_offset;
 
     return OK(NULL);
 }
@@ -62,10 +65,10 @@ res_t ik_repl_handle_page_down_action(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
-    if (repl->viewport_offset >= (size_t)repl->term->screen_rows) {
-        repl->viewport_offset -= (size_t)repl->term->screen_rows;
+    if (repl->current->viewport_offset >= (size_t)repl->shared->term->screen_rows) {
+        repl->current->viewport_offset -= (size_t)repl->shared->term->screen_rows;
     } else {
-        repl->viewport_offset = 0;
+        repl->current->viewport_offset = 0;
     }
     return OK(NULL);
 }
@@ -83,8 +86,9 @@ res_t ik_repl_handle_scroll_up_action(ik_repl_ctx_t *repl)
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
     size_t max_offset = ik_repl_calculate_max_viewport_offset(repl);
-    size_t new_offset = repl->viewport_offset + MOUSE_SCROLL_LINES;
-    repl->viewport_offset = (new_offset > max_offset) ? max_offset : new_offset;
+    size_t new_offset = repl->current->viewport_offset + MOUSE_SCROLL_LINES;
+    repl->current->viewport_offset = (new_offset > max_offset) ? max_offset : new_offset;
+
     return OK(NULL);
 }
 
@@ -100,10 +104,11 @@ res_t ik_repl_handle_scroll_down_action(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
 
-    if (repl->viewport_offset >= MOUSE_SCROLL_LINES) {
-        repl->viewport_offset -= MOUSE_SCROLL_LINES;
+    if (repl->current->viewport_offset >= MOUSE_SCROLL_LINES) {
+        repl->current->viewport_offset -= MOUSE_SCROLL_LINES;
     } else {
-        repl->viewport_offset = 0;
+        repl->current->viewport_offset = 0;
     }
+
     return OK(NULL);
 }

@@ -5,6 +5,7 @@
 
 #include "session_restore.h"
 
+#include "../agent.h"
 #include "../db/message.h"
 #include "../db/replay.h"
 #include "../db/session.h"
@@ -15,10 +16,11 @@
 #include "../panic.h"
 #include "../repl.h"
 #include "../scrollback.h"
+#include "../shared.h"
 #include "../wrapper.h"
 #include <assert.h>
-#include <talloc.h>
 #include <string.h>
+#include <talloc.h>
 
 // NOTE: When returning errors after talloc_free(tmp), we must first
 // reparent the error to repl via talloc_steal(). See fix.md for details
@@ -42,7 +44,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
 
     if (session_id > 0) {
         // Existing session path: load and replay messages
-        repl->current_session_id = session_id;
+        repl->shared->session_id = session_id;
 
         // Load messages from database
         res_t load_res = ik_db_messages_load(tmp, db_ctx, session_id);
@@ -57,14 +59,14 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
 
         // Rebuild mark stack from replay context
         if (replay_ctx->mark_stack.count > 0) {
-            repl->marks = talloc_array(repl, ik_mark_t *, (unsigned int)replay_ctx->mark_stack.count);
-            if (repl->marks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            repl->current->marks = talloc_array(repl, ik_mark_t *, (unsigned int)replay_ctx->mark_stack.count);
+            if (repl->current->marks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
             for (size_t i = 0; i < replay_ctx->mark_stack.count; i++) {
                 ik_replay_mark_t *replay_mark = &replay_ctx->mark_stack.marks[i];
 
                 // Create mark structure
-                ik_mark_t *mark = talloc_zero(repl->marks, ik_mark_t);
+                ik_mark_t *mark = talloc_zero(repl->current->marks, ik_mark_t);
                 if (mark == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
                 // Set message index from context_idx
@@ -81,10 +83,10 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
                 // Set timestamp to NULL (we don't persist timestamps yet)
                 mark->timestamp = NULL;
 
-                repl->marks[i] = mark;
+                repl->current->marks[i] = mark;
             }
 
-            repl->mark_count = replay_ctx->mark_stack.count;
+            repl->current->mark_count = replay_ctx->mark_stack.count;
         }
 
         // Populate scrollback with replayed messages using event renderer
@@ -93,7 +95,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
 
             // Use universal event renderer for consistent display
             res_t render_res = ik_event_render(
-                repl->scrollback,
+                repl->current->scrollback,
                 msg->kind,
                 msg->content,
                 msg->data_json
@@ -119,7 +121,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
             // Add to conversation if not skipped (NULL means skip)
             ik_msg_t *msg = msg_res.ok;
             if (msg != NULL) {
-                res_t add_res = ik_openai_conversation_add_msg_(repl->conversation, msg);
+                res_t add_res = ik_openai_conversation_add_msg_(repl->current->conversation, msg);
                 if (is_err(&add_res)) {
                     talloc_free(tmp);
                     return add_res;
@@ -137,7 +139,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
             return create_res;
         }
 
-        repl->current_session_id = session_id;
+        repl->shared->session_id = session_id;
 
         // Write initial clear event
         res_t clear_res = ik_db_message_insert(db_ctx, session_id, "clear", NULL, "{}");
@@ -162,7 +164,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
 
             // Add system message to scrollback using event renderer
             res_t render_res = ik_event_render(
-                repl->scrollback,
+                repl->current->scrollback,
                 "system",
                 cfg->openai_system_message,
                 "{}"

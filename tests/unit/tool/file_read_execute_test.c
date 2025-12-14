@@ -1,5 +1,6 @@
 #include <check.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +11,7 @@
 #include "../../../src/error.h"
 #include "../../../src/tool.h"
 #include "../../../src/wrapper.h"
+#include "../../test_utils.h"
 
 // Test fixtures
 static TALLOC_CTX *ctx = NULL;
@@ -41,32 +43,10 @@ START_TEST(test_file_read_exec_valid_file) {
     res_t res = ik_tool_exec_file_read(ctx, test_file);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    ck_assert(yyjson_is_obj(root));
-
-    // Verify success: true
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == true);
-
-    // Verify data object exists
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    ck_assert_ptr_nonnull(data);
-    ck_assert(yyjson_is_obj(data));
-
-    // Verify output contains file contents
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    ck_assert_ptr_nonnull(output);
-    const char *output_str = yyjson_get_str(output);
-    ck_assert_ptr_nonnull(output_str);
-    ck_assert_str_eq(output_str, contents);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output = ik_test_tool_get_output(data);
+    ck_assert_str_eq(output, contents);
 
     yyjson_doc_free(doc);
 
@@ -83,26 +63,9 @@ START_TEST(test_file_read_exec_file_not_found)
     res_t res = ik_tool_exec_file_read(ctx, nonexistent);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    // Verify success: false
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == false);
-
-    // Verify error message exists and mentions the file
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    ck_assert_ptr_nonnull(error);
-    const char *error_str = yyjson_get_str(error);
-    ck_assert_ptr_nonnull(error_str);
-    ck_assert(strstr(error_str, "File not found") != NULL || strstr(error_str, nonexistent) != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "File not found") != NULL || strstr(error, nonexistent) != NULL);
 
     yyjson_doc_free(doc);
 }
@@ -127,26 +90,9 @@ START_TEST(test_file_read_exec_permission_denied)
     res_t res = ik_tool_exec_file_read(ctx, test_file);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    // Verify success: false
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == false);
-
-    // Verify error message exists and mentions permission denied
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    ck_assert_ptr_nonnull(error);
-    const char *error_str = yyjson_get_str(error);
-    ck_assert_ptr_nonnull(error_str);
-    ck_assert(strstr(error_str, "Permission denied") != NULL || strstr(error_str, test_file) != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "Permission denied") != NULL || strstr(error, test_file) != NULL);
 
     yyjson_doc_free(doc);
 
@@ -169,30 +115,10 @@ START_TEST(test_file_read_exec_empty_file)
     res_t res = ik_tool_exec_file_read(ctx, test_file);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    // Verify success: true
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == true);
-
-    // Verify data object exists
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    ck_assert_ptr_nonnull(data);
-
-    // Verify output is empty string
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    ck_assert_ptr_nonnull(output);
-    const char *output_str = yyjson_get_str(output);
-    ck_assert_ptr_nonnull(output_str);
-    ck_assert_str_eq(output_str, "");
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output = ik_test_tool_get_output(data);
+    ck_assert_str_eq(output, "");
 
     yyjson_doc_free(doc);
 
@@ -223,23 +149,11 @@ START_TEST(test_file_read_exec_large_file)
     res_t res = ik_tool_exec_file_read(ctx, test_file);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
-    ck_assert_ptr_nonnull(output_str);
-    ck_assert_uint_eq(strlen(output_str), 10239);
-    ck_assert_str_eq(output_str, large_content);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output = ik_test_tool_get_output(data);
+    ck_assert_uint_eq(strlen(output), 10239);
+    ck_assert_str_eq(output, large_content);
 
     yyjson_doc_free(doc);
 
@@ -264,22 +178,10 @@ START_TEST(test_file_read_exec_special_characters)
     res_t res = ik_tool_exec_file_read(ctx, test_file);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
-    ck_assert_ptr_nonnull(output_str);
-    ck_assert_str_eq(output_str, contents);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output = ik_test_tool_get_output(data);
+    ck_assert_str_eq(output, contents);
 
     yyjson_doc_free(doc);
 
@@ -303,12 +205,16 @@ int fseek_(FILE *stream, long offset, int whence)
     return fseek(stream, offset, whence);
 }
 
-// Mock ftell to fail
+// Mock ftell to fail or return large value
 static int mock_ftell_should_fail = 0;
+static long mock_ftell_large_value = -1;
 long ftell_(FILE *stream)
 {
     if (mock_ftell_should_fail) {
         return -1;
+    }
+    if (mock_ftell_large_value >= 0) {
+        return mock_ftell_large_value;
     }
     return ftell(stream);
 }
@@ -348,15 +254,9 @@ START_TEST(test_file_read_exec_fseek_error) {
     res_t res = ik_tool_exec_file_read(ctx, test_file);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == false);
-
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    const char *error_str = yyjson_get_str(error);
-    ck_assert(strstr(error_str, "Cannot seek file") != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "Cannot seek file") != NULL);
 
     yyjson_doc_free(doc);
     mock_fseek_fail_on = -1;
@@ -377,15 +277,9 @@ START_TEST(test_file_read_exec_ftell_error)
     res_t res = ik_tool_exec_file_read(ctx, test_file);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == false);
-
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    const char *error_str = yyjson_get_str(error);
-    ck_assert(strstr(error_str, "Cannot get file size") != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "Cannot get file size") != NULL);
 
     yyjson_doc_free(doc);
     mock_ftell_should_fail = 0;
@@ -408,15 +302,9 @@ START_TEST(test_file_read_exec_rewind_error)
     res_t res = ik_tool_exec_file_read(ctx, test_file);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == false);
-
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    const char *error_str = yyjson_get_str(error);
-    ck_assert(strstr(error_str, "Cannot rewind file") != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "Cannot seek file") != NULL);
 
     yyjson_doc_free(doc);
     mock_fseek_fail_on = -1;
@@ -438,15 +326,9 @@ START_TEST(test_file_read_exec_fread_error)
     res_t res = ik_tool_exec_file_read(ctx, test_file);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == false);
-
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    const char *error_str = yyjson_get_str(error);
-    ck_assert(strstr(error_str, "Failed to read file") != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "Failed to read file") != NULL);
 
     yyjson_doc_free(doc);
     mock_fread_should_fail = 0;
@@ -464,18 +346,40 @@ START_TEST(test_file_read_exec_generic_fopen_error)
     res_t res = ik_tool_exec_file_read(ctx, test_file);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == false);
-
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    const char *error_str = yyjson_get_str(error);
-    ck_assert(strstr(error_str, "Cannot open file") != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "Cannot open file") != NULL);
 
     yyjson_doc_free(doc);
     mock_fopen_errno = 0;
+}
+
+END_TEST
+
+// Test: file too large error (generic error path)
+START_TEST(test_file_read_exec_file_too_large)
+{
+    char test_file[] = "/tmp/ikigai-file-read-test-XXXXXX";
+    int fd = mkstemp(test_file);
+    ck_assert(fd >= 0);
+    write(fd, "test", 4);
+    close(fd);
+
+    // Mock ftell to return a size that triggers "File too large"
+    // UINT_MAX is typically 4294967295, so we return that value
+    mock_ftell_large_value = (long)UINT_MAX;
+
+    res_t res = ik_tool_exec_file_read(ctx, test_file);
+    ck_assert(!res.is_err);
+
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    // This should hit the generic error path and pass through the original message
+    ck_assert(strstr(error, "File too large") != NULL);
+
+    yyjson_doc_free(doc);
+    mock_ftell_large_value = -1;
+    unlink(test_file);
 }
 
 END_TEST
@@ -498,6 +402,7 @@ static Suite *file_read_execute_suite(void)
     tcase_add_test(tc_file_read_exec, test_file_read_exec_rewind_error);
     tcase_add_test(tc_file_read_exec, test_file_read_exec_fread_error);
     tcase_add_test(tc_file_read_exec, test_file_read_exec_generic_fopen_error);
+    tcase_add_test(tc_file_read_exec, test_file_read_exec_file_too_large);
     suite_add_tcase(s, tc_file_read_exec);
 
     return s;

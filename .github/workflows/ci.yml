@@ -43,6 +43,7 @@ jobs:
           libb64-dev \
           libutf8proc-dev \
           libpq-dev \
+          libxkbcommon-dev \
           postgresql-client \
           lcov \
           valgrind
@@ -61,11 +62,20 @@ jobs:
     - name: Check complexity
       run: make complexity
 
+    - name: Clean test directories
+      run: rm -rf /tmp/.ikigai
+
     - name: Run tests with coverage
       run: make coverage
 
+    - name: Clean test directories
+      run: rm -rf /tmp/.ikigai
+
     - name: Run AddressSanitizer tests
       run: make check-sanitize
+
+    - name: Clean test directories
+      run: rm -rf /tmp/.ikigai
 
     - name: Run ThreadSanitizer tests
       run: make check-tsan

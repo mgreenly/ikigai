@@ -2,6 +2,8 @@ build/
 build-*/
 /bin/
 dist/
+/rel-06/
+/banner.md
 coverage/
 .envrc
 tags
@@ -23,6 +25,7 @@ coverage_html/
 .ikigai/history
 .agents/db/
 .agents/deno/
+.ikigai/deno/
 
 # Nginx runtime
 .agents/httpd/pid/

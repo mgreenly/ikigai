@@ -1,9 +1,12 @@
+#include "agent.h"
 /**
  * @file repl_render_test.c
  * @brief Unit tests for REPL render_frame function (basic rendering)
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
 #include <signal.h>
 #include <talloc.h>
 #include <string.h>
@@ -64,12 +67,19 @@ START_TEST(test_repl_render_frame_empty_input_buffer) {
 
     // Create minimal REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->render = render;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Reset mock state
     mock_write_calls = 0;
@@ -121,12 +131,19 @@ START_TEST(test_repl_render_frame_multiline)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    shared->render = render;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     mock_write_calls = 0;
     mock_write_buffer_len = 0;
@@ -167,12 +184,19 @@ START_TEST(test_repl_render_frame_cursor_positions)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    shared->render = render;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Test cursor at end
     mock_write_calls = 0;
@@ -236,12 +260,19 @@ START_TEST(test_repl_render_frame_utf8)
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
-    repl->render = render;
-    repl->term = term;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    shared->render = render;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     mock_write_calls = 0;
     res = ik_repl_render_frame(repl);

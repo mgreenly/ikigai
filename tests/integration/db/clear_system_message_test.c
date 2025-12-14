@@ -6,7 +6,9 @@
  */
 
 #include "../../../src/commands.h"
+#include "../../../src/agent.h"
 #include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
@@ -155,23 +157,30 @@ START_TEST(test_clear_persists_system_message_event)
 
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->cfg = cfg;
-    repl->db_ctx = db;
-    repl->current_session_id = session_id;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
+    repl->shared->db_ctx = db;
+    repl->shared->session_id = session_id;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     // Create scrollback
-    repl->scrollback = ik_scrollback_create(repl, 80);
-    ck_assert_ptr_nonnull(repl->scrollback);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create conversation
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(is_ok(&conv_res));
-    repl->conversation = conv_res.ok;
+    repl->current->conversation = conv_res.ok;
 
     // Initialize marks
-    repl->marks = NULL;
-    repl->mark_count = 0;
-    repl->db_debug_pipe = NULL;
+    repl->current->marks = NULL;
+    repl->current->mark_count = 0;
+    repl->shared->db_debug_pipe = NULL;
 
     // Verify no messages initially
     ck_assert_int_eq(count_messages_by_kind(db, session_id, "clear"), 0);
@@ -205,23 +214,30 @@ START_TEST(test_clear_no_system_message_when_null)
 
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->cfg = cfg;
-    repl->db_ctx = db;
-    repl->current_session_id = session_id;
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared->cfg = cfg;
+    repl->shared = shared;
+    repl->shared->db_ctx = db;
+    repl->shared->session_id = session_id;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
 
     // Create scrollback
-    repl->scrollback = ik_scrollback_create(repl, 80);
-    ck_assert_ptr_nonnull(repl->scrollback);
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create conversation
     res_t conv_res = ik_openai_conversation_create(repl);
     ck_assert(is_ok(&conv_res));
-    repl->conversation = conv_res.ok;
+    repl->current->conversation = conv_res.ok;
 
     // Initialize marks
-    repl->marks = NULL;
-    repl->mark_count = 0;
-    repl->db_debug_pipe = NULL;
+    repl->current->marks = NULL;
+    repl->current->mark_count = 0;
+    repl->shared->db_debug_pipe = NULL;
 
     // Execute /clear command
     res_t clear_res = ik_cmd_dispatch(test_ctx, repl, "/clear");

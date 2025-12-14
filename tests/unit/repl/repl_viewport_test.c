@@ -1,9 +1,12 @@
+#include "agent.h"
 /**
  * @file repl_viewport_test.c
  * @brief Unit tests for REPL viewport calculation (Phase 4 Task 4.2)
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
@@ -36,10 +39,17 @@ START_TEST(test_viewport_empty_scrollback) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -89,10 +99,17 @@ START_TEST(test_viewport_small_scrollback)
     ck_assert_uint_eq(scrollback_rows, 3);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;  // At bottom
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;  // At bottom
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -148,23 +165,30 @@ START_TEST(test_viewport_large_scrollback)
     ck_assert_uint_eq(scrollback_rows, 20);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;  // At bottom
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;  // At bottom
 
     // Calculate viewport
     ik_viewport_t viewport;
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Terminal: 10 rows, input buffer: 2 rows, separator: 1 row
-    // Document: 20 scrollback + 1 separator + 2 input buffer = 23 rows
-    // Viewport shows last 10 rows: scrollback 13-19 (7 rows) + separator (1) + input buffer (2)
-    ck_assert_uint_eq(viewport.scrollback_start_line, 13);
-    ck_assert_uint_eq(viewport.scrollback_lines_count, 7);
-    // Input buffer starts at row 8 (7 scrollback + 1 separator)
-    ck_assert_uint_eq(viewport.input_buffer_start_row, 8);
+    // Terminal: 10 rows, input buffer: 2 rows, upper_separator: 1 row, lower_separator: 1 row
+    // Document: 20 scrollback + 1 upper_separator + 2 input buffer + 1 lower_separator = 24 rows
+    // Viewport shows last 10 rows: scrollback 14-19 (6 rows) + upper_separator (1) + input buffer (2) + lower_separator (1)
+    ck_assert_uint_eq(viewport.scrollback_start_line, 14);
+    ck_assert_uint_eq(viewport.scrollback_lines_count, 6);
+    // Input buffer starts at row 7 (6 scrollback + 1 upper_separator)
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 7);
 
     talloc_free(ctx);
 }
@@ -201,10 +225,17 @@ START_TEST(test_viewport_offset_clamping)
     }
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 100;  // Try to scroll way past top
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 100;  // Try to scroll way past top
 
     // Calculate viewport - should clamp to valid range
     ik_viewport_t viewport;
@@ -258,10 +289,17 @@ START_TEST(test_viewport_no_scrollback_room)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->viewport_offset = 0;
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
+    repl->current->viewport_offset = 0;
 
     // Calculate viewport
     ik_viewport_t viewport;

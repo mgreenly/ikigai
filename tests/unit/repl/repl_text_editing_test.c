@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_text_editing_test.c
  * @brief Unit tests for REPL text editing actions
@@ -9,6 +10,8 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
+#include "../../../src/shared.h"
+#include "../../../src/agent.h"
 #include "../../test_utils.h"
 
 /* Test: Process CHAR action */
@@ -20,9 +23,20 @@ START_TEST(test_repl_process_action_char) {
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
+
+    // Create minimal shared context for history access
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->history = NULL;
+    repl->shared = shared;
 
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'a'};
 
@@ -60,8 +74,13 @@ START_TEST(test_repl_process_action_newline)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
 
     ik_input_action_t action = {.type = IK_INPUT_INSERT_NEWLINE};
@@ -97,8 +116,13 @@ START_TEST(test_repl_process_action_backspace)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
 
     ik_input_action_t action = {.type = IK_INPUT_BACKSPACE};
@@ -138,8 +162,13 @@ START_TEST(test_repl_process_action_delete)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
     repl->quit = false;
 
     ik_input_action_t action = {.type = IK_INPUT_DELETE};
@@ -167,8 +196,13 @@ START_TEST(test_repl_process_action_backspace_at_start)
     input_buf = ik_input_buffer_create(ctx);
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
 
     ik_input_action_t action = {.type = IK_INPUT_BACKSPACE};
 
@@ -198,8 +232,13 @@ START_TEST(test_repl_process_action_delete_at_end)
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(repl);
-    repl->input_buffer = input_buf;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
 
     ik_input_action_t action = {.type = IK_INPUT_DELETE};
 

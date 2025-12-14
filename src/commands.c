@@ -6,6 +6,7 @@
 #include "commands.h"
 
 #include "commands_mark.h"
+#include "completion.h"
 #include "db/message.h"
 #include "event_render.h"
 #include "logger.h"
@@ -13,7 +14,9 @@
 #include "openai/client.h"
 #include "panic.h"
 #include "repl.h"
+#include "agent.h"
 #include "scrollback.h"
+#include "shared.h"
 #include "wrapper.h"
 
 #include <assert.h>
@@ -74,7 +77,7 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
         if (!msg) {         // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
-        ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return ERR(ctx, INVALID_ARG, "Empty command");
     }
 
@@ -112,7 +115,7 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
     if (!msg) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
     return ERR(ctx, INVALID_ARG, "Unknown command '%s'", cmd_name);
 }
 
@@ -134,31 +137,39 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     ik_log_reinit(cwd);
 
     // Clear scrollback buffer
-    ik_scrollback_clear(repl->scrollback);
+    ik_scrollback_clear(repl->current->scrollback);
 
     // Clear conversation (session messages)
-    if (repl->conversation != NULL) {  // LCOV_EXCL_BR_LINE
-        ik_openai_conversation_clear(repl->conversation);
+    if (repl->current->conversation != NULL) {  // LCOV_EXCL_BR_LINE
+        ik_openai_conversation_clear(repl->current->conversation);
     }
 
     // Clear marks
-    if (repl->marks != NULL) {  // LCOV_EXCL_BR_LINE
-        for (size_t i = 0; i < repl->mark_count; i++) {
-            talloc_free(repl->marks[i]);
+    if (repl->current->marks != NULL) {  // LCOV_EXCL_BR_LINE
+        for (size_t i = 0; i < repl->current->mark_count; i++) {
+            talloc_free(repl->current->marks[i]);
         }
-        talloc_free(repl->marks);
-        repl->marks = NULL;
-        repl->mark_count = 0;
+        talloc_free(repl->current->marks);
+        repl->current->marks = NULL;
+        repl->current->mark_count = 0;
+    }
+
+    // Clear autocomplete state so suggestions don't persist
+    if (repl->current->completion != NULL) {     // LCOV_EXCL_BR_LINE
+        // LCOV_EXCL_START - Defensive cleanup, rarely occurs in practice
+        talloc_free(repl->current->completion);
+        repl->current->completion = NULL;
+        // LCOV_EXCL_STOP
     }
 
     // Persist clear event to database (Integration Point 3)
-    if (repl->db_ctx != NULL && repl->current_session_id > 0) {
-        res_t db_res = ik_db_message_insert(repl->db_ctx, repl->current_session_id,
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
                                             "clear", NULL, NULL);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
-            if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
-                fprintf(repl->db_debug_pipe->write_end,
+            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
+                fprintf(repl->shared->db_debug_pipe->write_end,
                         "Warning: Failed to persist clear event to database: %s\n",
                         error_message(db_res.err));
             }
@@ -166,18 +177,18 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
 
         // Write system message if configured (matching new session creation pattern)
-        if (repl->cfg->openai_system_message != NULL) {
+        if (repl->shared->cfg->openai_system_message != NULL) {
             res_t system_res = ik_db_message_insert(
-                repl->db_ctx,
-                repl->current_session_id,
+                repl->shared->db_ctx,
+                repl->shared->session_id,
                 "system",
-                repl->cfg->openai_system_message,
+                repl->shared->cfg->openai_system_message,
                 "{}"
                 );
             if (is_err(&system_res)) {
                 // Log error but don't crash - memory state is authoritative
-                if (repl->db_debug_pipe != NULL && repl->db_debug_pipe->write_end != NULL) {
-                    fprintf(repl->db_debug_pipe->write_end,
+                if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
+                    fprintf(repl->shared->db_debug_pipe->write_end,
                             "Warning: Failed to persist system message to database: %s\n",
                             error_message(system_res.err));
                 }
@@ -187,11 +198,11 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Add system message to scrollback using event renderer (consistent with replay)
-    if (repl->cfg != NULL && repl->cfg->openai_system_message != NULL) {
+    if (repl->shared->cfg != NULL && repl->shared->cfg->openai_system_message != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: cfg always set during init
         res_t render_res = ik_event_render(
-            repl->scrollback,
+            repl->current->scrollback,
             "system",
-            repl->cfg->openai_system_message,
+            repl->shared->cfg->openai_system_message,
             "{}"
             );
         if (is_err(&render_res)) {
@@ -213,7 +224,7 @@ static res_t cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args)
     if (!header) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
-    res_t result = ik_scrollback_append_line(repl->scrollback, header, strlen(header));
+    res_t result = ik_scrollback_append_line(repl->current->scrollback, header, strlen(header));
     talloc_free(header);
     if (is_err(&result)) {  /* LCOV_EXCL_BR_LINE */
         return result;  // LCOV_EXCL_LINE
@@ -230,7 +241,7 @@ static res_t cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args)
         if (!cmd_line) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
-        result = ik_scrollback_append_line(repl->scrollback, cmd_line, strlen(cmd_line));
+        result = ik_scrollback_append_line(repl->current->scrollback, cmd_line, strlen(cmd_line));
         talloc_free(cmd_line);
         if (is_err(&result)) {  /* LCOV_EXCL_BR_LINE */
             return result;  // LCOV_EXCL_LINE
@@ -251,7 +262,7 @@ static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
         if (!msg) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
-        ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return ERR(ctx, INVALID_ARG, "Model name required");
     }
 
@@ -284,16 +295,16 @@ static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
         if (!msg) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
-        ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return ERR(ctx, INVALID_ARG, "Unknown model '%s'", args);
     }
 
     // Update config (free old, allocate new)
-    if (repl->cfg->openai_model != NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(repl->cfg->openai_model);
+    if (repl->shared->cfg->openai_model != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(repl->shared->cfg->openai_model);
     }
-    repl->cfg->openai_model = talloc_strdup(repl->cfg, args);
-    if (!repl->cfg->openai_model) {     // LCOV_EXCL_BR_LINE
+    repl->shared->cfg->openai_model = talloc_strdup(repl->shared->cfg, args);
+    if (!repl->shared->cfg->openai_model) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
 
@@ -302,7 +313,7 @@ static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
     if (!msg) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
     return OK(NULL);
 }
 
@@ -312,9 +323,9 @@ static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args)
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
 
     // Free old system message
-    if (repl->cfg->openai_system_message != NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(repl->cfg->openai_system_message);
-        repl->cfg->openai_system_message = NULL;
+    if (repl->shared->cfg->openai_system_message != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(repl->shared->cfg->openai_system_message);
+        repl->shared->cfg->openai_system_message = NULL;
     }
 
     char *msg = NULL;
@@ -327,8 +338,8 @@ static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
     } else {
         // Set new system message
-        repl->cfg->openai_system_message = talloc_strdup(repl->cfg, args);
-        if (!repl->cfg->openai_system_message) {     // LCOV_EXCL_BR_LINE
+        repl->shared->cfg->openai_system_message = talloc_strdup(repl->shared->cfg, args);
+        if (!repl->shared->cfg->openai_system_message) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
 
@@ -339,7 +350,7 @@ static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
     }
 
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
     return OK(NULL);
 }
 
@@ -352,20 +363,20 @@ static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     if (args == NULL) {
         // Show current status
-        msg = talloc_asprintf(ctx, "Debug output: %s", repl->debug_enabled ? "ON" : "OFF");
+        msg = talloc_asprintf(ctx, "Debug output: %s", repl->shared->debug_enabled ? "ON" : "OFF");
         if (!msg) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
     } else if (strcmp(args, "on") == 0) {
         // Enable debug output
-        repl->debug_enabled = true;
+        repl->shared->debug_enabled = true;
         msg = talloc_strdup(ctx, "Debug output enabled");
         if (!msg) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
     } else if (strcmp(args, "off") == 0) {
         // Disable debug output
-        repl->debug_enabled = false;
+        repl->shared->debug_enabled = false;
         msg = talloc_strdup(ctx, "Debug output disabled");
         if (!msg) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
@@ -376,10 +387,10 @@ static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args)
         if (!msg) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
-        ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return ERR(ctx, INVALID_ARG, "Invalid argument '%s'", args);
     }
 
-    ik_scrollback_append_line(repl->scrollback, msg, strlen(msg));
+    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
     return OK(NULL);
 }

@@ -2,8 +2,10 @@
 #define IK_MSG_H
 
 #include "error.h"
-#include "db/replay.h"
 #include <talloc.h>
+
+/* Forward declaration - full definition in db/replay.h */
+typedef struct ik_message ik_message_t;
 
 /**
  * Canonical message structure

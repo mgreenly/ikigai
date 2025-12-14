@@ -2,142 +2,11 @@
 #include <check.h>
 #include <signal.h>
 #include <talloc.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include "../../../src/terminal.h"
+
 #include "../../../src/error.h"
+#include "../../../src/terminal.h"
 #include "../../test_utils.h"
-
-// Mock control state
-static int mock_open_fail = 0;
-static int mock_tcgetattr_fail = 0;
-static int mock_tcsetattr_fail = 0;
-static int mock_tcflush_fail = 0;
-static int mock_write_fail = 0;
-static int mock_write_fail_on_call = 0;  // Fail on specific write call number
-static int mock_ioctl_fail = 0;
-static int mock_close_count = 0;
-static int mock_write_count = 0;
-static int mock_tcsetattr_count = 0;
-static int mock_tcflush_count = 0;
-
-// Buffer to capture write calls
-#define MOCK_WRITE_BUFFER_SIZE 1024
-static char mock_write_buffer[MOCK_WRITE_BUFFER_SIZE];
-static size_t mock_write_buffer_pos = 0;
-
-// Mock function prototypes
-int posix_open_(const char *pathname, int flags);
-int posix_close_(int fd);
-int posix_tcgetattr_(int fd, struct termios *termios_p);
-int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p);
-int posix_tcflush_(int fd, int queue_selector);
-int posix_ioctl_(int fd, unsigned long request, void *argp);
-ssize_t posix_write_(int fd, const void *buf, size_t count);
-
-// Mock implementations
-int posix_open_(const char *pathname, int flags)
-{
-    (void)pathname;
-    (void)flags;
-    if (mock_open_fail) {
-        return -1;
-    }
-    return 42; // Mock fd
-}
-
-int posix_close_(int fd)
-{
-    (void)fd;
-    mock_close_count++;
-    return 0;
-}
-
-int posix_tcgetattr_(int fd, struct termios *termios_p)
-{
-    (void)fd;
-    if (mock_tcgetattr_fail) {
-        return -1;
-    }
-    // Fill with dummy data
-    memset(termios_p, 0, sizeof(*termios_p));
-    return 0;
-}
-
-int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p)
-{
-    (void)fd;
-    (void)optional_actions;
-    (void)termios_p;
-    mock_tcsetattr_count++;
-    if (mock_tcsetattr_fail) {
-        return -1;
-    }
-    return 0;
-}
-
-int posix_tcflush_(int fd, int queue_selector)
-{
-    (void)fd;
-    (void)queue_selector;
-    mock_tcflush_count++;
-    if (mock_tcflush_fail) {
-        return -1;
-    }
-    return 0;
-}
-
-int posix_ioctl_(int fd, unsigned long request, void *argp)
-{
-    (void)fd;
-    (void)request;
-    if (mock_ioctl_fail) {
-        return -1;
-    }
-    // Fill winsize with dummy data
-    struct winsize *ws = (struct winsize *)argp;
-    ws->ws_row = 24;
-    ws->ws_col = 80;
-    return 0;
-}
-
-ssize_t posix_write_(int fd, const void *buf, size_t count)
-{
-    (void)fd;
-    mock_write_count++;
-    if (mock_write_fail) {
-        return -1;
-    }
-    if (mock_write_fail_on_call > 0 && mock_write_count == mock_write_fail_on_call) {
-        return -1;
-    }
-    // Capture written data to buffer
-    if (mock_write_buffer_pos + count < MOCK_WRITE_BUFFER_SIZE) {
-        memcpy(mock_write_buffer + mock_write_buffer_pos, buf, count);
-        mock_write_buffer_pos += count;
-    }
-    return (ssize_t)count;
-}
-
-// Reset mock state before each test
-static void reset_mocks(void)
-{
-    mock_open_fail = 0;
-    mock_tcgetattr_fail = 0;
-    mock_tcsetattr_fail = 0;
-    mock_tcflush_fail = 0;
-    mock_write_fail = 0;
-    mock_write_fail_on_call = 0;
-    mock_ioctl_fail = 0;
-    mock_close_count = 0;
-    mock_write_count = 0;
-    mock_tcsetattr_count = 0;
-    mock_tcflush_count = 0;
-    memset(mock_write_buffer, 0, MOCK_WRITE_BUFFER_SIZE);
-    mock_write_buffer_pos = 0;
-}
+#include "terminal_test_mocks.h"
 
 // Test: successful terminal initialization
 START_TEST(test_term_init_success) {
@@ -153,7 +22,8 @@ START_TEST(test_term_init_success) {
     ck_assert_int_eq(term->screen_rows, 24);
     ck_assert_int_eq(term->screen_cols, 80);
 
-    // Verify write was called for alternate screen and mouse enable
+    // Verify write was called for alternate screen (and CSI u query)
+    // CSI u query (4 bytes) + alt screen enter (8 bytes) = 2 writes
     ck_assert_int_eq(mock_write_count, 2);
 
     // Cleanup
@@ -161,15 +31,16 @@ START_TEST(test_term_init_success) {
     talloc_free(ctx);
 
     // Verify cleanup operations
-    ck_assert_int_eq(mock_write_count, 5); // mouse disable + terminal reset + alt screen exit
+    // Note: CSI u was not enabled in mocks (select times out), so no disable write
+    ck_assert_int_eq(mock_write_count, 3); // query + alt screen enter + alt screen exit
     ck_assert_int_eq(mock_tcsetattr_count, 2); // restore termios
     ck_assert_int_eq(mock_tcflush_count, 2); // flush after set raw + cleanup
     ck_assert_int_eq(mock_close_count, 1);
 }
 END_TEST
 
-// Test: SGR mouse sequences are written during init and cleanup
-START_TEST(test_term_mouse_sequences)
+// Test: alternate screen sequences are written during init and cleanup
+START_TEST(test_term_alt_screen_sequences)
 {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -178,9 +49,8 @@ START_TEST(test_term_mouse_sequences)
     res_t res = ik_term_init(ctx, &term);
     ck_assert(is_ok(&res));
 
-    // Verify mouse enable sequences are present in init output
-    // Expected: alternate screen "\x1b[?1049h" + mouse enable "\x1b[?1007h"
-    ck_assert(strstr(mock_write_buffer, "\x1b[?1007h") != NULL);
+    // Verify alternate screen enter sequence is present in init output
+    ck_assert(strstr(mock_write_buffer, "\x1b[?1049h") != NULL);
 
     // Reset buffer to capture cleanup output
     memset(mock_write_buffer, 0, MOCK_WRITE_BUFFER_SIZE);
@@ -188,9 +58,8 @@ START_TEST(test_term_mouse_sequences)
 
     ik_term_cleanup(term);
 
-    // Verify mouse disable sequences are present in cleanup output
-    // Expected: mouse disable "\x1b[?1007l" + reset sequence
-    ck_assert(strstr(mock_write_buffer, "\x1b[?1007l") != NULL);
+    // Verify alternate screen exit sequence is present in cleanup output
+    ck_assert(strstr(mock_write_buffer, "\x1b[?1049l") != NULL);
 
     talloc_free(ctx);
 }
@@ -286,35 +155,6 @@ START_TEST(test_term_init_write_fails)
 
 END_TEST
 
-// Test: write fails on mouse enable (second write call)
-START_TEST(test_term_init_write_mouse_enable_fails)
-{
-    reset_mocks();
-    mock_write_fail_on_call = 2;  // Fail on second write (mouse enable)
-
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_term_ctx_t *term = NULL;
-
-    res_t res = ik_term_init(ctx, &term);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_IO);
-    ck_assert_ptr_null(term);
-
-    // Cleanup should have been called
-    // First write succeeds (alternate screen enter)
-    // Second write fails (mouse enable)
-    // Cleanup writes: alt screen exit
-    ck_assert_int_eq(mock_write_count, 3);
-    ck_assert_int_eq(mock_tcsetattr_count, 2); // raw mode + restore
-    ck_assert_int_eq(mock_tcflush_count, 1); // flush after set raw
-    ck_assert_int_eq(mock_close_count, 1);
-
-    talloc_free(ctx);
-}
-
-END_TEST
-
 // Test: ioctl fails (get terminal size)
 START_TEST(test_term_init_ioctl_fails)
 {
@@ -331,7 +171,7 @@ START_TEST(test_term_init_ioctl_fails)
     ck_assert_ptr_null(term);
 
     // Full cleanup should have been called
-    ck_assert_int_eq(mock_write_count, 4); // enter alt screen + mouse enable + mouse disable + exit alt screen (no reset on error path)
+    ck_assert_int_eq(mock_write_count, 3); // CSI u query + enter alt screen + exit alt screen
     ck_assert_int_eq(mock_tcsetattr_count, 2); // raw mode + restore
     ck_assert_int_eq(mock_tcflush_count, 1); // flush after set raw
     ck_assert_int_eq(mock_close_count, 1);
@@ -495,13 +335,12 @@ static Suite *terminal_suite(void)
     tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_term_init_success);
-    tcase_add_test(tc_core, test_term_mouse_sequences);
+    tcase_add_test(tc_core, test_term_alt_screen_sequences);
     tcase_add_test(tc_core, test_term_init_open_fails);
     tcase_add_test(tc_core, test_term_init_tcgetattr_fails);
     tcase_add_test(tc_core, test_term_init_tcsetattr_fails);
     tcase_add_test(tc_core, test_term_init_tcflush_fails);
     tcase_add_test(tc_core, test_term_init_write_fails);
-    tcase_add_test(tc_core, test_term_init_write_mouse_enable_fails);
     tcase_add_test(tc_core, test_term_init_ioctl_fails);
     tcase_add_test(tc_core, test_term_cleanup_null_safe);
     tcase_add_test(tc_core, test_term_get_size_success);

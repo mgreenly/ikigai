@@ -3,7 +3,10 @@
  * @brief Tests for mark/rewind command error paths with mocked DB failures
  */
 
+#include "../../../src/agent.h"
 #include "../../../src/commands_mark.h"
+#include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
@@ -132,12 +135,30 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_openai_conversation_t *conv = res.ok;
     ck_assert_ptr_nonnull(conv);
 
+    // Create minimal config
+    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = cfg;
+
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
-    r->conversation = conv;
-    r->marks = NULL;
-    r->mark_count = 0;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+
+
+    agent->conversation = conv;
+    r->current = agent;
+
+    r->shared = shared;
+    r->current->marks = NULL;
+    r->current->mark_count = 0;
 
     return r;
 }
@@ -167,8 +188,8 @@ START_TEST(test_mark_unlabeled_db_error_with_debug_pipe) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Set up debug pipe
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -176,7 +197,7 @@ START_TEST(test_mark_unlabeled_db_error_with_debug_pipe) {
     ck_assert_int_eq(pipe(pipefd), 0);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock INSERT to fail
     mock_insert_should_fail = true;
@@ -184,7 +205,7 @@ START_TEST(test_mark_unlabeled_db_error_with_debug_pipe) {
     // Create unlabeled mark - should succeed in memory but log DB error
     res_t res = ik_cmd_mark(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
 
     // Clean up
     fclose(debug_pipe->write_end);
@@ -197,11 +218,11 @@ START_TEST(test_mark_unlabeled_db_error_no_debug_pipe)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // No debug pipe
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Mock INSERT to fail
     mock_insert_should_fail = true;
@@ -209,7 +230,7 @@ START_TEST(test_mark_unlabeled_db_error_no_debug_pipe)
     // Create unlabeled mark - should succeed without crash
     res_t res = ik_cmd_mark(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
 }
 
 END_TEST
@@ -219,13 +240,13 @@ START_TEST(test_mark_unlabeled_db_error_null_write_end)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Debug pipe with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
     debug_pipe->write_end = NULL;
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Mock INSERT to fail
     mock_insert_should_fail = true;
@@ -233,7 +254,7 @@ START_TEST(test_mark_unlabeled_db_error_null_write_end)
     // Create unlabeled mark - should succeed without crash
     res_t res = ik_cmd_mark(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
 }
 
 END_TEST
@@ -243,8 +264,8 @@ START_TEST(test_rewind_mark_not_found)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Mock query to return 0 rows (mark not found)
     mock_ntuples = 0;
@@ -254,7 +275,7 @@ START_TEST(test_rewind_mark_not_found)
     ck_assert(is_ok(&res));  // Command doesn't propagate error
 
     // Verify error was appended to scrollback
-    ck_assert(repl->scrollback->count > 0);
+    ck_assert(repl->current->scrollback->count > 0);
 }
 
 END_TEST
@@ -264,8 +285,8 @@ START_TEST(test_rewind_db_error_with_debug_pipe)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Set up debug pipe
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
@@ -273,16 +294,16 @@ START_TEST(test_rewind_db_error_with_debug_pipe)
     ck_assert_int_eq(pipe(pipefd), 0);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Create a mark in memory
     res_t mark_res = ik_mark_create(repl, "checkpoint");
     ck_assert(is_ok(&mark_res));
 
     // Add a message to conversation
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "test");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "test");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: SELECT succeeds (finds mark), INSERT fails
@@ -293,7 +314,7 @@ START_TEST(test_rewind_db_error_with_debug_pipe)
     // Rewind should succeed in memory but log DB error
     res_t res = ik_cmd_rewind(ctx, repl, "checkpoint");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 
     // Clean up
     fclose(debug_pipe->write_end);
@@ -307,20 +328,20 @@ START_TEST(test_rewind_db_error_no_debug_pipe)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // No debug pipe
-    repl->db_debug_pipe = NULL;
+    repl->shared->db_debug_pipe = NULL;
 
     // Create a mark in memory
     res_t mark_res = ik_mark_create(repl, "checkpoint");
     ck_assert(is_ok(&mark_res));
 
     // Add a message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "test");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "test");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: SELECT succeeds, INSERT fails
@@ -331,7 +352,7 @@ START_TEST(test_rewind_db_error_no_debug_pipe)
     // Should succeed without crash
     res_t res = ik_cmd_rewind(ctx, repl, "checkpoint");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -341,22 +362,22 @@ START_TEST(test_rewind_db_error_null_write_end)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Debug pipe with NULL write_end
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
     debug_pipe->write_end = NULL;
-    repl->db_debug_pipe = debug_pipe;
+    repl->shared->db_debug_pipe = debug_pipe;
 
     // Create a mark in memory
     res_t mark_res = ik_mark_create(repl, "checkpoint");
     ck_assert(is_ok(&mark_res));
 
     // Add a message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "test");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "test");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: SELECT succeeds, INSERT fails
@@ -367,7 +388,7 @@ START_TEST(test_rewind_db_error_null_write_end)
     // Should succeed without crash
     res_t res = ik_cmd_rewind(ctx, repl, "checkpoint");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -377,13 +398,13 @@ START_TEST(test_mark_with_db_ctx_but_no_session)
     // Set up DB context but invalid session
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 0;  // Invalid session
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 0;  // Invalid session
 
     // Create mark - should not attempt DB operations
     res_t res = ik_cmd_mark(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
 }
 
 END_TEST
@@ -393,23 +414,23 @@ START_TEST(test_rewind_with_db_ctx_but_no_session)
     // Set up DB context but invalid session
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 0;  // Invalid session
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 0;  // Invalid session
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Rewind - should not attempt DB operations
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -419,17 +440,17 @@ START_TEST(test_rewind_with_zero_message_id)
     // Set up valid DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query returns 0 rows (target_message_id will be 0)
@@ -438,7 +459,7 @@ START_TEST(test_rewind_with_zero_message_id)
     // Rewind - should not persist to DB (target_message_id == 0)
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST

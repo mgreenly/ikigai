@@ -1,6 +1,9 @@
 #include "test_utils.h"
+#include "../src/agent.h"
 #include "../src/db/migration.h"
 #include "../src/panic.h"
+#include "../src/vendor/yyjson/yyjson.h"
+#include <check.h>
 #include <libpq-fe.h>
 #include <talloc.h>
 #include <stdarg.h>
@@ -423,4 +426,116 @@ void ik_test_reset_terminal(void)
     // Write to stdout which is where test output goes.
     const char reset_seq[] = "\x1b[?25h\x1b[0m";
     (void)write(STDOUT_FILENO, reset_seq, sizeof(reset_seq) - 1);
+}
+
+// ========== Agent Test Utilities ==========
+
+res_t ik_test_create_agent(TALLOC_CTX *ctx, ik_agent_ctx_t **out)
+{
+    if (ctx == NULL || out == NULL) {
+        return ERR(NULL, INVALID_ARG, "NULL argument to ik_test_create_agent");
+    }
+
+    // Create minimal shared context
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    if (shared == NULL) {
+        return ERR(ctx, OUT_OF_MEMORY, "Failed to allocate shared context");
+    }
+
+    // Create agent (ik_agent_create will initialize display state)
+    return ik_agent_create(ctx, shared, NULL, out);
+}
+
+// ========== Tool JSON Test Helpers ==========
+
+/**
+ * Parse JSON tool response and verify success=true
+ */
+yyjson_val *ik_test_tool_parse_success(const char *json, yyjson_doc **out_doc)
+{
+    ck_assert_msg(json != NULL, "json parameter cannot be NULL");
+    ck_assert_msg(out_doc != NULL, "out_doc parameter cannot be NULL");
+
+    // Parse JSON
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_msg(doc != NULL, "Failed to parse JSON: %s", json);
+
+    // Get root object
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_msg(yyjson_is_obj(root), "JSON root is not an object");
+
+    // Get success field
+    yyjson_val *success = yyjson_obj_get(root, "success");
+    ck_assert_msg(success != NULL, "Missing 'success' field in JSON response");
+    ck_assert_msg(yyjson_get_bool(success) == true,
+                  "Expected success=true but got success=false");
+
+    // Get data field
+    yyjson_val *data = yyjson_obj_get(root, "data");
+    ck_assert_msg(data != NULL, "Missing 'data' field in success response");
+    ck_assert_msg(yyjson_is_obj(data), "'data' field is not an object");
+
+    *out_doc = doc;
+    return data;
+}
+
+/**
+ * Parse JSON tool response and verify success=false
+ */
+const char *ik_test_tool_parse_error(const char *json, yyjson_doc **out_doc)
+{
+    ck_assert_msg(json != NULL, "json parameter cannot be NULL");
+    ck_assert_msg(out_doc != NULL, "out_doc parameter cannot be NULL");
+
+    // Parse JSON
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_msg(doc != NULL, "Failed to parse JSON: %s", json);
+
+    // Get root object
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_msg(yyjson_is_obj(root), "JSON root is not an object");
+
+    // Get success field
+    yyjson_val *success = yyjson_obj_get(root, "success");
+    ck_assert_msg(success != NULL, "Missing 'success' field in JSON response");
+    ck_assert_msg(yyjson_get_bool(success) == false,
+                  "Expected success=false but got success=true");
+
+    // Get error field
+    yyjson_val *error = yyjson_obj_get(root, "error");
+    ck_assert_msg(error != NULL, "Missing 'error' field in error response");
+    ck_assert_msg(yyjson_is_str(error), "'error' field is not a string");
+
+    *out_doc = doc;
+    return yyjson_get_str(error);
+}
+
+/**
+ * Extract output field from tool data object
+ */
+const char *ik_test_tool_get_output(yyjson_val *data)
+{
+    ck_assert_msg(data != NULL, "data parameter cannot be NULL");
+
+    // Get output field
+    yyjson_val *output = yyjson_obj_get(data, "output");
+    ck_assert_msg(output != NULL, "Missing 'output' field in data object");
+    ck_assert_msg(yyjson_is_str(output), "'output' field is not a string");
+
+    return yyjson_get_str(output);
+}
+
+/**
+ * Extract exit_code field from tool data object
+ */
+int64_t ik_test_tool_get_exit_code(yyjson_val *data)
+{
+    ck_assert_msg(data != NULL, "data parameter cannot be NULL");
+
+    // Get exit_code field
+    yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
+    ck_assert_msg(exit_code != NULL, "Missing 'exit_code' field in data object");
+    ck_assert_msg(yyjson_is_int(exit_code), "'exit_code' field is not an integer");
+
+    return yyjson_get_int(exit_code);
 }

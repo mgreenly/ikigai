@@ -7,7 +7,9 @@ An experiment to build a Linux focused, terminal based coding agent with hierarc
 
 Why?  Because I want to and no one can stop me!
 
-See [docs/](docs/README.md/) for design and implementation details.
+See [docs/README.md](docs/README.md) for user documentation.
+
+See [project/README.md](project/README.md) for design and implementation details.
 
 ## Install
 

@@ -5,6 +5,7 @@
 #include "render.h"
 #include "input_buffer/core.h"
 #include "input.h"
+#include "scroll_detector.h"
 #include "scrollback.h"
 #include "layer.h"
 #include "layer_wrappers.h"
@@ -14,24 +15,14 @@
 #include "tool.h"
 #include "db/connection.h"
 #include "history.h"
+#include "agent.h"
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdatomic.h>
 #include <inttypes.h>
 
-// REPL state machine (Phase 1.6)
-typedef enum {
-    IK_REPL_STATE_IDLE,              // Normal input mode
-    IK_REPL_STATE_WAITING_FOR_LLM,   // Waiting for LLM response (spinner visible)
-    IK_REPL_STATE_EXECUTING_TOOL     // Tool running in background thread
-} ik_repl_state_t;
-
-// Mark structure for conversation checkpoints (Phase 1.7)
-typedef struct {
-    size_t message_index;     // Position in conversation at time of mark
-    char *label;              // Optional user label (or NULL for unlabeled mark)
-    char *timestamp;          // ISO 8601 timestamp
-} ik_mark_t;
+// Forward declarations
+typedef struct ik_shared_ctx ik_shared_ctx_t;
 
 // Viewport boundaries for rendering (Phase 4)
 typedef struct {
@@ -43,83 +34,40 @@ typedef struct {
 
 // REPL context structure
 typedef struct ik_repl_ctx_t {
-    ik_term_ctx_t *term;        // Terminal context
-    ik_render_ctx_t *render;    // Rendering context
-    ik_input_buffer_t *input_buffer;  // Input buffer
+    // Shared infrastructure (DI - not owned, just referenced)
+    // See shared.h for what's available via this pointer
+    ik_shared_ctx_t *shared;
+
+    // Current agent (per-agent state)
+    // Currently single agent, will become current selection from array
+    // All per-agent fields accessed via this pointer
+    ik_agent_ctx_t *current;
+
     ik_input_parser_t *input_parser;  // Input parser
-    ik_scrollback_t *scrollback;      // Scrollback buffer (Phase 4)
-    size_t viewport_offset;           // Physical row offset for scrolling (0 = bottom)
     atomic_bool quit;           // Exit flag (atomic for thread safety)
+    ik_scroll_detector_t *scroll_det;  // Scroll detector (rel-05)
 
     // Layer-based rendering (Phase 1.3)
-    ik_layer_cake_t *layer_cake;      // Layer cake manager
-    ik_layer_t *scrollback_layer;     // Scrollback layer
-    ik_layer_t *spinner_layer;        // Spinner layer (Phase 1.4)
-    ik_layer_t *separator_layer;      // Separator layer (upper)
-    ik_layer_t *input_layer;          // Input buffer layer
     ik_layer_t *lower_separator_layer; // Separator layer (lower) - below input
-    ik_layer_t *completion_layer;     // Completion layer (rel-04)
 
     // Reference fields for layers (updated before each render)
-    ik_spinner_state_t spinner_state; // Spinner state (Phase 1.4)
-    bool separator_visible;           // Separator visibility flag (upper)
     bool lower_separator_visible;     // Separator visibility flag (lower)
-    bool input_buffer_visible;        // Input buffer visibility flag
-    const char *input_text;           // Input text pointer
-    size_t input_text_len;            // Input text length
 
-    // Event loop integration (Phase 1.6)
-    struct ik_openai_multi *multi;    // curl_multi handle for non-blocking HTTP
-    int curl_still_running;           // Number of active curl transfers
-    ik_repl_state_t state;            // Current REPL state (IDLE or WAITING_FOR_LLM)
+    // Debug info for separator (updated before each render)
+    size_t debug_viewport_offset;     // viewport_offset value
+    size_t debug_viewport_row;        // first_visible_row
+    size_t debug_viewport_height;     // terminal_rows
+    size_t debug_document_height;     // total document height
+    uint64_t render_start_us;         // Timestamp when input received (0 = not set)
+    uint64_t render_elapsed_us;       // Elapsed time from previous render (computed at end of render)
 
-    // Configuration and conversation (Phase 1.6)
-    ik_cfg_t *cfg;                                // Configuration (API key, model, etc.)
-    ik_openai_conversation_t *conversation;       // Current conversation (session messages)
-    char *assistant_response;                     // Accumulated assistant response (during streaming)
-    char *streaming_line_buffer;                  // Buffer for incomplete line during streaming
-    char *http_error_message;                     // HTTP error message (if request failed)
-    char *response_model;                         // Model name from SSE stream (for database persistence)
-    char *response_finish_reason;                 // Finish reason from SSE stream (for database persistence)
-    int32_t response_completion_tokens;           // Completion token count from SSE stream (for database persistence)
-
-    // Checkpoint management (Phase 1.7)
-    ik_mark_t **marks;                            // Array of conversation marks
-    size_t mark_count;                            // Number of marks
-
-    // Command history (rel-04)
-    ik_history_t *history;                        // Command history
-
-    // Tab completion (rel-04)
-    ik_completion_t *completion;                  // Tab completion context (NULL when inactive)
-
-    // Debug pipes
-    ik_debug_pipe_manager_t *debug_mgr;
-    ik_debug_pipe_t *openai_debug_pipe;
-    ik_debug_pipe_t *db_debug_pipe;
-    bool debug_enabled;
-
-    // Database session (v0.3.0)
-    ik_db_ctx_t *db_ctx;             // Database connection context
-    int64_t current_session_id;       // Current active session ID (0 if none)
-
-    // Tool loop iteration tracking (Story 11)
-    int32_t tool_iteration_count;     // Number of tool call iterations in current request
-
-    // Pending tool call (Story 02)
-    ik_tool_call_t *pending_tool_call; // Tool call awaiting execution (NULL if none)
-
-    // Tool thread execution (async tool dispatch)
-    pthread_t tool_thread;              // Worker thread handle
-    pthread_mutex_t tool_thread_mutex;  // Protects tool_thread_* fields
-    bool tool_thread_running;           // Thread is active
-    bool tool_thread_complete;          // Thread finished, result ready
-    TALLOC_CTX *tool_thread_ctx;        // Memory context for thread (owned by main)
-    char *tool_thread_result;           // Result JSON from tool dispatch
+    // Note: completion removed - now in agent context (repl->current->completion)
+    // Note: history removed - now in shared context (repl->shared->history)
+    // Note: tool state removed - now in agent context (repl->current->pending_tool_call, etc.)
 } ik_repl_ctx_t;
 
 // Initialize REPL context
-res_t ik_repl_init(void *parent, ik_cfg_t *cfg, ik_repl_ctx_t **repl_out);
+res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_out);
 
 // Cleanup REPL context
 void ik_repl_cleanup(ik_repl_ctx_t *repl);

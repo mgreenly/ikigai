@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_debug_response_test.c
  * @brief Unit tests for debug output in HTTP completion callback
@@ -7,7 +8,9 @@
  */
 
 #include "repl.h"
+#include "../../../src/agent.h"
 #include "repl_callbacks.h"
+#include "shared.h"
 #include "scrollback.h"
 #include "config.h"
 #include "openai/client_multi.h"
@@ -25,14 +28,23 @@ static void setup(void)
 {
     ctx = talloc_new(NULL);
 
+    /* Create minimal shared context */
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+
     /* Create minimal REPL context for testing callback */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->scrollback = ik_scrollback_create(repl, 80);
-    repl->streaming_line_buffer = NULL;
-    repl->http_error_message = NULL;
-    repl->response_model = NULL;
-    repl->response_finish_reason = NULL;
-    repl->response_completion_tokens = 0;
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    repl->shared = shared;
+
+    /* Create agent context for display state */
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
+    repl->current->streaming_line_buffer = NULL;
+    repl->current->http_error_message = NULL;
+    repl->current->response_model = NULL;
+    repl->current->response_finish_reason = NULL;
+    repl->current->response_completion_tokens = 0;
 }
 
 static void teardown(void)
@@ -51,7 +63,7 @@ START_TEST(test_debug_output_response_success) {
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->openai_debug_pipe = debug_pipe;
+    repl->shared->openai_debug_pipe = debug_pipe;
 
     /* Create successful completion with metadata */
     char *model = talloc_strdup(ctx, "gpt-4o");
@@ -102,7 +114,7 @@ START_TEST(test_debug_output_response_error)
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->openai_debug_pipe = debug_pipe;
+    repl->shared->openai_debug_pipe = debug_pipe;
 
     /* Create error completion */
     char *error_msg = talloc_strdup(ctx, "HTTP 500 server error");
@@ -149,7 +161,7 @@ START_TEST(test_debug_output_response_with_tool_call)
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->openai_debug_pipe = debug_pipe;
+    repl->shared->openai_debug_pipe = debug_pipe;
 
     /* Create tool_call */
     ik_tool_call_t *tc = ik_tool_call_create(ctx, "call_123", "glob", "{\"pattern\":\"*.c\"}");
@@ -204,7 +216,7 @@ START_TEST(test_debug_output_null_metadata)
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = fdopen(pipefd[1], "w");
     ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->openai_debug_pipe = debug_pipe;
+    repl->shared->openai_debug_pipe = debug_pipe;
 
     /* Create successful completion with NULL metadata */
     ik_http_completion_t completion = {
@@ -245,7 +257,7 @@ END_TEST
 START_TEST(test_debug_output_no_pipe)
 {
     /* Set openai_debug_pipe to NULL */
-    repl->openai_debug_pipe = NULL;
+    repl->shared->openai_debug_pipe = NULL;
 
     /* Create successful completion */
     char *model = talloc_strdup(ctx, "gpt-4o");
@@ -274,7 +286,7 @@ START_TEST(test_debug_output_null_write_end)
     ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
     ck_assert_ptr_nonnull(debug_pipe);
     debug_pipe->write_end = NULL;
-    repl->openai_debug_pipe = debug_pipe;
+    repl->shared->openai_debug_pipe = debug_pipe;
 
     /* Create successful completion */
     char *model = talloc_strdup(ctx, "gpt-4o");

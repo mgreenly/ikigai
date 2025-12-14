@@ -1,4 +1,5 @@
 #include "tool.h"
+#include "tool_response.h"
 
 #include "panic.h"
 
@@ -25,18 +26,6 @@ res_t ik_tool_exec_glob(void *parent, const char *pattern, const char *path)
     glob_t glob_result;
     int glob_ret = glob(full_pattern, 0, NULL, &glob_result);
 
-    // Create yyjson document for result
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *root = yyjson_mut_obj(doc);
-    if (root == NULL) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        globfree(&glob_result); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-    yyjson_mut_doc_set_root(doc, root);
-
     // Handle glob errors
     // LCOV_EXCL_START - Error paths are difficult to test (GLOB_NOSPACE, GLOB_ABORTED)
     if (glob_ret != 0 && glob_ret != GLOB_NOMATCH) {
@@ -54,26 +43,24 @@ res_t ik_tool_exec_glob(void *parent, const char *pattern, const char *path)
         }
 
         // Build error JSON
-        yyjson_mut_obj_add_bool(doc, root, "success", false);
-        yyjson_mut_obj_add_str(doc, root, "error", error_msg);
-
-        char *json = yyjson_mut_write_opts(doc, 0, NULL, NULL, NULL);
-        if (json == NULL) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc);
-            globfree(&glob_result);
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-
-        // Copy to talloc
-        char *result = talloc_strdup(parent, json);
-        free(json);
-        yyjson_mut_doc_free(doc);
+        char *result;
+        ik_tool_response_error(parent, error_msg, &result);
         globfree(&glob_result);
-
-        if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         return OK(result);
     }
     // LCOV_EXCL_STOP
+
+    // Create yyjson document for result
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_val *root = yyjson_mut_obj(doc);
+    if (root == NULL) { // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+        globfree(&glob_result); // LCOV_EXCL_LINE
+        PANIC("Out of memory"); // LCOV_EXCL_LINE
+    }
+    yyjson_mut_doc_set_root(doc, root);
 
     // Build output string with newline-separated file paths
     size_t count = glob_result.gl_pathc;

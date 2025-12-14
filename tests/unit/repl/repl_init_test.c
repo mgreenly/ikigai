@@ -12,9 +12,12 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include <unistd.h>
+#include "../../../src/logger.h"
 
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../test_utils.h"
+#include "../../../src/logger.h"
 
 // Mock state for controlling posix_open_ failures
 static bool mock_open_should_fail = false;
@@ -137,16 +140,20 @@ int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *
 
 int posix_stat_(const char *pathname, struct stat *statbuf)
 {
-    (void)pathname;
-    (void)statbuf;
-
     if (mock_stat_should_fail) {
         errno = EACCES;  // Permission denied
         return -1;
     }
 
-    // Simulate directory exists for .ikigai
-    return -1;  // File doesn't exist (normal case for history file)
+    // For logger directories in /tmp, call real stat
+    // The test uses /tmp as the working directory
+    if (strncmp(pathname, "/tmp", 4) == 0) {
+        return stat(pathname, statbuf);
+    }
+
+    // For history file (non-directory), simulate not exists
+    errno = ENOENT;  // File doesn't exist (normal case for history file)
+    return -1;
 }
 
 int posix_mkdir_(const char *pathname, mode_t mode)
@@ -165,18 +172,20 @@ int posix_mkdir_(const char *pathname, mode_t mode)
 /* Test: Terminal init failure (cannot open /dev/tty) */
 START_TEST(test_repl_init_terminal_open_failure) {
     void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
 
     // Enable mock failure
     mock_open_should_fail = true;
 
-    // Attempt to initialize REPL - should fail
+    // Attempt to initialize shared context - should fail during terminal init
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
-    // Verify failure
+    // Verify failure (terminal init failed)
     ck_assert(is_err(&res));
-    ck_assert_ptr_null(repl);
+    ck_assert_ptr_null(shared);
 
     // Cleanup mock state
     mock_open_should_fail = false;
@@ -188,18 +197,20 @@ END_TEST
 START_TEST(test_repl_init_render_invalid_dimensions)
 {
     void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
 
     // Enable mock failure for ioctl
     mock_ioctl_should_fail = true;
 
-    // Attempt to initialize REPL - should fail when creating render
+    // Attempt to initialize shared context - should fail when creating render
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
-    // Verify failure
+    // Verify failure (render init failed)
     ck_assert(is_err(&res));
-    ck_assert_ptr_null(repl);
+    ck_assert_ptr_null(shared);
 
     // Cleanup mock state
     mock_ioctl_should_fail = false;
@@ -219,7 +230,15 @@ START_TEST(test_repl_init_signal_handler_failure)
 
     // Attempt to initialize REPL - should fail when setting up signal handler
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -239,20 +258,29 @@ START_TEST(test_repl_init_history_load_failure)
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
-    // Enable mock failure for stat/mkdir (history directory creation)
-    mock_stat_should_fail = true;
-
     // Initialize REPL - should succeed even with history failure
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context (logger needs to initialize first)
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Enable mock failure for stat/mkdir (history directory creation)
+    // Must be set AFTER shared context init because logger also uses stat
+    mock_stat_should_fail = true;
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify success (graceful degradation)
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(repl);
 
     // History should be created but empty
-    ck_assert_ptr_nonnull(repl->history);
-    ck_assert_uint_eq(repl->history->count, 0);
+    ck_assert_ptr_nonnull(repl->shared->history);
+    ck_assert_uint_eq(repl->shared->history->count, 0);
 
     // Cleanup mock state
     mock_stat_should_fail = false;
@@ -270,17 +298,65 @@ START_TEST(test_repl_init_success_debug_manager)
 
     // Initialize REPL - should succeed
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify success
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(repl);
 
     // Verify debug manager is created
-    ck_assert_ptr_nonnull(repl->debug_mgr);
+    ck_assert_ptr_nonnull(repl->shared->debug_mgr);
 
     // Verify debug is disabled by default
-    ck_assert(!repl->debug_enabled);
+    ck_assert(!repl->shared->debug_enabled);
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: Agent creation at REPL initialization */
+START_TEST(test_repl_init_creates_agent)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Initialize REPL - should create an agent
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
+
+    // Verify success
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(repl);
+
+    // Verify agent was created
+    ck_assert_ptr_nonnull(repl->current);
+
+    // Verify agent UUID is valid (non-NULL and non-empty)
+    ck_assert_ptr_nonnull(repl->current->uuid);
+    ck_assert(strlen(repl->current->uuid) > 0);
+
+    // Verify agent is root agent (no parent)
+    ck_assert_ptr_null(repl->current->parent_uuid);
+
+    // Verify agent has reference to shared context
+    ck_assert_ptr_eq(repl->current->shared, repl->shared);
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -303,6 +379,7 @@ static Suite *repl_init_suite(void)
     TCase *tc_success = tcase_create("Successful Init");
     tcase_set_timeout(tc_success, 30);
     tcase_add_test(tc_success, test_repl_init_success_debug_manager);
+    tcase_add_test(tc_success, test_repl_init_creates_agent);
     suite_add_tcase(s, tc_success);
 
     return s;

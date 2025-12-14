@@ -8,6 +8,7 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include <string.h>
 #include <fcntl.h>
@@ -17,8 +18,10 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
+#include "../../../src/shared.h"
 #include "../../../src/input.h"
 #include "../../test_utils.h"
+#include "../../../src/logger.h"
 
 // Forward declarations
 int posix_open_(const char *pathname, int flags);
@@ -80,15 +83,24 @@ ssize_t posix_read_(int fd, void *b, size_t c)
 static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offset)
 {
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t res = ik_repl_init(ctx, cfg, repl_out);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, repl_out);
     ck_assert(is_ok(&res));
     for (int32_t i = 0; i < 50; i++) {
         char buf[32];
         snprintf(buf, sizeof(buf), "scrollback line %d", i);
-        res = ik_scrollback_append_line((*repl_out)->scrollback, buf, strlen(buf));
+        res = ik_scrollback_append_line((*repl_out)->current->scrollback, buf, strlen(buf));
         ck_assert(is_ok(&res));
     }
-    (*repl_out)->viewport_offset = offset;
+    (*repl_out)->current->viewport_offset = offset;
 }
 
 // Helper: Test action auto-scrolls to bottom
@@ -102,9 +114,9 @@ static void test_action_autoscrolls(ik_input_action_t *action, bool should_autos
     ck_assert(is_ok(&res));
 
     if (should_autoscroll) {
-        ck_assert_uint_eq(repl->viewport_offset, 0);
+        ck_assert_uint_eq(repl->current->viewport_offset, 0);
     } else {
-        ck_assert_uint_ne(repl->viewport_offset, 0);
+        ck_assert_uint_ne(repl->current->viewport_offset, 0);
     }
     talloc_free(ctx);
 }
@@ -129,12 +141,12 @@ END_TEST START_TEST(test_autoscroll_on_backspace)
     ik_input_action_t insert = { .type = IK_INPUT_CHAR, .codepoint = 'x' };
     res_t res = ik_repl_process_action(repl, &insert);
     ck_assert(is_ok(&res));
-    repl->viewport_offset = 20;  // Reset to scrolled position
+    repl->current->viewport_offset = 20;  // Reset to scrolled position
 
     ik_input_action_t action = { .type = IK_INPUT_BACKSPACE };
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
     talloc_free(ctx);
 }
 
@@ -151,18 +163,18 @@ END_TEST START_TEST(test_autoscroll_on_delete)
     ik_input_action_t left = { .type = IK_INPUT_ARROW_LEFT };
     res = ik_repl_process_action(repl, &left);
     ck_assert(is_ok(&res));
-    repl->viewport_offset = 25;  // Reset to scrolled position
+    repl->current->viewport_offset = 25;  // Reset to scrolled position
 
     ik_input_action_t action = { .type = IK_INPUT_DELETE };
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->viewport_offset, 0);
+    ck_assert_uint_eq(repl->current->viewport_offset, 0);
     talloc_free(ctx);
 }
 
 END_TEST START_TEST(test_autoscroll_on_cursor_navigation)
 {
-    // Arrow left/right should autoscroll
+    // Arrow left/right should autoscroll (not affected by scroll detector)
     ik_input_action_t left_right_actions[] = {
         { .type = IK_INPUT_ARROW_LEFT },
         { .type = IK_INPUT_ARROW_RIGHT }
@@ -171,7 +183,11 @@ END_TEST START_TEST(test_autoscroll_on_cursor_navigation)
         test_action_autoscrolls(&left_right_actions[i], true);
     }
 
-    // Arrow up/down should NOT autoscroll - they scroll the viewport instead
+    // Arrow up/down should NOT autoscroll - they scroll the viewport instead.
+    // When viewport is already scrolled, up/down continue scrolling rather
+    // than jumping to bottom. This allows the user to navigate scrollback.
+    // Note: These go through the scroll detector which buffers them, so we
+    // won't see the scroll action immediately - offset stays unchanged.
     ik_input_action_t up_down_actions[] = {
         { .type = IK_INPUT_ARROW_UP },
         { .type = IK_INPUT_ARROW_DOWN }
@@ -210,7 +226,7 @@ END_TEST START_TEST(test_no_autoscroll_on_page_down)
     ik_input_action_t action = { .type = IK_INPUT_PAGE_DOWN };
     res_t res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
-    ck_assert_uint_lt(repl->viewport_offset, 20);  // Scrolled down but not to 0
+    ck_assert_uint_lt(repl->current->viewport_offset, 20);  // Scrolled down but not to 0
     talloc_free(ctx);
 }
 

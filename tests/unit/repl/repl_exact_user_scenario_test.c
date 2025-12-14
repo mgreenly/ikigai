@@ -1,17 +1,42 @@
+#include "agent.h"
 /**
  * @file repl_exact_user_scenario_test.c
  * @brief Test exact user scenario: 5-row terminal with A, B, C, D in scrollback
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
 #include "../../../src/input_buffer/core.h"
 #include "../../test_utils.h"
+
+// Mock write() to capture output
+static char mock_output[16384];
+static size_t mock_output_len = 0;
+
+ssize_t posix_write_(int fd, const void *buf, size_t count);
+
+ssize_t posix_write_(int fd, const void *buf, size_t count)
+{
+    (void)fd;
+    if (mock_output_len + count < sizeof(mock_output)) {
+        memcpy(mock_output + mock_output_len, buf, count);
+        mock_output_len += count;
+    }
+    return (ssize_t)count;
+}
+
+static void reset_mock(void) {
+    mock_output_len = 0;
+    memset(mock_output, 0, sizeof(mock_output));
+}
 
 /**
  * Test: Exact user scenario
@@ -22,29 +47,15 @@
  * After Page Up: should show A, B, C, D, separator (input buffer off-screen)
  */
 START_TEST(test_exact_user_scenario) {
+    reset_mock();
     void *ctx = talloc_new(NULL);
+    res_t res;
 
     // Terminal: 5 rows x 80 cols
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
-    res_t res;
     term->screen_rows = 5;
     term->screen_cols = 80;
-
-    // Create empty input buffer
-    ik_input_buffer_t *input_buf = NULL;
-    input_buf = ik_input_buffer_create(ctx);
-    ik_input_buffer_ensure_layout(input_buf, 80);
-
-    // Create scrollback with A, B, C, D
-    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    res = ik_scrollback_append_line(scrollback, "A", 1);
-    ck_assert(is_ok(&res));
-    res = ik_scrollback_append_line(scrollback, "B", 1);
-    ck_assert(is_ok(&res));
-    res = ik_scrollback_append_line(scrollback, "C", 1);
-    ck_assert(is_ok(&res));
-    res = ik_scrollback_append_line(scrollback, "D", 1);
-    ck_assert(is_ok(&res));
+    term->tty_fd = 1;
 
     // Create render context
     ik_render_ctx_t *render_ctx = NULL;
@@ -53,88 +64,75 @@ START_TEST(test_exact_user_scenario) {
 
     // Create REPL at bottom (offset=0)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->render = render_ctx;
-    repl->viewport_offset = 0;
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render_ctx;
 
-    // Document: 4 scrollback + 1 separator + 1 input buffer = 6 rows
-    // (input buffer always occupies 1 row even when empty, for cursor visibility)
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+
+    // Initialize mutex (required by render_frame)
+    pthread_mutex_init(&repl->current->tool_thread_mutex, NULL);
+
+    // Use agent's input buffer
+    ik_input_buffer_ensure_layout(agent->input_buffer, 80);
+
+    // Add scrollback A, B, C, D to agent's scrollback
+    res = ik_scrollback_append_line(agent->scrollback, "A", 1);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(agent->scrollback, "B", 1);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(agent->scrollback, "C", 1);
+    ck_assert(is_ok(&res));
+    res = ik_scrollback_append_line(agent->scrollback, "D", 1);
+    ck_assert(is_ok(&res));
+
+    agent->viewport_offset = 0;
+
+    // Document: 4 scrollback + 1 (upper sep) + 1 input + 1 (lower sep) = 7 rows
     // Terminal: 5 rows
-    // At bottom (offset=0), showing rows 1-5:
-    //   Row 0: A (off-screen)
-    //   Row 1: B
-    //   Row 2: C
-    //   Row 3: D
-    //   Row 4: separator
-    //   Row 5: input buffer
+    // At bottom (offset=0): shows C, D, separator, input buffer, lower separator (A, B off-screen top)
 
     fprintf(stderr, "\n=== User Scenario: At Bottom ===\n");
 
-    // Capture initial render
-    int pipefd1[2];
-    ck_assert_int_eq(pipe(pipefd1), 0);
-    int saved_stdout1 = dup(1);
-    dup2(pipefd1[1], 1);
-
+    // Render at bottom
     res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
 
-    fflush(stdout);
-    dup2(saved_stdout1, 1);
-    close(pipefd1[1]);
+    fprintf(stderr, "Output at bottom:\n%s\n", mock_output);
+    fprintf(stderr, "Contains C: %s\n", strstr(mock_output, "C") ? "YES" : "NO");
+    fprintf(stderr, "Contains D: %s\n", strstr(mock_output, "D") ? "YES" : "NO");
 
-    char output1[8192] = {0};
-    ssize_t bytes_read1 = read(pipefd1[0], output1, sizeof(output1) - 1);
-    ck_assert(bytes_read1 > 0);
-    close(pipefd1[0]);
-    close(saved_stdout1);
-
-    fprintf(stderr, "Output at bottom:\n%s\n", output1);
-    fprintf(stderr, "Contains B: %s\n", strstr(output1, "B") ? "YES" : "NO");
-    fprintf(stderr, "Contains A: %s\n", strstr(output1, "A") ? "YES" : "NO");
-
-    // At bottom: should see B, C, D, separator, input buffer (A is off-screen top)
-    ck_assert_ptr_ne(strstr(output1, "B"), NULL);
-    ck_assert_ptr_ne(strstr(output1, "C"), NULL);
-    ck_assert_ptr_ne(strstr(output1, "D"), NULL);
+    // At bottom: should see C, D, separator, input buffer, lower separator (A and B are off-screen top)
+    ck_assert_ptr_ne(strstr(mock_output, "C"), NULL);
+    ck_assert_ptr_ne(strstr(mock_output, "D"), NULL);
 
     // Now press Page Up
-    repl->viewport_offset = 5;
+    reset_mock();
+    agent->viewport_offset = 5;
 
     fprintf(stderr, "\n=== After Page Up ===\n");
 
-    // Capture render after Page Up
-    int pipefd2[2];
-    ck_assert_int_eq(pipe(pipefd2), 0);
-    int saved_stdout2 = dup(1);
-    dup2(pipefd2[1], 1);
-
+    // Render after Page Up
     res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
 
-    fflush(stdout);
-    dup2(saved_stdout2, 1);
-    close(pipefd2[1]);
-
-    char output2[8192] = {0};
-    ssize_t bytes_read2 = read(pipefd2[0], output2, sizeof(output2) - 1);
-    ck_assert(bytes_read2 > 0);
-    close(pipefd2[0]);
-    close(saved_stdout2);
-
-    fprintf(stderr, "Output after Page Up:\n%s\n", output2);
-    fprintf(stderr, "Contains A: %s\n", strstr(output2, "A") ? "YES" : "NO");
-    fprintf(stderr, "Contains B: %s\n", strstr(output2, "B") ? "YES" : "NO");
-    fprintf(stderr, "Contains D: %s\n", strstr(output2, "D") ? "YES" : "NO");
+    fprintf(stderr, "Output after Page Up:\n%s\n", mock_output);
+    fprintf(stderr, "Contains A: %s\n", strstr(mock_output, "A") ? "YES" : "NO");
+    fprintf(stderr, "Contains B: %s\n", strstr(mock_output, "B") ? "YES" : "NO");
+    fprintf(stderr, "Contains D: %s\n", strstr(mock_output, "D") ? "YES" : "NO");
 
     // After Page Up, should show A, B, C, D, separator (rows 0-4)
     // Input buffer is off-screen (row 5)
-    ck_assert_ptr_ne(strstr(output2, "A"), NULL);
-    ck_assert_ptr_ne(strstr(output2, "B"), NULL);
-    ck_assert_ptr_ne(strstr(output2, "C"), NULL);
-    ck_assert_ptr_ne(strstr(output2, "D"), NULL);
+    ck_assert_ptr_ne(strstr(mock_output, "A"), NULL);
+    ck_assert_ptr_ne(strstr(mock_output, "B"), NULL);
+    ck_assert_ptr_ne(strstr(mock_output, "C"), NULL);
+    ck_assert_ptr_ne(strstr(mock_output, "D"), NULL);
 
     talloc_free(ctx);
 }

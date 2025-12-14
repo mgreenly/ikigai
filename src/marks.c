@@ -4,7 +4,9 @@
 #include "openai/client.h"
 #include "panic.h"
 #include "repl.h"
+#include "agent.h"
 #include "scrollback.h"
+#include "shared.h"
 #include "wrapper.h"
 
 #include <assert.h>
@@ -49,7 +51,7 @@ res_t ik_mark_create(ik_repl_ctx_t *repl, const char *label)
     if (mark == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Record current conversation position
-    mark->message_index = repl->conversation->message_count;
+    mark->message_index = repl->current->conversation->message_count;
 
     // Copy label if provided
     if (label != NULL) {
@@ -69,16 +71,16 @@ res_t ik_mark_create(ik_repl_ctx_t *repl, const char *label)
     mark->timestamp = talloc_steal(mark, ts_res.ok);
 
     // Add mark to marks array
-    size_t new_count = repl->mark_count + 1;
-    ik_mark_t **new_marks = talloc_realloc(repl, repl->marks, ik_mark_t *, (unsigned int)new_count);
+    size_t new_count = repl->current->mark_count + 1;
+    ik_mark_t **new_marks = talloc_realloc(repl, repl->current->marks, ik_mark_t *, (unsigned int)new_count);
     if (new_marks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    new_marks[repl->mark_count] = mark;
-    repl->marks = new_marks;
-    repl->mark_count = new_count;
+    new_marks[repl->current->mark_count] = mark;
+    repl->current->marks = new_marks;
+    repl->current->mark_count = new_count;
 
     // Reparent mark to marks array
-    talloc_steal(repl->marks, mark);
+    talloc_steal(repl->current->marks, mark);
 
     // Render mark event to scrollback (identical to replay)
     char *data_json;
@@ -89,7 +91,7 @@ res_t ik_mark_create(ik_repl_ctx_t *repl, const char *label)
     }
     if (data_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t result = ik_event_render(repl->scrollback, "mark", NULL, data_json);
+    res_t result = ik_event_render(repl->current->scrollback, "mark", NULL, data_json);
     talloc_free(data_json);
     if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
 
@@ -102,19 +104,19 @@ res_t ik_mark_find(ik_repl_ctx_t *repl, const char *label, ik_mark_t **mark_out)
     assert(mark_out != NULL);  /* LCOV_EXCL_BR_LINE */
     // label can be NULL to find most recent mark
 
-    if (repl->mark_count == 0) {
+    if (repl->current->mark_count == 0) {
         return ERR(repl, INVALID_ARG, "No marks found");
     }
 
     // If no label specified, return most recent mark
     if (label == NULL) {
-        *mark_out = repl->marks[repl->mark_count - 1];
+        *mark_out = repl->current->marks[repl->current->mark_count - 1];
         return OK(*mark_out);
     }
 
     // Search for mark with matching label (from most recent to oldest)
-    for (size_t i = repl->mark_count; i > 0; i--) {
-        ik_mark_t *mark = repl->marks[i - 1];
+    for (size_t i = repl->current->mark_count; i > 0; i--) {
+        ik_mark_t *mark = repl->current->marks[i - 1];
         if (mark->label != NULL && strcmp(mark->label, label) == 0) {
             *mark_out = mark;
             return OK(*mark_out);
@@ -133,16 +135,16 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
 
     // Truncate conversation to mark position
     // Free messages after the mark position
-    for (size_t i = target_mark->message_index; i < repl->conversation->message_count; i++) {
-        talloc_free(repl->conversation->messages[i]);
+    for (size_t i = target_mark->message_index; i < repl->current->conversation->message_count; i++) {
+        talloc_free(repl->current->conversation->messages[i]);
     }
-    repl->conversation->message_count = target_mark->message_index;
+    repl->current->conversation->message_count = target_mark->message_index;
 
     // Remove marks after the target position (but keep the target mark itself)
     size_t target_index = 0;
     bool found = false;
-    for (size_t i = 0; i < repl->mark_count; i++) {  /* LCOV_EXCL_BR_LINE */
-        if (repl->marks[i] == target_mark) {
+    for (size_t i = 0; i < repl->current->mark_count; i++) {  /* LCOV_EXCL_BR_LINE */
+        if (repl->current->marks[i] == target_mark) {
             target_index = i;
             found = true;
             break;
@@ -152,30 +154,30 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
     (void)found;  // Used only in assert (compiled out in release builds)
 
     // Free marks after target (keep target mark)
-    for (size_t i = target_index + 1; i < repl->mark_count; i++) {
-        talloc_free(repl->marks[i]);
+    for (size_t i = target_index + 1; i < repl->current->mark_count; i++) {
+        talloc_free(repl->current->marks[i]);
     }
-    repl->mark_count = target_index + 1;
+    repl->current->mark_count = target_index + 1;
 
     // Rebuild scrollback from remaining conversation
-    ik_scrollback_clear(repl->scrollback);
+    ik_scrollback_clear(repl->current->scrollback);
 
     // Render system message first (if configured)
-    if (repl->cfg != NULL && repl->cfg->openai_system_message != NULL) {
-        result = ik_event_render(repl->scrollback, "system", repl->cfg->openai_system_message, "{}");
+    if (repl->shared->cfg != NULL && repl->shared->cfg->openai_system_message != NULL) {
+        result = ik_event_render(repl->current->scrollback, "system", repl->shared->cfg->openai_system_message, "{}");
         if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
     }
 
     // Render conversation messages using event renderer (no role prefixes)
-    for (size_t i = 0; i < repl->conversation->message_count; i++) {
-        ik_msg_t *msg = repl->conversation->messages[i];
-        result = ik_event_render(repl->scrollback, msg->kind, msg->content, "{}");
+    for (size_t i = 0; i < repl->current->conversation->message_count; i++) {
+        ik_msg_t *msg = repl->current->conversation->messages[i];
+        result = ik_event_render(repl->current->scrollback, msg->kind, msg->content, "{}");
         if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
     }
 
     // Re-add mark indicators for remaining marks (including the target mark)
-    for (size_t i = 0; i < repl->mark_count; i++) {
-        ik_mark_t *mark = repl->marks[i];
+    for (size_t i = 0; i < repl->current->mark_count; i++) {
+        ik_mark_t *mark = repl->current->marks[i];
         char *data_json;
         if (mark->label != NULL) {
             data_json = talloc_asprintf(NULL, "{\"label\":\"%s\"}", mark->label);
@@ -184,7 +186,7 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
         }
         if (data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-        result = ik_event_render(repl->scrollback, "mark", NULL, data_json);
+        result = ik_event_render(repl->current->scrollback, "mark", NULL, data_json);
         talloc_free(data_json);
         if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
     }

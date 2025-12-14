@@ -3,9 +3,12 @@
  * @brief Tests for mark rewind with system role messages (covers marks.c line 172)
  */
 
+#include "../../../src/agent.h"
 #include <check.h>
 #include <talloc.h>
 
+#include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/marks.h"
 #include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
@@ -29,12 +32,30 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_openai_conversation_t *conv = res.ok;
     ck_assert_ptr_nonnull(conv);
 
+    // Create minimal config
+    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = cfg;
+
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
-    r->conversation = conv;
-    r->marks = NULL;
-    r->mark_count = 0;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+
+
+    agent->conversation = conv;
+    r->current = agent;
+
+    r->shared = shared;
+    r->current->marks = NULL;
+    r->current->mark_count = 0;
 
     return r;
 }
@@ -56,33 +77,33 @@ static void teardown(void)
 // Test: Rewind with system role message (covers marks.c line 172 - else branch)
 START_TEST(test_rewind_with_system_role) {
     // Create a system message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "system", "You are a helpful assistant");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "system", "You are a helpful assistant");
     ck_assert(is_ok(&msg_res));
     ik_msg_t *sys_msg = msg_res.ok;
 
     // Add it to conversation
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, sys_msg);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, sys_msg);
     ck_assert(is_ok(&msg_res));
-    ck_assert_uint_eq(repl->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
 
     // Create a user message
-    msg_res = ik_openai_msg_create(repl->conversation, "user", "Hello");
+    msg_res = ik_openai_msg_create(repl->current->conversation, "user", "Hello");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 
     // Create a mark after the user message
     res_t mark_res = ik_mark_create(repl, "checkpoint");
     ck_assert(is_ok(&mark_res));
-    ck_assert_uint_eq(repl->mark_count, 1);
+    ck_assert_uint_eq(repl->current->mark_count, 1);
 
     // Add another message
-    msg_res = ik_openai_msg_create(repl->conversation, "assistant", "Hi there!");
+    msg_res = ik_openai_msg_create(repl->current->conversation, "assistant", "Hi there!");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
-    ck_assert_uint_eq(repl->conversation->message_count, 3);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 3);
 
     // Find and rewind to the mark - this should rebuild scrollback with system message
     ik_mark_t *target_mark = NULL;
@@ -94,9 +115,9 @@ START_TEST(test_rewind_with_system_role) {
     ck_assert(is_ok(&rewind_res));
 
     // Verify conversation was rewound
-    ck_assert_uint_eq(repl->conversation->message_count, 2);
-    ck_assert_str_eq(repl->conversation->messages[0]->kind, "system");
-    ck_assert_str_eq(repl->conversation->messages[1]->kind, "user");
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "system");
+    ck_assert_str_eq(repl->current->conversation->messages[1]->kind, "user");
 }
 END_TEST
 // Test: Rewind with multiple system messages
@@ -105,9 +126,9 @@ START_TEST(test_rewind_with_multiple_system_messages)
     // Add several system messages
     for (int i = 0; i < 3; i++) {
         char *content = talloc_asprintf(ctx, "System message %d", i);
-        res_t msg_res = ik_openai_msg_create(repl->conversation, "system", content);
+        res_t msg_res = ik_openai_msg_create(repl->current->conversation, "system", content);
         ck_assert(is_ok(&msg_res));
-        msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+        msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
         ck_assert(is_ok(&msg_res));
         talloc_free(content);
     }
@@ -117,9 +138,9 @@ START_TEST(test_rewind_with_multiple_system_messages)
     ck_assert(is_ok(&mark_res));
 
     // Add more messages
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "Test");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "Test");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Rewind
@@ -131,7 +152,7 @@ START_TEST(test_rewind_with_multiple_system_messages)
     ck_assert(is_ok(&rewind_res));
 
     // All 3 system messages should still be in conversation
-    ck_assert_uint_eq(repl->conversation->message_count, 3);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 3);
 }
 
 END_TEST

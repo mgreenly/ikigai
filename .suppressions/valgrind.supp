@@ -1,0 +1,43 @@
+{
+   Check library - still reachable memory from malloc
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+}
+
+{
+   Check library - still reachable memory from realloc
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   ...
+}
+
+{
+   Check library - still reachable memory from calloc
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   ...
+}
+
+{
+   Talloc - possibly lost memory from malloc
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   ...
+   obj:*/libtalloc.so*
+   ...
+}
+
+{
+   Talloc - possibly lost memory from realloc
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:realloc
+   ...
+   obj:*/libtalloc.so*
+   ...
+}

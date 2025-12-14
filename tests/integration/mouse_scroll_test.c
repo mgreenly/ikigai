@@ -16,9 +16,9 @@
 // Mock terminal file descriptor
 static int32_t mock_tty_fd = 100;
 
-// Track mouse enable/disable calls
-static int32_t mouse_enable_count = 0;
-static int32_t mouse_disable_count = 0;
+// Track alt screen enter/exit calls
+static int32_t alt_screen_enter_count = 0;
+static int32_t alt_screen_exit_count = 0;
 
 // Mock control flags
 static int32_t mock_open_fail = 0;
@@ -103,13 +103,13 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
         write_lengths[write_call_count] = count;
 
         if (count >= 8) {
-            const char mouse_enable[] = "\x1b[?1007h";
-            if (memcmp(buf, mouse_enable, sizeof(mouse_enable) - 1) == 0) {
-                mouse_enable_count++;
+            const char alt_screen_enter[] = "\x1b[?1049h";
+            if (memcmp(buf, alt_screen_enter, sizeof(alt_screen_enter) - 1) == 0) {
+                alt_screen_enter_count++;
             }
-            const char mouse_disable[] = "\x1b[?1007l";
-            if (memcmp(buf, mouse_disable, sizeof(mouse_disable) - 1) == 0) {
-                mouse_disable_count++;
+            const char alt_screen_exit[] = "\x1b[?1049l";
+            if (memcmp(buf, alt_screen_exit, sizeof(alt_screen_exit) - 1) == 0) {
+                alt_screen_exit_count++;
             }
         }
         write_call_count++;
@@ -146,14 +146,14 @@ static void reset_mocks(void)
     mock_tcflush_fail = 0;
     mock_write_fail = 0;
     mock_ioctl_fail = 0;
-    mouse_enable_count = 0;
-    mouse_disable_count = 0;
+    alt_screen_enter_count = 0;
+    alt_screen_exit_count = 0;
     write_call_count = 0;
     memset(write_buffers, 0, sizeof(write_buffers));
     memset(write_lengths, 0, sizeof(write_lengths));
 }
 
-START_TEST(test_terminal_init_enables_mouse)
+START_TEST(test_terminal_init_enters_alt_screen)
 {
     reset_mocks();
     void *ctx = talloc_new(NULL);
@@ -161,13 +161,13 @@ START_TEST(test_terminal_init_enables_mouse)
     res_t result = ik_term_init(ctx, &term);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(term);
-    ck_assert_int_eq(mouse_enable_count, 1);
+    ck_assert_int_eq(alt_screen_enter_count, 1);
     ik_term_cleanup(term);
     talloc_free(ctx);
 }
 END_TEST
 
-START_TEST(test_terminal_cleanup_disables_mouse)
+START_TEST(test_terminal_cleanup_exits_alt_screen)
 {
     reset_mocks();
     void *ctx = talloc_new(NULL);
@@ -175,9 +175,9 @@ START_TEST(test_terminal_cleanup_disables_mouse)
     res_t result = ik_term_init(ctx, &term);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(term);
-    mouse_disable_count = 0;
+    alt_screen_exit_count = 0;
     ik_term_cleanup(term);
-    ck_assert_int_eq(mouse_disable_count, 1);
+    ck_assert_int_eq(alt_screen_exit_count, 1);
     talloc_free(ctx);
 }
 END_TEST
@@ -192,8 +192,8 @@ static Suite *mouse_scroll_suite(void)
 
     TCase *tc_terminal = tcase_create("Terminal");
     tcase_set_timeout(tc_terminal, 30);
-    tcase_add_test(tc_terminal, test_terminal_init_enables_mouse);
-    tcase_add_test(tc_terminal, test_terminal_cleanup_disables_mouse);
+    tcase_add_test(tc_terminal, test_terminal_init_enters_alt_screen);
+    tcase_add_test(tc_terminal, test_terminal_cleanup_exits_alt_screen);
     suite_add_tcase(s, tc_terminal);
 
     TCase *tc_integration = tcase_create("Integration");

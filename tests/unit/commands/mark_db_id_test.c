@@ -3,7 +3,10 @@
  * @brief Tests for get_mark_db_id and related edge cases
  */
 
+#include "../../../src/agent.h"
 #include "../../../src/commands_mark.h"
+#include "../../../src/config.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
@@ -128,12 +131,30 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_openai_conversation_t *conv = res.ok;
     ck_assert_ptr_nonnull(conv);
 
+    // Create minimal config
+    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+    shared->cfg = cfg;
+
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    r->scrollback = scrollback;
-    r->conversation = conv;
-    r->marks = NULL;
-    r->mark_count = 0;
+    
+    // Create agent context
+    ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+    agent->scrollback = scrollback;
+
+
+    agent->conversation = conv;
+    r->current = agent;
+
+    r->shared = shared;
+    r->current->marks = NULL;
+    r->current->mark_count = 0;
 
     return r;
 }
@@ -162,17 +183,17 @@ START_TEST(test_mark_db_query_no_results) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "findme");
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query succeeds but returns 0 rows
@@ -181,7 +202,7 @@ START_TEST(test_mark_db_query_no_results) {
     // Rewind - query returns no results
     res_t res = ik_cmd_rewind(ctx, repl, "findme");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 END_TEST
 // Test: get_mark_db_id with query failure (line 48 branches)
@@ -190,17 +211,17 @@ START_TEST(test_mark_db_query_failure)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query fails
@@ -209,7 +230,7 @@ START_TEST(test_mark_db_query_failure)
     // Rewind - query fails but rewind still succeeds in memory
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -217,23 +238,23 @@ END_TEST
 START_TEST(test_mark_db_id_null_ctx)
 {
     // No DB context
-    repl->db_ctx = NULL;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = NULL;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Rewind - get_mark_db_id returns 0 due to NULL db_ctx
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -243,23 +264,23 @@ START_TEST(test_mark_db_id_invalid_session)
     // DB context set but invalid session
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = -1;  // Invalid
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = -1;  // Invalid
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Rewind - get_mark_db_id returns 0 due to invalid session_id
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -269,17 +290,17 @@ START_TEST(test_rewind_unlabeled_mark_db_query)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create an unlabeled mark in memory
     res_t mark_res = ik_mark_create(repl, NULL);
     ck_assert(is_ok(&mark_res));
 
     // Add a message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "test");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "test");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: SELECT succeeds with NULL label query
@@ -289,7 +310,7 @@ START_TEST(test_rewind_unlabeled_mark_db_query)
     // Rewind to unlabeled mark (triggers lines 40-42)
     res_t res = ik_cmd_rewind(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -299,17 +320,17 @@ START_TEST(test_mark_db_id_sscanf_non_numeric)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query succeeds but returns non-numeric string
@@ -319,7 +340,7 @@ START_TEST(test_mark_db_id_sscanf_non_numeric)
     // Rewind - sscanf fails, mark_id falls back to 0
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -329,17 +350,17 @@ START_TEST(test_mark_db_id_sscanf_empty_string)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query succeeds but returns empty string
@@ -349,7 +370,7 @@ START_TEST(test_mark_db_id_sscanf_empty_string)
     // Rewind - sscanf fails, mark_id falls back to 0
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -359,17 +380,17 @@ START_TEST(test_mark_db_id_sscanf_special_chars)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query succeeds but returns special characters
@@ -379,7 +400,7 @@ START_TEST(test_mark_db_id_sscanf_special_chars)
     // Rewind - sscanf fails, mark_id falls back to 0
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST
@@ -389,17 +410,17 @@ START_TEST(test_mark_db_id_sscanf_text_only)
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
-    repl->db_ctx = db_ctx;
-    repl->current_session_id = 1;
+    repl->shared->db_ctx = db_ctx;
+    repl->shared->session_id = 1;
 
     // Create mark in memory
     res_t mark_res = ik_mark_create(repl, "test");
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->conversation, "user", "msg");
+    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
     ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->conversation, msg_res.ok);
+    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
     ck_assert(is_ok(&msg_res));
 
     // Mock: Query succeeds but returns text
@@ -409,7 +430,7 @@ START_TEST(test_mark_db_id_sscanf_text_only)
     // Rewind - sscanf fails, mark_id falls back to 0
     res_t res = ik_cmd_rewind(ctx, repl, "test");
     ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 }
 
 END_TEST

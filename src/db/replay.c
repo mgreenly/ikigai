@@ -196,25 +196,35 @@ static res_t process_event(ik_replay_context_t *context, int64_t id,
   if (strcmp(kind, "rewind") == 0) {
     // Parse target_message_id from data_json
     if (data_json == NULL) {
-      ik_log_error("Malformed rewind event (id=%lld): missing data field",
-                   (long long)id);
+      yyjson_mut_doc *log_doc = ik_log_create();
+      yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+      if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Malformed rewind event: missing data field")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      if (!yyjson_mut_obj_add_int(log_doc, root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      ik_log_error_json(log_doc);
       return OK(NULL);
     }
 
     yyjson_doc *doc = yyjson_read_(data_json, strlen(data_json), 0);
     if (doc == NULL) {
-      ik_log_error(
-          "Malformed rewind event (id=%lld): invalid JSON in data field",
-          (long long)id);
+      yyjson_mut_doc *log_doc = ik_log_create();
+      yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+      if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Malformed rewind event: invalid JSON in data field")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      if (!yyjson_mut_obj_add_int(log_doc, root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      ik_log_error_json(log_doc);
       return OK(NULL);
     }
 
     yyjson_val *root = yyjson_doc_get_root_(doc);
     yyjson_val *target_val = yyjson_obj_get_(root, "target_message_id");
     if (target_val == NULL || !yyjson_is_int(target_val)) {
-      ik_log_error("Malformed rewind event (id=%lld): missing or invalid "
-                   "target_message_id",
-                   (long long)id);
+      yyjson_mut_doc *log_doc = ik_log_create();
+      yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+      if (log_root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Malformed rewind event: missing or invalid target_message_id")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      if (!yyjson_mut_obj_add_int(log_doc, log_root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      ik_log_error_json(log_doc);
       yyjson_doc_free(doc);
       return OK(NULL);
     }
@@ -225,8 +235,13 @@ static res_t process_event(ik_replay_context_t *context, int64_t id,
     // Find mark in mark_stack matching target_message_id
     ik_replay_mark_t *mark = find_mark(context, target_message_id);
     if (mark == NULL) {
-      ik_log_error("Invalid rewind event (id=%lld): target mark %lld not found",
-                   (long long)id, (long long)target_message_id);
+      yyjson_mut_doc *log_doc = ik_log_create();
+      yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+      if (log_root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Invalid rewind event: target mark not found")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      if (!yyjson_mut_obj_add_int(log_doc, log_root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      if (!yyjson_mut_obj_add_int(log_doc, log_root, "target_message_id", target_message_id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+      ik_log_error_json(log_doc);
       return OK(NULL);
     }
 
@@ -242,7 +257,13 @@ static res_t process_event(ik_replay_context_t *context, int64_t id,
   }
 
   // Unknown event kind - this shouldn't happen if database is valid
-  ik_log_error("Unknown event kind: %s (message id=%lld)", kind, (long long)id);
+  yyjson_mut_doc *log_doc = ik_log_create();
+  yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+  if (log_root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+  if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Unknown event kind")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+  if (!yyjson_mut_obj_add_str(log_doc, log_root, "kind", kind)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+  if (!yyjson_mut_obj_add_int(log_doc, log_root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+  ik_log_error_json(log_doc);
   return OK(NULL);
 }
 

@@ -4,15 +4,18 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <signal.h>
 #include <string.h>
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../../src/terminal.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
+#include "../../../src/logger.h"
 
 // Forward declaration for suite function
 static Suite *repl_resize_suite(void);
@@ -106,13 +109,21 @@ START_TEST(test_resize_updates_terminal_dimensions) {
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
 
     // Initial size should be 24x80
-    ck_assert_int_eq(repl->term->screen_rows, 24);
-    ck_assert_int_eq(repl->term->screen_cols, 80);
+    ck_assert_int_eq(repl->shared->term->screen_rows, 24);
+    ck_assert_int_eq(repl->shared->term->screen_cols, 80);
 
     // Change mock terminal size
     mock_screen_rows = 40;
@@ -123,8 +134,8 @@ START_TEST(test_resize_updates_terminal_dimensions) {
     ck_assert(is_ok(&result));
 
     // Terminal dimensions should be updated
-    ck_assert_int_eq(repl->term->screen_rows, 40);
-    ck_assert_int_eq(repl->term->screen_cols, 120);
+    ck_assert_int_eq(repl->shared->term->screen_rows, 40);
+    ck_assert_int_eq(repl->shared->term->screen_cols, 120);
 
     talloc_free(ctx);
 }
@@ -138,19 +149,27 @@ START_TEST(test_resize_invalidates_scrollback_layout)
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Add a long line that will wrap differently at different widths
     // 200 character line: at 80 cols = 3 lines, at 120 cols = 2 lines
     const char *line1 =
         "This is a very long line that will definitely wrap differently at different terminal widths and needs to be reflowed when the terminal is resized to a different width than what it was originally laid out at";
-    result = ik_scrollback_append_line(repl->scrollback, line1, strlen(line1));
+    result = ik_scrollback_append_line(repl->current->scrollback, line1, strlen(line1));
     ck_assert(is_ok(&result));
 
     // Ensure layout at 80 cols
-    ik_scrollback_ensure_layout(repl->scrollback, 80);
-    size_t physical_lines_80 = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    ik_scrollback_ensure_layout(repl->current->scrollback, 80);
+    size_t physical_lines_80 = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
 
     // Change to 120 cols and handle resize
     mock_screen_cols = 120;
@@ -158,11 +177,11 @@ START_TEST(test_resize_invalidates_scrollback_layout)
     ck_assert(is_ok(&result));
 
     // Layout should be recalculated (fewer physical lines at wider width)
-    size_t physical_lines_120 = ik_scrollback_get_total_physical_lines(repl->scrollback);
+    size_t physical_lines_120 = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
     ck_assert_uint_lt(physical_lines_120, physical_lines_80);
 
     // Verify cached_width was updated
-    ck_assert_int_eq(repl->scrollback->cached_width, 120);
+    ck_assert_int_eq(repl->current->scrollback->cached_width, 120);
 
     talloc_free(ctx);
 }
@@ -177,7 +196,15 @@ START_TEST(test_resize_handles_ioctl_failure)
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Make ioctl fail
@@ -203,7 +230,15 @@ START_TEST(test_sigwinch_handler_installed)
     // Create REPL context (which installs SIGWINCH handler)
     ik_repl_ctx_t *repl = NULL;
     ik_cfg_t *cfg = ik_test_create_config(ctx);
-    res_t result = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&result));
+
+    // Create REPL context
+    result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
 
     // Get current SIGWINCH handler

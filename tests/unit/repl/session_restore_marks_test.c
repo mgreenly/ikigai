@@ -1,8 +1,11 @@
+#include "agent.h"
 #include <check.h>
+#include "../../../src/agent.h"
 #include <talloc.h>
 #include <string.h>
 
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/session.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/replay.h"
@@ -116,14 +119,24 @@ static void reset_mocks(void)
 static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
 {
     ik_repl_ctx_t *repl = talloc_zero_(ctx, sizeof(ik_repl_ctx_t));
-    repl->scrollback = ik_scrollback_create(repl, 80);
-    repl->current_session_id = 0;
-    repl->marks = NULL;
-    repl->mark_count = 0;
+
+    // Create shared context with test config
+    ik_shared_ctx_t *shared = talloc_zero_(ctx, sizeof(ik_shared_ctx_t));
+    shared->cfg = talloc_zero_(ctx, sizeof(ik_cfg_t));
+    repl->shared = shared;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero_(repl, sizeof(ik_agent_ctx_t));
+    repl->current = agent;
+
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
+    repl->shared->session_id = 0;
+    repl->current->marks = NULL;
+    repl->current->mark_count = 0;
 
     // Create empty conversation
-    res_t conv_res = ik_openai_conversation_create(repl);
-    repl->conversation = conv_res.ok;
+    res_t conv_res = ik_openai_conversation_create(repl->current);
+    repl->current->conversation = conv_res.ok;
 
     return repl;
 }
@@ -185,17 +198,17 @@ START_TEST(test_restore_session_with_marks_rebuilds_stack) {
     ck_assert(is_ok(&res));
 
     // Verify mark stack was rebuilt
-    ck_assert_int_eq((int)repl->mark_count, 2);
-    ck_assert_ptr_nonnull(repl->marks);
+    ck_assert_int_eq((int)repl->current->mark_count, 2);
+    ck_assert_ptr_nonnull(repl->current->marks);
 
     // Verify first mark
-    ck_assert_int_eq((int)repl->marks[0]->message_index, 1);
-    ck_assert_ptr_nonnull(repl->marks[0]->label);
-    ck_assert_str_eq(repl->marks[0]->label, "checkpoint-1");
+    ck_assert_int_eq((int)repl->current->marks[0]->message_index, 1);
+    ck_assert_ptr_nonnull(repl->current->marks[0]->label);
+    ck_assert_str_eq(repl->current->marks[0]->label, "checkpoint-1");
 
     // Verify second mark
-    ck_assert_int_eq((int)repl->marks[1]->message_index, 2);
-    ck_assert_ptr_null(repl->marks[1]->label);
+    ck_assert_int_eq((int)repl->current->marks[1]->message_index, 2);
+    ck_assert_ptr_null(repl->current->marks[1]->label);
 
     talloc_free(ctx);
 }
@@ -231,7 +244,7 @@ START_TEST(test_restore_session_no_marks_stack_empty)
     ck_assert(is_ok(&res));
 
     // Verify mark stack is empty
-    ck_assert_int_eq((int)repl->mark_count, 0);
+    ck_assert_int_eq((int)repl->current->mark_count, 0);
 
     talloc_free(ctx);
 }
@@ -268,8 +281,8 @@ START_TEST(test_restore_session_single_labeled_mark)
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    ck_assert_int_eq((int)repl->mark_count, 1);
-    ck_assert_str_eq(repl->marks[0]->label, "test-mark");
+    ck_assert_int_eq((int)repl->current->mark_count, 1);
+    ck_assert_str_eq(repl->current->marks[0]->label, "test-mark");
 
     talloc_free(ctx);
 }
@@ -306,8 +319,8 @@ START_TEST(test_restore_session_unlabeled_mark)
     res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
 
     ck_assert(is_ok(&res));
-    ck_assert_int_eq((int)repl->mark_count, 1);
-    ck_assert_ptr_null(repl->marks[0]->label);
+    ck_assert_int_eq((int)repl->current->mark_count, 1);
+    ck_assert_ptr_null(repl->current->marks[0]->label);
 
     talloc_free(ctx);
 }

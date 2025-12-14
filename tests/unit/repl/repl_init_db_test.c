@@ -11,9 +11,11 @@
 #include <unistd.h>
 #include <signal.h>
 #include "../../../src/repl.h"
+#include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/repl/session_restore.h"
 #include "../../test_utils.h"
+#include "../../../src/logger.h"
 
 // Mock state for controlling failures
 static bool mock_db_init_should_fail = false;
@@ -146,19 +148,22 @@ int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *
 /* Test: Database init failure */
 START_TEST(test_repl_init_db_init_failure) {
     void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
 
     // Enable mock failure
     mock_db_init_should_fail = true;
 
-    // Attempt to initialize REPL with database - should fail
+    // Attempt to initialize shared context with database - should fail
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context - should fail at db_init
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
-    // Verify failure
+    // Verify failure at shared_ctx_init level
     ck_assert(is_err(&res));
-    ck_assert_ptr_null(repl);
+    ck_assert_ptr_null(shared);
 
     // Cleanup mock state
     mock_db_init_should_fail = false;
@@ -178,7 +183,15 @@ START_TEST(test_repl_init_session_restore_failure)
     // Attempt to initialize REPL with database - should fail during session restore
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -200,12 +213,20 @@ START_TEST(test_repl_init_db_success)
     // Both db_init and session_restore should succeed (mocks return success by default)
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify success
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(repl);
-    ck_assert_ptr_nonnull(repl->db_ctx);
+    ck_assert_ptr_nonnull(repl->shared->db_ctx);
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);
@@ -225,7 +246,15 @@ START_TEST(test_repl_init_signal_handler_failure_with_db)
     // Attempt to initialize REPL with database - db_init succeeds, signal_handler fails
     ik_cfg_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
-    res_t res = ik_repl_init(ctx, cfg, &repl);
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
 
     // Verify failure
     ck_assert(is_err(&res));

@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <xkbcommon/xkbcommon.h>
 
 #include "error.h"
 
@@ -26,6 +27,8 @@ typedef enum {
     IK_INPUT_CTRL_C,      // Ctrl+C (exit)
     IK_INPUT_CTRL_E,      // Ctrl+E (end of line)
     IK_INPUT_CTRL_K,      // Ctrl+K (kill to end of line)
+    IK_INPUT_CTRL_N,      // Ctrl+N (history next - rel-05)
+    IK_INPUT_CTRL_P,      // Ctrl+P (history previous - rel-05)
     IK_INPUT_CTRL_U,      // Ctrl+U (kill line)
     IK_INPUT_CTRL_W,      // Ctrl+W (delete word backward)
     IK_INPUT_TAB,         // Tab key (completion trigger)
@@ -39,6 +42,11 @@ typedef struct {
     uint32_t codepoint; // For IK_INPUT_CHAR
 } ik_input_action_t;
 
+// Reverse keymap: Unicode codepoint (0-127) -> X11 keycode
+typedef struct {
+    xkb_keycode_t keycodes[128];  // Index by ASCII codepoint
+} ik_xkb_reverse_map_t;
+
 // Input parser state for escape sequence buffering and UTF-8 decoding
 typedef struct {
     char esc_buf[16];        // Escape sequence buffer
@@ -48,6 +56,13 @@ typedef struct {
     size_t utf8_len;         // Current UTF-8 sequence length
     size_t utf8_expected;    // Expected total bytes for current UTF-8 sequence
     bool in_utf8;            // Currently parsing UTF-8 sequence
+    // xkbcommon state for CSI u translation
+    struct xkb_context *xkb_ctx;      // XKB context
+    struct xkb_keymap *xkb_keymap;    // XKB keymap for current layout
+    struct xkb_state *xkb_state;      // XKB state for modifier handling
+    ik_xkb_reverse_map_t reverse_map; // Unicode -> keycode mapping
+    xkb_mod_mask_t shift_mask;        // Shift modifier mask
+    bool xkb_initialized;             // True if xkb state is ready
 } ik_input_parser_t;
 
 // Create input parser

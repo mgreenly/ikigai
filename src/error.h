@@ -10,9 +10,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <talloc.h>
-
-// Forward declaration of vsnprintf_ wrapper (defined in wrapper.h)
-int vsnprintf_(char *str, size_t size, const char *format, va_list ap);
+#include "wrapper_stdlib.h"
 
 // Error codes - start empty, add as needed during Phase 1
 typedef enum {

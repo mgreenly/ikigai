@@ -1,39 +1,61 @@
 #include "repl.h"
+#include "agent.h"
+#include "shared.h"
 #include "panic.h"
 #include "wrapper.h"
 #include "render_cursor.h"
+#include "logger.h"
 #include <assert.h>
 #include <talloc.h>
 #include <string.h>
 #include <inttypes.h>
 
+/**
+ * Calculate total document height including all components.
+ *
+ * Document model:
+ * - scrollback_rows
+ * - 1 row for upper separator
+ * - MAX(input_buffer_rows, 1) for input buffer (always at least 1 for cursor)
+ * - 1 row for lower separator
+ * - completion_rows (if active)
+ *
+ * @param repl REPL context
+ * @return Total document height in rows
+ */
+static size_t calculate_document_height(const ik_repl_ctx_t *repl)
+{
+    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
+    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
+    size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
+    size_t completion_rows = (repl->current->completion != NULL) ? repl->current->completion->count : 0;
+
+    return scrollback_rows + 1 + input_buffer_display_rows + 1 + completion_rows;
+}
+
 res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_out)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(viewport_out != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->term != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->shared->term != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->current->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->current->scrollback != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Ensure input buffer layout is up to date
-    ik_input_buffer_ensure_layout(repl->input_buffer, repl->term->screen_cols);
+    ik_input_buffer_ensure_layout(repl->current->input_buffer, repl->shared->term->screen_cols);
 
     // Ensure scrollback layout is up to date
-    ik_scrollback_ensure_layout(repl->scrollback, repl->term->screen_cols);
+    ik_scrollback_ensure_layout(repl->current->scrollback, repl->shared->term->screen_cols);
 
     // Get component sizes
-    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
-    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
-    size_t scrollback_line_count = ik_scrollback_get_line_count(repl->scrollback);
-    int32_t terminal_rows = repl->term->screen_rows;
+    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
+    size_t scrollback_line_count = ik_scrollback_get_line_count(repl->current->scrollback);
+    int32_t terminal_rows = repl->shared->term->screen_rows;
 
-    // Unified document model:
-    // Document = scrollback_rows + 1 (separator) + MAX(input_buffer_rows, 1)
-    // Input buffer always occupies at least 1 row (for cursor visibility when empty)
-    size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
+    // Calculate document dimensions
     size_t separator_row = scrollback_rows;  // Separator is at this document row (0-indexed)
     size_t input_buffer_start_doc_row = scrollback_rows + 1;  // Input buffer starts here
-    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows;
+    size_t document_height = calculate_document_height(repl);
 
     // Calculate visible document range
     // viewport_offset = how many rows scrolled UP from bottom
@@ -47,7 +69,7 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
         // Document overflows - calculate window
         // Clamp viewport_offset to valid range
         size_t max_offset = document_height - (size_t)terminal_rows;
-        size_t offset = repl->viewport_offset;
+        size_t offset = repl->current->viewport_offset;
         if (offset > max_offset) {
             offset = max_offset;
         }
@@ -71,7 +93,7 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
 
         if (scrollback_rows > 0 && first_visible_row < scrollback_rows) {  /* LCOV_EXCL_BR_LINE */
             res_t result = ik_scrollback_find_logical_line_at_physical_row(
-                repl->scrollback,
+                repl->current->scrollback,
                 first_visible_row,
                 &start_line,
                 &row_offset
@@ -85,7 +107,7 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
         size_t lines_count = 0;
         size_t current_row = first_visible_row;
         for (size_t i = start_line; i < scrollback_line_count && current_row < separator_row; i++) {  /* LCOV_EXCL_BR_LINE */
-            current_row += repl->scrollback->layouts[i].physical_lines;
+            current_row += repl->current->scrollback->layouts[i].physical_lines;
             lines_count++;
             if (current_row > last_visible_row) break;
         }
@@ -123,8 +145,8 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
 res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->render != NULL);   /* LCOV_EXCL_BR_LINE */
-    assert(repl->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->shared->render != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(repl->current->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
 
     // Calculate viewport to determine what to render
     ik_viewport_t viewport;
@@ -133,21 +155,21 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 
     // Get input buffer text
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(repl->input_buffer, &text_len);
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
 
     // Get cursor byte offset
     size_t cursor_byte_offset = 0;
     size_t cursor_grapheme = 0;
-    ik_input_buffer_get_cursor_position(repl->input_buffer, &cursor_byte_offset, &cursor_grapheme);
+    ik_input_buffer_get_cursor_position(repl->current->input_buffer, &cursor_byte_offset, &cursor_grapheme);
 
     // Determine visibility of separator and input buffer (unified document model)
     bool separator_visible = viewport.separator_visible;
-    bool input_buffer_visible = viewport.input_buffer_start_row < (size_t)repl->term->screen_rows;
+    bool input_buffer_visible = viewport.input_buffer_start_row < (size_t)repl->shared->term->screen_rows;
 
     // Fall back to old rendering path if layer cake not initialized (for tests)
-    if (repl->layer_cake == NULL) {
-        return ik_render_combined(repl->render,
-                                  repl->scrollback,
+    if (repl->current->layer_cake == NULL) {
+        return ik_render_combined(repl->shared->render,
+                                  repl->current->scrollback,
                                   viewport.scrollback_start_line,
                                   viewport.scrollback_lines_count,
                                   text,
@@ -158,40 +180,36 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     }
 
     // Update layer reference fields (respecting REPL state)
-    repl->separator_visible = separator_visible;
+    repl->current->separator_visible = separator_visible;
 
     // State-based visibility (Phase 1.6 Task 6.4)
-    pthread_mutex_lock_(&repl->tool_thread_mutex);
-    ik_repl_state_t current_state = repl->state;
-    pthread_mutex_unlock_(&repl->tool_thread_mutex);
+    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+    ik_agent_state_t current_state = repl->current->state;
+    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 
-    if (current_state == IK_REPL_STATE_WAITING_FOR_LLM) {
+    if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
         // When waiting for LLM: hide input, show spinner
-        repl->spinner_state.visible = true;
-        repl->input_buffer_visible = false;
+        repl->current->spinner_state.visible = true;
+        repl->current->input_buffer_visible = false;
     } else {
         // When idle: show input (if in viewport), hide spinner
-        repl->spinner_state.visible = false;
-        repl->input_buffer_visible = input_buffer_visible;
+        repl->current->spinner_state.visible = false;
+        repl->current->input_buffer_visible = input_buffer_visible;
     }
 
-    repl->input_text = (text != NULL) ? text : "";
-    repl->input_text_len = text_len;
+    repl->current->input_text = (text != NULL) ? text : "";
+    repl->current->input_text_len = text_len;
 
     // Calculate document dimensions for layer cake viewport
-    // Recalculate first_visible_row from viewport data (duplicates some viewport logic)
-    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->scrollback);
-    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->input_buffer);
-    size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
-    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows;
-    int32_t terminal_rows = repl->term->screen_rows;
+    size_t document_height = calculate_document_height(repl);
+    int32_t terminal_rows = repl->shared->term->screen_rows;
 
     size_t first_visible_row;
     if (document_height <= (size_t)terminal_rows) {
         first_visible_row = 0;
     } else {
         size_t max_offset = document_height - (size_t)terminal_rows;
-        size_t offset = repl->viewport_offset;
+        size_t offset = repl->current->viewport_offset;
         if (offset > max_offset) {
             offset = max_offset;
         }
@@ -200,13 +218,28 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     }
 
     // Configure layer cake viewport
-    repl->layer_cake->viewport_row = first_visible_row;
-    repl->layer_cake->viewport_height = (size_t)terminal_rows;
+    repl->current->layer_cake->viewport_row = first_visible_row;
+    repl->current->layer_cake->viewport_height = (size_t)terminal_rows;
+
+    // Update debug info for separator display
+    repl->debug_viewport_offset = repl->current->viewport_offset;
+    repl->debug_viewport_row = first_visible_row;
+    repl->debug_viewport_height = (size_t)terminal_rows;
+    repl->debug_document_height = document_height;
 
     // Render layers to output buffer
     ik_output_buffer_t *output = ik_output_buffer_create(repl, 4096);
 
-    ik_layer_cake_render(repl->layer_cake, output, (size_t)repl->term->screen_cols);
+    ik_layer_cake_render(repl->current->layer_cake, output, (size_t)repl->shared->term->screen_cols);
+
+    // Bug fix: When rendered content fills the terminal, the trailing \r\n
+    // causes the terminal to scroll up by 1 row. This makes cursor positioning
+    // land on the wrong row. Remove trailing \r\n when content fills screen.
+    if (document_height >= (size_t)terminal_rows && output->size >= 2) {  // LCOV_EXCL_BR_LINE - Defensive: output->size typically >2
+        if (output->data[output->size - 2] == '\r' && output->data[output->size - 1] == '\n') {  // LCOV_EXCL_BR_LINE - Defensive: ends with \r\n
+            output->size -= 2;
+        }
+    }
 
     // Calculate cursor position (offset by scrollback rows if input buffer is visible)
     cursor_screen_pos_t input_cursor_pos = {0};
@@ -216,10 +249,11 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     if (input_buffer_visible && text_len > 0) {
         // Input buffer always contains valid UTF-8 (validated at insertion)
         result = calculate_cursor_screen_position(repl, text, text_len,
-                                                  cursor_byte_offset, repl->term->screen_cols,
+                                                  cursor_byte_offset, repl->shared->term->screen_cols,
                                                   &input_cursor_pos);
         assert(is_ok(&result));  // LCOV_EXCL_BR_LINE
         // Offset cursor by viewport position of input buffer
+        // input_buffer_start_row already accounts for separator (it's input_buffer_start_doc_row - first_visible_row)
         final_cursor_row = (int32_t)viewport.input_buffer_start_row + input_cursor_pos.screen_row;
         final_cursor_col = input_cursor_pos.screen_col;
     } else if (input_buffer_visible) {
@@ -271,12 +305,23 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     }
 
     // Single atomic write
-    ssize_t bytes_written = posix_write_(repl->term->tty_fd, framebuffer, offset);
+    ssize_t bytes_written = posix_write_(repl->shared->term->tty_fd, framebuffer, offset);
     talloc_free(framebuffer);
 
     if (bytes_written < 0) {
         return ERR(repl, IO, "Failed to write frame to terminal");
     }
+
+    // Compute elapsed render time (for next frame's debug display)
+    // LCOV_EXCL_START - Debug timing code requires precise control of render timing
+    if (repl->render_start_us != 0) {
+        struct timespec ts_end;
+        clock_gettime(CLOCK_MONOTONIC, &ts_end);
+        uint64_t end_us = (uint64_t)ts_end.tv_sec * 1000000 + (uint64_t)ts_end.tv_nsec / 1000;
+        repl->render_elapsed_us = end_us - repl->render_start_us;
+        repl->render_start_us = 0;  // Reset so we don't re-compute on non-input renders
+    }
+    // LCOV_EXCL_STOP
 
     return OK(repl);
 }

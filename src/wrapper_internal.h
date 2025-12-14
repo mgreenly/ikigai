@@ -16,9 +16,9 @@
 #include "msg.h"
 #include "openai/client.h"
 
-MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, ik_db_ctx_t **out_ctx)
+MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
 {
-    return ik_db_init(mem_ctx, conn_str, out_ctx);
+    return ik_db_init(mem_ctx, conn_str, (ik_db_ctx_t **)out_ctx);
 }
 
 MOCKABLE res_t ik_db_message_insert_(ik_db_ctx_t *db,

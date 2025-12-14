@@ -1,3 +1,4 @@
+#include "agent.h"
 /**
  * @file repl_scrollback_visibility_test.c
  * @brief Test scrollback visibility when scrolled up
@@ -8,6 +9,8 @@
  */
 
 #include <check.h>
+#include "../../../src/agent.h"
+#include "../../../src/shared.h"
 #include <talloc.h>
 #include <string.h>
 #include <unistd.h>
@@ -64,22 +67,30 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
 
     // Create REPL context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
 
     // Document structure:
     //   Lines 0-49: scrollback (50 lines)
-    //   Line 50: separator
+    //   Line 50: upper separator
     //   Line 51: input buffer
-    // Total: 52 lines
+    //   Line 52: lower separator
+    // Total: 53 lines
     //
     // Set viewport_offset to show lines 10-19 of scrollback
-    // When offset = 32, we show document lines 10-19 (all scrollback)
-    // last_visible_row = 52 - 1 - 32 = 19
+    // When offset = 33, we show document lines 10-19 (all scrollback)
+    // last_visible_row = 53 - 1 - 33 = 19
     // first_visible_row = 19 + 1 - 10 = 10
-    repl->viewport_offset = 32;
+    repl->current->viewport_offset = 33;
 
     // Capture stdout to verify output
     int pipefd[2];
@@ -177,14 +188,21 @@ START_TEST(test_scrollback_visible_when_scrolled_to_top)
 
     // Create REPL and scroll to top (maximum offset)
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->term = term;
-    repl->input_buffer = input_buf;
-    repl->scrollback = scrollback;
-    repl->render = render_ctx;
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render_ctx;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    repl->current = agent;
+    repl->current->input_buffer = input_buf;
+    repl->current->scrollback = scrollback;
 
     // Document: 50 scrollback + 1 sep + 1 input buffer = 52 lines
     // Max offset = 52 - 10 = 42, shows lines 0-9
-    repl->viewport_offset = 100;  // Will be clamped to 42
+    repl->current->viewport_offset = 100;  // Will be clamped to 42
 
     // Capture output
     int pipefd[2];

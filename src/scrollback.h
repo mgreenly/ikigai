@@ -27,6 +27,8 @@
 typedef struct {
     size_t display_width;    /**< Display width in columns (UTF-8 aware) */
     size_t physical_lines;   /**< Number of terminal rows this line occupies */
+    size_t newline_count;    /**< Number of embedded newlines in text */
+    size_t *segment_widths;  /**< Array of display widths between newlines */
 } ik_line_layout_t;
 
 /**
@@ -189,19 +191,106 @@ res_t ik_scrollback_find_logical_line_at_physical_row(ik_scrollback_t *scrollbac
 void ik_scrollback_clear(ik_scrollback_t *scrollback);
 
 /**
- * @brief Trim trailing whitespace from string
+ * @brief Get byte offset at a given display column within a line
  *
- * Returns a new string with trailing whitespace removed.
- * Original string is not modified.
+ * Iterates through the line text, tracking display width while skipping
+ * ANSI escape sequences, to find the byte offset where the specified
+ * display column begins. Used for partial line rendering when scrolling.
  *
- * @param parent Talloc parent context
- * @param text Input string (NULL returns empty string)
- * @param length Length of input string
- * @return New string with trailing whitespace removed (owned by parent)
+ * @param scrollback Scrollback buffer
+ * @param line_index Logical line index (0-based)
+ * @param display_col Target display column (0-based)
+ * @param byte_offset_out Pointer to receive byte offset
+ * @return RES_OK on success, RES_ERR if line_index is out of range
+ *
+ * Notes:
+ * - If display_col is beyond the line's display width, returns end of line
+ * - ANSI escape sequences are skipped (they have 0 display width)
+ * - UTF-8 multi-byte characters are handled correctly
+ * - Wide characters (CJK) are counted as 2 display columns
  *
  * Assertions:
- * - parent must not be NULL
+ * - scrollback must not be NULL
+ * - byte_offset_out must not be NULL
  */
-char *ik_scrollback_trim_trailing(void *parent, const char *text, size_t length);
+res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,
+                                                    size_t line_index,
+                                                    size_t display_col,
+                                                    size_t *byte_offset_out);
+
+/**
+ * @brief Calculate starting byte offset for rendering from a row offset
+ *
+ * Given a logical line and a starting row offset, calculates the corresponding
+ * byte offset in the line's text. Handles embedded newlines using segment widths.
+ *
+ * @param scrollback Scrollback buffer
+ * @param line_index Logical line index
+ * @param terminal_width Current terminal width
+ * @param start_row_offset Physical row offset from start of line (0-based)
+ * @return Byte offset into line text
+ *
+ * Assertions:
+ * - scrollback must not be NULL
+ */
+size_t ik_scrollback_calc_start_byte_for_row(ik_scrollback_t *scrollback,
+                                              size_t line_index,
+                                              size_t terminal_width,
+                                              size_t start_row_offset);
+
+/**
+ * @brief Calculate ending byte offset for rendering a row range
+ *
+ * Given a logical line and an ending row offset, calculates the corresponding
+ * ending byte offset (exclusive) in the line's text. Returns whether we're
+ * rendering to the end of the logical line.
+ *
+ * @param scrollback Scrollback buffer
+ * @param line_index Logical line index
+ * @param terminal_width Current terminal width
+ * @param end_row_offset Physical row offset from start of line (0-based, inclusive)
+ * @param is_line_end_out Pointer to receive flag: true if rendering to end of line
+ * @return Ending byte offset (exclusive)
+ *
+ * Assertions:
+ * - scrollback must not be NULL
+ * - is_line_end_out must not be NULL
+ */
+size_t ik_scrollback_calc_end_byte_for_row(ik_scrollback_t *scrollback,
+                                            size_t line_index,
+                                            size_t terminal_width,
+                                            size_t end_row_offset,
+                                            bool *is_line_end_out);
+
+/**
+ * @brief Calculate byte range for rendering physical rows within a logical line
+ *
+ * Given a logical line and a range of physical rows to render within that line,
+ * calculates the corresponding byte offset range in the line's text. Handles
+ * embedded newlines correctly by using segment widths.
+ *
+ * @param scrollback Scrollback buffer
+ * @param line_index Logical line index
+ * @param terminal_width Current terminal width
+ * @param start_row_offset Physical row offset from start of line (0-based)
+ * @param row_count Number of physical rows to include
+ * @param start_byte_out Pointer to receive starting byte offset
+ * @param end_byte_out Pointer to receive ending byte offset (exclusive)
+ * @param is_line_end_out Pointer to receive flag: true if rendering to end of logical line
+ *
+ * Assertions:
+ * - scrollback must not be NULL
+ * - start_byte_out must not be NULL
+ * - end_byte_out must not be NULL
+ * - is_line_end_out must not be NULL
+ */
+void ik_scrollback_calc_byte_range_for_rows(ik_scrollback_t *scrollback,
+                                             size_t line_index,
+                                             size_t terminal_width,
+                                             size_t start_row_offset,
+                                             size_t row_count,
+                                             size_t *start_byte_out,
+                                             size_t *end_byte_out,
+                                             bool *is_line_end_out);
 
 #endif // IKIGAI_SCROLLBACK_H
