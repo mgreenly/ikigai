@@ -10,6 +10,7 @@
 #include "../../../src/error.h"
 #include "../../../src/tool.h"
 #include "../../../src/wrapper.h"
+#include "../../test_utils.h"
 
 // Test fixtures
 static TALLOC_CTX *ctx = NULL;
@@ -39,34 +40,14 @@ START_TEST(test_file_write_exec_valid) {
     res_t res = ik_tool_exec_file_write(ctx, test_file, content);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    ck_assert(yyjson_is_obj(root));
-
-    // Verify success: true
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == true);
-
-    // Verify data object exists
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    ck_assert_ptr_nonnull(data);
-    ck_assert(yyjson_is_obj(data));
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output = ik_test_tool_get_output(data);
 
     // Verify output message
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    ck_assert_ptr_nonnull(output);
-    const char *output_str = yyjson_get_str(output);
-    ck_assert_ptr_nonnull(output_str);
-    ck_assert(strstr(output_str, "Wrote") != NULL);
-    ck_assert(strstr(output_str, "20") != NULL);
-    ck_assert(strstr(output_str, "bytes") != NULL);
+    ck_assert(strstr(output, "Wrote") != NULL);
+    ck_assert(strstr(output, "20") != NULL);
+    ck_assert(strstr(output, "bytes") != NULL);
 
     // Verify bytes field
     yyjson_val *bytes = yyjson_obj_get(data, "bytes");
@@ -103,26 +84,16 @@ START_TEST(test_file_write_exec_empty_content)
     res_t res = ik_tool_exec_file_write(ctx, test_file, content);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    // Verify success: true
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output = ik_test_tool_get_output(data);
 
     // Verify bytes field is 0
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *bytes = yyjson_obj_get(data, "bytes");
     ck_assert_uint_eq(yyjson_get_uint(bytes), 0);
 
     // Verify output message mentions 0 bytes
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
-    ck_assert(strstr(output_str, "Wrote 0 bytes") != NULL);
+    ck_assert(strstr(output, "Wrote 0 bytes") != NULL);
 
     yyjson_doc_free(doc);
 
@@ -154,13 +125,9 @@ START_TEST(test_file_write_exec_overwrite)
     res_t res = ik_tool_exec_file_write(ctx, test_file, new_content);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
 
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *bytes = yyjson_obj_get(data, "bytes");
     ck_assert_uint_eq(yyjson_get_uint(bytes), strlen(new_content));
 
@@ -190,21 +157,11 @@ START_TEST(test_file_write_exec_permission_denied)
     res_t res = ik_tool_exec_file_write(ctx, readonly_path, content);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    // Verify success: false
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == false);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
 
     // Verify error message mentions permission denied
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    ck_assert_ptr_nonnull(error);
-    const char *error_str = yyjson_get_str(error);
-    ck_assert_ptr_nonnull(error_str);
-    ck_assert(strstr(error_str, "Permission denied") != NULL || strstr(error_str, readonly_path) != NULL);
+    ck_assert(strstr(error, "Permission denied") != NULL || strstr(error, readonly_path) != NULL);
 
     yyjson_doc_free(doc);
 }
@@ -230,13 +187,9 @@ START_TEST(test_file_write_exec_large_content)
     res_t res = ik_tool_exec_file_write(ctx, test_file, large_content);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
 
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *bytes = yyjson_obj_get(data, "bytes");
     ck_assert_uint_eq(yyjson_get_uint(bytes), 10239);
 
@@ -267,11 +220,8 @@ START_TEST(test_file_write_exec_special_characters)
     res_t res = ik_tool_exec_file_write(ctx, test_file, content);
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
+    yyjson_doc *doc = NULL;
+    ik_test_tool_parse_success(res.ok, &doc);
 
     yyjson_doc_free(doc);
 
@@ -309,15 +259,9 @@ START_TEST(test_file_write_exec_eacces_error) {
     res_t res = ik_tool_exec_file_write(ctx, test_file, "content");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == false);
-
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    const char *error_str = yyjson_get_str(error);
-    ck_assert(strstr(error_str, "Permission denied") != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "Permission denied") != NULL);
 
     yyjson_doc_free(doc);
     mock_fopen_errno = 0;
@@ -333,15 +277,9 @@ START_TEST(test_file_write_exec_enospc_error)
     res_t res = ik_tool_exec_file_write(ctx, test_file, "content");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == false);
-
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    const char *error_str = yyjson_get_str(error);
-    ck_assert(strstr(error_str, "No space left") != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "No space left") != NULL);
 
     yyjson_doc_free(doc);
     mock_fopen_errno = 0;
@@ -358,15 +296,9 @@ START_TEST(test_file_write_exec_generic_error)
     res_t res = ik_tool_exec_file_write(ctx, test_file, "content");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == false);
-
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    const char *error_str = yyjson_get_str(error);
-    ck_assert(strstr(error_str, "Cannot open file") != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "Cannot open file") != NULL);
 
     yyjson_doc_free(doc);
     mock_fopen_errno = 0;
@@ -397,15 +329,9 @@ START_TEST(test_file_write_exec_fwrite_error) {
     res_t res = ik_tool_exec_file_write(ctx, test_file, "test content");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == false);
-
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    const char *error_str = yyjson_get_str(error);
-    ck_assert(strstr(error_str, "Failed to write file") != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "Failed to write file") != NULL);
 
     yyjson_doc_free(doc);
     mock_fwrite_should_fail = 0;
