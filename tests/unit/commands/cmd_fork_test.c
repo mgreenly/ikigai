@@ -292,6 +292,101 @@ END_TEST
 // Proper error handling tests would require mocking the database layer or
 // testing with actual database errors (not precondition violations).
 
+// Test: /fork with quoted prompt extracts prompt
+START_TEST(test_fork_with_quoted_prompt)
+{
+    res_t res = cmd_fork(test_ctx, repl, "\"Research OAuth 2.0 patterns\"");
+    ck_assert(is_ok(&res));
+
+    // Verify child has message in conversation
+    ik_agent_ctx_t *child = repl->current;
+    ck_assert_ptr_nonnull(child->conversation);
+    ck_assert_uint_gt(child->conversation->message_count, 0);
+
+    // Find user message with the prompt
+    bool found_prompt = false;
+    for (size_t i = 0; i < child->conversation->message_count; i++) {
+        ik_msg_t *msg = child->conversation->messages[i];
+        if (strcmp(msg->kind, "user") == 0 &&
+            msg->content != NULL &&
+            strcmp(msg->content, "Research OAuth 2.0 patterns") == 0) {
+            found_prompt = true;
+            break;
+        }
+    }
+    ck_assert(found_prompt);
+}
+END_TEST
+
+// Test: Prompt added as user message
+START_TEST(test_fork_prompt_appended_as_user_message)
+{
+    res_t res = cmd_fork(test_ctx, repl, "\"Analyze database schema\"");
+    ck_assert(is_ok(&res));
+
+    ik_agent_ctx_t *child = repl->current;
+    ck_assert_ptr_nonnull(child->conversation);
+
+    // Verify at least one user message exists
+    bool has_user_message = false;
+    for (size_t i = 0; i < child->conversation->message_count; i++) {
+        if (strcmp(child->conversation->messages[i]->kind, "user") == 0) {
+            has_user_message = true;
+            break;
+        }
+    }
+    ck_assert(has_user_message);
+}
+END_TEST
+
+// Test: LLM call triggered when prompt provided
+START_TEST(test_fork_llm_call_triggered)
+{
+    res_t res = cmd_fork(test_ctx, repl, "\"Test prompt\"");
+    ck_assert(is_ok(&res));
+
+    // Verify agent is in WAITING_FOR_LLM state
+    // (This indicates LLM call was initiated)
+    ik_agent_ctx_t *child = repl->current;
+    ck_assert_int_eq(child->state, IK_AGENT_STATE_WAITING_FOR_LLM);
+}
+END_TEST
+
+// Test: Empty prompt treated as no prompt
+START_TEST(test_fork_empty_prompt)
+{
+    res_t res = cmd_fork(test_ctx, repl, "\"\"");
+    ck_assert(is_ok(&res));
+
+    // Empty prompt should behave like no prompt - agent stays IDLE
+    ik_agent_ctx_t *child = repl->current;
+    ck_assert_int_eq(child->state, IK_AGENT_STATE_IDLE);
+}
+END_TEST
+
+// Test: Unquoted text rejected
+START_TEST(test_fork_unquoted_text_rejected)
+{
+    res_t res = cmd_fork(test_ctx, repl, "unquoted text");
+    ck_assert(is_ok(&res));  // Returns OK but shows error
+
+    // Check scrollback for error message
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
+    bool found_error = false;
+    for (size_t i = 0; i < line_count; i++) {
+        const char *text = NULL;
+        size_t length = 0;
+        res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, i, &text, &length);
+        if (is_ok(&line_res) && text &&
+            (strstr(text, "must be quoted") || strstr(text, "Error"))) {
+            found_error = true;
+            break;
+        }
+    }
+    ck_assert(found_error);
+}
+END_TEST
+
 static Suite *cmd_fork_suite(void)
 {
     Suite *s = suite_create("Fork Command");
@@ -308,6 +403,11 @@ static Suite *cmd_fork_suite(void)
     tcase_add_test(tc, test_fork_pending_flag_set);
     tcase_add_test(tc, test_fork_pending_flag_cleared);
     tcase_add_test(tc, test_fork_concurrent_rejected);
+    tcase_add_test(tc, test_fork_with_quoted_prompt);
+    tcase_add_test(tc, test_fork_prompt_appended_as_user_message);
+    tcase_add_test(tc, test_fork_llm_call_triggered);
+    tcase_add_test(tc, test_fork_empty_prompt);
+    tcase_add_test(tc, test_fork_unquoted_text_rejected);
     // Note: Rollback tests removed - they violate preconditions (db_ctx->conn != NULL assertion)
     // and cannot be properly tested without mocking infrastructure
     // tcase_add_test(tc, test_fork_rollback_on_failure);
