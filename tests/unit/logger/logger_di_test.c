@@ -1,6 +1,7 @@
 // Unit tests for DI-based logger API (ik_logger_t context)
 
 #include <check.h>
+#include <errno.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +10,7 @@
 #include <sys/stat.h>
 #include <talloc.h>
 #include "../../../src/logger.h"
+#include "../../../src/wrapper.h"
 
 // Helper: setup temp directory
 static char test_dir[256];
