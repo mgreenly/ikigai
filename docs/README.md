@@ -1,7 +1,5 @@
-# Ikigai User Guide
+# ikigai Documentation
 
-Documentation for using Ikigai.
+Coming soon.
 
-## Contents
-
-- [Commands, Skills, and Personas](commands-skills-personas.md) — Customizing agent behavior
+For now, see [project/README.md](../project/README.md) for design and implementation details.
