@@ -48,8 +48,8 @@ START_TEST(test_typing_slash_triggers_completion)
 
     // Verify completion was created
     ck_assert_ptr_nonnull(repl->current->completion);
-    // Should have all 8 commands: clear, debug, fork, help, mark, model, rewind, system
-    ck_assert_uint_eq(repl->current->completion->count, 8);
+    // Should have all 9 commands: clear, debug, fork, help, kill, mark, model, rewind, system
+    ck_assert_uint_eq(repl->current->completion->count, 9);
 
     talloc_free(ctx);
 }

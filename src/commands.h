@@ -73,4 +73,17 @@ const ik_command_t *ik_cmd_get_all(size_t *count);
  */
 res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+/**
+ * Kill command handler - terminates agent
+ *
+ * Without arguments, terminates the current agent and switches to parent.
+ * Root agents cannot be killed.
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param args Command arguments (NULL for self-kill)
+ * @return OK on success, ERR on failure
+ */
+res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 #endif // IK_COMMANDS_H

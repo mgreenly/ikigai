@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "fork-sync-barrier.md",
-      "group": "Fork Command",
-      "model": "opus",
-      "thinking": "extended"
-    },
-    {
       "task": "kill-cmd-self.md",
       "group": "Kill Command",
       "model": "sonnet",
@@ -185,6 +179,12 @@
     {
       "task": "startup-replay.md",
       "group": "Startup Replay",
+      "model": "opus",
+      "thinking": "extended"
+    },
+    {
+      "task": "fork-sync-barrier.md",
+      "group": "Fork Command",
       "model": "opus",
       "thinking": "extended"
     }

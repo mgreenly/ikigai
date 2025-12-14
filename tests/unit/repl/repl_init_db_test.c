@@ -123,6 +123,14 @@ res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uui
     return OK(NULL);
 }
 
+// Mock ik_db_agent_mark_dead (needed because cmd_kill calls it)
+res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
+{
+    (void)db_ctx;
+    (void)uuid;
+    return OK(NULL);
+}
+
 // Mock ik_db_message_insert (needed because session_restore calls it)
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
                            int64_t session_id,

@@ -188,5 +188,15 @@
     "event": "start",
     "task": "fork-sync-barrier.md",
     "time": "2025-12-14T23:24:59.782Z"
+  },
+  {
+    "event": "done",
+    "task": "fork-sync-barrier.md",
+    "time": "2025-12-14T23:31:53.540Z"
+  },
+  {
+    "event": "start",
+    "task": "kill-cmd-self.md",
+    "time": "2025-12-14T23:32:09.190Z"
   }
 ]

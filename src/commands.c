@@ -42,6 +42,9 @@ static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args);
 // Public declaration for cmd_fork (non-static, declared in commands.h)
 res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+// Public declaration for cmd_kill (non-static, declared in commands.h)
+res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 // Command registry
 static const ik_command_t commands[] = {
     {"clear", "Clear scrollback, session messages, and marks", cmd_clear},
@@ -49,6 +52,7 @@ static const ik_command_t commands[] = {
      ik_cmd_mark},
     {"rewind", "Rollback to a checkpoint (usage: /rewind [label])", ik_cmd_rewind},
     {"fork", "Create a child agent (usage: /fork)", cmd_fork},
+    {"kill", "Terminate current agent (usage: /kill)", cmd_kill},
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},
@@ -517,6 +521,92 @@ static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+    return OK(NULL);
+}
+
+res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    (void)ctx;
+
+    // Sync barrier (Q10): wait for pending fork
+    while (repl->shared->fork_pending) {
+        // In unit tests, this will not loop because we control fork_pending manually
+        // In production, this would process events while waiting
+        struct timespec ts = {.tv_sec = 0, .tv_nsec = 10000000};  // 10ms
+        nanosleep(&ts, NULL);
+    }
+
+    // No args = kill self
+    if (args == NULL || args[0] == '\0') {
+        if (repl->current->parent_uuid == NULL) {
+            const char *err_msg = "Error: Cannot kill root agent";
+            ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+            return OK(NULL);
+        }
+
+        const char *uuid = repl->current->uuid;
+        ik_agent_ctx_t *parent = ik_repl_find_agent(repl,
+            repl->current->parent_uuid);
+
+        if (parent == NULL) {
+            return ERR(ctx, INVALID_ARG, "Parent agent not found");
+        }
+
+        // Record kill event in parent's history (Q20)
+        char *metadata_json = talloc_asprintf(ctx,
+            "{\"killed_by\": \"user\", \"target\": \"%s\"}", uuid);
+        if (metadata_json == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+
+        res_t res = ik_db_message_insert(repl->shared->db_ctx,
+            repl->shared->session_id,
+            parent->uuid,
+            "agent_killed",
+            NULL,
+            metadata_json);
+        talloc_free(metadata_json);
+        if (is_err(&res)) {
+            return res;
+        }
+
+        // Mark dead in registry (sets status='dead', ended_at=now)
+        res = ik_db_agent_mark_dead(repl->shared->db_ctx, uuid);
+        if (is_err(&res)) {
+            return res;
+        }
+
+        // Switch to parent first (saves state), then remove dead agent
+        res = ik_repl_switch_agent(repl, parent);
+        if (is_err(&res)) {
+            return res;
+        }
+
+        res = ik_repl_remove_agent(repl, uuid);
+        if (is_err(&res)) {
+            return res;
+        }
+
+        // Notify
+        char msg[64];
+        int32_t written = snprintf(msg, sizeof(msg), "Agent %.22s terminated", uuid);
+        if (written < 0 || (size_t)written >= sizeof(msg)) {  // LCOV_EXCL_BR_LINE
+            PANIC("snprintf failed");  // LCOV_EXCL_LINE
+        }
+        ik_scrollback_append_line(parent->scrollback, msg, (size_t)written);
+
+        return OK(NULL);
+    }
+
+    // Handle targeted kill in kill-cmd-target.md
+    // For now, show an error
+    char *err_msg = talloc_strdup(ctx, "Error: Targeted kill not yet implemented");
+    if (err_msg == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+    ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
     return OK(NULL);
 }
 
