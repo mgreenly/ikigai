@@ -46,6 +46,23 @@ typedef struct {
 } ik_replay_context_t;
 
 /**
+ * Replay range - defines a subset of messages to query for replay
+ *
+ * Each range contains enough information to query the exact subset of messages
+ * from a specific agent's history.
+ *
+ * Semantics:
+ *   - start_id is exclusive (query messages AFTER this ID)
+ *   - end_id is inclusive (query messages up to and including this ID)
+ *   - end_id = 0 means "no upper limit" (used for leaf agent)
+ */
+typedef struct {
+    char *agent_uuid;   // Which agent's messages to query
+    int64_t start_id;   // Start AFTER this message ID (0 = from beginning)
+    int64_t end_id;     // End AT this message ID (0 = no limit, i.e., leaf)
+} ik_replay_range_t;
+
+/**
  * Load messages from database and replay to build context
  *
  * Queries the messages table for the specified session, ordered by created_at,
