@@ -34,7 +34,6 @@ ssize_t posix_read_(int fd, void *buf, size_t count);
 int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
 res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx);
 res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg);
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid);
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx, int64_t session_id,
                            const char *kind, const char *content,
                            const char *data_json);
@@ -77,18 +76,8 @@ res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg)
     return OK(NULL);
 }
 
-// Mock ik_db_ensure_agent_zero to provide a test UUID
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
-{
-    (void)db;
-
-    // Return a test UUID
-    *out_uuid = talloc_strdup(db, "test-agent-zero-uuid");
-    if (*out_uuid == NULL) {
-        return ERR(db, OUT_OF_MEMORY, "Out of memory");
-    }
-    return OK(*out_uuid);
-}
+// Note: ik_db_ensure_agent_zero mock removed - now using real implementation
+// from db/agent.c (included in MODULE_SOURCES_NO_DB)
 
 // Mock ik_db_message_insert (needed because session_restore calls it)
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
