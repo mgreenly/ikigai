@@ -55,6 +55,8 @@ typedef struct ik_agent_ctx {
     char *uuid;          // Internal unique identifier
     char *name;          // Optional human-friendly name (NULL if unnamed)
     char *parent_uuid;   // Parent agent's UUID (NULL for root agent)
+    int64_t created_at;       // Unix timestamp when agent was created
+    int64_t fork_message_id;  // Message ID at which this agent forked (0 for root)
 
     // Reference to shared infrastructure
     ik_shared_ctx_t *shared;
