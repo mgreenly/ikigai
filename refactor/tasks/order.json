@@ -1,24 +1,6 @@
 {
   "todo": [
     {
-      "task": "refactor-file-write-execute-test.md",
-      "group": "Tool Test Refactoring",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "refactor-glob-execute-test.md",
-      "group": "Tool Test Refactoring",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "refactor-grep-execute-test.md",
-      "group": "Tool Test Refactoring",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "refactor-grep-edge-cases-test.md",
       "group": "Tool Test Refactoring",
       "model": "sonnet",
@@ -100,6 +82,24 @@
     },
     {
       "task": "refactor-file-read-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-file-write-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-glob-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-grep-execute-test.md",
       "group": "Tool Test Refactoring",
       "model": "sonnet",
       "thinking": "thinking"
