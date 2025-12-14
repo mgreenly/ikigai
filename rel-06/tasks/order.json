@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "fork-cmd-basic.md",
-      "group": "Fork Command",
-      "model": "opus",
-      "thinking": "extended"
-    },
-    {
       "task": "fork-cmd-prompt.md",
       "group": "Fork Command",
       "model": "sonnet",
@@ -187,6 +181,12 @@
       "group": "Multi-Agent Infrastructure",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "fork-cmd-basic.md",
+      "group": "Fork Command",
+      "model": "opus",
+      "thinking": "extended"
     }
   ]
 }
