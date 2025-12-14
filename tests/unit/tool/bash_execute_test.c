@@ -8,6 +8,7 @@
 #include "../../../src/error.h"
 #include "../../../src/tool.h"
 #include "../../../src/wrapper.h"
+#include "../../test_utils.h"
 
 // Test fixtures
 static TALLOC_CTX *ctx = NULL;
@@ -29,37 +30,11 @@ START_TEST(test_bash_exec_echo_command) {
     res_t res = ik_tool_exec_bash(ctx, "echo test");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    ck_assert(yyjson_is_obj(root));
-
-    // Verify success: true
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == true);
-
-    // Verify data object exists
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    ck_assert_ptr_nonnull(data);
-    ck_assert(yyjson_is_obj(data));
-
-    // Verify output contains "test"
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    ck_assert_ptr_nonnull(output);
-    const char *output_str = yyjson_get_str(output);
-    ck_assert_ptr_nonnull(output_str);
-    ck_assert(strstr(output_str, "test") != NULL);
-
-    // Verify exit_code is 0
-    yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
-    ck_assert_ptr_nonnull(exit_code);
-    ck_assert_int_eq(yyjson_get_int(exit_code), 0);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output = ik_test_tool_get_output(data);
+    ck_assert(strstr(output, "test") != NULL);
+    ck_assert_int_eq(ik_test_tool_get_exit_code(data), 0);
 
     yyjson_doc_free(doc);
 }
@@ -71,25 +46,9 @@ START_TEST(test_bash_exec_nonzero_exit)
     res_t res = ik_tool_exec_bash(ctx, "false");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    ck_assert_ptr_nonnull(json);
-
-    // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    // Verify success: true (tool executed successfully, even though command failed)
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    // Verify data object exists
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    ck_assert_ptr_nonnull(data);
-
-    // Verify exit_code is non-zero (1 for false)
-    yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
-    ck_assert_ptr_nonnull(exit_code);
-    ck_assert_int_ne(yyjson_get_int(exit_code), 0);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    ck_assert_int_ne(ik_test_tool_get_exit_code(data), 0);
 
     yyjson_doc_free(doc);
 }
@@ -102,28 +61,11 @@ START_TEST(test_bash_exec_no_output)
     res_t res = ik_tool_exec_bash(ctx, "true");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    // Verify success: true
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    // Verify data object exists
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    ck_assert_ptr_nonnull(data);
-
-    // Verify output is empty string
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    ck_assert_ptr_nonnull(output);
-    const char *output_str = yyjson_get_str(output);
-    ck_assert_ptr_nonnull(output_str);
-    ck_assert_str_eq(output_str, "");
-
-    // Verify exit_code is 0
-    yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
-    ck_assert_int_eq(yyjson_get_int(exit_code), 0);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output = ik_test_tool_get_output(data);
+    ck_assert_str_eq(output, "");
+    ck_assert_int_eq(ik_test_tool_get_exit_code(data), 0);
 
     yyjson_doc_free(doc);
 }
@@ -136,24 +78,15 @@ START_TEST(test_bash_exec_multiline_output)
     res_t res = ik_tool_exec_bash(ctx, "printf 'line1\\nline2\\nline3'");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output = ik_test_tool_get_output(data);
 
     // Verify output contains all three lines
-    ck_assert(strstr(output_str, "line1") != NULL);
-    ck_assert(strstr(output_str, "line2") != NULL);
-    ck_assert(strstr(output_str, "line3") != NULL);
-
-    yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
-    ck_assert_int_eq(yyjson_get_int(exit_code), 0);
+    ck_assert(strstr(output, "line1") != NULL);
+    ck_assert(strstr(output, "line2") != NULL);
+    ck_assert(strstr(output, "line3") != NULL);
+    ck_assert_int_eq(ik_test_tool_get_exit_code(data), 0);
 
     yyjson_doc_free(doc);
 }
@@ -166,18 +99,9 @@ START_TEST(test_bash_exec_stderr_output)
     res_t res = ik_tool_exec_bash(ctx, "echo error >&2");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    // Note: Without explicit stderr handling, stderr might not be captured
-    // This test just verifies the command executes successfully
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
-    ck_assert_int_eq(yyjson_get_int(exit_code), 0);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    ck_assert_int_eq(ik_test_tool_get_exit_code(data), 0);
 
     yyjson_doc_free(doc);
 }
@@ -190,17 +114,10 @@ START_TEST(test_bash_exec_special_characters)
     res_t res = ik_tool_exec_bash(ctx, "echo 'Hello World with quotes'");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
-    ck_assert(strstr(output_str, "Hello") != NULL);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output = ik_test_tool_get_output(data);
+    ck_assert(strstr(output, "Hello") != NULL);
 
     yyjson_doc_free(doc);
 }
@@ -236,21 +153,9 @@ START_TEST(test_bash_exec_popen_failure) {
     res_t res = ik_tool_exec_bash(ctx, "echo test");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    // Verify success: false (tool failed to execute)
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == false);
-
-    // Verify error message exists
-    yyjson_val *error = yyjson_obj_get(root, "error");
-    ck_assert_ptr_nonnull(error);
-    const char *error_str = yyjson_get_str(error);
-    ck_assert_ptr_nonnull(error_str);
-    ck_assert(strstr(error_str, "Failed to execute") != NULL || strstr(error_str, "popen") != NULL);
+    yyjson_doc *doc = NULL;
+    const char *error = ik_test_tool_parse_error(res.ok, &doc);
+    ck_assert(strstr(error, "Failed to execute") != NULL || strstr(error, "popen") != NULL);
 
     yyjson_doc_free(doc);
     mock_popen_should_fail = 0;
@@ -264,26 +169,17 @@ START_TEST(test_bash_exec_long_output)
     res_t res = ik_tool_exec_bash(ctx, "seq 1 2000");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    const char *output = ik_test_tool_get_output(data);
 
     // Verify output contains first and last numbers
-    ck_assert(strstr(output_str, "1") != NULL);
-    ck_assert(strstr(output_str, "2000") != NULL);
+    ck_assert(strstr(output, "1") != NULL);
+    ck_assert(strstr(output, "2000") != NULL);
 
     // Verify the output is long enough to have triggered reallocation
-    ck_assert(strlen(output_str) > 4096);
-
-    yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
-    ck_assert_int_eq(yyjson_get_int(exit_code), 0);
+    ck_assert(strlen(output) > 4096);
+    ck_assert_int_eq(ik_test_tool_get_exit_code(data), 0);
 
     yyjson_doc_free(doc);
 }
@@ -297,18 +193,9 @@ START_TEST(test_bash_exec_pclose_failure)
     res_t res = ik_tool_exec_bash(ctx, "echo test");
     ck_assert(!res.is_err);
 
-    char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    // Verify success: true (command executed, even though pclose failed)
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    // Verify exit_code is 127 (pclose failure)
-    yyjson_val *data = yyjson_obj_get(root, "data");
-    yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
-    ck_assert_int_eq(yyjson_get_int(exit_code), 127);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(res.ok, &doc);
+    ck_assert_int_eq(ik_test_tool_get_exit_code(data), 127);
 
     yyjson_doc_free(doc);
 }
