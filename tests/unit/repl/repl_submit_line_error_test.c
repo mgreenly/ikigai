@@ -22,6 +22,7 @@
 #include <talloc.h>
 #include <termios.h>
 #include <unistd.h>
+#include <errno.h>
 #include "../../../src/logger.h"
 
 // Mock state for ik_scrollback_append_line_
@@ -49,6 +50,8 @@ ssize_t posix_read_(int fd, void *buf, size_t count);
 int posix_stat_(const char *pathname, struct stat *statbuf);
 int posix_mkdir_(const char *pathname, mode_t mode);
 int posix_rename_(const char *oldpath, const char *newpath);
+FILE *fopen_(const char *pathname, const char *mode);
+int fclose_(FILE *stream);
 
 // Mock wrapper functions for terminal operations (required for ik_repl_init)
 int posix_open_(const char *pathname, int flags)
@@ -113,26 +116,32 @@ ssize_t posix_read_(int fd, void *buf, size_t count)
 
 int posix_stat_(const char *pathname, struct stat *statbuf)
 {
-    (void)pathname;
-    (void)statbuf;
-    // Pretend the file/directory doesn't exist so mkdir will be attempted
-    return -1;
+    // Use real stat
+    return stat(pathname, statbuf);
 }
 
 int posix_mkdir_(const char *pathname, mode_t mode)
 {
-    (void)pathname;
-    (void)mode;
-    // Always succeed
-    return 0;
+    // Use real mkdir
+    return mkdir(pathname, mode);
 }
 
 int posix_rename_(const char *oldpath, const char *newpath)
 {
-    (void)oldpath;
-    (void)newpath;
-    // Always succeed
-    return 0;
+    // Use real rename
+    return rename(oldpath, newpath);
+}
+
+FILE *fopen_(const char *pathname, const char *mode)
+{
+    // Use real fopen
+    return fopen(pathname, mode);
+}
+
+int fclose_(FILE *stream)
+{
+    // Use real fclose
+    return fclose(stream);
 }
 
 // Mock ik_scrollback_append_line_ - needs weak attribute for override
