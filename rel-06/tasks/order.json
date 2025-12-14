@@ -1,36 +1,192 @@
 {
   "todo": [
-    {"task": "registry-schema.md", "group": "Registry Foundation", "model": "sonnet", "thinking": "thinking"},
-    {"task": "registry-create.md", "group": "Registry Foundation", "model": "sonnet", "thinking": "thinking"},
-    {"task": "registry-status-update.md", "group": "Registry Foundation", "model": "sonnet", "thinking": "thinking"},
-    {"task": "registry-queries.md", "group": "Registry Foundation", "model": "sonnet", "thinking": "thinking"},
-    {"task": "uuid-refactor.md", "group": "Utilities", "model": "sonnet", "thinking": "thinking"},
-    {"task": "agent-zero-register.md", "group": "Agent 0 Registration", "model": "sonnet", "thinking": "thinking"},
-    {"task": "repl-agent-array.md", "group": "Multi-Agent Infrastructure", "model": "sonnet", "thinking": "thinking"},
-    {"task": "repl-agent-lookup.md", "group": "Multi-Agent Infrastructure", "model": "sonnet", "thinking": "thinking"},
-    {"task": "agent-switch-state.md", "group": "Multi-Agent Infrastructure", "model": "sonnet", "thinking": "thinking"},
-    {"task": "fork-cmd-basic.md", "group": "Fork Command", "model": "sonnet", "thinking": "thinking"},
-    {"task": "fork-cmd-prompt.md", "group": "Fork Command", "model": "sonnet", "thinking": "thinking"},
-    {"task": "messages-agent-uuid.md", "group": "Schema", "model": "opus", "thinking": "extended"},
-    {"task": "fork-history-copy.md", "group": "Fork Command", "model": "opus", "thinking": "extended"},
-    {"task": "startup-replay.md", "group": "Startup Replay", "model": "opus", "thinking": "extended"},
-    {"task": "fork-sync-barrier.md", "group": "Fork Command", "model": "opus", "thinking": "extended"},
-    {"task": "kill-cmd-self.md", "group": "Kill Command", "model": "sonnet", "thinking": "thinking"},
-    {"task": "kill-cmd-target.md", "group": "Kill Command", "model": "sonnet", "thinking": "thinking"},
-    {"task": "kill-cmd-cascade.md", "group": "Kill Command", "model": "sonnet", "thinking": "thinking"},
-    {"task": "nav-ctrl-arrows.md", "group": "Navigation", "model": "sonnet", "thinking": "thinking"},
-    {"task": "nav-sibling-switch.md", "group": "Navigation", "model": "sonnet", "thinking": "thinking"},
-    {"task": "nav-parent-child.md", "group": "Navigation", "model": "sonnet", "thinking": "thinking"},
-    {"task": "mail-msg-struct.md", "group": "Mailbox", "model": "sonnet", "thinking": "thinking"},
-    {"task": "mail-db-schema.md", "group": "Mailbox", "model": "opus", "thinking": "extended"},
-    {"task": "mail-db-operations.md", "group": "Mailbox", "model": "sonnet", "thinking": "thinking"},
-    {"task": "mail-send-cmd.md", "group": "Mailbox", "model": "sonnet", "thinking": "thinking"},
-    {"task": "mail-check-cmd.md", "group": "Mailbox", "model": "sonnet", "thinking": "thinking"},
-    {"task": "mail-read-cmd.md", "group": "Mailbox", "model": "sonnet", "thinking": "thinking"},
-    {"task": "mail-delete-cmd.md", "group": "Mailbox", "model": "sonnet", "thinking": "thinking"},
-    {"task": "mail-filter-cmd.md", "group": "Mailbox", "model": "sonnet", "thinking": "thinking"},
-    {"task": "agents-tree-cmd.md", "group": "Display", "model": "sonnet", "thinking": "thinking"},
-    {"task": "separator-nav-context.md", "group": "Display", "model": "sonnet", "thinking": "thinking"}
+    {
+      "task": "registry-queries.md",
+      "group": "Registry Foundation",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "uuid-refactor.md",
+      "group": "Utilities",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-zero-register.md",
+      "group": "Agent 0 Registration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "repl-agent-array.md",
+      "group": "Multi-Agent Infrastructure",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "repl-agent-lookup.md",
+      "group": "Multi-Agent Infrastructure",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-switch-state.md",
+      "group": "Multi-Agent Infrastructure",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "fork-cmd-basic.md",
+      "group": "Fork Command",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "fork-cmd-prompt.md",
+      "group": "Fork Command",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "messages-agent-uuid.md",
+      "group": "Schema",
+      "model": "opus",
+      "thinking": "extended"
+    },
+    {
+      "task": "fork-history-copy.md",
+      "group": "Fork Command",
+      "model": "opus",
+      "thinking": "extended"
+    },
+    {
+      "task": "startup-replay.md",
+      "group": "Startup Replay",
+      "model": "opus",
+      "thinking": "extended"
+    },
+    {
+      "task": "fork-sync-barrier.md",
+      "group": "Fork Command",
+      "model": "opus",
+      "thinking": "extended"
+    },
+    {
+      "task": "kill-cmd-self.md",
+      "group": "Kill Command",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "kill-cmd-target.md",
+      "group": "Kill Command",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "kill-cmd-cascade.md",
+      "group": "Kill Command",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "nav-ctrl-arrows.md",
+      "group": "Navigation",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "nav-sibling-switch.md",
+      "group": "Navigation",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "nav-parent-child.md",
+      "group": "Navigation",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mail-msg-struct.md",
+      "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mail-db-schema.md",
+      "group": "Mailbox",
+      "model": "opus",
+      "thinking": "extended"
+    },
+    {
+      "task": "mail-db-operations.md",
+      "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mail-send-cmd.md",
+      "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mail-check-cmd.md",
+      "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mail-read-cmd.md",
+      "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mail-delete-cmd.md",
+      "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mail-filter-cmd.md",
+      "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agents-tree-cmd.md",
+      "group": "Display",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "separator-nav-context.md",
+      "group": "Display",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
   ],
-  "done": []
+  "done": [
+    {
+      "task": "registry-schema.md",
+      "group": "Registry Foundation",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "registry-create.md",
+      "group": "Registry Foundation",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "registry-status-update.md",
+      "group": "Registry Foundation",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
+  ]
 }
