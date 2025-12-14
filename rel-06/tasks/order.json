@@ -1,18 +1,6 @@
 {
   "todo": [
     {
-      "task": "registry-queries.md",
-      "group": "Registry Foundation",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "uuid-refactor.md",
-      "group": "Utilities",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "agent-zero-register.md",
       "group": "Agent 0 Registration",
       "model": "sonnet",
@@ -185,6 +173,18 @@
     {
       "task": "registry-status-update.md",
       "group": "Registry Foundation",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "registry-queries.md",
+      "group": "Registry Foundation",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "uuid-refactor.md",
+      "group": "Utilities",
       "model": "sonnet",
       "thinking": "thinking"
     }

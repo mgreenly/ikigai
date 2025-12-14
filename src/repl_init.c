@@ -4,6 +4,7 @@
 #include "agent.h"
 #include "repl/session_restore.h"
 #include "config.h"
+#include "db/agent.h"
 #include "db/connection.h"
 #include "db/session.h"
 #include "logger.h"
@@ -84,6 +85,17 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Add lower separator to agent's layer cake
     result = ik_layer_cake_add_layer(repl->current->layer_cake, repl->lower_separator_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+
+    // Ensure Agent 0 exists in registry if database is configured
+    if (shared->db_ctx != NULL) {
+        char *agent_zero_uuid = NULL;
+        result = ik_db_ensure_agent_zero(shared->db_ctx, &agent_zero_uuid);
+        if (is_err(&result)) {
+            talloc_free(repl);
+            return result;
+        }
+        repl->current->uuid = talloc_steal(repl->current, agent_zero_uuid);
+    }
 
     // Restore session if database is configured (must be after repl allocated)
     if (shared->db_ctx != NULL) {
