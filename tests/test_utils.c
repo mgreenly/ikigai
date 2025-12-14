@@ -2,6 +2,8 @@
 #include "../src/agent.h"
 #include "../src/db/migration.h"
 #include "../src/panic.h"
+#include "../src/vendor/yyjson/yyjson.h"
+#include <check.h>
 #include <libpq-fe.h>
 #include <talloc.h>
 #include <stdarg.h>
@@ -442,4 +444,36 @@ res_t ik_test_create_agent(TALLOC_CTX *ctx, ik_agent_ctx_t **out)
 
     // Create agent (ik_agent_create will initialize display state)
     return ik_agent_create(ctx, shared, NULL, out);
+}
+
+// ========== Tool JSON Test Helpers ==========
+
+yyjson_val *ik_test_tool_parse_success(const char *json, yyjson_doc **out_doc)
+{
+    (void)json;
+    (void)out_doc;
+    // Stub: return NULL to fail assertions
+    return NULL;
+}
+
+const char *ik_test_tool_parse_error(const char *json, yyjson_doc **out_doc)
+{
+    (void)json;
+    (void)out_doc;
+    // Stub: return NULL to fail assertions
+    return NULL;
+}
+
+const char *ik_test_tool_get_output(yyjson_val *data)
+{
+    (void)data;
+    // Stub: return NULL to fail assertions
+    return NULL;
+}
+
+int64_t ik_test_tool_get_exit_code(yyjson_val *data)
+{
+    (void)data;
+    // Stub: return -1 to fail assertions
+    return -1;
 }
