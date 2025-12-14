@@ -8,6 +8,7 @@
 
 #include "../../../src/error.h"
 #include "../../../src/tool.h"
+#include "../../test_utils.h"
 
 // Test fixtures
 static TALLOC_CTX *ctx = NULL;
@@ -61,21 +62,9 @@ START_TEST(test_grep_exec_with_matches) {
     ck_assert_ptr_nonnull(json);
 
     // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    ck_assert(yyjson_is_obj(root));
-
-    // Verify success: true
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert_ptr_nonnull(success);
-    ck_assert(yyjson_get_bool(success) == true);
-
-    // Verify data object exists
-    yyjson_val *data = yyjson_obj_get(root, "data");
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(json, &doc);
     ck_assert_ptr_nonnull(data);
-    ck_assert(yyjson_is_obj(data));
 
     // Verify count is 2
     yyjson_val *count = yyjson_obj_get(data, "count");
@@ -83,9 +72,7 @@ START_TEST(test_grep_exec_with_matches) {
     ck_assert_int_eq(yyjson_get_int(count), 2);
 
     // Verify output contains both matches with correct format
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    ck_assert_ptr_nonnull(output);
-    const char *output_str = yyjson_get_str(output);
+    const char *output_str = ik_test_tool_get_output(data);
     ck_assert_ptr_nonnull(output_str);
     ck_assert(strstr(output_str, "test1.c:2:") != NULL);
     ck_assert(strstr(output_str, "TODO: add error handling") != NULL);
@@ -123,19 +110,14 @@ END_TEST START_TEST(test_grep_exec_no_matches)
     ck_assert_ptr_nonnull(json);
 
     // Parse result JSON
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(json, &doc);
+    ck_assert_ptr_nonnull(data);
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *count = yyjson_obj_get(data, "count");
     ck_assert_int_eq(yyjson_get_int(count), 0);
 
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
+    const char *output_str = ik_test_tool_get_output(data);
     ck_assert_str_eq(output_str, "");
 
     yyjson_doc_free(doc);
@@ -173,19 +155,14 @@ END_TEST START_TEST(test_grep_exec_with_glob_filter)
     ck_assert(!res.is_err);
 
     char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(json, &doc);
+    ck_assert_ptr_nonnull(data);
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *count = yyjson_obj_get(data, "count");
     ck_assert_int_eq(yyjson_get_int(count), 1);
 
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
+    const char *output_str = ik_test_tool_get_output(data);
     ck_assert(strstr(output_str, "test.c") != NULL);
     ck_assert(strstr(output_str, "test.txt") == NULL);
 
@@ -219,14 +196,10 @@ END_TEST START_TEST(test_grep_exec_null_path_uses_cwd)
     ck_assert(!res.is_err);
 
     char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(json, &doc);
+    ck_assert_ptr_nonnull(data);
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *success = yyjson_obj_get(root, "success");
-    ck_assert(yyjson_get_bool(success) == true);
-
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *count = yyjson_obj_get(data, "count");
     ck_assert_int_eq(yyjson_get_int(count), 1);
 
@@ -261,16 +234,14 @@ END_TEST START_TEST(test_grep_exec_multiline_match)
     ck_assert(!res.is_err);
 
     char *json = res.ok;
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
+    yyjson_doc *doc = NULL;
+    yyjson_val *data = ik_test_tool_parse_success(json, &doc);
+    ck_assert_ptr_nonnull(data);
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *data = yyjson_obj_get(root, "data");
     yyjson_val *count = yyjson_obj_get(data, "count");
     ck_assert_int_eq(yyjson_get_int(count), 2);
 
-    yyjson_val *output = yyjson_obj_get(data, "output");
-    const char *output_str = yyjson_get_str(output);
+    const char *output_str = ik_test_tool_get_output(data);
     ck_assert(strstr(output_str, ":2:") != NULL);
     ck_assert(strstr(output_str, ":4:") != NULL);
 
