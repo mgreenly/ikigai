@@ -578,3 +578,43 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
     talloc_free(tmp);
     return OK(*out_uuid);
 }
+
+res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid,
+                                       int64_t *out_message_id)
+{
+    assert(db_ctx != NULL);          // LCOV_EXCL_BR_LINE
+    assert(agent_uuid != NULL);      // LCOV_EXCL_BR_LINE
+    assert(out_message_id != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Create temporary context for query result
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Query for maximum message ID for this agent
+    const char *query = "SELECT COALESCE(MAX(id), 0) FROM messages WHERE agent_uuid = $1";
+
+    const char *param_values[1];
+    param_values[0] = agent_uuid;
+
+    ik_pg_result_wrapper_t *res_wrapper =
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 1, NULL,
+                                                   param_values, NULL, NULL, 0));
+    PGresult *res = res_wrapper->pg_result;
+
+    // Check query execution status
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+        const char *pq_err = PQerrorMessage(db_ctx->conn);
+        talloc_free(tmp);
+        return ERR(db_ctx, IO, "Failed to get last message ID: %s", pq_err);
+    }
+
+    // Parse result
+    const char *id_str = PQgetvalue_(res, 0, 0);
+    if (sscanf(id_str, "%lld", (long long *)out_message_id) != 1) {
+        talloc_free(tmp);
+        return ERR(db_ctx, PARSE, "Failed to parse message ID");
+    }
+
+    talloc_free(tmp);
+    return OK(NULL);
+}

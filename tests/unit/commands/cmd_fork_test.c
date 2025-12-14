@@ -400,6 +400,91 @@ START_TEST(test_fork_unquoted_text_rejected)
 }
 END_TEST
 
+// Test: Fork records fork_message_id (parent has no messages)
+START_TEST(test_fork_records_fork_message_id_no_messages)
+{
+    res_t res = cmd_fork(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    // Child should have fork_message_id = 0 (parent has no messages)
+    ik_agent_ctx_t *child = repl->current;
+    ck_assert_int_eq(child->fork_message_id, 0);
+}
+END_TEST
+
+// Test: Fork stores fork_message_id in registry
+START_TEST(test_fork_registry_has_fork_message_id)
+{
+    res_t res = cmd_fork(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    // Query registry for child
+    ik_db_agent_row_t *row = NULL;
+    res_t db_res = ik_db_agent_get(db, test_ctx, repl->current->uuid, &row);
+    ck_assert(is_ok(&db_res));
+    ck_assert_ptr_nonnull(row);
+    ck_assert_ptr_nonnull(row->fork_message_id);
+    // Should be "0" for parent with no messages
+    ck_assert_str_eq(row->fork_message_id, "0");
+}
+END_TEST
+
+// Test: Child inherits parent conversation
+START_TEST(test_fork_child_inherits_conversation)
+{
+    // Add a message to parent's conversation before forking
+    res_t msg_res = ik_openai_msg_create(test_ctx, "user", "Test message from parent");
+    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg = msg_res.ok;
+
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
+    ck_assert(is_ok(&add_res));
+    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+
+    res_t res = cmd_fork(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    // Child should inherit parent's conversation
+    ik_agent_ctx_t *child = repl->current;
+    ck_assert_ptr_nonnull(child->conversation);
+    ck_assert_uint_eq(child->conversation->message_count, 1);
+
+    // Verify the message content was copied
+    ck_assert_str_eq(child->conversation->messages[0]->kind, "user");
+    ck_assert_str_eq(child->conversation->messages[0]->content, "Test message from parent");
+}
+END_TEST
+
+// Test: Child post-fork messages are separate from parent
+START_TEST(test_fork_child_post_fork_messages_separate)
+{
+    // Add initial message to parent
+    res_t msg_res = ik_openai_msg_create(test_ctx, "user", "Parent message before fork");
+    ck_assert(is_ok(&msg_res));
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
+    ck_assert(is_ok(&add_res));
+
+    ik_agent_ctx_t *parent = repl->current;
+    size_t parent_msg_count_before_fork = parent->conversation->message_count;
+
+    res_t res = cmd_fork(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    // Add message to child's conversation (simulating post-fork message)
+    ik_agent_ctx_t *child = repl->current;
+    res_t child_msg_res = ik_openai_msg_create(test_ctx, "user", "Child message after fork");
+    ck_assert(is_ok(&child_msg_res));
+    res_t child_add_res = ik_openai_conversation_add_msg(child->conversation, child_msg_res.ok);
+    ck_assert(is_ok(&child_add_res));
+
+    // Child should have the post-fork message
+    ck_assert_uint_eq(child->conversation->message_count, 2);
+
+    // Parent's conversation should remain unchanged
+    ck_assert_uint_eq(parent->conversation->message_count, parent_msg_count_before_fork);
+}
+END_TEST
+
 static Suite *cmd_fork_suite(void)
 {
     Suite *s = suite_create("Fork Command");
@@ -421,6 +506,10 @@ static Suite *cmd_fork_suite(void)
     tcase_add_test(tc, test_fork_llm_call_triggered);
     tcase_add_test(tc, test_fork_empty_prompt);
     tcase_add_test(tc, test_fork_unquoted_text_rejected);
+    tcase_add_test(tc, test_fork_records_fork_message_id_no_messages);
+    tcase_add_test(tc, test_fork_registry_has_fork_message_id);
+    tcase_add_test(tc, test_fork_child_inherits_conversation);
+    tcase_add_test(tc, test_fork_child_post_fork_messages_separate);
     // Note: Rollback tests removed - they violate preconditions (db_ctx->conn != NULL assertion)
     // and cannot be properly tested without mocking infrastructure
     // tcase_add_test(tc, test_fork_rollback_on_failure);

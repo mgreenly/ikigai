@@ -113,6 +113,16 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik
     return OK(NULL);
 }
 
+// Mock ik_db_agent_get_last_message_id (needed because cmd_fork calls it)
+res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid,
+                                       int64_t *out_message_id)
+{
+    (void)db_ctx;
+    (void)agent_uuid;
+    *out_message_id = 0;  // No messages
+    return OK(NULL);
+}
+
 // Mock ik_db_message_insert (needed because session_restore calls it)
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
                            int64_t session_id,

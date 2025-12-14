@@ -136,3 +136,37 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     *out = agent;
     return OK(agent);
 }
+
+res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent)
+{
+    assert(child != NULL);   // LCOV_EXCL_BR_LINE
+    assert(parent != NULL);  // LCOV_EXCL_BR_LINE
+    assert(child->conversation != NULL);   // LCOV_EXCL_BR_LINE
+    assert(parent->conversation != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Copy each message from parent to child
+    for (size_t i = 0; i < parent->conversation->message_count; i++) {
+        ik_msg_t *src_msg = parent->conversation->messages[i];
+
+        // Create a new message with copied content
+        res_t msg_res = ik_openai_msg_create(child->conversation, src_msg->kind, src_msg->content);
+        if (is_err(&msg_res)) {
+            return msg_res;
+        }
+        ik_msg_t *new_msg = msg_res.ok;
+
+        // Copy data_json if present
+        if (src_msg->data_json != NULL) {
+            new_msg->data_json = talloc_strdup(new_msg, src_msg->data_json);
+            if (new_msg->data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        }
+
+        // Add to child's conversation
+        res_t add_res = ik_openai_conversation_add_msg(child->conversation, new_msg);
+        if (is_err(&add_res)) {
+            return add_res;
+        }
+    }
+
+    return OK(NULL);
+}

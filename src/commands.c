@@ -550,9 +550,30 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
         return res;
     }
 
+    // Get parent's last message ID (fork point) before creating child
+    ik_agent_ctx_t *parent = repl->current;
+    int64_t fork_message_id = 0;
+    res = ik_db_agent_get_last_message_id(repl->shared->db_ctx, parent->uuid, &fork_message_id);
+    if (is_err(&res)) {
+        ik_db_rollback(repl->shared->db_ctx);
+        repl->shared->fork_pending = false;
+        return res;
+    }
+
     // Create child agent
     ik_agent_ctx_t *child = NULL;
-    res = ik_agent_create(repl, repl->shared, repl->current->uuid, &child);
+    res = ik_agent_create(repl, repl->shared, parent->uuid, &child);
+    if (is_err(&res)) {
+        ik_db_rollback(repl->shared->db_ctx);
+        repl->shared->fork_pending = false;
+        return res;
+    }
+
+    // Set fork_message_id on child (history inheritance point)
+    child->fork_message_id = fork_message_id;
+
+    // Copy parent's conversation to child (history inheritance)
+    res = ik_agent_copy_conversation(child, parent);
     if (is_err(&res)) {
         ik_db_rollback(repl->shared->db_ctx);
         repl->shared->fork_pending = false;
@@ -583,7 +604,7 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Switch to child (uses ik_repl_switch_agent for state save/restore)
-    const char *parent_uuid = repl->current->uuid;
+    const char *parent_uuid = parent->uuid;
     res = ik_repl_switch_agent(repl, child);
     if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
         repl->shared->fork_pending = false;

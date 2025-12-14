@@ -122,3 +122,15 @@ typedef struct ik_agent_ctx {
 // out: receives allocated agent context
 res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
                       const char *parent_uuid, ik_agent_ctx_t **out);
+
+/**
+ * Copy conversation from one agent to another
+ *
+ * Copies the in-memory conversation array from parent to child.
+ * Used during fork to give the child the parent's history.
+ *
+ * @param child Child agent context (destination)
+ * @param parent Parent agent context (source)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent);

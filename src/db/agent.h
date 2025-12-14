@@ -120,4 +120,19 @@ res_t ik_db_agent_get_parent(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
  */
 res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid);
 
+/**
+ * Get the last message ID for an agent
+ *
+ * Returns the maximum message ID for an agent. Used during fork to record
+ * the fork point (the last message before the fork). Returns 0 if the agent
+ * has no messages.
+ *
+ * @param db_ctx Database context (must not be NULL)
+ * @param agent_uuid Agent UUID (must not be NULL)
+ * @param out_message_id Output parameter for last message ID (must not be NULL)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid,
+                                       int64_t *out_message_id);
+
 #endif // IK_DB_AGENT_H
