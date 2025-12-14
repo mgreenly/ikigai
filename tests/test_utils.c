@@ -450,30 +450,78 @@ res_t ik_test_create_agent(TALLOC_CTX *ctx, ik_agent_ctx_t **out)
 
 yyjson_val *ik_test_tool_parse_success(const char *json, yyjson_doc **out_doc)
 {
-    (void)json;
-    (void)out_doc;
-    // Stub: return NULL to fail assertions
-    return NULL;
+    ck_assert_ptr_nonnull(json);
+    ck_assert_ptr_nonnull(out_doc);
+
+    // Parse JSON
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    // Get root object
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert(yyjson_is_obj(root));
+
+    // Get success field
+    yyjson_val *success = yyjson_obj_get(root, "success");
+    ck_assert_ptr_nonnull(success);
+    ck_assert(yyjson_get_bool(success) == true);
+
+    // Get data field
+    yyjson_val *data = yyjson_obj_get(root, "data");
+    ck_assert_ptr_nonnull(data);
+    ck_assert(yyjson_is_obj(data));
+
+    *out_doc = doc;
+    return data;
 }
 
 const char *ik_test_tool_parse_error(const char *json, yyjson_doc **out_doc)
 {
-    (void)json;
-    (void)out_doc;
-    // Stub: return NULL to fail assertions
-    return NULL;
+    ck_assert_ptr_nonnull(json);
+    ck_assert_ptr_nonnull(out_doc);
+
+    // Parse JSON
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    // Get root object
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert(yyjson_is_obj(root));
+
+    // Get success field
+    yyjson_val *success = yyjson_obj_get(root, "success");
+    ck_assert_ptr_nonnull(success);
+    ck_assert(yyjson_get_bool(success) == false);
+
+    // Get error field
+    yyjson_val *error = yyjson_obj_get(root, "error");
+    ck_assert_ptr_nonnull(error);
+    ck_assert(yyjson_is_str(error));
+
+    *out_doc = doc;
+    return yyjson_get_str(error);
 }
 
 const char *ik_test_tool_get_output(yyjson_val *data)
 {
-    (void)data;
-    // Stub: return NULL to fail assertions
-    return NULL;
+    ck_assert_ptr_nonnull(data);
+
+    // Get output field
+    yyjson_val *output = yyjson_obj_get(data, "output");
+    ck_assert_ptr_nonnull(output);
+    ck_assert(yyjson_is_str(output));
+
+    return yyjson_get_str(output);
 }
 
 int64_t ik_test_tool_get_exit_code(yyjson_val *data)
 {
-    (void)data;
-    // Stub: return -1 to fail assertions
-    return -1;
+    ck_assert_ptr_nonnull(data);
+
+    // Get exit_code field
+    yyjson_val *exit_code = yyjson_obj_get(data, "exit_code");
+    ck_assert_ptr_nonnull(exit_code);
+    ck_assert(yyjson_is_int(exit_code));
+
+    return yyjson_get_int(exit_code);
 }
