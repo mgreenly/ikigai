@@ -1,5 +1,60 @@
 {
-  "todo": [],
+  "todo": [
+    {
+      "task": "tool-test-helpers.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "refactor-bash-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-file-read-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-file-write-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-glob-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-grep-execute-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-grep-edge-cases-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-tool-limit-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "refactor-dispatcher-test.md",
+      "group": "Tool Test Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
+  ],
   "done": [
     {
       "task": "delete-unused-conversation.md",
