@@ -122,8 +122,3 @@ typedef struct ik_agent_ctx {
 // out: receives allocated agent context
 res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
                       const char *parent_uuid, ik_agent_ctx_t **out);
-
-// Generate a new UUID as base64url string (helper function)
-// ctx: talloc parent for the returned string
-// Returns: newly allocated 22-character base64url UUID string
-char *ik_agent_generate_uuid(TALLOC_CTX *ctx);

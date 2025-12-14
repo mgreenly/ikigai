@@ -1,6 +1,7 @@
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/error.h"
+#include "../../../src/uuid.h"
 #include "../../test_utils.h"
 
 #include <check.h>
@@ -743,13 +744,13 @@ START_TEST(test_agent_tool_thread_mutex_initialized)
 }
 END_TEST
 
-// Test ik_agent_generate_uuid() returns valid 22-char base64url string
+// Test ik_generate_uuid() returns valid 22-char base64url string
 START_TEST(test_generate_uuid_returns_valid_string)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    char *uuid = ik_agent_generate_uuid(ctx);
+    char *uuid = ik_generate_uuid(ctx);
     ck_assert_ptr_nonnull(uuid);
     ck_assert_uint_eq(strlen(uuid), 22);
     ck_assert(is_base64url(uuid, 22));
@@ -767,9 +768,9 @@ START_TEST(test_generate_uuid_produces_different_uuids)
     // Seed random number generator for reproducibility
     srand((unsigned int)time(NULL));
 
-    char *uuid1 = ik_agent_generate_uuid(ctx);
-    char *uuid2 = ik_agent_generate_uuid(ctx);
-    char *uuid3 = ik_agent_generate_uuid(ctx);
+    char *uuid1 = ik_generate_uuid(ctx);
+    char *uuid2 = ik_generate_uuid(ctx);
+    char *uuid3 = ik_generate_uuid(ctx);
 
     ck_assert_ptr_nonnull(uuid1);
     ck_assert_ptr_nonnull(uuid2);
