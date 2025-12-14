@@ -382,7 +382,7 @@ check-valgrind:
 		if valgrind --leak-check=full --show-leak-kinds=all \
 		            --track-origins=yes --error-exitcode=1 \
 		            --quiet --gen-suppressions=no \
-		            --suppressions=$(CURDIR)/.suppressions/valgrind.supp \
+		            --suppressions=$$PWD/.suppressions/valgrind.supp \
 		            ./{} > /tmp/valgrind-$$$$.log 2>&1; then \
 			echo "✓"; \
 		else \
