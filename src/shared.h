@@ -41,6 +41,7 @@ typedef struct ik_shared_ctx {
     ik_debug_pipe_t *openai_debug_pipe;  // OpenAI debug pipe
     ik_debug_pipe_t *db_debug_pipe;      // Database debug pipe
     bool debug_enabled;                   // Debug flag
+    bool fork_pending;                    // Fork operation in progress (concurrency control)
 } ik_shared_ctx_t;
 
 // Create shared context (facade that will create infrastructure)
