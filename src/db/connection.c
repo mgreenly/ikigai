@@ -123,3 +123,69 @@ res_t ik_db_init_with_migrations(TALLOC_CTX *mem_ctx, const char *conn_str, cons
     *out_ctx = db_ctx;
     return OK(db_ctx);
 }
+
+res_t ik_db_begin(ik_db_ctx_t *db_ctx)
+{
+    assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(db_ctx->conn != NULL);  // LCOV_EXCL_BR_LINE
+
+    PGresult *res = PQexec(db_ctx->conn, "BEGIN");
+    if (res == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+
+    ExecStatusType status = PQresultStatus(res);
+    if (status != PGRES_COMMAND_OK) {
+        const char *err_msg = PQerrorMessage(db_ctx->conn);
+        res_t result = ERR(db_ctx, IO, "BEGIN failed: %s", err_msg);
+        PQclear(res);
+        return result;
+    }
+
+    PQclear(res);
+    return OK(NULL);
+}
+
+res_t ik_db_commit(ik_db_ctx_t *db_ctx)
+{
+    assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(db_ctx->conn != NULL);  // LCOV_EXCL_BR_LINE
+
+    PGresult *res = PQexec(db_ctx->conn, "COMMIT");
+    if (res == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+
+    ExecStatusType status = PQresultStatus(res);
+    if (status != PGRES_COMMAND_OK) {
+        const char *err_msg = PQerrorMessage(db_ctx->conn);
+        res_t result = ERR(db_ctx, IO, "COMMIT failed: %s", err_msg);
+        PQclear(res);
+        return result;
+    }
+
+    PQclear(res);
+    return OK(NULL);
+}
+
+res_t ik_db_rollback(ik_db_ctx_t *db_ctx)
+{
+    assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(db_ctx->conn != NULL);  // LCOV_EXCL_BR_LINE
+
+    PGresult *res = PQexec(db_ctx->conn, "ROLLBACK");
+    if (res == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+
+    ExecStatusType status = PQresultStatus(res);
+    if (status != PGRES_COMMAND_OK) {
+        const char *err_msg = PQerrorMessage(db_ctx->conn);
+        res_t result = ERR(db_ctx, IO, "ROLLBACK failed: %s", err_msg);
+        PQclear(res);
+        return result;
+    }
+
+    PQclear(res);
+    return OK(NULL);
+}

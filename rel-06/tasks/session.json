@@ -93,5 +93,15 @@
     "event": "start",
     "task": "agent-switch-state.md",
     "time": "2025-12-14T20:39:35.102Z"
+  },
+  {
+    "event": "done",
+    "task": "agent-switch-state.md",
+    "time": "2025-12-14T20:50:04.001Z"
+  },
+  {
+    "event": "start",
+    "task": "fork-cmd-basic.md",
+    "time": "2025-12-14T20:50:19.178Z"
   }
 ]

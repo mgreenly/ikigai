@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "agent-switch-state.md",
-      "group": "Multi-Agent Infrastructure",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "fork-cmd-basic.md",
       "group": "Fork Command",
       "model": "sonnet",
@@ -184,6 +178,12 @@
     },
     {
       "task": "repl-agent-lookup.md",
+      "group": "Multi-Agent Infrastructure",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-switch-state.md",
       "group": "Multi-Agent Infrastructure",
       "model": "sonnet",
       "thinking": "thinking"

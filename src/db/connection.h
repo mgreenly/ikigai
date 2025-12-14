@@ -68,4 +68,34 @@ res_t ik_db_init(TALLOC_CTX *mem_ctx, const char *conn_str, ik_db_ctx_t **out_ct
  */
 res_t ik_db_init_with_migrations(TALLOC_CTX *mem_ctx, const char *conn_str, const char *migrations_dir, ik_db_ctx_t **out_ctx);
 
+/**
+ * Begin transaction
+ *
+ * Executes "BEGIN" to start a new transaction.
+ *
+ * @param db_ctx Database context (must not be NULL)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_db_begin(ik_db_ctx_t *db_ctx);
+
+/**
+ * Commit transaction
+ *
+ * Executes "COMMIT" to commit the current transaction.
+ *
+ * @param db_ctx Database context (must not be NULL)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_db_commit(ik_db_ctx_t *db_ctx);
+
+/**
+ * Rollback transaction
+ *
+ * Executes "ROLLBACK" to abort the current transaction.
+ *
+ * @param db_ctx Database context (must not be NULL)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_db_rollback(ik_db_ctx_t *db_ctx);
+
 #endif // IK_DB_CONNECTION_H
