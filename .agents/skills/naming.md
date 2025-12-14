@@ -80,4 +80,4 @@ posix_write_(fd, buf, count)      // wraps write()
 
 ---
 
-**Complete reference:** See `docs/naming.md` for full details, rationale, and examples.
+**Complete reference:** See `project/naming.md` for full details, rationale, and examples.

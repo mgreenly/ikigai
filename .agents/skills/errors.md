@@ -158,8 +158,8 @@ res_t ik_foo_init(void *parent, foo_t **out) {
 2. Prefer Option A (pass parent for error allocation)
 3. Use Option B (talloc_steal) as fallback
 
-**Reference:** See `fix.md` and `docs/error_handling.md#error-context-lifetime-critical` for detailed analysis.
+**Reference:** See `fix.md` and `project/error_handling.md#error-context-lifetime-critical` for detailed analysis.
 
 ## References
 
-Full details: `docs/return_values.md`, `docs/error_handling.md`, `docs/error_patterns.md`, `docs/error_testing.md`
+Full details: `project/return_values.md`, `project/error_handling.md`, `project/error_patterns.md`, `project/error_testing.md`

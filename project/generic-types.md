@@ -39,7 +39,7 @@ typedef struct ik_array {
 
 ### Error Handling
 
-**Follows the three-category error handling strategy from `docs/error_handling.md`:**
+**Follows the three-category error handling strategy from `project/error_handling.md`:**
 
 **1. IO Operations (heap allocation)** → Return `res_t`
 - `create()`, `append()`, `insert()` - Can fail due to OOM
@@ -59,7 +59,7 @@ typedef struct ik_array {
 
 **OOM handling:** Memory allocation failures call `PANIC("Out of memory")` which immediately terminates the process. OOM is not a recoverable error.
 
-See `docs/error_handling.md` for complete error handling philosophy.
+See `project/error_handling.md` for complete error handling philosophy.
 
 ### Core Operations
 
@@ -226,7 +226,7 @@ The array module was implemented in four sequential steps, each with full TDD an
 3. **Byte array wrapper** - Created type-safe wrapper for uint8_t elements
 4. **Line array wrapper** - Created type-safe wrapper for char* elements
 
-All error handling follows the three-category strategy from `docs/error_handling.md`.
+All error handling follows the three-category strategy from `project/error_handling.md`.
 
 ### Files
 
@@ -294,7 +294,7 @@ tcase_add_test_raise_signal(tc_core, test_array_get_out_of_bounds_asserts, SIGAB
 
 **Reference implementations:**
 - `tests/unit/error_test.c` - res_t testing patterns
-- See `docs/error_handling.md` for complete testing strategy
+- See `project/error_handling.md` for complete testing strategy
 
 **Note:** OOM injection testing infrastructure has been removed since allocation failures now cause PANIC.
 

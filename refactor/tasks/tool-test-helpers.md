@@ -30,7 +30,7 @@ Refactoring: Eliminate tool test JSON parsing duplication
 ## Pre-read Documentation
 
 - `docs/README.md` - Project documentation hub
-- `docs/error_handling.md` - Error handling patterns
+- `project/error_handling.md` - Error handling patterns
 
 ## Pre-conditions
 

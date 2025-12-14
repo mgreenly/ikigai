@@ -580,9 +580,9 @@ filesize:
 			failed=1; \
 		fi; \
 	done; \
-	for file in docs/*.md docs/*/*.md; do \
+	for file in project/*.md project/*/*.md; do \
 		[ -f "$$file" ] || continue; \
-		case "$$file" in docs/backlog/*) continue ;; esac; \
+		case "$$file" in project/backlog/*) continue ;; esac; \
 		bytes=$$(wc -c < "$$file"); \
 		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
 			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \

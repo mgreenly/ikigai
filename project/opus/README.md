@@ -31,5 +31,5 @@ Design documents for the next phase of ikigai. These describe the user experienc
 ## Superseded Documentation
 
 - `docs/vision/inter-agent-*.md` - replaced by inbox model
-- `docs/task-system.md` - replaced by queue/inbox
+- `project/task-system.md` - replaced by queue/inbox
 - `docs/opus/sub-agents.md` - deleted, replaced by agent-queues.md

@@ -34,7 +34,7 @@ typedef struct err {
 } err_t;
 ```
 
-**Talloc-allocated** - Errors are allocated on the parent context. The error remains valid as long as that context exists. **WARNING:** If you free the context the error is allocated on, the error becomes invalid. See `docs/error_handling.md#error-context-lifetime-critical` for the error allocation context lifetime rule.
+**Talloc-allocated** - Errors are allocated on the parent context. The error remains valid as long as that context exists. **WARNING:** If you free the context the error is allocated on, the error becomes invalid. See `project/error_handling.md#error-context-lifetime-critical` for the error allocation context lifetime rule.
 
 ### Example Function
 

@@ -14,8 +14,8 @@ Code review performed across all REPL modules for quality, consistency, and main
 
 **Review areas**:
 - Consistent error handling patterns
-- Consistent naming conventions (following `docs/naming.md`)
-- Proper talloc memory hierarchy (following `docs/memory.md`)
+- Consistent naming conventions (following `project/naming.md`)
+- Proper talloc memory hierarchy (following `project/memory.md`)
 - K&R style formatting (120-char width)
 - No dead code or commented-out blocks
 - TODOs resolved or documented
@@ -73,7 +73,7 @@ Valgrind verification performed on all REPL tests with zero errors/warnings:
 ### Documentation Updates
 
 Documentation updated to reflect final REPL state:
-- `docs/architecture.md` - Updated REPL section with final architecture
+- `project/architecture.md` - Updated REPL section with final architecture
 - `docs/repl/README.md` - Updated with final status and features
 - Phase docs (0-5) - Updated to describe completed work
 - Code comments - All public APIs have clear docstrings

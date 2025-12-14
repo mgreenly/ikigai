@@ -73,8 +73,8 @@ This should be extracted into a reusable utility function.
 
 ### Documentation
 - docs/README.md
-- docs/error_handling.md
-- docs/memory.md
+- project/error_handling.md
+- project/memory.md
 
 ### Source Files (Duplication Locations)
 - src/tool_file_read.c (lines 63-98) - tool implementation

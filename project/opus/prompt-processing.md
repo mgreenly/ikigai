@@ -9,7 +9,7 @@ When an agent receives input (user message or sub-agent task prompt), the system
 ## Processing Phases
 
 ```
-/read docs/design.md              ─┐
+/read project/design.md              ─┐
 /push name=prep "Prep task"        │ Phase 1: Setup (before LLM)
 /run                              ─┘
 
@@ -75,7 +75,7 @@ If `/read foo.md` returns content containing `/read bar.md`, the nested command 
 
 ```
 /read src/auth/README.md
-/read docs/auth-design.md
+/read project/auth-design.md
 Implement JWT validation in src/auth/token.c.
 Follow the patterns in the docs above.
 Write tests in tests/unit/test_token.c.
@@ -90,7 +90,7 @@ Timeline:
 ### Orchestrator Task (With Sub-Tasks)
 
 ```
-/read docs/requirements.md
+/read project/requirements.md
 /push name=research-a "Research approach A"
 /push name=research-b "Research approach B"
 /run
@@ -111,10 +111,10 @@ Timeline:
 ### Sequential Pipeline
 
 ```
-/read docs/task-spec.md
+/read project/task-spec.md
 Complete Phase 1 of the task spec.
 Verify all Phase 1 criteria pass.
-/push name=phase2 "/read docs/task-spec.md\nComplete Phase 2 of the task spec."
+/push name=phase2 "/read project/task-spec.md\nComplete Phase 2 of the task spec."
 ```
 
 Timeline:
@@ -144,7 +144,7 @@ Prompts can load personas/skills using `/read`:
 ```
 /read .agents/personas/worker.md
 /read .agents/skills/tdd-workflow.md
-/read docs/feature-spec.md
+/read project/feature-spec.md
 Implement the feature following TDD workflow.
 ```
 

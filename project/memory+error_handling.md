@@ -138,6 +138,6 @@ if (!init(thing)) {
 
 ## See Also
 
-- `docs/memory.md` - Full memory management guide
-- `docs/error_handling.md` - Error handling patterns
+- `project/memory.md` - Full memory management guide
+- `project/error_handling.md` - Error handling patterns
 - `src/error.h:97-106` - Error allocation implementation

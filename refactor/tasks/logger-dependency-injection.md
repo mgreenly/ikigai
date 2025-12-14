@@ -66,7 +66,7 @@ ik_log_debug(logger, "message");
 
 ### Documentation
 - docs/README.md
-- docs/memory.md
+- project/memory.md
 - .agents/skills/di.md (DI principles)
 - .agents/skills/ddd.md (explicit context pattern)
 

@@ -73,8 +73,8 @@ This should be extracted into reusable builder functions.
 
 ### Documentation
 - docs/README.md
-- docs/error_handling.md
-- docs/memory.md
+- project/error_handling.md
+- project/memory.md
 
 ### Source Files (Duplication Locations)
 - src/tool_bash.c - bash tool implementation

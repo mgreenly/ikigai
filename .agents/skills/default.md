@@ -14,11 +14,11 @@ Don't enumerate or read the other files I list here unless you need to.
 * The source code is in src/
 * Header files (*.h) ALWAYS exist in the same directory as their (*.c) files
 * The tests are in tests/unit, tests/integration and tests/performance
-* The docs/ folder contains the project documentation
-* The docs/README.md is the documentation hub - start there for details
-* The docs/decisions folder contains "Architecture Decision Records"
-* Memory: talloc-based with ownership rules (see docs/memory.md)
-* Errors: Result types with OK()/ERR() patterns (see docs/error_handling.md)
+* The project/ folder contains internal design documentation
+* The project/README.md is the documentation hub - start there for details
+* The project/decisions folder contains "Architecture Decision Records"
+* Memory: talloc-based with ownership rules (see project/memory.md)
+* Errors: Result types with OK()/ERR() patterns (see project/error_handling.md)
 * Database: PostgreSQL via libpq (see .agents/skills/database.md for schema and patterns)
 * Use `make check` to verify tests while working on code changes
 * Use `make lint && make coverage` before commits - 100% coverage is MANDATORY
@@ -38,4 +38,4 @@ Don't enumerate or read the other files I list here unless you need to.
 * Each script directory has `README.md` with: exact command (including Deno permissions), arguments table, JSON output format
 * All scripts return JSON: `{success: bool, data: {...}}` on success, `{success: false, error: string, code: string}` on error
 * Use `jq` and coreutils to manipulate JSON results
-* See docs/agent-scripts.md for architecture details
+* See project/agent-scripts.md for architecture details

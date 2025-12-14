@@ -20,7 +20,7 @@ The existing code was cleaned up to properly follow the 3 modes of operation (IO
 
 ## Task 2: Generic Array Utility
 
-**See [docs/array.md](../array.md) for complete design.**
+**See [project/array.md](../array.md) for complete design.**
 
 A generic expandable array utility was built for use throughout the REPL implementation.
 

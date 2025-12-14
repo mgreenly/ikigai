@@ -21,4 +21,4 @@ res_t ik_scrollback_append(ik_scrollback_t *ctx, const char *line);
 - Explicit dependencies
 - Testable (inject mock contexts)
 
-**See:** `docs/explicit_context.md` for `ik_env_t` design.
+**See:** `project/explicit_context.md` for `ik_env_t` design.

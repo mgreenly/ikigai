@@ -1,7 +1,7 @@
 Orchestrate task execution from a tasks directory with automatic retry and escalation.
 
 **Usage:**
-- `/orchestrate PATH` - Run tasks from PATH (e.g., `docs/rel-05/tasks`)
+- `/orchestrate PATH` - Run tasks from PATH (e.g., `rel-05/tasks`)
 
 ## CRITICAL: SEQUENTIAL EXECUTION ONLY
 
@@ -134,5 +134,5 @@ Begin orchestration now.
 {{else}}
 Error: Please provide the tasks directory path.
 
-Example: `/orchestrate docs/rel-05/tasks`
+Example: `/orchestrate rel-05/tasks`
 {{/if}}
