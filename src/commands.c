@@ -362,6 +362,121 @@ static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args)
     return OK(NULL);
 }
 
+// Parse quoted prompt from arguments
+// Returns NULL if no args, empty string if error shown to user, or the extracted prompt
+static char *parse_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    if (args == NULL || args[0] == '\0') {
+        return NULL;
+    }
+
+    // Check if starts with quote
+    if (args[0] != '"') {
+        char *err_msg = talloc_strdup(ctx, "Error: Prompt must be quoted (usage: /fork \"prompt\")");
+        if (err_msg == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        return talloc_strdup(ctx, "");  // Return empty string to signal error
+    }
+
+    // Find closing quote
+    const char *end_quote = strchr(args + 1, '"');
+    if (end_quote == NULL) {
+        char *err_msg = talloc_strdup(ctx, "Error: Unterminated quoted string");
+        if (err_msg == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        return talloc_strdup(ctx, "");  // Return empty string to signal error
+    }
+
+    // Extract prompt (between quotes)
+    size_t prompt_len = (size_t)(end_quote - (args + 1));
+    char *prompt = talloc_strndup(ctx, args + 1, prompt_len);
+    if (prompt == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+    return prompt;
+}
+
+// Handle prompt-triggered LLM call after fork
+// Adds user message to conversation and triggers LLM request
+static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *prompt)
+{
+    // Create user message
+    res_t res = ik_openai_msg_create(repl->current->conversation, "user", prompt);
+    if (is_err(&res)) {
+        return;  // Error already logged
+    }
+    ik_msg_t *user_msg = res.ok;
+
+    // Add to conversation
+    res = ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
+    if (is_err(&res)) {
+        return;  // Error already logged
+    }
+
+    // Persist user message to database
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        char *data_json = talloc_asprintf(ctx,
+                                          "{\"model\":\"%s\",\"temperature\":%.2f,\"max_completion_tokens\":%d}",
+                                          repl->shared->cfg->openai_model,
+                                          repl->shared->cfg->openai_temperature,
+                                          repl->shared->cfg->openai_max_completion_tokens);
+        if (data_json == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+
+        res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
+                                            "user", prompt, data_json);
+        if (is_err(&db_res)) {
+            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
+                fprintf(repl->shared->db_debug_pipe->write_end,
+                        "Warning: Failed to persist user message to database: %s\n",
+                        error_message(db_res.err));
+            }
+            talloc_free(db_res.err);
+        }
+        talloc_free(data_json);
+    }
+
+    // Render user message to scrollback
+    res = ik_event_render(repl->current->scrollback, "user", prompt, "{}");
+    if (is_err(&res)) {
+        return;  // Error already logged
+    }
+
+    // Clear previous assistant response
+    if (repl->current->assistant_response != NULL) {
+        talloc_free(repl->current->assistant_response);
+        repl->current->assistant_response = NULL;
+    }
+    if (repl->current->streaming_line_buffer != NULL) {
+        talloc_free(repl->current->streaming_line_buffer);
+        repl->current->streaming_line_buffer = NULL;
+    }
+
+    // Reset tool iteration count
+    repl->current->tool_iteration_count = 0;
+
+    // Transition to waiting for LLM
+    ik_repl_transition_to_waiting_for_llm(repl);
+
+    // Trigger LLM request
+    res = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
+                                      ik_repl_streaming_callback, repl,
+                                      ik_repl_http_completion_callback, repl, false);
+    if (is_err(&res)) {
+        const char *err_msg = error_message(res.err);
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        ik_repl_transition_to_idle(repl);
+        talloc_free(res.err);
+    } else {
+        repl->current->curl_still_running = 1;
+    }
+}
+
 static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
@@ -410,35 +525,10 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     (void)ctx;
 
     // Parse prompt argument if present
-    char *prompt = NULL;
-    if (args != NULL && args[0] != '\0') {
-        // Check if starts with quote
-        if (args[0] != '"') {
-            char *err_msg = talloc_strdup(ctx, "Error: Prompt must be quoted (usage: /fork \"prompt\")");
-            if (err_msg == NULL) {  // LCOV_EXCL_BR_LINE
-                PANIC("Out of memory");  // LCOV_EXCL_LINE
-            }
-            ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
-            return OK(NULL);
-        }
-
-        // Find closing quote
-        const char *end_quote = strchr(args + 1, '"');
-        if (end_quote == NULL) {
-            char *err_msg = talloc_strdup(ctx, "Error: Unterminated quoted string");
-            if (err_msg == NULL) {  // LCOV_EXCL_BR_LINE
-                PANIC("Out of memory");  // LCOV_EXCL_LINE
-            }
-            ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
-            return OK(NULL);
-        }
-
-        // Extract prompt (between quotes)
-        size_t prompt_len = (size_t)(end_quote - (args + 1));
-        prompt = talloc_strndup(ctx, args + 1, prompt_len);
-        if (prompt == NULL) {  // LCOV_EXCL_BR_LINE
-            PANIC("Out of memory");  // LCOV_EXCL_LINE
-        }
+    char *prompt = parse_fork_prompt(ctx, repl, args);
+    if (prompt != NULL && prompt[0] == '\0') {
+        // Error was shown to user by parse_fork_prompt
+        return OK(NULL);
     }
 
     // Concurrency check (Q9)
@@ -512,80 +602,8 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // If prompt provided, add as user message and trigger LLM
-    // Note: repl->current is now the child agent after the switch above
     if (prompt != NULL && prompt[0] != '\0') {
-        // Create user message
-        res = ik_openai_msg_create(repl->current->conversation, "user", prompt);
-        if (is_err(&res)) {
-            return res;
-        }
-        ik_msg_t *user_msg = res.ok;
-
-        // Add to conversation
-        res = ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
-        if (is_err(&res)) {
-            return res;
-        }
-
-        // Persist user message to database
-        if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
-            char *data_json = talloc_asprintf(ctx,
-                                              "{\"model\":\"%s\",\"temperature\":%.2f,\"max_completion_tokens\":%d}",
-                                              repl->shared->cfg->openai_model,
-                                              repl->shared->cfg->openai_temperature,
-                                              repl->shared->cfg->openai_max_completion_tokens);
-            if (data_json == NULL) {  // LCOV_EXCL_BR_LINE
-                PANIC("Out of memory");  // LCOV_EXCL_LINE
-            }
-
-            res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                                "user", prompt, data_json);
-            if (is_err(&db_res)) {
-                if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
-                    fprintf(repl->shared->db_debug_pipe->write_end,
-                            "Warning: Failed to persist user message to database: %s\n",
-                            error_message(db_res.err));
-                }
-                talloc_free(db_res.err);
-            }
-            talloc_free(data_json);
-        }
-
-        // Render user message to scrollback
-        res = ik_event_render(repl->current->scrollback, "user", prompt, "{}");
-        if (is_err(&res)) {
-            return res;
-        }
-
-        // Clear previous assistant response
-        if (repl->current->assistant_response != NULL) {
-            talloc_free(repl->current->assistant_response);
-            repl->current->assistant_response = NULL;
-        }
-        if (repl->current->streaming_line_buffer != NULL) {
-            talloc_free(repl->current->streaming_line_buffer);
-            repl->current->streaming_line_buffer = NULL;
-        }
-
-        // Reset tool iteration count
-        repl->current->tool_iteration_count = 0;
-
-        // Transition to waiting for LLM
-        // Note: child is now repl->current after the switch in the earlier code
-        ik_repl_transition_to_waiting_for_llm(repl);
-
-        // Trigger LLM request
-        res = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
-                                          ik_repl_streaming_callback, repl,
-                                          ik_repl_http_completion_callback, repl, false);
-        if (is_err(&res)) {
-            const char *err_msg = error_message(res.err);
-            ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
-            ik_repl_transition_to_idle(repl);
-            talloc_free(res.err);
-        } else {
-            repl->current->curl_still_running = 1;
-        }
+        handle_fork_prompt(ctx, repl, prompt);
     }
 
     return OK(NULL);
