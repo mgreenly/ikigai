@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <talloc.h>
+#include <time.h>
 
 res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
 {
@@ -52,6 +53,45 @@ res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
         const char *pq_err = PQerrorMessage(db_ctx->conn);
         talloc_free(tmp);  // Destructor automatically calls PQclear
         return ERR(db_ctx, IO, "Failed to insert agent: %s", pq_err);
+    }
+
+    talloc_free(tmp);  // Destructor automatically calls PQclear
+    return OK(NULL);
+}
+
+res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
+{
+    assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(uuid != NULL);    // LCOV_EXCL_BR_LINE
+
+    // Create temporary context for query result
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Update agent status to 'dead' and set ended_at timestamp
+    // Only update if status is 'running' to make it idempotent
+    const char *query =
+        "UPDATE agents SET status = 'dead', ended_at = $1 "
+        "WHERE uuid = $2 AND status = 'running'";
+
+    // Get current timestamp
+    char ended_at_str[32];
+    snprintf(ended_at_str, sizeof(ended_at_str), "%" PRId64, time(NULL));
+
+    const char *param_values[2];
+    param_values[0] = ended_at_str;
+    param_values[1] = uuid;
+
+    ik_pg_result_wrapper_t *res_wrapper =
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 2, NULL,
+                                                   param_values, NULL, NULL, 0));
+    PGresult *res = res_wrapper->pg_result;
+
+    // Check query execution status
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        const char *pq_err = PQerrorMessage(db_ctx->conn);
+        talloc_free(tmp);  // Destructor automatically calls PQclear
+        return ERR(db_ctx, IO, "Failed to mark agent as dead: %s", pq_err);
     }
 
     talloc_free(tmp);  // Destructor automatically calls PQclear
