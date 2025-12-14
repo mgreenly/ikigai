@@ -82,12 +82,14 @@ res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_
 // Mock ik_db_message_insert (not used in these tests, but needed for linking)
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
                            int64_t session_id,
+                           const char *agent_uuid,
                            const char *kind,
                            const char *content,
                            const char *data_json)
 {
     (void)db_ctx;
     (void)session_id;
+    (void)agent_uuid;
     (void)kind;
     (void)content;
     (void)data_json;

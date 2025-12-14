@@ -120,15 +120,15 @@ START_TEST(test_mark_with_null_data) {
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user message
-    res = ik_db_message_insert(db, session_id, "user", "Before mark", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Before mark", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark with NULL data (no label)
-    res = ik_db_message_insert(db, session_id, "mark", NULL, NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -169,11 +169,11 @@ START_TEST(test_mark_with_invalid_json_data) {
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark with data that will fail to parse
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"test\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"test\"}");
     ck_assert(is_ok(&res));
 
     // Enable mock to simulate invalid JSON parsing
@@ -205,11 +205,11 @@ START_TEST(test_mark_with_non_string_label)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark with label as number instead of string
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":123}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":123}");
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -248,11 +248,11 @@ START_TEST(test_mark_with_null_label_string) {
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark with valid label
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"test\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"test\"}");
     ck_assert(is_ok(&res));
 
     // Enable mock to return NULL from yyjson_get_str_

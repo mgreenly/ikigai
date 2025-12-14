@@ -91,7 +91,7 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
                                           repl->shared->cfg->openai_max_completion_tokens);
 
         res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                            "user", message_text, data_json);
+                                            NULL, "user", message_text, data_json);
         if (is_err(&db_res)) {
             if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
                 fprintf(repl->shared->db_debug_pipe->write_end,

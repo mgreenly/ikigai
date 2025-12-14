@@ -116,15 +116,15 @@ START_TEST(test_replay_linear_sequence) {
     SKIP_IF_NO_DB();
 
     // Insert clear first
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user message
-    res = ik_db_message_insert(db, session_id, "user", "Hello", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Hello", NULL);
     ck_assert(is_ok(&res));
 
     // Insert assistant message
-    res = ik_db_message_insert(db, session_id, "assistant", "Hi there!", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", "Hi there!", NULL);
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -148,22 +148,22 @@ START_TEST(test_replay_clear_semantics)
     SKIP_IF_NO_DB();
 
     // Insert initial clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user + assistant
-    res = ik_db_message_insert(db, session_id, "user", "First message", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "First message", NULL);
     ck_assert(is_ok(&res));
 
-    res = ik_db_message_insert(db, session_id, "assistant", "First response", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", "First response", NULL);
     ck_assert(is_ok(&res));
 
     // Insert another clear
-    res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert new user message
-    res = ik_db_message_insert(db, session_id, "user", "Second message", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Second message", NULL);
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -185,19 +185,19 @@ START_TEST(test_replay_system_message)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert system message
-    res = ik_db_message_insert(db, session_id, "system", "You are a helpful assistant", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "system", "You are a helpful assistant", NULL);
     ck_assert(is_ok(&res));
 
     // Insert user message
-    res = ik_db_message_insert(db, session_id, "user", "Hello", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Hello", NULL);
     ck_assert(is_ok(&res));
 
     // Insert assistant message
-    res = ik_db_message_insert(db, session_id, "assistant", "How can I help?", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", "How can I help?", NULL);
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -239,23 +239,23 @@ START_TEST(test_replay_skip_mark_rewind)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user
-    res = ik_db_message_insert(db, session_id, "user", "Message 1", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Message 1", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark (should be skipped)
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"name\":\"checkpoint1\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"name\":\"checkpoint1\"}");
     ck_assert(is_ok(&res));
 
     // Insert assistant
-    res = ik_db_message_insert(db, session_id, "assistant", "Response 1", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", "Response 1", NULL);
     ck_assert(is_ok(&res));
 
     // Insert rewind (should be skipped)
-    res = ik_db_message_insert(db, session_id, "rewind", NULL, "{\"to\":\"checkpoint1\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "rewind", NULL, "{\"to\":\"checkpoint1\"}");
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -278,14 +278,14 @@ START_TEST(test_replay_geometric_growth)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert 20 messages to trigger geometric growth
     // Initial capacity: 16, after 16 messages capacity should be 32
     for (int i = 0; i < 20; i++) {
         char *content = talloc_asprintf(test_ctx, "Message %d", i);
-        res = ik_db_message_insert(db, session_id, "user", content, NULL);
+        res = ik_db_message_insert(db, session_id, NULL, "user", content, NULL);
         ck_assert(is_ok(&res));
     }
 

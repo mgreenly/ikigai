@@ -36,8 +36,8 @@ int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *
 res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx);
 res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg);
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx, int64_t session_id,
-                           const char *kind, const char *content,
-                           const char *data_json);
+                           const char *agent_uuid, const char *kind,
+                           const char *content, const char *data_json);
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id);
@@ -116,12 +116,14 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik
 // Mock ik_db_message_insert (needed because session_restore calls it)
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
                            int64_t session_id,
+                           const char *agent_uuid,
                            const char *kind,
                            const char *content,
                            const char *data_json)
 {
     (void)db_ctx;
     (void)session_id;
+    (void)agent_uuid;
     (void)kind;
     (void)content;
     (void)data_json;

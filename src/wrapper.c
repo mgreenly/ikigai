@@ -445,11 +445,12 @@ MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out
 
 MOCKABLE res_t ik_db_message_insert_(void *db,
                                      int64_t session_id,
+                                     const char *agent_uuid,
                                      const char *kind,
                                      const char *content,
                                      const char *data_json)
 {
-    return ik_db_message_insert((ik_db_ctx_t *)db, session_id, kind, content, data_json);
+    return ik_db_message_insert((ik_db_ctx_t *)db, session_id, agent_uuid, kind, content, data_json);
 }
 
 MOCKABLE res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg)

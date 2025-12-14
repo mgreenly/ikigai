@@ -33,12 +33,14 @@ static TALLOC_CTX *mock_error_ctx = NULL;
 // Mock ik_db_message_insert_ to inject failures
 res_t ik_db_message_insert_(void *db,
                             int64_t session_id,
+                            const char *agent_uuid,
                             const char *kind,
                             const char *content,
                             const char *data_json)
 {
     (void)db;
     (void)session_id;
+    (void)agent_uuid;
     (void)kind;
     (void)content;
     (void)data_json;

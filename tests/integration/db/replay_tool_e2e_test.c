@@ -140,7 +140,7 @@ START_TEST(test_tool_conversation_e2e)
     // ========== Phase 1: Persist tool conversation ==========
 
     // Event 1: User message - "Show me config.json"
-    res_t res = ik_db_message_insert(db, session_id, "user",
+    res_t res = ik_db_message_insert(db, session_id, NULL, "user",
                                       "Show me config.json", "{}");
     ck_assert(is_ok(&res));
 
@@ -154,7 +154,7 @@ START_TEST(test_tool_conversation_e2e)
             "\"arguments\":\"{\\\"path\\\":\\\"config.json\\\"}\""
         "}"
     "}";
-    res = ik_db_message_insert(db, session_id, "tool_call",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call",
                                "file_read(path=\"config.json\")",
                                tool_call_data);
     ck_assert(is_ok(&res));
@@ -166,13 +166,13 @@ START_TEST(test_tool_conversation_e2e)
         "\"output\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"output\\\":\\\"{\\\\\\\"debug\\\\\\\":true,\\\\\\\"port\\\\\\\":8080}\\\"}}\","
         "\"success\":true"
     "}";
-    res = ik_db_message_insert(db, session_id, "tool_result",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                "File read successfully",
                                tool_result_data);
     ck_assert(is_ok(&res));
 
     // Event 4: Assistant message - summary response
-    res = ik_db_message_insert(db, session_id, "assistant",
+    res = ik_db_message_insert(db, session_id, NULL, "assistant",
                                "Here's config.json with your debug and port settings.",
                                "{}");
     ck_assert(is_ok(&res));

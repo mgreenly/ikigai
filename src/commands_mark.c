@@ -93,7 +93,7 @@ res_t ik_cmd_mark(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
 
         res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                            "mark", NULL, data_json);
+                                            NULL, "mark", NULL, data_json);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
             if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
@@ -152,7 +152,7 @@ res_t ik_cmd_rewind(void *ctx, ik_repl_ctx_t *repl, const char *args)
                                           target_label ? talloc_asprintf(repl, "\"%s\"", target_label) : "null");
 
         res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                            "rewind", NULL, data_json);
+                                            NULL, "rewind", NULL, data_json);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
             if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {

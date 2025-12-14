@@ -198,7 +198,7 @@ START_TEST(test_tool_choice_none_end_to_end)
 
     // Step 1: User message
     const char *user_message = "Find all C files in src/";
-    res_t res = ik_db_message_insert(db, session_id, "user", user_message, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "user", user_message, NULL);
     ck_assert(!res.is_err);
 
     // Step 2: Model responds with text only (tool_choice was "none")
@@ -209,7 +209,7 @@ START_TEST(test_tool_choice_none_end_to_end)
         "or check the directory listing. I don't have access to your filesystem to search directly.";
 
     // Persist assistant message to database
-    res = ik_db_message_insert(db, session_id, "assistant", assistant_response,
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", assistant_response,
                                "{\"model\": \"gpt-4o-mini\", \"finish_reason\": \"stop\"}");
     ck_assert(!res.is_err);
 

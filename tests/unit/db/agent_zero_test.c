@@ -8,6 +8,7 @@
 
 #include "../../../src/db/agent.h"
 #include "../../../src/db/connection.h"
+#include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 #include <check.h>
@@ -204,11 +205,19 @@ START_TEST(test_ensure_agent_zero_adopts_orphans)
         return;
     }
 
+    // Create a session first (messages FK requires valid session_id)
+    int64_t session_id = 0;
+    res_t sess_res = ik_db_session_create(db, &session_id);
+    ck_assert(is_ok(&sess_res));
+    ck_assert(session_id > 0);
+
     // Insert orphan messages (messages with no agent_uuid)
-    const char *insert_orphan =
+    char insert_orphan[512];
+    snprintf(insert_orphan, sizeof(insert_orphan),
         "INSERT INTO messages (session_id, kind, content, created_at, agent_uuid) "
-        "VALUES (1, 'user', 'orphan message 1', NOW(), NULL), "
-        "       (1, 'assistant', 'orphan message 2', NOW(), NULL)";
+        "VALUES (%lld, 'user', 'orphan message 1', NOW(), NULL), "
+        "       (%lld, 'assistant', 'orphan message 2', NOW(), NULL)",
+        (long long)session_id, (long long)session_id);
 
     PGresult *orphan_res = PQexecParams(db->conn, insert_orphan, 0, NULL,
                                          NULL, NULL, NULL, 0);

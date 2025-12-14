@@ -137,7 +137,7 @@ START_TEST(test_file_read_error_end_to_end) {
 
     // Step 1: User message asking to read a non-existent file
     const char *user_message = "Show me missing.txt";
-    res_t res = ik_db_message_insert(db, session_id, "user", user_message, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "user", user_message, NULL);
     ck_assert(!res.is_err);
 
     // Step 2: Model responds with tool call (simulated by creating the message directly)
@@ -155,7 +155,7 @@ START_TEST(test_file_read_error_end_to_end) {
     ck_assert_ptr_nonnull(tool_call_data);
 
     // Persist tool_call message to database
-    res = ik_db_message_insert(db, session_id, "tool_call", NULL, tool_call_data);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", NULL, tool_call_data);
     ck_assert(!res.is_err);
 
     // Step 3: Execute tool and get error result
@@ -197,7 +197,7 @@ START_TEST(test_file_read_error_end_to_end) {
     ck_assert_ptr_nonnull(tool_result_msg);
 
     // Step 5: Persist tool_result message to database
-    res = ik_db_message_insert(db, session_id, "tool_result",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                tool_result_msg->content,
                                tool_result_msg->data_json);
     ck_assert(!res.is_err);
@@ -272,7 +272,7 @@ START_TEST(test_file_read_error_end_to_end) {
         "I couldn't find that file. `missing.txt` doesn't exist in the current directory. "
         "Would you like me to search for it elsewhere?";
 
-    res = ik_db_message_insert(db, session_id, "assistant", assistant_followup,
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", assistant_followup,
                                "{\"model\": \"gpt-4o-mini\", \"finish_reason\": \"stop\"}");
     ck_assert(!res.is_err);
 

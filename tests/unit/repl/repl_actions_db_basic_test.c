@@ -31,12 +31,14 @@ static TALLOC_CTX *mock_err_ctx = NULL;
 // Mock ik_db_message_insert to simulate database error
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
                            int64_t session_id,
+                           const char *agent_uuid,
                            const char *kind,
                            const char *content,
                            const char *data_json)
 {
     (void)db_ctx;
     (void)session_id;
+    (void)agent_uuid;
     (void)kind;
     (void)content;
     (void)data_json;

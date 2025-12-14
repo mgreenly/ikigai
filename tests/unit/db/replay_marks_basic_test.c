@@ -116,19 +116,19 @@ START_TEST(test_simple_mark) {
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user
-    res = ik_db_message_insert(db, session_id, "user", "Hello", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Hello", NULL);
     ck_assert(is_ok(&res));
 
     // Insert assistant
-    res = ik_db_message_insert(db, session_id, "assistant", "Hi there!", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", "Hi there!", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark with label
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"checkpoint1\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"checkpoint1\"}");
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -150,18 +150,18 @@ START_TEST(test_rewind_to_mark)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user + assistant
-    res = ik_db_message_insert(db, session_id, "user", "Message 1", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Message 1", NULL);
     ck_assert(is_ok(&res));
 
-    res = ik_db_message_insert(db, session_id, "assistant", "Response 1", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", "Response 1", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"checkpoint1\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"checkpoint1\"}");
     ck_assert(is_ok(&res));
 
     // Query to get the mark's message ID
@@ -179,15 +179,15 @@ START_TEST(test_rewind_to_mark)
     PQclear(mark_query);
 
     // Insert more messages after mark
-    res = ik_db_message_insert(db, session_id, "user", "Message 2", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Message 2", NULL);
     ck_assert(is_ok(&res));
 
-    res = ik_db_message_insert(db, session_id, "assistant", "Response 2", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", "Response 2", NULL);
     ck_assert(is_ok(&res));
 
     // Insert rewind pointing to the mark
     char *rewind_data = talloc_asprintf(test_ctx, "{\"target_message_id\":%" PRId64 "}", mark_id);
-    res = ik_db_message_insert(db, session_id, "rewind", NULL, rewind_data);
+    res = ik_db_message_insert(db, session_id, NULL, "rewind", NULL, rewind_data);
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -216,15 +216,15 @@ START_TEST(test_rewind_truncates_messages)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user
-    res = ik_db_message_insert(db, session_id, "user", "Before mark", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Before mark", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"save_point\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"save_point\"}");
     ck_assert(is_ok(&res));
 
     // Get mark ID
@@ -239,15 +239,15 @@ START_TEST(test_rewind_truncates_messages)
     PQclear(mark_query);
 
     // Insert messages after mark (these should be truncated)
-    res = ik_db_message_insert(db, session_id, "assistant", "After mark", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", "After mark", NULL);
     ck_assert(is_ok(&res));
 
-    res = ik_db_message_insert(db, session_id, "user", "More after mark", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "More after mark", NULL);
     ck_assert(is_ok(&res));
 
     // Insert rewind
     char *rewind_data = talloc_asprintf(test_ctx, "{\"target_message_id\":%" PRId64 "}", mark_id);
-    res = ik_db_message_insert(db, session_id, "rewind", NULL, rewind_data);
+    res = ik_db_message_insert(db, session_id, NULL, "rewind", NULL, rewind_data);
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -273,15 +273,15 @@ START_TEST(test_multiple_marks)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user
-    res = ik_db_message_insert(db, session_id, "user", "First message", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "First message", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark 'a'
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"a\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"a\"}");
     ck_assert(is_ok(&res));
 
     // Get mark 'a' ID
@@ -296,20 +296,20 @@ START_TEST(test_multiple_marks)
     PQclear(mark_query);
 
     // Insert assistant
-    res = ik_db_message_insert(db, session_id, "assistant", "Response", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", "Response", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark 'b'
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"b\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"b\"}");
     ck_assert(is_ok(&res));
 
     // Insert user
-    res = ik_db_message_insert(db, session_id, "user", "Another message", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Another message", NULL);
     ck_assert(is_ok(&res));
 
     // Rewind to mark 'a'
     char *rewind_data = talloc_asprintf(test_ctx, "{\"target_message_id\":%" PRId64 "}", mark_a_id);
-    res = ik_db_message_insert(db, session_id, "rewind", NULL, rewind_data);
+    res = ik_db_message_insert(db, session_id, NULL, "rewind", NULL, rewind_data);
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -332,15 +332,15 @@ START_TEST(test_rewind_removes_subsequent_marks)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user
-    res = ik_db_message_insert(db, session_id, "user", "Message", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Message", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark1
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"mark1\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"mark1\"}");
     ck_assert(is_ok(&res));
 
     // Get mark1 ID
@@ -355,11 +355,11 @@ START_TEST(test_rewind_removes_subsequent_marks)
     PQclear(mark_query);
 
     // Insert user
-    res = ik_db_message_insert(db, session_id, "user", "Another", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Another", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark2
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"mark2\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"mark2\"}");
     ck_assert(is_ok(&res));
 
     // Get mark2 ID
@@ -375,12 +375,12 @@ START_TEST(test_rewind_removes_subsequent_marks)
 
     // Rewind to mark1
     char *rewind_data = talloc_asprintf(test_ctx, "{\"target_message_id\":%" PRId64 "}", mark1_id);
-    res = ik_db_message_insert(db, session_id, "rewind", NULL, rewind_data);
+    res = ik_db_message_insert(db, session_id, NULL, "rewind", NULL, rewind_data);
     ck_assert(is_ok(&res));
 
     // Now try to rewind to mark2 (should fail because mark2 was removed from stack)
     char *rewind_data2 = talloc_asprintf(test_ctx, "{\"target_message_id\":%" PRId64 "}", mark2_id);
-    res = ik_db_message_insert(db, session_id, "rewind", NULL, rewind_data2);
+    res = ik_db_message_insert(db, session_id, NULL, "rewind", NULL, rewind_data2);
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -403,23 +403,23 @@ START_TEST(test_mark_labels)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user
-    res = ik_db_message_insert(db, session_id, "user", "Message", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Message", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark with label
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"checkpoint\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"checkpoint\"}");
     ck_assert(is_ok(&res));
 
     // Insert mark with auto number
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"number\":1}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"number\":1}");
     ck_assert(is_ok(&res));
 
     // Insert mark with NULL label (auto-generated)
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{}");
     ck_assert(is_ok(&res));
 
     // Load and replay

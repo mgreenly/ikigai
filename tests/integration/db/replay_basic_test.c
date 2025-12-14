@@ -138,7 +138,7 @@ START_TEST(test_replay_single_user_message)
     SKIP_IF_NO_DB();
 
     // Insert single user message
-    ik_db_message_insert(db, session_id, "user", "Hello", "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Hello", "{}");
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
@@ -160,8 +160,8 @@ START_TEST(test_replay_conversation)
     SKIP_IF_NO_DB();
 
     // Insert conversation
-    ik_db_message_insert(db, session_id, "user", "What is 2+2?", "{}");
-    ik_db_message_insert(db, session_id, "assistant", "4", "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "What is 2+2?", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "4", "{}");
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
@@ -185,9 +185,9 @@ START_TEST(test_replay_clear_empties_context)
     SKIP_IF_NO_DB();
 
     // Insert messages then clear
-    ik_db_message_insert(db, session_id, "user", "First", "{}");
-    ik_db_message_insert(db, session_id, "assistant", "Response", "{}");
-    ik_db_message_insert(db, session_id, "clear", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "First", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "Response", "{}");
+    ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
 
     // Replay - context should be empty after clear
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
@@ -207,10 +207,10 @@ START_TEST(test_replay_after_clear)
     SKIP_IF_NO_DB();
 
     // Insert messages, clear, then new message
-    ik_db_message_insert(db, session_id, "user", "Old message", "{}");
-    ik_db_message_insert(db, session_id, "assistant", "Old response", "{}");
-    ik_db_message_insert(db, session_id, "clear", NULL, "{}");
-    ik_db_message_insert(db, session_id, "user", "New message", "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Old message", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "Old response", "{}");
+    ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "New message", "{}");
 
     // Replay - should only have message after clear
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
@@ -232,9 +232,9 @@ START_TEST(test_replay_system_message)
     SKIP_IF_NO_DB();
 
     // Insert clear, system, user (as per test spec)
-    ik_db_message_insert(db, session_id, "clear", NULL, "{}");
-    ik_db_message_insert(db, session_id, "system", "You are helpful", "{}");
-    ik_db_message_insert(db, session_id, "user", "Hello", "{}");
+    ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "system", "You are helpful", "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Hello", "{}");
 
     // Replay - should have system and user (clear doesn't persist)
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
@@ -258,11 +258,11 @@ START_TEST(test_replay_multiple_clears)
     SKIP_IF_NO_DB();
 
     // Multiple clear cycles
-    ik_db_message_insert(db, session_id, "user", "Msg1", "{}");
-    ik_db_message_insert(db, session_id, "clear", NULL, "{}");
-    ik_db_message_insert(db, session_id, "user", "Msg2", "{}");
-    ik_db_message_insert(db, session_id, "clear", NULL, "{}");
-    ik_db_message_insert(db, session_id, "user", "Msg3", "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Msg1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Msg2", "{}");
+    ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Msg3", "{}");
 
     // Replay - should only have last message
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
@@ -283,10 +283,10 @@ START_TEST(test_replay_preserves_order)
     SKIP_IF_NO_DB();
 
     // Insert sequence
-    ik_db_message_insert(db, session_id, "user", "Q1", "{}");
-    ik_db_message_insert(db, session_id, "assistant", "A1", "{}");
-    ik_db_message_insert(db, session_id, "user", "Q2", "{}");
-    ik_db_message_insert(db, session_id, "assistant", "A2", "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Q1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "A1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Q2", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "A2", "{}");
 
     // Replay and verify order
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);

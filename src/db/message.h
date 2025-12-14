@@ -23,6 +23,7 @@
  *
  * @param db          Database connection context (must not be NULL)
  * @param session_id  Session ID (must be positive, references sessions.id)
+ * @param agent_uuid  Agent UUID (may be NULL for backward compatibility)
  * @param kind        Event kind string (must be one of the valid kinds above)
  * @param content     Message content (may be NULL for clear events, empty string allowed)
  * @param data_json   JSONB data as JSON string (may be NULL)
@@ -30,6 +31,7 @@
  */
 res_t ik_db_message_insert(ik_db_ctx_t *db,
                             int64_t session_id,
+                            const char *agent_uuid,
                             const char *kind,
                             const char *content,
                             const char *data_json);

@@ -112,7 +112,7 @@ START_TEST(test_message_insert_invalid_session)
     // Try to insert message with non-existent session_id
     int64_t invalid_session_id = 999999;
     res_t insert_res = ik_db_message_insert(db, invalid_session_id,
-                                             "user", "test", "{}");
+                                             NULL, "user", "test", "{}");
 
     // Should return ERR due to foreign key violation
     ck_assert(is_err(&insert_res));
@@ -175,7 +175,7 @@ START_TEST(test_multiple_errors_dont_crash)
     // Try multiple invalid operations - should all return ERR
     for (int i = 0; i < 5; i++) {
         res_t insert_res = ik_db_message_insert(db, 999999,
-                                                 "user", "test", "{}");
+                                                 NULL, "user", "test", "{}");
         ck_assert(is_err(&insert_res));
     }
 }

@@ -267,7 +267,7 @@ START_TEST(test_bash_error_conversation_persistence)
     ck_assert(!add_res.is_err);
 
     // Persist user message to database
-    res_t insert_res = ik_db_message_insert(db, session_id, "user",
+    res_t insert_res = ik_db_message_insert(db, session_id, NULL, "user",
                                             "Compile the project with gcc main.c", NULL);
     ck_assert(!insert_res.is_err);
 
@@ -291,7 +291,7 @@ START_TEST(test_bash_error_conversation_persistence)
     ck_assert(!add_res.is_err);
 
     // Persist assistant tool call to database
-    insert_res = ik_db_message_insert(db, session_id, "assistant",
+    insert_res = ik_db_message_insert(db, session_id, NULL, "assistant",
                                       "bash(command=\"gcc main.c\")",
                                       tool_call_msg->data_json);
     ck_assert(!insert_res.is_err);
@@ -333,7 +333,7 @@ START_TEST(test_bash_error_conversation_persistence)
     ck_assert_ptr_nonnull(tool_result_msg);
 
     // Persist tool result to database
-    insert_res = ik_db_message_insert(db, session_id, "tool_result",
+    insert_res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                       tool_result_msg->content,
                                       tool_result_msg->data_json);
     ck_assert(!insert_res.is_err);
@@ -349,7 +349,7 @@ START_TEST(test_bash_error_conversation_persistence)
     ck_assert(!add_res.is_err);
 
     // Persist assistant response to database
-    insert_res = ik_db_message_insert(db, session_id, "assistant",
+    insert_res = ik_db_message_insert(db, session_id, NULL, "assistant",
                                       assistant_msg->content, NULL);
     ck_assert(!insert_res.is_err);
 
@@ -432,7 +432,7 @@ START_TEST(test_multiple_bash_failures_persistence)
             );
         ck_assert_ptr_nonnull(tool_result_msg);
 
-        res_t insert_res = ik_db_message_insert(db, session_id, "tool_result",
+        res_t insert_res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                                 tool_result_msg->content,
                                                 tool_result_msg->data_json);
         ck_assert(!insert_res.is_err);

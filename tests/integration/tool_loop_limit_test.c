@@ -178,7 +178,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
 {
     SKIP_IF_NO_DB();
 
-    res_t res = ik_db_message_insert(db, session_id, "user",
+    res_t res = ik_db_message_insert(db, session_id, NULL, "user",
                                      "Keep searching for errors in every file", NULL);
     ck_assert(!res.is_err);
 
@@ -192,7 +192,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
                                              tool_name,
                                              tool_arguments_1);
 
-    res = ik_db_message_insert(db, session_id, "tool_call", NULL, tool_call_data_1);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", NULL, tool_call_data_1);
     ck_assert(!res.is_err);
 
     const char *tool_result_1 = "{\"output\": \"src/main.c:12: log_error(...)\", \"count\": 1}";
@@ -206,7 +206,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
         );
     ck_assert_ptr_nonnull(tool_result_msg_1);
 
-    res = ik_db_message_insert(db, session_id, "tool_result",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                tool_result_msg_1->content,
                                tool_result_msg_1->data_json);
     ck_assert(!res.is_err);
@@ -218,7 +218,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
                                              tool_call_id_2,
                                              tool_name);
 
-    res = ik_db_message_insert(db, session_id, "tool_call", NULL, tool_call_data_2);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", NULL, tool_call_data_2);
     ck_assert(!res.is_err);
 
     const char *tool_result_2 = "{\"output\": \"src/config.c:45: return CONFIG_ERROR;\", \"count\": 1}";
@@ -232,7 +232,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
         "Found 1 match"
         );
 
-    res = ik_db_message_insert(db, session_id, "tool_result",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                tool_result_msg_2->content,
                                tool_result_msg_2->data_json);
     ck_assert(!res.is_err);
@@ -244,7 +244,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
                                              tool_call_id_3,
                                              tool_name);
 
-    res = ik_db_message_insert(db, session_id, "tool_call", NULL, tool_call_data_3);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", NULL, tool_call_data_3);
     ck_assert(!res.is_err);
 
     const char *tool_result_3 = "{\"output\": \"src/parser.c:78: parse_error(line, col);\", \"count\": 1}";
@@ -268,13 +268,14 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
         "Found 1 match (limit reached)"
         );
 
-    res = ik_db_message_insert(db, session_id, "tool_result",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                tool_result_msg_3->content,
                                tool_result_msg_3->data_json);
     ck_assert(!res.is_err);
 
     res = ik_db_message_insert(db,
                                session_id,
+                               NULL,
                                "assistant",
                                "I searched but reached the tool call limit (3 calls). Found errors in main.c, config.c, parser.c.",
                                "{\"model\": \"gpt-4o-mini\", \"finish_reason\": \"stop\"}");

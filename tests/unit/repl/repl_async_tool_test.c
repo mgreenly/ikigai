@@ -28,11 +28,13 @@ static char *last_insert_data_json = NULL;
 /* Mock implementation of ik_db_message_insert_ */
 res_t ik_db_message_insert_(void *db,
                              int64_t session_id,
+                             const char *agent_uuid,
                              const char *kind,
                              const char *content,
                              const char *data_json) {
     (void)db;
     (void)session_id;
+    (void)agent_uuid;
 
     db_insert_call_count++;
 

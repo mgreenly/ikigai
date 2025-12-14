@@ -142,7 +142,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
         repl->shared->session_id = session_id;
 
         // Write initial clear event
-        res_t clear_res = ik_db_message_insert(db_ctx, session_id, "clear", NULL, "{}");
+        res_t clear_res = ik_db_message_insert(db_ctx, session_id, NULL, "clear", NULL, "{}");
         if (is_err(&clear_res)) {
             talloc_free(tmp);
             return clear_res;
@@ -153,6 +153,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
             res_t system_res = ik_db_message_insert(
                 db_ctx,
                 session_id,
+                NULL,
                 "system",
                 cfg->openai_system_message,
                 "{}"

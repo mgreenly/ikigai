@@ -154,7 +154,7 @@ static void persist_assistant_msg(ik_repl_ctx_t *repl)
     data_json = talloc_strdup_append(data_json, "}");
 
     res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                                         "assistant", repl->current->assistant_response, data_json);
+                                         NULL, "assistant", repl->current->assistant_response, data_json);
     if (is_err(&db_res)) {
         if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
             fprintf(repl->shared->db_debug_pipe->write_end,

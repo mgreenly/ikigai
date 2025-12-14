@@ -120,7 +120,7 @@ START_TEST(test_clear_event_insert)
     SKIP_IF_NO_DB();
 
     // Insert clear event
-    res_t insert_res = ik_db_message_insert(db, session_id, "clear", NULL, "{}");
+    res_t insert_res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
     ck_assert(is_ok(&insert_res));
 
     // Query to verify event was inserted
@@ -150,7 +150,7 @@ START_TEST(test_system_event_insert)
 
     // Insert system event
     const char *prompt = "You are a helpful assistant";
-    res_t insert_res = ik_db_message_insert(db, session_id, "system", prompt, "{}");
+    res_t insert_res = ik_db_message_insert(db, session_id, NULL, "system", prompt, "{}");
     ck_assert(is_ok(&insert_res));
 
     // Query and verify
@@ -178,7 +178,7 @@ START_TEST(test_user_event_insert)
     // Insert user event with JSONB data
     const char *message = "What is the meaning of life?";
     const char *data = "{\"model\":\"gpt-4\",\"temperature\":1.0,\"max_tokens\":2000}";
-    res_t insert_res = ik_db_message_insert(db, session_id, "user", message, data);
+    res_t insert_res = ik_db_message_insert(db, session_id, NULL, "user", message, data);
     ck_assert(is_ok(&insert_res));
 
     // Query and verify
@@ -211,7 +211,7 @@ START_TEST(test_assistant_event_insert)
     // Insert assistant event with metadata
     const char *response = "42 is the answer to everything";
     const char *data = "{\"model\":\"gpt-4\",\"tokens\":150,\"finish_reason\":\"stop\"}";
-    res_t insert_res = ik_db_message_insert(db, session_id, "assistant", response, data);
+    res_t insert_res = ik_db_message_insert(db, session_id, NULL, "assistant", response, data);
     ck_assert(is_ok(&insert_res));
 
     // Query and verify
@@ -243,7 +243,7 @@ START_TEST(test_mark_event_insert)
 
     // Insert mark event (content=NULL, label in data_json)
     const char *data = "{\"label\":\"approach-a\"}";
-    res_t insert_res = ik_db_message_insert(db, session_id, "mark", NULL, data);
+    res_t insert_res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, data);
     ck_assert(is_ok(&insert_res));
 
     // Query and verify
@@ -274,7 +274,7 @@ START_TEST(test_rewind_event_insert)
     // Insert rewind event
     const char *label = "approach-a";
     const char *data = "{\"target_message_id\":42,\"label\":\"approach-a\"}";
-    res_t insert_res = ik_db_message_insert(db, session_id, "rewind", label, data);
+    res_t insert_res = ik_db_message_insert(db, session_id, NULL, "rewind", label, data);
     ck_assert(is_ok(&insert_res));
 
     // Query and verify
@@ -304,7 +304,7 @@ START_TEST(test_message_has_created_at)
     SKIP_IF_NO_DB();
 
     // Insert a message
-    res_t insert_res = ik_db_message_insert(db, session_id, "user", "test", "{}");
+    res_t insert_res = ik_db_message_insert(db, session_id, NULL, "user", "test", "{}");
     ck_assert(is_ok(&insert_res));
 
     // Query created_at
@@ -330,7 +330,7 @@ START_TEST(test_message_foreign_key_constraint)
 
     // Try to insert message with non-existent session_id
     int64_t invalid_session_id = 999999;
-    res_t insert_res = ik_db_message_insert(db, invalid_session_id, "user", "test", "{}");
+    res_t insert_res = ik_db_message_insert(db, invalid_session_id, NULL, "user", "test", "{}");
 
     // Should return ERR due to foreign key violation
     ck_assert(is_err(&insert_res));
@@ -343,10 +343,10 @@ START_TEST(test_multiple_messages_preserve_order)
     SKIP_IF_NO_DB();
 
     // Insert multiple messages
-    ik_db_message_insert(db, session_id, "clear", NULL, "{}");
-    ik_db_message_insert(db, session_id, "user", "first", "{}");
-    ik_db_message_insert(db, session_id, "assistant", "response1", "{}");
-    ik_db_message_insert(db, session_id, "user", "second", "{}");
+    ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "first", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "response1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "second", "{}");
 
     // Query messages ordered by created_at
     char *query = talloc_asprintf(test_ctx,

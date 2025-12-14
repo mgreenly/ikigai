@@ -115,7 +115,7 @@ START_TEST(test_db_message_insert_clear_event) {
     SKIP_IF_NO_DB();
 
     // Insert clear event
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Verify message was inserted
@@ -139,7 +139,7 @@ START_TEST(test_db_message_insert_system_event)
     const char *system_prompt = "You are a helpful assistant.";
     const char *data_json = "{}";
 
-    res_t res = ik_db_message_insert(db, session_id, "system", system_prompt, data_json);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "system", system_prompt, data_json);
     ck_assert(is_ok(&res));
 
     // Verify message was inserted
@@ -164,7 +164,7 @@ START_TEST(test_db_message_insert_user_event)
     const char *user_msg = "Hello, how are you?";
     const char *data_json = "{\"model\":\"gpt-4\",\"temperature\":1.0,\"max_completion_tokens\":4096}";
 
-    res_t res = ik_db_message_insert(db, session_id, "user", user_msg, data_json);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "user", user_msg, data_json);
     ck_assert(is_ok(&res));
 
     // Verify JSONB data round-trip
@@ -194,7 +194,7 @@ START_TEST(test_db_message_insert_assistant_event)
     const char *assistant_msg = "I'm doing well, thank you!";
     const char *data_json = "{\"model\":\"gpt-4\",\"tokens\":150,\"finish_reason\":\"stop\"}";
 
-    res_t res = ik_db_message_insert(db, session_id, "assistant", assistant_msg, data_json);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "assistant", assistant_msg, data_json);
     ck_assert(is_ok(&res));
 
     // Verify message was inserted
@@ -223,7 +223,7 @@ START_TEST(test_db_message_insert_mark_event)
     const char *mark_label = "approach-a";
     const char *data_json = "{\"label\":\"approach-a\"}";
 
-    res_t res = ik_db_message_insert(db, session_id, "mark", mark_label, data_json);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "mark", mark_label, data_json);
     ck_assert(is_ok(&res));
 
     // Verify message was inserted
@@ -248,7 +248,7 @@ START_TEST(test_db_message_insert_rewind_event)
     const char *target_label = "approach-a";
     const char *data_json = "{\"target_message_id\":42,\"target_label\":\"approach-a\"}";
 
-    res_t res = ik_db_message_insert(db, session_id, "rewind", target_label, data_json);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "rewind", target_label, data_json);
     ck_assert(is_ok(&res));
 
     // Verify message was inserted
@@ -273,7 +273,7 @@ START_TEST(test_db_message_insert_empty_content)
 {
     SKIP_IF_NO_DB();
 
-    res_t res = ik_db_message_insert(db, session_id, "user", "", NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "user", "", NULL);
     ck_assert(is_ok(&res));
 
     // Verify empty string was inserted (not NULL)
@@ -294,7 +294,7 @@ START_TEST(test_db_message_insert_null_data)
 {
     SKIP_IF_NO_DB();
 
-    res_t res = ik_db_message_insert(db, session_id, "system", "Test", NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "system", "Test", NULL);
     ck_assert(is_ok(&res));
 
     // Verify NULL data was inserted
@@ -318,7 +318,7 @@ START_TEST(test_db_message_insert_tool_call_event)
     const char *data_json =
         "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
 
-    res_t res = ik_db_message_insert(db, session_id, "tool_call", tool_call_content, data_json);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "tool_call", tool_call_content, data_json);
     ck_assert(is_ok(&res));
 
     // Verify message was inserted
@@ -349,7 +349,7 @@ START_TEST(test_db_message_insert_tool_result_event)
     const char *data_json =
         "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
 
-    res_t res = ik_db_message_insert(db, session_id, "tool_result", tool_result_content, data_json);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "tool_result", tool_result_content, data_json);
     ck_assert(is_ok(&res));
 
     // Verify message was inserted
@@ -379,7 +379,7 @@ START_TEST(test_db_message_insert_fk_constraint)
     SKIP_IF_NO_DB();
 
     // Try to insert message with non-existent session_id
-    res_t res = ik_db_message_insert(db, 99999, "user", "test", NULL);
+    res_t res = ik_db_message_insert(db, 99999, NULL, "user", "test", NULL);
     ck_assert(is_err(&res));
 
     // Bug 9: Accessing error message must not crash
@@ -400,13 +400,13 @@ START_TEST(test_db_message_insert_multiple_events)
     SKIP_IF_NO_DB();
 
     // Insert multiple events
-    res_t res1 = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res1 = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res1));
 
-    res_t res2 = ik_db_message_insert(db, session_id, "system", "System prompt", "{}");
+    res_t res2 = ik_db_message_insert(db, session_id, NULL, "system", "System prompt", "{}");
     ck_assert(is_ok(&res2));
 
-    res_t res3 = ik_db_message_insert(db, session_id, "user", "Hello", "{\"model\":\"gpt-4\"}");
+    res_t res3 = ik_db_message_insert(db, session_id, NULL, "user", "Hello", "{\"model\":\"gpt-4\"}");
     ck_assert(is_ok(&res3));
 
     // Verify all messages were inserted in order
