@@ -71,10 +71,10 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
 
     // Add initial agent to array
     result = ik_repl_add_agent(repl, repl->current);
-    if (is_err(&result)) {
-        talloc_steal(parent, result.err);
-        talloc_free(repl);
-        return result;
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
+        talloc_steal(parent, result.err);  // LCOV_EXCL_LINE
+        talloc_free(repl);  // LCOV_EXCL_LINE
+        return result;  // LCOV_EXCL_LINE
     }
 
     // Initialize input parser

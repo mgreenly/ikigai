@@ -22,6 +22,7 @@
 static bool mock_db_init_should_fail = false;
 static bool mock_session_restore_should_fail = false;
 static bool mock_sigaction_should_fail = false;
+static bool mock_ensure_agent_zero_should_fail = false;
 
 // Forward declarations for wrapper functions
 int posix_open_(const char *pathname, int flags);
@@ -84,6 +85,10 @@ res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg)
 // Mock ik_db_ensure_agent_zero (needed because repl_init calls it)
 res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
 {
+    if (mock_ensure_agent_zero_should_fail) {
+        return ERR(db, IO, "Mock agent zero query failure");
+    }
+
     // Return a dummy UUID allocated on the db context
     *out_uuid = talloc_strdup(db, "agent-zero-uuid");
     if (*out_uuid == NULL) {  // LCOV_EXCL_BR_LINE
@@ -318,6 +323,41 @@ START_TEST(test_repl_init_session_restore_failure)
 }
 
 END_TEST
+
+/* Test: Agent zero ensure failure */
+START_TEST(test_repl_init_ensure_agent_zero_failure)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Enable mock failure for ensure_agent_zero
+    mock_ensure_agent_zero_should_fail = true;
+
+    // Attempt to initialize REPL with database - should fail during agent zero ensure
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
+    // Create shared context
+    ik_shared_ctx_t *shared = NULL;
+    // Create logger before calling init
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context
+    res = ik_repl_init(ctx, shared, &repl);
+
+    // Verify failure
+    ck_assert(is_err(&res));
+    ck_assert_ptr_null(repl);
+
+    // Cleanup mock state
+    mock_ensure_agent_zero_should_fail = false;
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 /* Test: Successful database initialization and session restore */
 START_TEST(test_repl_init_db_success)
 {
@@ -389,6 +429,7 @@ static Suite *repl_init_db_suite(void)
     tcase_set_timeout(tc_db, 30);
     tcase_add_test(tc_db, test_repl_init_db_init_failure);
     tcase_add_test(tc_db, test_repl_init_session_restore_failure);
+    tcase_add_test(tc_db, test_repl_init_ensure_agent_zero_failure);
     tcase_add_test(tc_db, test_repl_init_signal_handler_failure_with_db);
     suite_add_tcase(s, tc_db);
 
