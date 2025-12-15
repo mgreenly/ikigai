@@ -1,30 +1,6 @@
 {
   "todo": [
     {
-      "task": "kill-cmd-self.md",
-      "group": "Kill Command",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "kill-cmd-target.md",
-      "group": "Kill Command",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "kill-cmd-cascade.md",
-      "group": "Kill Command",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "nav-ctrl-arrows.md",
-      "group": "Navigation",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "nav-sibling-switch.md",
       "group": "Navigation",
       "model": "sonnet",
@@ -187,6 +163,30 @@
       "group": "Fork Command",
       "model": "opus",
       "thinking": "extended"
+    },
+    {
+      "task": "kill-cmd-self.md",
+      "group": "Kill Command",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "kill-cmd-target.md",
+      "group": "Kill Command",
+      "model": "opus",
+      "thinking": "extended"
+    },
+    {
+      "task": "kill-cmd-cascade.md",
+      "group": "Kill Command",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "nav-ctrl-arrows.md",
+      "group": "Navigation",
+      "model": "sonnet",
+      "thinking": "thinking"
     }
   ]
 }
