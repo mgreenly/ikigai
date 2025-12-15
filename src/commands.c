@@ -52,7 +52,7 @@ static const ik_command_t commands[] = {
      ik_cmd_mark},
     {"rewind", "Rollback to a checkpoint (usage: /rewind [label])", ik_cmd_rewind},
     {"fork", "Create a child agent (usage: /fork)", cmd_fork},
-    {"kill", "Terminate current agent (usage: /kill)", cmd_kill},
+    {"kill", "Terminate agent (usage: /kill [uuid])", cmd_kill},
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},
@@ -600,13 +600,72 @@ res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
         return OK(NULL);
     }
 
-    // Handle targeted kill in kill-cmd-target.md
-    // For now, show an error
-    char *err_msg = talloc_strdup(ctx, "Error: Targeted kill not yet implemented");
-    if (err_msg == NULL) {  // LCOV_EXCL_BR_LINE
+    // Handle targeted kill
+    // Find target agent by UUID (partial match allowed)
+    ik_agent_ctx_t *target = ik_repl_find_agent(repl, args);
+    if (target == NULL) {
+        if (ik_repl_uuid_ambiguous(repl, args)) {
+            const char *err_msg = "Error: Ambiguous UUID prefix";
+            ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        } else {
+            const char *err_msg = "Error: Agent not found";
+            ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        }
+        return OK(NULL);
+    }
+
+    // Check if root
+    if (target->parent_uuid == NULL) {
+        const char *err_msg = "Error: Cannot kill root agent";
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        return OK(NULL);
+    }
+
+    // If killing current, use self-kill logic
+    if (target == repl->current) {
+        return cmd_kill(ctx, repl, NULL);
+    }
+
+    const char *target_uuid = target->uuid;
+
+    // Record kill event in current agent's history (Q20)
+    char *metadata_json = talloc_asprintf(ctx,
+        "{\"killed_by\": \"user\", \"target\": \"%s\"}", target_uuid);
+    if (metadata_json == NULL) {  // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");  // LCOV_EXCL_LINE
     }
-    ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+
+    res_t res = ik_db_message_insert(repl->shared->db_ctx,
+        repl->shared->session_id,
+        repl->current->uuid,
+        "agent_killed",
+        NULL,
+        metadata_json);
+    talloc_free(metadata_json);
+    if (is_err(&res)) {
+        return res;
+    }
+
+    // Mark dead in registry (sets status='dead', ended_at=now)
+    res = ik_db_agent_mark_dead(repl->shared->db_ctx, target_uuid);
+    if (is_err(&res)) {
+        return res;
+    }
+
+    // Remove from agents array and free agent context
+    res = ik_repl_remove_agent(repl, target_uuid);
+    if (is_err(&res)) {
+        return res;
+    }
+
+    // Notify
+    char msg[64];
+    int32_t written = snprintf(msg, sizeof(msg), "Agent %.22s terminated", target_uuid);
+    if (written < 0 || (size_t)written >= sizeof(msg)) {  // LCOV_EXCL_BR_LINE
+        PANIC("snprintf failed");  // LCOV_EXCL_LINE
+    }
+    ik_scrollback_append_line(repl->current->scrollback, msg, (size_t)written);
+
     return OK(NULL);
 }
 
