@@ -24,6 +24,11 @@ static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
 static int64_t session_id;
 
+// Mock control flags (used by override functions defined later)
+static bool mock_query_failure = false;
+static bool mock_invalid_json = false;
+static bool mock_invalid_id = false;
+
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
 {
@@ -62,6 +67,11 @@ static void suite_teardown(void)
 // Per-test setup: Connect, begin transaction, create session
 static void test_setup(void)
 {
+    // Reset mock state
+    mock_query_failure = false;
+    mock_invalid_json = false;
+    mock_invalid_id = false;
+
     if (!db_available) {
         test_ctx = NULL;
         db = NULL;
@@ -295,7 +305,6 @@ END_TEST
 
 // Test: Database query failure (lines 283-287)
 // We need to mock pq_exec_params_ to return an error
-static bool mock_query_failure = false;
 
 PGresult *pq_exec_params_(PGconn *conn, const char *command, int nParams,
                           const Oid *paramTypes, const char *const *paramValues,
@@ -329,7 +338,6 @@ END_TEST
 
 // Test: Invalid JSON in rewind data_json (lines 201-202)
 // Mock yyjson_read_ to return NULL, simulating invalid JSON
-static bool mock_invalid_json = false;
 
 yyjson_doc *yyjson_read_(const char *dat, size_t len, yyjson_read_flag flg)
 {
@@ -411,7 +419,6 @@ END_TEST
 
 // Test: sscanf failure when parsing message ID (lines 304-306)
 // Mock PQgetvalue_ to return non-numeric string for ID field
-static bool mock_invalid_id = false;
 static char invalid_id_str[] = "not_a_number";
 
 char *PQgetvalue_(const PGresult *res, int row_number, int column_number)

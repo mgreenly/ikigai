@@ -297,12 +297,23 @@ START_TEST(test_query_range_null_data)
 }
 END_TEST
 
+// Setup function to reset mock state before each test
+static void setup(void)
+{
+    mock_query_fail = false;
+    mock_parse_fail = false;
+    mock_invalid_value[0] = '\0';
+    mock_null_content = false;
+    mock_null_data = false;
+}
+
 // Suite configuration
 static Suite *agent_replay_errors_suite(void)
 {
     Suite *s = suite_create("Agent Replay Errors");
 
     TCase *tc_errors = tcase_create("Errors");
+    tcase_add_checked_fixture(tc_errors, setup, NULL);
     tcase_add_test(tc_errors, test_find_clear_query_failure);
     tcase_add_test(tc_errors, test_find_clear_parse_failure);
     tcase_add_test(tc_errors, test_query_range_query_failure);

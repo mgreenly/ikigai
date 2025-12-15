@@ -24,6 +24,12 @@ static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
 static int64_t session_id;
 
+// Mock control flags (used by override functions defined later)
+static bool mock_invalid_json_for_mark = false;
+static int mock_call_count = 0;
+static bool mock_null_label_str = false;
+static int mock_get_str_count = 0;
+
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
 {
@@ -62,6 +68,12 @@ static void suite_teardown(void)
 // Per-test setup: Connect, begin transaction, create session
 static void test_setup(void)
 {
+    // Reset mock state
+    mock_invalid_json_for_mark = false;
+    mock_call_count = 0;
+    mock_null_label_str = false;
+    mock_get_str_count = 0;
+
     if (!db_available) {
         test_ctx = NULL;
         db = NULL;
@@ -149,8 +161,6 @@ END_TEST
 
 // Test: Mark with invalid JSON in data_json (line 166, FALSE branch)
 // Mock yyjson_read_ to return NULL for invalid JSON
-static bool mock_invalid_json_for_mark = false;
-static int mock_call_count = 0;
 
 yyjson_doc *yyjson_read_(const char *dat, size_t len, yyjson_read_flag flg)
 {
@@ -229,8 +239,6 @@ START_TEST(test_mark_with_non_string_label)
 END_TEST
 
 // Test: Mark with valid JSON but yyjson_get_str_ returns NULL (line 170, FALSE branch)
-static bool mock_null_label_str = false;
-static int mock_get_str_count = 0;
 
 const char *yyjson_get_str_(yyjson_val *val)
 {

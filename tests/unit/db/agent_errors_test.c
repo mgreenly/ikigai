@@ -466,12 +466,22 @@ START_TEST(test_agent_get_last_message_id_parse_failure)
 }
 END_TEST
 
+// Setup function to reset mock state before each test
+static void setup(void)
+{
+    mock_query_fail = false;
+    mock_parse_fail = false;
+    mock_parse_fail_column = -1;
+    mock_getvalue_call_count = 0;
+}
+
 // Suite configuration
 static Suite *db_agent_errors_suite(void)
 {
     Suite *s = suite_create("db_agent_errors");
 
     TCase *tc_errors = tcase_create("Errors");
+    tcase_add_checked_fixture(tc_errors, setup, NULL);
     tcase_add_test(tc_errors, test_agent_mark_dead_query_failure);
     tcase_add_test(tc_errors, test_agent_get_query_failure);
     tcase_add_test(tc_errors, test_agent_get_created_at_parse_failure);
