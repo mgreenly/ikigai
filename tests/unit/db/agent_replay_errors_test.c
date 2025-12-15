@@ -87,8 +87,8 @@ void PQclear(PGresult *res)
 // Override PQntuples - return 1 for parse failure tests
 int PQntuples(const PGresult *res)
 {
-    if (res == mock_parse_fail_result) {
-        return 1; // Has data but it's invalid
+    if (res == mock_parse_fail_result || mock_null_content || mock_null_data) {
+        return 1; // Has data but it's invalid or has null fields
     }
     return 0;
 }
@@ -98,13 +98,22 @@ char *PQgetvalue_(const PGresult *res, int row_number, int column_number)
 {
     (void)res;
     (void)row_number;
-    (void)column_number;
 
-    if (mock_parse_fail && mock_invalid_value[0] != '\0') {
+    // Column 0 = id, Column 1 = kind, Column 2 = content, Column 3 = data_json
+    if (mock_parse_fail && column_number == 0 && mock_invalid_value[0] != '\0') {
         return mock_invalid_value;
     }
 
-    static char valid[] = "0";
+    if (column_number == 0) {
+        static char default_id[] = "1";
+        return mock_invalid_value[0] != '\0' ? mock_invalid_value : default_id;
+    }
+    if (column_number == 1) {
+        static char kind[] = "user";
+        return kind;
+    }
+
+    static char valid[] = "content";
     return valid;
 }
 
@@ -232,6 +241,7 @@ START_TEST(test_query_range_null_content)
     mock_parse_fail = false;
     mock_null_content = true;
     mock_null_data = false;
+    snprintf(mock_invalid_value, sizeof(mock_invalid_value), "1"); // Valid ID
 
     char *uuid = talloc_strdup(ctx, "test-uuid");
     ik_replay_range_t range = {
@@ -246,7 +256,10 @@ START_TEST(test_query_range_null_content)
 
     // Should succeed with NULL content
     ck_assert(is_ok(&res));
+    ck_assert_uint_eq(count, 1);
+    ck_assert_ptr_null(messages[0]->content);
 
+    mock_null_content = false;
     talloc_free(ctx);
 }
 END_TEST
@@ -261,6 +274,7 @@ START_TEST(test_query_range_null_data)
     mock_parse_fail = false;
     mock_null_content = false;
     mock_null_data = true;
+    snprintf(mock_invalid_value, sizeof(mock_invalid_value), "1"); // Valid ID
 
     char *uuid = talloc_strdup(ctx, "test-uuid");
     ik_replay_range_t range = {
@@ -275,7 +289,10 @@ START_TEST(test_query_range_null_data)
 
     // Should succeed with NULL data_json
     ck_assert(is_ok(&res));
+    ck_assert_uint_eq(count, 1);
+    ck_assert_ptr_null(messages[0]->data_json);
 
+    mock_null_data = false;
     talloc_free(ctx);
 }
 END_TEST
