@@ -62,7 +62,7 @@ PGresult *pq_exec_params_(PGconn *conn,
     (void)resultFormat;
 
     // Check if this is an agent_get query
-    if (command != NULL && strstr(command, "SELECT uuid, name, parent_uuid, created_at, fork_message_id, status") != NULL) {
+    if (command != NULL && strstr(command, "SELECT uuid, name, parent_uuid, fork_message_id, status") != NULL && strstr(command, "FROM agents WHERE uuid") != NULL) {
         if (mock_agent_get_fail) {
             return mock_failed_result;
         }
@@ -119,17 +119,21 @@ char *PQgetvalue(const PGresult *res, int row_number, int column_number)
     static char uuid[] = "recipient-uuid-456";
     static char name[] = "";
     static char parent_uuid[] = "";
-    static char created_at[] = "1234567891";
     static char fork_message_id[] = "0";
     static char status[] = "running";
+    static char created_at[] = "1234567891";
+    static char ended_at[] = "0";
 
+    // Note: ik_db_agent_get query returns columns in this order:
+    // uuid, name, parent_uuid, fork_message_id, status, created_at, ended_at
     switch (column_number) {
         case 0: return uuid;
         case 1: return name;
         case 2: return parent_uuid;
-        case 3: return created_at;
-        case 4: return fork_message_id;
-        case 5: return status;
+        case 3: return fork_message_id;
+        case 4: return status;
+        case 5: return created_at;
+        case 6: return ended_at;
         default: { static char empty[] = ""; return empty; }
     }
 }
