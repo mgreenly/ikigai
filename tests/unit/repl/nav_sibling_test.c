@@ -218,6 +218,75 @@ START_TEST(test_only_counts_running_siblings)
 }
 END_TEST
 
+// Test: root level siblings (NULL parent) work correctly
+START_TEST(test_root_level_siblings_with_null_parent)
+{
+    // Create multiple root-level agents (parent_uuid == NULL)
+    ik_agent_ctx_t *root1 = create_test_agent("root1-uuid", NULL, 100);
+    ik_agent_ctx_t *root2 = create_test_agent("root2-uuid", NULL, 200);
+    ik_agent_ctx_t *root3 = create_test_agent("root3-uuid", NULL, 300);
+
+    add_agent_to_array(root1);
+    add_agent_to_array(root2);
+    add_agent_to_array(root3);
+
+    repl->current = root1;
+
+    // Navigate next - should go to root2
+    res_t result = ik_repl_nav_next_sibling(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_eq(repl->current, root2);
+
+    // Navigate next again - should go to root3
+    result = ik_repl_nav_next_sibling(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_eq(repl->current, root3);
+
+    // Navigate prev - should wrap back to root2
+    result = ik_repl_nav_prev_sibling(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_eq(repl->current, root2);
+
+    // Navigate prev again - should go to root1
+    result = ik_repl_nav_prev_sibling(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_eq(repl->current, root1);
+
+    // Navigate prev from first - should wrap to root3
+    result = ik_repl_nav_prev_sibling(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_eq(repl->current, root3);
+}
+END_TEST
+
+// Test: mixed root and child agents - only root siblings match
+START_TEST(test_mixed_root_and_child_agents)
+{
+    // Create root agents and child agents in same array
+    ik_agent_ctx_t *root1 = create_test_agent("root1-uuid", NULL, 100);
+    ik_agent_ctx_t *root2 = create_test_agent("root2-uuid", NULL, 200);
+    ik_agent_ctx_t *child1 = create_test_agent("child1-uuid", "root1-uuid", 300);
+    ik_agent_ctx_t *child2 = create_test_agent("child2-uuid", "root1-uuid", 400);
+
+    add_agent_to_array(root1);
+    add_agent_to_array(child1);  // Different parent - should be skipped
+    add_agent_to_array(root2);
+    add_agent_to_array(child2);  // Different parent - should be skipped
+
+    repl->current = root1;
+
+    // Navigate next - should skip children and go to root2
+    res_t result = ik_repl_nav_next_sibling(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_eq(repl->current, root2);
+
+    // Navigate prev - should wrap back to root1
+    result = ik_repl_nav_prev_sibling(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_eq(repl->current, root1);
+}
+END_TEST
+
 // Create suite
 static Suite *nav_sibling_suite(void)
 {
@@ -231,6 +300,8 @@ static Suite *nav_sibling_suite(void)
     tcase_add_test(tc_nav, test_nav_prev_wraps_to_last_from_first);
     tcase_add_test(tc_nav, test_no_siblings_no_action);
     tcase_add_test(tc_nav, test_only_counts_running_siblings);
+    tcase_add_test(tc_nav, test_root_level_siblings_with_null_parent);
+    tcase_add_test(tc_nav, test_mixed_root_and_child_agents);
     suite_add_tcase(s, tc_nav);
 
     return s;

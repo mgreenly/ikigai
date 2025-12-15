@@ -190,6 +190,46 @@ START_TEST(test_nav_child_skips_dead_children)
 }
 END_TEST
 
+// Test: nav_parent with dead parent = no action
+START_TEST(test_nav_parent_with_dead_parent_no_action)
+{
+    // Create child with parent_uuid pointing to a dead parent (not in agents[])
+    ik_agent_ctx_t *child = create_test_agent("child-uuid", "dead-parent-uuid", 200);
+
+    add_agent_to_array(child);
+    repl->current = child;
+
+    res_t result = ik_repl_nav_parent(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_eq(repl->current, child);  // No change - parent not found
+}
+END_TEST
+
+// Test: nav_child with multiple children of different parents
+START_TEST(test_nav_child_with_mixed_children)
+{
+    // Create parent1, parent2, and their children
+    ik_agent_ctx_t *parent1 = create_test_agent("parent1-uuid", NULL, 100);
+    ik_agent_ctx_t *parent2 = create_test_agent("parent2-uuid", NULL, 150);
+    ik_agent_ctx_t *child1_of_p1 = create_test_agent("child1-p1-uuid", "parent1-uuid", 200);
+    ik_agent_ctx_t *child2_of_p2 = create_test_agent("child2-p2-uuid", "parent2-uuid", 300);
+    ik_agent_ctx_t *child3_of_p1 = create_test_agent("child3-p1-uuid", "parent1-uuid", 400);
+
+    add_agent_to_array(parent1);
+    add_agent_to_array(parent2);
+    add_agent_to_array(child1_of_p1);
+    add_agent_to_array(child2_of_p2);  // Different parent - should be skipped
+    add_agent_to_array(child3_of_p1);
+
+    repl->current = parent1;
+
+    // Navigate to child - should select most recent child of parent1
+    res_t result = ik_repl_nav_child(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_eq(repl->current, child3_of_p1);  // Most recent child of parent1
+}
+END_TEST
+
 // Create suite
 static Suite *nav_parent_child_suite(void)
 {
@@ -203,6 +243,8 @@ static Suite *nav_parent_child_suite(void)
     tcase_add_test(tc_nav, test_nav_child_selects_most_recent_child);
     tcase_add_test(tc_nav, test_nav_child_no_children_no_action);
     tcase_add_test(tc_nav, test_nav_child_skips_dead_children);
+    tcase_add_test(tc_nav, test_nav_parent_with_dead_parent_no_action);
+    tcase_add_test(tc_nav, test_nav_child_with_mixed_children);
     suite_add_tcase(s, tc_nav);
 
     return s;
