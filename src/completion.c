@@ -13,7 +13,7 @@
 #include <stdlib.h>
 
 // Maximum number of completion suggestions to return
-#define MAX_COMPLETIONS 12
+#define MAX_COMPLETIONS 13
 
 
 // Argument provider function type

@@ -18,3 +18,7 @@ res_t ik_db_mail_inbox(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
 
 // Mark message as read
 res_t ik_db_mail_mark_read(ik_db_ctx_t *db, int64_t mail_id);
+
+// Delete message (validates recipient owns the message)
+res_t ik_db_mail_delete(ik_db_ctx_t *db, int64_t mail_id,
+                        const char *recipient_uuid);

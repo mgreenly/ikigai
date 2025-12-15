@@ -170,3 +170,46 @@ res_t ik_db_mail_mark_read(ik_db_ctx_t *db, int64_t mail_id)
     talloc_free(tmp);
     return OK(NULL);
 }
+
+res_t ik_db_mail_delete(ik_db_ctx_t *db, int64_t mail_id,
+                        const char *recipient_uuid)
+{
+    assert(db != NULL);
+    assert(db->conn != NULL);
+    assert(mail_id > 0);
+    assert(recipient_uuid != NULL);
+
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    if (tmp == NULL) PANIC("Out of memory");
+
+    const char *query = "DELETE FROM mail WHERE id = $1 AND to_uuid = $2";
+
+    char *mail_id_str = talloc_asprintf(tmp, "%lld", (long long)mail_id);
+    if (mail_id_str == NULL) PANIC("Out of memory");
+
+    const char *params[2];
+    params[0] = mail_id_str;
+    params[1] = recipient_uuid;
+
+    ik_pg_result_wrapper_t *res_wrapper =
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, query, 2, NULL, params, NULL, NULL, 0));
+    PGresult *res = res_wrapper->pg_result;
+
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        const char *pq_err = PQerrorMessage(db->conn);
+        res_t error_res = ERR(db, IO, "Mail delete failed: %s", pq_err);
+        talloc_free(tmp);
+        return error_res;
+    }
+
+    // Check if any rows were affected (mail existed and belonged to recipient)
+    char *rows_affected = PQcmdTuples(res);
+    if (strcmp(rows_affected, "0") == 0) {
+        res_t error_res = ERR(db, IO, "Mail not found or not yours");
+        talloc_free(tmp);
+        return error_res;
+    }
+
+    talloc_free(tmp);
+    return OK(NULL);
+}

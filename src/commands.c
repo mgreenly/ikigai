@@ -27,6 +27,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -55,6 +56,7 @@ res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 // Public declaration for cmd_read_mail (non-static, declared in commands.h)
 res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 // Command registry
 static const ik_command_t commands[] = {
@@ -67,6 +69,7 @@ static const ik_command_t commands[] = {
     {"send", "Send mail to agent (usage: /send <uuid> \"message\")", cmd_send},
     {"check-mail", "Check inbox for messages", cmd_check_mail},
     {"read-mail", "Read a message (usage: /read-mail <id>)", cmd_read_mail},
+    {"delete-mail", "Delete a message (usage: /delete-mail <id>)", cmd_delete_mail},
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},
@@ -1268,6 +1271,42 @@ res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         return res;
     }
+
+    return OK(NULL);
+}
+
+res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+
+    (void)ctx;
+
+    // Parse mail ID
+    int64_t mail_id = 0;
+    if (args == NULL || sscanf(args, "%" SCNd64, &mail_id) != 1) {     // LCOV_EXCL_BR_LINE
+        const char *msg = "Error: Usage: /delete-mail <id>";
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        return OK(NULL);
+    }
+
+    // Delete (validates ownership internally)
+    res_t res = ik_db_mail_delete(repl->shared->db_ctx,
+        mail_id, repl->current->uuid);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        if (res.err->code == ERR_IO && strstr(res.err->msg, "not found")) {     // LCOV_EXCL_BR_LINE
+            const char *msg = "Error: Mail not found or not yours";
+            ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+            talloc_free(res.err);
+        } else {
+            return res;
+        }
+        return OK(NULL);
+    }
+
+    // Confirm
+    const char *msg = "Mail deleted";
+    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
 
     return OK(NULL);
 }

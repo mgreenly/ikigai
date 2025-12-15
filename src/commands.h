@@ -125,4 +125,17 @@ res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
  */
 res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+/**
+ * Delete mail command handler - permanently removes a message
+ *
+ * Deletes a message from the mailbox by its ID. Only the recipient can
+ * delete their messages. Deletion is permanent.
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param args Command arguments (mail ID)
+ * @return OK on success, ERR on failure
+ */
+res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 #endif // IK_COMMANDS_H
