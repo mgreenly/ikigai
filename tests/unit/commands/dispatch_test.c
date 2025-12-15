@@ -99,7 +99,7 @@ START_TEST(test_cmd_get_all) {
     const ik_command_t *cmds = ik_cmd_get_all(&count);
 
     ck_assert_ptr_nonnull(cmds);
-    ck_assert_uint_eq(count, 9);     // clear, mark, rewind, fork, kill, help, model, system, debug
+    ck_assert_uint_eq(count, 10);     // clear, mark, rewind, fork, kill, send, help, model, system, debug
 
     // Verify command names
     ck_assert_str_eq(cmds[0].name, "clear");
@@ -107,10 +107,11 @@ START_TEST(test_cmd_get_all) {
     ck_assert_str_eq(cmds[2].name, "rewind");
     ck_assert_str_eq(cmds[3].name, "fork");
     ck_assert_str_eq(cmds[4].name, "kill");
-    ck_assert_str_eq(cmds[5].name, "help");
-    ck_assert_str_eq(cmds[6].name, "model");
-    ck_assert_str_eq(cmds[7].name, "system");
-    ck_assert_str_eq(cmds[8].name, "debug");
+    ck_assert_str_eq(cmds[5].name, "send");
+    ck_assert_str_eq(cmds[6].name, "help");
+    ck_assert_str_eq(cmds[7].name, "model");
+    ck_assert_str_eq(cmds[8].name, "system");
+    ck_assert_str_eq(cmds[9].name, "debug");
 
     // Verify descriptions exist
     ck_assert_ptr_nonnull(cmds[0].description);

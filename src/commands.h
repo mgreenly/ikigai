@@ -86,4 +86,17 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
  */
 res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+/**
+ * Send command handler - sends mail to another agent
+ *
+ * Sends a mail message to another agent's mailbox. Format: /send <uuid> "message"
+ * Validates recipient exists and is running before sending.
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param args Command arguments: "<uuid> \"message\""
+ * @return OK on success, ERR on failure
+ */
+res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 #endif // IK_COMMANDS_H

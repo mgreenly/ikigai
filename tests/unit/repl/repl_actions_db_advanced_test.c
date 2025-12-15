@@ -11,11 +11,14 @@
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../../src/db/message.h"
+#include "../../../src/db/agent.h"
 #include "../../../src/db/connection.h"
-#include "../../../src/db/session.h"
+#include "../../../src/db/mail.h"
+#include "../../../src/db/message.h"
 #include "../../../src/db/replay.h"
+#include "../../../src/db/session.h"
 #include "../../../src/error.h"
+#include "../../../src/mail/msg.h"
 #include "../../../src/openai/client.h"
 #include "../../../src/openai/client_multi.h"
 #include "../../../src/config.h"
@@ -76,8 +79,8 @@ res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_
     return OK(NULL);
 }
 
-// Note: ik_db_ensure_agent_zero mock removed - now using real implementation
-// from db/agent.c (included in MODULE_SOURCES_NO_DB)
+// Note: ik_db_ensure_agent_zero and ik_db_mail_insert mocks removed
+// - now using real implementations from db/agent.c and db/mail.c (included in MODULE_SOURCES_NO_DB)
 
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;

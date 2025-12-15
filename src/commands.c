@@ -10,9 +10,11 @@
 #include "completion.h"
 #include "db/agent.h"
 #include "db/connection.h"
+#include "db/mail.h"
 #include "db/message.h"
 #include "event_render.h"
 #include "logger.h"
+#include "mail/msg.h"
 #include "marks.h"
 #include "openai/client.h"
 #include "openai/client_multi.h"
@@ -45,6 +47,9 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
 // Public declaration for cmd_kill (non-static, declared in commands.h)
 res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+// Public declaration for cmd_send (non-static, declared in commands.h)
+res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 // Command registry
 static const ik_command_t commands[] = {
     {"clear", "Clear scrollback, session messages, and marks", cmd_clear},
@@ -53,6 +58,7 @@ static const ik_command_t commands[] = {
     {"rewind", "Rollback to a checkpoint (usage: /rewind [label])", ik_cmd_rewind},
     {"fork", "Create a child agent (usage: /fork)", cmd_fork},
     {"kill", "Terminate agent (usage: /kill [uuid])", cmd_kill},
+    {"send", "Send mail to agent (usage: /send <uuid> \"message\")", cmd_send},
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},
@@ -948,6 +954,132 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     if (prompt != NULL && prompt[0] != '\0') {
         handle_fork_prompt(ctx, repl, prompt);
     }
+
+    return OK(NULL);
+}
+
+res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Parse: <uuid> "message"
+    if (args == NULL || args[0] == '\0') {     // LCOV_EXCL_BR_LINE
+        const char *err = "Usage: /send <uuid> \"message\"";
+        ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
+        return OK(NULL);
+    }
+
+    // Extract UUID
+    const char *p = args;
+    while (*p && isspace((unsigned char)*p)) {     // LCOV_EXCL_BR_LINE
+        p++;
+    }
+
+    const char *uuid_start = p;
+    while (*p && !isspace((unsigned char)*p)) {     // LCOV_EXCL_BR_LINE
+        p++;
+    }
+
+    if (p == uuid_start) {     // LCOV_EXCL_BR_LINE
+        const char *err = "Usage: /send <uuid> \"message\"";
+        ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
+        return OK(NULL);
+    }
+
+    size_t uuid_len = (size_t)(p - uuid_start);
+    char uuid[256];
+    if (uuid_len >= sizeof(uuid)) {     // LCOV_EXCL_BR_LINE
+        const char *err = "UUID too long";
+        ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
+        return OK(NULL);
+    }
+    memcpy(uuid, uuid_start, uuid_len);
+    uuid[uuid_len] = '\0';
+
+    // Skip whitespace before message
+    while (*p && isspace((unsigned char)*p)) {     // LCOV_EXCL_BR_LINE
+        p++;
+    }
+
+    // Extract quoted message
+    if (*p != '"') {     // LCOV_EXCL_BR_LINE
+        const char *err = "Usage: /send <uuid> \"message\"";
+        ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
+        return OK(NULL);
+    }
+    p++;  // Skip opening quote
+
+    const char *msg_start = p;
+    while (*p && *p != '"') {     // LCOV_EXCL_BR_LINE
+        p++;
+    }
+
+    if (*p != '"') {     // LCOV_EXCL_BR_LINE
+        const char *err = "Usage: /send <uuid> \"message\"";
+        ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
+        return OK(NULL);
+    }
+
+    size_t msg_len = (size_t)(p - msg_start);
+    char body[4096];
+    if (msg_len >= sizeof(body)) {     // LCOV_EXCL_BR_LINE
+        const char *err = "Message too long";
+        ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
+        return OK(NULL);
+    }
+    memcpy(body, msg_start, msg_len);
+    body[msg_len] = '\0';
+
+    // Validate recipient exists
+    ik_agent_ctx_t *recipient = ik_repl_find_agent(repl, uuid);
+    if (recipient == NULL) {     // LCOV_EXCL_BR_LINE
+        const char *err = "Agent not found";
+        ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
+        return OK(NULL);
+    }
+
+    // Validate recipient is running (Q11)
+    ik_db_agent_row_t *agent_row = NULL;
+    res_t res = ik_db_agent_get(repl->shared->db_ctx, ctx, recipient->uuid, &agent_row);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    if (strcmp(agent_row->status, "running") != 0) {     // LCOV_EXCL_BR_LINE
+        const char *err = "Recipient agent is dead";
+        ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
+        return OK(NULL);
+    }
+
+    // Validate body non-empty
+    if (body[0] == '\0') {     // LCOV_EXCL_BR_LINE
+        const char *err = "Message body cannot be empty";
+        ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
+        return OK(NULL);
+    }
+
+    // Create mail message
+    ik_mail_msg_t *msg = ik_mail_msg_create(ctx,
+        repl->current->uuid, recipient->uuid, body);
+    if (msg == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+
+    // Insert into database
+    res = ik_db_mail_insert(repl->shared->db_ctx, repl->shared->session_id, msg);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    // Display confirmation
+    char confirm[64];
+    int32_t written = snprintf(confirm, sizeof(confirm), "Mail sent to %.22s",
+        recipient->uuid);
+    if (written < 0 || (size_t)written >= sizeof(confirm)) {     // LCOV_EXCL_BR_LINE
+        PANIC("snprintf failed");     // LCOV_EXCL_LINE
+    }
+    ik_scrollback_append_line(repl->current->scrollback, confirm, (size_t)written);
 
     return OK(NULL);
 }
