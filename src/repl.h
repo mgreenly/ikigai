@@ -125,3 +125,11 @@ bool ik_repl_uuid_ambiguous(ik_repl_ctx_t *repl, const char *uuid_prefix);
 // Saves state on outgoing, restores on incoming
 // Returns ERR if new_agent is NULL or same as current
 res_t ik_repl_switch_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *new_agent);
+
+// Navigate to previous sibling agent (wraps around)
+// Siblings are agents with the same parent_uuid
+res_t ik_repl_nav_prev_sibling(ik_repl_ctx_t *repl);
+
+// Navigate to next sibling agent (wraps around)
+// Siblings are agents with the same parent_uuid
+res_t ik_repl_nav_next_sibling(ik_repl_ctx_t *repl);

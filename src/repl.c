@@ -418,3 +418,15 @@ res_t ik_repl_switch_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *new_agent)
 
     return OK(NULL);
 }
+
+res_t ik_repl_nav_prev_sibling(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    return OK(NULL);
+}
+
+res_t ik_repl_nav_next_sibling(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    return OK(NULL);
+}
