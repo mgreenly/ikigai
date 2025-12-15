@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "nav-sibling-switch.md",
-      "group": "Navigation",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "nav-parent-child.md",
       "group": "Navigation",
       "model": "sonnet",
@@ -184,6 +178,12 @@
     },
     {
       "task": "nav-ctrl-arrows.md",
+      "group": "Navigation",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "nav-sibling-switch.md",
       "group": "Navigation",
       "model": "sonnet",
       "thinking": "thinking"
