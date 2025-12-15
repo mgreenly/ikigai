@@ -67,7 +67,11 @@ START_TEST(test_mail_table_exists)
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
-    ik_test_db_connect(ctx, DB_NAME, &db);
+    res_t conn_res = ik_test_db_connect(ctx, DB_NAME, &db);
+    if (is_err(&conn_res)) {
+        talloc_free(ctx);
+        ck_abort_msg("Failed to connect to database");
+    }
 
     PGresult *res = exec_query(db->conn,
         "SELECT EXISTS ("
@@ -89,7 +93,11 @@ START_TEST(test_mail_columns_exist)
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
-    ik_test_db_connect(ctx, DB_NAME, &db);
+    res_t conn_res = ik_test_db_connect(ctx, DB_NAME, &db);
+    if (is_err(&conn_res)) {
+        talloc_free(ctx);
+        ck_abort_msg("Failed to connect to database");
+    }
 
     // Check columns with their expected types
     struct {
@@ -134,7 +142,11 @@ START_TEST(test_mail_foreign_key_sessions)
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
-    ik_test_db_connect(ctx, DB_NAME, &db);
+    res_t conn_res = ik_test_db_connect(ctx, DB_NAME, &db);
+    if (is_err(&conn_res)) {
+        talloc_free(ctx);
+        ck_abort_msg("Failed to connect to database");
+    }
 
     PGresult *res = exec_query(db->conn,
         "SELECT tc.constraint_name, ccu.table_name AS foreign_table "
@@ -160,7 +172,11 @@ START_TEST(test_mail_recipient_index_exists)
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
-    ik_test_db_connect(ctx, DB_NAME, &db);
+    res_t conn_res = ik_test_db_connect(ctx, DB_NAME, &db);
+    if (is_err(&conn_res)) {
+        talloc_free(ctx);
+        ck_abort_msg("Failed to connect to database");
+    }
 
     PGresult *res = exec_query(db->conn,
         "SELECT indexname FROM pg_indexes "
@@ -181,7 +197,11 @@ START_TEST(test_mail_migration_idempotent)
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
-    ik_test_db_connect(ctx, DB_NAME, &db);
+    res_t conn_res = ik_test_db_connect(ctx, DB_NAME, &db);
+    if (is_err(&conn_res)) {
+        talloc_free(ctx);
+        ck_abort_msg("Failed to connect to database");
+    }
 
     // Running migrations again should succeed (idempotent)
     res_t res = ik_test_db_migrate(ctx, DB_NAME);
@@ -206,6 +226,7 @@ static Suite *mail_schema_suite(void)
     Suite *s = suite_create("Mail Schema");
 
     TCase *tc = tcase_create("Schema");
+    tcase_set_timeout(tc, 30);
     tcase_add_test(tc, test_mail_table_exists);
     tcase_add_test(tc, test_mail_columns_exist);
     tcase_add_test(tc, test_mail_foreign_key_sessions);

@@ -397,6 +397,7 @@ static Suite *messages_agent_suite(void)
     Suite *s = suite_create("Messages Agent UUID");
 
     TCase *tc_schema = tcase_create("Schema");
+    tcase_set_timeout(tc_schema, 30);
     tcase_add_unchecked_fixture(tc_schema, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_schema, test_setup, test_teardown);
     tcase_add_test(tc_schema, test_messages_has_agent_uuid_column);

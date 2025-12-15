@@ -66,7 +66,11 @@ START_TEST(test_agents_table_exists)
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
-    ik_test_db_connect(ctx, DB_NAME, &db);
+    res_t conn_res = ik_test_db_connect(ctx, DB_NAME, &db);
+    if (is_err(&conn_res)) {
+        talloc_free(ctx);
+        ck_abort_msg("Failed to connect to database");
+    }
 
     PGresult *res = exec_query(db->conn,
         "SELECT EXISTS ("
@@ -88,7 +92,11 @@ START_TEST(test_agent_status_enum)
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
-    ik_test_db_connect(ctx, DB_NAME, &db);
+    res_t conn_res = ik_test_db_connect(ctx, DB_NAME, &db);
+    if (is_err(&conn_res)) {
+        talloc_free(ctx);
+        ck_abort_msg("Failed to connect to database");
+    }
 
     PGresult *res = exec_query(db->conn,
         "SELECT enumlabel FROM pg_enum "
@@ -111,7 +119,11 @@ START_TEST(test_required_columns_exist)
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
-    ik_test_db_connect(ctx, DB_NAME, &db);
+    res_t conn_res = ik_test_db_connect(ctx, DB_NAME, &db);
+    if (is_err(&conn_res)) {
+        talloc_free(ctx);
+        ck_abort_msg("Failed to connect to database");
+    }
 
     const char *columns[] = {
         "uuid", "name", "parent_uuid", "fork_message_id",
@@ -144,7 +156,11 @@ START_TEST(test_required_indexes_exist)
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
-    ik_test_db_connect(ctx, DB_NAME, &db);
+    res_t conn_res = ik_test_db_connect(ctx, DB_NAME, &db);
+    if (is_err(&conn_res)) {
+        talloc_free(ctx);
+        ck_abort_msg("Failed to connect to database");
+    }
 
     const char *indexes[] = {
         "idx_agents_parent",
@@ -175,6 +191,7 @@ static Suite *agents_schema_suite(void)
     Suite *s = suite_create("Agents Schema");
 
     TCase *tc = tcase_create("Schema");
+    tcase_set_timeout(tc, 30);
     tcase_add_test(tc, test_agents_table_exists);
     tcase_add_test(tc, test_agent_status_enum);
     tcase_add_test(tc, test_required_columns_exist);
