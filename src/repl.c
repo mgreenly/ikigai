@@ -422,11 +422,73 @@ res_t ik_repl_switch_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *new_agent)
 res_t ik_repl_nav_prev_sibling(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    assert(repl->current != NULL);  // LCOV_EXCL_BR_LINE
+
+    const char *parent = repl->current->parent_uuid;
+
+    // Collect siblings (all in agents[] are running)
+    size_t sibling_count = 0;
+    ik_agent_ctx_t *siblings[64];
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        ik_agent_ctx_t *a = repl->agents[i];
+        // Same parent means sibling (both NULL or both equal strings)
+        bool same_parent = (parent == NULL && a->parent_uuid == NULL) ||
+                          (parent != NULL && a->parent_uuid != NULL && strcmp(parent, a->parent_uuid) == 0);
+        if (same_parent) {
+            siblings[sibling_count++] = a;
+        }
+    }
+
+    if (sibling_count <= 1) {
+        return OK(NULL);  // No siblings or only self
+    }
+
+    // Find current index and switch to previous
+    size_t current_idx = 0;
+    for (size_t i = 0; i < sibling_count; i++) {
+        if (siblings[i] == repl->current) {
+            current_idx = i;
+            break;
+        }
+    }
+    size_t prev_idx = (current_idx == 0) ? (sibling_count - 1) : (current_idx - 1);
+    CHECK(ik_repl_switch_agent(repl, siblings[prev_idx]));
     return OK(NULL);
 }
 
 res_t ik_repl_nav_next_sibling(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    assert(repl->current != NULL);  // LCOV_EXCL_BR_LINE
+
+    const char *parent = repl->current->parent_uuid;
+
+    // Collect siblings (all in agents[] are running)
+    size_t sibling_count = 0;
+    ik_agent_ctx_t *siblings[64];
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        ik_agent_ctx_t *a = repl->agents[i];
+        // Same parent means sibling (both NULL or both equal strings)
+        bool same_parent = (parent == NULL && a->parent_uuid == NULL) ||
+                          (parent != NULL && a->parent_uuid != NULL && strcmp(parent, a->parent_uuid) == 0);
+        if (same_parent) {
+            siblings[sibling_count++] = a;
+        }
+    }
+
+    if (sibling_count <= 1) {
+        return OK(NULL);  // No siblings or only self
+    }
+
+    // Find current index and switch to next
+    size_t current_idx = 0;
+    for (size_t i = 0; i < sibling_count; i++) {
+        if (siblings[i] == repl->current) {
+            current_idx = i;
+            break;
+        }
+    }
+    size_t next_idx = (current_idx + 1) % sibling_count;
+    CHECK(ik_repl_switch_agent(repl, siblings[next_idx]));
     return OK(NULL);
 }
