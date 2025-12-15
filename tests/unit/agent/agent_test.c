@@ -378,42 +378,19 @@ START_TEST(test_agent_conversation_initialized)
 }
 END_TEST
 
-// Test agent->marks is NULL initially
-START_TEST(test_agent_marks_null_initially)
+// Test agent->marks is NULL and mark_count is 0 initially
+START_TEST(test_agent_marks_and_count_initially)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
-
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(shared);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->marks);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->mark_count is 0 initially
-START_TEST(test_agent_mark_count_zero_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_uint_eq(agent->mark_count, 0);
-
     talloc_free(ctx);
 }
 END_TEST
@@ -478,102 +455,22 @@ START_TEST(test_agent_curl_still_running_zero_initially)
 }
 END_TEST
 
-// Test agent->assistant_response is NULL initially
-START_TEST(test_agent_assistant_response_null_initially)
+// Test agent response-related fields are NULL initially
+START_TEST(test_agent_response_fields_null_initially)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
-
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(shared);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->assistant_response);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->streaming_line_buffer is NULL initially
-START_TEST(test_agent_streaming_line_buffer_null_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->streaming_line_buffer);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->http_error_message is NULL initially
-START_TEST(test_agent_http_error_message_null_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->http_error_message);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->response_model is NULL initially
-START_TEST(test_agent_response_model_null_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->response_model);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->response_finish_reason is NULL initially
-START_TEST(test_agent_response_finish_reason_null_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->response_finish_reason);
-
     talloc_free(ctx);
 }
 END_TEST
@@ -598,82 +495,21 @@ START_TEST(test_agent_response_completion_tokens_zero_initially)
 }
 END_TEST
 
-// Test agent->pending_tool_call is NULL initially
-START_TEST(test_agent_pending_tool_call_null_initially)
+// Test agent tool thread fields initialized correctly
+START_TEST(test_agent_tool_fields_initialized)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
-
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(shared);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->pending_tool_call);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->tool_thread_running is false initially
-START_TEST(test_agent_tool_thread_running_false_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert(agent->tool_thread_running == false);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->tool_thread_complete is false initially
-START_TEST(test_agent_tool_thread_complete_false_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert(agent->tool_thread_complete == false);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->tool_iteration_count is 0 initially
-START_TEST(test_agent_tool_iteration_count_zero_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_int_eq(agent->tool_iteration_count, 0);
-
     talloc_free(ctx);
 }
 END_TEST
@@ -859,23 +695,15 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_agent_separator_visible_true);
     tcase_add_test(tc_core, test_agent_input_buffer_visible_true);
     tcase_add_test(tc_core, test_agent_conversation_initialized);
-    tcase_add_test(tc_core, test_agent_marks_null_initially);
-    tcase_add_test(tc_core, test_agent_mark_count_zero_initially);
+    tcase_add_test(tc_core, test_agent_marks_and_count_initially);
     tcase_add_test(tc_core, test_agent_allocated_under_parent);
     tcase_add_test(tc_core, test_agent_can_be_freed);
     tcase_add_test(tc_core, test_agent_state_idle_initially);
     tcase_add_test(tc_core, test_agent_multi_created_initially);
     tcase_add_test(tc_core, test_agent_curl_still_running_zero_initially);
-    tcase_add_test(tc_core, test_agent_assistant_response_null_initially);
-    tcase_add_test(tc_core, test_agent_streaming_line_buffer_null_initially);
-    tcase_add_test(tc_core, test_agent_http_error_message_null_initially);
-    tcase_add_test(tc_core, test_agent_response_model_null_initially);
-    tcase_add_test(tc_core, test_agent_response_finish_reason_null_initially);
+    tcase_add_test(tc_core, test_agent_response_fields_null_initially);
     tcase_add_test(tc_core, test_agent_response_completion_tokens_zero_initially);
-    tcase_add_test(tc_core, test_agent_pending_tool_call_null_initially);
-    tcase_add_test(tc_core, test_agent_tool_thread_running_false_initially);
-    tcase_add_test(tc_core, test_agent_tool_thread_complete_false_initially);
-    tcase_add_test(tc_core, test_agent_tool_iteration_count_zero_initially);
+    tcase_add_test(tc_core, test_agent_tool_fields_initialized);
     tcase_add_test(tc_core, test_agent_spinner_state_initialized);
     tcase_add_test(tc_core, test_agent_completion_null_initially);
     tcase_add_test(tc_core, test_agent_tool_thread_mutex_initialized);
