@@ -1,6 +1,6 @@
 /**
- * @file cmd_kill_test.c
- * @brief Unit tests for /kill command (self-kill variant)
+ * @file cmd_kill_cascade_test.c
+ * @brief Unit tests for /kill command (cascade kill variant)
  */
 
 #include "../../../src/agent.h"
@@ -8,7 +8,6 @@
 #include "../../../src/config.h"
 #include "../../../src/db/agent.h"
 #include "../../../src/db/connection.h"
-#include "../../../src/db/message.h"
 #include "../../../src/error.h"
 #include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
@@ -155,276 +154,6 @@ static void suite_teardown(void)
 {
     ik_test_db_destroy(DB_NAME);
 }
-
-// Test: /kill on non-root terminates agent
-START_TEST(test_kill_terminates_non_root)
-{
-    // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    ik_agent_ctx_t *child = repl->current;
-    const char *child_uuid = child->uuid;
-    ik_agent_ctx_t *parent = repl->agents[0];
-
-    size_t initial_count = repl->agent_count;
-
-    // Kill child (current agent)
-    res = cmd_kill(test_ctx, repl, NULL);
-    if (is_err(&res)) {
-        fprintf(stderr, "cmd_kill failed: %s\n", error_message(res.err));
-    }
-    ck_assert(is_ok(&res));
-
-    // Should switch to parent
-    ck_assert_ptr_eq(repl->current, parent);
-
-    // Agent count should decrease
-    ck_assert_uint_eq(repl->agent_count, initial_count - 1);
-
-    // Child should not be in array
-    bool found = false;
-    for (size_t i = 0; i < repl->agent_count; i++) {
-        if (strcmp(repl->agents[i]->uuid, child_uuid) == 0) {
-            found = true;
-            break;
-        }
-    }
-    ck_assert(!found);
-}
-END_TEST
-
-// Test: Registry updated to status='dead'
-START_TEST(test_kill_marks_dead_in_registry)
-{
-    // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    const char *child_uuid = repl->current->uuid;
-
-    // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Check registry
-    ik_db_agent_row_t *row = NULL;
-    res_t db_res = ik_db_agent_get(db, test_ctx, child_uuid, &row);
-    ck_assert(is_ok(&db_res));
-    ck_assert_ptr_nonnull(row);
-    ck_assert_str_eq(row->status, "dead");
-}
-END_TEST
-
-// Test: Registry ended_at is set to current timestamp
-START_TEST(test_kill_sets_ended_at)
-{
-    // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    const char *child_uuid = repl->current->uuid;
-    time_t before_kill = time(NULL);
-
-    // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    time_t after_kill = time(NULL);
-
-    // Check registry
-    ik_db_agent_row_t *row = NULL;
-    res_t db_res = ik_db_agent_get(db, test_ctx, child_uuid, &row);
-    ck_assert(is_ok(&db_res));
-    ck_assert_ptr_nonnull(row);
-
-    // ended_at should be set and within reasonable range
-    ck_assert_int_ne(row->ended_at, 0);
-    ck_assert_int_ge(row->ended_at, before_kill);
-    ck_assert_int_le(row->ended_at, after_kill + 1);  // Allow 1 second tolerance
-}
-END_TEST
-
-// Test: Agent removed from array
-START_TEST(test_kill_removes_from_array)
-{
-    // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    const char *child_uuid = repl->current->uuid;
-    size_t initial_count = repl->agent_count;
-
-    // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Verify count decreased
-    ck_assert_uint_eq(repl->agent_count, initial_count - 1);
-
-    // Verify child not in array
-    for (size_t i = 0; i < repl->agent_count; i++) {
-        ck_assert_str_ne(repl->agents[i]->uuid, child_uuid);
-    }
-}
-END_TEST
-
-// Test: Switches to parent
-START_TEST(test_kill_switches_to_parent)
-{
-    ik_agent_ctx_t *parent = repl->current;
-
-    // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    ik_agent_ctx_t *child = repl->current;
-    ck_assert_ptr_ne(child, parent);
-
-    // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Should be back to parent
-    ck_assert_ptr_eq(repl->current, parent);
-}
-END_TEST
-
-// Test: /kill on root shows error
-START_TEST(test_kill_root_shows_error)
-{
-    // Current agent is root (parent_uuid == NULL)
-    ck_assert_ptr_null(repl->current->parent_uuid);
-
-    res_t res = cmd_kill(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));  // Command returns OK but shows error
-
-    // Check scrollback for error message
-    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
-    bool found_error = false;
-    for (size_t i = 0; i < line_count; i++) {
-        const char *text = NULL;
-        size_t length = 0;
-        res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, i, &text, &length);
-        if (is_ok(&line_res) && text && strstr(text, "Cannot kill root agent")) {
-            found_error = true;
-            break;
-        }
-    }
-    ck_assert(found_error);
-}
-END_TEST
-
-// Test: Root agent not modified
-START_TEST(test_kill_root_not_modified)
-{
-    const char *root_uuid = repl->current->uuid;
-
-    // Try to kill root
-    res_t res = cmd_kill(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Root should still be current
-    ck_assert_str_eq(repl->current->uuid, root_uuid);
-
-    // Root should still be in registry with status='running'
-    ik_db_agent_row_t *row = NULL;
-    res_t db_res = ik_db_agent_get(db, test_ctx, root_uuid, &row);
-    ck_assert(is_ok(&db_res));
-    ck_assert_ptr_nonnull(row);
-    ck_assert_str_eq(row->status, "running");
-}
-END_TEST
-
-// Test: Kill waits for fork_pending to clear (sync barrier)
-START_TEST(test_kill_waits_for_fork_pending)
-{
-    // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Set fork_pending (simulating concurrent fork)
-    repl->shared->fork_pending = true;
-
-    // Kill should wait for fork_pending to be false
-    // In real code, it would loop. In test, we just verify the check happens
-    // by manually clearing it before calling
-    repl->shared->fork_pending = false;
-
-    res = cmd_kill(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Kill should have succeeded
-    ck_assert_ptr_eq(repl->current, repl->agents[0]);
-}
-END_TEST
-
-// Test: agent_killed event recorded in parent's history
-START_TEST(test_kill_records_event_in_parent_history)
-{
-    // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    const char *parent_uuid = repl->current->parent_uuid;
-
-    // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Query database for agent_killed event in parent's message history
-    const char *query = "SELECT kind, data FROM messages WHERE agent_uuid = $1 AND kind = 'agent_killed'";
-    const char *params[1] = {parent_uuid};
-
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    PGresult *pg_res = PQexecParams(db->conn, query, 1, NULL, params, NULL, NULL, 0);
-    ck_assert_ptr_nonnull(pg_res);
-    ck_assert_int_eq(PQresultStatus(pg_res), PGRES_TUPLES_OK);
-
-    // Should have at least one agent_killed event
-    int num_rows = PQntuples(pg_res);
-    ck_assert_int_ge(num_rows, 1);
-
-    // Verify kind
-    const char *kind = PQgetvalue(pg_res, 0, 0);
-    ck_assert_str_eq(kind, "agent_killed");
-
-    PQclear(pg_res);
-    talloc_free(tmp);
-}
-END_TEST
-
-// Test: agent_killed event has killed_by="user" metadata
-START_TEST(test_kill_event_has_killed_by_user)
-{
-    // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    const char *parent_uuid = repl->current->parent_uuid;
-
-    // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Query database for agent_killed event
-    const char *query = "SELECT data FROM messages WHERE agent_uuid = $1 AND kind = 'agent_killed'";
-    const char *params[1] = {parent_uuid};
-
-    PGresult *pg_res = PQexecParams(db->conn, query, 1, NULL, params, NULL, NULL, 0);
-    ck_assert_ptr_nonnull(pg_res);
-    ck_assert_int_eq(PQresultStatus(pg_res), PGRES_TUPLES_OK);
-    ck_assert_int_ge(PQntuples(pg_res), 1);
-
-    // Check data field contains killed_by: "user"
-    const char *data = PQgetvalue(pg_res, 0, 0);
-    ck_assert_ptr_nonnull(data);
-    ck_assert_ptr_nonnull(strstr(data, "killed_by"));
-    ck_assert_ptr_nonnull(strstr(data, "user"));
-
-    PQclear(pg_res);
-}
-END_TEST
 
 // Test: --cascade kills target and children
 START_TEST(test_kill_cascade_kills_target_and_children)
@@ -759,23 +488,11 @@ END_TEST
 
 static Suite *cmd_kill_suite(void)
 {
-    Suite *s = suite_create("Kill Command");
+    Suite *s = suite_create("Kill Command (Cascade)");
     TCase *tc = tcase_create("Core");
 
     tcase_add_checked_fixture(tc, setup, teardown);
 
-    tcase_add_test(tc, test_kill_terminates_non_root);
-    tcase_add_test(tc, test_kill_marks_dead_in_registry);
-    tcase_add_test(tc, test_kill_sets_ended_at);
-    tcase_add_test(tc, test_kill_removes_from_array);
-    tcase_add_test(tc, test_kill_switches_to_parent);
-    tcase_add_test(tc, test_kill_root_shows_error);
-    tcase_add_test(tc, test_kill_root_not_modified);
-    tcase_add_test(tc, test_kill_waits_for_fork_pending);
-    tcase_add_test(tc, test_kill_records_event_in_parent_history);
-    tcase_add_test(tc, test_kill_event_has_killed_by_user);
-
-    // Cascade tests
     tcase_add_test(tc, test_kill_cascade_kills_target_and_children);
     tcase_add_test(tc, test_kill_cascade_includes_grandchildren);
     tcase_add_test(tc, test_kill_cascade_reports_count);
