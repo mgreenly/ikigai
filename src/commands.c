@@ -524,6 +524,135 @@ static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args)
     return OK(NULL);
 }
 
+/**
+ * Collect all descendants of a given agent in depth-first order
+ *
+ * This function recursively traverses the agent tree to find all descendants
+ * of the specified UUID. Results are stored in depth-first order (children
+ * before parent).
+ *
+ * @param repl REPL context containing agent array
+ * @param uuid Parent UUID to collect descendants for
+ * @param out Output array to store descendants
+ * @param max Maximum number of descendants to collect
+ * @return Number of descendants collected
+ */
+static size_t collect_descendants(ik_repl_ctx_t *repl,
+                                  const char *uuid,
+                                  ik_agent_ctx_t **out,
+                                  size_t max)
+{
+    size_t count = 0;
+
+    // Find children
+    for (size_t i = 0; i < repl->agent_count && count < max; i++) {
+        if (repl->agents[i]->parent_uuid != NULL &&
+            strcmp(repl->agents[i]->parent_uuid, uuid) == 0) {
+            // Recurse first (depth-first)
+            count += collect_descendants(repl, repl->agents[i]->uuid,
+                                        out + count, max - count);
+
+            // Then add this child
+            if (count < max) {
+                out[count++] = repl->agents[i];
+            }
+        }
+    }
+
+    return count;
+}
+
+/**
+ * Kill an agent and all its descendants with transaction semantics
+ *
+ * This function performs a cascade kill operation that:
+ * 1. Collects all descendants in depth-first order
+ * 2. Marks all as dead in database (atomic transaction)
+ * 3. Removes all from memory
+ * 4. Records cascade kill event
+ *
+ * @param ctx Talloc context for allocations
+ * @param repl REPL context
+ * @param uuid Target agent UUID
+ * @return OK on success, ERR on failure (with rollback)
+ */
+static res_t cmd_kill_cascade(void *ctx, ik_repl_ctx_t *repl, const char *uuid)
+{
+    // Begin transaction (Q15)
+    res_t res = ik_db_begin(repl->shared->db_ctx);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    // Collect descendants
+    ik_agent_ctx_t *victims[256];
+    size_t count = collect_descendants(repl, uuid, victims, 256);
+
+    // Kill descendants (depth-first order)
+    for (size_t i = 0; i < count; i++) {
+        res = ik_db_agent_mark_dead(repl->shared->db_ctx, victims[i]->uuid);
+        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+            ik_db_rollback(repl->shared->db_ctx);
+            return res;
+        }
+    }
+
+    // Kill target
+    res = ik_db_agent_mark_dead(repl->shared->db_ctx, uuid);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        ik_db_rollback(repl->shared->db_ctx);
+        return res;
+    }
+
+    // Record cascade kill event (Q20)
+    char *metadata_json = talloc_asprintf(ctx,
+        "{\"killed_by\": \"user\", \"target\": \"%s\", \"cascade\": true, \"count\": %zu}",
+        uuid, count + 1);
+    if (metadata_json == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+
+    res = ik_db_message_insert(repl->shared->db_ctx,
+        repl->shared->session_id,
+        repl->current->uuid,
+        "agent_killed",
+        NULL,
+        metadata_json);
+    talloc_free(metadata_json);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        ik_db_rollback(repl->shared->db_ctx);
+        return res;
+    }
+
+    // Commit
+    res = ik_db_commit(repl->shared->db_ctx);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    // Remove from memory (after DB commit succeeds)
+    for (size_t i = 0; i < count; i++) {
+        res = ik_repl_remove_agent(repl, victims[i]->uuid);
+        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+            return res;
+        }
+    }
+    res = ik_repl_remove_agent(repl, uuid);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    // Report
+    char msg[64];
+    int32_t written = snprintf(msg, sizeof(msg), "Killed %zu agents", count + 1);
+    if (written < 0 || (size_t)written >= sizeof(msg)) {     // LCOV_EXCL_BR_LINE
+        PANIC("snprintf failed");     // LCOV_EXCL_LINE
+    }
+    ik_scrollback_append_line(repl->current->scrollback, msg, (size_t)written);
+
+    return OK(NULL);
+}
+
 res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
@@ -601,10 +730,32 @@ res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Handle targeted kill
+    // Parse UUID and --cascade flag
+    const char *uuid_arg = args;
+    bool cascade = false;
+
+    // Check for --cascade flag
+    const char *cascade_flag = strstr(args, "--cascade");
+    char *uuid_copy = NULL;
+    if (cascade_flag != NULL) {
+        cascade = true;
+        // Extract UUID (everything before --cascade)
+        size_t uuid_len = (size_t)(cascade_flag - args);
+        // Trim trailing whitespace
+        while (uuid_len > 0 && isspace((unsigned char)args[uuid_len - 1])) {
+            uuid_len--;
+        }
+        uuid_copy = talloc_strndup(ctx, args, uuid_len);
+        if (!uuid_copy) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");     // LCOV_EXCL_LINE
+        }
+        uuid_arg = uuid_copy;
+    }
+
     // Find target agent by UUID (partial match allowed)
-    ik_agent_ctx_t *target = ik_repl_find_agent(repl, args);
+    ik_agent_ctx_t *target = ik_repl_find_agent(repl, uuid_arg);
     if (target == NULL) {
-        if (ik_repl_uuid_ambiguous(repl, args)) {
+        if (ik_repl_uuid_ambiguous(repl, uuid_arg)) {
             const char *err_msg = "Error: Ambiguous UUID prefix";
             ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
         } else {
@@ -627,6 +778,11 @@ res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     const char *target_uuid = target->uuid;
+
+    // If cascade flag is set, use cascade kill
+    if (cascade) {
+        return cmd_kill_cascade(ctx, repl, target_uuid);
+    }
 
     // Record kill event in current agent's history (Q20)
     char *metadata_json = talloc_asprintf(ctx,
