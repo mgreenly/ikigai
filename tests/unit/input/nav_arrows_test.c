@@ -210,6 +210,69 @@ START_TEST(test_plain_down_arrow) {
 }
 END_TEST
 
+// Test: invalid Ctrl+Arrow pattern (wrong modifier)
+START_TEST(test_invalid_ctrl_pattern) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 1 ; 3 A (Alt+Up, not Ctrl+Up)
+    // This should not match the Ctrl pattern [1;5]
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '[', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '1', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, ';', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '3', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    // Final byte - should not trigger navigation actions
+    ik_input_parse_byte(parser, 'A', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: Ctrl pattern with invalid arrow key
+START_TEST(test_ctrl_pattern_invalid_key) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 1 ; 5 E (Ctrl+E, not a valid arrow)
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '[', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '1', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, ';', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '5', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    // 'E' is not a valid arrow key (not A, B, C, or D)
+    ik_input_parse_byte(parser, 'E', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test suite
 static Suite *input_nav_arrows_suite(void)
 {
@@ -225,6 +288,8 @@ static Suite *input_nav_arrows_suite(void)
     tcase_add_test(tc_core, test_plain_right_arrow);
     tcase_add_test(tc_core, test_plain_up_arrow);
     tcase_add_test(tc_core, test_plain_down_arrow);
+    tcase_add_test(tc_core, test_invalid_ctrl_pattern);
+    tcase_add_test(tc_core, test_ctrl_pattern_invalid_key);
 
     suite_add_tcase(s, tc_core);
     return s;

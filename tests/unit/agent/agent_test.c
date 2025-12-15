@@ -2,6 +2,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/error.h"
 #include "../../../src/uuid.h"
+#include "../../../src/openai/client.h"
 #include "../../test_utils.h"
 
 #include <check.h>
@@ -785,6 +786,59 @@ START_TEST(test_generate_uuid_produces_different_uuids)
 }
 END_TEST
 
+// Test ik_agent_copy_conversation succeeds with messages
+START_TEST(test_agent_copy_conversation)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    // Create parent agent
+    ik_agent_ctx_t *parent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &parent);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(parent);
+
+    // Add messages to parent - some with data_json, some without
+    res_t msg_res = ik_openai_msg_create(parent->conversation, "user", "Hello");
+    ck_assert(is_ok(&msg_res));
+    res = ik_openai_conversation_add_msg(parent->conversation, msg_res.ok);
+    ck_assert(is_ok(&res));
+
+    // Message without data_json
+    msg_res = ik_openai_msg_create(parent->conversation, "assistant", "Hi there");
+    ck_assert(is_ok(&msg_res));
+    res = ik_openai_conversation_add_msg(parent->conversation, msg_res.ok);
+    ck_assert(is_ok(&res));
+
+    // Message with data_json
+    msg_res = ik_openai_msg_create(parent->conversation, "assistant", "With data");
+    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_with_data = msg_res.ok;
+    msg_with_data->data_json = talloc_strdup(msg_with_data, "{\"test\": true}");
+    res = ik_openai_conversation_add_msg(parent->conversation, msg_with_data);
+    ck_assert(is_ok(&res));
+
+    // Create child agent
+    ik_agent_ctx_t *child = NULL;
+    res = ik_agent_create(ctx, shared, parent->uuid, &child);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(child);
+
+    // Copy conversation (child, parent)
+    res = ik_agent_copy_conversation(child, parent);
+    ck_assert(is_ok(&res));
+
+    // Verify child has messages
+    ck_assert_ptr_nonnull(child->conversation);
+    ck_assert_uint_eq(child->conversation->message_count, parent->conversation->message_count);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *agent_suite(void)
 {
     Suite *s = suite_create("Agent Context");
@@ -827,6 +881,7 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_agent_tool_thread_mutex_initialized);
     tcase_add_test(tc_core, test_generate_uuid_returns_valid_string);
     tcase_add_test(tc_core, test_generate_uuid_produces_different_uuids);
+    tcase_add_test(tc_core, test_agent_copy_conversation);
     suite_add_tcase(s, tc_core);
 
     return s;
