@@ -76,17 +76,17 @@ END_TEST
 // Test: Empty prefix (just "/") matches all commands (up to max 10)
 START_TEST(test_empty_prefix_all_commands)
 {
-    // "/" should match all commands (10 total)
+    // "/" should match all commands
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/");
     ck_assert_ptr_nonnull(comp);
-    ck_assert_uint_eq(comp->count, 13);  // clear, debug, fork, help, kill, mark, model, rewind, send, check-mail, read-mail, delete-mail, system
+    ck_assert_uint_eq(comp->count, 14);  // clear, debug, fork, help, kill, mark, model, rewind, send, check-mail, read-mail, delete-mail, filter-mail, system
 
     // Verify all commands are present (order determined by fzy score, not alphabetical)
-    bool found[13] = {false};
-    const char *expected[] = {"clear", "debug", "fork", "help", "kill", "mark", "model", "rewind", "send", "check-mail", "read-mail", "delete-mail", "system"};
+    bool found[14] = {false};
+    const char *expected[] = {"clear", "debug", "fork", "help", "kill", "mark", "model", "rewind", "send", "check-mail", "read-mail", "delete-mail", "filter-mail", "system"};
 
     for (size_t i = 0; i < comp->count; i++) {
-        for (size_t j = 0; j < 13; j++) {
+        for (size_t j = 0; j < 14; j++) {
             if (strcmp(comp->candidates[i], expected[j]) == 0) {
                 found[j] = true;
                 break;
@@ -94,7 +94,7 @@ START_TEST(test_empty_prefix_all_commands)
         }
     }
 
-    for (size_t i = 0; i < 13; i++) {
+    for (size_t i = 0; i < 14; i++) {
         ck_assert(found[i]);
     }
 }
