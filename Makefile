@@ -379,7 +379,7 @@ check-sanitize:
 	@rm -rf build-sanitize
 	@mkdir -p build-sanitize/tests/unit build-sanitize/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-sanitize/tests/unit|' | xargs mkdir -p
-	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $(MAKE) -j$(MAKE_JOBS) check BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1
+	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $(MAKE) -j2 check BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1
 	@echo "✓ Sanitizer checks passed!"
 
 check-valgrind:
