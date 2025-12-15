@@ -133,3 +133,11 @@ res_t ik_repl_nav_prev_sibling(ik_repl_ctx_t *repl);
 // Navigate to next sibling agent (wraps around)
 // Siblings are agents with the same parent_uuid
 res_t ik_repl_nav_next_sibling(ik_repl_ctx_t *repl);
+
+// Navigate to parent agent
+// No action if at root or parent not in agents array
+res_t ik_repl_nav_parent(ik_repl_ctx_t *repl);
+
+// Navigate to most recent running child
+// No action if no children
+res_t ik_repl_nav_child(ik_repl_ctx_t *repl);

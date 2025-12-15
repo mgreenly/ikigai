@@ -492,3 +492,17 @@ res_t ik_repl_nav_next_sibling(ik_repl_ctx_t *repl)
     CHECK(ik_repl_switch_agent(repl, siblings[next_idx]));
     return OK(NULL);
 }
+
+res_t ik_repl_nav_parent(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    assert(repl->current != NULL);  // LCOV_EXCL_BR_LINE
+    return OK(NULL);
+}
+
+res_t ik_repl_nav_child(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    assert(repl->current != NULL);  // LCOV_EXCL_BR_LINE
+    return OK(NULL);
+}
