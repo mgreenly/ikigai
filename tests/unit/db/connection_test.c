@@ -289,6 +289,37 @@ START_TEST(test_db_init_migration_failure)
 
 END_TEST
 
+// ========== Transaction Tests ==========
+
+START_TEST(test_db_transaction_success)
+{
+    SKIP_IF_NO_DB();
+
+    ik_db_ctx_t *db_ctx = NULL;
+    char *conn_str = get_test_conn_str(test_ctx);
+
+    res_t res = ik_db_init(test_ctx, conn_str, &db_ctx);
+    ck_assert(is_ok(&res));
+
+    // Test BEGIN
+    res = ik_db_begin(db_ctx);
+    ck_assert(is_ok(&res));
+
+    // Test ROLLBACK
+    res = ik_db_rollback(db_ctx);
+    ck_assert(is_ok(&res));
+
+    // Test BEGIN again
+    res = ik_db_begin(db_ctx);
+    ck_assert(is_ok(&res));
+
+    // Test COMMIT
+    res = ik_db_commit(db_ctx);
+    ck_assert(is_ok(&res));
+}
+
+END_TEST
+
 // ========== Suite Configuration ==========
 
 static Suite *connection_suite(void)
@@ -330,6 +361,12 @@ static Suite *connection_suite(void)
     tcase_add_checked_fixture(tc_migration, test_setup, test_teardown);
     tcase_add_test(tc_migration, test_db_init_migration_failure);
     suite_add_tcase(s, tc_migration);
+
+    TCase *tc_transactions = tcase_create("transactions");
+    tcase_add_unchecked_fixture(tc_transactions, suite_setup, suite_teardown);
+    tcase_add_checked_fixture(tc_transactions, test_setup, test_teardown);
+    tcase_add_test(tc_transactions, test_db_transaction_success);
+    suite_add_tcase(s, tc_transactions);
 
     return s;
 }
