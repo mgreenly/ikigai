@@ -497,6 +497,18 @@ res_t ik_repl_nav_parent(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
     assert(repl->current != NULL);  // LCOV_EXCL_BR_LINE
+
+    if (repl->current->parent_uuid == NULL) {
+        return OK(NULL);  // Already at root
+    }
+
+    // Dead agents are removed from agents[], so find returns NULL
+    // if parent was killed. Separator shows grayed indicator.
+    ik_agent_ctx_t *parent = ik_repl_find_agent(repl,
+        repl->current->parent_uuid);
+    if (parent) {
+        CHECK(ik_repl_switch_agent(repl, parent));
+    }
     return OK(NULL);
 }
 
@@ -504,5 +516,24 @@ res_t ik_repl_nav_child(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
     assert(repl->current != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Find most recent running child
+    // Only agents in agents[] are running (dead ones removed)
+    ik_agent_ctx_t *newest = NULL;
+    int64_t newest_time = 0;
+
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        ik_agent_ctx_t *a = repl->agents[i];
+        if (a->parent_uuid &&
+            strcmp(a->parent_uuid, repl->current->uuid) == 0 &&
+            a->created_at > newest_time) {
+            newest = a;
+            newest_time = a->created_at;
+        }
+    }
+
+    if (newest) {
+        CHECK(ik_repl_switch_agent(repl, newest));
+    }
     return OK(NULL);
 }

@@ -262,9 +262,9 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
         case IK_INPUT_NAV_NEXT_SIBLING:
             return ik_repl_nav_next_sibling(repl);
         case IK_INPUT_NAV_PARENT:
-            return OK(NULL);  // Not implemented yet
+            return ik_repl_nav_parent(repl);
         case IK_INPUT_NAV_CHILD:
-            return OK(NULL);  // Not implemented yet
+            return ik_repl_nav_child(repl);
         case IK_INPUT_UNKNOWN:
             return OK(NULL);
         default: // LCOV_EXCL_LINE
