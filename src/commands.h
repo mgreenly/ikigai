@@ -99,4 +99,17 @@ res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
  */
 res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+/**
+ * Check mail command handler - lists inbox contents
+ *
+ * Displays the current agent's inbox with unread markers, message previews,
+ * and relative timestamps. Unread messages are shown first.
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param args Command arguments (unused)
+ * @return OK on success, ERR on failure
+ */
+res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 #endif // IK_COMMANDS_H

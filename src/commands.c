@@ -50,6 +50,9 @@ res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
 // Public declaration for cmd_send (non-static, declared in commands.h)
 res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+// Public declaration for cmd_check_mail (non-static, declared in commands.h)
+res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 // Command registry
 static const ik_command_t commands[] = {
     {"clear", "Clear scrollback, session messages, and marks", cmd_clear},
@@ -59,6 +62,7 @@ static const ik_command_t commands[] = {
     {"fork", "Create a child agent (usage: /fork)", cmd_fork},
     {"kill", "Terminate agent (usage: /kill [uuid])", cmd_kill},
     {"send", "Send mail to agent (usage: /send <uuid> \"message\")", cmd_send},
+    {"check-mail", "Check inbox for messages", cmd_check_mail},
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},
@@ -1080,6 +1084,112 @@ res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
         PANIC("snprintf failed");     // LCOV_EXCL_LINE
     }
     ik_scrollback_append_line(repl->current->scrollback, confirm, (size_t)written);
+
+    return OK(NULL);
+}
+
+res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    (void)args;
+
+    // Get inbox for current agent
+    ik_mail_msg_t **inbox = NULL;
+    size_t count = 0;
+    res_t res = ik_db_mail_inbox(repl->shared->db_ctx, ctx,
+                                  repl->shared->session_id,
+                                  repl->current->uuid,
+                                  &inbox, &count);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    // Empty inbox
+    if (count == 0) {     // LCOV_EXCL_BR_LINE
+        const char *msg = "No messages";
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        return OK(NULL);
+    }
+
+    // Count unread messages
+    size_t unread_count = 0;
+    for (size_t i = 0; i < count; i++) {     // LCOV_EXCL_BR_LINE
+        if (!inbox[i]->read) {     // LCOV_EXCL_BR_LINE
+            unread_count++;
+        }
+    }
+
+    // Display summary header
+    char *header = talloc_asprintf(ctx, "Inbox (%zu message%s, %zu unread):",
+                                   count, count == 1 ? "" : "s", unread_count);
+    if (!header) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+    res = ik_scrollback_append_line(repl->current->scrollback, header, strlen(header));
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    // Display blank line after header
+    const char *blank = "";
+    res = ik_scrollback_append_line(repl->current->scrollback, blank, strlen(blank));
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    // Display each message
+    int64_t now = (int64_t)time(NULL);
+    for (size_t i = 0; i < count; i++) {     // LCOV_EXCL_BR_LINE
+        ik_mail_msg_t *msg = inbox[i];
+
+        // Calculate time difference
+        int64_t diff = now - msg->timestamp;
+
+        // Format relative timestamp
+        char time_str[64];
+        if (diff < 60) {     // LCOV_EXCL_BR_LINE
+            snprintf(time_str, sizeof(time_str), "%" PRId64 " sec ago", diff);
+        } else if (diff < 3600) {     // LCOV_EXCL_BR_LINE
+            snprintf(time_str, sizeof(time_str), "%" PRId64 " min ago", diff / 60);
+        } else if (diff < 86400) {     // LCOV_EXCL_BR_LINE
+            snprintf(time_str, sizeof(time_str), "%" PRId64 " hour%s ago",
+                    diff / 3600, (diff / 3600) == 1 ? "" : "s");
+        } else {     // LCOV_EXCL_BR_LINE
+            snprintf(time_str, sizeof(time_str), "%" PRId64 " day%s ago",
+                    diff / 86400, (diff / 86400) == 1 ? "" : "s");
+        }
+
+        // Format message line: "  [1] * from abc123... (2 min ago)"
+        char *msg_line = talloc_asprintf(ctx, "  [%zu] %s from %.22s... (%s)",
+                                         i + 1,
+                                         msg->read ? " " : "*",
+                                         msg->from_uuid,
+                                         time_str);
+        if (!msg_line) {     // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");     // LCOV_EXCL_LINE
+        }
+
+        res = ik_scrollback_append_line(repl->current->scrollback, msg_line, strlen(msg_line));
+        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+            return res;
+        }
+
+        // Format preview line: "      \"Preview of message...\""
+        // Truncate body to 50 chars max
+        size_t body_len = strlen(msg->body);
+        char preview[64];
+        if (body_len <= 50) {     // LCOV_EXCL_BR_LINE
+            snprintf(preview, sizeof(preview), "      \"%s\"", msg->body);
+        } else {
+            snprintf(preview, sizeof(preview), "      \"%.50s...\"", msg->body);
+        }
+
+        res = ik_scrollback_append_line(repl->current->scrollback, preview, strlen(preview));
+        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+            return res;
+        }
+    }
 
     return OK(NULL);
 }
