@@ -110,15 +110,10 @@ res_t cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args)
             line[offset++] = ' ';
         }
 
-        // Add truncated UUID (first 10 chars max)
+        // Add full UUID
         size_t uuid_len = strlen(agent->uuid);
-        size_t copy_len = uuid_len > 10 ? 10 : uuid_len;
-        memcpy(&line[offset], agent->uuid, copy_len);
-        offset += copy_len;
-        if (uuid_len > 10) {     // LCOV_EXCL_BR_LINE
-            memcpy(&line[offset], "...", 3);
-            offset += 3;
-        }
+        memcpy(&line[offset], agent->uuid, uuid_len);
+        offset += uuid_len;
 
         // Add status
         line[offset++] = ' ';

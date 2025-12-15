@@ -237,7 +237,8 @@ static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
     res_t result = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
                                                ik_repl_streaming_callback, repl,
                                                ik_repl_http_completion_callback, repl,
-                                               limit_reached);
+                                               limit_reached,
+                                               repl->shared->logger);
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
         const char *err_msg = error_message(result.err);  // LCOV_EXCL_LINE
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));  // LCOV_EXCL_LINE
@@ -258,7 +259,7 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
     if (repl->current->curl_still_running > 0) {
         int prev_running = repl->current->curl_still_running;
         CHECK(ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running));
-        ik_openai_multi_info_read(repl->current->multi);
+        ik_openai_multi_info_read(repl->current->multi, repl->shared->logger);
 
         // Detect request completion (was running, now not running)
         pthread_mutex_lock_(&repl->current->tool_thread_mutex);

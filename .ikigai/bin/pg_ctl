@@ -1,9 +1,0 @@
-#!/bin/bash
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AGENTS_DIR="$(dirname "$SCRIPT_DIR")"
-DB_DIR="$AGENTS_DIR/db"
-DATA_DIR="$DB_DIR/data"
-LOG_FILE="$AGENTS_DIR/logs/postgres.log"
-
-exec /usr/lib/postgresql/17/bin/pg_ctl -D "$DATA_DIR" -l "$LOG_FILE" "$@"

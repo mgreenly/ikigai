@@ -78,7 +78,7 @@ static void teardown(void)
 START_TEST(test_history_load_empty_file)
 {
     // Load when file doesn't exist - should succeed with empty history
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
 
     // Verify history is empty
@@ -104,7 +104,7 @@ START_TEST(test_history_load_valid_entries)
     fclose(f);
 
     // Load history
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
 
     // Verify all entries loaded
@@ -131,7 +131,7 @@ START_TEST(test_history_load_respects_capacity)
     fclose(f);
 
     // Load history
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
 
     // Verify only last 10 entries loaded
@@ -157,7 +157,7 @@ START_TEST(test_history_load_malformed_line)
     fclose(f);
 
     // Load history - should skip malformed lines
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
 
     // Verify only valid entries loaded
@@ -254,7 +254,7 @@ END_TEST
 START_TEST(test_history_load_file_missing)
 {
     // Don't create file - load should succeed with empty history
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
 
     // Verify history is empty
@@ -321,7 +321,7 @@ START_TEST(test_history_load_file_size_zero)
     ck_assert_int_eq((int)st.st_size, 0);
 
     // Load history - should succeed with empty history
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
 
     // Verify history is empty
@@ -342,7 +342,7 @@ START_TEST(test_history_load_last_line_no_newline)
     fclose(f);
 
     // Load history - should handle missing final newline
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
 
     // Verify both entries loaded
@@ -369,7 +369,7 @@ START_TEST(test_history_load_empty_lines)
     fclose(f);
 
     // Load history - should skip empty lines
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
 
     // Verify only valid entries loaded (empty lines skipped)
@@ -396,7 +396,7 @@ START_TEST(test_history_load_non_object_json)
     fclose(f);
 
     // Load history - should skip non-object JSON
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
 
     // Verify only object entries loaded
@@ -422,7 +422,7 @@ START_TEST(test_history_load_cmd_not_string)
     fclose(f);
 
     // Load history - should skip entries with non-string cmd
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
 
     // Verify only valid entries loaded

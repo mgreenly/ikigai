@@ -29,7 +29,7 @@ START_TEST(test_http_write_callback_with_sse_data) {
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response data */
@@ -72,7 +72,7 @@ END_TEST START_TEST(test_http_write_callback_user_callback_error)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request with error callback - pass ctx as user context */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, error_stream_callback, ctx, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, error_stream_callback, ctx, NULL, NULL, false); // FIXME: add logger param;
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response data */
@@ -160,7 +160,7 @@ END_TEST START_TEST(test_http_write_callback_parse_error)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with invalid format (missing "data: " prefix) */
@@ -203,7 +203,7 @@ END_TEST START_TEST(test_http_write_callback_null_content)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with [DONE] marker (returns NULL content) */
@@ -246,7 +246,7 @@ END_TEST START_TEST(test_http_write_callback_multiple_chunks)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Send first chunk */

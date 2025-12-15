@@ -170,7 +170,7 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     if (posix_getcwd_(cwd, sizeof(cwd)) == NULL) {
         return ERR(ctx, IO, "Failed to get current working directory");
     }
-    ik_log_reinit(cwd);
+    ik_logger_reinit(repl->shared->logger, cwd);
 
     // Clear scrollback buffer
     ik_scrollback_clear(repl->current->scrollback);

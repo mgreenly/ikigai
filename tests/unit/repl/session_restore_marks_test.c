@@ -54,7 +54,7 @@ res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 // from db/agent.c (included in MODULE_SOURCES_NO_DB)
 
 // Mock ik_db_messages_load
-res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id)
+res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger)
 {
     (void)db_ctx;
     (void)session_id;

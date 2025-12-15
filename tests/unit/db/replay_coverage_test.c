@@ -144,7 +144,7 @@ START_TEST(test_mark_with_null_data) {
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -191,7 +191,7 @@ START_TEST(test_mark_with_invalid_json_data) {
     mock_call_count = 0;
 
     // Load and replay - should succeed but mark has no label
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -223,7 +223,7 @@ START_TEST(test_mark_with_non_string_label)
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -268,7 +268,7 @@ START_TEST(test_mark_with_null_label_string) {
     mock_get_str_count = 0;
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;

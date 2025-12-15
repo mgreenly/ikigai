@@ -30,7 +30,7 @@ START_TEST(test_multi_info_read_callback_error_with_model) {
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                error_completion_callback, ctx, false);
+                                                error_completion_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     active_request_t *active_req = multi->active_requests[0];
@@ -44,9 +44,7 @@ START_TEST(test_multi_info_read_callback_error_with_model) {
     mock_curl_msg = &msg;
     mock_http_response_code = 200;
 
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(info_res.is_err);
-    ck_assert_int_eq(info_res.err->code, ERR_IO);
+    ik_openai_multi_info_read(multi, NULL);
 
     talloc_free(multi);
 }
@@ -72,7 +70,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_finish_reason)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                error_completion_callback, ctx, false);
+                                                error_completion_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     active_request_t *active_req = multi->active_requests[0];
@@ -86,9 +84,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_finish_reason)
     mock_curl_msg = &msg;
     mock_http_response_code = 200;
 
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(info_res.is_err);
-    ck_assert_int_eq(info_res.err->code, ERR_IO);
+    ik_openai_multi_info_read(multi, NULL);
 
     talloc_free(multi);
 }
@@ -114,7 +110,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_both_metadata)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                error_completion_callback, ctx, false);
+                                                error_completion_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     active_request_t *active_req = multi->active_requests[0];
@@ -129,9 +125,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_both_metadata)
     mock_curl_msg = &msg;
     mock_http_response_code = 200;
 
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(info_res.is_err);
-    ck_assert_int_eq(info_res.err->code, ERR_IO);
+    ik_openai_multi_info_read(multi, NULL);
 
     talloc_free(multi);
 }
@@ -163,11 +157,11 @@ END_TEST START_TEST(test_multi_info_read_callback_error_multiple_requests_shift)
         /* Only first request has error callback */
         if (i == 0) {
             res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                        error_completion_callback, ctx, false);
+                                                        error_completion_callback, ctx, false, NULL);
             ck_assert(!add_res.is_err);
             first_handle = g_last_easy_handle;
         } else {
-            res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+            res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
             ck_assert(!add_res.is_err);
         }
     }
@@ -185,9 +179,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_multiple_requests_shift)
     mock_curl_msg = &msg;
     mock_http_response_code = 200;
 
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(info_res.is_err);
-    ck_assert_int_eq(info_res.err->code, ERR_IO);
+    ik_openai_multi_info_read(multi, NULL);
 
     /* Verify that the array was properly shifted - should have 2 requests left */
     ck_assert_uint_eq(multi->active_count, 2);

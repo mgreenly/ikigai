@@ -146,7 +146,7 @@ START_TEST(test_active_session_continuation)
 
     // Replay to restore context
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, active_session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, active_session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -178,7 +178,7 @@ START_TEST(test_multi_launch_conversation)
 
     // Replay to restore context
     TALLOC_CTX *replay_ctx1 = talloc_new(test_ctx);
-    res_t replay1 = ik_db_messages_load(replay_ctx1, db, active_id);
+    res_t replay1 = ik_db_messages_load(replay_ctx1, db, active_id, NULL);
     ik_replay_context_t *ctx1 = replay1.ok;
     ck_assert_int_eq((int)ctx1->count, 2);  // Q1, A1
     talloc_free(replay_ctx1);
@@ -194,7 +194,7 @@ START_TEST(test_multi_launch_conversation)
     ck_assert_int_eq(active_id2, session_id);
 
     TALLOC_CTX *replay_ctx2 = talloc_new(test_ctx);
-    res_t replay2 = ik_db_messages_load(replay_ctx2, db, active_id2);
+    res_t replay2 = ik_db_messages_load(replay_ctx2, db, active_id2, NULL);
     ik_replay_context_t *ctx2 = replay2.ok;
     ck_assert_int_eq((int)ctx2->count, 4);  // Q1, A1, Q2, A2
     ck_assert_str_eq(ctx2->messages[0]->content, "Q1");
@@ -227,7 +227,7 @@ START_TEST(test_clear_persists_across_launches)
     ck_assert_int_eq(active_id, session_id);
 
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, active_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, active_id, NULL);
     ik_replay_context_t *context = replay_res.ok;
 
     // Only message after last clear should be in context

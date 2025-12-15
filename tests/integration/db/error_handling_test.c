@@ -127,7 +127,7 @@ START_TEST(test_replay_nonexistent_session)
     // Try to replay non-existent session
     int64_t nonexistent_session = 999999;
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, nonexistent_session);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, nonexistent_session, NULL);
 
     // Should succeed with empty context
     ck_assert(is_ok(&replay_res));

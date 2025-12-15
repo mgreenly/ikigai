@@ -12,7 +12,7 @@ START_TEST(test_multi_info_read_no_messages) {
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 }
 
@@ -30,7 +30,7 @@ END_TEST START_TEST(test_multi_info_read_with_completed_message)
     CURLMsg msg;
     setup_mock_curl_msg(&msg, g_last_easy_handle, CURLE_OK, 0);
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -48,7 +48,7 @@ END_TEST START_TEST(test_multi_info_read_non_done_message)
     msg.data.result = CURLE_OK;
     mock_curl_msg = &msg;
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -74,7 +74,7 @@ END_TEST START_TEST(test_multi_info_read_multiple_requests)
     CURLMsg msg;
     setup_mock_curl_msg(&msg, second_handle, CURLE_OK, 0);
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -100,7 +100,7 @@ END_TEST START_TEST(test_multi_info_read_multiple_requests_shift)
     CURLMsg msg;
     setup_mock_curl_msg(&msg, first_handle, CURLE_OK, 0);
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -116,7 +116,7 @@ END_TEST START_TEST(test_multi_info_read_message_no_active_requests)
     CURLMsg msg;
     setup_mock_curl_msg(&msg, (CURL *)0x12345, CURLE_OK, 0);
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -136,7 +136,7 @@ END_TEST START_TEST(test_multi_info_read_network_error)
     CURLMsg msg;
     setup_mock_curl_msg(&msg, g_last_easy_handle, CURLE_COULDNT_CONNECT, 0);
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -156,7 +156,7 @@ END_TEST START_TEST(test_multi_info_read_http_success_with_metadata)
     CURLMsg msg;
     setup_mock_curl_msg(&msg, g_last_easy_handle, CURLE_OK, 200);
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -176,7 +176,7 @@ END_TEST START_TEST(test_multi_info_read_http_client_error)
     CURLMsg msg;
     setup_mock_curl_msg(&msg, g_last_easy_handle, CURLE_OK, 429);
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -196,7 +196,7 @@ END_TEST START_TEST(test_multi_info_read_http_server_error)
     CURLMsg msg;
     setup_mock_curl_msg(&msg, g_last_easy_handle, CURLE_OK, 503);
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -216,7 +216,7 @@ END_TEST START_TEST(test_multi_info_read_http_unexpected_code)
     CURLMsg msg;
     setup_mock_curl_msg(&msg, g_last_easy_handle, CURLE_OK, 100);
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -231,15 +231,13 @@ END_TEST START_TEST(test_multi_info_read_completion_callback_error)
     ik_openai_conversation_t *conv = create_test_conversation("Hello");
     ik_cfg_t *cfg = create_test_config();
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                error_completion_callback, ctx, false);
+                                                error_completion_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     CURLMsg msg;
     setup_mock_curl_msg(&msg, g_last_easy_handle, CURLE_OK, 200);
 
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(info_res.is_err);
-    ck_assert_int_eq(info_res.err->code, ERR_IO);
+    ik_openai_multi_info_read(multi, NULL);
 
     talloc_free(multi);
 }

@@ -200,7 +200,7 @@ START_TEST(test_history_load_ensure_directory_failure)
 {
     mock_mkdir_should_fail = true;
     mock_mkdir_errno = EACCES;
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
 }
@@ -210,7 +210,7 @@ START_TEST(test_history_load_fopen_create_failure)
 {
     mock_fopen_should_fail = true;
     mock_fopen_fail_path = ".ikigai/history";
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
     ck_assert(strstr(error_message(res.err), "Failed to create") != NULL);
@@ -226,7 +226,7 @@ START_TEST(test_history_load_fopen_read_failure)
     fclose(f);
     mock_fopen_should_fail = true;
     mock_fopen_fail_path = ".ikigai/history";
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
     ck_assert(strstr(error_message(res.err), "Failed to open") != NULL);
@@ -242,7 +242,7 @@ START_TEST(test_history_load_fseek_to_end_failure)
     fclose(f);
     mock_fseek_should_fail = true;
     mock_fseek_fail_on_call = 1;
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
     ck_assert(strstr(error_message(res.err), "Failed to seek") != NULL);
@@ -257,7 +257,7 @@ START_TEST(test_history_load_ftell_failure)
     fprintf(f, "{\"cmd\": \"test\", \"ts\": \"2025-01-15T10:30:00Z\"}\n");
     fclose(f);
     mock_ftell_should_fail = true;
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
     ck_assert(strstr(error_message(res.err), "Failed to get size") != NULL);
@@ -273,7 +273,7 @@ START_TEST(test_history_load_fseek_to_beginning_failure)
     fclose(f);
     mock_fseek_should_fail = true;
     mock_fseek_fail_on_call = 2;
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
     ck_assert(strstr(error_message(res.err), "Failed to seek") != NULL);
@@ -288,7 +288,7 @@ START_TEST(test_history_load_fread_incomplete)
     fprintf(f, "{\"cmd\": \"test\", \"ts\": \"2025-01-15T10:30:00Z\"}\n");
     fclose(f);
     mock_fread_should_fail = true;
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
     ck_assert(strstr(error_message(res.err), "Failed to read") != NULL);
@@ -305,7 +305,7 @@ START_TEST(test_history_load_exceeds_max_entries)
         fprintf(f, "{\"cmd\": \"command%d\", \"ts\": \"2025-01-15T10:30:00Z\"}\n", i);
     }
     fclose(f);
-    res_t res = ik_history_load(ctx, hist);
+    res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(hist->count, 10);
 }

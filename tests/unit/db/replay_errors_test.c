@@ -144,7 +144,7 @@ START_TEST(test_mark_stack_capacity_expansion) {
     }
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -184,7 +184,7 @@ START_TEST(test_rewind_missing_data)
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -224,7 +224,7 @@ START_TEST(test_rewind_missing_target_message_id)
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -260,7 +260,7 @@ START_TEST(test_rewind_invalid_target_message_id_type)
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -292,7 +292,7 @@ START_TEST(test_rewind_mark_not_found)
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -327,7 +327,7 @@ START_TEST(test_database_query_failure) {
     mock_query_failure = true;
 
     // Try to load messages - should fail with database error
-    res_t res = ik_db_messages_load(test_ctx, db, session_id);
+    res_t res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(res.err->code, ERR_IO);
 
@@ -367,7 +367,7 @@ START_TEST(test_rewind_invalid_json) {
     mock_invalid_json = true;
 
     // Load messages - should handle invalid JSON gracefully (log error, skip rewind)
-    res_t res = ik_db_messages_load(test_ctx, db, session_id);
+    res_t res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));  // Should succeed despite invalid JSON
     ik_replay_context_t *context = res.ok;
 
@@ -403,7 +403,7 @@ START_TEST(test_unknown_event_kind)
     PQclear(insert_res);
 
     // Load messages - should handle unknown kind gracefully (log error, skip)
-    res_t res = ik_db_messages_load(test_ctx, db, session_id);
+    res_t res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));  // Should succeed despite unknown kind
     ik_replay_context_t *context = res.ok;
 
@@ -440,7 +440,7 @@ START_TEST(test_sscanf_parse_failure) {
     mock_invalid_id = true;
 
     // Load messages - should fail with PARSE error
-    res_t res = ik_db_messages_load(test_ctx, db, session_id);
+    res_t res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(res.err->code, ERR_PARSE);
 

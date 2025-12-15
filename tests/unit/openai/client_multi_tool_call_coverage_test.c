@@ -75,7 +75,7 @@ START_TEST(test_info_read_success_with_tool_call_steal) {
     setup_mock_curl_msg(&msg, g_last_easy_handle, CURLE_OK, 200);
 
     /* Call info_read - should execute line 149: talloc_steal for tool_call */
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     /* Verify tool_call fields were captured by callback */
@@ -141,9 +141,7 @@ START_TEST(test_info_read_callback_error_with_tool_call_free)
      * - Execute line 190: talloc_free for tool_call in error cleanup path
      * - Return the callback error
      */
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(info_res.is_err);
-    ck_assert_int_eq(info_res.err->code, ERR_IO);
+    ik_openai_multi_info_read(multi, NULL);
 
     /* Clean up */
     invoke_write_callback = false;
@@ -202,7 +200,7 @@ START_TEST(test_info_read_success_with_tool_call_free)
      * - Execute line 219: talloc_free for tool_call in success cleanup path
      * - Return OK
      */
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     /* Verify tool_call fields were captured by callback */

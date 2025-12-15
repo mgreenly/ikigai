@@ -47,7 +47,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
         repl->shared->session_id = session_id;
 
         // Load messages from database
-        res_t load_res = ik_db_messages_load(tmp, db_ctx, session_id);
+        res_t load_res = ik_db_messages_load(tmp, db_ctx, session_id, repl->shared->logger);
         if (is_err(&load_res)) {
             talloc_steal(repl, load_res.err);  // Reparent error before freeing tmp
             talloc_free(tmp);

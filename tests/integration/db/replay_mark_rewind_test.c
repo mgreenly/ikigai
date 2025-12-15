@@ -128,7 +128,7 @@ START_TEST(test_replay_simple_mark)
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -177,7 +177,7 @@ START_TEST(test_replay_rewind_to_mark)
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -224,7 +224,7 @@ START_TEST(test_replay_multiple_marks_rewind_first)
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -271,7 +271,7 @@ START_TEST(test_replay_rewind_removes_subsequent_marks)
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -297,7 +297,7 @@ START_TEST(test_replay_mark_labels_preserved)
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -321,7 +321,7 @@ START_TEST(test_replay_mark_without_label)
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -346,7 +346,7 @@ START_TEST(test_replay_clear_resets_mark_stack)
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;

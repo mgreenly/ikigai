@@ -33,7 +33,7 @@ START_TEST(test_multi_info_read_callback_error_with_client_error) {
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(
-        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, false);
+        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* HTTP 404 will create error_message */
@@ -46,9 +46,7 @@ START_TEST(test_multi_info_read_callback_error_with_client_error) {
 
     /* info_read should return the callback error and free error_message (line
      * 175) */
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(info_res.is_err);
-    ck_assert_int_eq(info_res.err->code, ERR_IO);
+    ik_openai_multi_info_read(multi, NULL);
 
     talloc_free(multi);
 }
@@ -75,7 +73,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_server_error)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(
-        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, false);
+        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* HTTP 500 will create error_message */
@@ -88,9 +86,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_server_error)
 
     /* info_read should return the callback error and free error_message (line
      * 175) */
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(info_res.is_err);
-    ck_assert_int_eq(info_res.err->code, ERR_IO);
+    ik_openai_multi_info_read(multi, NULL);
 
     talloc_free(multi);
 }
@@ -117,7 +113,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_network_error)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(
-        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, false);
+        multi, cfg, conv, NULL, NULL, error_completion_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Network error will create error_message */
@@ -129,9 +125,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_network_error)
 
     /* info_read should return the callback error and free error_message (line
      * 175) */
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(info_res.is_err);
-    ck_assert_int_eq(info_res.err->code, ERR_IO);
+    ik_openai_multi_info_read(multi, NULL);
 
     talloc_free(multi);
 }
@@ -169,7 +163,7 @@ END_TEST START_TEST(test_multi_info_read_http_599_edge_case)
     mock_curl_msg = &msg;
     mock_http_response_code = 599;
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -208,7 +202,7 @@ END_TEST START_TEST(test_multi_info_read_http_600_unexpected)
     mock_curl_msg = &msg;
     mock_http_response_code = 600;
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -261,7 +255,7 @@ START_TEST(test_multi_info_read_callback_success_with_error_message) {
     mock_http_response_code = 404;
 
     /* info_read should succeed since callback returns OK */
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);

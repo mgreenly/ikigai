@@ -131,7 +131,7 @@ res_t ik_openai_multi_timeout(ik_openai_multi_t *multi, long *timeout_ms) {
     return OK(NULL);
 }
 
-res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
+void ik_openai_multi_info_read(ik_openai_multi_t *multi, ik_logger_t *logger) {
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
 
     int msgs_left;
@@ -182,7 +182,7 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                                 yyjson_mut_obj_add_obj_wrapper(resp_log_doc, resp_log_root, "body");
                             }
 
-                            ik_log_debug_json(resp_log_doc);
+                            ik_logger_debug_json(logger, resp_log_doc);
                         }
 
                         /* Categorize response */
@@ -253,8 +253,8 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                                 multi->active_requests[j] = multi->active_requests[j + 1];
                             }
                             multi->active_count--;
-                            /* Return the callback error */
-                            return cb_result;
+                            /* Callback error - continue processing other requests */
+                            (void)cb_result;
                         }
                     }
 
@@ -291,6 +291,4 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
             }
         }
     }
-
-    return OK(NULL);
 }

@@ -6,6 +6,7 @@
 #include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
+#include "../../../src/logger.h"
 #include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/debug_pipe.h"
@@ -113,6 +114,9 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(shared);
     shared->cfg = cfg;
+
+    // Create logger (required by /clear command)
+    shared->logger = ik_logger_create(parent, ".");
 
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);

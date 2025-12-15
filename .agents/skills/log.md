@@ -29,8 +29,7 @@ ik_log_debug_json(doc);  // Takes ownership, frees doc
 
 ```bash
 # Tail logs during development
-tail -f $PWD/.ikigai/logs/current/log 
-
+tail -f $PWD/.ikigai/logs/current.log
 ```
 
 ## Levels

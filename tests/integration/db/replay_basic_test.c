@@ -121,7 +121,7 @@ START_TEST(test_replay_empty_session)
 
     // Replay empty session
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -142,7 +142,7 @@ START_TEST(test_replay_single_user_message)
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -165,7 +165,7 @@ START_TEST(test_replay_conversation)
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -191,7 +191,7 @@ START_TEST(test_replay_clear_empties_context)
 
     // Replay - context should be empty after clear
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -214,7 +214,7 @@ START_TEST(test_replay_after_clear)
 
     // Replay - should only have message after clear
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -238,7 +238,7 @@ START_TEST(test_replay_system_message)
 
     // Replay - should have system and user (clear doesn't persist)
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -266,7 +266,7 @@ START_TEST(test_replay_multiple_clears)
 
     // Replay - should only have last message
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -290,7 +290,7 @@ START_TEST(test_replay_preserves_order)
 
     // Replay and verify order
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;

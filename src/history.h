@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+// Forward declaration
+typedef struct ik_logger ik_logger_t;
+
 /**
  * History management module
  *
@@ -176,7 +179,7 @@ res_t ik_history_ensure_directory(TALLOC_CTX *ctx);
  * - ctx must not be NULL
  * - hist must not be NULL
  */
-res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist);
+res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist, ik_logger_t *logger);
 
 /**
  * Save entire history to .ikigai/history file

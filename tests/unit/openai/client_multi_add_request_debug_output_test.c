@@ -28,7 +28,7 @@ START_TEST(test_multi_add_request_with_debug_output_file) {
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request - should succeed without crashing */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 }
 
@@ -55,7 +55,7 @@ END_TEST START_TEST(test_multi_add_request_no_debug_output)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request - should not crash */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 }
 

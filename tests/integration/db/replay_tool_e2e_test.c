@@ -180,7 +180,7 @@ START_TEST(test_tool_conversation_e2e)
     // ========== Phase 2: Simulate app restart - new replay context ==========
 
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;

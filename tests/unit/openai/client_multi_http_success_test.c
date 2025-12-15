@@ -30,7 +30,7 @@ START_TEST(test_multi_info_read_http_success_with_model) {
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add a request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Manually populate write context with metadata to test the success path */
@@ -47,7 +47,7 @@ START_TEST(test_multi_info_read_http_success_with_model) {
     mock_curl_msg = &msg;
     mock_http_response_code = 200;  /* HTTP 200 OK */
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     /* Clean up */
@@ -74,7 +74,7 @@ END_TEST START_TEST(test_multi_info_read_http_success_with_model_only)
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
 
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Populate write context with only model (no finish_reason) */
@@ -89,7 +89,7 @@ END_TEST START_TEST(test_multi_info_read_http_success_with_model_only)
     mock_curl_msg = &msg;
     mock_http_response_code = 200;
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -115,7 +115,7 @@ END_TEST START_TEST(test_multi_info_read_http_success_with_finish_reason_only)
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
 
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Populate write context with only finish_reason (no model) */
@@ -130,7 +130,7 @@ END_TEST START_TEST(test_multi_info_read_http_success_with_finish_reason_only)
     mock_curl_msg = &msg;
     mock_http_response_code = 200;
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);
@@ -156,7 +156,7 @@ END_TEST START_TEST(test_multi_info_read_http_success_no_metadata)
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
 
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Write context has no metadata (all NULL/0) - default state */
@@ -167,7 +167,7 @@ END_TEST START_TEST(test_multi_info_read_http_success_no_metadata)
     mock_curl_msg = &msg;
     mock_http_response_code = 200;
 
-    res_t info_res = ik_openai_multi_info_read(multi);
+    ik_openai_multi_info_read(multi, NULL);
     ck_assert(!info_res.is_err);
 
     talloc_free(multi);

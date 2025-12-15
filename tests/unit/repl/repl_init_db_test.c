@@ -41,7 +41,7 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx, int64_t session_id,
                            const char *content, const char *data_json);
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
-res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id);
+res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger);
 res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid);
 res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent);
 res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out);
@@ -181,7 +181,7 @@ res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 }
 
 // Mock ik_db_messages_load (needed because session_restore calls it)
-res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id)
+res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger)
 {
     (void)ctx;
     (void)db_ctx;

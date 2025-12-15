@@ -118,7 +118,8 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
 
     result = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
                                          ik_repl_streaming_callback, repl,
-                                         ik_repl_http_completion_callback, repl, false);
+                                         ik_repl_http_completion_callback, repl, false,
+                                         repl->shared->logger);
     if (is_err(&result)) {
         const char *err_msg = error_message(result.err);
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));

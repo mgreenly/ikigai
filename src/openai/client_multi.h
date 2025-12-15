@@ -7,6 +7,9 @@
 #include "tool.h"
 #include <sys/select.h>
 
+// Forward declaration
+typedef struct ik_logger ik_logger_t;
+
 /**
  * Multi-handle manager for non-blocking OpenAI HTTP requests
  *
@@ -84,6 +87,7 @@ res_t ik_openai_multi_create(void *parent);
  * @param completion_cb  Callback for request completion (or NULL)
  * @param completion_ctx Context pointer passed to completion callback
  * @param limit_reached  If true, set tool_choice to "none"; otherwise "auto"
+ * @param logger         Logger for debug output
  * @return               OK(NULL) or ERR(...)
  */
 res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
@@ -93,7 +97,8 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
                                    void *stream_ctx,
                                    ik_http_completion_cb_t completion_cb,
                                    void *completion_ctx,
-                                   bool limit_reached);
+                                   bool limit_reached,
+                                   ik_logger_t *logger);
 
 /**
  * Perform non-blocking I/O operations
@@ -139,9 +144,9 @@ res_t ik_openai_multi_timeout(ik_openai_multi_t *multi, long *timeout_ms);
  * Call this after ik_openai_multi_perform() to handle completed transfers.
  * Processes all completed requests and invokes completion callbacks.
  *
- * @param multi  Multi-handle manager
- * @return       OK(NULL) or ERR(...)
+ * @param multi   Multi-handle manager
+ * @param logger  Logger for debug output
  */
-res_t ik_openai_multi_info_read(ik_openai_multi_t *multi);
+void ik_openai_multi_info_read(ik_openai_multi_t *multi, ik_logger_t *logger);
 
 #endif /* IK_OPENAI_CLIENT_MULTI_H */

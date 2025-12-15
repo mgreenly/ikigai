@@ -6,6 +6,9 @@
 #include <stdint.h>
 #include <talloc.h>
 
+// Forward declaration
+typedef struct ik_logger ik_logger_t;
+
 /**
  * Message structure - represents a single event from the database
  */
@@ -84,6 +87,6 @@ typedef struct {
  * @param session_id  Session ID to load messages for (must be positive)
  * @return            OK with replay_context on success, ERR on failure
  */
-res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id);
+res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger);
 
 #endif // IK_DB_REPLAY_H
