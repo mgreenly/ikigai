@@ -1,18 +1,5 @@
 {
-  "todo": [
-    {
-      "task": "agents-tree-cmd.md",
-      "group": "Display",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "separator-nav-context.md",
-      "group": "Display",
-      "model": "sonnet",
-      "thinking": "thinking"
-    }
-  ],
+  "todo": [],
   "done": [
     {
       "task": "registry-schema.md",
@@ -185,6 +172,18 @@
     {
       "task": "mail-filter-cmd.md",
       "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agents-tree-cmd.md",
+      "group": "Display",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "separator-nav-context.md",
+      "group": "Display",
       "model": "sonnet",
       "thinking": "thinking"
     }
