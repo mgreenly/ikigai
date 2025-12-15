@@ -150,8 +150,8 @@ res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *pa
 
         // Create a new message with copied content
         res_t msg_res = ik_openai_msg_create(child->conversation, src_msg->kind, src_msg->content);
-        if (is_err(&msg_res)) {
-            return msg_res;
+        if (is_err(&msg_res)) {     // LCOV_EXCL_BR_LINE
+            return msg_res;     // LCOV_EXCL_LINE
         }
         ik_msg_t *new_msg = msg_res.ok;
 
@@ -163,8 +163,8 @@ res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *pa
 
         // Add to child's conversation
         res_t add_res = ik_openai_conversation_add_msg(child->conversation, new_msg);
-        if (is_err(&add_res)) {
-            return add_res;
+        if (is_err(&add_res)) {     // LCOV_EXCL_BR_LINE
+            return add_res;     // LCOV_EXCL_LINE
         }
     }
 

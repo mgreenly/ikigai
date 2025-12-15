@@ -433,6 +433,72 @@ START_TEST(test_filter_mail_single_message)
 }
 END_TEST
 
+// Test: filter with messages - 1 hour timestamp (singular)
+START_TEST(test_filter_mail_timestamp_one_hour)
+{
+    // Create sender
+    ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(sender);
+    sender->uuid = talloc_strdup(sender, "sender-uuid-1hour");
+    sender->name = NULL;
+    sender->parent_uuid = NULL;
+    sender->created_at = 1234567897;
+    sender->fork_message_id = 0;
+    repl->agents[repl->agent_count++] = sender;
+
+    res_t res = ik_db_agent_insert(db, sender);
+    ck_assert(is_ok(&res));
+
+    // Create message with timestamp exactly 1 hour ago (3600 seconds)
+    ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
+                                             repl->current->uuid, "Message from 1 hour ago");
+    ck_assert_ptr_nonnull(msg);
+    msg->timestamp = (int64_t)time(NULL) - 3600;
+    res = ik_db_mail_insert(db, repl->shared->session_id, msg);
+    ck_assert(is_ok(&res));
+
+    // Filter
+    char args[64];
+    snprintf(args, sizeof(args), "--from %s", sender->uuid);
+    res = cmd_filter_mail(test_ctx, repl, args);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
+}
+END_TEST
+
+// Test: filter with messages - 1 day timestamp (singular)
+START_TEST(test_filter_mail_timestamp_one_day)
+{
+    // Create sender
+    ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(sender);
+    sender->uuid = talloc_strdup(sender, "sender-uuid-1day");
+    sender->name = NULL;
+    sender->parent_uuid = NULL;
+    sender->created_at = 1234567898;
+    sender->fork_message_id = 0;
+    repl->agents[repl->agent_count++] = sender;
+
+    res_t res = ik_db_agent_insert(db, sender);
+    ck_assert(is_ok(&res));
+
+    // Create message with timestamp exactly 1 day ago (86400 seconds)
+    ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
+                                             repl->current->uuid, "Message from 1 day ago");
+    ck_assert_ptr_nonnull(msg);
+    msg->timestamp = (int64_t)time(NULL) - 86400;
+    res = ik_db_mail_insert(db, repl->shared->session_id, msg);
+    ck_assert(is_ok(&res));
+
+    // Filter
+    char args[64];
+    snprintf(args, sizeof(args), "--from %s", sender->uuid);
+    res = cmd_filter_mail(test_ctx, repl, args);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
+}
+END_TEST
+
 static Suite *filter_mail_coverage_suite(void)
 {
     Suite *s = suite_create("Filter Mail Command Coverage");
@@ -451,6 +517,8 @@ static Suite *filter_mail_coverage_suite(void)
     tcase_add_test(tc, test_filter_mail_timestamp_days);
     tcase_add_test(tc, test_filter_mail_short_body);
     tcase_add_test(tc, test_filter_mail_single_message);
+    tcase_add_test(tc, test_filter_mail_timestamp_one_hour);
+    tcase_add_test(tc, test_filter_mail_timestamp_one_day);
 
     suite_add_tcase(s, tc);
     return s;
