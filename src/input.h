@@ -33,6 +33,10 @@ typedef enum {
     IK_INPUT_CTRL_W,      // Ctrl+W (delete word backward)
     IK_INPUT_TAB,         // Tab key (completion trigger)
     IK_INPUT_ESCAPE,      // Escape key (dismiss completion)
+    IK_INPUT_NAV_PREV_SIBLING, // Ctrl+Left (previous sibling agent)
+    IK_INPUT_NAV_NEXT_SIBLING, // Ctrl+Right (next sibling agent)
+    IK_INPUT_NAV_PARENT,  // Ctrl+Up (parent agent)
+    IK_INPUT_NAV_CHILD,   // Ctrl+Down (child agent)
     IK_INPUT_UNKNOWN      // Unrecognized sequence
 } ik_input_action_type_t;
 
