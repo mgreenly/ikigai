@@ -138,4 +138,17 @@ res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
  */
 res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+/**
+ * Filter mail command handler - filters inbox by sender UUID
+ *
+ * Displays messages from a specific sender in the current agent's inbox.
+ * Messages are ordered with unread first, then by timestamp descending.
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param args Command arguments: "--from <uuid>"
+ * @return OK on success, ERR on failure
+ */
+res_t cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 #endif // IK_COMMANDS_H

@@ -58,6 +58,9 @@ res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+// Public declaration for cmd_filter_mail (non-static, declared in commands.h)
+res_t cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 // Command registry
 static const ik_command_t commands[] = {
     {"clear", "Clear scrollback, session messages, and marks", cmd_clear},
@@ -70,6 +73,7 @@ static const ik_command_t commands[] = {
     {"check-mail", "Check inbox for messages", cmd_check_mail},
     {"read-mail", "Read a message (usage: /read-mail <id>)", cmd_read_mail},
     {"delete-mail", "Delete a message (usage: /delete-mail <id>)", cmd_delete_mail},
+    {"filter-mail", "Filter inbox by sender (usage: /filter-mail --from <uuid>)", cmd_filter_mail},
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},
@@ -1307,6 +1311,16 @@ res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Confirm
     const char *msg = "Mail deleted";
     ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+
+    return OK(NULL);
+}
+
+res_t cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    (void)ctx;
+    (void)args;
 
     return OK(NULL);
 }

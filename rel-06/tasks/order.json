@@ -1,18 +1,6 @@
 {
   "todo": [
     {
-      "task": "mail-read-cmd.md",
-      "group": "Mailbox",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "mail-delete-cmd.md",
-      "group": "Mailbox",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "mail-filter-cmd.md",
       "group": "Mailbox",
       "model": "sonnet",
@@ -184,6 +172,18 @@
     },
     {
       "task": "mail-check-cmd.md",
+      "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mail-read-cmd.md",
+      "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mail-delete-cmd.md",
       "group": "Mailbox",
       "model": "sonnet",
       "thinking": "thinking"
