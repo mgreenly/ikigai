@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "mail-filter-cmd.md",
-      "group": "Mailbox",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "agents-tree-cmd.md",
       "group": "Display",
       "model": "sonnet",
@@ -184,6 +178,12 @@
     },
     {
       "task": "mail-delete-cmd.md",
+      "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mail-filter-cmd.md",
       "group": "Mailbox",
       "model": "sonnet",
       "thinking": "thinking"

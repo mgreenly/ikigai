@@ -172,10 +172,10 @@ START_TEST(test_help_lists_help)
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 11 should be /help (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail)
+    // Line 12 should be /help (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail, /agents)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 11, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 12, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -190,10 +190,10 @@ START_TEST(test_help_lists_model)
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 12 should be /model (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail)
+    // Line 13 should be /model (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail, /agents)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 12, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 13, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -208,10 +208,10 @@ START_TEST(test_help_lists_system)
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 13 should be /system (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail)
+    // Line 14 should be /system (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail, /agents)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 13, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 14, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 

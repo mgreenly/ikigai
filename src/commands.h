@@ -151,4 +151,18 @@ res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
  */
 res_t cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+/**
+ * Agents command handler - displays agent hierarchy tree
+ *
+ * Displays the agent hierarchy as a tree showing parent-child relationships.
+ * The current agent is marked with *, root agents are labeled, and each agent
+ * shows its status (running/dead). Includes a summary count at the end.
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param args Command arguments (unused)
+ * @return OK on success, ERR on failure
+ */
+res_t cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 #endif // IK_COMMANDS_H

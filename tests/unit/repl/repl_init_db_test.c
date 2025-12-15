@@ -44,6 +44,7 @@ res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_
 res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid);
 res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent);
 res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out);
+res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx, ik_db_agent_row_t ***out, size_t *count);
 
 // Forward declaration for suite function
 static Suite *repl_init_db_suite(void);
@@ -128,6 +129,16 @@ res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
 {
     (void)db_ctx;
     (void)uuid;
+    return OK(NULL);
+}
+
+// Mock ik_db_agent_list_running (needed because cmd_agents calls it)
+res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+                                ik_db_agent_row_t ***out, size_t *count)
+{
+    (void)db_ctx;
+    *out = talloc_zero_array(mem_ctx, ik_db_agent_row_t *, 0);
+    *count = 0;
     return OK(NULL);
 }
 

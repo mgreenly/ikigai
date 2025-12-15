@@ -99,7 +99,7 @@ START_TEST(test_cmd_get_all) {
     const ik_command_t *cmds = ik_cmd_get_all(&count);
 
     ck_assert_ptr_nonnull(cmds);
-    ck_assert_uint_eq(count, 14);     // clear, mark, rewind, fork, kill, send, check-mail, read-mail, delete-mail, filter-mail, help, model, system, debug
+    ck_assert_uint_eq(count, 15);     // clear, mark, rewind, fork, kill, send, check-mail, read-mail, delete-mail, filter-mail, agents, help, model, system, debug
 
     // Verify command names
     ck_assert_str_eq(cmds[0].name, "clear");
@@ -112,10 +112,11 @@ START_TEST(test_cmd_get_all) {
     ck_assert_str_eq(cmds[7].name, "read-mail");
     ck_assert_str_eq(cmds[8].name, "delete-mail");
     ck_assert_str_eq(cmds[9].name, "filter-mail");
-    ck_assert_str_eq(cmds[10].name, "help");
-    ck_assert_str_eq(cmds[11].name, "model");
-    ck_assert_str_eq(cmds[12].name, "system");
-    ck_assert_str_eq(cmds[13].name, "debug");
+    ck_assert_str_eq(cmds[10].name, "agents");
+    ck_assert_str_eq(cmds[11].name, "help");
+    ck_assert_str_eq(cmds[12].name, "model");
+    ck_assert_str_eq(cmds[13].name, "system");
+    ck_assert_str_eq(cmds[14].name, "debug");
 
     // Verify descriptions exist
     ck_assert_ptr_nonnull(cmds[0].description);

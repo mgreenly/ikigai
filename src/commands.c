@@ -61,6 +61,9 @@ res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 // Public declaration for cmd_filter_mail (non-static, declared in commands.h)
 res_t cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+// Public declaration for cmd_agents (non-static, declared in commands.h)
+res_t cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 // Command registry
 static const ik_command_t commands[] = {
     {"clear", "Clear scrollback, session messages, and marks", cmd_clear},
@@ -74,6 +77,7 @@ static const ik_command_t commands[] = {
     {"read-mail", "Read a message (usage: /read-mail <id>)", cmd_read_mail},
     {"delete-mail", "Delete a message (usage: /delete-mail <id>)", cmd_delete_mail},
     {"filter-mail", "Filter inbox by sender (usage: /filter-mail --from <uuid>)", cmd_filter_mail},
+    {"agents", "Display agent hierarchy tree", cmd_agents},
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},
@@ -1454,5 +1458,161 @@ res_t cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
     }
 
+    return OK(NULL);
+}
+// /agents command implementation - displays agent hierarchy tree
+res_t cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    assert(ctx != NULL);     // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);     // LCOV_EXCL_BR_LINE
+    (void)args;
+
+    TALLOC_CTX *tmp_ctx = talloc_new(ctx);
+    if (tmp_ctx == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+
+    // Add header
+    const char *header = "Agent Hierarchy:";
+    res_t res = ik_scrollback_append_line(repl->current->scrollback, header, strlen(header));
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        talloc_free(tmp_ctx);
+        return res;
+    }
+
+    // Add blank line
+    res = ik_scrollback_append_line(repl->current->scrollback, "", 0);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        talloc_free(tmp_ctx);
+        return res;
+    }
+
+    // Get all running agents from database
+    ik_db_agent_row_t **all_agents = NULL;
+    size_t all_count = 0;
+    res = ik_db_agent_list_running(repl->shared->db_ctx, tmp_ctx, &all_agents, &all_count);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        talloc_free(tmp_ctx);
+        return res;
+    }
+
+    // Build tree by iterating through agents in depth-first order
+    // We'll use a simple approach: process each depth level iteratively
+    size_t running_count = 0;
+    size_t dead_count = 0;
+
+    // Queue for breadth-first traversal (stores indices and depths)
+    size_t *queue_idx = talloc_array(tmp_ctx, size_t, (uint32_t)all_count);
+    size_t *queue_depth = talloc_array(tmp_ctx, size_t, (uint32_t)all_count);
+    if (queue_idx == NULL || queue_depth == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+    size_t queue_start = 0;
+    size_t queue_end = 0;
+
+    // Find and queue root agents (parent_uuid = NULL)
+    for (size_t i = 0; i < all_count; i++) {     // LCOV_EXCL_BR_LINE
+        if (all_agents[i]->parent_uuid == NULL) {     // LCOV_EXCL_BR_LINE
+            queue_idx[queue_end] = i;
+            queue_depth[queue_end] = 0;
+            queue_end++;
+        }
+    }
+
+    // Process queue
+    while (queue_start < queue_end) {     // LCOV_EXCL_BR_LINE
+        size_t idx = queue_idx[queue_start];
+        size_t depth = queue_depth[queue_start];
+        queue_start++;
+
+        ik_db_agent_row_t *agent = all_agents[idx];
+
+        // Count status
+        if (strcmp(agent->status, "running") == 0) {     // LCOV_EXCL_BR_LINE
+            running_count++;
+        } else {
+            dead_count++;
+        }
+
+        // Build line with indentation
+        char line[256];
+        size_t offset = 0;
+
+        // Add indentation (2 spaces per level)
+        for (size_t d = 0; d < depth; d++) {     // LCOV_EXCL_BR_LINE
+            line[offset++] = ' ';
+            line[offset++] = ' ';
+        }
+
+        // Add current marker
+        bool is_current = strcmp(agent->uuid, repl->current->uuid) == 0;     // LCOV_EXCL_BR_LINE
+        if (is_current) {     // LCOV_EXCL_BR_LINE
+            line[offset++] = '*';
+            line[offset++] = ' ';
+        }
+
+        // Add truncated UUID (first 10 chars max)
+        size_t uuid_len = strlen(agent->uuid);
+        size_t copy_len = uuid_len > 10 ? 10 : uuid_len;     // LCOV_EXCL_BR_LINE
+        memcpy(&line[offset], agent->uuid, copy_len);
+        offset += copy_len;
+        if (uuid_len > 10) {     // LCOV_EXCL_BR_LINE
+            memcpy(&line[offset], "...", 3);
+            offset += 3;
+        }
+
+        // Add status
+        line[offset++] = ' ';
+        line[offset++] = '(';
+        size_t status_len = strlen(agent->status);
+        memcpy(&line[offset], agent->status, status_len);
+        offset += status_len;
+        line[offset++] = ')';
+
+        // Add root label if parent is NULL
+        if (agent->parent_uuid == NULL) {     // LCOV_EXCL_BR_LINE
+            memcpy(&line[offset], " - root", 7);
+            offset += 7;
+        }
+
+        line[offset] = '\0';
+
+        // Append line to scrollback
+        res = ik_scrollback_append_line(repl->current->scrollback, line, offset);
+        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+            talloc_free(tmp_ctx);
+            return res;
+        }
+
+        // Find and queue children
+        for (size_t i = 0; i < all_count; i++) {     // LCOV_EXCL_BR_LINE
+            if (all_agents[i]->parent_uuid != NULL) {     // LCOV_EXCL_BR_LINE
+                if (strcmp(all_agents[i]->parent_uuid, agent->uuid) == 0) {     // LCOV_EXCL_BR_LINE
+                    queue_idx[queue_end] = i;
+                    queue_depth[queue_end] = depth + 1;
+                    queue_end++;
+                }
+            }
+        }
+    }
+
+    // Add blank line before summary
+    res = ik_scrollback_append_line(repl->current->scrollback, "", 0);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        talloc_free(tmp_ctx);
+        return res;
+    }
+
+    // Add summary
+    char summary[64];
+    snprintf(summary, sizeof(summary), "%" PRIu64 " running, %" PRIu64 " dead",
+             (uint64_t)running_count, (uint64_t)dead_count);
+    res = ik_scrollback_append_line(repl->current->scrollback, summary, strlen(summary));
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        talloc_free(tmp_ctx);
+        return res;
+    }
+
+    talloc_free(tmp_ctx);
     return OK(NULL);
 }

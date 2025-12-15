@@ -48,8 +48,8 @@ START_TEST(test_typing_slash_triggers_completion)
 
     // Verify completion was created
     ck_assert_ptr_nonnull(repl->current->completion);
-    // Should have all 14 commands: clear, debug, fork, help, kill, mark, model, rewind, send, check-mail, read-mail, delete-mail, filter-mail, system
-    ck_assert_uint_eq(repl->current->completion->count, 14);
+    // Should have all 15 commands: clear, debug, fork, help, kill, mark, model, rewind, send, check-mail, read-mail, delete-mail, filter-mail, agents, system
+    ck_assert_uint_eq(repl->current->completion->count, 15);
 
     talloc_free(ctx);
 }
