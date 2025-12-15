@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "mail-check-cmd.md",
-      "group": "Mailbox",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "mail-read-cmd.md",
       "group": "Mailbox",
       "model": "sonnet",
@@ -184,6 +178,12 @@
     },
     {
       "task": "mail-send-cmd.md",
+      "group": "Mailbox",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "mail-check-cmd.md",
       "group": "Mailbox",
       "model": "sonnet",
       "thinking": "thinking"

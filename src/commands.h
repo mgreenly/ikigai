@@ -112,4 +112,17 @@ res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
  */
 res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+/**
+ * Read mail command handler - displays full message and marks as read
+ *
+ * Displays the full content of a specific message identified by its inbox
+ * index (1-based). Marks the message as read after display.
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param args Command arguments (message index)
+ * @return OK on success, ERR on failure
+ */
+res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 #endif // IK_COMMANDS_H

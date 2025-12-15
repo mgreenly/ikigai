@@ -53,6 +53,9 @@ res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
 // Public declaration for cmd_check_mail (non-static, declared in commands.h)
 res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+// Public declaration for cmd_read_mail (non-static, declared in commands.h)
+res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 // Command registry
 static const ik_command_t commands[] = {
     {"clear", "Clear scrollback, session messages, and marks", cmd_clear},
@@ -63,6 +66,7 @@ static const ik_command_t commands[] = {
     {"kill", "Terminate agent (usage: /kill [uuid])", cmd_kill},
     {"send", "Send mail to agent (usage: /send <uuid> \"message\")", cmd_send},
     {"check-mail", "Check inbox for messages", cmd_check_mail},
+    {"read-mail", "Read a message (usage: /read-mail <id>)", cmd_read_mail},
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},
@@ -1189,6 +1193,80 @@ res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
         if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
             return res;
         }
+    }
+
+    return OK(NULL);
+}
+
+res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Validate args
+    if (args == NULL || args[0] == '\0') {     // LCOV_EXCL_BR_LINE
+        const char *msg = "Error: Missing message ID (usage: /read-mail <id>)";
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        return OK(NULL);
+    }
+
+    // Parse message index (1-based)
+    char *endptr = NULL;
+    int64_t index = strtoll(args, &endptr, 10);
+    if (*endptr != '\0' || index < 1) {     // LCOV_EXCL_BR_LINE
+        const char *msg = "Error: Invalid message ID";
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        return OK(NULL);
+    }
+
+    // Get inbox for current agent
+    ik_mail_msg_t **inbox = NULL;
+    size_t count = 0;
+    res_t res = ik_db_mail_inbox(repl->shared->db_ctx, ctx,
+                                  repl->shared->session_id,
+                                  repl->current->uuid,
+                                  &inbox, &count);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    // Validate index is within range
+    if ((size_t)index > count) {     // LCOV_EXCL_BR_LINE
+        const char *msg = "Error: Message not found";
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        return OK(NULL);
+    }
+
+    // Get the message (convert 1-based to 0-based index)
+    ik_mail_msg_t *msg = inbox[index - 1];
+
+    // Display message header
+    char *header = talloc_asprintf(ctx, "Message from %.22s...", msg->from_uuid);
+    if (!header) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+    res = ik_scrollback_append_line(repl->current->scrollback, header, strlen(header));
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    // Display blank line
+    const char *blank = "";
+    res = ik_scrollback_append_line(repl->current->scrollback, blank, strlen(blank));
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    // Display message body
+    res = ik_scrollback_append_line(repl->current->scrollback, msg->body, strlen(msg->body));
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
+    }
+
+    // Mark message as read
+    res = ik_db_mail_mark_read(repl->shared->db_ctx, msg->id);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;
     }
 
     return OK(NULL);
