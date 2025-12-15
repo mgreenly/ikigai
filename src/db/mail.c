@@ -12,23 +12,23 @@
 res_t ik_db_mail_insert(ik_db_ctx_t *db, int64_t session_id,
                         ik_mail_msg_t *msg)
 {
-    assert(db != NULL);
-    assert(db->conn != NULL);
-    assert(session_id > 0);
-    assert(msg != NULL);
+    assert(db != NULL);                  // LCOV_EXCL_BR_LINE
+    assert(db->conn != NULL);            // LCOV_EXCL_BR_LINE
+    assert(session_id > 0);              // LCOV_EXCL_BR_LINE
+    assert(msg != NULL);                 // LCOV_EXCL_BR_LINE
 
     TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");
+    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     const char *query =
         "INSERT INTO mail (session_id, from_uuid, to_uuid, body, timestamp) "
         "VALUES ($1, $2, $3, $4, $5) RETURNING id";
 
     char *session_id_str = talloc_asprintf(tmp, "%lld", (long long)session_id);
-    if (session_id_str == NULL) PANIC("Out of memory");
+    if (session_id_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     char *timestamp_str = talloc_asprintf(tmp, "%lld", (long long)msg->timestamp);
-    if (timestamp_str == NULL) PANIC("Out of memory");
+    if (timestamp_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     const char *params[5];
     params[0] = session_id_str;
@@ -60,16 +60,16 @@ res_t ik_db_mail_inbox(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
                        int64_t session_id, const char *to_uuid,
                        ik_mail_msg_t ***out, size_t *count)
 {
-    assert(db != NULL);
-    assert(db->conn != NULL);
-    assert(mem_ctx != NULL);
-    assert(session_id > 0);
-    assert(to_uuid != NULL);
-    assert(out != NULL);
-    assert(count != NULL);
+    assert(db != NULL);            // LCOV_EXCL_BR_LINE
+    assert(db->conn != NULL);      // LCOV_EXCL_BR_LINE
+    assert(mem_ctx != NULL);       // LCOV_EXCL_BR_LINE
+    assert(session_id > 0);        // LCOV_EXCL_BR_LINE
+    assert(to_uuid != NULL);       // LCOV_EXCL_BR_LINE
+    assert(out != NULL);           // LCOV_EXCL_BR_LINE
+    assert(count != NULL);         // LCOV_EXCL_BR_LINE
 
     TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");
+    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     const char *query =
         "SELECT id, from_uuid, to_uuid, body, timestamp, read "
@@ -78,7 +78,7 @@ res_t ik_db_mail_inbox(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
         "ORDER BY read ASC, timestamp DESC";
 
     char *session_id_str = talloc_asprintf(tmp, "%lld", (long long)session_id);
-    if (session_id_str == NULL) PANIC("Out of memory");
+    if (session_id_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     const char *params[2];
     params[0] = session_id_str;
@@ -106,24 +106,24 @@ res_t ik_db_mail_inbox(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
 
     // Allocate array of pointers
     ik_mail_msg_t **messages = talloc_array(mem_ctx, ik_mail_msg_t *, (unsigned int)nrows);
-    if (messages == NULL) PANIC("Out of memory");
+    if (messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Build message structures
     for (int i = 0; i < nrows; i++) {
         ik_mail_msg_t *msg = talloc_zero(messages, ik_mail_msg_t);
-        if (msg == NULL) PANIC("Out of memory");
+        if (msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         const char *id_str = PQgetvalue(res, i, 0);
         msg->id = strtoll(id_str, NULL, 10);
 
         msg->from_uuid = talloc_strdup(msg, PQgetvalue(res, i, 1));
-        if (msg->from_uuid == NULL) PANIC("Out of memory");
+        if (msg->from_uuid == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         msg->to_uuid = talloc_strdup(msg, PQgetvalue(res, i, 2));
-        if (msg->to_uuid == NULL) PANIC("Out of memory");
+        if (msg->to_uuid == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         msg->body = talloc_strdup(msg, PQgetvalue(res, i, 3));
-        if (msg->body == NULL) PANIC("Out of memory");
+        if (msg->body == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         const char *timestamp_str = PQgetvalue(res, i, 4);
         msg->timestamp = strtoll(timestamp_str, NULL, 10);
@@ -141,17 +141,17 @@ res_t ik_db_mail_inbox(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
 
 res_t ik_db_mail_mark_read(ik_db_ctx_t *db, int64_t mail_id)
 {
-    assert(db != NULL);
-    assert(db->conn != NULL);
-    assert(mail_id > 0);
+    assert(db != NULL);        // LCOV_EXCL_BR_LINE
+    assert(db->conn != NULL);  // LCOV_EXCL_BR_LINE
+    assert(mail_id > 0);       // LCOV_EXCL_BR_LINE
 
     TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");
+    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     const char *query = "UPDATE mail SET read = 1 WHERE id = $1";
 
     char *mail_id_str = talloc_asprintf(tmp, "%lld", (long long)mail_id);
-    if (mail_id_str == NULL) PANIC("Out of memory");
+    if (mail_id_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     const char *params[1];
     params[0] = mail_id_str;
@@ -174,18 +174,18 @@ res_t ik_db_mail_mark_read(ik_db_ctx_t *db, int64_t mail_id)
 res_t ik_db_mail_delete(ik_db_ctx_t *db, int64_t mail_id,
                         const char *recipient_uuid)
 {
-    assert(db != NULL);
-    assert(db->conn != NULL);
-    assert(mail_id > 0);
-    assert(recipient_uuid != NULL);
+    assert(db != NULL);              // LCOV_EXCL_BR_LINE
+    assert(db->conn != NULL);        // LCOV_EXCL_BR_LINE
+    assert(mail_id > 0);             // LCOV_EXCL_BR_LINE
+    assert(recipient_uuid != NULL);  // LCOV_EXCL_BR_LINE
 
     TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");
+    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     const char *query = "DELETE FROM mail WHERE id = $1 AND to_uuid = $2";
 
     char *mail_id_str = talloc_asprintf(tmp, "%lld", (long long)mail_id);
-    if (mail_id_str == NULL) PANIC("Out of memory");
+    if (mail_id_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     const char *params[2];
     params[0] = mail_id_str;
@@ -219,17 +219,17 @@ res_t ik_db_mail_inbox_filtered(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
                                  const char *from_uuid,
                                  ik_mail_msg_t ***out, size_t *count)
 {
-    assert(db != NULL);
-    assert(db->conn != NULL);
-    assert(mem_ctx != NULL);
-    assert(session_id > 0);
-    assert(to_uuid != NULL);
-    assert(from_uuid != NULL);
-    assert(out != NULL);
-    assert(count != NULL);
+    assert(db != NULL);         // LCOV_EXCL_BR_LINE
+    assert(db->conn != NULL);   // LCOV_EXCL_BR_LINE
+    assert(mem_ctx != NULL);    // LCOV_EXCL_BR_LINE
+    assert(session_id > 0);     // LCOV_EXCL_BR_LINE
+    assert(to_uuid != NULL);    // LCOV_EXCL_BR_LINE
+    assert(from_uuid != NULL);  // LCOV_EXCL_BR_LINE
+    assert(out != NULL);        // LCOV_EXCL_BR_LINE
+    assert(count != NULL);      // LCOV_EXCL_BR_LINE
 
     TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");
+    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     const char *query =
         "SELECT id, from_uuid, to_uuid, body, timestamp, read "
@@ -238,7 +238,7 @@ res_t ik_db_mail_inbox_filtered(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
         "ORDER BY read ASC, timestamp DESC";
 
     char *session_id_str = talloc_asprintf(tmp, "%lld", (long long)session_id);
-    if (session_id_str == NULL) PANIC("Out of memory");
+    if (session_id_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     const char *params[3];
     params[0] = session_id_str;
@@ -267,24 +267,24 @@ res_t ik_db_mail_inbox_filtered(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
 
     // Allocate array of pointers
     ik_mail_msg_t **messages = talloc_array(mem_ctx, ik_mail_msg_t *, (unsigned int)nrows);
-    if (messages == NULL) PANIC("Out of memory");
+    if (messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Build message structures
     for (int i = 0; i < nrows; i++) {
         ik_mail_msg_t *msg = talloc_zero(messages, ik_mail_msg_t);
-        if (msg == NULL) PANIC("Out of memory");
+        if (msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         const char *id_str = PQgetvalue(res, i, 0);
         msg->id = strtoll(id_str, NULL, 10);
 
         msg->from_uuid = talloc_strdup(msg, PQgetvalue(res, i, 1));
-        if (msg->from_uuid == NULL) PANIC("Out of memory");
+        if (msg->from_uuid == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         msg->to_uuid = talloc_strdup(msg, PQgetvalue(res, i, 2));
-        if (msg->to_uuid == NULL) PANIC("Out of memory");
+        if (msg->to_uuid == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         msg->body = talloc_strdup(msg, PQgetvalue(res, i, 3));
-        if (msg->body == NULL) PANIC("Out of memory");
+        if (msg->body == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         const char *timestamp_str = PQgetvalue(res, i, 4);
         msg->timestamp = strtoll(timestamp_str, NULL, 10);
