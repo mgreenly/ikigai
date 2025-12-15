@@ -251,7 +251,7 @@ res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
     (void)ctx;
 
     // Sync barrier (Q10): wait for pending fork
-    while (repl->shared->fork_pending) {     // LCOV_EXCL_BR_LINE
+    while (atomic_load(&repl->shared->fork_pending)) {     // LCOV_EXCL_BR_LINE
         // In unit tests, this will not loop because we control fork_pending manually
         // In production, this would process events while waiting
         struct timespec ts = {.tv_sec = 0, .tv_nsec = 10000000};  // 10ms     // LCOV_EXCL_LINE
@@ -445,7 +445,7 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Concurrency check (Q9)
-    if (repl->shared->fork_pending) {
+    if (atomic_load(&repl->shared->fork_pending)) {
         char *err_msg = talloc_strdup(ctx, "Fork already in progress");
         if (err_msg == NULL) {  // LCOV_EXCL_BR_LINE
             PANIC("Out of memory");  // LCOV_EXCL_LINE
@@ -453,12 +453,12 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
         return OK(NULL);
     }
-    repl->shared->fork_pending = true;
+    atomic_store(&repl->shared->fork_pending, true);
 
     // Begin transaction (Q14)
     res_t res = ik_db_begin(repl->shared->db_ctx);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-        repl->shared->fork_pending = false;     // LCOV_EXCL_LINE
+        atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
@@ -468,7 +468,7 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     res = ik_db_agent_get_last_message_id(repl->shared->db_ctx, parent->uuid, &fork_message_id);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
-        repl->shared->fork_pending = false;     // LCOV_EXCL_LINE
+        atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
@@ -477,7 +477,7 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     res = ik_agent_create(repl, repl->shared, parent->uuid, &child);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
-        repl->shared->fork_pending = false;     // LCOV_EXCL_LINE
+        atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
@@ -488,7 +488,7 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     res = ik_agent_copy_conversation(child, parent);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
-        repl->shared->fork_pending = false;     // LCOV_EXCL_LINE
+        atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
@@ -496,7 +496,7 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     res = ik_db_agent_insert(repl->shared->db_ctx, child);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
-        repl->shared->fork_pending = false;     // LCOV_EXCL_LINE
+        atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
@@ -504,14 +504,14 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     res = ik_repl_add_agent(repl, child);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
-        repl->shared->fork_pending = false;     // LCOV_EXCL_LINE
+        atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
     // Commit transaction
     res = ik_db_commit(repl->shared->db_ctx);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-        repl->shared->fork_pending = false;     // LCOV_EXCL_LINE
+        atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
@@ -519,10 +519,10 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     const char *parent_uuid = parent->uuid;
     res = ik_repl_switch_agent(repl, child);
     if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
-        repl->shared->fork_pending = false;     // LCOV_EXCL_LINE
+        atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
         return res;  // LCOV_EXCL_LINE
     }
-    repl->shared->fork_pending = false;
+    atomic_store(&repl->shared->fork_pending, false);
 
     // Display confirmation
     char msg[64];

@@ -65,7 +65,7 @@ static void setup_repl(void)
     ck_assert_ptr_nonnull(shared);
     shared->cfg = cfg;
     shared->db_ctx = db;
-    shared->fork_pending = false;
+    atomic_init(&shared->fork_pending, false);
     shared->session_id = 0;  // Will be set in setup()
     repl->shared = shared;
     agent->shared = shared;
@@ -344,12 +344,12 @@ START_TEST(test_kill_waits_for_fork_pending)
     ck_assert(is_ok(&res));
 
     // Set fork_pending (simulating concurrent fork)
-    repl->shared->fork_pending = true;
+    atomic_store(&repl->shared->fork_pending, true);
 
     // Kill should wait for fork_pending to be false
     // In real code, it would loop. In test, we just verify the check happens
     // by manually clearing it before calling
-    repl->shared->fork_pending = false;
+    atomic_store(&repl->shared->fork_pending, false);
 
     res = cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));

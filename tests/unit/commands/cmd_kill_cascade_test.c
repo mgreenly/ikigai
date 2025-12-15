@@ -64,7 +64,7 @@ static void setup_repl(void)
     ck_assert_ptr_nonnull(shared);
     shared->cfg = cfg;
     shared->db_ctx = db;
-    shared->fork_pending = false;
+    atomic_init(&shared->fork_pending, false);
     shared->session_id = 0;  // Will be set in setup()
     repl->shared = shared;
     agent->shared = shared;

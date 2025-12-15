@@ -64,7 +64,7 @@ static void setup_repl(void)
     ck_assert_ptr_nonnull(shared);
     shared->cfg = cfg;
     shared->db_ctx = db;
-    shared->fork_pending = false;
+    atomic_init(&shared->fork_pending, false);
     repl->shared = shared;
     agent->shared = shared;
 
@@ -249,7 +249,7 @@ START_TEST(test_fork_pending_flag_set)
     // For now, verify flag is clear after completion
     res_t res = cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
-    ck_assert(!repl->shared->fork_pending);
+    ck_assert(!atomic_load(&repl->shared->fork_pending));
 }
 END_TEST
 
@@ -258,14 +258,14 @@ START_TEST(test_fork_pending_flag_cleared)
 {
     res_t res = cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
-    ck_assert(!repl->shared->fork_pending);
+    ck_assert(!atomic_load(&repl->shared->fork_pending));
 }
 END_TEST
 
 // Test: Concurrent fork rejected
 START_TEST(test_fork_concurrent_rejected)
 {
-    repl->shared->fork_pending = true;
+    atomic_store(&repl->shared->fork_pending, true);
 
     res_t res = cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));  // Returns OK but appends error
