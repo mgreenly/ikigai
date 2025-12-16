@@ -503,5 +503,15 @@
     "event": "done",
     "task": "repl-callbacks-use-logger.md",
     "time": "2025-12-16T03:37:39.981Z"
+  },
+  {
+    "event": "start",
+    "task": "gap0-add-id-field.md",
+    "time": "2025-12-16T23:33:43.917Z"
+  },
+  {
+    "event": "done",
+    "task": "gap0-add-id-field.md",
+    "time": "2025-12-16T23:45:00.000Z"
   }
 ]
