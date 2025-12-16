@@ -2,6 +2,7 @@
 #define IK_MSG_H
 
 #include "error.h"
+#include <stdint.h>
 #include <talloc.h>
 
 /* Forward declaration - full definition in db/replay.h */
@@ -27,6 +28,7 @@ typedef struct ik_message ik_message_t;
  *   - "rewind": Rewind event (navigation metadata)
  */
 typedef struct {
+    int64_t id;       /* DB row ID (0 if not from DB) */
     char *kind;       /* Message kind discriminator */
     char *content;    /* Message text content or human-readable summary */
     char *data_json;  /* Structured data for tool messages (NULL for text messages) */
