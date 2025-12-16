@@ -10,6 +10,7 @@
 #include "db/connection.h"
 #include "db/message.h"
 #include "event_render.h"
+#include "logger.h"
 #include "openai/client.h"
 #include "openai/client_multi.h"
 #include "panic.h"
@@ -94,11 +95,12 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
         res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,     // LCOV_EXCL_LINE
                                             NULL, "user", prompt, data_json);     // LCOV_EXCL_LINE
         if (is_err(&db_res)) {     // LCOV_EXCL_BR_LINE  // LCOV_EXCL_LINE
-            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {     // LCOV_EXCL_BR_LINE  // LCOV_EXCL_LINE
-                fprintf(repl->shared->db_debug_pipe->write_end,     // LCOV_EXCL_LINE
-                        "Warning: Failed to persist user message to database: %s\n",     // LCOV_EXCL_LINE
-                        error_message(db_res.err));     // LCOV_EXCL_LINE
-            }     // LCOV_EXCL_LINE
+            yyjson_mut_doc *log_doc = ik_log_create();     // LCOV_EXCL_LINE
+            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);     // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_warning");     // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "operation", "fork_prompt_persist");     // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));     // LCOV_EXCL_LINE
+            ik_logger_warn_json(repl->shared->logger, log_doc);     // LCOV_EXCL_LINE
             talloc_free(db_res.err);     // LCOV_EXCL_LINE
         }     // LCOV_EXCL_LINE
         talloc_free(data_json);     // LCOV_EXCL_LINE
