@@ -20,16 +20,24 @@
 #include <check.h>
 #include <talloc.h>
 #include <curl/curl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <stdio.h>
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
 static char *log_file_path;
+static char *log_base_dir;
 
 static void setup(void)
 {
     ctx = talloc_new(NULL);
+
+    /* Create unique log directory based on PID to avoid race conditions */
+    log_base_dir = talloc_asprintf(ctx, "/tmp/repl_debug_response_test_%d", getpid());
+
+    /* Ensure the base directory exists */
+    mkdir(log_base_dir, 0755);
 
     /* Create temporary log file */
     log_file_path = talloc_strdup(ctx, "/tmp/repl_debug_response_test.log");
@@ -39,7 +47,7 @@ static void setup(void)
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
 
     /* Create logger instance for testing */
-    shared->logger = ik_logger_create(shared, "/tmp");
+    shared->logger = ik_logger_create(shared, log_base_dir);
 
     /* Create minimal REPL context for testing callback */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -62,13 +70,22 @@ static void teardown(void)
     if (log_file_path != NULL) {
         unlink(log_file_path);
     }
+    if (log_base_dir != NULL) {
+        /* Clean up the unique log directory */
+        char cmd[1024];
+        snprintf(cmd, sizeof(cmd), "rm -rf %s", log_base_dir);
+        system(cmd);
+    }
     talloc_free(ctx);
 }
 
 /* Helper function to read last JSONL entry from log file */
 static yyjson_doc *read_last_log_entry(void)
 {
-    FILE *fp = fopen("/tmp/.ikigai/logs/current.log", "r");
+    char log_path[512];
+    snprintf(log_path, sizeof(log_path), "%s/.ikigai/logs/current.log", log_base_dir);
+
+    FILE *fp = fopen(log_path, "r");
     if (fp == NULL) {
         return NULL;
     }
