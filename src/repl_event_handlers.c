@@ -156,11 +156,12 @@ static void persist_assistant_msg(ik_repl_ctx_t *repl)
     res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
                                          NULL, "assistant", repl->current->assistant_response, data_json);
     if (is_err(&db_res)) {
-        if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
-            fprintf(repl->shared->db_debug_pipe->write_end,
-                    "Warning: Failed to persist assistant message to database: %s\n",
-                    error_message(db_res.err));
-        }
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+        yyjson_mut_obj_add_str(log_doc, root, "event", "db_persist_failed");
+        yyjson_mut_obj_add_str(log_doc, root, "operation", "persist_assistant_msg");
+        yyjson_mut_obj_add_str(log_doc, root, "error", error_message(db_res.err));
+        ik_logger_warn_json(repl->shared->logger, log_doc);
         talloc_free(db_res.err);
     }
     talloc_free(data_json);
@@ -202,13 +203,19 @@ void handle_request_success(ik_repl_ctx_t *repl)
         res_t result = ik_openai_conversation_add_msg(repl->current->conversation, assistant_msg);
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
-        if (repl->shared->openai_debug_pipe && repl->shared->openai_debug_pipe->write_end) {
-            size_t len = strlen(repl->current->assistant_response);
-            fprintf(repl->shared->openai_debug_pipe->write_end,
-                    len > 80 ? "<< ASSISTANT: %.77s...\n" : "<< ASSISTANT: %s\n",
-                    repl->current->assistant_response);
-            fflush(repl->shared->openai_debug_pipe->write_end);
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+        yyjson_mut_obj_add_str(log_doc, root, "event", "assistant_response");
+        yyjson_mut_obj_add_int(log_doc, root, "length", (int64_t)strlen(repl->current->assistant_response));
+        // Truncate long responses for log readability (same as original behavior)
+        if (strlen(repl->current->assistant_response) > 80) {
+            char truncated[81];
+            snprintf(truncated, sizeof(truncated), "%.77s...", repl->current->assistant_response);
+            yyjson_mut_obj_add_str(log_doc, root, "preview", truncated);
+        } else {
+            yyjson_mut_obj_add_str(log_doc, root, "content", repl->current->assistant_response);
         }
+        ik_logger_debug_json(repl->shared->logger, log_doc);
         persist_assistant_msg(repl);
     }
 
