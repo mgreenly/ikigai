@@ -1,18 +1,6 @@
 {
   "todo": [
     {
-      "task": "gap0-add-id-field.md",
-      "group": "Gap 0: Type Unification",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "gap0-init-id-creators.md",
-      "group": "Gap 0: Type Unification",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "gap0-migrate-replay.md",
       "group": "Gap 0: Type Unification",
       "model": "sonnet",
@@ -347,6 +335,18 @@
     {
       "task": "repl-callbacks-use-logger.md",
       "group": "Debug Pipe Migration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-add-id-field.md",
+      "group": "Gap 0: Type Unification",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-init-id-creators.md",
+      "group": "Gap 0: Type Unification",
       "model": "sonnet",
       "thinking": "thinking"
     }
