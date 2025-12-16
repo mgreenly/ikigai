@@ -1,72 +1,5 @@
 {
-  "todo": [
-    {
-      "task": "agents-tree-indent.md",
-      "group": "Bug Fixes",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "logger-lifecycle.md",
-      "group": "Logger Infrastructure",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "client-remove-stderr.md",
-      "group": "Logger Infrastructure",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "panic-log-attempt.md",
-      "group": "Logger Infrastructure",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "commands-mark-use-logger.md",
-      "group": "Debug Pipe Migration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "commands-use-logger.md",
-      "group": "Debug Pipe Migration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "commands-agent-use-logger.md",
-      "group": "Debug Pipe Migration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "repl-actions-llm-use-logger.md",
-      "group": "Debug Pipe Migration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "repl-event-handlers-use-logger.md",
-      "group": "Debug Pipe Migration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "repl-tool-use-logger.md",
-      "group": "Debug Pipe Migration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "repl-callbacks-use-logger.md",
-      "group": "Debug Pipe Migration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    }
-  ],
+  "todo": [],
   "done": [
     {
       "task": "registry-schema.md",
@@ -263,6 +196,72 @@
     {
       "task": "cmd-error-display.md",
       "group": "Bug Fixes",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agents-tree-indent.md",
+      "group": "Bug Fixes",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "logger-lifecycle.md",
+      "group": "Logger Infrastructure",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "client-remove-stderr.md",
+      "group": "Logger Infrastructure",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "panic-log-attempt.md",
+      "group": "Logger Infrastructure",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "commands-mark-use-logger.md",
+      "group": "Debug Pipe Migration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "commands-use-logger.md",
+      "group": "Debug Pipe Migration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "commands-agent-use-logger.md",
+      "group": "Debug Pipe Migration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "repl-actions-llm-use-logger.md",
+      "group": "Debug Pipe Migration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "repl-event-handlers-use-logger.md",
+      "group": "Debug Pipe Migration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "repl-tool-use-logger.md",
+      "group": "Debug Pipe Migration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "repl-callbacks-use-logger.md",
+      "group": "Debug Pipe Migration",
       "model": "sonnet",
       "thinking": "thinking"
     }
