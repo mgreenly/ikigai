@@ -5,6 +5,7 @@
 #include "db/message.h"
 #include "event_render.h"
 #include "format.h"
+#include "logger.h"
 #include "panic.h"
 #include "shared.h"
 #include "tool.h"
@@ -75,11 +76,12 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
-    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->shared->openai_debug_pipe->write_end,
-                "<< TOOL_CALL: %s\n",
-                summary);
-        fflush(repl->shared->openai_debug_pipe->write_end);
+    {
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_call");
+        yyjson_mut_obj_add_str(log_doc, log_root, "summary", summary);
+        ik_log_debug_json(log_doc);
     }
 
     // 2. Execute tool
@@ -94,11 +96,12 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added
-    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->shared->openai_debug_pipe->write_end,
-                "<< TOOL_RESULT: %s\n",
-                result_json);
-        fflush(repl->shared->openai_debug_pipe->write_end);
+    {
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_result");
+        yyjson_mut_obj_add_str(log_doc, log_root, "result", result_json);
+        ik_log_debug_json(log_doc);
     }
 
     // 4. Display tool call and result in scrollback via event renderer
@@ -218,11 +221,12 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
-    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->shared->openai_debug_pipe->write_end,
-                "<< TOOL_CALL: %s\n",
-                summary);
-        fflush(repl->shared->openai_debug_pipe->write_end);
+    {
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_call");
+        yyjson_mut_obj_add_str(log_doc, log_root, "summary", summary);
+        ik_log_debug_json(log_doc);
     }
 
     // 2. Add tool result message to conversation
@@ -232,11 +236,12 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added
-    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->shared->openai_debug_pipe->write_end,
-                "<< TOOL_RESULT: %s\n",
-                result_json);
-        fflush(repl->shared->openai_debug_pipe->write_end);
+    {
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_result");
+        yyjson_mut_obj_add_str(log_doc, log_root, "result", result_json);
+        ik_log_debug_json(log_doc);
     }
 
     // 3. Display in scrollback via event renderer
