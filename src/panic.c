@@ -7,6 +7,9 @@
 // Global terminal context for panic handler
 ik_term_ctx_t *g_term_ctx_for_panic = NULL;
 
+// Global logger context for panic handler
+ik_logger_t *volatile g_panic_logger = NULL;
+
 /**
  * Safe string length calculation (async-signal-safe).
  * Avoids calling strlen() which may not be async-signal-safe.
