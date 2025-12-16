@@ -204,11 +204,13 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
                                             NULL, "clear", NULL, NULL);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
-            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
-                fprintf(repl->shared->db_debug_pipe->write_end,
-                        "Warning: Failed to persist clear event to database: %s\n",
-                        error_message(db_res.err));
-            }
+            yyjson_mut_doc *log_doc = ik_log_create();
+            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+            yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");
+            yyjson_mut_obj_add_str(log_doc, log_root, "command", "clear");
+            yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_clear");
+            yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));
+            ik_log_warn_json(log_doc);
             talloc_free(db_res.err);
         }
 
@@ -224,11 +226,13 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
                 );
             if (is_err(&system_res)) {
                 // Log error but don't crash - memory state is authoritative
-                if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
-                    fprintf(repl->shared->db_debug_pipe->write_end,
-                            "Warning: Failed to persist system message to database: %s\n",
-                            error_message(system_res.err));
-                }
+                yyjson_mut_doc *log_doc = ik_log_create();
+                yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+                yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");
+                yyjson_mut_obj_add_str(log_doc, log_root, "command", "clear");
+                yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_system_message");
+                yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(system_res.err));
+                ik_log_warn_json(log_doc);
                 talloc_free(system_res.err);
             }
         }
