@@ -43,7 +43,14 @@ int main(void)
     // Load configuration
     res_t cfg_result = ik_cfg_load(root_ctx, "~/.config/ikigai/config.json");
     if (is_err(&cfg_result)) {
-        error_fprintf(stderr, cfg_result.err);
+        doc = ik_log_create();
+        root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "config_load_error");
+        yyjson_mut_obj_add_str(doc, root, "message", error_message(cfg_result.err));
+        yyjson_mut_obj_add_int(doc, root, "code", cfg_result.err->code);
+        yyjson_mut_obj_add_str(doc, root, "file", cfg_result.err->file);
+        yyjson_mut_obj_add_int(doc, root, "line", cfg_result.err->line);
+        ik_logger_error_json(logger, doc);
 
         // Log session end before cleanup
         doc = ik_log_create();
@@ -63,7 +70,14 @@ int main(void)
     ik_shared_ctx_t *shared = NULL;
     res_t result = ik_shared_ctx_init(root_ctx, cfg, cwd, ".ikigai", logger, &shared);
     if (is_err(&result)) {
-        error_fprintf(stderr, result.err);
+        doc = ik_log_create();
+        root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "shared_ctx_init_error");
+        yyjson_mut_obj_add_str(doc, root, "message", error_message(result.err));
+        yyjson_mut_obj_add_int(doc, root, "code", result.err->code);
+        yyjson_mut_obj_add_str(doc, root, "file", result.err->file);
+        yyjson_mut_obj_add_int(doc, root, "line", result.err->line);
+        ik_logger_error_json(logger, doc);
 
         // Log session end before cleanup
         doc = ik_log_create();
@@ -82,10 +96,18 @@ int main(void)
     ik_repl_ctx_t *repl = NULL;
     result = ik_repl_init(root_ctx, shared, &repl);
     if (is_err(&result)) {
-        // Cleanup terminal first (exit alternate buffer) before printing error
+        // Cleanup terminal first (exit alternate buffer)
         ik_term_cleanup(shared->term);
         shared->term = NULL;  // Prevent double cleanup
-        error_fprintf(stderr, result.err);
+
+        doc = ik_log_create();
+        root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "repl_init_error");
+        yyjson_mut_obj_add_str(doc, root, "message", error_message(result.err));
+        yyjson_mut_obj_add_int(doc, root, "code", result.err->code);
+        yyjson_mut_obj_add_str(doc, root, "file", result.err->file);
+        yyjson_mut_obj_add_int(doc, root, "line", result.err->line);
+        ik_logger_error_json(logger, doc);
 
         // Log session end before cleanup
         doc = ik_log_create();
@@ -109,9 +131,15 @@ int main(void)
 
     ik_repl_cleanup(repl);
 
-    // Print error AFTER cleanup (terminal restored to primary buffer)
     if (is_err(&result)) {
-        error_fprintf(stderr, result.err);
+        doc = ik_log_create();
+        root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "repl_run_error");
+        yyjson_mut_obj_add_str(doc, root, "message", error_message(result.err));
+        yyjson_mut_obj_add_int(doc, root, "code", result.err->code);
+        yyjson_mut_obj_add_str(doc, root, "file", result.err->file);
+        yyjson_mut_obj_add_int(doc, root, "line", result.err->line);
+        ik_logger_error_json(logger, doc);
     }
 
     talloc_free(root_ctx);  // Free all app resources first
