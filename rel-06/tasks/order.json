@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "gap0-migrate-replay.md",
-      "group": "Gap 0: Type Unification",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
       "task": "gap0-migrate-agent-replay.md",
       "group": "Gap 0: Type Unification",
       "model": "sonnet",
@@ -349,6 +343,12 @@
       "group": "Gap 0: Type Unification",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "gap0-migrate-replay.md",
+      "group": "Gap 0: Type Unification",
+      "model": "sonnet",
+      "thinking": "extended"
     }
   ]
 }
