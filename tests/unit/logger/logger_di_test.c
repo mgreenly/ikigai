@@ -273,6 +273,29 @@ START_TEST(test_logger_reinit_changes_location)
 }
 END_TEST
 
+// Test: ik_logger_get_fd returns valid fd for normal logger
+START_TEST(test_logger_get_fd_returns_valid_fd)
+{
+    setup_test();
+
+    ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);
+    ck_assert_ptr_nonnull(logger);
+
+    int fd = ik_logger_get_fd(logger);
+    ck_assert_int_ge(fd, 0);
+
+    teardown_test();
+}
+END_TEST
+
+// Test: ik_logger_get_fd returns -1 for NULL logger
+START_TEST(test_logger_get_fd_null_logger)
+{
+    int fd = ik_logger_get_fd(NULL);
+    ck_assert_int_eq(fd, -1);
+}
+END_TEST
+
 #ifndef SKIP_SIGNAL_TESTS
 // Test: ik_logger_fatal_json exits process
 START_TEST(test_logger_fatal_exits)
@@ -313,6 +336,8 @@ static Suite *logger_di_suite(void)
     tcase_add_test(tc_core, test_logger_has_logline_field);
     tcase_add_test(tc_core, test_logger_cleanup_on_talloc_free);
     tcase_add_test(tc_core, test_logger_reinit_changes_location);
+    tcase_add_test(tc_core, test_logger_get_fd_returns_valid_fd);
+    tcase_add_test(tc_core, test_logger_get_fd_null_logger);
 #ifndef SKIP_SIGNAL_TESTS
     tcase_add_exit_test(tc_core, test_logger_fatal_exits, 1);
 #endif

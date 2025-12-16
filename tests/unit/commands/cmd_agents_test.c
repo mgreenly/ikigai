@@ -289,6 +289,52 @@ START_TEST(test_agents_root_alignment)
 }
 END_TEST
 
+// Test: depth > 1 (grandchild indentation)
+START_TEST(test_agents_grandchild_indentation)
+{
+    // Create child agent
+    ik_agent_ctx_t *child = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(child);
+    child->uuid = talloc_strdup(child, "child-uuid-abc");
+    child->name = NULL;
+    child->parent_uuid = talloc_strdup(child, repl->current->uuid);
+    child->created_at = 1234567891;
+    child->fork_message_id = 1;
+    repl->agents[repl->agent_count++] = child;
+
+    res_t res = ik_db_agent_insert(db, child);
+    ck_assert(is_ok(&res));
+
+    // Create grandchild agent (depth=2)
+    ik_agent_ctx_t *grandchild = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(grandchild);
+    grandchild->uuid = talloc_strdup(grandchild, "grandchild-uuid-xyz");
+    grandchild->name = NULL;
+    grandchild->parent_uuid = talloc_strdup(grandchild, child->uuid);
+    grandchild->created_at = 1234567892;
+    grandchild->fork_message_id = 2;
+    repl->agents[repl->agent_count++] = grandchild;
+
+    res = ik_db_agent_insert(db, grandchild);
+    ck_assert(is_ok(&res));
+
+    // Run command
+    res = cmd_agents(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    // Line 4 should be the grandchild (lines 0,1=header, 2=root, 3=child)
+    const char *text;
+    size_t length;
+    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, 4, &text, &length);
+    ck_assert(is_ok(&line_res));
+
+    // Grandchild should have 4 spaces of extra indentation plus "+-- "
+    // Expected: "      +-- grandchild-uuid-xyz"
+    ck_assert_msg(strncmp(text, "      +-- ", 10) == 0,
+                  "Grandchild should have '      +-- ' prefix (4 spaces + tree)");
+}
+END_TEST
+
 // Test: summary count correct
 START_TEST(test_agents_summary_count)
 {
@@ -343,6 +389,7 @@ static Suite *agents_suite(void)
     tcase_add_test(tc, test_agents_root_labeled);
     tcase_add_test(tc, test_agents_indentation_depth);
     tcase_add_test(tc, test_agents_root_alignment);
+    tcase_add_test(tc, test_agents_grandchild_indentation);
     tcase_add_test(tc, test_agents_summary_count);
 
     suite_add_tcase(s, tc);

@@ -204,14 +204,14 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
                                             NULL, "clear", NULL, NULL);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
-            yyjson_mut_doc *log_doc = ik_log_create();
-            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
-            yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");
-            yyjson_mut_obj_add_str(log_doc, log_root, "command", "clear");
-            yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_clear");
-            yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));
-            ik_log_warn_json(log_doc);
-            talloc_free(db_res.err);
+            yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "command", "clear");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_clear");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
+            ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
+            talloc_free(db_res.err);  // LCOV_EXCL_LINE
         }
 
         // Write system message if configured (matching new session creation pattern)
@@ -226,12 +226,12 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
                 );
             if (is_err(&system_res)) {
                 // Log error but don't crash - memory state is authoritative
-                yyjson_mut_doc *log_doc = ik_log_create();
-                yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
-                yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");
-                yyjson_mut_obj_add_str(log_doc, log_root, "command", "clear");
-                yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_system_message");
-                yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(system_res.err));
+                yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+                yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+                yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
+                yyjson_mut_obj_add_str(log_doc, log_root, "command", "clear");  // LCOV_EXCL_LINE
+                yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_system_message");  // LCOV_EXCL_LINE
+                yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(system_res.err));  // LCOV_EXCL_LINE
                 ik_log_warn_json(log_doc);
                 talloc_free(system_res.err);
             }

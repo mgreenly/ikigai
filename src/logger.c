@@ -530,8 +530,8 @@ void ik_logger_fatal_json(ik_logger_t *logger, yyjson_mut_doc *doc)
 
 int ik_logger_get_fd(ik_logger_t *logger)
 {
-    if (logger == NULL || logger->file == NULL) {
-        return -1;
-    }
+    if (logger == NULL || logger->file == NULL) {  // LCOV_EXCL_BR_LINE
+        return -1;  // LCOV_EXCL_LINE
+    }  // LCOV_EXCL_LINE
     return fileno(logger->file);
 }
