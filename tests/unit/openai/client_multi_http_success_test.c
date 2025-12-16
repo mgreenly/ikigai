@@ -48,7 +48,6 @@ START_TEST(test_multi_info_read_http_success_with_model) {
     mock_http_response_code = 200;  /* HTTP 200 OK */
 
     ik_openai_multi_info_read(multi, NULL);
-    ck_assert(!info_res.is_err);
 
     /* Clean up */
     talloc_free(multi);
@@ -90,7 +89,6 @@ END_TEST START_TEST(test_multi_info_read_http_success_with_model_only)
     mock_http_response_code = 200;
 
     ik_openai_multi_info_read(multi, NULL);
-    ck_assert(!info_res.is_err);
 
     talloc_free(multi);
 }
@@ -131,7 +129,6 @@ END_TEST START_TEST(test_multi_info_read_http_success_with_finish_reason_only)
     mock_http_response_code = 200;
 
     ik_openai_multi_info_read(multi, NULL);
-    ck_assert(!info_res.is_err);
 
     talloc_free(multi);
 }
@@ -168,7 +165,6 @@ END_TEST START_TEST(test_multi_info_read_http_success_no_metadata)
     mock_http_response_code = 200;
 
     ik_openai_multi_info_read(multi, NULL);
-    ck_assert(!info_res.is_err);
 
     talloc_free(multi);
 }

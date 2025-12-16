@@ -72,7 +72,7 @@ END_TEST START_TEST(test_http_write_callback_user_callback_error)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request with error callback - pass ctx as user context */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, error_stream_callback, ctx, NULL, NULL, false); // FIXME: add logger param;
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, error_stream_callback, ctx, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response data */
@@ -117,7 +117,7 @@ END_TEST START_TEST(test_http_write_callback_user_callback_success)
 
     /* Add request with success callback */
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, success_stream_callback, NULL, NULL, NULL,
-                                                false);
+                                                false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response data */

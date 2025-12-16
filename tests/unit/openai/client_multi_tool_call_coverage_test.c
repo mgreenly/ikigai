@@ -55,7 +55,7 @@ START_TEST(test_info_read_success_with_tool_call_steal) {
 
     /* Add request with completion callback that captures tool_call fields */
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                capture_tool_call_callback, ctx, false);
+                                                capture_tool_call_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with tool call */
@@ -76,7 +76,6 @@ START_TEST(test_info_read_success_with_tool_call_steal) {
 
     /* Call info_read - should execute line 149: talloc_steal for tool_call */
     ik_openai_multi_info_read(multi, NULL);
-    ck_assert(!info_res.is_err);
 
     /* Verify tool_call fields were captured by callback */
     ck_assert(captured_tool_call_id != NULL);
@@ -116,7 +115,7 @@ START_TEST(test_info_read_callback_error_with_tool_call_free)
 
     /* Add request with completion callback that returns error */
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                error_with_tool_call_callback, ctx, false);
+                                                error_with_tool_call_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with tool call */
@@ -175,7 +174,7 @@ START_TEST(test_info_read_success_with_tool_call_free)
 
     /* Add request with completion callback that succeeds */
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                capture_tool_call_callback, ctx, false);
+                                                capture_tool_call_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with tool call */
@@ -201,7 +200,6 @@ START_TEST(test_info_read_success_with_tool_call_free)
      * - Return OK
      */
     ik_openai_multi_info_read(multi, NULL);
-    ck_assert(!info_res.is_err);
 
     /* Verify tool_call fields were captured by callback */
     ck_assert(captured_tool_call_id != NULL);

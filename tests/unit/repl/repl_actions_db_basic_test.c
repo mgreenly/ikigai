@@ -73,6 +73,7 @@ res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_
     (void)ctx;
     (void)db_ctx;
     (void)session_id;
+    (void)logger;
     return OK(NULL);
 }
 

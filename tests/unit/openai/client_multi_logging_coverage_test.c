@@ -150,7 +150,6 @@ START_TEST(test_multi_info_read_empty_response_body) {
 
     /* This should log with empty body since complete_response is NULL */
     ik_openai_multi_info_read(multi, NULL);
-    ck_assert(!info_res.is_err);
 
     talloc_free(multi);
 }
@@ -194,7 +193,6 @@ START_TEST(test_multi_info_read_with_response_body) {
 
     /* This should log with body content since complete_response is populated */
     ik_openai_multi_info_read(multi, NULL);
-    ck_assert(!info_res.is_err);
 
     talloc_free(multi);
 }

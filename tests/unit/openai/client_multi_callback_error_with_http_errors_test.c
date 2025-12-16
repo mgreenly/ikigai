@@ -152,7 +152,7 @@ END_TEST START_TEST(test_multi_info_read_http_599_edge_case)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                NULL, NULL, false);
+                                                NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* HTTP 599 - edge of server error range */
@@ -164,7 +164,6 @@ END_TEST START_TEST(test_multi_info_read_http_599_edge_case)
     mock_http_response_code = 599;
 
     ik_openai_multi_info_read(multi, NULL);
-    ck_assert(!info_res.is_err);
 
     talloc_free(multi);
 }
@@ -191,7 +190,7 @@ END_TEST START_TEST(test_multi_info_read_http_600_unexpected)
     cfg->openai_max_completion_tokens = 1000;
 
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                NULL, NULL, false);
+                                                NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* HTTP 600 - beyond server error range, should hit "unexpected" branch */
@@ -203,7 +202,6 @@ END_TEST START_TEST(test_multi_info_read_http_600_unexpected)
     mock_http_response_code = 600;
 
     ik_openai_multi_info_read(multi, NULL);
-    ck_assert(!info_res.is_err);
 
     talloc_free(multi);
 }
@@ -243,7 +241,7 @@ START_TEST(test_multi_info_read_callback_success_with_error_message) {
 
     /* Use success callback instead of error callback */
     res_t add_res = ik_openai_multi_add_request(
-        multi, cfg, conv, NULL, NULL, success_completion_callback, ctx, false);
+        multi, cfg, conv, NULL, NULL, success_completion_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* HTTP 404 will create error_message, but callback succeeds */
@@ -256,7 +254,6 @@ START_TEST(test_multi_info_read_callback_success_with_error_message) {
 
     /* info_read should succeed since callback returns OK */
     ik_openai_multi_info_read(multi, NULL);
-    ck_assert(!info_res.is_err);
 
     talloc_free(multi);
 }

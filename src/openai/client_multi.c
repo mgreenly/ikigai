@@ -193,13 +193,16 @@ void ik_openai_multi_info_read(ik_openai_multi_t *multi, ik_logger_t *logger) {
                             /* Transfer metadata from write context */
                             if (completed->write_ctx->model != NULL) {
                                 completion.model = talloc_steal(multi, completed->write_ctx->model);
+                                completed->write_ctx->model = NULL;
                             }
                             if (completed->write_ctx->finish_reason != NULL) {
                                 completion.finish_reason = talloc_steal(multi, completed->write_ctx->finish_reason);
+                                completed->write_ctx->finish_reason = NULL;
                             }
                             completion.completion_tokens = completed->write_ctx->completion_tokens;
                             if (completed->write_ctx->tool_call != NULL) {
                                 completion.tool_call = talloc_steal(multi, completed->write_ctx->tool_call);
+                                completed->write_ctx->tool_call = NULL;
                             } else {
                                 completion.tool_call = NULL;
                             }
@@ -255,6 +258,7 @@ void ik_openai_multi_info_read(ik_openai_multi_t *multi, ik_logger_t *logger) {
                             multi->active_count--;
                             /* Callback error - continue processing other requests */
                             (void)cb_result;
+                            break;
                         }
                     }
 
