@@ -1,5 +1,90 @@
 {
-  "todo": [],
+  "todo": [
+    {
+      "task": "gap0-add-id-field.md",
+      "group": "Gap 0: Type Unification",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-init-id-creators.md",
+      "group": "Gap 0: Type Unification",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-migrate-replay.md",
+      "group": "Gap 0: Type Unification",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "gap0-migrate-agent-replay.md",
+      "group": "Gap 0: Type Unification",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-migrate-message.md",
+      "group": "Gap 0: Type Unification",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-update-session-restore.md",
+      "group": "Gap 0: Type Unification",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "gap0-remove-obsolete.md",
+      "group": "Gap 0: Type Unification",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-update-replay-tests.md",
+      "group": "Gap 0: Test Updates",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-update-session-restore-tests.md",
+      "group": "Gap 0: Test Updates",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "gap0-update-message-tests.md",
+      "group": "Gap 0: Test Updates",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-update-integration-tests.md",
+      "group": "Gap 0: Test Updates",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-delete-obsolete-tests.md",
+      "group": "Gap 0: Cleanup",
+      "model": "haiku",
+      "thinking": "none"
+    },
+    {
+      "task": "gap0-update-docs.md",
+      "group": "Gap 0: Cleanup",
+      "model": "haiku",
+      "thinking": "none"
+    },
+    {
+      "task": "gap0-final-verification.md",
+      "group": "Gap 0: Verification",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
+  ],
   "done": [
     {
       "task": "registry-schema.md",
