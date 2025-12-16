@@ -66,7 +66,16 @@ static void handle_slash_cmd_(ik_repl_ctx_t *repl, char *command_text)
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
     } else {
         res_t result = ik_cmd_dispatch(repl, repl, command_text);
-        (void)result;
+        if (is_err(&result)) {
+            const char *err_msg = error_message(result.err);
+            char *display_msg = talloc_asprintf(repl, "Error: %s", err_msg);
+            if (display_msg != NULL) {
+                ik_scrollback_append_line(repl->current->scrollback,
+                                          display_msg, strlen(display_msg));
+                talloc_free(display_msg);
+            }
+            talloc_free(result.err);
+        }
     }
 }
 
