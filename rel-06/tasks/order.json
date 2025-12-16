@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "cmd-error-display.md",
-      "group": "Bug Fixes",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "agents-tree-indent.md",
       "group": "Bug Fixes",
       "model": "sonnet",
@@ -262,6 +256,12 @@
     },
     {
       "task": "agent-created-at-init.md",
+      "group": "Bug Fixes",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "cmd-error-display.md",
       "group": "Bug Fixes",
       "model": "sonnet",
       "thinking": "thinking"

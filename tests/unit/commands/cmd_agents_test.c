@@ -228,6 +228,64 @@ START_TEST(test_agents_indentation_depth)
 
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
+
+    // Line 2 should be the root agent (lines 0,1 are header/blank)
+    const char *text;
+    size_t length;
+    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &text, &length);
+    ck_assert(is_ok(&line_res));
+
+    // Root should start with "* " for current marker
+    ck_assert_msg(text[0] == '*', "Root should have * marker");
+
+    // Line 3 should be the child agent with tree prefix
+    line_res = ik_scrollback_get_line_text(repl->current->scrollback, 3, &text, &length);
+    ck_assert(is_ok(&line_res));
+
+    // Child should have tree prefix "+-- "
+    ck_assert_msg(strstr(text, "+--") != NULL, "Child should have +-- tree prefix");
+
+    // Child UUID should start after "  +-- " (6 chars)
+    ck_assert_msg(strncmp(text, "  +-- ", 6) == 0, "Child should have '  +-- ' prefix");
+}
+END_TEST
+
+// Test: non-current root alignment
+START_TEST(test_agents_root_alignment)
+{
+    // Create child agent
+    ik_agent_ctx_t *child = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(child);
+    child->uuid = talloc_strdup(child, "child-uuid-xyz");
+    child->name = NULL;
+    child->parent_uuid = talloc_strdup(child, repl->current->uuid);
+    child->created_at = 1234567891;
+    child->fork_message_id = 1;
+    child->scrollback = ik_scrollback_create(child, 80);
+    child->shared = repl->shared;
+
+    // Add to agent array
+    repl->agents[repl->agent_count++] = child;
+
+    // Insert into registry
+    res_t res = ik_db_agent_insert(db, child);
+    ck_assert(is_ok(&res));
+
+    // Make child the current agent
+    repl->current = child;
+
+    // Run command
+    res = cmd_agents(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    // Line 2 should be the root agent (not current)
+    const char *text;
+    size_t length;
+    res_t line_res = ik_scrollback_get_line_text(child->scrollback, 2, &text, &length);
+    ck_assert(is_ok(&line_res));
+
+    // Root should start with "  " (not "*") since child is current
+    ck_assert_msg(text[0] == ' ' && text[1] == ' ', "Non-current root should have '  ' prefix");
 }
 END_TEST
 
@@ -284,6 +342,7 @@ static Suite *agents_suite(void)
     tcase_add_test(tc, test_agents_shows_status);
     tcase_add_test(tc, test_agents_root_labeled);
     tcase_add_test(tc, test_agents_indentation_depth);
+    tcase_add_test(tc, test_agents_root_alignment);
     tcase_add_test(tc, test_agents_summary_count);
 
     suite_add_tcase(s, tc);
