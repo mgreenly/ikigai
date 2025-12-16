@@ -97,28 +97,19 @@ res_t cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args)
         char line[256];
         size_t offset = 0;
 
-        if (depth == 0) {
-            // Root agent: use marker column
-            bool is_current = strcmp(agent->uuid, repl->current->uuid) == 0;
-            if (is_current) {
-                line[offset++] = '*';
-                line[offset++] = ' ';
-            } else {
-                line[offset++] = ' ';
-                line[offset++] = ' ';
-            }
-        } else {
-            // Child agent: add spaces for hierarchy + tree prefix
-            // 2 spaces base indent
-            line[offset++] = ' ';
-            line[offset++] = ' ';
+        // Root agent: use marker column
+        bool is_current = strcmp(agent->uuid, repl->current->uuid) == 0;
+        char marker = (depth == 0 && is_current) ? '*' : ' ';
+        line[offset++] = marker;
+        line[offset++] = ' ';
 
-            // 4 spaces for each additional depth level above 1
+        // Child agents: add tree prefix
+        if (depth > 0) {
+            // 4 spaces for each depth level above 1
             for (size_t d = 1; d < depth; d++) {
                 memcpy(&line[offset], "    ", 4);
                 offset += 4;
             }
-
             // Tree character
             memcpy(&line[offset], "+-- ", 4);
             offset += 4;
