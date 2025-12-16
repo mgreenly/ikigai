@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/select.h>
+#include <sys/stat.h>
 
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
@@ -20,6 +21,7 @@
 #include "../../../src/openai/client_multi.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
+#include "../../../src/logger.h"
 #include "../../test_utils.h"
 
 // Note: ik_db_ensure_agent_zero is no longer mocked - using real implementation from db/agent.c
@@ -84,11 +86,19 @@ static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
 static ik_db_ctx_t *mock_db_ctx;
 static int db_debug_pipe_fds[2];
+static char test_dir[256];
+static char log_file_path[512];
 
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(test_ctx);
+
+    // Initialize logger for test
+    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_repl_db_test_%d", getpid());
+    mkdir(test_dir, 0755);
+    ik_log_init(test_dir);
+    snprintf(log_file_path, sizeof(log_file_path), "%s/.ikigai/logs/current.log", test_dir);
 
     // Create mock database context (just a talloc pointer)
     mock_db_ctx = talloc_zero_(test_ctx, 1);
@@ -179,6 +189,17 @@ static void teardown(void)
     }
 
     talloc_free(test_ctx);
+
+    // Cleanup logger
+    ik_log_shutdown();
+    unlink(log_file_path);
+    char logs_dir[512];
+    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
+    rmdir(logs_dir);
+    char ikigai_dir[512];
+    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
+    rmdir(ikigai_dir);
+    rmdir(test_dir);
 }
 
 // Test that DB error during message persistence doesn't crash
@@ -201,16 +222,20 @@ START_TEST(test_db_message_insert_error) {
     res_t result = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&result));
 
-    // Read from db_debug_pipe to verify error message was logged
-    fflush(repl->shared->db_debug_pipe->write_end);
+    // Read from log file to verify error was logged
+    FILE *log_f = fopen(log_file_path, "r");
+    ck_assert_ptr_nonnull(log_f);
 
-    char buffer[512];
-    ssize_t n = read(db_debug_pipe_fds[0], buffer, sizeof(buffer) - 1);
-    ck_assert(n > 0);
-    buffer[n] = '\0';
+    char buffer[1024];
+    size_t len = fread(buffer, 1, sizeof(buffer) - 1, log_f);
+    buffer[len] = '\0';
+    fclose(log_f);
 
-    // Verify error message was logged
-    ck_assert(strstr(buffer, "Warning: Failed to persist user message to database") != NULL);
+    // Verify error was logged with structured data
+    ck_assert(strstr(buffer, "\"level\":\"warn\"") != NULL);
+    ck_assert(strstr(buffer, "\"event\":\"db_persist_failed\"") != NULL);
+    ck_assert(strstr(buffer, "\"context\":\"send_to_llm\"") != NULL);
+    ck_assert(strstr(buffer, "\"operation\":\"persist_user_message\"") != NULL);
     ck_assert(strstr(buffer, "Mock database error") != NULL);
 
     // Verify the user message was still added to conversation (memory state is authoritative)
