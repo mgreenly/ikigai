@@ -5,6 +5,8 @@
 #include "repl_actions.h"
 #include "shared.h"
 #include "panic.h"
+#include "logger.h"
+#include "vendor/yyjson/yyjson.h"
 #include <assert.h>
 #include <talloc.h>
 #include <string.h>
@@ -105,26 +107,29 @@ res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, v
 
     ik_repl_ctx_t *repl = (ik_repl_ctx_t *)ctx;
 
-    // Debug output for response metadata
-    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->shared->openai_debug_pipe->write_end,
-                "<< RESPONSE: type=%s",
-                completion->type == IK_HTTP_SUCCESS ? "success" : "error");
+    // Log response metadata via JSONL logger
+    {
+        yyjson_mut_doc *doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "openai_response");
+        yyjson_mut_obj_add_str(doc, root, "type",
+                               completion->type == IK_HTTP_SUCCESS ? "success" : "error");
+
         if (completion->type == IK_HTTP_SUCCESS) {
-            fprintf(repl->shared->openai_debug_pipe->write_end,
-                    ", model=%s, finish=%s, tokens=%d",
-                    completion->model ? completion->model : "(null)",
-                    completion->finish_reason ? completion->finish_reason : "(null)",
-                    completion->completion_tokens);
+            yyjson_mut_obj_add_str(doc, root, "model",
+                                   completion->model ? completion->model : "(null)");
+            yyjson_mut_obj_add_str(doc, root, "finish_reason",
+                                   completion->finish_reason ? completion->finish_reason : "(null)");
+            yyjson_mut_obj_add_int(doc, root, "completion_tokens", completion->completion_tokens);
         }
+
         if (completion->tool_call != NULL) {
-            fprintf(repl->shared->openai_debug_pipe->write_end,
-                    ", tool_call=%s(%s)",
-                    completion->tool_call->name,
-                    completion->tool_call->arguments);
+            yyjson_mut_obj_add_str(doc, root, "tool_call_name", completion->tool_call->name);
+            yyjson_mut_obj_add_str(doc, root, "tool_call_args", completion->tool_call->arguments);
         }
-        fprintf(repl->shared->openai_debug_pipe->write_end, "\n");
-        fflush(repl->shared->openai_debug_pipe->write_end);
+
+        // DI pattern: use explicit logger from shared context
+        ik_logger_debug_json(repl->shared->logger, doc);
     }
 
     // Flush any remaining buffered line content (streaming ended without final newline)

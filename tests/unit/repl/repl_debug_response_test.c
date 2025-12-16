@@ -15,21 +15,31 @@
 #include "config.h"
 #include "openai/client_multi.h"
 #include "tool.h"
-#include "debug_pipe.h"
+#include "logger.h"
+#include "vendor/yyjson/yyjson.h"
 #include <check.h>
 #include <talloc.h>
 #include <curl/curl.h>
 #include <unistd.h>
+#include <stdio.h>
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
+static char *log_file_path;
 
 static void setup(void)
 {
     ctx = talloc_new(NULL);
 
+    /* Create temporary log file */
+    log_file_path = talloc_strdup(ctx, "/tmp/repl_debug_response_test.log");
+    unlink(log_file_path);  // Remove if exists from previous run
+
     /* Create minimal shared context */
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+
+    /* Create logger instance for testing */
+    shared->logger = ik_logger_create(shared, "/tmp");
 
     /* Create minimal REPL context for testing callback */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -49,22 +59,43 @@ static void setup(void)
 
 static void teardown(void)
 {
+    if (log_file_path != NULL) {
+        unlink(log_file_path);
+    }
     talloc_free(ctx);
+}
+
+/* Helper function to read last JSONL entry from log file */
+static yyjson_doc *read_last_log_entry(void)
+{
+    FILE *fp = fopen("/tmp/.ikigai/logs/current.log", "r");
+    if (fp == NULL) {
+        return NULL;
+    }
+
+    /* Read all lines, keep the last one */
+    char *last_line = NULL;
+    char buffer[4096];
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        if (last_line != NULL) {
+            free(last_line);
+        }
+        last_line = strdup(buffer);
+    }
+    fclose(fp);
+
+    if (last_line == NULL) {
+        return NULL;
+    }
+
+    /* Parse the JSON */
+    yyjson_doc *doc = yyjson_read(last_line, strlen(last_line), 0);
+    free(last_line);
+    return doc;
 }
 
 /* Test: Debug output for successful response with metadata */
 START_TEST(test_debug_output_response_success) {
-    /* Create debug pipe */
-    int pipefd[2];
-    int ret = pipe(pipefd);
-    ck_assert_int_eq(ret, 0);
-
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    ck_assert_ptr_nonnull(debug_pipe);
-    debug_pipe->write_end = fdopen(pipefd[1], "w");
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->shared->openai_debug_pipe = debug_pipe;
-
     /* Create successful completion with metadata */
     char *model = talloc_strdup(ctx, "gpt-4o");
     char *finish_reason = talloc_strdup(ctx, "stop");
@@ -83,39 +114,49 @@ START_TEST(test_debug_output_response_success) {
     res_t result = ik_repl_http_completion_callback(&completion, repl);
     ck_assert(is_ok(&result));
 
-    /* Flush and read debug output */
-    fflush(debug_pipe->write_end);
-    char buffer[256];
-    ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
-    ck_assert_int_gt((int)n, 0);
-    buffer[n] = '\0';
+    /* Read and verify logger output */
+    yyjson_doc *doc = read_last_log_entry();
+    ck_assert_ptr_nonnull(doc);
 
-    /* Verify debug output format */
-    ck_assert_ptr_nonnull(strstr(buffer, "<< RESPONSE: type=success"));
-    ck_assert_ptr_nonnull(strstr(buffer, "model=gpt-4o"));
-    ck_assert_ptr_nonnull(strstr(buffer, "finish=stop"));
-    ck_assert_ptr_nonnull(strstr(buffer, "tokens=42"));
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
 
-    /* Cleanup */
-    fclose(debug_pipe->write_end);
-    close(pipefd[0]);
+    /* Verify log structure */
+    yyjson_val *level = yyjson_obj_get(root, "level");
+    ck_assert_ptr_nonnull(level);
+    ck_assert_str_eq(yyjson_get_str(level), "debug");
+
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    /* Verify logline fields */
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "openai_response");
+
+    yyjson_val *type = yyjson_obj_get(logline, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_get_str(type), "success");
+
+    yyjson_val *model_val = yyjson_obj_get(logline, "model");
+    ck_assert_ptr_nonnull(model_val);
+    ck_assert_str_eq(yyjson_get_str(model_val), "gpt-4o");
+
+    yyjson_val *finish_val = yyjson_obj_get(logline, "finish_reason");
+    ck_assert_ptr_nonnull(finish_val);
+    ck_assert_str_eq(yyjson_get_str(finish_val), "stop");
+
+    yyjson_val *tokens = yyjson_obj_get(logline, "completion_tokens");
+    ck_assert_ptr_nonnull(tokens);
+    ck_assert_int_eq(yyjson_get_int(tokens), 42);
+
+    yyjson_doc_free(doc);
 }
 
 END_TEST
 /* Test: Debug output for error response */
 START_TEST(test_debug_output_response_error)
 {
-    /* Create debug pipe */
-    int pipefd[2];
-    int ret = pipe(pipefd);
-    ck_assert_int_eq(ret, 0);
-
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    ck_assert_ptr_nonnull(debug_pipe);
-    debug_pipe->write_end = fdopen(pipefd[1], "w");
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->shared->openai_debug_pipe = debug_pipe;
-
     /* Create error completion */
     char *error_msg = talloc_strdup(ctx, "HTTP 500 server error");
     ik_http_completion_t completion = {
@@ -133,36 +174,37 @@ START_TEST(test_debug_output_response_error)
     res_t result = ik_repl_http_completion_callback(&completion, repl);
     ck_assert(is_ok(&result));
 
-    /* Flush and read debug output */
-    fflush(debug_pipe->write_end);
-    char buffer[256];
-    ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
-    ck_assert_int_gt((int)n, 0);
-    buffer[n] = '\0';
+    /* Read and verify logger output */
+    yyjson_doc *doc = read_last_log_entry();
+    ck_assert_ptr_nonnull(doc);
 
-    /* Verify debug output format - only type for errors */
-    ck_assert_ptr_nonnull(strstr(buffer, "<< RESPONSE: type=error"));
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
 
-    /* Cleanup */
-    fclose(debug_pipe->write_end);
-    close(pipefd[0]);
+    /* Verify log structure */
+    yyjson_val *level = yyjson_obj_get(root, "level");
+    ck_assert_ptr_nonnull(level);
+    ck_assert_str_eq(yyjson_get_str(level), "debug");
+
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    /* Verify logline fields */
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "openai_response");
+
+    yyjson_val *type = yyjson_obj_get(logline, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_get_str(type), "error");
+
+    yyjson_doc_free(doc);
 }
 
 END_TEST
 /* Test: Debug output with tool_call information */
 START_TEST(test_debug_output_response_with_tool_call)
 {
-    /* Create debug pipe */
-    int pipefd[2];
-    int ret = pipe(pipefd);
-    ck_assert_int_eq(ret, 0);
-
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    ck_assert_ptr_nonnull(debug_pipe);
-    debug_pipe->write_end = fdopen(pipefd[1], "w");
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->shared->openai_debug_pipe = debug_pipe;
-
     /* Create tool_call */
     ik_tool_call_t *tc = ik_tool_call_create(ctx, "call_123", "glob", "{\"pattern\":\"*.c\"}");
 
@@ -184,40 +226,53 @@ START_TEST(test_debug_output_response_with_tool_call)
     res_t result = ik_repl_http_completion_callback(&completion, repl);
     ck_assert(is_ok(&result));
 
-    /* Flush and read debug output */
-    fflush(debug_pipe->write_end);
-    char buffer[512];
-    ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
-    ck_assert_int_gt((int)n, 0);
-    buffer[n] = '\0';
+    /* Read and verify logger output */
+    yyjson_doc *doc = read_last_log_entry();
+    ck_assert_ptr_nonnull(doc);
 
-    /* Verify debug output includes tool_call info */
-    ck_assert_ptr_nonnull(strstr(buffer, "<< RESPONSE: type=success"));
-    ck_assert_ptr_nonnull(strstr(buffer, "model=gpt-4o"));
-    ck_assert_ptr_nonnull(strstr(buffer, "finish=tool_calls"));
-    ck_assert_ptr_nonnull(strstr(buffer, "tokens=50"));
-    ck_assert_ptr_nonnull(strstr(buffer, "tool_call=glob({\"pattern\":\"*.c\"})"));
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
 
-    /* Cleanup */
-    fclose(debug_pipe->write_end);
-    close(pipefd[0]);
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    /* Verify logline fields */
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "openai_response");
+
+    yyjson_val *type = yyjson_obj_get(logline, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_get_str(type), "success");
+
+    yyjson_val *model_val = yyjson_obj_get(logline, "model");
+    ck_assert_ptr_nonnull(model_val);
+    ck_assert_str_eq(yyjson_get_str(model_val), "gpt-4o");
+
+    yyjson_val *finish_val = yyjson_obj_get(logline, "finish_reason");
+    ck_assert_ptr_nonnull(finish_val);
+    ck_assert_str_eq(yyjson_get_str(finish_val), "tool_calls");
+
+    yyjson_val *tokens = yyjson_obj_get(logline, "completion_tokens");
+    ck_assert_ptr_nonnull(tokens);
+    ck_assert_int_eq(yyjson_get_int(tokens), 50);
+
+    /* Verify tool_call fields */
+    yyjson_val *tool_name = yyjson_obj_get(logline, "tool_call_name");
+    ck_assert_ptr_nonnull(tool_name);
+    ck_assert_str_eq(yyjson_get_str(tool_name), "glob");
+
+    yyjson_val *tool_args = yyjson_obj_get(logline, "tool_call_args");
+    ck_assert_ptr_nonnull(tool_args);
+    ck_assert_str_eq(yyjson_get_str(tool_args), "{\"pattern\":\"*.c\"}");
+
+    yyjson_doc_free(doc);
 }
 
 END_TEST
 /* Test: Debug output with NULL model and finish_reason */
 START_TEST(test_debug_output_null_metadata)
 {
-    /* Create debug pipe */
-    int pipefd[2];
-    int ret = pipe(pipefd);
-    ck_assert_int_eq(ret, 0);
-
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    ck_assert_ptr_nonnull(debug_pipe);
-    debug_pipe->write_end = fdopen(pipefd[1], "w");
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->shared->openai_debug_pipe = debug_pipe;
-
     /* Create successful completion with NULL metadata */
     ik_http_completion_t completion = {
         .type = IK_HTTP_SUCCESS,
@@ -234,30 +289,46 @@ START_TEST(test_debug_output_null_metadata)
     res_t result = ik_repl_http_completion_callback(&completion, repl);
     ck_assert(is_ok(&result));
 
-    /* Flush and read debug output */
-    fflush(debug_pipe->write_end);
-    char buffer[256];
-    ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
-    ck_assert_int_gt((int)n, 0);
-    buffer[n] = '\0';
+    /* Read and verify logger output */
+    yyjson_doc *doc = read_last_log_entry();
+    ck_assert_ptr_nonnull(doc);
 
-    /* Verify debug output shows (null) for missing metadata */
-    ck_assert_ptr_nonnull(strstr(buffer, "<< RESPONSE: type=success"));
-    ck_assert_ptr_nonnull(strstr(buffer, "model=(null)"));
-    ck_assert_ptr_nonnull(strstr(buffer, "finish=(null)"));
-    ck_assert_ptr_nonnull(strstr(buffer, "tokens=0"));
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
 
-    /* Cleanup */
-    fclose(debug_pipe->write_end);
-    close(pipefd[0]);
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    /* Verify logline fields */
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "openai_response");
+
+    yyjson_val *type = yyjson_obj_get(logline, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_get_str(type), "success");
+
+    yyjson_val *model_val = yyjson_obj_get(logline, "model");
+    ck_assert_ptr_nonnull(model_val);
+    ck_assert_str_eq(yyjson_get_str(model_val), "(null)");
+
+    yyjson_val *finish_val = yyjson_obj_get(logline, "finish_reason");
+    ck_assert_ptr_nonnull(finish_val);
+    ck_assert_str_eq(yyjson_get_str(finish_val), "(null)");
+
+    yyjson_val *tokens = yyjson_obj_get(logline, "completion_tokens");
+    ck_assert_ptr_nonnull(tokens);
+    ck_assert_int_eq(yyjson_get_int(tokens), 0);
+
+    yyjson_doc_free(doc);
 }
 
 END_TEST
-/* Test: No debug output when openai_debug_pipe is NULL */
-START_TEST(test_debug_output_no_pipe)
+/* Test: No debug output when logger is NULL */
+START_TEST(test_debug_output_no_logger)
 {
-    /* Set openai_debug_pipe to NULL */
-    repl->shared->openai_debug_pipe = NULL;
+    /* Set logger to NULL */
+    repl->shared->logger = NULL;
 
     /* Create successful completion */
     char *model = talloc_strdup(ctx, "gpt-4o");
@@ -273,36 +344,7 @@ START_TEST(test_debug_output_no_pipe)
         .tool_call = NULL
     };
 
-    /* Call callback - should not crash */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
-    ck_assert(is_ok(&result));
-}
-
-END_TEST
-/* Test: No debug output when openai_debug_pipe->write_end is NULL */
-START_TEST(test_debug_output_null_write_end)
-{
-    /* Create debug pipe with NULL write_end */
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    ck_assert_ptr_nonnull(debug_pipe);
-    debug_pipe->write_end = NULL;
-    repl->shared->openai_debug_pipe = debug_pipe;
-
-    /* Create successful completion */
-    char *model = talloc_strdup(ctx, "gpt-4o");
-    char *finish_reason = talloc_strdup(ctx, "stop");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
-        .error_message = NULL,
-        .model = model,
-        .finish_reason = finish_reason,
-        .completion_tokens = 42,
-        .tool_call = NULL
-    };
-
-    /* Call callback - should not crash */
+    /* Call callback - should not crash with NULL logger */
     res_t result = ik_repl_http_completion_callback(&completion, repl);
     ck_assert(is_ok(&result));
 }
@@ -323,8 +365,7 @@ static Suite *repl_debug_response_suite(void)
     tcase_add_test(tc_debug, test_debug_output_response_error);
     tcase_add_test(tc_debug, test_debug_output_response_with_tool_call);
     tcase_add_test(tc_debug, test_debug_output_null_metadata);
-    tcase_add_test(tc_debug, test_debug_output_no_pipe);
-    tcase_add_test(tc_debug, test_debug_output_null_write_end);
+    tcase_add_test(tc_debug, test_debug_output_no_logger);
     suite_add_tcase(s, tc_debug);
 
     return s;
