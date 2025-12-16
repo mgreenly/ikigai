@@ -42,6 +42,7 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->name = NULL;  // Unnamed by default
     agent->parent_uuid = parent_uuid ? talloc_strdup(agent, parent_uuid) : NULL;
     agent->shared = shared;
+    agent->created_at = time(NULL);
 
     // Initialize display state
     // Use default terminal width (80) if shared->term is not yet initialized

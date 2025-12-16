@@ -675,6 +675,31 @@ START_TEST(test_agent_copy_conversation)
 }
 END_TEST
 
+// Test agent->created_at is set to current time
+START_TEST(test_agent_create_sets_created_at)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    int64_t before = time(NULL);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    int64_t after = time(NULL);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_int_ge(agent->created_at, before);
+    ck_assert_int_le(agent->created_at, after);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *agent_suite(void)
 {
     Suite *s = suite_create("Agent Context");
@@ -710,6 +735,7 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_generate_uuid_returns_valid_string);
     tcase_add_test(tc_core, test_generate_uuid_produces_different_uuids);
     tcase_add_test(tc_core, test_agent_copy_conversation);
+    tcase_add_test(tc_core, test_agent_create_sets_created_at);
     suite_add_tcase(s, tc_core);
 
     return s;
