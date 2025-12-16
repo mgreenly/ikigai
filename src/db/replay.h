@@ -2,6 +2,7 @@
 #define IK_DB_REPLAY_H
 
 #include "../error.h"
+#include "../msg.h"
 #include "connection.h"
 #include <stdint.h>
 #include <talloc.h>
@@ -42,7 +43,7 @@ typedef struct {
  * Context array - dynamic array of messages representing conversation state
  */
 typedef struct {
-    ik_message_t **messages;          // Dynamic array of message pointers
+    ik_msg_t **messages;              // Dynamic array of message pointers (unified type)
     size_t count;                     // Number of messages in context
     size_t capacity;                  // Allocated capacity
     ik_replay_mark_stack_t mark_stack; // Stack of checkpoint marks

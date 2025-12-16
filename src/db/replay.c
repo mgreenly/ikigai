@@ -37,8 +37,8 @@ static void ensure_capacity(ik_replay_context_t *context) {
   // Reallocate messages array
   // talloc_realloc expects unsigned int, cast is safe for reasonable message
   // counts
-  ik_message_t **new_messages = talloc_realloc(
-      context, context->messages, ik_message_t *, (unsigned int)new_capacity);
+  ik_msg_t **new_messages = talloc_realloc(
+      context, context->messages, ik_msg_t *, (unsigned int)new_capacity);
   if (new_messages == NULL) // LCOV_EXCL_BR_LINE
     PANIC("Out of memory"); // LCOV_EXCL_LINE
 
@@ -98,7 +98,7 @@ static res_t append_message(ik_replay_context_t *context, int64_t id,
   ensure_capacity(context);
 
   // Allocate message structure as child of context
-  ik_message_t *msg = talloc_zero(context, ik_message_t);
+  ik_msg_t *msg = talloc_zero(context, ik_msg_t);
   if (msg == NULL)          // LCOV_EXCL_BR_LINE
     PANIC("Out of memory"); // LCOV_EXCL_LINE
 
