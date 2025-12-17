@@ -1,18 +1,5 @@
 {
-  "todo": [
-    {
-      "task": "bug2-separator-width.md",
-      "group": "Active Bugs",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "bug1-fork-duplicate-key.md",
-      "group": "Active Bugs",
-      "model": "sonnet",
-      "thinking": "extended"
-    }
-  ],
+  "todo": [],
   "done": [
     {
       "task": "registry-schema.md",
@@ -427,6 +414,18 @@
       "group": "Active Bugs",
       "model": "sonnet",
       "thinking": "none"
+    },
+    {
+      "task": "bug2-separator-width.md",
+      "group": "Active Bugs",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "bug1-fork-duplicate-key.md",
+      "group": "Active Bugs",
+      "model": "sonnet",
+      "thinking": "extended"
     }
   ]
 }
