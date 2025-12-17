@@ -17,6 +17,12 @@
       "group": "Gap 1: Agent Restoration",
       "model": "opus",
       "thinking": "extended"
+    },
+    {
+      "task": "gap1-integrate-repl-init.md",
+      "group": "Gap 1: Agent Restoration",
+      "model": "sonnet",
+      "thinking": "thinking"
     }
   ],
   "done": [
