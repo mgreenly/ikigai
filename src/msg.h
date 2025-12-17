@@ -2,6 +2,7 @@
 #define IK_MSG_H
 
 #include "error.h"
+#include <stdbool.h>
 #include <stdint.h>
 #include <talloc.h>
 
@@ -30,5 +31,20 @@ typedef struct {
     char *content;    /* Message text content or human-readable summary */
     char *data_json;  /* Structured data for tool messages (NULL for text messages) */
 } ik_msg_t;
+
+/**
+ * Check if a message kind should be included in LLM conversation context
+ *
+ * @param kind Message kind string (e.g., "user", "assistant", "clear")
+ * @return true if kind should be sent to LLM, false otherwise
+ *
+ * Conversation kinds (returns true):
+ *   - "system", "user", "assistant", "tool_call", "tool_result", "tool"
+ *
+ * Metadata kinds (returns false):
+ *   - "clear", "mark", "rewind", "agent_killed"
+ *   - NULL or unknown kinds
+ */
+bool ik_msg_is_conversation_kind(const char *kind);
 
 #endif /* IK_MSG_H */

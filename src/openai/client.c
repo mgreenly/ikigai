@@ -2,6 +2,7 @@
 
 #include "error.h"
 #include "json_allocator.h"
+#include "msg.h"
 #include "openai/http_handler.h"
 #include "openai/tool_choice.h"
 #include "tool.h"
@@ -155,6 +156,11 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
     /* Add each message to the array */
     for (size_t i = 0; i < request->conv->message_count; i++) {
         ik_msg_t *msg = get_message_at_index(request->conv->messages, i);
+
+        /* Skip metadata events - they're not part of LLM conversation */
+        if (!ik_msg_is_conversation_kind(msg->kind)) {
+            continue;
+        }
 
         /* Create message object */
         yyjson_mut_val *msg_obj = yyjson_mut_arr_add_obj(doc, messages_arr);
