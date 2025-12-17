@@ -348,6 +348,9 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
         ik_logger_debug_json(repl->shared->logger, log_doc);
     }
 
+    // Update navigation context for current agent after restoration
+    update_nav_context(repl);
+
     talloc_free(tmp);
     return OK(NULL);
 }

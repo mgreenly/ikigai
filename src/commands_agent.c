@@ -236,6 +236,9 @@ static res_t cmd_kill_cascade(void *ctx, ik_repl_ctx_t *repl, const char *uuid)
         return res;     // LCOV_EXCL_LINE
     }
 
+    // Update navigation context after removal
+    update_nav_context(repl);
+
     // Report
     char msg[64];
     int32_t written = snprintf(msg, sizeof(msg), "Killed %zu agents", count + 1);
@@ -311,6 +314,9 @@ res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
         if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
             return res;     // LCOV_EXCL_LINE
         }     // LCOV_EXCL_LINE
+
+        // Update navigation context after removal
+        update_nav_context(repl);
 
         // Notify
         char msg[64];
@@ -407,6 +413,9 @@ res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
+
+    // Update navigation context after removal
+    update_nav_context(repl);
 
     // Notify
     char msg[64];

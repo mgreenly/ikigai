@@ -3,6 +3,7 @@
 
 #include "event_render.h"
 #include "input_buffer/core.h"
+#include "layer_wrappers.h"
 #include "logger.h"
 #include "openai/client_multi.h"
 #include "panic.h"
@@ -416,6 +417,9 @@ res_t ik_repl_switch_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *new_agent)
     // Switch current pointer
     repl->current = new_agent;
 
+    // Update navigation context for new current agent
+    update_nav_context(repl);
+
     return OK(NULL);
 }
 
@@ -536,4 +540,94 @@ res_t ik_repl_nav_child(ik_repl_ctx_t *repl)
         CHECK(ik_repl_switch_agent(repl, newest));     // LCOV_EXCL_BR_LINE
     }
     return OK(NULL);
+}
+
+// Helper to check if two agents have the same parent
+static bool same_parent(const char *parent1, const char *parent2)
+{
+    if (parent1 == NULL && parent2 == NULL) {
+        return true;
+    }
+    if (parent1 != NULL && parent2 != NULL) {
+        return strcmp(parent1, parent2) == 0;
+    }
+    return false;
+}
+
+// Helper to find agent by UUID in array
+static ik_agent_ctx_t *find_agent_by_uuid(ik_repl_ctx_t *repl, const char *uuid)
+{
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        if (strcmp(repl->agents[i]->uuid, uuid) == 0) {
+            return repl->agents[i];
+        }
+    }
+    return NULL;
+}
+
+// Calculate and update navigation context for current agent's separator
+void update_nav_context(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);       // LCOV_EXCL_BR_LINE
+
+    if (repl->current == NULL || repl->current->separator_layer == NULL) {
+        return;
+    }
+
+    const char *parent_uuid = repl->current->parent_uuid;
+    const char *prev_sibling = NULL;
+    const char *next_sibling = NULL;
+    size_t child_count = 0;
+
+    // Scan all agents to find children and siblings
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        ik_agent_ctx_t *agent = repl->agents[i];
+        if (agent == repl->current) {
+            continue;
+        }
+
+        // Count children
+        if (agent->parent_uuid != NULL &&
+            strcmp(agent->parent_uuid, repl->current->uuid) == 0) {
+            child_count++;
+        }
+
+        // Check if this is a sibling
+        if (!same_parent(parent_uuid, agent->parent_uuid)) {
+            continue;
+        }
+
+        // This is a sibling - find prev/next based on created_at
+        if (agent->created_at < repl->current->created_at) {
+            // Potential prev sibling (keep the most recent one)
+            if (prev_sibling == NULL) {
+                prev_sibling = agent->uuid;
+            } else {
+                ik_agent_ctx_t *current_prev = find_agent_by_uuid(repl, prev_sibling);
+                if (current_prev != NULL && agent->created_at > current_prev->created_at) {
+                    prev_sibling = agent->uuid;
+                }
+            }
+        } else {
+            // Potential next sibling (keep the earliest one)
+            if (next_sibling == NULL) {
+                next_sibling = agent->uuid;
+            } else {
+                ik_agent_ctx_t *current_next = find_agent_by_uuid(repl, next_sibling);
+                if (current_next != NULL && agent->created_at < current_next->created_at) {
+                    next_sibling = agent->uuid;
+                }
+            }
+        }
+    }
+
+    // Update the separator layer
+    ik_separator_layer_set_nav_context(
+        repl->current->separator_layer,
+        parent_uuid,
+        prev_sibling,
+        repl->current->uuid,
+        next_sibling,
+        child_count
+    );
 }
