@@ -1,6 +1,7 @@
 // Separator layer wrapper
 #include "layer_wrappers.h"
 #include "panic.h"
+#include "scrollback_utils.h"
 #include "wrapper.h"
 #include <assert.h>
 #include <stdio.h>
@@ -164,13 +165,20 @@ static void separator_render(const ik_layer_t *layer,
         }
     }
 
-    // Calculate how many separator chars to draw (leave room for nav + debug)
-    size_t info_len = nav_len + debug_len;
+    // Calculate VISUAL width of info strings (excluding ANSI escape codes)
+    // nav_str and debug_str contain ANSI escape codes that consume bytes but
+    // don't contribute to visual width. Use ik_scrollback_calculate_display_width
+    // to get the actual terminal column count.
+    size_t nav_visual = ik_scrollback_calculate_display_width(nav_str, nav_len);
+    size_t debug_visual = ik_scrollback_calculate_display_width(debug_str, debug_len);
+    size_t info_visual = nav_visual + debug_visual;
+
+    // Calculate how many separator chars to draw (leave room for visual width)
     size_t sep_chars = width;
     // LCOV_EXCL_BR_START - Defensive: info string typically much shorter than width
-    if (info_len > 0 && info_len < width) {
+    if (info_visual > 0 && info_visual < width) {
         // LCOV_EXCL_BR_STOP
-        sep_chars = width - info_len;
+        sep_chars = width - info_visual;
     }
 
     // Render separator chars

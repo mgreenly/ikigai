@@ -455,6 +455,62 @@ START_TEST(test_separator_layer_nav_context_with_debug_info)
 }
 END_TEST
 
+START_TEST(test_separator_layer_full_width_with_nav_context)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    bool visible = true;
+    ik_layer_t *layer = ik_separator_layer_create(ctx, "sep", &visible);
+
+    // Set navigation context with all indicators dimmed (to test ANSI codes)
+    const char *current_uuid = "abc123def456";
+    ik_separator_layer_set_nav_context(layer, NULL, NULL, current_uuid, NULL, 0);
+
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1024);
+    size_t width = 80;
+    layer->render(layer, output, width, 0, 1);
+
+    // Count visual width excluding ANSI codes
+    char *output_str = talloc_strndup(ctx, (const char *)output->data, output->size);
+
+    // Remove trailing \r\n for width calculation
+    size_t content_len = output->size;
+    if (content_len >= 2 && output_str[content_len - 2] == '\r' && output_str[content_len - 1] == '\n') {
+        content_len -= 2;
+    }
+
+    // Calculate visual width (excluding ANSI escape codes)
+    size_t visual_width = 0;
+    bool in_escape = false;
+    for (size_t i = 0; i < content_len; i++) {
+        if (output_str[i] == '\x1b') {
+            in_escape = true;
+            continue;
+        }
+        if (in_escape) {
+            if ((output_str[i] >= 'A' && output_str[i] <= 'Z') ||
+                (output_str[i] >= 'a' && output_str[i] <= 'z')) {
+                in_escape = false;
+            }
+            continue;
+        }
+        // Count UTF-8 characters: box-drawing and arrows are 3 bytes each = 1 column
+        if ((unsigned char)output_str[i] == 0xE2) {
+            // Start of 3-byte UTF-8 sequence
+            visual_width++;
+            i += 2; // Skip next 2 bytes
+        } else {
+            visual_width++;
+        }
+    }
+
+    // The visual width should equal the terminal width
+    ck_assert_uint_eq(visual_width, width);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *separator_layer_suite(void)
 {
     Suite *s = suite_create("Separator Layer");
@@ -478,6 +534,7 @@ static Suite *separator_layer_suite(void)
     tcase_add_test(tc_core, test_separator_layer_nav_context_no_children);
     tcase_add_test(tc_core, test_separator_layer_nav_context_uuid_truncation);
     tcase_add_test(tc_core, test_separator_layer_nav_context_with_debug_info);
+    tcase_add_test(tc_core, test_separator_layer_full_width_with_nav_context);
     suite_add_tcase(s, tc_core);
 
     return s;
