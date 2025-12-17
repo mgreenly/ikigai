@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "gap0-update-docs.md",
-      "group": "Gap 0: Cleanup",
-      "model": "haiku",
-      "thinking": "none"
-    },
-    {
       "task": "gap0-final-verification.md",
       "group": "Gap 0: Verification",
       "model": "sonnet",
@@ -347,6 +341,12 @@
     {
       "task": "gap0-update-integration-tests.md",
       "group": "Gap 0: Test Updates",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-update-docs.md",
+      "group": "Gap 0: Cleanup",
       "model": "sonnet",
       "thinking": "thinking"
     }
