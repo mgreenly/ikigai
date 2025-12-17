@@ -35,6 +35,12 @@
       "group": "Gap 1: Agent Restoration",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "gap1-delete-obsolete.md",
+      "group": "Gap 1: Cleanup",
+      "model": "sonnet",
+      "thinking": "thinking"
     }
   ],
   "done": [
