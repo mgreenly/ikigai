@@ -4,9 +4,9 @@ This document records gaps discovered between the rel-06 design specifications a
 
 ## Summary
 
-The multi-agent system's core feature - **agent persistence across sessions** - was not fully implemented. The building blocks exist but were never wired together at startup. Additional integration gaps exist in the separator navigation context and cross-component consistency.
+The multi-agent system's core feature - **agent persistence across sessions** - has been fully implemented. Gap 0 (Message Type Unification), Gap 1 (Startup Agent Restoration Loop), and Gap 5 (Session Restore Migration) are now complete. Multi-agent sessions now persist correctly across restarts with proper parent-child hierarchy restoration.
 
-A foundational issue was also discovered: the rel-04 message type unification was left incomplete, leaving two nearly-identical types (`ik_msg_t` and `ik_message_t`) that require conversion overhead.
+Remaining gaps include separator navigation context and cross-component consistency improvements.
 
 ---
 
@@ -153,7 +153,7 @@ After this fix:
 
 **Depends on:** Gap 0 (Message Type Unification)
 
-**Status:** Not implemented - highest priority
+**Status:** COMPLETE
 
 #### What Was Specified
 
@@ -429,7 +429,7 @@ After Gap 1 fix, all running agents will be in memory, making this consistent wi
 
 ### Gap 5: Session Restore Uses Legacy Replay System
 
-**Status:** Should be migrated to agent-based replay
+**Status:** COMPLETE (merged into Gap 1)
 **Depends on:** Gap 0 (Message Type Unification)
 
 #### Current Code (session_restore.c:50)
@@ -824,22 +824,20 @@ After fixes, need tests for:
 
 ### Phase 1: Foundation (PREREQUISITE)
 
-1. **Gap 0: Message Type Unification** - PREREQUISITE
-   - Must complete before Gap 1
+1. **Gap 0: Message Type Unification** - COMPLETE
    - Mechanical refactor: add `id` to `ik_msg_t`, eliminate `ik_message_t`
    - Removes conversion overhead, simplifies all subsequent work
 
 ### Phase 2: Core Persistence (CRITICAL)
 
-2. **Gap 1: Startup Agent Restoration Loop** - CRITICAL
-   - Depends on Gap 0
+2. **Gap 1: Startup Agent Restoration Loop** - COMPLETE
    - Core feature: multi-agent persistence across restarts
    - Includes `ik_agent_restore()` function (distinct from `ik_agent_create()`)
 
-3. **Gap 5: Session Restore Migration** - HIGH (merge into Gap 1)
-   - Recommend merging into Gap 1 rather than separate task
-   - After merge: delete `session_restore.c`, `session_restore.h`
-   - After merge: delete `ik_db_messages_load()` from `replay.c`
+3. **Gap 5: Session Restore Migration** - COMPLETE (merged into Gap 1)
+   - Merged into Gap 1 as recommended
+   - Deleted `session_restore.c`, `session_restore.h`
+   - Note: `ik_db_messages_load()` still exists but may not be needed
 
 ### Phase 3: Polish (MEDIUM/LOW)
 
