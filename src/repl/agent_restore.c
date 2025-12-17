@@ -74,10 +74,83 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
 
     // 3. For each agent, restore full state:
     for (size_t i = 0; i < count; i++) {
-        // Skip Agent 0 (already created in repl_init)
-        // Agent 0 is the root agent with no parent
+        // Agent 0 (root agent with parent_uuid=NULL) uses existing repl->current
         if (agents[i]->parent_uuid == NULL) {
-            continue;
+            // This is Agent 0 - use existing repl->current, don't create new
+            ik_agent_ctx_t *agent = repl->current;
+
+            // Replay history
+            ik_replay_context_t *replay_ctx = NULL;
+            res = ik_agent_replay_history(db_ctx, tmp, agents[i]->uuid, &replay_ctx);
+            if (is_err(&res)) {
+                // For Agent 0, failure is more serious - log but continue
+                // (Agent 0 can still function with empty state)
+                yyjson_mut_doc *log_doc = ik_log_create();
+                yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+                yyjson_mut_obj_add_str(log_doc, root, "event", "agent0_replay_failed");
+                yyjson_mut_obj_add_str(log_doc, root, "error", error_message(res.err));
+                ik_logger_warn_json(repl->shared->logger, log_doc);
+                continue;
+            }
+
+            // Populate conversation (filter non-conversation kinds)
+            for (size_t j = 0; j < replay_ctx->count; j++) {
+                ik_msg_t *msg = replay_ctx->messages[j];
+                if (is_conversation_kind(msg->kind)) {
+                    ik_msg_t *conv_msg = talloc_steal(agent->conversation, msg);
+                    res = ik_openai_conversation_add_msg(agent->conversation, conv_msg);
+                    if (is_err(&res)) {
+                        yyjson_mut_doc *log_doc = ik_log_create();
+                        yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+                        yyjson_mut_obj_add_str(log_doc, root, "event", "agent0_conversation_add_failed");
+                        yyjson_mut_obj_add_str(log_doc, root, "error", error_message(res.err));
+                        ik_logger_warn_json(repl->shared->logger, log_doc);
+                    }
+                }
+            }
+
+            // Populate scrollback via event render
+            for (size_t j = 0; j < replay_ctx->count; j++) {
+                ik_msg_t *msg = replay_ctx->messages[j];
+                res = ik_event_render(agent->scrollback, msg->kind, msg->content, msg->data_json);
+                if (is_err(&res)) {
+                    yyjson_mut_doc *log_doc = ik_log_create();
+                    yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+                    yyjson_mut_obj_add_str(log_doc, root, "event", "agent0_scrollback_render_failed");
+                    yyjson_mut_obj_add_str(log_doc, root, "error", error_message(res.err));
+                    ik_logger_warn_json(repl->shared->logger, log_doc);
+                }
+            }
+
+            // Restore marks from replay context
+            if (replay_ctx->mark_stack.count > 0) {
+                unsigned int mark_count = (unsigned int)replay_ctx->mark_stack.count;
+                agent->marks = talloc_array(agent, ik_mark_t *, mark_count);
+                if (agent->marks != NULL) {
+                    for (size_t j = 0; j < replay_ctx->mark_stack.count; j++) {
+                        ik_replay_mark_t *replay_mark = &replay_ctx->mark_stack.marks[j];
+                        ik_mark_t *mark = talloc_zero(agent, ik_mark_t);
+                        if (mark != NULL) {
+                            mark->message_index = replay_mark->context_idx;
+                            mark->label = replay_mark->label
+                                ? talloc_strdup(mark, replay_mark->label)
+                                : NULL;
+                            mark->timestamp = NULL;
+                            agent->marks[agent->mark_count++] = mark;
+                        }
+                    }
+                }
+            }
+
+            // Don't add to array - Agent 0 is already in repl->agents[]
+            yyjson_mut_doc *log_doc = ik_log_create();
+            yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+            yyjson_mut_obj_add_str(log_doc, root, "event", "agent0_restored");
+            yyjson_mut_obj_add_uint(log_doc, root, "message_count", replay_ctx->count);
+            yyjson_mut_obj_add_uint(log_doc, root, "mark_count", agent->mark_count);
+            ik_logger_debug_json(repl->shared->logger, log_doc);
+
+            continue;  // Skip the regular agent creation path
         }
 
         // --- Step 1: Restore agent context from DB row ---

@@ -2,9 +2,7 @@
 #include "repl.h"
 
 #include "agent.h"
-#include "repl/session_restore.h"
 #include "repl/agent_restore.h"
-#include "config.h"
 #include "db/agent.h"
 #include "db/connection.h"
 #include "db/session.h"
@@ -40,8 +38,6 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     assert(parent != NULL);     // LCOV_EXCL_BR_LINE
     assert(shared != NULL);     // LCOV_EXCL_BR_LINE
     assert(repl_out != NULL);   // LCOV_EXCL_BR_LINE
-
-    ik_cfg_t *cfg = shared->cfg;
 
     // Set up signal handlers (SIGWINCH for terminal resize) - must be before repl alloc
     res_t result = ik_signal_handler_init(parent);
@@ -110,19 +106,8 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
         }
         repl->current->uuid = talloc_steal(repl->current, agent_zero_uuid);
 
-        // Restore all other running agents from database
+        // Restore all running agents from database (including Agent 0)
         result = ik_repl_restore_agents(repl, shared->db_ctx);
-        if (is_err(&result)) {
-            talloc_free(repl);
-            return result;
-        }
-    }
-
-    // Restore session if database is configured (must be after repl allocated)
-    // NOTE: This handles Agent 0's conversation/scrollback. Will be migrated to
-    // agent-based replay in a later task (Gap 5).
-    if (shared->db_ctx != NULL) {
-        result = ik_repl_restore_session_(repl, shared->db_ctx, cfg);
         if (is_err(&result)) {
             talloc_free(repl);
             return result;

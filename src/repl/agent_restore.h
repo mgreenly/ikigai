@@ -14,8 +14,9 @@
  * Sorting by created_at ensures parents are restored before children, since
  * a parent must exist before a child can be forked from it.
  *
- * Agent 0 (root agent with parent_uuid=NULL) is skipped because it is already
- * created during ik_repl_init() before this function is called.
+ * Agent 0 (root agent with parent_uuid=NULL) uses the existing repl->current
+ * context. Its conversation, scrollback, and marks are populated from the
+ * replayed history using the same agent-based replay as other agents.
  *
  * @param repl REPL context (must not be NULL, must have current agent set)
  * @param db_ctx Database context (must not be NULL)
