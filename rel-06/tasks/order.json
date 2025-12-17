@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "gap1-delete-obsolete.md",
-      "group": "Gap 1: Cleanup",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "gap1-final-verification.md",
       "group": "Gap 1: Verification",
       "model": "sonnet",
@@ -409,6 +403,12 @@
       "group": "Gap 1: Tests",
       "model": "opus",
       "thinking": "ultrathink"
+    },
+    {
+      "task": "gap1-delete-obsolete.md",
+      "group": "Gap 1: Cleanup",
+      "model": "sonnet",
+      "thinking": "thinking"
     }
   ]
 }
