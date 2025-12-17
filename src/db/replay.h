@@ -11,17 +11,6 @@
 typedef struct ik_logger ik_logger_t;
 
 /**
- * Message structure - represents a single event from the database
- */
-struct ik_message {
-    int64_t id;        // Message ID from database
-    char *kind;        // Event kind (clear, system, user, assistant, mark, rewind)
-    char *content;     // Message content
-    char *data_json;   // JSONB data as string
-};
-typedef struct ik_message ik_message_t;
-
-/**
  * Mark entry - checkpoint information for conversation rollback
  */
 typedef struct {

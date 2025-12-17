@@ -41,11 +41,6 @@ MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, si
     return ik_scrollback_append_line((ik_scrollback_t *)scrollback, text, length);
 }
 
-MOCKABLE res_t ik_msg_from_db_(void *parent, const ik_message_t *db_msg)
-{
-    return ik_msg_from_db(parent, db_msg);
-}
-
 MOCKABLE res_t ik_openai_conversation_add_msg_(ik_openai_conversation_t *conv, ik_msg_t *msg)
 {
     return ik_openai_conversation_add_msg(conv, msg);
@@ -65,7 +60,6 @@ MOCKABLE res_t ik_db_message_insert_(void *db,
                                      const char *data_json);
 MOCKABLE res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg);
 MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length);
-MOCKABLE res_t ik_msg_from_db_(void *parent, const void *db_msg);
 MOCKABLE res_t ik_openai_conversation_add_msg_(void *conv, void *msg);
 #endif
 

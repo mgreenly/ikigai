@@ -5,9 +5,6 @@
 #include <stdint.h>
 #include <talloc.h>
 
-/* Forward declaration - full definition in db/replay.h */
-typedef struct ik_message ik_message_t;
-
 /**
  * Canonical message structure
  *
@@ -33,23 +30,5 @@ typedef struct {
     char *content;    /* Message text content or human-readable summary */
     char *data_json;  /* Structured data for tool messages (NULL for text messages) */
 } ik_msg_t;
-
-/**
- * Create canonical message from database message
- *
- * Converts database format (ik_message_t) to canonical in-memory format (ik_msg_t).
- * The DB and canonical formats use the same 'kind' discriminator, so this is
- * primarily a copy/validation operation.
- *
- * Loading rules:
- *   - system/user/assistant: Copy kind and content, set data_json to NULL
- *   - tool_call/tool_result: Copy kind, content, and data_json
- *   - clear/mark/rewind: Return OK(NULL) - not conversation messages
- *
- * @param parent  Talloc context parent (or NULL)
- * @param db_msg  Database message to convert (must not be NULL)
- * @return        OK(msg) for conversation kinds, OK(NULL) for non-conversation kinds, ERR(...) on failure
- */
-res_t ik_msg_from_db(void *parent, const ik_message_t *db_msg);
 
 #endif /* IK_MSG_H */
