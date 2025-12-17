@@ -193,14 +193,13 @@ void ik_cmd_persist_to_db(void *ctx, ik_repl_ctx_t *repl, const char *input,
         const char *line_text = NULL;
         size_t line_len = 0;
         res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_idx, &line_text, &line_len);
-        if (is_ok(&line_res) && line_text != NULL) {
-            char *new_content = talloc_asprintf(ctx, "%s%s\n", content, line_text);
-            if (!new_content) {     // LCOV_EXCL_BR_LINE
-                PANIC("OOM");   // LCOV_EXCL_LINE
-            }
-            talloc_free(content);
-            content = new_content;
+        assert(is_ok(&line_res));  // LCOV_EXCL_BR_LINE
+        char *new_content = talloc_asprintf(ctx, "%s%s\n", content, line_text);
+        if (!new_content) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
         }
+        talloc_free(content);
+        content = new_content;
     }
 
     // Build data_json with command metadata
