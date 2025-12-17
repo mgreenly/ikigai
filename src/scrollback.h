@@ -191,6 +191,22 @@ res_t ik_scrollback_find_logical_line_at_physical_row(ik_scrollback_t *scrollbac
 void ik_scrollback_clear(ik_scrollback_t *scrollback);
 
 /**
+ * @brief Copy all lines from source scrollback to destination scrollback
+ *
+ * Copies all lines from the source scrollback buffer to the destination.
+ * The destination scrollback should typically be empty before calling this.
+ *
+ * @param dest Destination scrollback buffer
+ * @param src Source scrollback buffer
+ * @return RES_OK on success, RES_ERR on failure (OOM)
+ *
+ * Assertions:
+ * - dest must not be NULL
+ * - src must not be NULL
+ */
+res_t ik_scrollback_copy_from(ik_scrollback_t *dest, const ik_scrollback_t *src);
+
+/**
  * @brief Get byte offset at a given display column within a line
  *
  * Iterates through the line text, tracking display width while skipping

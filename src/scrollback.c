@@ -359,6 +359,25 @@ void ik_scrollback_clear(ik_scrollback_t *scrollback)
     // (no need to free/reallocate arrays)
 }
 
+res_t ik_scrollback_copy_from(ik_scrollback_t *dest, const ik_scrollback_t *src)
+{
+    assert(dest != NULL);  // LCOV_EXCL_BR_LINE
+    assert(src != NULL);   // LCOV_EXCL_BR_LINE
+
+    // Copy each line from source to destination
+    for (size_t i = 0; i < src->count; i++) {
+        const char *text = src->text_buffer + src->text_offsets[i];
+        size_t length = src->text_lengths[i];
+
+        res_t res = ik_scrollback_append_line(dest, text, length);
+        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+            return res;         // LCOV_EXCL_LINE
+        }
+    }
+
+    return OK(NULL);
+}
+
 res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,
                                                     size_t line_index,
                                                     size_t display_col,

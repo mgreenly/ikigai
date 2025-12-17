@@ -504,6 +504,14 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
+    // Copy parent's scrollback to child (visual history inheritance)
+    res = ik_scrollback_copy_from(child->scrollback, parent->scrollback);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
+        atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
+        return res;     // LCOV_EXCL_LINE
+    }     // LCOV_EXCL_LINE
+
     // Insert into registry
     res = ik_db_agent_insert(repl->shared->db_ctx, child);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE

@@ -705,6 +705,44 @@ START_TEST(test_fork_events_linked_by_fork_message_id)
 }
 END_TEST
 
+// Test: Child inherits parent's scrollback
+START_TEST(test_fork_child_inherits_scrollback)
+{
+    // Add some lines to parent's scrollback before forking
+    res_t res1 = ik_scrollback_append_line(repl->current->scrollback, "Line 1 from parent", 18);
+    ck_assert(is_ok(&res1));
+    res_t res2 = ik_scrollback_append_line(repl->current->scrollback, "Line 2 from parent", 18);
+    ck_assert(is_ok(&res2));
+    res_t res3 = ik_scrollback_append_line(repl->current->scrollback, "Line 3 from parent", 18);
+    ck_assert(is_ok(&res3));
+
+    size_t parent_line_count = ik_scrollback_get_line_count(repl->current->scrollback);
+    ck_assert_uint_eq(parent_line_count, 3);
+
+    res_t res = cmd_fork(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    // Child should inherit parent's scrollback (plus fork confirmation message)
+    ik_agent_ctx_t *child = repl->current;
+    size_t child_line_count = ik_scrollback_get_line_count(child->scrollback);
+    ck_assert_uint_ge(child_line_count, parent_line_count);
+
+    // Verify the first 3 lines match parent's content
+    for (size_t i = 0; i < 3; i++) {
+        const char *text = NULL;
+        size_t length = 0;
+        res_t line_res = ik_scrollback_get_line_text(child->scrollback, i, &text, &length);
+        ck_assert(is_ok(&line_res));
+        ck_assert_ptr_nonnull(text);
+
+        char expected[32];
+        snprintf(expected, sizeof(expected), "Line %zu from parent", i + 1);
+        ck_assert_uint_eq(length, 18);
+        ck_assert_int_eq(strncmp(text, expected, length), 0);
+    }
+}
+END_TEST
+
 static Suite *cmd_fork_suite(void)
 {
     Suite *s = suite_create("Fork Command");
@@ -738,6 +776,7 @@ static Suite *cmd_fork_suite(void)
     tcase_add_test(tc, test_fork_persists_parent_side_event);
     tcase_add_test(tc, test_fork_persists_child_side_event);
     tcase_add_test(tc, test_fork_events_linked_by_fork_message_id);
+    tcase_add_test(tc, test_fork_child_inherits_scrollback);
     // Note: Rollback tests removed - they violate preconditions (db_ctx->conn != NULL assertion)
     // and cannot be properly tested without mocking infrastructure
     // tcase_add_test(tc, test_fork_rollback_on_failure);
