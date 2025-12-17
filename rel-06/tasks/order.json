@@ -23,6 +23,12 @@
       "group": "Gap 1: Agent Restoration",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "gap1-migrate-agent0.md",
+      "group": "Gap 1: Agent Restoration",
+      "model": "opus",
+      "thinking": "extended"
     }
   ],
   "done": [
