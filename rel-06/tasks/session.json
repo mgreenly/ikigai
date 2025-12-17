@@ -723,5 +723,15 @@
     "event": "done",
     "task": "bug1-fork-duplicate-key.md",
     "time": "2025-12-17T06:58:18.635Z"
+  },
+  {
+    "event": "start",
+    "task": "bug4-filter-metadata-events.md",
+    "time": "2025-12-17T07:24:11.744Z"
+  },
+  {
+    "event": "done",
+    "task": "bug4-filter-metadata-events.md",
+    "time": "2025-12-17T07:39:18.636Z"
   }
 ]

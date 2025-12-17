@@ -1,12 +1,5 @@
 {
-  "todo": [
-    {
-      "task": "bug4-filter-metadata-events.md",
-      "group": "Active Bugs",
-      "model": "sonnet",
-      "thinking": "thinking"
-    }
-  ],
+  "todo": [],
   "done": [
     {
       "task": "registry-schema.md",
@@ -433,6 +426,12 @@
       "group": "Active Bugs",
       "model": "sonnet",
       "thinking": "extended"
+    },
+    {
+      "task": "bug4-filter-metadata-events.md",
+      "group": "Active Bugs",
+      "model": "sonnet",
+      "thinking": "thinking"
     }
   ]
 }
