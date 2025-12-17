@@ -201,7 +201,7 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Persist clear event to database (Integration Point 3)
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                            NULL, "clear", NULL, NULL);
+                                            repl->current->uuid, "clear", NULL, NULL);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
             yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
@@ -219,7 +219,7 @@ static res_t cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
             res_t system_res = ik_db_message_insert(
                 repl->shared->db_ctx,
                 repl->shared->session_id,
-                NULL,
+                repl->current->uuid,
                 "system",
                 repl->shared->cfg->openai_system_message,
                 "{}"

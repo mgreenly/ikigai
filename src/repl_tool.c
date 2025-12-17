@@ -113,9 +113,9 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     // 5. Persist to database
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              NULL, "tool_call", formatted_call, tc_msg->data_json);
+                              repl->current->uuid, "tool_call", formatted_call, tc_msg->data_json);
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              NULL, "tool_result", formatted_result, result_msg->data_json);
+                              repl->current->uuid, "tool_result", formatted_result, result_msg->data_json);
     }
 
     // 6. Clear pending tool call
@@ -253,9 +253,9 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
     // 4. Persist to database
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              NULL, "tool_call", formatted_call, tc_msg->data_json);
+                              repl->current->uuid, "tool_call", formatted_call, tc_msg->data_json);
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              NULL, "tool_result", formatted_result, result_msg->data_json);
+                              repl->current->uuid, "tool_result", formatted_result, result_msg->data_json);
     }
 
     // 5. Clean up

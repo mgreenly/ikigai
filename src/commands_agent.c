@@ -93,7 +93,7 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
         }     // LCOV_EXCL_LINE
 
         res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,     // LCOV_EXCL_LINE
-                                            NULL, "user", prompt, data_json);     // LCOV_EXCL_LINE
+                                            repl->current->uuid, "user", prompt, data_json);     // LCOV_EXCL_LINE
         if (is_err(&db_res)) {     // LCOV_EXCL_BR_LINE  // LCOV_EXCL_LINE
             yyjson_mut_doc *log_doc = ik_log_create();     // LCOV_EXCL_LINE
             yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);     // LCOV_EXCL_LINE
