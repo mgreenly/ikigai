@@ -91,7 +91,7 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
 
         // Populate scrollback with replayed messages using event renderer
         for (size_t i = 0; i < replay_ctx->count; i++) {
-            ik_message_t *msg = replay_ctx->messages[i];
+            ik_msg_t *msg = replay_ctx->messages[i];
 
             // Use universal event renderer for consistent display
             res_t render_res = ik_event_render(
@@ -108,24 +108,20 @@ res_t ik_repl_restore_session(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx, ik_cfg_t
 
         // Rebuild conversation from replay context for LLM context
         for (size_t i = 0; i < replay_ctx->count; i++) {
-            ik_message_t *db_msg = replay_ctx->messages[i];
+            ik_msg_t *msg = replay_ctx->messages[i];
 
-            // Convert DB format to canonical format
-            res_t msg_res = ik_msg_from_db_(tmp, db_msg);
-            if (is_err(&msg_res)) {
-                talloc_steal(repl, msg_res.err);  // Reparent error before freeing tmp
-                talloc_free(tmp);
-                return msg_res;
+            // Skip non-conversation kinds (these don't go to LLM)
+            if (strcmp(msg->kind, "clear") == 0 ||
+                strcmp(msg->kind, "mark") == 0 ||
+                strcmp(msg->kind, "rewind") == 0) {
+                continue;
             }
 
-            // Add to conversation if not skipped (NULL means skip)
-            ik_msg_t *msg = msg_res.ok;
-            if (msg != NULL) {
-                res_t add_res = ik_openai_conversation_add_msg_(repl->current->conversation, msg);
-                if (is_err(&add_res)) {
-                    talloc_free(tmp);
-                    return add_res;
-                }
+            // Add to conversation
+            res_t add_res = ik_openai_conversation_add_msg_(repl->current->conversation, msg);
+            if (is_err(&add_res)) {
+                talloc_free(tmp);
+                return add_res;
             }
         }
 
