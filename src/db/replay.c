@@ -267,6 +267,10 @@ static res_t process_event(ik_replay_context_t *context, int64_t id,
   return OK(NULL);
 }
 
+// TEST-ONLY FUNCTION
+// This function queries messages by session_id only (not agent_uuid).
+// Production code uses ik_agent_replay_history() for agent-based replay.
+// Retained for test convenience - has no production callers.
 res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx,
                           int64_t session_id, ik_logger_t *logger) {
   // Preconditions

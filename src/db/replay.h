@@ -58,6 +58,10 @@ typedef struct {
 /**
  * Load messages from database and replay to build context
  *
+ * TEST-ONLY FUNCTION: This function queries by session_id only and does not
+ * support agent-based replay. Production code should use ik_agent_replay_history()
+ * instead. This function is retained for test convenience and has no production callers.
+ *
  * Queries the messages table for the specified session, ordered by created_at,
  * and processes events to build the current conversation context.
  *
