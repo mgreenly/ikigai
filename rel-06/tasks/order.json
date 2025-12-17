@@ -1,12 +1,5 @@
 {
-  "todo": [
-    {
-      "task": "bug5-agent-restore-filter.md",
-      "group": "Active Bugs",
-      "model": "sonnet",
-      "thinking": "thinking"
-    }
-  ],
+  "todo": [],
   "done": [
     {
       "task": "registry-schema.md",
@@ -436,6 +429,12 @@
     },
     {
       "task": "bug4-filter-metadata-events.md",
+      "group": "Active Bugs",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "bug5-agent-restore-filter.md",
       "group": "Active Bugs",
       "model": "sonnet",
       "thinking": "thinking"
