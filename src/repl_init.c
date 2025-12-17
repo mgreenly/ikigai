@@ -106,6 +106,26 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
         }
         repl->current->uuid = talloc_steal(repl->current, agent_zero_uuid);
 
+        // Get or create session
+        int64_t session_id = 0;
+        result = ik_db_session_get_active(shared->db_ctx, &session_id);
+        if (is_err(&result)) {
+            talloc_free(repl);
+            return result;
+        }
+
+        // If no active session exists, create one
+        if (session_id == 0) {
+            result = ik_db_session_create(shared->db_ctx, &session_id);
+            if (is_err(&result)) {
+                talloc_free(repl);
+                return result;
+            }
+        }
+
+        // Store session_id in shared context
+        shared->session_id = session_id;
+
         // Restore all running agents from database (including Agent 0)
         result = ik_repl_restore_agents(repl, shared->db_ctx);
         if (is_err(&result)) {

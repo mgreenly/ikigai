@@ -160,8 +160,8 @@ res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 {
     (void)db_ctx;
-    (void)session_id_out;
-    return ERR(db_ctx, IO, "No active session");  // Return not found to trigger session creation
+    *session_id_out = 0;  // No active session - return 0 (not an error)
+    return OK(NULL);
 }
 
 // Mock ik_db_messages_load (needed because session_restore calls it)
