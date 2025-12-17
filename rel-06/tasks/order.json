@@ -5,6 +5,12 @@
       "group": "Gap 1: Agent Restoration",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "gap1-restore-agents-skeleton.md",
+      "group": "Gap 1: Agent Restoration",
+      "model": "sonnet",
+      "thinking": "thinking"
     }
   ],
   "done": [
