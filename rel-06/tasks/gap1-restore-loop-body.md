@@ -236,6 +236,8 @@ for (size_t i = 0; i < count; i++) {
    - Labels are copied (strdup'd)
    - Timestamps are not preserved in replay (set to NULL)
 
+   **KNOWN LIMITATION:** Mark timestamps are lost after restart. The `ik_mark_t.timestamp` field stores a human-readable timestamp string, but `ik_replay_mark_t` (from replay context) doesn't include this. To preserve timestamps across restarts, the database schema would need a `timestamp` column in the mark event's `data` JSON. This is intentional data loss for now - marks retain their position and label, just not creation time.
+
 4. **Conversation vs Scrollback:**
    - Conversation gets only message kinds (user, assistant, system, tool_call, tool_result)
    - Scrollback gets ALL events (including mark, clear, rewind) via event_render

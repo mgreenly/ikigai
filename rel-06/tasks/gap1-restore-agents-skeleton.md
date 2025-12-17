@@ -40,9 +40,12 @@ This task is part of **Gap 1: Startup Agent Restoration** - the critical feature
 ## Pre-read Source
 - src/repl_init.c (READ - current initialization flow, understand where restore will be called)
 - src/repl.h (READ - `ik_repl_ctx_t` struct, understand repl context)
+- src/shared.h (READ - `ik_shared_ctx_t` struct, **verify `cfg` field exists** for later task gap1-fresh-install.md)
 - src/db/agent.h (READ - `ik_db_agent_list_running()` and `ik_db_agent_row_t`)
 - src/db/agent.c (READ - implementation of `ik_db_agent_list_running()`)
 - src/error.h (READ - CHECK macro, res_t type)
+
+**Important:** Verify that `repl->shared->cfg` is accessible. The fresh install task (gap1-fresh-install.md) will need config access. If `ik_shared_ctx_t` does not have a `cfg` field, document this in your final report - it will require adding a parameter to `ik_repl_restore_agents()` or modifying `ik_shared_ctx_t`.
 
 ## Source Files to CREATE
 - src/repl/agent_restore.h (CREATE - header with `ik_repl_restore_agents()` declaration)

@@ -121,6 +121,14 @@ Verify the architectural requirements are met:
 4. **Agent 0 goes through same restoration path as other agents:**
    Review `ik_repl_restore_agents()` to confirm Agent 0 is not special-cased (all agents use same restore logic).
 
+5. **Agent 0 is current after restore (Gap 6 verification):**
+   Verify that after `ik_repl_restore_agents()` completes, `repl->current` is still Agent 0.
+   This ensures consistent startup behavior - user always starts at the root agent.
+   ```bash
+   # In test or manual verification:
+   # After restore, repl->current->parent_uuid should be NULL (Agent 0 is root)
+   ```
+
 ### Part 4: Functional Verification
 
 Document what manual testing would verify (for QA reference):

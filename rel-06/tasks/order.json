@@ -37,20 +37,26 @@
       "thinking": "thinking"
     },
     {
-      "task": "gap1-delete-obsolete.md",
-      "group": "Gap 1: Cleanup",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "gap1-tests.md",
       "group": "Gap 1: Tests",
       "model": "opus",
       "thinking": "extended"
     },
     {
+      "task": "gap1-delete-obsolete.md",
+      "group": "Gap 1: Cleanup",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
       "task": "gap1-final-verification.md",
       "group": "Gap 1: Verification",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap2-separator-wiring.md",
+      "group": "Gap 2: UI Polish",
       "model": "sonnet",
       "thinking": "thinking"
     }
