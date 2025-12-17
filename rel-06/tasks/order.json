@@ -41,6 +41,12 @@
       "group": "Gap 1: Cleanup",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "gap1-tests.md",
+      "group": "Gap 1: Tests",
+      "model": "opus",
+      "thinking": "extended"
     }
   ],
   "done": [
