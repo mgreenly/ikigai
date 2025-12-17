@@ -39,9 +39,6 @@ static bool mock_scrollback_append_should_fail = false;
 static int mock_scrollback_append_fail_on_call = -1; // -1 means don't fail
 static int mock_scrollback_append_call_count = 0;
 
-// Mock state for ik_msg_from_db_
-static bool mock_msg_from_db_should_fail = false;
-
 // Mock state for ik_openai_conversation_add_msg_
 static bool mock_conversation_add_msg_should_fail = false;
 
@@ -188,23 +185,6 @@ MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, si
     return OK(NULL);
 }
 
-// Mock ik_msg_from_db_
-MOCKABLE res_t ik_msg_from_db_(void *parent, const void *db_msg) {
-    (void)db_msg;
-    if (mock_msg_from_db_should_fail) {
-        if (mock_err_ctx == NULL) {
-            mock_err_ctx = talloc_new(NULL);
-            atexit(cleanup_mock_err_ctx);
-        }
-        return ERR(mock_err_ctx, PARSE, "Mock msg_from_db failure");
-    }
-    ik_msg_t *msg = talloc_zero_(parent, sizeof(ik_msg_t));
-    msg->kind = talloc_strdup_(msg, "user");
-    msg->content = talloc_strdup_(msg, "test");
-    msg->data_json = NULL;
-    return OK(msg);
-}
-
 // Mock ik_openai_conversation_add_msg_
 MOCKABLE res_t ik_openai_conversation_add_msg_(void *conv, void *msg) {
     (void)conv;
@@ -237,7 +217,6 @@ static void reset_mocks(void)
     mock_scrollback_append_fail_on_call = -1;
     mock_scrollback_append_call_count = 0;
 
-    mock_msg_from_db_should_fail = false;
     mock_conversation_add_msg_should_fail = false;
 
     if (mock_err_ctx) {
@@ -277,10 +256,10 @@ static ik_db_ctx_t *create_test_db_ctx(TALLOC_CTX *ctx)
     return talloc_zero_(ctx, sizeof(ik_db_ctx_t));
 }
 
-static ik_message_t *create_mock_message(TALLOC_CTX *ctx, const char *kind, const char *content)
+static ik_msg_t *create_mock_message(TALLOC_CTX *ctx, const char *kind, const char *content)
 {
-    ik_message_t *msg = talloc_zero_(ctx, sizeof(ik_message_t));
-    msg->id = 1;
+    ik_msg_t *msg = talloc_zero_(ctx, sizeof(ik_msg_t));
+    msg->id = 0;  // In-memory message
     msg->kind = talloc_strdup_(ctx, kind);
     msg->content = content ? talloc_strdup_(ctx, content) : NULL;
     msg->data_json = talloc_strdup_(ctx, "{}");
@@ -381,7 +360,7 @@ START_TEST(test_restore_scrollback_append_fails_during_replay)
     ik_replay_context_t *replay_ctx = talloc_zero_(ctx, sizeof(ik_replay_context_t));
     replay_ctx->capacity = 1;
     replay_ctx->count = 1;
-    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_message_t *), 1);
+    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_msg_t *), 1);
     replay_ctx->messages[0] = create_mock_message(ctx, "user", "Hello");
     replay_ctx->mark_stack.capacity = 0;
     replay_ctx->mark_stack.count = 0;
@@ -449,30 +428,6 @@ START_TEST(test_restore_scrollback_append_fails_for_system)
 }
 
 END_TEST
-/* Test: ik_msg_from_db fails - lines 108-111 */
-START_TEST(test_restore_msg_from_db_fails){
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    reset_mocks();
-    ik_repl_ctx_t *repl = create_test_repl(ctx);
-    ik_db_ctx_t *db_ctx = create_test_db_ctx(ctx);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
-    ik_replay_context_t *replay_ctx = talloc_zero_(ctx, sizeof(ik_replay_context_t));
-    replay_ctx->capacity = 1;
-    replay_ctx->count = 1;
-    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_message_t *), 1);
-    replay_ctx->messages[0] = create_mock_message(ctx, "user", "Hello");
-    replay_ctx->mark_stack.capacity = 0;
-    replay_ctx->mark_stack.count = 0;
-    replay_ctx->mark_stack.marks = NULL;
-    mock_replay_context = replay_ctx;
-    mock_active_session_id = 42;
-    mock_msg_from_db_should_fail = true;
-    res_t res = ik_repl_restore_session(repl, db_ctx, cfg);
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(res.err->code, ERR_PARSE);
-    talloc_free(ctx);
-}
-END_TEST
 /* Test: ik_openai_conversation_add_msg fails - lines 117-120 */
 START_TEST(test_restore_conversation_add_msg_fails){
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -483,7 +438,7 @@ START_TEST(test_restore_conversation_add_msg_fails){
     ik_replay_context_t *replay_ctx = talloc_zero_(ctx, sizeof(ik_replay_context_t));
     replay_ctx->capacity = 1;
     replay_ctx->count = 1;
-    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_message_t *), 1);
+    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_msg_t *), 1);
     replay_ctx->messages[0] = create_mock_message(ctx, "user", "Hello");
     replay_ctx->mark_stack.capacity = 0;
     replay_ctx->mark_stack.count = 0;
@@ -510,7 +465,6 @@ static Suite *session_restore_errors_suite(void)
     tcase_add_test(tc_errors, test_restore_scrollback_append_fails_during_replay);
     tcase_add_test(tc_errors, test_restore_message_insert_fails_for_system);
     tcase_add_test(tc_errors, test_restore_scrollback_append_fails_for_system);
-    tcase_add_test(tc_errors, test_restore_msg_from_db_fails);
     tcase_add_test(tc_errors, test_restore_conversation_add_msg_fails);
     suite_add_tcase(s, tc_errors);
     return s;

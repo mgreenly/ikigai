@@ -86,9 +86,6 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
 }
 
 // Wrapper mocks (pass-through to real implementations)
-MOCKABLE res_t ik_msg_from_db_(void *parent, const void *db_msg) {
-    return ik_msg_from_db(parent, (const ik_message_t *)db_msg);
-}
 MOCKABLE res_t ik_openai_conversation_add_msg_(void *conv, void *msg) {
     return ik_openai_conversation_add_msg((ik_openai_conversation_t *)conv, (ik_msg_t *)msg);
 }
@@ -137,14 +134,14 @@ static ik_replay_context_t *create_mock_replay_context(TALLOC_CTX *ctx, int mess
     ik_replay_context_t *replay_ctx = talloc_zero_(ctx, sizeof(ik_replay_context_t));
     replay_ctx->capacity = (size_t)message_count;
     replay_ctx->count = (size_t)message_count;
-    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_message_t *), (size_t)message_count);
+    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_msg_t *), (size_t)message_count);
     return replay_ctx;
 }
 
-static ik_message_t *create_mock_message(TALLOC_CTX *ctx, const char *kind, const char *content)
+static ik_msg_t *create_mock_message(TALLOC_CTX *ctx, const char *kind, const char *content)
 {
-    ik_message_t *msg = talloc_zero_(ctx, sizeof(ik_message_t));
-    msg->id = 1;
+    ik_msg_t *msg = talloc_zero_(ctx, sizeof(ik_msg_t));
+    msg->id = 0;  // In-memory message
     msg->kind = talloc_strdup_(ctx, kind);
     msg->content = content ? talloc_strdup_(ctx, content) : NULL;
     msg->data_json = talloc_strdup_(ctx, "{}");

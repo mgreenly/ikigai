@@ -98,9 +98,6 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
 }
 
 // Wrapper mocks (pass-through to real implementations)
-MOCKABLE res_t ik_msg_from_db_(void *parent, const void *db_msg) {
-    return ik_msg_from_db(parent, (const ik_message_t *)db_msg);
-}
 MOCKABLE res_t ik_openai_conversation_add_msg_(void *conv, void *msg) {
     return ik_openai_conversation_add_msg((ik_openai_conversation_t *)conv, (ik_msg_t *)msg);
 }
@@ -153,10 +150,10 @@ static ik_db_ctx_t *create_test_db_ctx(TALLOC_CTX *ctx)
     return talloc_zero_(ctx, sizeof(ik_db_ctx_t));
 }
 
-static ik_message_t *create_mock_message(TALLOC_CTX *ctx, const char *kind, const char *content)
+static ik_msg_t *create_mock_message(TALLOC_CTX *ctx, const char *kind, const char *content)
 {
-    ik_message_t *msg = talloc_zero_(ctx, sizeof(ik_message_t));
-    msg->id = 1;
+    ik_msg_t *msg = talloc_zero_(ctx, sizeof(ik_msg_t));
+    msg->id = 0;  // In-memory message
     msg->kind = talloc_strdup_(ctx, kind);
     msg->content = content ? talloc_strdup_(ctx, content) : NULL;
     msg->data_json = talloc_strdup_(ctx, "{}");
@@ -176,7 +173,7 @@ START_TEST(test_restore_session_with_marks_rebuilds_stack) {
     ik_replay_context_t *replay_ctx = talloc_zero_(ctx, sizeof(ik_replay_context_t));
     replay_ctx->capacity = 3;
     replay_ctx->count = 3;
-    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_message_t *), 3);
+    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_msg_t *), 3);
     replay_ctx->messages[0] = create_mock_message(ctx, "user", "First message");
     replay_ctx->messages[1] = create_mock_message(ctx, "mark", NULL); // Mark 1
     replay_ctx->messages[2] = create_mock_message(ctx, "user", "Second message");
@@ -233,7 +230,7 @@ START_TEST(test_restore_session_no_marks_stack_empty)
     ik_replay_context_t *replay_ctx = talloc_zero_(ctx, sizeof(ik_replay_context_t));
     replay_ctx->capacity = 2;
     replay_ctx->count = 2;
-    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_message_t *), 2);
+    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_msg_t *), 2);
     replay_ctx->messages[0] = create_mock_message(ctx, "user", "Hello");
     replay_ctx->messages[1] = create_mock_message(ctx, "assistant", "Hi");
 
@@ -270,7 +267,7 @@ START_TEST(test_restore_session_single_labeled_mark)
     ik_replay_context_t *replay_ctx = talloc_zero_(ctx, sizeof(ik_replay_context_t));
     replay_ctx->capacity = 1;
     replay_ctx->count = 1;
-    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_message_t *), 1);
+    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_msg_t *), 1);
     replay_ctx->messages[0] = create_mock_message(ctx, "mark", NULL);
 
     // Set up mark stack
@@ -308,7 +305,7 @@ START_TEST(test_restore_session_unlabeled_mark)
     ik_replay_context_t *replay_ctx = talloc_zero_(ctx, sizeof(ik_replay_context_t));
     replay_ctx->capacity = 1;
     replay_ctx->count = 1;
-    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_message_t *), 1);
+    replay_ctx->messages = talloc_array_(ctx, sizeof(ik_msg_t *), 1);
     replay_ctx->messages[0] = create_mock_message(ctx, "mark", NULL);
 
     // Set up mark stack with NULL label
