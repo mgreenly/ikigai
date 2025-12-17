@@ -124,6 +124,30 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
                       const char *parent_uuid, ik_agent_ctx_t **out);
 
 /**
+ * Restore agent context from database row
+ *
+ * Creates an agent context populated with data from a DB row.
+ * Used during startup to restore agents that were running when
+ * the process last exited.
+ *
+ * Unlike ik_agent_create():
+ * - Uses row->uuid instead of generating new UUID
+ * - Sets fork_message_id from row
+ * - Sets created_at from row
+ * - Sets name from row (if present)
+ * - Sets parent_uuid from row
+ * - Does NOT register agent in database (already exists)
+ *
+ * @param ctx Talloc parent (repl_ctx)
+ * @param shared Shared infrastructure
+ * @param row Database row with agent data (must not be NULL)
+ * @param out Receives allocated agent context
+ * @return OK on success, ERR on failure
+ */
+res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
+                       const void *row, ik_agent_ctx_t **out);
+
+/**
  * Copy conversation from one agent to another
  *
  * Copies the in-memory conversation array from parent to child.
