@@ -17,22 +17,6 @@
 #include <string.h>
 #include <talloc.h>
 
-// Check if a message kind should be included in conversation
-// Returns true for user, assistant, system, tool_call, tool_result
-// Returns false for clear, mark, rewind (control events, not conversation)
-static bool is_conversation_kind(const char *kind)
-{
-    if (kind == NULL) return false;
-
-    // Control events that don't go in conversation
-    if (strcmp(kind, "clear") == 0) return false;
-    if (strcmp(kind, "mark") == 0) return false;
-    if (strcmp(kind, "rewind") == 0) return false;
-
-    // Everything else is conversation content
-    return true;
-}
-
 // Comparison function for qsort - sort by created_at ascending (oldest first)
 static int compare_agents_by_created_at(const void *a, const void *b)
 {
@@ -98,7 +82,7 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
             // Populate conversation (filter non-conversation kinds)
             for (size_t j = 0; j < replay_ctx->count; j++) {
                 ik_msg_t *msg = replay_ctx->messages[j];
-                if (is_conversation_kind(msg->kind)) {
+                if (ik_msg_is_conversation_kind(msg->kind)) {
                     ik_msg_t *conv_msg = talloc_steal(agent->conversation, msg);
                     res = ik_openai_conversation_add_msg(agent->conversation, conv_msg);
                     if (is_err(&res)) {
@@ -273,7 +257,7 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
         // --- Step 3: Populate conversation (filter non-conversation kinds) ---
         for (size_t j = 0; j < replay_ctx->count; j++) {
             ik_msg_t *msg = replay_ctx->messages[j];
-            if (is_conversation_kind(msg->kind)) {
+            if (ik_msg_is_conversation_kind(msg->kind)) {
                 // Steal message from replay_ctx to agent's conversation
                 ik_msg_t *conv_msg = talloc_steal(agent->conversation, msg);
                 res = ik_openai_conversation_add_msg(agent->conversation, conv_msg);

@@ -488,6 +488,45 @@ START_TEST(test_dependency_ordering_on_restore)
 }
 END_TEST
 
+// Test: Metadata events filtered from conversation during restore
+START_TEST(test_metadata_events_filtered_on_restore)
+{
+    SKIP_IF_NO_DB();
+
+    // Setup:
+    // - Agent with conversation messages and metadata events
+    insert_agent("agent-metadata-test", NULL, 1000, 0);
+    insert_message("agent-metadata-test", "clear", NULL);
+    insert_message("agent-metadata-test", "user", "Hello");
+    insert_message("agent-metadata-test", "assistant", "Hi there");
+    insert_message("agent-metadata-test", "agent_killed", NULL);  // Metadata event
+    insert_message("agent-metadata-test", "mark", NULL);           // Metadata event
+    insert_message("agent-metadata-test", "user", "Follow up");
+    insert_message("agent-metadata-test", "assistant", "Response");
+
+    // Restore
+    ik_repl_ctx_t *repl = create_test_repl("agent-metadata-test");
+    res_t res = ik_repl_restore_agents(repl, db);
+    ck_assert(is_ok(&res));
+
+    // After restore:
+    // - Conversation should only have: Hello, Hi there, Follow up, Response
+    // - Metadata events (agent_killed, mark) should NOT be in conversation
+    ck_assert_uint_eq(repl->current->conversation->message_count, 4);
+    ck_assert_str_eq(repl->current->conversation->messages[0]->content, "Hello");
+    ck_assert_str_eq(repl->current->conversation->messages[1]->content, "Hi there");
+    ck_assert_str_eq(repl->current->conversation->messages[2]->content, "Follow up");
+    ck_assert_str_eq(repl->current->conversation->messages[3]->content, "Response");
+
+    // Verify no metadata events in conversation
+    for (size_t i = 0; i < repl->current->conversation->message_count; i++) {
+        ck_assert_str_ne(repl->current->conversation->messages[i]->kind, "agent_killed");
+        ck_assert_str_ne(repl->current->conversation->messages[i]->kind, "mark");
+        ck_assert_str_ne(repl->current->conversation->messages[i]->kind, "clear");
+    }
+}
+END_TEST
+
 // ========== Suite Configuration ==========
 
 static Suite *agent_restore_integration_suite(void)
@@ -509,6 +548,7 @@ static Suite *agent_restore_integration_suite(void)
     tcase_add_test(tc_core, test_clear_events_respected_on_restore);
     tcase_add_test(tc_core, test_deep_ancestry_on_restore);
     tcase_add_test(tc_core, test_dependency_ordering_on_restore);
+    tcase_add_test(tc_core, test_metadata_events_filtered_on_restore);
 
     suite_add_tcase(s, tc_core);
     return s;
