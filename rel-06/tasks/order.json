@@ -1,48 +1,6 @@
 {
   "todo": [
     {
-      "task": "gap1-agent-restore-fn.md",
-      "group": "Gap 1: Agent Restoration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "gap1-restore-agents-skeleton.md",
-      "group": "Gap 1: Agent Restoration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "gap1-restore-loop-body.md",
-      "group": "Gap 1: Agent Restoration",
-      "model": "opus",
-      "thinking": "extended"
-    },
-    {
-      "task": "gap1-integrate-repl-init.md",
-      "group": "Gap 1: Agent Restoration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "gap1-migrate-agent0.md",
-      "group": "Gap 1: Agent Restoration",
-      "model": "opus",
-      "thinking": "extended"
-    },
-    {
-      "task": "gap1-fresh-install.md",
-      "group": "Gap 1: Agent Restoration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "gap1-tests.md",
-      "group": "Gap 1: Tests",
-      "model": "opus",
-      "thinking": "extended"
-    },
-    {
       "task": "gap1-delete-obsolete.md",
       "group": "Gap 1: Cleanup",
       "model": "sonnet",
@@ -409,6 +367,48 @@
       "group": "Gap 0: Verification",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "gap1-agent-restore-fn.md",
+      "group": "Gap 1: Agent Restoration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap1-restore-agents-skeleton.md",
+      "group": "Gap 1: Agent Restoration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap1-restore-loop-body.md",
+      "group": "Gap 1: Agent Restoration",
+      "model": "opus",
+      "thinking": "extended"
+    },
+    {
+      "task": "gap1-integrate-repl-init.md",
+      "group": "Gap 1: Agent Restoration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap1-migrate-agent0.md",
+      "group": "Gap 1: Agent Restoration",
+      "model": "opus",
+      "thinking": "extended"
+    },
+    {
+      "task": "gap1-fresh-install.md",
+      "group": "Gap 1: Agent Restoration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap1-tests.md",
+      "group": "Gap 1: Tests",
+      "model": "opus",
+      "thinking": "ultrathink"
     }
   ]
 }

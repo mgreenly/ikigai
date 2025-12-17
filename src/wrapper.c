@@ -432,7 +432,6 @@ MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct 
 
 #include "db/connection.h"
 #include "db/message.h"
-#include "repl/session_restore.h"
 #include "config.h"
 #include "scrollback.h"
 #include "msg.h"
@@ -453,10 +452,6 @@ MOCKABLE res_t ik_db_message_insert_(void *db,
     return ik_db_message_insert((ik_db_ctx_t *)db, session_id, agent_uuid, kind, content, data_json);
 }
 
-MOCKABLE res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg)
-{
-    return ik_repl_restore_session((ik_repl_ctx_t *)repl, (ik_db_ctx_t *)db_ctx, (ik_cfg_t *)cfg);
-}
 
 MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length)
 {
