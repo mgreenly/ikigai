@@ -529,10 +529,13 @@ res_t ik_repl_nav_child(ik_repl_ctx_t *repl)
     for (size_t i = 0; i < repl->agent_count; i++) {
         ik_agent_ctx_t *a = repl->agents[i];
         if (a->parent_uuid &&
-            strcmp(a->parent_uuid, repl->current->uuid) == 0 &&
-            a->created_at > newest_time) {     // LCOV_EXCL_BR_LINE
-            newest = a;
-            newest_time = a->created_at;
+            strcmp(a->parent_uuid, repl->current->uuid) == 0) {
+            // If no candidate yet, take this one regardless of timestamp
+            // Otherwise, take if newer (handles created_at = 0 from legacy data)
+            if (newest == NULL || a->created_at > newest_time) {     // LCOV_EXCL_BR_LINE
+                newest = a;
+                newest_time = a->created_at;
+            }
         }
     }
 

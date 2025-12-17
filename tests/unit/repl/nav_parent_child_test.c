@@ -230,6 +230,25 @@ START_TEST(test_nav_child_with_mixed_children)
 }
 END_TEST
 
+// Test: nav_child with zero created_at (legacy data)
+START_TEST(test_nav_child_with_zero_created_at)
+{
+    // Create parent and child with created_at = 0 (simulating legacy data)
+    ik_agent_ctx_t *parent = create_test_agent("parent-uuid", NULL, 100);
+    ik_agent_ctx_t *child = create_test_agent("child-uuid", "parent-uuid", 0);
+
+    add_agent_to_array(parent);
+    add_agent_to_array(child);
+
+    repl->current = parent;
+
+    // Navigate to child - should work despite created_at = 0
+    res_t result = ik_repl_nav_child(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_eq(repl->current, child);
+}
+END_TEST
+
 // Create suite
 static Suite *nav_parent_child_suite(void)
 {
@@ -245,6 +264,7 @@ static Suite *nav_parent_child_suite(void)
     tcase_add_test(tc_nav, test_nav_child_skips_dead_children);
     tcase_add_test(tc_nav, test_nav_parent_with_dead_parent_no_action);
     tcase_add_test(tc_nav, test_nav_child_with_mixed_children);
+    tcase_add_test(tc_nav, test_nav_child_with_zero_created_at);
     suite_add_tcase(s, tc_nav);
 
     return s;
