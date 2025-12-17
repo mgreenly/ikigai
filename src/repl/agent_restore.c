@@ -3,9 +3,11 @@
 
 #include "../db/agent.h"
 #include "../db/agent_replay.h"
+#include "../db/message.h"
 #include "../error.h"
 #include "../event_render.h"
 #include "../logger.h"
+#include "../msg.h"
 #include "../openai/client.h"
 #include "../repl.h"
 #include "../shared.h"
@@ -149,6 +151,91 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
             yyjson_mut_obj_add_uint(log_doc, root, "message_count", replay_ctx->count);
             yyjson_mut_obj_add_uint(log_doc, root, "mark_count", agent->mark_count);
             ik_logger_debug_json(repl->shared->logger, log_doc);
+
+            // Handle fresh install - if Agent 0 has no history
+            if (replay_ctx->count == 0) {
+                // Fresh install - write initial events for Agent 0
+
+                // 1. Write clear event to establish session start
+                res_t clear_res = ik_db_message_insert(
+                    db_ctx,
+                    repl->shared->session_id,
+                    repl->current->uuid,
+                    "clear",
+                    NULL,
+                    "{}"
+                );
+                if (is_err(&clear_res)) {
+                    yyjson_mut_doc *clear_log = ik_log_create();
+                    yyjson_mut_val *clear_root = yyjson_mut_doc_get_root(clear_log);
+                    yyjson_mut_obj_add_str(clear_log, clear_root, "event", "fresh_install_clear_failed");
+                    yyjson_mut_obj_add_str(clear_log, clear_root, "error", error_message(clear_res.err));
+                    ik_logger_warn_json(repl->shared->logger, clear_log);
+                    // Continue anyway - not fatal for fresh install
+                }
+
+                // 2. Write system message if configured
+                ik_cfg_t *cfg = repl->shared->cfg;
+                if (cfg != NULL && cfg->openai_system_message != NULL) {
+                    // Write to database
+                    res_t system_res = ik_db_message_insert(
+                        db_ctx,
+                        repl->shared->session_id,
+                        repl->current->uuid,
+                        "system",
+                        cfg->openai_system_message,
+                        "{}"
+                    );
+                    if (is_err(&system_res)) {
+                        yyjson_mut_doc *sys_log = ik_log_create();
+                        yyjson_mut_val *sys_root = yyjson_mut_doc_get_root(sys_log);
+                        yyjson_mut_obj_add_str(sys_log, sys_root, "event", "fresh_install_system_failed");
+                        yyjson_mut_obj_add_str(sys_log, sys_root, "error", error_message(system_res.err));
+                        ik_logger_warn_json(repl->shared->logger, sys_log);
+                    } else {
+                        // Add to scrollback for display
+                        res_t render_res = ik_event_render(
+                            repl->current->scrollback,
+                            "system",
+                            cfg->openai_system_message,
+                            "{}"
+                        );
+                        if (is_err(&render_res)) {
+                            yyjson_mut_doc *render_log = ik_log_create();
+                            yyjson_mut_val *render_root = yyjson_mut_doc_get_root(render_log);
+                            yyjson_mut_obj_add_str(render_log, render_root, "event", "fresh_install_render_failed");
+                            yyjson_mut_obj_add_str(render_log, render_root, "error", error_message(render_res.err));
+                            ik_logger_warn_json(repl->shared->logger, render_log);
+                        }
+
+                        // Add to conversation for LLM context
+                        ik_msg_t *sys_msg = talloc_zero(repl->current->conversation, ik_msg_t);
+                        if (sys_msg != NULL) {
+                            sys_msg->id = 0;
+                            sys_msg->kind = talloc_strdup(sys_msg, "system");
+                            sys_msg->content = talloc_strdup(sys_msg, cfg->openai_system_message);
+                            sys_msg->data_json = talloc_strdup(sys_msg, "{}");
+
+                            res_t add_res = ik_openai_conversation_add_msg(
+                                repl->current->conversation,
+                                sys_msg
+                            );
+                            if (is_err(&add_res)) {
+                                yyjson_mut_doc *conv_log = ik_log_create();
+                                yyjson_mut_val *conv_root = yyjson_mut_doc_get_root(conv_log);
+                                yyjson_mut_obj_add_str(conv_log, conv_root, "event", "fresh_install_conversation_failed");
+                                yyjson_mut_obj_add_str(conv_log, conv_root, "error", error_message(add_res.err));
+                                ik_logger_warn_json(repl->shared->logger, conv_log);
+                            }
+                        }
+                    }
+                }
+
+                yyjson_mut_doc *fresh_log = ik_log_create();
+                yyjson_mut_val *fresh_root = yyjson_mut_doc_get_root(fresh_log);
+                yyjson_mut_obj_add_str(fresh_log, fresh_root, "event", "fresh_install_complete");
+                ik_logger_debug_json(repl->shared->logger, fresh_log);
+            }
 
             continue;  // Skip the regular agent creation path
         }
