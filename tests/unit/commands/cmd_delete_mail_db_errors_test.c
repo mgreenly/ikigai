@@ -34,8 +34,10 @@ static ik_db_ctx_t *db;
 
 // Mock results
 static PGresult *mock_failed_result = (PGresult *)1;
+static PGresult *mock_success_result = (PGresult *)2;
+static int call_count = 0;
 
-// Override pq_exec_params_ to always fail
+// Override pq_exec_params_ to succeed on first call (inbox fetch), fail on second (delete)
 PGresult *pq_exec_params_(PGconn *conn,
                           const char *command,
                           int nParams,
@@ -54,6 +56,12 @@ PGresult *pq_exec_params_(PGconn *conn,
     (void)paramFormats;
     (void)resultFormat;
 
+    call_count++;
+    // First call is inbox fetch - succeed with empty result
+    if (call_count == 1) {
+        return mock_success_result;
+    }
+    // Second call is delete - fail with "not found"
     return mock_failed_result;
 }
 
@@ -63,7 +71,62 @@ ExecStatusType PQresultStatus(const PGresult *res)
     if (res == mock_failed_result) {
         return PGRES_FATAL_ERROR;
     }
+    if (res == mock_success_result) {
+        return PGRES_TUPLES_OK;
+    }
     return PGRES_TUPLES_OK;
+}
+
+// Override PQntuples - return 1 for inbox (so position 1 is valid)
+int PQntuples(const PGresult *res)
+{
+    if (res == mock_success_result) {
+        return 1;  // One message in inbox
+    }
+    return 0;
+}
+
+// Override PQnfields
+int PQnfields(const PGresult *res)
+{
+    if (res == mock_success_result) {
+        return 6;  // id, from_uuid, to_uuid, body, timestamp, read
+    }
+    return 0;
+}
+
+// Override PQgetvalue
+char *PQgetvalue(const PGresult *res, int row, int col)
+{
+    static char id_val[] = "999";
+    static char from_val[] = "sender-uuid";
+    static char to_val[] = "current-uuid-123";
+    static char body_val[] = "Test message";
+    static char timestamp_val[] = "1234567890";
+    static char read_val[] = "0";
+    static char empty_val[] = "";
+
+    if (res == mock_success_result && row == 0) {
+        switch (col) {
+            case 0: return id_val;
+            case 1: return from_val;
+            case 2: return to_val;
+            case 3: return body_val;
+            case 4: return timestamp_val;
+            case 5: return read_val;
+            default: return empty_val;
+        }
+    }
+    return empty_val;
+}
+
+// Override PQgetisnull
+int PQgetisnull(const PGresult *res, int row, int col)
+{
+    (void)res;
+    (void)row;
+    (void)col;
+    return 0;  // No NULLs
 }
 
 // Override PQerrorMessage - return "not found" to trigger line 355
@@ -146,10 +209,14 @@ static void teardown(void)
     repl = NULL;
 }
 
-// Test: /delete-mail with "not found" error takes error path (line 355)
+// Test: /delete-mail with "not found" error takes error path (line 377)
 START_TEST(test_delete_mail_not_found_error_path)
 {
-    res_t res = cmd_delete_mail(test_ctx, repl, "999");
+    // Reset call count for this test
+    call_count = 0;
+
+    // Use position 1 (valid in inbox), but delete will fail
+    res_t res = cmd_delete_mail(test_ctx, repl, "1");
 
     // Command should return OK after handling the error
     ck_assert(is_ok(&res));

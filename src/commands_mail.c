@@ -333,23 +333,49 @@ res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
 
-    (void)ctx;
-
-    // Parse mail ID
-    int64_t mail_id = 0;
-    if (args == NULL || sscanf(args, "%" SCNd64, &mail_id) != 1) {     // LCOV_EXCL_BR_LINE
-        const char *msg = "Error: Usage: /delete-mail <id>";
+    // Validate args
+    if (args == NULL || args[0] == '\0') {     // LCOV_EXCL_BR_LINE
+        const char *msg = "Error: Missing message ID (usage: /delete-mail <id>)";
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return OK(NULL);
     }
 
-    // Delete (validates ownership internally)
-    res_t res = ik_db_mail_delete(repl->shared->db_ctx,
-        mail_id, repl->current->uuid);
+    // Parse message index (1-based position)
+    char *endptr = NULL;
+    int64_t index = strtoll(args, &endptr, 10);
+    if (*endptr != '\0' || index < 1) {     // LCOV_EXCL_BR_LINE
+        const char *msg = "Error: Invalid message ID";
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        return OK(NULL);
+    }
+
+    // Get inbox for current agent
+    ik_mail_msg_t **inbox = NULL;
+    size_t count = 0;
+    res_t res = ik_db_mail_inbox(repl->shared->db_ctx, ctx,
+                                  repl->shared->session_id,
+                                  repl->current->uuid,
+                                  &inbox, &count);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        return res;     // LCOV_EXCL_LINE
+    }
+
+    // Validate index is within range
+    if ((size_t)index > count) {     // LCOV_EXCL_BR_LINE
+        const char *msg = "Error: Message not found";
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        return OK(NULL);
+    }
+
+    // Get the message (convert 1-based to 0-based index)
+    ik_mail_msg_t *msg = inbox[index - 1];
+
+    // Delete using database ID (validates ownership internally)
+    res = ik_db_mail_delete(repl->shared->db_ctx, msg->id, repl->current->uuid);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         if (res.err->code == ERR_IO && strstr(res.err->msg, "not found")) {     // LCOV_EXCL_BR_LINE
-            const char *msg = "Error: Mail not found or not yours";
-            ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+            const char *msg_text = "Error: Mail not found or not yours";
+            ik_scrollback_append_line(repl->current->scrollback, msg_text, strlen(msg_text));
             talloc_free(res.err);
         } else {
             return res;     // LCOV_EXCL_LINE
@@ -358,8 +384,8 @@ res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Confirm
-    const char *msg = "Mail deleted";
-    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+    const char *confirm = "Mail deleted";
+    ik_scrollback_append_line(repl->current->scrollback, confirm, strlen(confirm));
 
     return OK(NULL);
 }
