@@ -57,7 +57,7 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
  */
 res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
                             const ik_replay_range_t *range,
-                            ik_message_t ***messages_out,
+                            ik_msg_t ***messages_out,
                             size_t *count_out);
 
 /**

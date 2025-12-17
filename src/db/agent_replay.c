@@ -177,7 +177,7 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
 
 res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
                             const ik_replay_range_t *range,
-                            ik_message_t ***messages_out,
+                            ik_msg_t ***messages_out,
                             size_t *count_out)
 {
     assert(db_ctx != NULL);       // LCOV_EXCL_BR_LINE
@@ -229,11 +229,11 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     }
 
     // Allocate message array
-    ik_message_t **messages = talloc_array(mem_ctx, ik_message_t *, (unsigned int)num_rows);
+    ik_msg_t **messages = talloc_array(mem_ctx, ik_msg_t *, (unsigned int)num_rows);
     if (messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (int i = 0; i < num_rows; i++) {
-        ik_message_t *msg = talloc_zero(messages, ik_message_t);
+        ik_msg_t *msg = talloc_zero(messages, ik_msg_t);
         if (msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         // Parse ID
@@ -309,7 +309,7 @@ res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
 
     // Process each range in chronological order
     for (size_t i = 0; i < range_count; i++) {
-        ik_message_t **range_msgs = NULL;
+        ik_msg_t **range_msgs = NULL;
         size_t range_msg_count = 0;
 
         res = ik_agent_query_range(db_ctx, tmp, &ranges[i], &range_msgs, &range_msg_count);
@@ -324,7 +324,7 @@ res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
             // Ensure capacity
             if (ctx->count >= ctx->capacity) {
                 size_t new_capacity = ctx->capacity == 0 ? 16 : ctx->capacity * 2;
-                ik_message_t **new_messages = talloc_realloc(ctx, ctx->messages, ik_message_t *,
+                ik_msg_t **new_messages = talloc_realloc(ctx, ctx->messages, ik_msg_t *,
                                                               (unsigned int)new_capacity);
                 if (new_messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
                 ctx->messages = new_messages;
@@ -332,8 +332,8 @@ res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
             }
 
             // Copy message to context
-            ik_message_t *src_msg = range_msgs[j];
-            ik_message_t *msg = talloc_zero(ctx, ik_message_t);
+            ik_msg_t *src_msg = range_msgs[j];
+            ik_msg_t *msg = talloc_zero(ctx, ik_msg_t);
             if (msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
             msg->id = src_msg->id;
