@@ -743,5 +743,30 @@
     "event": "done",
     "task": "bug5-agent-restore-filter.md",
     "time": "2025-12-17T08:07:58.056Z"
+  },
+  {
+    "event": "done",
+    "task": "06-add-command-fork-renderers.md",
+    "time": "2025-12-17T17:06:43.570Z"
+  },
+  {
+    "event": "start",
+    "task": "07-cleanup-old-replay.md",
+    "time": "2025-12-17T17:08:24.257Z"
+  },
+  {
+    "event": "done",
+    "task": "07-cleanup-old-replay.md",
+    "time": "2025-12-17T17:13:10.353Z"
+  },
+  {
+    "event": "start",
+    "task": "08-fork-scrollback-population.md",
+    "time": "2025-12-17T17:13:24.700Z"
+  },
+  {
+    "event": "done",
+    "task": "08-fork-scrollback-population.md",
+    "time": "2025-12-17T17:23:15.195Z"
   }
 ]

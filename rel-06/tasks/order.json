@@ -1,54 +1,5 @@
 {
-  "todo": [
-    {
-      "task": "01-fix-agent-uuid-inserts.md",
-      "group": "Session History Replay",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "02-add-message-kinds.md",
-      "group": "Session History Replay",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "03-add-agent-killed-renderer.md",
-      "group": "Session History Replay",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "04-add-fork-event-persistence.md",
-      "group": "Session History Replay",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "05-persist-slash-command-output.md",
-      "group": "Session History Replay",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "06-add-command-fork-renderers.md",
-      "group": "Session History Replay",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "07-cleanup-old-replay.md",
-      "group": "Session History Replay",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "08-fork-scrollback-population.md",
-      "group": "Session History Replay",
-      "model": "sonnet",
-      "thinking": "extended"
-    }
-  ],
+  "todo": [],
   "done": [
     {
       "task": "registry-schema.md",
@@ -487,6 +438,54 @@
       "group": "Active Bugs",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "06-add-command-fork-renderers.md",
+      "group": "Session History Replay",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "01-fix-agent-uuid-inserts.md",
+      "group": "Session History Replay",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "02-add-message-kinds.md",
+      "group": "Session History Replay",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "03-add-agent-killed-renderer.md",
+      "group": "Session History Replay",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "04-add-fork-event-persistence.md",
+      "group": "Session History Replay",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "05-persist-slash-command-output.md",
+      "group": "Session History Replay",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "07-cleanup-old-replay.md",
+      "group": "Session History Replay",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "08-fork-scrollback-population.md",
+      "group": "Session History Replay",
+      "model": "sonnet",
+      "thinking": "extended"
     }
   ]
 }
