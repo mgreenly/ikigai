@@ -1,5 +1,5 @@
-#include "../../src/uuid.h"
-#include "../test_utils.h"
+#include "uuid.h"
+#include "../../test_utils.h"
 
 #include <check.h>
 #include <talloc.h>

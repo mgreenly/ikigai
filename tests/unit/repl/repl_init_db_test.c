@@ -21,6 +21,10 @@
 static bool mock_db_init_should_fail = false;
 static bool mock_sigaction_should_fail = false;
 static bool mock_ensure_agent_zero_should_fail = false;
+static bool mock_session_get_active_should_fail = false;
+static bool mock_session_create_should_fail = false;
+static bool mock_restore_agents_should_fail = false;
+static bool mock_session_exists = false;  // Controls if session_get_active returns existing session
 
 // Forward declarations for wrapper functions
 int posix_open_(const char *pathname, int flags);
@@ -43,6 +47,7 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid);
 res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent);
 res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out);
 res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx, ik_db_agent_row_t ***out, size_t *count);
+res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx);
 
 // Forward declaration for suite function
 static Suite *repl_init_db_suite(void);
@@ -131,6 +136,17 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     return OK(NULL);
 }
 
+// Mock ik_repl_restore_agents (needed because repl_init calls it)
+res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
+{
+    if (mock_restore_agents_should_fail) {
+        return ERR(repl, IO, "Mock restore agents failure");
+    }
+    (void)repl;
+    (void)db_ctx;
+    return OK(NULL);
+}
+
 // Mock ik_db_message_insert (needed because session_restore calls it)
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
                            int64_t session_id,
@@ -151,6 +167,9 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
 // Mock ik_db_session_create (needed because session_restore calls it)
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 {
+    if (mock_session_create_should_fail) {
+        return ERR(db_ctx, IO, "Mock session create failure");
+    }
     (void)db_ctx;
     *session_id_out = 1;  // Return a dummy session ID
     return OK(NULL);
@@ -159,8 +178,15 @@ res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 // Mock ik_db_session_get_active (needed because session_restore calls it)
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 {
+    if (mock_session_get_active_should_fail) {
+        return ERR(db_ctx, IO, "Mock session get active failure");
+    }
     (void)db_ctx;
-    *session_id_out = 0;  // No active session - return 0 (not an error)
+    if (mock_session_exists) {
+        *session_id_out = 42;  // Return an existing session ID
+    } else {
+        *session_id_out = 0;  // No active session - return 0 (not an error)
+    }
     return OK(NULL);
 }
 
@@ -373,6 +399,135 @@ START_TEST(test_repl_init_signal_handler_failure_with_db)
 }
 END_TEST
 
+/* Test: Session get active failure */
+START_TEST(test_repl_init_session_get_active_failure)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Enable mock failure for session get active
+    mock_session_get_active_should_fail = true;
+
+    // Create config with database
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Attempt to initialize REPL - should fail on session_get_active
+    res = ik_repl_init(ctx, shared, &repl);
+
+    // Verify failure
+    ck_assert(is_err(&res));
+    ck_assert_ptr_null(repl);
+
+    // Cleanup mock state
+    mock_session_get_active_should_fail = false;
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* Test: Session create failure */
+START_TEST(test_repl_init_session_create_failure)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Enable mock failure for session create
+    mock_session_create_should_fail = true;
+
+    // Create config with database
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Attempt to initialize REPL - should fail on session_create
+    res = ik_repl_init(ctx, shared, &repl);
+
+    // Verify failure
+    ck_assert(is_err(&res));
+    ck_assert_ptr_null(repl);
+
+    // Cleanup mock state
+    mock_session_create_should_fail = false;
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* Test: Restore agents failure */
+START_TEST(test_repl_init_restore_agents_failure)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Enable mock failure for restore agents
+    mock_restore_agents_should_fail = true;
+
+    // Create config with database
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Attempt to initialize REPL - should fail on restore_agents
+    res = ik_repl_init(ctx, shared, &repl);
+
+    // Verify failure
+    ck_assert(is_err(&res));
+    ck_assert_ptr_null(repl);
+
+    // Cleanup mock state
+    mock_restore_agents_should_fail = false;
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* Test: Existing session found (session_id != 0) */
+START_TEST(test_repl_init_existing_session)
+{
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Enable mock existing session
+    mock_session_exists = true;
+
+    // Create config with database
+    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Initialize REPL - should use existing session
+    res = ik_repl_init(ctx, shared, &repl);
+
+    // Verify success
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(repl);
+    ck_assert_ptr_nonnull(repl->shared->db_ctx);
+
+    // Verify session_id was set to the existing session ID (42)
+    ck_assert_int_eq(shared->session_id, 42);
+
+    // Cleanup mock state
+    mock_session_exists = false;
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *repl_init_db_suite(void)
 {
     Suite *s = suite_create("REPL Database Initialization");
@@ -382,11 +537,15 @@ static Suite *repl_init_db_suite(void)
     tcase_add_test(tc_db, test_repl_init_db_init_failure);
     tcase_add_test(tc_db, test_repl_init_ensure_agent_zero_failure);
     tcase_add_test(tc_db, test_repl_init_signal_handler_failure_with_db);
+    tcase_add_test(tc_db, test_repl_init_session_get_active_failure);
+    tcase_add_test(tc_db, test_repl_init_session_create_failure);
+    tcase_add_test(tc_db, test_repl_init_restore_agents_failure);
     suite_add_tcase(s, tc_db);
 
     TCase *tc_db_success = tcase_create("Database Success");
     tcase_set_timeout(tc_db_success, 30);
     tcase_add_test(tc_db_success, test_repl_init_db_success);
+    tcase_add_test(tc_db_success, test_repl_init_existing_session);
     suite_add_tcase(s, tc_db_success);
 
     return s;

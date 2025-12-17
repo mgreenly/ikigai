@@ -9,6 +9,7 @@ START_TEST(test_conversation_kinds) {
     ck_assert(ik_msg_is_conversation_kind("assistant") == true);
     ck_assert(ik_msg_is_conversation_kind("tool_call") == true);
     ck_assert(ik_msg_is_conversation_kind("tool_result") == true);
+    ck_assert(ik_msg_is_conversation_kind("tool") == true);
 }
 END_TEST
 

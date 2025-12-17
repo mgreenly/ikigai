@@ -248,8 +248,8 @@ $(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test: $(BUILDDIR)/tests/unit/r
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-# Special rule for repl_init_db_test (uses mocks, excludes src/db/agent.c)
-$(BUILDDIR)/tests/unit/repl/repl_init_db_test: $(BUILDDIR)/tests/unit/repl/repl_init_db_test.o $(MODULE_OBJ_NO_DB_AGENT) $(TEST_UTILS_OBJ)
+# Special rule for repl_init_db_test (uses mocks, excludes src/db/agent.c and src/repl/agent_restore.c)
+$(BUILDDIR)/tests/unit/repl/repl_init_db_test: $(BUILDDIR)/tests/unit/repl/repl_init_db_test.o $(filter-out $(BUILDDIR)/repl/agent_restore.o,$(MODULE_OBJ_NO_DB_AGENT)) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
