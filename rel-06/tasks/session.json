@@ -688,5 +688,25 @@
     "event": "done",
     "task": "gap2-separator-wiring.md",
     "time": "2025-12-17T04:09:14.265Z"
+  },
+  {
+    "event": "start",
+    "task": "bug3-nav-child-switch.md",
+    "time": "2025-12-17T06:38:24.120Z"
+  },
+  {
+    "event": "done",
+    "task": "bug3-nav-child-switch.md",
+    "time": "2025-12-17T06:47:05.690Z"
+  },
+  {
+    "event": "start",
+    "task": "bug2-separator-width.md",
+    "time": "2025-12-17T06:47:23.173Z"
+  },
+  {
+    "event": "done",
+    "task": "bug2-separator-width.md",
+    "time": "2025-12-17T06:53:00.000Z"
   }
 ]

@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "bug3-nav-child-switch.md",
-      "group": "Active Bugs",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
       "task": "bug2-separator-width.md",
       "group": "Active Bugs",
       "model": "sonnet",
@@ -427,6 +421,12 @@
       "group": "Gap 2: UI Polish",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "bug3-nav-child-switch.md",
+      "group": "Active Bugs",
+      "model": "sonnet",
+      "thinking": "none"
     }
   ]
 }
