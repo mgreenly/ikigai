@@ -423,6 +423,65 @@ START_TEST(test_db_message_insert_multiple_events)
 }
 
 END_TEST
+// Test: Insert command event for slash command persistence
+START_TEST(test_db_message_insert_command_event)
+{
+    SKIP_IF_NO_DB();
+
+    const char *command_content = "/help";
+    const char *data_json = "{\"command\":\"/help\",\"output\":\"Available commands...\"}";
+
+    res_t res = ik_db_message_insert(db, session_id, NULL, "command", command_content, data_json);
+    ck_assert(is_ok(&res));
+
+    // Verify message was inserted
+    const char *query = "SELECT kind, content, data::text FROM messages WHERE session_id = $1 AND kind = 'command'";
+    const char *params[] = {talloc_asprintf(test_ctx, "%lld", (long long)session_id)};
+    PGresult *result = PQexecParams(db->conn, query, 1, NULL, params, NULL, NULL, 0);
+
+    ck_assert_int_eq(PQresultStatus(result), PGRES_TUPLES_OK);
+    ck_assert_int_eq(PQntuples(result), 1);
+    ck_assert_str_eq(PQgetvalue(result, 0, 0), "command");
+    ck_assert_str_eq(PQgetvalue(result, 0, 1), command_content);
+
+    // Verify JSONB contains command details
+    const char *json_result = PQgetvalue(result, 0, 2);
+    ck_assert(strstr(json_result, "/help") != NULL);
+
+    PQclear(result);
+}
+
+END_TEST
+// Test: Insert fork event for recording fork operations
+START_TEST(test_db_message_insert_fork_event)
+{
+    SKIP_IF_NO_DB();
+
+    const char *fork_content = "Forked to agent_uuid_123";
+    const char *data_json = "{\"parent_uuid\":\"uuid_parent\",\"child_uuid\":\"uuid_child\"}";
+
+    res_t res = ik_db_message_insert(db, session_id, NULL, "fork", fork_content, data_json);
+    ck_assert(is_ok(&res));
+
+    // Verify message was inserted
+    const char *query = "SELECT kind, content, data::text FROM messages WHERE session_id = $1 AND kind = 'fork'";
+    const char *params[] = {talloc_asprintf(test_ctx, "%lld", (long long)session_id)};
+    PGresult *result = PQexecParams(db->conn, query, 1, NULL, params, NULL, NULL, 0);
+
+    ck_assert_int_eq(PQresultStatus(result), PGRES_TUPLES_OK);
+    ck_assert_int_eq(PQntuples(result), 1);
+    ck_assert_str_eq(PQgetvalue(result, 0, 0), "fork");
+    ck_assert_str_eq(PQgetvalue(result, 0, 1), fork_content);
+
+    // Verify JSONB contains fork details
+    const char *json_result = PQgetvalue(result, 0, 2);
+    ck_assert(strstr(json_result, "parent_uuid") != NULL);
+    ck_assert(strstr(json_result, "child_uuid") != NULL);
+
+    PQclear(result);
+}
+
+END_TEST
 
 // ========== Suite Configuration ==========
 
@@ -449,6 +508,8 @@ static Suite *message_suite(void)
     tcase_add_test(tc_insert, test_db_message_insert_empty_content);
     tcase_add_test(tc_insert, test_db_message_insert_null_data);
     tcase_add_test(tc_insert, test_db_message_insert_multiple_events);
+    tcase_add_test(tc_insert, test_db_message_insert_command_event);
+    tcase_add_test(tc_insert, test_db_message_insert_fork_event);
     suite_add_tcase(s, tc_insert);
 
     TCase *tc_errors = tcase_create("Errors");

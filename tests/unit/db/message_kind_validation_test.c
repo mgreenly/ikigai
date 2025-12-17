@@ -80,6 +80,24 @@ END_TEST START_TEST(test_valid_tool_result)
     ck_assert(result);
 }
 
+END_TEST START_TEST(test_valid_agent_killed)
+{
+    bool result = ik_db_message_is_valid_kind("agent_killed");
+    ck_assert(result);
+}
+
+END_TEST START_TEST(test_valid_command)
+{
+    bool result = ik_db_message_is_valid_kind("command");
+    ck_assert(result);
+}
+
+END_TEST START_TEST(test_valid_fork)
+{
+    bool result = ik_db_message_is_valid_kind("fork");
+    ck_assert(result);
+}
+
 END_TEST
 // Test: Case sensitivity
 START_TEST(test_kind_case_sensitive)
@@ -113,6 +131,9 @@ static Suite *message_kind_validation_suite(void)
     tcase_add_test(tc_valid, test_valid_rewind);
     tcase_add_test(tc_valid, test_valid_tool_call);
     tcase_add_test(tc_valid, test_valid_tool_result);
+    tcase_add_test(tc_valid, test_valid_agent_killed);
+    tcase_add_test(tc_valid, test_valid_command);
+    tcase_add_test(tc_valid, test_valid_fork);
     suite_add_tcase(s, tc_valid);
 
     return s;

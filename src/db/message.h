@@ -15,12 +15,17 @@
  * This is the core database API for persisting conversation events.
  *
  * Event kinds:
- *   - "clear"     : Context reset (session start or /clear command)
- *   - "system"    : System prompt message
- *   - "user"      : User input message
- *   - "assistant" : LLM response message
- *   - "mark"      : Checkpoint created by /mark command
- *   - "rewind"    : Rollback operation created by /rewind command
+ *   - "clear"        : Context reset (session start or /clear command)
+ *   - "system"       : System prompt message
+ *   - "user"         : User input message
+ *   - "assistant"    : LLM response message
+ *   - "tool_call"    : Tool invocation request from LLM
+ *   - "tool_result"  : Tool execution result
+ *   - "mark"         : Checkpoint created by /mark command
+ *   - "rewind"       : Rollback operation created by /rewind command
+ *   - "agent_killed" : Agent termination event
+ *   - "command"      : Slash command output for persistence across restarts
+ *   - "fork"         : Fork event recorded in both parent and child histories
  *
  * @param db          Database connection context (must not be NULL)
  * @param session_id  Session ID (must be positive, references sessions.id)
