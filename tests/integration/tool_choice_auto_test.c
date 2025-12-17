@@ -262,7 +262,7 @@ START_TEST(test_tool_choice_auto_end_to_end)
     char *output_str_copy = talloc_strdup(test_ctx, output_str);
     char *content = talloc_asprintf(test_ctx, "%d file(s) found", count);
 
-    ik_message_t *tool_result_msg = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg = ik_msg_create_tool_result(
         test_ctx,
         tool_call_id,
         tool_name,

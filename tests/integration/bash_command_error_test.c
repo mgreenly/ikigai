@@ -19,6 +19,7 @@
 #include "../../src/db/message.h"
 #include "../../src/db/session.h"
 #include "../../src/error.h"
+#include "../../src/msg.h"
 #include "../../src/openai/client.h"
 #include "../../src/tool.h"
 #include "../test_utils.h"
@@ -322,7 +323,7 @@ START_TEST(test_bash_error_conversation_persistence)
     yyjson_doc_free(tool_doc);
 
     // Step 4: Create tool result message with error
-    ik_message_t *tool_result_msg = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg = ik_msg_create_tool_result(
         test_ctx,
         "call_bash1",
         "bash",
@@ -422,7 +423,7 @@ START_TEST(test_multiple_bash_failures_persistence)
 
         // Create and persist tool result
         char *tool_call_id = talloc_asprintf(test_ctx, "call_bash_%zu", i);
-        ik_message_t *tool_result_msg = ik_msg_create_tool_result(
+        ik_msg_t *tool_result_msg = ik_msg_create_tool_result(
             test_ctx,
             tool_call_id,
             "bash",

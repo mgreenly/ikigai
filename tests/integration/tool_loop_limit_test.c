@@ -196,7 +196,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
     ck_assert(!res.is_err);
 
     const char *tool_result_1 = "{\"output\": \"src/main.c:12: log_error(...)\", \"count\": 1}";
-    ik_message_t *tool_result_msg_1 = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg_1 = ik_msg_create_tool_result(
         test_ctx,
         tool_call_id_1,
         tool_name,
@@ -223,7 +223,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
 
     const char *tool_result_2 = "{\"output\": \"src/config.c:45: return CONFIG_ERROR;\", \"count\": 1}";
 
-    ik_message_t *tool_result_msg_2 = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg_2 = ik_msg_create_tool_result(
         test_ctx,
         tool_call_id_2,
         tool_name,
@@ -259,7 +259,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
     ck_assert(yyjson_get_bool(limit_reached_field) == true);
     yyjson_doc_free(limit_doc);
 
-    ik_message_t *tool_result_msg_3 = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg_3 = ik_msg_create_tool_result(
         test_ctx,
         tool_call_id_3,
         tool_name,

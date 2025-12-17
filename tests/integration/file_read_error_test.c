@@ -186,7 +186,7 @@ START_TEST(test_file_read_error_end_to_end) {
     ck_assert(strstr(error_str, "missing.txt") != NULL);
 
     // Step 4: Create tool_result message
-    ik_message_t *tool_result_msg = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg = ik_msg_create_tool_result(
         test_ctx,
         tool_call_id,
         tool_name,

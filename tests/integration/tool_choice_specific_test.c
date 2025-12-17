@@ -279,7 +279,7 @@ START_TEST(test_tool_choice_specific_end_to_end)
     const char *output_str = output ? yyjson_get_str(output) : "";
     char *content = talloc_asprintf(test_ctx, "%d file(s) found", count);
 
-    ik_message_t *tool_result_msg = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg = ik_msg_create_tool_result(
         test_ctx,
         tool_call_id,
         tool_name,
