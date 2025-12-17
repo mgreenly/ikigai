@@ -1,6 +1,6 @@
 /**
- * @file cmd_fork_test.c
- * @brief Unit tests for /fork command
+ * @file cmd_fork_advanced_test.c
+ * @brief Unit tests for /fork command - advanced features
  */
 
 #include "../../../src/agent.h"
@@ -142,265 +142,6 @@ static void suite_teardown(void)
 {
     ik_test_db_destroy(DB_NAME);
 }
-
-// Test: Creates new agent
-START_TEST(test_fork_creates_agent)
-{
-    size_t initial_count = repl->agent_count;
-
-    // Debug: verify database connection before fork
-    ck_assert_ptr_nonnull(repl);
-    ck_assert_ptr_nonnull(repl->shared);
-    ck_assert_ptr_nonnull(repl->shared->db_ctx);
-    if (repl->shared->db_ctx->conn == NULL) {
-        ck_abort_msg("Database connection is NULL before fork!");
-    }
-
-    // Try a simple database operation to verify connection works
-    PGresult *test_res = PQexec(repl->shared->db_ctx->conn, "SELECT 1");
-    if (PQresultStatus(test_res) != PGRES_TUPLES_OK) {
-        fprintf(stderr, "Test query failed: %s\n", PQerrorMessage(repl->shared->db_ctx->conn));
-        PQclear(test_res);
-        ck_abort_msg("Database connection test failed!");
-    }
-    PQclear(test_res);
-
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    if (is_err(&res)) {
-        fprintf(stderr, "cmd_fork failed: %s\n", error_message(res.err));
-    }
-    ck_assert(is_ok(&res));
-
-    ck_assert_uint_eq(repl->agent_count, initial_count + 1);
-}
-END_TEST
-
-// Test: Child has parent_uuid set
-START_TEST(test_fork_sets_parent)
-{
-    const char *parent_uuid = repl->current->uuid;
-
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Find the newly created child
-    ik_agent_ctx_t *child = repl->agents[repl->agent_count - 1];
-    ck_assert_ptr_nonnull(child);
-    ck_assert_ptr_nonnull(child->parent_uuid);
-    ck_assert_str_eq(child->parent_uuid, parent_uuid);
-}
-END_TEST
-
-// Test: Child added to agents array
-START_TEST(test_fork_adds_to_array)
-{
-    size_t initial_count = repl->agent_count;
-
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    ck_assert_uint_eq(repl->agent_count, initial_count + 1);
-    ck_assert_ptr_nonnull(repl->agents[initial_count]);
-}
-END_TEST
-
-// Test: Switches to child
-START_TEST(test_fork_switches_to_child)
-{
-    ik_agent_ctx_t *parent = repl->current;
-
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    ck_assert_ptr_ne(repl->current, parent);
-    ck_assert_str_eq(repl->current->parent_uuid, parent->uuid);
-}
-END_TEST
-
-// Test: Child in registry with status='running'
-START_TEST(test_fork_registry_entry)
-{
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Query registry for child
-    ik_db_agent_row_t *row = NULL;
-    res_t db_res = ik_db_agent_get(db, test_ctx, repl->current->uuid, &row);
-    ck_assert(is_ok(&db_res));
-    ck_assert_ptr_nonnull(row);
-    ck_assert_str_eq(row->status, "running");
-}
-END_TEST
-
-// Test: Confirmation message displayed
-START_TEST(test_fork_confirmation_message)
-{
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Check scrollback for confirmation message
-    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
-    ck_assert_uint_gt(line_count, 0);
-}
-END_TEST
-
-// Test: fork_pending flag set during fork
-START_TEST(test_fork_pending_flag_set)
-{
-    // This test would need mocking to observe mid-execution
-    // For now, verify flag is clear after completion
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-    ck_assert(!atomic_load(&repl->shared->fork_pending));
-}
-END_TEST
-
-// Test: fork_pending flag cleared after fork
-START_TEST(test_fork_pending_flag_cleared)
-{
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-    ck_assert(!atomic_load(&repl->shared->fork_pending));
-}
-END_TEST
-
-// Test: Concurrent fork rejected
-START_TEST(test_fork_concurrent_rejected)
-{
-    atomic_store(&repl->shared->fork_pending, true);
-
-    res_t res = cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));  // Returns OK but appends error
-
-    // Check scrollback for error message
-    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
-    bool found_error = false;
-    for (size_t i = 0; i < line_count; i++) {
-        const char *text = NULL;
-        size_t length = 0;
-        res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, i, &text, &length);
-        if (is_ok(&line_res) && text && strstr(text, "Fork already in progress")) {
-            found_error = true;
-            break;
-        }
-    }
-    ck_assert(found_error);
-}
-END_TEST
-
-// Note: Rollback and error handling tests removed.
-// These tests attempted to violate preconditions (setting db_ctx->conn = NULL)
-// which triggers assertions in ik_db_begin, making them untestable without mocking.
-// Proper error handling tests would require mocking the database layer or
-// testing with actual database errors (not precondition violations).
-
-// Test: /fork with quoted prompt extracts prompt
-START_TEST(test_fork_with_quoted_prompt)
-{
-    res_t res = cmd_fork(test_ctx, repl, "\"Research OAuth 2.0 patterns\"");
-    ck_assert(is_ok(&res));
-
-    // Verify child has message in conversation
-    ik_agent_ctx_t *child = repl->current;
-    ck_assert_ptr_nonnull(child->conversation);
-    ck_assert_uint_gt(child->conversation->message_count, 0);
-
-    // Find user message with the prompt
-    bool found_prompt = false;
-    for (size_t i = 0; i < child->conversation->message_count; i++) {
-        ik_msg_t *msg = child->conversation->messages[i];
-        if (strcmp(msg->kind, "user") == 0 &&
-            msg->content != NULL &&
-            strcmp(msg->content, "Research OAuth 2.0 patterns") == 0) {
-            found_prompt = true;
-            break;
-        }
-    }
-    ck_assert(found_prompt);
-}
-END_TEST
-
-// Test: Prompt added as user message
-START_TEST(test_fork_prompt_appended_as_user_message)
-{
-    res_t res = cmd_fork(test_ctx, repl, "\"Analyze database schema\"");
-    ck_assert(is_ok(&res));
-
-    ik_agent_ctx_t *child = repl->current;
-    ck_assert_ptr_nonnull(child->conversation);
-
-    // Verify at least one user message exists
-    bool has_user_message = false;
-    for (size_t i = 0; i < child->conversation->message_count; i++) {
-        if (strcmp(child->conversation->messages[i]->kind, "user") == 0) {
-            has_user_message = true;
-            break;
-        }
-    }
-    ck_assert(has_user_message);
-}
-END_TEST
-
-// Test: LLM call triggered when prompt provided
-START_TEST(test_fork_llm_call_triggered)
-{
-    res_t res = cmd_fork(test_ctx, repl, "\"Test prompt\"");
-    ck_assert(is_ok(&res));
-
-    // Verify user message was added to conversation
-    // Note: We can't reliably test LLM state in unit tests without mocking
-    // because ik_openai_multi_add_request will fail without a real HTTP connection.
-    // Instead, we verify the prompt was added to the conversation, which is the
-    // key precondition for LLM triggering.
-    ik_agent_ctx_t *child = repl->current;
-    bool found_user_message = false;
-    for (size_t i = 0; i < child->conversation->message_count; i++) {
-        ik_msg_t *msg = child->conversation->messages[i];
-        if (strcmp(msg->kind, "user") == 0 &&
-            msg->content != NULL &&
-            strcmp(msg->content, "Test prompt") == 0) {
-            found_user_message = true;
-            break;
-        }
-    }
-    ck_assert(found_user_message);
-}
-END_TEST
-
-// Test: Empty prompt treated as no prompt
-START_TEST(test_fork_empty_prompt)
-{
-    res_t res = cmd_fork(test_ctx, repl, "\"\"");
-    ck_assert(is_ok(&res));
-
-    // Empty prompt should behave like no prompt - agent stays IDLE
-    ik_agent_ctx_t *child = repl->current;
-    ck_assert_int_eq(child->state, IK_AGENT_STATE_IDLE);
-}
-END_TEST
-
-// Test: Unquoted text rejected
-START_TEST(test_fork_unquoted_text_rejected)
-{
-    res_t res = cmd_fork(test_ctx, repl, "unquoted text");
-    ck_assert(is_ok(&res));  // Returns OK but shows error
-
-    // Check scrollback for error message
-    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
-    bool found_error = false;
-    for (size_t i = 0; i < line_count; i++) {
-        const char *text = NULL;
-        size_t length = 0;
-        res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, i, &text, &length);
-        if (is_ok(&line_res) && text &&
-            (strstr(text, "must be quoted") || strstr(text, "Error"))) {
-            found_error = true;
-            break;
-        }
-    }
-    ck_assert(found_error);
-}
-END_TEST
 
 // Test: Fork records fork_message_id (parent has no messages)
 START_TEST(test_fork_records_fork_message_id_no_messages)
@@ -743,27 +484,14 @@ START_TEST(test_fork_child_inherits_scrollback)
 }
 END_TEST
 
+
 static Suite *cmd_fork_suite(void)
 {
-    Suite *s = suite_create("Fork Command");
+    Suite *s = suite_create("Fork Command Advanced");
     TCase *tc = tcase_create("Core");
 
     tcase_add_checked_fixture(tc, setup, teardown);
 
-    tcase_add_test(tc, test_fork_creates_agent);
-    tcase_add_test(tc, test_fork_sets_parent);
-    tcase_add_test(tc, test_fork_adds_to_array);
-    tcase_add_test(tc, test_fork_switches_to_child);
-    tcase_add_test(tc, test_fork_registry_entry);
-    tcase_add_test(tc, test_fork_confirmation_message);
-    tcase_add_test(tc, test_fork_pending_flag_set);
-    tcase_add_test(tc, test_fork_pending_flag_cleared);
-    tcase_add_test(tc, test_fork_concurrent_rejected);
-    tcase_add_test(tc, test_fork_with_quoted_prompt);
-    tcase_add_test(tc, test_fork_prompt_appended_as_user_message);
-    tcase_add_test(tc, test_fork_llm_call_triggered);
-    tcase_add_test(tc, test_fork_empty_prompt);
-    tcase_add_test(tc, test_fork_unquoted_text_rejected);
     tcase_add_test(tc, test_fork_records_fork_message_id_no_messages);
     tcase_add_test(tc, test_fork_registry_has_fork_message_id);
     tcase_add_test(tc, test_fork_child_inherits_conversation);
@@ -777,15 +505,10 @@ static Suite *cmd_fork_suite(void)
     tcase_add_test(tc, test_fork_persists_child_side_event);
     tcase_add_test(tc, test_fork_events_linked_by_fork_message_id);
     tcase_add_test(tc, test_fork_child_inherits_scrollback);
-    // Note: Rollback tests removed - they violate preconditions (db_ctx->conn != NULL assertion)
-    // and cannot be properly tested without mocking infrastructure
-    // tcase_add_test(tc, test_fork_rollback_on_failure);
-    // tcase_add_test(tc, test_fork_clears_pending_on_failure);
 
     suite_add_tcase(s, tc);
     return s;
 }
-
 int main(void)
 {
     if (!suite_setup()) {

@@ -165,4 +165,21 @@ res_t cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
  */
 res_t cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+/**
+ * Persist command execution to database
+ *
+ * Captures command input and output from scrollback, then persists to database.
+ * Logs errors but does not fail if database persistence fails.
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param input Original command input (with leading slash)
+ * @param cmd_name Parsed command name
+ * @param args Command arguments (NULL if no arguments)
+ * @param lines_before Scrollback line count before command execution
+ */
+void ik_cmd_persist_to_db(void *ctx, ik_repl_ctx_t *repl, const char *input,
+                          const char *cmd_name, const char *args,
+                          size_t lines_before);
+
 #endif // IK_COMMANDS_H

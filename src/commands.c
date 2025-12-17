@@ -148,56 +148,8 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
             res_t handler_res = commands[i].handler(ctx, repl, args);
 
             // Persist command output to database if handler succeeded
-            if (is_ok(&handler_res) && repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
-                // Build command content: input + output
-                size_t lines_after = ik_scrollback_get_line_count(repl->current->scrollback);
-
-                // Allocate buffer for content
-                char *content = talloc_asprintf(ctx, "%s\n", input);
-                if (!content) {     // LCOV_EXCL_BR_LINE
-                    PANIC("OOM");   // LCOV_EXCL_LINE
-                }
-
-                // Append command output from scrollback
-                for (size_t line_idx = lines_before; line_idx < lines_after; line_idx++) {
-                    const char *line_text = NULL;
-                    size_t line_len = 0;
-                    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_idx, &line_text, &line_len);
-                    if (is_ok(&line_res) && line_text != NULL) {
-                        char *new_content = talloc_asprintf(ctx, "%s%s\n", content, line_text);
-                        if (!new_content) {     // LCOV_EXCL_BR_LINE
-                            PANIC("OOM");   // LCOV_EXCL_LINE
-                        }
-                        talloc_free(content);
-                        content = new_content;
-                    }
-                }
-
-                // Build data_json with command metadata
-                char *data_json = NULL;
-                if (args != NULL) {
-                    data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":\"%s\"}", cmd_name, args);
-                } else {
-                    data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":null}", cmd_name);
-                }
-                if (!data_json) {     // LCOV_EXCL_BR_LINE
-                    PANIC("OOM");   // LCOV_EXCL_LINE
-                }
-
-                // Persist to database
-                res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                                    repl->current->uuid, "command", content, data_json);
-                if (is_err(&db_res)) {
-                    // Log error but don't crash - memory state is authoritative
-                    yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
-                    yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
-                    yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
-                    yyjson_mut_obj_add_str(log_doc, log_root, "command", cmd_name);  // LCOV_EXCL_LINE
-                    yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_command");  // LCOV_EXCL_LINE
-                    yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
-                    ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
-                    talloc_free(db_res.err);  // LCOV_EXCL_LINE
-                }
+            if (is_ok(&handler_res)) {
+                ik_cmd_persist_to_db(ctx, repl, input, cmd_name, args, lines_before);
             }
 
             return handler_res;
@@ -211,6 +163,71 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
     }
     ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
     return ERR(ctx, INVALID_ARG, "Unknown command '%s'", cmd_name);
+}
+
+void ik_cmd_persist_to_db(void *ctx, ik_repl_ctx_t *repl, const char *input,
+                          const char *cmd_name, const char *args,
+                          size_t lines_before)
+{
+    assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);     // LCOV_EXCL_BR_LINE
+    assert(input != NULL);    // LCOV_EXCL_BR_LINE
+    assert(cmd_name != NULL); // LCOV_EXCL_BR_LINE
+
+    // Only persist if database is available
+    if (repl->shared->db_ctx == NULL || repl->shared->session_id <= 0) {
+        return;
+    }
+
+    // Build command content: input + output
+    size_t lines_after = ik_scrollback_get_line_count(repl->current->scrollback);
+
+    // Allocate buffer for content
+    char *content = talloc_asprintf(ctx, "%s\n", input);
+    if (!content) {     // LCOV_EXCL_BR_LINE
+        PANIC("OOM");   // LCOV_EXCL_LINE
+    }
+
+    // Append command output from scrollback
+    for (size_t line_idx = lines_before; line_idx < lines_after; line_idx++) {
+        const char *line_text = NULL;
+        size_t line_len = 0;
+        res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_idx, &line_text, &line_len);
+        if (is_ok(&line_res) && line_text != NULL) {
+            char *new_content = talloc_asprintf(ctx, "%s%s\n", content, line_text);
+            if (!new_content) {     // LCOV_EXCL_BR_LINE
+                PANIC("OOM");   // LCOV_EXCL_LINE
+            }
+            talloc_free(content);
+            content = new_content;
+        }
+    }
+
+    // Build data_json with command metadata
+    char *data_json = NULL;
+    if (args != NULL) {
+        data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":\"%s\"}", cmd_name, args);
+    } else {
+        data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":null}", cmd_name);
+    }
+    if (!data_json) {     // LCOV_EXCL_BR_LINE
+        PANIC("OOM");   // LCOV_EXCL_LINE
+    }
+
+    // Persist to database
+    res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
+                                        repl->current->uuid, "command", content, data_json);
+    if (is_err(&db_res)) {
+        // Log error but don't crash - memory state is authoritative
+        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "command", cmd_name);  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_command");  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
+        ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
+        talloc_free(db_res.err);  // LCOV_EXCL_LINE
+    }
 }
 
 // Command handler stubs (to be implemented in later tasks)
