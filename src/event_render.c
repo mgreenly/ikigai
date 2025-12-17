@@ -183,10 +183,11 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         return render_mark_event(scrollback, data_json);
     }
 
-    if (strcmp(kind, "rewind") == 0 || strcmp(kind, "clear") == 0) {
+    if (strcmp(kind, "rewind") == 0 || strcmp(kind, "clear") == 0 || strcmp(kind, "agent_killed") == 0) {
         // These events don't render visual content
         // rewind: truncation is handled by replay logic
         // clear: clearing is handled by caller
+        // agent_killed: metadata event for tracking killed agents
         return OK(NULL);
     }
 

@@ -263,6 +263,28 @@ START_TEST(test_render_clear_event)
 }
 
 END_TEST
+// Test: Render agent_killed event (renders nothing)
+START_TEST(test_render_agent_killed_event)
+{
+    void *ctx = talloc_new(NULL);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+
+    // Test with target metadata
+    const char *json = "{\"killed_by\":\"user\",\"target\":\"uuid-123\"}";
+    res_t result = ik_event_render(scrollback, "agent_killed", NULL, json);
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
+
+    // Test with cascade metadata
+    const char *json2 = "{\"killed_by\":\"user\",\"target\":\"uuid-456\",\"cascade\":true,\"count\":5}";
+    result = ik_event_render(scrollback, "agent_killed", NULL, json2);
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 // Test: Render content event with NULL content
 START_TEST(test_render_content_null)
 {
@@ -397,6 +419,7 @@ static Suite *event_render_basic_suite(void)
     tcase_add_test(tc_render, test_render_mark_event_empty_label);
     tcase_add_test(tc_render, test_render_rewind_event);
     tcase_add_test(tc_render, test_render_clear_event);
+    tcase_add_test(tc_render, test_render_agent_killed_event);
     tcase_add_test(tc_render, test_render_content_null);
     tcase_add_test(tc_render, test_render_content_empty);
     tcase_add_test(tc_render, test_render_unknown_kind);
