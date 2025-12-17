@@ -3,6 +3,7 @@
 
 #include "agent.h"
 #include "repl/session_restore.h"
+#include "repl/agent_restore.h"
 #include "config.h"
 #include "db/agent.h"
 #include "db/connection.h"
@@ -108,9 +109,18 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
             return result;
         }
         repl->current->uuid = talloc_steal(repl->current, agent_zero_uuid);
+
+        // Restore all other running agents from database
+        result = ik_repl_restore_agents(repl, shared->db_ctx);
+        if (is_err(&result)) {
+            talloc_free(repl);
+            return result;
+        }
     }
 
     // Restore session if database is configured (must be after repl allocated)
+    // NOTE: This handles Agent 0's conversation/scrollback. Will be migrated to
+    // agent-based replay in a later task (Gap 5).
     if (shared->db_ctx != NULL) {
         result = ik_repl_restore_session_(repl, shared->db_ctx, cfg);
         if (is_err(&result)) {
