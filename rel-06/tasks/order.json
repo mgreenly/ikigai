@@ -1,12 +1,5 @@
 {
-  "todo": [
-    {
-      "task": "bug6-delete-mail-position.md",
-      "group": "Mailbox Fixes",
-      "model": "sonnet",
-      "thinking": "thinking"
-    }
-  ],
+  "todo": [],
   "done": [
     {
       "task": "registry-schema.md",
@@ -493,6 +486,12 @@
       "group": "Session History Replay",
       "model": "sonnet",
       "thinking": "extended"
+    },
+    {
+      "task": "bug6-delete-mail-position.md",
+      "group": "Mailbox Fixes",
+      "model": "sonnet",
+      "thinking": "thinking"
     }
   ]
 }
