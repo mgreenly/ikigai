@@ -1,12 +1,5 @@
 {
-  "todo": [
-    {
-      "task": "gap0-final-verification.md",
-      "group": "Gap 0: Verification",
-      "model": "sonnet",
-      "thinking": "thinking"
-    }
-  ],
+  "todo": [],
   "done": [
     {
       "task": "registry-schema.md",
@@ -347,6 +340,12 @@
     {
       "task": "gap0-update-docs.md",
       "group": "Gap 0: Cleanup",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "gap0-final-verification.md",
+      "group": "Gap 0: Verification",
       "model": "sonnet",
       "thinking": "thinking"
     }
