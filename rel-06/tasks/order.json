@@ -1,5 +1,24 @@
 {
-  "todo": [],
+  "todo": [
+    {
+      "task": "bug3-nav-child-switch.md",
+      "group": "Active Bugs",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "bug2-separator-width.md",
+      "group": "Active Bugs",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "bug1-fork-duplicate-key.md",
+      "group": "Active Bugs",
+      "model": "sonnet",
+      "thinking": "extended"
+    }
+  ],
   "done": [
     {
       "task": "registry-schema.md",
