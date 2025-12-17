@@ -11,11 +11,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <talloc.h>
+#include <time.h>
 #include <unistd.h>
 
 /* LCOV_EXCL_START */
 int main(void)
 {
+    // Initialize random number generator for UUID generation
+    // Mix time and PID to reduce collision probability across concurrent processes
+    srand((unsigned int)(time(NULL) ^ (unsigned int)getpid()));
+
     // Capture working directory for logger initialization (minimal bootstrap)
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) == NULL) {

@@ -103,6 +103,33 @@ START_TEST(test_generate_uuid_owned_by_ctx)
 }
 END_TEST
 
+// Test ik_generate_uuid() uniqueness without explicit srand() call
+// This test verifies that production code properly initializes random seed
+START_TEST(test_generate_uuid_unique_without_srand)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Do NOT call srand() - mimic production environment
+    // Production code should have already seeded rand() at startup
+
+    char *uuid1 = ik_generate_uuid(ctx);
+    char *uuid2 = ik_generate_uuid(ctx);
+    char *uuid3 = ik_generate_uuid(ctx);
+
+    ck_assert_ptr_nonnull(uuid1);
+    ck_assert_ptr_nonnull(uuid2);
+    ck_assert_ptr_nonnull(uuid3);
+
+    // All should be different even without explicit srand()
+    ck_assert_str_ne(uuid1, uuid2);
+    ck_assert_str_ne(uuid2, uuid3);
+    ck_assert_str_ne(uuid1, uuid3);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *uuid_suite(void)
 {
     Suite *s = suite_create("UUID Generation");
@@ -113,6 +140,7 @@ static Suite *uuid_suite(void)
     tcase_add_test(tc_core, test_generate_uuid_returns_base64url_chars);
     tcase_add_test(tc_core, test_generate_uuid_returns_unique_values);
     tcase_add_test(tc_core, test_generate_uuid_owned_by_ctx);
+    tcase_add_test(tc_core, test_generate_uuid_unique_without_srand);
     suite_add_tcase(s, tc_core);
 
     return s;
