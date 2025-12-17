@@ -13,6 +13,7 @@
 #include "../../../src/db/replay.h"
 #include "../../../src/agent.h"
 #include "../../../src/error.h"
+#include "../../../src/msg.h"
 #include "../../test_utils.h"
 #include <check.h>
 #include <string.h>
@@ -381,7 +382,7 @@ START_TEST(test_query_range_subset)
         .end_id = 0
     };
 
-    ik_message_t **messages = NULL;
+    ik_msg_t **messages = NULL;
     size_t msg_count = 0;
     res = ik_agent_query_range(db, test_ctx, &range, &messages, &msg_count);
     ck_assert(is_ok(&res));
@@ -406,7 +407,7 @@ START_TEST(test_query_range_from_beginning)
         .end_id = 0
     };
 
-    ik_message_t **messages = NULL;
+    ik_msg_t **messages = NULL;
     size_t msg_count = 0;
     res_t res = ik_agent_query_range(db, test_ctx, &range, &messages, &msg_count);
     ck_assert(is_ok(&res));
@@ -435,7 +436,7 @@ START_TEST(test_query_range_to_end)
         .end_id = 0
     };
 
-    ik_message_t **all_msgs = NULL;
+    ik_msg_t **all_msgs = NULL;
     size_t all_count = 0;
     res_t res = ik_agent_query_range(db, test_ctx, &range_all, &all_msgs, &all_count);
     ck_assert(is_ok(&res));
@@ -449,7 +450,7 @@ START_TEST(test_query_range_to_end)
         .end_id = 0
     };
 
-    ik_message_t **messages = NULL;
+    ik_msg_t **messages = NULL;
     size_t msg_count = 0;
     res = ik_agent_query_range(db, test_ctx, &range, &messages, &msg_count);
     ck_assert(is_ok(&res));

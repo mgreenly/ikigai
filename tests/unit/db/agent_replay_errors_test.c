@@ -3,6 +3,7 @@
 #include "../../../src/db/agent_replay.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/error.h"
+#include "../../../src/msg.h"
 #include "../../../src/wrapper.h"
 
 #include <check.h>
@@ -190,7 +191,7 @@ START_TEST(test_query_range_query_failure)
         .end_id = 0
     };
 
-    ik_message_t **messages = NULL;
+    ik_msg_t **messages = NULL;
     size_t count = 0;
     res_t res = ik_agent_query_range(db, ctx, &range, &messages, &count);
 
@@ -219,7 +220,7 @@ START_TEST(test_query_range_message_id_parse_failure)
         .end_id = 0
     };
 
-    ik_message_t **messages = NULL;
+    ik_msg_t **messages = NULL;
     size_t count = 0;
     res_t res = ik_agent_query_range(db, ctx, &range, &messages, &count);
 
@@ -250,7 +251,7 @@ START_TEST(test_query_range_null_content)
         .end_id = 0
     };
 
-    ik_message_t **messages = NULL;
+    ik_msg_t **messages = NULL;
     size_t count = 0;
     res_t res = ik_agent_query_range(db, ctx, &range, &messages, &count);
 
@@ -283,7 +284,7 @@ START_TEST(test_query_range_null_data)
         .end_id = 0
     };
 
-    ik_message_t **messages = NULL;
+    ik_msg_t **messages = NULL;
     size_t count = 0;
     res_t res = ik_agent_query_range(db, ctx, &range, &messages, &count);
 
