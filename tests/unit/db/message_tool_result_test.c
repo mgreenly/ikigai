@@ -1,5 +1,6 @@
 #include "../../../src/db/message.h"
 #include "../../../src/db/replay.h"
+#include "../../../src/msg.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
@@ -24,7 +25,7 @@ static void teardown(void)
  */
 
 START_TEST(test_tool_result_message_create_returns_nonnull) {
-    ik_message_t *msg = ik_msg_create_tool_result(
+    ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
         "glob",
@@ -36,7 +37,7 @@ START_TEST(test_tool_result_message_create_returns_nonnull) {
 }
 END_TEST START_TEST(test_tool_result_message_kind_is_tool_result)
 {
-    ik_message_t *msg = ik_msg_create_tool_result(
+    ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
         "glob",
@@ -50,7 +51,7 @@ END_TEST START_TEST(test_tool_result_message_kind_is_tool_result)
 
 END_TEST START_TEST(test_tool_result_message_content_is_summary)
 {
-    ik_message_t *msg = ik_msg_create_tool_result(
+    ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
         "glob",
@@ -64,7 +65,7 @@ END_TEST START_TEST(test_tool_result_message_content_is_summary)
 
 END_TEST START_TEST(test_tool_result_message_data_json_contains_tool_call_id)
 {
-    ik_message_t *msg = ik_msg_create_tool_result(
+    ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
         "glob",
@@ -79,7 +80,7 @@ END_TEST START_TEST(test_tool_result_message_data_json_contains_tool_call_id)
 
 END_TEST START_TEST(test_tool_result_message_data_json_contains_name)
 {
-    ik_message_t *msg = ik_msg_create_tool_result(
+    ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
         "glob",
@@ -94,7 +95,7 @@ END_TEST START_TEST(test_tool_result_message_data_json_contains_name)
 
 END_TEST START_TEST(test_tool_result_message_data_json_contains_output)
 {
-    ik_message_t *msg = ik_msg_create_tool_result(
+    ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
         "glob",
@@ -109,7 +110,7 @@ END_TEST START_TEST(test_tool_result_message_data_json_contains_output)
 
 END_TEST START_TEST(test_tool_result_message_data_json_contains_success)
 {
-    ik_message_t *msg = ik_msg_create_tool_result(
+    ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
         "glob",
@@ -131,7 +132,7 @@ END_TEST
 
 START_TEST(test_tool_result_message_talloc_hierarchy)
 {
-    ik_message_t *msg = ik_msg_create_tool_result(
+    ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
         "glob",
@@ -157,7 +158,7 @@ END_TEST
 
 START_TEST(test_tool_result_message_with_different_summary)
 {
-    ik_message_t *msg = ik_msg_create_tool_result(
+    ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_xyz789",
         "file_read",
@@ -172,7 +173,7 @@ START_TEST(test_tool_result_message_with_different_summary)
 
 END_TEST START_TEST(test_tool_result_message_success_false)
 {
-    ik_message_t *msg = ik_msg_create_tool_result(
+    ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_error123",
         "bash",
