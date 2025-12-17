@@ -26,7 +26,9 @@ bool ik_event_renders_visible(const char *kind)
     if (strcmp(kind, "user") == 0 ||
         strcmp(kind, "assistant") == 0 ||
         strcmp(kind, "system") == 0 ||
-        strcmp(kind, "mark") == 0) {
+        strcmp(kind, "mark") == 0 ||
+        strcmp(kind, "command") == 0 ||
+        strcmp(kind, "fork") == 0) {
         return true;
     }
 
@@ -165,7 +167,9 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         color = IK_ANSI_GRAY_LIGHT;  // 249 - slightly subdued
     } else if (strcmp(kind, "tool_call") == 0 ||
                strcmp(kind, "tool_result") == 0 ||
-               strcmp(kind, "system") == 0) {
+               strcmp(kind, "system") == 0 ||
+               strcmp(kind, "command") == 0 ||
+               strcmp(kind, "fork") == 0) {
         color = IK_ANSI_GRAY_SUBDUED;  // 242 - very subdued
     }
     // user, mark, rewind, clear: color = 0 (no color)
@@ -175,7 +179,9 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         strcmp(kind, "assistant") == 0 ||
         strcmp(kind, "system") == 0 ||
         strcmp(kind, "tool_call") == 0 ||
-        strcmp(kind, "tool_result") == 0) {
+        strcmp(kind, "tool_result") == 0 ||
+        strcmp(kind, "command") == 0 ||
+        strcmp(kind, "fork") == 0) {
         return render_content_event(scrollback, content, color);
     }
 
