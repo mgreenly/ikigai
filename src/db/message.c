@@ -96,20 +96,23 @@ res_t ik_db_message_insert(ik_db_ctx_t *db,
     return OK(NULL);
 }
 
-ik_message_t *ik_msg_create_tool_result(void *parent,
-                                        const char *tool_call_id,
-                                        const char *name,
-                                        const char *output,
-                                        bool success,
-                                        const char *content) {
+ik_msg_t *ik_msg_create_tool_result(void *parent,
+                                    const char *tool_call_id,
+                                    const char *name,
+                                    const char *output,
+                                    bool success,
+                                    const char *content) {
     assert(tool_call_id != NULL);  // LCOV_EXCL_BR_LINE
     assert(name != NULL);           // LCOV_EXCL_BR_LINE
     assert(output != NULL);         // LCOV_EXCL_BR_LINE
     assert(content != NULL);        // LCOV_EXCL_BR_LINE
 
     // Allocate message struct
-    ik_message_t *msg = talloc_zero(parent, ik_message_t);
+    ik_msg_t *msg = talloc_zero(parent, ik_msg_t);
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Initialize ID to 0 for in-memory message
+    msg->id = 0;
 
     // Set kind to "tool_result"
     msg->kind = talloc_strdup(msg, "tool_result");
