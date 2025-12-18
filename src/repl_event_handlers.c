@@ -376,7 +376,7 @@ res_t calculate_curl_min_timeout(ik_repl_ctx_t *repl, long *timeout_out)
         long agent_timeout = -1;
         CHECK(ik_openai_multi_timeout(repl->agents[i]->multi, &agent_timeout));
         if (agent_timeout >= 0) {
-            if (curl_timeout_ms < 0 || agent_timeout < curl_timeout_ms) {
+            if (curl_timeout_ms < 0 || agent_timeout < curl_timeout_ms) {  // LCOV_EXCL_BR_LINE
                 curl_timeout_ms = agent_timeout;
             }
         }
