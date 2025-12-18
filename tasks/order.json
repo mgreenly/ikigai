@@ -19,7 +19,6 @@
     {"task": "init-terminal-naming.md", "group": "Standardize Initialization Patterns", "model": "sonnet", "thinking": "none"},
     {"task": "init-render-naming.md", "group": "Standardize Initialization Patterns", "model": "sonnet", "thinking": "none"},
     {"task": "init-db-mem-ctx-naming.md", "group": "Standardize Initialization Patterns", "model": "sonnet", "thinking": "none"},
-    {"task": "init-mark-decouple.md", "group": "Standardize Initialization Patterns", "model": "sonnet", "thinking": "extended"},
     {"task": "init-db-session-param-order.md", "group": "Standardize Initialization Patterns", "model": "sonnet", "thinking": "none"}
   ],
   "done": []
