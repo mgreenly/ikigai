@@ -156,6 +156,23 @@ For file "repl_actions_llm.c":
   - Run make check
 ```
 
+## Sub-Agent Execution Strategy
+
+This task has 118 callsites across multiple files. Use sub-agents to parallelize:
+
+1. Spawn one sub-agent per file group (e.g., state transition files, HTTP handling files, mark files)
+2. Each sub-agent:
+   - Grep for all patterns in assigned files
+   - Update field access to new pattern (e.g., `agent->conversation` → `agent->llm.conversation`)
+   - Verify with `make check`
+   - Report completion
+
+### Suggested Batches:
+- **Batch 1:** src/agent.c (state transitions)
+- **Batch 2:** src/repl_actions_llm.c, src/repl_callbacks.c (LLM request handling)
+- **Batch 3:** src/commands_mark.c, src/marks.c (mark operations)
+- **Batch 4:** Remaining files (completion.c, repl_viewport.c, commands.c)
+
 ## Notes
 
 **Critical: `agent->state` Disambiguation**

@@ -148,6 +148,23 @@ For file "repl_tool.c":
   - Run make check
 ```
 
+## Sub-Agent Execution Strategy
+
+This task has 82 callsites across multiple files. Use sub-agents to parallelize:
+
+1. Spawn one sub-agent per file group (e.g., tool execution files, state transition files)
+2. Each sub-agent:
+   - Grep for all patterns in assigned files
+   - Update field access to new pattern (e.g., `agent->tool_thread_mutex` → `agent->tool.tool_thread_mutex`)
+   - Verify with `make check`
+   - Report completion
+
+### Suggested Batches:
+- **Batch 1:** src/repl_tool.c (highest density - main tool execution code)
+- **Batch 2:** src/agent.c (state transitions using mutex)
+- **Batch 3:** src/repl_event_handlers.c, src/repl_callbacks.c (tool completion polling)
+- **Batch 4:** Remaining files
+
 ## Notes
 
 **Critical: Mutex Operations**

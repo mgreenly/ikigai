@@ -168,6 +168,23 @@ For module "render.c":
   - Report result
 ```
 
+## Sub-Agent Execution Strategy
+
+This task has 51 callsites across multiple files. Use sub-agents to parallelize:
+
+1. Spawn one sub-agent per file group (e.g., repl files, command files, layer files)
+2. Each sub-agent:
+   - Grep for all patterns in assigned files
+   - Update field access to new pattern (e.g., `agent->scrollback` → `agent->display.scrollback`)
+   - Verify with `make check`
+   - Report completion
+
+### Suggested Batches:
+- **Batch 1:** src/render.c (high-density)
+- **Batch 2:** src/repl_callbacks.c, src/repl_event_handlers.c
+- **Batch 3:** src/commands_*.c (multiple files)
+- **Batch 4:** Remaining files
+
 ## Notes
 
 **Pointer vs Embedded Access:**

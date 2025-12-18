@@ -77,6 +77,22 @@ Verify with `make check` that all tests pass.
 ## Complexity
 Low - mechanical find/replace refactoring
 
+## Sub-Agent Execution Strategy
+
+This task has 339 changes across multiple files. Use sub-agents carefully:
+
+1. Group symbols by header file (parallel sub-agents on same file = merge conflicts)
+2. Process sequentially to avoid conflicts:
+   - Update all 8 function declarations in src/commands.h
+   - Update all 8 function definitions in their respective source files
+   - Update command registry (likely an array of function pointers in commands.c)
+   - Update all callsites in src/commands_fork.c, commands_kill.c, commands_mail.c, commands_agent_list.c
+   - Update any test files
+
+3. After all groups complete:
+   - Run `make check` once (not per sub-agent)
+   - Verify old names gone with grep post-condition
+
 ## Notes
 - The command handlers are likely registered in a static array in commands.c
 - Search for function pointer usages, not just direct calls

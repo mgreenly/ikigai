@@ -75,6 +75,21 @@ Verify with `make check` that all tests pass.
 ## Complexity
 Low - mechanical find/replace refactoring
 
+## Sub-Agent Execution Strategy
+
+This task has 212 changes across multiple files. Use sub-agents carefully:
+
+1. Group symbols by header file (parallel sub-agents on same file = merge conflicts)
+2. Process sequentially to avoid conflicts:
+   - Update all 10 function declarations in src/repl_event_handlers.h
+   - Update all 10 function definitions in src/repl_event_handlers.c
+   - Update all callsites in src/repl.c (7 callsites)
+   - Update any test files
+
+3. After all groups complete:
+   - Run `make check` once (not per sub-agent)
+   - Verify old names gone with grep post-condition
+
 ## Notes
 - Search the entire codebase including tests for usages before renaming
 - These functions are declared in repl_event_handlers.h but may be called from repl.c and other files
