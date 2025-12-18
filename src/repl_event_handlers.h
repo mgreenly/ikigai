@@ -28,3 +28,12 @@ void handle_tool_completion(ik_repl_ctx_t *repl);
 
 // Handle tool thread completion for specific agent
 void handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
+
+// Calculate minimum curl timeout across all agents
+res_t calculate_curl_min_timeout(ik_repl_ctx_t *repl, long *timeout_out);
+
+// Handle select() timeout - spinner animation and scroll detector
+res_t handle_select_timeout(ik_repl_ctx_t *repl);
+
+// Poll for tool thread completion across all agents
+res_t poll_tool_completions(ik_repl_ctx_t *repl);

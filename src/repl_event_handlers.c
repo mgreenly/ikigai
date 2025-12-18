@@ -1,20 +1,24 @@
 #include "repl_event_handlers.h"
 
+#include "agent.h"
 #include "db/message.h"
 #include "event_render.h"
 #include "input.h"
+#include "layer_wrappers.h"
 #include "logger.h"
 #include "openai/client_multi.h"
 #include "panic.h"
 #include "repl.h"
-#include "agent.h"
 #include "repl_actions.h"
+#include "repl_actions_internal.h"
 #include "repl_callbacks.h"
+#include "scroll_detector.h"
 #include "shared.h"
 #include "wrapper.h"
 
 #include <assert.h>
 #include <errno.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/select.h>
@@ -360,4 +364,84 @@ void handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 void handle_tool_completion(ik_repl_ctx_t *repl)
 {
     handle_agent_tool_completion(repl, repl->current);
+}
+
+res_t calculate_curl_min_timeout(ik_repl_ctx_t *repl, long *timeout_out)
+{
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    assert(timeout_out != NULL);  // LCOV_EXCL_BR_LINE
+
+    long curl_timeout_ms = -1;
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        long agent_timeout = -1;
+        CHECK(ik_openai_multi_timeout(repl->agents[i]->multi, &agent_timeout));
+        if (agent_timeout >= 0) {
+            if (curl_timeout_ms < 0 || agent_timeout < curl_timeout_ms) {
+                curl_timeout_ms = agent_timeout;
+            }
+        }
+    }
+    *timeout_out = curl_timeout_ms;
+    return OK(NULL);
+}
+
+res_t handle_select_timeout(ik_repl_ctx_t *repl)
+{
+    // Advance spinner if visible
+    if (repl->current->spinner_state.visible) {
+        ik_spinner_advance(&repl->current->spinner_state);
+        CHECK(ik_repl_render_frame(repl));
+    }
+
+    // Check scroll detector timeout
+    if (repl->scroll_det != NULL) {  // LCOV_EXCL_BR_LINE
+        struct timespec ts;  // LCOV_EXCL_LINE
+        clock_gettime(CLOCK_MONOTONIC, &ts);  // LCOV_EXCL_LINE
+        int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;  // LCOV_EXCL_LINE
+        ik_scroll_result_t timeout_result = ik_scroll_detector_check_timeout(  // LCOV_EXCL_LINE
+            repl->scroll_det, now_ms);  // LCOV_EXCL_LINE
+
+        // Process any flushed arrow - call handlers directly to bypass detector
+        if (timeout_result == IK_SCROLL_RESULT_ARROW_UP) {  // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
+            CHECK(ik_repl_handle_arrow_up_action(repl));  // LCOV_EXCL_LINE
+            CHECK(ik_repl_render_frame(repl));  // LCOV_EXCL_LINE
+        } else if (timeout_result == IK_SCROLL_RESULT_ARROW_DOWN) {  // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
+            CHECK(ik_repl_handle_arrow_down_action(repl));  // LCOV_EXCL_LINE
+            CHECK(ik_repl_render_frame(repl));  // LCOV_EXCL_LINE
+        }
+    }
+
+    return OK(NULL);
+}
+
+res_t poll_tool_completions(ik_repl_ctx_t *repl)
+{
+    // Poll for tool thread completion - check ALL agents
+    if (repl->agent_count > 0) {
+        // Multi-agent mode: check all agents
+        for (size_t i = 0; i < repl->agent_count; i++) {
+            ik_agent_ctx_t *agent = repl->agents[i];
+
+            pthread_mutex_lock_(&agent->tool_thread_mutex);
+            ik_agent_state_t state = agent->state;
+            bool complete = agent->tool_thread_complete;
+            pthread_mutex_unlock_(&agent->tool_thread_mutex);
+
+            if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
+                handle_agent_tool_completion(repl, agent);
+            }
+        }
+    } else if (repl->current != NULL) {
+        // Single-agent mode (tests/legacy): check current only
+        pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+        ik_agent_state_t state = repl->current->state;
+        bool complete = repl->current->tool_thread_complete;
+        pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
+
+        if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
+            handle_agent_tool_completion(repl, repl->current);
+        }
+    }
+
+    return OK(NULL);
 }
