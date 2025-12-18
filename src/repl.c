@@ -217,21 +217,21 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
     return ik_repl_render_frame(repl);
 }
 
-bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl)
+bool ik_agent_should_continue_tool_loop(const ik_agent_ctx_t *agent)
 {
-    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
+    assert(agent != NULL);   /* LCOV_EXCL_BR_LINE */
 
     /* Check if finish_reason is "tool_calls" */
-    if (repl->current->response_finish_reason == NULL) {
+    if (agent->response_finish_reason == NULL) {
         return false;
     }
 
-    if (strcmp(repl->current->response_finish_reason, "tool_calls") != 0) {
+    if (strcmp(agent->response_finish_reason, "tool_calls") != 0) {
         return false;
     }
 
     /* Check if we've reached the tool iteration limit (if config is available) */
-    if (repl->shared->cfg != NULL && repl->current->tool_iteration_count >= repl->shared->cfg->max_tool_turns) {
+    if (agent->repl->shared->cfg != NULL && agent->tool_iteration_count >= agent->repl->shared->cfg->max_tool_turns) {
         return false;
     }
 

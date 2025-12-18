@@ -4,8 +4,9 @@
 #include <sys/select.h>
 #include <stdbool.h>
 
-// Forward declaration
+// Forward declarations
 typedef struct ik_repl_ctx_t ik_repl_ctx_t;
+typedef struct ik_agent_ctx ik_agent_ctx_t;
 
 // Calculate timeout for select() considering spinner and curl timeouts
 long calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms);
@@ -20,7 +21,7 @@ res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_e
 res_t handle_curl_events(ik_repl_ctx_t *repl, int ready);
 
 // Handle request success (LLM response complete)
-void handle_request_success(ik_repl_ctx_t *repl);
+void handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 
 // Handle tool thread completion
 void handle_tool_completion(ik_repl_ctx_t *repl);

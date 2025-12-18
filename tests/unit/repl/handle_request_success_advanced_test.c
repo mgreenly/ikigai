@@ -69,7 +69,7 @@ START_TEST(test_debug_pipe_null_write_end) {
     repl->shared->openai_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
     repl->shared->openai_debug_pipe->write_end = NULL; // This triggers Branch 3
 
-    handle_request_success(repl);
+    handle_agent_request_success(repl, repl->current);
 
     // Message should be added to conversation
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
@@ -86,7 +86,7 @@ START_TEST(test_debug_pipe_short_message)
     repl->shared->openai_debug_pipe->write_end = tmpfile();
     ck_assert_ptr_nonnull(repl->shared->openai_debug_pipe->write_end);
 
-    handle_request_success(repl);
+    handle_agent_request_success(repl, repl->current);
 
     // Message should be added to conversation
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
@@ -111,7 +111,7 @@ START_TEST(test_debug_pipe_long_message)
     repl->shared->openai_debug_pipe->write_end = tmpfile();
     ck_assert_ptr_nonnull(repl->shared->openai_debug_pipe->write_end);
 
-    handle_request_success(repl);
+    handle_agent_request_success(repl, repl->current);
 
     // Message should be added to conversation
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
@@ -158,7 +158,7 @@ START_TEST(test_request_success_starts_tool_execution)
     repl->current->tool_thread_ctx = NULL;
 
     // Call handle_request_success - should start tool execution
-    handle_request_success(repl);
+    handle_agent_request_success(repl, repl->current);
 
     // State should be EXECUTING_TOOL (not IDLE)
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);

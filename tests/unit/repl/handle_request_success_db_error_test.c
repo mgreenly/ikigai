@@ -116,7 +116,7 @@ START_TEST(test_db_error_no_debug_pipe) {
     // Configure mock to fail
     mock_db_insert_should_fail = true;
 
-    handle_request_success(repl);
+    handle_agent_request_success(repl, repl->current);
 
     // Message should still be added to conversation despite DB error
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
@@ -132,7 +132,7 @@ START_TEST(test_db_error_with_logger)
     // Configure mock to fail
     mock_db_insert_should_fail = true;
 
-    handle_request_success(repl);
+    handle_agent_request_success(repl, repl->current);
 
     // Message should still be added to conversation despite DB error
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);

@@ -35,6 +35,7 @@ static void setup(void)
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    agent->repl = repl;  // Set backpointer
 
     repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->current->response_finish_reason = NULL;
@@ -54,7 +55,7 @@ START_TEST(test_should_continue_with_tool_calls) {
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should return true */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(should_continue);
 }
 
@@ -68,7 +69,7 @@ START_TEST(test_should_not_continue_with_stop)
     repl->current->response_finish_reason = talloc_strdup(repl, "stop");
 
     /* Should return false */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(!should_continue);
 }
 
@@ -82,7 +83,7 @@ START_TEST(test_should_not_continue_with_length)
     repl->current->response_finish_reason = talloc_strdup(repl, "length");
 
     /* Should return false */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(!should_continue);
 }
 
@@ -96,7 +97,7 @@ START_TEST(test_should_not_continue_with_null)
     repl->current->response_finish_reason = NULL;
 
     /* Should return false */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(!should_continue);
 }
 
@@ -110,7 +111,7 @@ START_TEST(test_should_not_continue_with_empty_string)
     repl->current->response_finish_reason = talloc_strdup(repl, "");
 
     /* Should return false */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(!should_continue);
 }
 
@@ -124,7 +125,7 @@ START_TEST(test_should_not_continue_with_unknown)
     repl->current->response_finish_reason = talloc_strdup(repl, "content_filter");
 
     /* Should return false */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(!should_continue);
 }
 

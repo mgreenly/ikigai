@@ -103,7 +103,7 @@ void ik_repl_start_tool_execution(ik_repl_ctx_t *repl);
 void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl);
 
 // Tool loop decision function (Phase 2: Story 02)
-bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl);
+bool ik_agent_should_continue_tool_loop(const ik_agent_ctx_t *agent);
 
 // Agent array management
 res_t ik_repl_add_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
