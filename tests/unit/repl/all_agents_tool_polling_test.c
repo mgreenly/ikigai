@@ -24,7 +24,7 @@
 #include <unistd.h>
 
 /* Forward declarations */
-void handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
+void ik_repl_handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 
 /* Mock for db message insert */
 res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
@@ -132,12 +132,12 @@ static void teardown(void)
 }
 
 /**
- * Test: handle_agent_tool_completion operates on passed agent
+ * Test: ik_repl_handle_agent_tool_completion operates on passed agent
  *
  * Scenario:
  * 1. Agent A has completed tool (EXECUTING_TOOL, tool_thread_complete=true)
  * 2. repl->current points to Agent B (user switched)
- * 3. Call handle_agent_tool_completion(repl, agent_a)
+ * 3. Call ik_repl_handle_agent_tool_completion(repl, agent_a)
  * 4. Verify Agent A's tool was harvested and messages added
  * 5. Verify Agent B is unaffected
  */
@@ -163,8 +163,8 @@ START_TEST(test_handle_agent_tool_completion_uses_agent_param)
     ck_assert_uint_eq(agent_a->conversation->message_count, 0);
     ck_assert_uint_eq(agent_b->conversation->message_count, 0);
 
-    /* Call handle_agent_tool_completion on Agent A */
-    handle_agent_tool_completion(repl, agent_a);
+    /* Call ik_repl_handle_agent_tool_completion on Agent A */
+    ik_repl_handle_agent_tool_completion(repl, agent_a);
 
     /* Verify Agent A's tool was completed */
     ck_assert_uint_eq(agent_a->conversation->message_count, 2);
@@ -214,7 +214,7 @@ START_TEST(test_event_loop_polls_all_agents)
         pthread_mutex_unlock_(&agent->tool_thread_mutex);
 
         if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete_flag) {
-            handle_agent_tool_completion(repl, agent);
+            ik_repl_handle_agent_tool_completion(repl, agent);
         }
     }
 

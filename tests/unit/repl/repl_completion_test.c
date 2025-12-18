@@ -41,7 +41,7 @@ START_TEST(test_request_completion_adds_to_conversation) {
     // 2. Call multi_perform which sets still_running = 0 (via our mock)
     // 3. Detect completion: prev_running=1, still_running=0, state=WAITING_FOR_LLM
     // 4. Add assistant message to conversation and transition to IDLE
-    res_t result = handle_curl_events(repl, 1);
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // Verify assistant message was added to conversation
@@ -83,7 +83,7 @@ START_TEST(test_request_completion_with_null_response)
     simulate_completion = true;
 
     // Call handle_curl_events_ - should complete but not add assistant message
-    res_t result = handle_curl_events(repl, 1);
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // Verify NO assistant message was added (still only 1 message)
@@ -123,7 +123,7 @@ START_TEST(test_request_completion_with_empty_response)
     simulate_completion = true;
 
     // Call handle_curl_events_
-    res_t result = handle_curl_events(repl, 1);
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // Verify NO assistant message was added
@@ -138,7 +138,7 @@ START_TEST(test_request_completion_with_empty_response)
 }
 
 END_TEST
-/* Test: handle_curl_events when not in WAITING_FOR_LLM state */
+/* Test: ik_repl_handle_curl_events when not in WAITING_FOR_LLM state */
 START_TEST(test_handle_curl_events_not_waiting_state)
 {
     void *ctx = talloc_new(NULL);
@@ -156,7 +156,7 @@ START_TEST(test_handle_curl_events_not_waiting_state)
     simulate_completion = true;
 
     // Call handle_curl_events_ - should NOT process completion since state is wrong
-    res_t result = handle_curl_events(repl, 1);
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // State should remain IDLE
@@ -171,7 +171,7 @@ START_TEST(test_handle_curl_events_not_waiting_state)
 }
 
 END_TEST
-/* Test: handle_curl_events with ready=0 (timeout case) */
+/* Test: ik_repl_handle_curl_events with ready=0 (timeout case) */
 START_TEST(test_handle_curl_events_with_ready_zero)
 {
     void *ctx = talloc_new(NULL);
@@ -186,7 +186,7 @@ START_TEST(test_handle_curl_events_with_ready_zero)
 
     // Call with ready=0 (select timeout)
     simulate_completion = true;
-    res_t result = handle_curl_events(repl, 0);
+    res_t result = ik_repl_handle_curl_events(repl, 0);
     ck_assert(is_ok(&result));
 
     // Clean up
@@ -195,7 +195,7 @@ START_TEST(test_handle_curl_events_with_ready_zero)
 }
 
 END_TEST
-/* Test: handle_curl_events when request is still running (doesn't complete) */
+/* Test: ik_repl_handle_curl_events when request is still running (doesn't complete) */
 START_TEST(test_handle_curl_events_request_still_running)
 {
     void *ctx = talloc_new(NULL);
@@ -213,7 +213,7 @@ START_TEST(test_handle_curl_events_request_still_running)
     simulate_completion = false;  // Request stays running
 
     // Call handle_curl_events_ - request is still running
-    res_t result = handle_curl_events(repl, 1);
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // State should remain WAITING_FOR_LLM (no completion)
@@ -227,7 +227,7 @@ START_TEST(test_handle_curl_events_request_still_running)
 }
 
 END_TEST
-/* Test: handle_curl_events render failure on completion */
+/* Test: ik_repl_handle_curl_events render failure on completion */
 START_TEST(test_handle_curl_events_render_failure_on_completion)
 {
     void *ctx = talloc_new(NULL);
@@ -255,7 +255,7 @@ START_TEST(test_handle_curl_events_render_failure_on_completion)
     mock_write_should_fail = true;
 
     // Call handle_curl_events_ - completion will be detected but render will fail
-    res_t result = handle_curl_events(repl, 1);
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_err(&result));
 
     // Clean up

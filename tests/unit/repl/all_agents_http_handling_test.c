@@ -1,8 +1,8 @@
 /**
  * @file all_agents_http_handling_test.c
- * @brief Unit tests for handle_curl_events processing all agents
+ * @brief Unit tests for ik_repl_handle_curl_events processing all agents
  *
- * Tests that handle_curl_events processes HTTP completions for all agents,
+ * Tests that ik_repl_handle_curl_events processes HTTP completions for all agents,
  * not just the current agent.
  */
 
@@ -80,7 +80,7 @@ static void setup(void)
     repl->shared = talloc_zero(test_ctx, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
 
-    // Create logger (required for handle_curl_events)
+    // Create logger (required for ik_repl_handle_curl_events)
     repl->shared->logger = ik_logger_create(repl->shared, "/tmp");
     ck_assert_ptr_nonnull(repl->shared->logger);
 
@@ -137,9 +137,9 @@ START_TEST(test_background_agent_http_completion)
     agent_b->state = IK_AGENT_STATE_IDLE;
     agent_b->curl_still_running = 0;
 
-    // Call handle_curl_events - should process Agent A even though Agent B is current
+    // Call ik_repl_handle_curl_events - should process Agent A even though Agent B is current
     // curl_multi_perform will complete immediately (no actual handles) and set curl_still_running to 0
-    res_t result = handle_curl_events(repl, 0);
+    res_t result = ik_repl_handle_curl_events(repl, 0);
     ck_assert(is_ok(&result));
 
     // Verify Agent A was processed
@@ -185,9 +185,9 @@ START_TEST(test_multiple_background_agents_completion)
     agent_b->state = IK_AGENT_STATE_IDLE;
     agent_b->curl_still_running = 0;
 
-    // Call handle_curl_events - should process both Agent A and C
+    // Call ik_repl_handle_curl_events - should process both Agent A and C
     // curl_multi_perform will complete immediately (no actual handles) and set both to 0
-    res_t result = handle_curl_events(repl, 0);
+    res_t result = ik_repl_handle_curl_events(repl, 0);
     ck_assert(is_ok(&result));
 
     // Verify Agent A was processed
@@ -230,9 +230,9 @@ START_TEST(test_background_agent_http_error)
     agent_b->state = IK_AGENT_STATE_IDLE;
     agent_b->curl_still_running = 0;
 
-    // Call handle_curl_events
+    // Call ik_repl_handle_curl_events
     // curl_multi_perform will complete immediately (no actual handles) and set curl_still_running to 0
-    res_t result = handle_curl_events(repl, 0);
+    res_t result = ik_repl_handle_curl_events(repl, 0);
     ck_assert(is_ok(&result));
 
     // Verify Agent A's error was handled

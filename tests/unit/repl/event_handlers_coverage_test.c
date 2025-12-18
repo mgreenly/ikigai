@@ -3,11 +3,11 @@
  * @brief Coverage tests for uncovered branches in repl_event_handlers.c
  *
  * This test file targets specific uncovered lines and branches:
- * - Line 100: setup_fd_sets with agent_max_fd > max_fd
- * - Line 325: handle_curl_events with current not in agents array
- * - Lines 379-380: calculate_curl_min_timeout with positive agent timeout
- * - Line 431: poll_tool_completions in multi-agent mode
- * - Line 434: poll_tool_completions in single-agent mode
+ * - Line 100: ik_repl_setup_fd_sets with agent_max_fd > max_fd
+ * - Line 325: ik_repl_handle_curl_events with current not in agents array
+ * - Lines 379-380: ik_repl_calculate_curl_min_timeout with positive agent timeout
+ * - Line 431: ik_repl_poll_tool_completions in multi-agent mode
+ * - Line 434: ik_repl_poll_tool_completions in single-agent mode
  */
 
 #include "agent.h"
@@ -31,7 +31,7 @@
 #include <unistd.h>
 
 /* Forward declarations */
-void handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
+void ik_repl_handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 
 /* Mock for db message insert */
 res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
@@ -169,7 +169,7 @@ static ik_agent_ctx_t *create_test_agent(ik_repl_ctx_t *parent, const char *uuid
 }
 
 /*
- * Test: setup_fd_sets with agent_max_fd > terminal_fd (line 100)
+ * Test: ik_repl_setup_fd_sets with agent_max_fd > terminal_fd (line 100)
  * This covers the branch where we update max_fd
  */
 START_TEST(test_setup_fd_sets_agent_max_fd_greater)
@@ -186,7 +186,7 @@ START_TEST(test_setup_fd_sets_agent_max_fd_greater)
     /* Setup fd_sets */
     fd_set read_fds, write_fds, exc_fds;
     int max_fd = -1;
-    res_t result = setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd);
+    res_t result = ik_repl_setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd);
 
     /* Should succeed */
     ck_assert(!is_err(&result));
@@ -200,7 +200,7 @@ START_TEST(test_setup_fd_sets_agent_max_fd_greater)
 END_TEST
 
 /*
- * Test: handle_curl_events with current not in agents array (line 325 branch)
+ * Test: ik_repl_handle_curl_events with current not in agents array (line 325 branch)
  * This covers the path where current agent is not in the array (single-agent/test mode)
  */
 START_TEST(test_handle_curl_events_current_not_in_array)
@@ -218,8 +218,8 @@ START_TEST(test_handle_curl_events_current_not_in_array)
     repl->current = current;
     current->curl_still_running = 0;  /* Not running, so won't trigger HTTP completion logic */
 
-    /* Call handle_curl_events */
-    res_t result = handle_curl_events(repl, 0);
+    /* Call ik_repl_handle_curl_events */
+    res_t result = ik_repl_handle_curl_events(repl, 0);
 
     /* Should succeed */
     ck_assert(!is_err(&result));
@@ -227,7 +227,7 @@ START_TEST(test_handle_curl_events_current_not_in_array)
 END_TEST
 
 /*
- * Test: handle_curl_events with current IN agents array (line 325 false branch)
+ * Test: ik_repl_handle_curl_events with current IN agents array (line 325 false branch)
  * This covers the path where current is in the array (normal multi-agent mode)
  */
 START_TEST(test_handle_curl_events_current_in_array)
@@ -244,8 +244,8 @@ START_TEST(test_handle_curl_events_current_in_array)
     repl->current = agent_b;
     agent_b->curl_still_running = 0;
 
-    /* Call handle_curl_events */
-    res_t result = handle_curl_events(repl, 0);
+    /* Call ik_repl_handle_curl_events */
+    res_t result = ik_repl_handle_curl_events(repl, 0);
 
     /* Should succeed */
     ck_assert(!is_err(&result));
@@ -253,7 +253,7 @@ START_TEST(test_handle_curl_events_current_in_array)
 END_TEST
 
 /*
- * Test: handle_curl_events with current NULL (line 325 branch 1)
+ * Test: ik_repl_handle_curl_events with current NULL (line 325 branch 1)
  * This covers the case where repl->current is NULL
  */
 START_TEST(test_handle_curl_events_current_null)
@@ -269,8 +269,8 @@ START_TEST(test_handle_curl_events_current_null)
     /* Set current to NULL */
     repl->current = NULL;
 
-    /* Call handle_curl_events */
-    res_t result = handle_curl_events(repl, 0);
+    /* Call ik_repl_handle_curl_events */
+    res_t result = ik_repl_handle_curl_events(repl, 0);
 
     /* Should succeed */
     ck_assert(!is_err(&result));
@@ -278,7 +278,7 @@ START_TEST(test_handle_curl_events_current_null)
 END_TEST
 
 /*
- * Test: calculate_curl_min_timeout with positive agent timeout (lines 379-380)
+ * Test: ik_repl_calculate_curl_min_timeout with positive agent timeout (lines 379-380)
  * This covers the branch where we update curl_timeout_ms
  */
 START_TEST(test_calculate_curl_min_timeout_positive)
@@ -295,9 +295,9 @@ START_TEST(test_calculate_curl_min_timeout_positive)
     /* Mock curl_multi_timeout to return a positive timeout (e.g., 100ms) */
     mock_multi_timeout_ms = 100;
 
-    /* Call calculate_curl_min_timeout */
+    /* Call ik_repl_calculate_curl_min_timeout */
     long timeout = -1;
-    res_t result = calculate_curl_min_timeout(repl, &timeout);
+    res_t result = ik_repl_calculate_curl_min_timeout(repl, &timeout);
 
     /* Should succeed */
     ck_assert(!is_err(&result));
@@ -308,7 +308,7 @@ START_TEST(test_calculate_curl_min_timeout_positive)
 END_TEST
 
 /*
- * Test: calculate_curl_min_timeout with multiple agents, one with larger timeout (line 379 branch 2)
+ * Test: ik_repl_calculate_curl_min_timeout with multiple agents, one with larger timeout (line 379 branch 2)
  * This covers the case where agent_timeout >= curl_timeout_ms (don't update)
  */
 START_TEST(test_calculate_curl_min_timeout_keeps_minimum)
@@ -329,9 +329,9 @@ START_TEST(test_calculate_curl_min_timeout_keeps_minimum)
     mock_timeout_values[0] = 50;   /* Agent A */
     mock_timeout_values[1] = 200;  /* Agent B */
 
-    /* Call calculate_curl_min_timeout */
+    /* Call ik_repl_calculate_curl_min_timeout */
     long timeout = -1;
-    res_t result = calculate_curl_min_timeout(repl, &timeout);
+    res_t result = ik_repl_calculate_curl_min_timeout(repl, &timeout);
 
     /* Should succeed */
     ck_assert(!is_err(&result));
@@ -358,8 +358,8 @@ static void *tool_completion_thread_func(void *arg)
 }
 
 /*
- * Test: poll_tool_completions in multi-agent mode (line 431)
- * This covers the branch where we call handle_agent_tool_completion for a completed agent
+ * Test: ik_repl_poll_tool_completions in multi-agent mode (line 431)
+ * This covers the branch where we call ik_repl_handle_agent_tool_completion for a completed agent
  */
 START_TEST(test_poll_tool_completions_multi_agent_mode)
 {
@@ -400,8 +400,8 @@ START_TEST(test_poll_tool_completions_multi_agent_mode)
     }
     ck_assert(complete);
 
-    /* Call poll_tool_completions */
-    res_t result = poll_tool_completions(repl);
+    /* Call ik_repl_poll_tool_completions */
+    res_t result = ik_repl_poll_tool_completions(repl);
 
     /* Should succeed */
     ck_assert(!is_err(&result));
@@ -414,7 +414,7 @@ START_TEST(test_poll_tool_completions_multi_agent_mode)
 END_TEST
 
 /*
- * Test: poll_tool_completions in single-agent mode (line 434)
+ * Test: ik_repl_poll_tool_completions in single-agent mode (line 434)
  * This covers the branch where agent_count == 0 and we check current
  */
 START_TEST(test_poll_tool_completions_single_agent_mode)
@@ -453,8 +453,8 @@ START_TEST(test_poll_tool_completions_single_agent_mode)
     }
     ck_assert(complete);
 
-    /* Call poll_tool_completions */
-    res_t result = poll_tool_completions(repl);
+    /* Call ik_repl_poll_tool_completions */
+    res_t result = ik_repl_poll_tool_completions(repl);
 
     /* Should succeed */
     ck_assert(!is_err(&result));
@@ -467,8 +467,8 @@ START_TEST(test_poll_tool_completions_single_agent_mode)
 END_TEST
 
 /*
- * Test: poll_tool_completions with agent NOT executing tool (line 430 false branch)
- * This covers the case where we don't call handle_agent_tool_completion
+ * Test: ik_repl_poll_tool_completions with agent NOT executing tool (line 430 false branch)
+ * This covers the case where we don't call ik_repl_handle_agent_tool_completion
  */
 START_TEST(test_poll_tool_completions_agent_not_executing)
 {
@@ -485,8 +485,8 @@ START_TEST(test_poll_tool_completions_agent_not_executing)
     agent_a->state = IK_AGENT_STATE_IDLE;
     agent_b->state = IK_AGENT_STATE_IDLE;
 
-    /* Call poll_tool_completions */
-    res_t result = poll_tool_completions(repl);
+    /* Call ik_repl_poll_tool_completions */
+    res_t result = ik_repl_poll_tool_completions(repl);
 
     /* Should succeed */
     ck_assert(!is_err(&result));
@@ -498,7 +498,7 @@ START_TEST(test_poll_tool_completions_agent_not_executing)
 END_TEST
 
 /*
- * Test: poll_tool_completions with agent EXECUTING but not complete (line 430 branch 3)
+ * Test: ik_repl_poll_tool_completions with agent EXECUTING but not complete (line 430 branch 3)
  * This covers the case where state is EXECUTING_TOOL but complete is false
  */
 START_TEST(test_poll_tool_completions_executing_not_complete)
@@ -514,8 +514,8 @@ START_TEST(test_poll_tool_completions_executing_not_complete)
     agent_a->state = IK_AGENT_STATE_EXECUTING_TOOL;
     agent_a->tool_thread_complete = false;
 
-    /* Call poll_tool_completions */
-    res_t result = poll_tool_completions(repl);
+    /* Call ik_repl_poll_tool_completions */
+    res_t result = ik_repl_poll_tool_completions(repl);
 
     /* Should succeed */
     ck_assert(!is_err(&result));
@@ -526,7 +526,7 @@ START_TEST(test_poll_tool_completions_executing_not_complete)
 END_TEST
 
 /*
- * Test: poll_tool_completions with current NULL (line 434 false branch)
+ * Test: ik_repl_poll_tool_completions with current NULL (line 434 false branch)
  * This covers the case where repl->current is NULL in single-agent mode
  */
 START_TEST(test_poll_tool_completions_current_null)
@@ -537,8 +537,8 @@ START_TEST(test_poll_tool_completions_current_null)
     /* Set current to NULL */
     repl->current = NULL;
 
-    /* Call poll_tool_completions */
-    res_t result = poll_tool_completions(repl);
+    /* Call ik_repl_poll_tool_completions */
+    res_t result = ik_repl_poll_tool_completions(repl);
 
     /* Should succeed */
     ck_assert(!is_err(&result));

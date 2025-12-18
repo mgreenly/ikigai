@@ -55,7 +55,7 @@ START_TEST(test_calculate_timeout_all_disabled) {
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = -1;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return default 1000ms when all timeouts are -1 */
     ck_assert_int_eq(timeout, 1000);
@@ -72,7 +72,7 @@ START_TEST(test_calculate_timeout_spinner_only)
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = -1;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return spinner timeout (80ms) */
     ck_assert_int_eq(timeout, 80);
@@ -90,7 +90,7 @@ START_TEST(test_calculate_timeout_curl_only)
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = 500;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return curl timeout (500ms) */
     ck_assert_int_eq(timeout, 500);
@@ -108,7 +108,7 @@ START_TEST(test_calculate_timeout_tool_poll_only)
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = -1;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return tool poll timeout (50ms) */
     ck_assert_int_eq(timeout, 50);
@@ -126,7 +126,7 @@ START_TEST(test_calculate_timeout_decreasing_spinner_tool)
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = -1;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return minimum (50ms) */
     ck_assert_int_eq(timeout, 50);
@@ -144,7 +144,7 @@ START_TEST(test_calculate_timeout_decreasing_spinner_curl)
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = 25;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return minimum (25ms) */
     ck_assert_int_eq(timeout, 25);
@@ -162,7 +162,7 @@ START_TEST(test_calculate_timeout_increasing_spinner_curl)
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = 500;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return minimum (80ms), not the later larger value */
     ck_assert_int_eq(timeout, 80);
@@ -180,7 +180,7 @@ START_TEST(test_calculate_timeout_increasing_curl_tool)
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = 100;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return minimum (50ms) */
     ck_assert_int_eq(timeout, 50);
@@ -198,7 +198,7 @@ START_TEST(test_calculate_timeout_all_active_decreasing)
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = 60;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return minimum (50ms) */
     ck_assert_int_eq(timeout, 50);
@@ -216,7 +216,7 @@ START_TEST(test_calculate_timeout_all_active_mixed)
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = 100;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return minimum (50ms) */
     ck_assert_int_eq(timeout, 50);
@@ -233,7 +233,7 @@ START_TEST(test_calculate_timeout_mixed_disabled_spinner_curl)
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = 200;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return minimum (80ms) */
     ck_assert_int_eq(timeout, 80);
@@ -250,7 +250,7 @@ START_TEST(test_calculate_timeout_mixed_disabled_spinner_tool)
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = -1;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return minimum (50ms) */
     ck_assert_int_eq(timeout, 50);
@@ -267,7 +267,7 @@ START_TEST(test_calculate_timeout_mixed_disabled_curl_tool)
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
     long curl_timeout_ms = 300;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return minimum (50ms) */
     ck_assert_int_eq(timeout, 50);
@@ -284,7 +284,7 @@ START_TEST(test_calculate_timeout_waiting_for_llm)
     repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;    // tool_poll_timeout = -1
     long curl_timeout_ms = 100;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return minimum of spinner and curl (80ms) */
     ck_assert_int_eq(timeout, 80);
@@ -301,7 +301,7 @@ START_TEST(test_calculate_timeout_zero_curl)
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
     long curl_timeout_ms = 0;
 
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return 0 (immediate return) */
     ck_assert_int_eq(timeout, 0);

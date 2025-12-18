@@ -45,7 +45,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         // Set up fd_sets
         fd_set read_fds, write_fds, exc_fds;
         int max_fd;
-        CHECK(setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd));  // LCOV_EXCL_BR_LINE
+        CHECK(ik_repl_setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd));  // LCOV_EXCL_BR_LINE
 
         // Add debug pipes to fd_set
         if (repl->shared->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
@@ -54,8 +54,8 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Calculate minimum curl timeout across ALL agents
         long curl_timeout_ms = -1;
-        CHECK(calculate_curl_min_timeout(repl, &curl_timeout_ms));
-        long effective_timeout_ms = calculate_select_timeout_ms(repl, curl_timeout_ms);
+        CHECK(ik_repl_calculate_curl_min_timeout(repl, &curl_timeout_ms));
+        long effective_timeout_ms = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
         struct timeval timeout;
         timeout.tv_sec = effective_timeout_ms / 1000;
@@ -75,7 +75,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         // Handle timeout (spinner animation and scroll detector)
         // Note: Don't continue here - curl events must still be processed
         if (ready == 0) {
-            CHECK(handle_select_timeout(repl));  // LCOV_EXCL_BR_LINE
+            CHECK(ik_repl_handle_select_timeout(repl));  // LCOV_EXCL_BR_LINE
         }
 
         // Handle debug pipes
@@ -85,15 +85,15 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Handle terminal input
         if (FD_ISSET(repl->shared->term->tty_fd, &read_fds)) {  // LCOV_EXCL_BR_LINE
-            CHECK(handle_terminal_input(repl, repl->shared->term->tty_fd, &should_exit));
+            CHECK(ik_repl_handle_terminal_input(repl, repl->shared->term->tty_fd, &should_exit));
             if (should_exit) break;
         }
 
         // Handle curl_multi events
-        CHECK(handle_curl_events(repl, ready));  // LCOV_EXCL_BR_LINE
+        CHECK(ik_repl_handle_curl_events(repl, ready));  // LCOV_EXCL_BR_LINE
 
         // Poll for tool thread completion - check ALL agents
-        CHECK(poll_tool_completions(repl));  // LCOV_EXCL_BR_LINE
+        CHECK(ik_repl_poll_tool_completions(repl));  // LCOV_EXCL_BR_LINE
     }
 
     return OK(NULL);

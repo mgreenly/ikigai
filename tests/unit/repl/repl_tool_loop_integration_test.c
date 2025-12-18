@@ -102,7 +102,7 @@ START_TEST(test_handle_request_success_with_tool_calls_continues_loop) {
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Call handle_request_success */
-    handle_agent_request_success(repl, repl->current);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify:
      * 1. State should still be WAITING_FOR_LLM (not transitioned to IDLE)
@@ -137,7 +137,7 @@ START_TEST(test_handle_request_success_with_stop_ends_loop)
     size_t initial_count = repl->current->conversation->message_count;
 
     /* Call handle_request_success */
-    handle_agent_request_success(repl, repl->current);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify:
      * 1. Assistant message was added to conversation
@@ -166,7 +166,7 @@ START_TEST(test_handle_request_success_with_null_finish_reason)
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Call handle_request_success */
-    handle_agent_request_success(repl, repl->current);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify: curl_still_running should still be 0 (no new request) */
     ck_assert_int_eq(repl->current->curl_still_running, 0);
@@ -186,7 +186,7 @@ START_TEST(test_multiple_tool_loop_iterations)
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
     repl->current->assistant_response = talloc_strdup(repl, "");
 
-    handle_agent_request_success(repl, repl->current);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     ck_assert_int_eq(repl->current->curl_still_running, 1);
@@ -199,7 +199,7 @@ START_TEST(test_multiple_tool_loop_iterations)
     repl->current->response_finish_reason = talloc_strdup(repl, "stop");
     repl->current->assistant_response = talloc_strdup(repl, "Done!");
 
-    handle_agent_request_success(repl, repl->current);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify loop stops */
     ck_assert_int_eq(repl->current->curl_still_running, 0);
@@ -221,7 +221,7 @@ START_TEST(test_tool_loop_with_empty_content)
 
     size_t initial_count = repl->current->conversation->message_count;
 
-    handle_agent_request_success(repl, repl->current);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify: No assistant message added (response was NULL) */
     ck_assert_uint_eq(repl->current->conversation->message_count, initial_count);
@@ -269,7 +269,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     repl->current->response_model = talloc_strdup(repl, "gpt-4");
     repl->current->response_completion_tokens = 10;
 
-    handle_agent_request_success(repl, repl->current);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify: Still in WAITING_FOR_LLM state (loop continues) */
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
@@ -296,7 +296,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     repl->current->response_model = talloc_strdup(repl, "gpt-4");
     repl->current->response_completion_tokens = 15;
 
-    handle_agent_request_success(repl, repl->current);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify: Still in WAITING_FOR_LLM state (loop continues) */
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
@@ -321,7 +321,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     repl->current->response_model = talloc_strdup(repl, "gpt-4");
     repl->current->response_completion_tokens = 20;
 
-    handle_agent_request_success(repl, repl->current);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify: Loop stops (no new request initiated) */
     ck_assert_int_eq(repl->current->curl_still_running, 0);

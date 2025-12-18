@@ -29,7 +29,7 @@
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 static void persist_assistant_msg(ik_repl_ctx_t *repl);
 
-long calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
+long ik_repl_calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
 {
     // Spinner timer: 80ms when visible, no timeout when hidden
     long spinner_timeout_ms = repl->current->spinner_state.visible ? 80 : -1;  // LCOV_EXCL_BR_LINE
@@ -75,7 +75,7 @@ long calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
     return 1000;
 }
 
-res_t setup_fd_sets(ik_repl_ctx_t *repl,
+res_t ik_repl_setup_fd_sets(ik_repl_ctx_t *repl,
                     fd_set *read_fds,
                     fd_set *write_fds,
                     fd_set *exc_fds,
@@ -105,7 +105,7 @@ res_t setup_fd_sets(ik_repl_ctx_t *repl,
     return OK(NULL);
 }
 
-res_t handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit)
+res_t ik_repl_handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *should_exit)
 {
     char byte;
     ssize_t n = posix_read_(terminal_fd, &byte, 1);
@@ -205,7 +205,7 @@ static void handle_agent_request_error(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
     }
 }
 
-void handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
+void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     // Add assistant response to conversation (only if non-empty)
     if (agent->assistant_response != NULL && strlen(agent->assistant_response) > 0) {
@@ -288,11 +288,11 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
             if (agent->http_error_message != NULL) {
                 handle_agent_request_error(repl, agent);
             } else {
-                handle_agent_request_success(repl, agent);
+                ik_repl_handle_agent_request_success(repl, agent);
             }
 
             // Transition back to IDLE state only if we're still WAITING_FOR_LLM.
-            // If handle_agent_request_success started a tool execution, state is now EXECUTING_TOOL
+            // If ik_repl_handle_agent_request_success started a tool execution, state is now EXECUTING_TOOL
             // and we should NOT transition to IDLE.
             pthread_mutex_lock_(&agent->tool_thread_mutex);
             current_state = agent->state;
@@ -311,7 +311,7 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
     return OK(NULL);
 }
 
-res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
+res_t ik_repl_handle_curl_events(ik_repl_ctx_t *repl, int ready)
 {
     (void)ready;  // Used for select() coordination, not needed here
 
@@ -340,7 +340,7 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
 
 // Handle tool thread completion - extracted from event loop
 // Non-static for testing
-void handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
+void ik_repl_handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     // Thread finished - harvest result and continue
     ik_agent_complete_tool_execution(agent);
@@ -361,12 +361,12 @@ void handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
     }
 }
 
-void handle_tool_completion(ik_repl_ctx_t *repl)
+void ik_repl_handle_tool_completion(ik_repl_ctx_t *repl)
 {
-    handle_agent_tool_completion(repl, repl->current);
+    ik_repl_handle_agent_tool_completion(repl, repl->current);
 }
 
-res_t calculate_curl_min_timeout(ik_repl_ctx_t *repl, long *timeout_out)
+res_t ik_repl_calculate_curl_min_timeout(ik_repl_ctx_t *repl, long *timeout_out)
 {
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
     assert(timeout_out != NULL);  // LCOV_EXCL_BR_LINE
@@ -385,7 +385,7 @@ res_t calculate_curl_min_timeout(ik_repl_ctx_t *repl, long *timeout_out)
     return OK(NULL);
 }
 
-res_t handle_select_timeout(ik_repl_ctx_t *repl)
+res_t ik_repl_handle_select_timeout(ik_repl_ctx_t *repl)
 {
     // Advance spinner if visible
     if (repl->current->spinner_state.visible) {
@@ -414,7 +414,7 @@ res_t handle_select_timeout(ik_repl_ctx_t *repl)
     return OK(NULL);
 }
 
-res_t poll_tool_completions(ik_repl_ctx_t *repl)
+res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl)
 {
     // Poll for tool thread completion - check ALL agents
     if (repl->agent_count > 0) {
@@ -428,7 +428,7 @@ res_t poll_tool_completions(ik_repl_ctx_t *repl)
             pthread_mutex_unlock_(&agent->tool_thread_mutex);
 
             if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
-                handle_agent_tool_completion(repl, agent);
+                ik_repl_handle_agent_tool_completion(repl, agent);
             }
         }
     } else if (repl->current != NULL) {
@@ -439,7 +439,7 @@ res_t poll_tool_completions(ik_repl_ctx_t *repl)
         pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 
         if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
-            handle_agent_tool_completion(repl, repl->current);
+            ik_repl_handle_agent_tool_completion(repl, repl->current);
         }
     }
 

@@ -71,7 +71,7 @@ static ik_agent_ctx_t *create_test_agent(ik_repl_ctx_t *parent, const char *uuid
 }
 
 /*
- * Test: setup_fd_sets includes FDs from ALL agents
+ * Test: ik_repl_setup_fd_sets includes FDs from ALL agents
  */
 START_TEST(test_setup_fd_sets_all_agents)
 {
@@ -90,7 +90,7 @@ START_TEST(test_setup_fd_sets_all_agents)
     /* Setup fd_sets */
     fd_set read_fds, write_fds, exc_fds;
     int max_fd = -1;
-    res_t result = setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd);
+    res_t result = ik_repl_setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd);
 
     /* Should succeed */
     ck_assert(!is_err(&result));
@@ -105,7 +105,7 @@ START_TEST(test_setup_fd_sets_all_agents)
 END_TEST
 
 /*
- * Test: calculate_select_timeout_ms considers tool state from ALL agents
+ * Test: ik_repl_calculate_select_timeout_ms considers tool state from ALL agents
  */
 START_TEST(test_timeout_tool_poll_multiple_agents)
 {
@@ -125,7 +125,7 @@ START_TEST(test_timeout_tool_poll_multiple_agents)
     agent_b->spinner_state.visible = false;
 
     long curl_timeout_ms = -1;
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return 50ms because agent A is executing a tool */
     ck_assert_int_eq(timeout, 50);
@@ -133,7 +133,7 @@ START_TEST(test_timeout_tool_poll_multiple_agents)
 END_TEST
 
 /*
- * Test: calculate_select_timeout_ms when current agent is executing but others are idle
+ * Test: ik_repl_calculate_select_timeout_ms when current agent is executing but others are idle
  */
 START_TEST(test_timeout_tool_poll_current_only)
 {
@@ -153,7 +153,7 @@ START_TEST(test_timeout_tool_poll_current_only)
     agent_b->spinner_state.visible = false;
 
     long curl_timeout_ms = -1;
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return 50ms because agent B is executing a tool */
     ck_assert_int_eq(timeout, 50);
@@ -161,7 +161,7 @@ START_TEST(test_timeout_tool_poll_current_only)
 END_TEST
 
 /*
- * Test: calculate_select_timeout_ms when no agents are executing tools
+ * Test: ik_repl_calculate_select_timeout_ms when no agents are executing tools
  */
 START_TEST(test_timeout_no_tools_executing)
 {
@@ -181,7 +181,7 @@ START_TEST(test_timeout_no_tools_executing)
     agent_b->spinner_state.visible = false;
 
     long curl_timeout_ms = -1;
-    long timeout = calculate_select_timeout_ms(repl, curl_timeout_ms);
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
 
     /* Should return default 1000ms */
     ck_assert_int_eq(timeout, 1000);
