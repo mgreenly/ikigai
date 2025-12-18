@@ -23,6 +23,84 @@
       "group": "Static Function Policy",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "tool-param-def-struct.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-schema-def-struct.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-schema-builder.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "tool-schema-convert-glob.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-schema-convert-remaining.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-schema-cleanup.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-with-data.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "tool-response-convert-grep.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-convert-glob.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-convert-bash.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-convert-file-read.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-convert-file-write.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-cleanup.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
     }
   ],
   "done": [
