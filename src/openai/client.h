@@ -227,7 +227,7 @@ res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
  * Internal wrapper function (exposed for testing)
  */
 
-ik_msg_t *get_message_at_index(ik_msg_t **messages, size_t idx);
+ik_msg_t *ik_openai_get_message_at_index(ik_msg_t **messages, size_t idx);
 
 /*
  * Message serialization helpers (in client_serialize.c)

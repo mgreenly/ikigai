@@ -241,7 +241,7 @@ END_TEST START_TEST(test_get_message_at_index_valid)
     ck_assert(!msg_res.is_err);
     ik_openai_conversation_add_msg(conv, msg_res.ok);
 
-    ik_msg_t *msg = get_message_at_index(conv->messages, 0);
+    ik_msg_t *msg = ik_openai_get_message_at_index(conv->messages, 0);
     ck_assert_ptr_nonnull(msg);
     ck_assert_str_eq(msg->content, "Test");
 }

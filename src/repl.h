@@ -140,4 +140,4 @@ res_t ik_repl_nav_child(ik_repl_ctx_t *repl);
 // Calculate and update navigation context for current agent's separator
 // Called automatically after agent switch, fork, and kill
 // Can be called manually to refresh navigation indicators
-void update_nav_context(ik_repl_ctx_t *repl);
+void ik_repl_update_nav_context(ik_repl_ctx_t *repl);

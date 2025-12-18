@@ -16,7 +16,7 @@ START_TEST(test_config_expand_tilde) {
     ck_assert_ptr_nonnull(home);
 
     // Test path with tilde
-    res_t res = expand_tilde(ctx, "~/test/path");
+    res_t res = ik_cfg_expand_tilde(ctx, "~/test/path");
     ck_assert(is_ok(&res));
     char *expanded = res.ok;
     ck_assert_ptr_nonnull(expanded);
@@ -26,7 +26,7 @@ START_TEST(test_config_expand_tilde) {
     ck_assert_str_eq(expanded, expected);
 
     // Test path without tilde (should return unchanged)
-    res = expand_tilde(ctx, "/absolute/path");
+    res = ik_cfg_expand_tilde(ctx, "/absolute/path");
     ck_assert(is_ok(&res));
     char *no_tilde = res.ok;
     ck_assert_ptr_nonnull(no_tilde);
@@ -51,7 +51,7 @@ END_TEST START_TEST(test_config_expand_tilde_home_unset)
     unsetenv("HOME");
 
     // Should return error when HOME is not set
-    res_t result = expand_tilde(ctx, "~/test");
+    res_t result = ik_cfg_expand_tilde(ctx, "~/test");
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
 

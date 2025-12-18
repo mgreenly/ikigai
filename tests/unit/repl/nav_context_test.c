@@ -7,7 +7,7 @@
 #include "layer_wrappers.h"
 
 // Forward declaration from repl.c (to be implemented)
-void update_nav_context(ik_repl_ctx_t *repl);
+void ik_repl_update_nav_context(ik_repl_ctx_t *repl);
 
 // Test fixture
 static ik_shared_ctx_t *shared;
@@ -67,7 +67,7 @@ START_TEST(test_nav_context_called_with_simple_hierarchy)
     repl->current = child;
 
     // Call the update function (should not crash)
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     // Basic assertion: function was called and didn't crash
     ck_assert_ptr_nonnull(child->separator_layer);
@@ -86,7 +86,7 @@ START_TEST(test_nav_context_called_with_siblings)
     repl->current = child2;
 
     // Call the update function (should not crash)
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     // Basic assertion: function was called and didn't crash
     ck_assert_ptr_nonnull(child2->separator_layer);
@@ -104,7 +104,7 @@ START_TEST(test_nav_context_called_with_children)
     repl->current = parent;
 
     // Call the update function (should not crash)
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     // Basic assertion: function was called and didn't crash
     ck_assert_ptr_nonnull(parent->separator_layer);
@@ -122,7 +122,7 @@ START_TEST(test_nav_context_null_separator)
     repl->current = agent;
 
     // Should not crash when separator is NULL
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     // If we reach here, the function handled NULL correctly
     ck_assert_ptr_null(agent->separator_layer);
@@ -138,7 +138,7 @@ START_TEST(test_nav_context_null_current)
     repl->current = NULL;
 
     // Should not crash when current is NULL
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     // If we reach here, the function handled NULL correctly
     ck_assert_ptr_null(repl->current);

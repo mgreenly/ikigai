@@ -13,7 +13,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-res_t expand_tilde(TALLOC_CTX *ctx, const char *path)
+res_t ik_cfg_expand_tilde(TALLOC_CTX *ctx, const char *path)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(path != NULL); // LCOV_EXCL_BR_LINE
@@ -94,7 +94,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     assert(path != NULL); // LCOV_EXCL_BR_LINE
 
     // expand tilde in path
-    char *expanded_path = TRY(expand_tilde(ctx, path));
+    char *expanded_path = TRY(ik_cfg_expand_tilde(ctx, path));
 
     // check if file exists
     struct stat st;

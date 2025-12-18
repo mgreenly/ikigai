@@ -1,5 +1,5 @@
 // tests/unit/repl/nav_context_dead_agent_test.c
-// Test update_nav_context with stale/dead agent references
+// Test ik_repl_update_nav_context with stale/dead agent references
 #include <check.h>
 #include <talloc.h>
 #include "repl.h"
@@ -8,7 +8,7 @@
 #include "layer_wrappers.h"
 
 // Forward declaration from repl.c
-void update_nav_context(ik_repl_ctx_t *repl);
+void ik_repl_update_nav_context(ik_repl_ctx_t *repl);
 
 // Test fixture
 static ik_shared_ctx_t *shared;
@@ -83,14 +83,14 @@ START_TEST(test_nav_context_with_removed_prev_sibling)
     // Each comparison exercises the pattern:
     //   current_prev = find_agent_by_uuid(repl, prev_sibling)
     //   if (current_prev != NULL && ...)
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     // Verify it completed successfully
     ck_assert_ptr_nonnull(sibling4->separator_layer);
 }
 END_TEST
 
-// Test: update_nav_context with dead/removed next sibling
+// Test: ik_repl_update_nav_context with dead/removed next sibling
 START_TEST(test_nav_context_with_removed_next_sibling)
 {
     // Create 3 siblings with sequential timestamps
@@ -105,9 +105,9 @@ START_TEST(test_nav_context_with_removed_next_sibling)
     // Set current to sibling2 (newest in array)
     repl->current = sibling2;
 
-    // Call update_nav_context - sibling2 would have next_sibling=sibling3 if it existed
+    // Call ik_repl_update_nav_context - sibling2 would have next_sibling=sibling3 if it existed
     // but sibling3 is not in array (dead), so find_agent_by_uuid will fail
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     // Should complete without crash
     ck_assert_ptr_nonnull(sibling2->separator_layer);
@@ -117,7 +117,7 @@ START_TEST(test_nav_context_with_removed_next_sibling)
 }
 END_TEST
 
-// Test: update_nav_context with multiple prev siblings (tests line 610 branches)
+// Test: ik_repl_update_nav_context with multiple prev siblings (tests line 610 branches)
 START_TEST(test_nav_context_multiple_prev_siblings)
 {
     // Create 4 siblings with sequential timestamps
@@ -135,16 +135,16 @@ START_TEST(test_nav_context_multiple_prev_siblings)
     // Set current to sibling4 (has 3 prev siblings)
     repl->current = sibling4;
 
-    // Call update_nav_context - should find sibling3 as most recent prev
+    // Call ik_repl_update_nav_context - should find sibling3 as most recent prev
     // This exercises the comparison logic at line 610
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     // Should complete without crash
     ck_assert_ptr_nonnull(sibling4->separator_layer);
 }
 END_TEST
 
-// Test: update_nav_context with multiple next siblings (tests line 620 branches)
+// Test: ik_repl_update_nav_context with multiple next siblings (tests line 620 branches)
 START_TEST(test_nav_context_multiple_next_siblings)
 {
     // Create 4 siblings with sequential timestamps
@@ -162,9 +162,9 @@ START_TEST(test_nav_context_multiple_next_siblings)
     // Set current to sibling1 (has 3 next siblings)
     repl->current = sibling1;
 
-    // Call update_nav_context - should find sibling2 as earliest next
+    // Call ik_repl_update_nav_context - should find sibling2 as earliest next
     // This exercises the comparison logic at line 620
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     // Should complete without crash
     ck_assert_ptr_nonnull(sibling1->separator_layer);

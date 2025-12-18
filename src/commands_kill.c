@@ -117,7 +117,7 @@ static res_t cmd_kill_cascade(void *ctx, ik_repl_ctx_t *repl, const char *uuid)
     }
 
     // Update navigation context after removal
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     // Report
     char msg[64];
@@ -196,7 +196,7 @@ res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }     // LCOV_EXCL_LINE
 
         // Update navigation context after removal
-        update_nav_context(repl);
+        ik_repl_update_nav_context(repl);
 
         // Notify
         char msg[64];
@@ -295,7 +295,7 @@ res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }     // LCOV_EXCL_LINE
 
     // Update navigation context after removal
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     // Notify
     char msg[64];

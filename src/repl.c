@@ -341,7 +341,7 @@ res_t ik_repl_switch_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *new_agent)
     repl->current = new_agent;
 
     // Update navigation context for new current agent
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     return OK(NULL);
 }
@@ -492,7 +492,7 @@ static ik_agent_ctx_t *find_agent_by_uuid(ik_repl_ctx_t *repl, const char *uuid)
 }
 
 // Calculate and update navigation context for current agent's separator
-void update_nav_context(ik_repl_ctx_t *repl)
+void ik_repl_update_nav_context(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);       // LCOV_EXCL_BR_LINE
 

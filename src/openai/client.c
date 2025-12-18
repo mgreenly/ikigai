@@ -24,7 +24,7 @@
  * Internal wrapper function
  */
 
-ik_msg_t *get_message_at_index(ik_msg_t **messages, size_t idx)
+ik_msg_t *ik_openai_get_message_at_index(ik_msg_t **messages, size_t idx)
 {
     return messages[idx];
 }
@@ -155,7 +155,7 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
 
     /* Add each message to the array */
     for (size_t i = 0; i < request->conv->message_count; i++) {
-        ik_msg_t *msg = get_message_at_index(request->conv->messages, i);
+        ik_msg_t *msg = ik_openai_get_message_at_index(request->conv->messages, i);
 
         /* Skip metadata events - they're not part of LLM conversation */
         if (!ik_msg_is_conversation_kind(msg->kind)) {

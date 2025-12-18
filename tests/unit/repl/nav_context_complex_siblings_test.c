@@ -7,7 +7,7 @@
 #include "layer_wrappers.h"
 
 // Forward declaration from repl.c
-void update_nav_context(ik_repl_ctx_t *repl);
+void ik_repl_update_nav_context(ik_repl_ctx_t *repl);
 
 // Test fixture
 static ik_shared_ctx_t *shared;
@@ -74,8 +74,8 @@ START_TEST(test_nav_context_multiple_prev_siblings)
     // Set current to child3
     repl->current = child3;
 
-    // Call update_nav_context - should find child2 as most recent prev sibling
-    update_nav_context(repl);
+    // Call ik_repl_update_nav_context - should find child2 as most recent prev sibling
+    ik_repl_update_nav_context(repl);
 
     // If we reach here, the complex prev sibling logic was executed
     ck_assert_ptr_nonnull(child3->separator_layer);
@@ -99,8 +99,8 @@ START_TEST(test_nav_context_multiple_next_siblings)
     // Set current to child1
     repl->current = child1;
 
-    // Call update_nav_context - should find child2 as earliest next sibling
-    update_nav_context(repl);
+    // Call ik_repl_update_nav_context - should find child2 as earliest next sibling
+    ik_repl_update_nav_context(repl);
 
     // If we reach here, the complex next sibling logic was executed
     ck_assert_ptr_nonnull(child1->separator_layer);
@@ -123,8 +123,8 @@ START_TEST(test_nav_context_five_siblings_middle_current)
     // Set current to middle child (child3)
     repl->current = child3;
 
-    // Call update_nav_context - exercises both prev and next sibling search paths
-    update_nav_context(repl);
+    // Call ik_repl_update_nav_context - exercises both prev and next sibling search paths
+    ik_repl_update_nav_context(repl);
 
     // Verify no crashes
     ck_assert_ptr_nonnull(child3->separator_layer);
@@ -142,8 +142,8 @@ START_TEST(test_nav_context_root_level_siblings)
     // Set current to root1
     repl->current = root1;
 
-    // Call update_nav_context - should handle NULL parent_uuid comparison
-    update_nav_context(repl);
+    // Call ik_repl_update_nav_context - should handle NULL parent_uuid comparison
+    ik_repl_update_nav_context(repl);
 
     // Verify no crashes with NULL parent comparison
     ck_assert_ptr_nonnull(root1->separator_layer);
@@ -169,7 +169,7 @@ START_TEST(test_nav_context_timestamp_comparisons)
     // - agent->created_at < repl->current->created_at (for older siblings)
     // - agent->created_at > current_prev->created_at (keeping most recent prev)
     // - agent->created_at < current_next->created_at (keeping earliest next)
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     ck_assert_ptr_nonnull(current->separator_layer);
 }
@@ -189,7 +189,7 @@ START_TEST(test_nav_context_equal_timestamps)
     repl->current = child2;
 
     // Should handle equal timestamps gracefully
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     ck_assert_ptr_nonnull(child2->separator_layer);
 }
@@ -225,7 +225,7 @@ START_TEST(test_nav_context_with_removed_sibling)
     repl->current = middle;
 
     // Update context - should handle NULL from find_agent_by_uuid
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     ck_assert_ptr_nonnull(middle->separator_layer);
 }
@@ -248,7 +248,7 @@ START_TEST(test_nav_context_next_sibling_earlier_timestamp)
     // 1. Set next_sibling to next-far-uuid
     // 2. Find a better (earlier) next sibling next-near-uuid
     // 3. Replace next_sibling (line 621)
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     ck_assert_ptr_nonnull(current->separator_layer);
 }

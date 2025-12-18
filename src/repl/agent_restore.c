@@ -339,7 +339,7 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
     }
 
     // Update navigation context for current agent after restoration
-    update_nav_context(repl);
+    ik_repl_update_nav_context(repl);
 
     talloc_free(tmp);
     return OK(NULL);
