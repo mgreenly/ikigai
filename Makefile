@@ -404,7 +404,7 @@ check-helgrind:
 	@$(MAKE) -j$(MAKE_JOBS) check BUILD=valgrind BUILDDIR=build-helgrind SKIP_SIGNAL_TESTS=1
 	@echo "Running tests under Valgrind Helgrind..."
 	@ulimit -n 1024; \
-	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
+	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P 4 sh -c \
 		'echo -n "Helgrind: {}... "; \
 		if CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 valgrind --tool=helgrind --error-exitcode=1 \
 		            --history-level=approx --quiet \
