@@ -43,6 +43,7 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->name = NULL;  // Unnamed by default
     agent->parent_uuid = parent_uuid ? talloc_strdup(agent, parent_uuid) : NULL;
     agent->shared = shared;
+    agent->repl = NULL;  // Set by caller after creation
     agent->created_at = time(NULL);
 
     // Initialize display state
@@ -160,6 +161,7 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->created_at = row->created_at;
     agent->fork_message_id = row->fork_message_id ? strtoll(row->fork_message_id, NULL, 10) : 0;
     agent->shared = shared;
+    agent->repl = NULL;  // Set by caller after restore
 
     // Initialize display state
     // Use default terminal width (80) if shared->term is not yet initialized

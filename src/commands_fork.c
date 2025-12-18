@@ -208,6 +208,9 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
+    // Set repl backpointer on child agent
+    child->repl = repl;
+
     // Set fork_message_id on child (history inheritance point)
     child->fork_message_id = fork_message_id;
 

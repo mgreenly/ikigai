@@ -65,6 +65,9 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
             // This is Agent 0 - use existing repl->current, don't create new
             ik_agent_ctx_t *agent = repl->current;
 
+            // Set repl backpointer (already set in repl_init, but ensure consistency)
+            agent->repl = repl;
+
             // Replay history
             ik_replay_context_t *replay_ctx = NULL;
             res = ik_agent_replay_history(db_ctx, tmp, agents[i]->uuid, &replay_ctx);
@@ -238,6 +241,9 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
             (void)ik_db_agent_mark_dead(db_ctx, agents[i]->uuid);     // LCOV_EXCL_LINE
             continue;     // LCOV_EXCL_LINE
         }
+
+        // Set repl backpointer on restored agent
+        agent->repl = repl;
 
         // --- Step 2: Replay history to get message context ---
         ik_replay_context_t *replay_ctx = NULL;

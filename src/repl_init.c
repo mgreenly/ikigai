@@ -66,6 +66,9 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
         return result;
     }
 
+    // Set repl backpointer on agent
+    repl->current->repl = repl;
+
     // Add initial agent to array
     result = ik_repl_add_agent(repl, repl->current);
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE

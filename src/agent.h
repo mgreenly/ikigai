@@ -15,6 +15,7 @@ typedef struct ik_shared_ctx ik_shared_ctx_t;
 typedef struct ik_input_buffer_t ik_input_buffer_t;
 typedef struct ik_openai_conversation ik_openai_conversation_t;
 struct ik_openai_multi;
+struct ik_repl_ctx_t;
 
 // Agent state machine
 typedef enum {
@@ -60,6 +61,9 @@ typedef struct ik_agent_ctx {
 
     // Reference to shared infrastructure
     ik_shared_ctx_t *shared;
+
+    // Backpointer to REPL context (set after agent creation)
+    struct ik_repl_ctx_t *repl;
 
     // Display state (per-agent)
     ik_scrollback_t *scrollback;

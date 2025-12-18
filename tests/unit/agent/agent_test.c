@@ -700,6 +700,26 @@ START_TEST(test_agent_create_sets_created_at)
 }
 END_TEST
 
+// Test agent->repl backpointer is NULL initially (no repl context yet)
+START_TEST(test_agent_repl_backpointer_null_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_null(agent->repl);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *agent_suite(void)
 {
     Suite *s = suite_create("Agent Context");
@@ -736,6 +756,7 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_generate_uuid_produces_different_uuids);
     tcase_add_test(tc_core, test_agent_copy_conversation);
     tcase_add_test(tc_core, test_agent_create_sets_created_at);
+    tcase_add_test(tc_core, test_agent_repl_backpointer_null_initially);
     suite_add_tcase(s, tc_core);
 
     return s;
