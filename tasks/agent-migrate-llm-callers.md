@@ -58,7 +58,10 @@ Update all source files that access LLM fields to use the new path:
 ### How
 
 1. **Discovery Phase** (use sub-agents):
+
+   Search BOTH access patterns - direct agent and via repl->current:
    ```bash
+   # Direct agent access
    grep -rn "agent->conversation\b" src/
    grep -rn "agent->marks\|agent->mark_count" src/
    grep -rn "agent->multi\b" src/
@@ -66,6 +69,15 @@ Update all source files that access LLM fields to use the new path:
    grep -rn "agent->state\b" src/
    grep -rn "agent->assistant_response\|agent->streaming_line_buffer" src/
    grep -rn "agent->http_error_message\|agent->response_" src/
+
+   # Indirect via repl->current (accounts for 80%+ of callsites)
+   grep -rn "repl->current->conversation\b" src/
+   grep -rn "repl->current->marks\|repl->current->mark_count" src/
+   grep -rn "repl->current->multi\b" src/
+   grep -rn "repl->current->curl_still_running" src/
+   grep -rn "repl->current->state\b" src/
+   grep -rn "repl->current->assistant_response\|repl->current->streaming_line_buffer" src/
+   grep -rn "repl->current->http_error_message\|repl->current->response_" src/
    ```
 
 2. **Update each file**:

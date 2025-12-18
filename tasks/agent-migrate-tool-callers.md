@@ -55,13 +55,24 @@ Update all source files that access tool executor fields to use the new path:
 ### How
 
 1. **Discovery Phase** (use sub-agents):
+
+   Search BOTH access patterns - direct agent and via repl->current:
    ```bash
+   # Direct agent access
    grep -rn "agent->pending_tool_call" src/
    grep -rn "agent->tool_thread\b" src/
    grep -rn "agent->tool_thread_mutex" src/
    grep -rn "agent->tool_thread_running\|agent->tool_thread_complete" src/
    grep -rn "agent->tool_thread_ctx\|agent->tool_thread_result" src/
    grep -rn "agent->tool_iteration_count" src/
+
+   # Indirect via repl->current (accounts for 80%+ of callsites)
+   grep -rn "repl->current->pending_tool_call" src/
+   grep -rn "repl->current->tool_thread\b" src/
+   grep -rn "repl->current->tool_thread_mutex" src/
+   grep -rn "repl->current->tool_thread_running\|repl->current->tool_thread_complete" src/
+   grep -rn "repl->current->tool_thread_ctx\|repl->current->tool_thread_result" src/
+   grep -rn "repl->current->tool_iteration_count" src/
    ```
 
 2. **Update each file**:

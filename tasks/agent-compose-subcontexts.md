@@ -103,14 +103,20 @@ typedef struct ik_agent_ctx {
 
 2. In `src/agent.c`:
    - Modify `ik_agent_create()`:
-     - Call sub-context factories with `&agent->identity`, `&agent->display`, etc.
+     - Call sub-context init functions (not factories) for embedded structs:
+       - `ik_agent_identity_init(&agent->identity, ...)`
+       - `ik_agent_display_init(&agent->display, ...)`
+       - `ik_agent_llm_init(&agent->llm, ...)`
+       - `ik_agent_tool_executor_init(&agent->tool, ...)`
      - Initialize remaining fields directly
    - Modify `ik_agent_restore()`:
-     - Call `ik_agent_identity_restore()` with DB row values
-     - Call other sub-context factories
+     - Call `ik_agent_identity_restore(&agent->identity, ...)` with DB row values
+     - Call other sub-context init functions
    - Modify `agent_destructor()`:
      - Rely on embedded structs being freed with agent
      - Mutex cleanup happens via tool executor destructor
+
+   **Note:** Sub-contexts use `*_init()` (in-place initialization) not `*_create()` (allocation) because they are embedded structs, not pointers.
 
 3. Update accessor pattern:
    - Old: `agent->uuid`
@@ -178,10 +184,10 @@ Update existing tests to use new accessor patterns:
 
 This task does NOT migrate callers in src/ - that happens in separate migration tasks. This task:
 1. Changes the struct definition
-2. Changes the factory functions
+2. Changes the init functions (not factories - embedded structs use in-place init)
 3. Updates tests to use new accessors
 
-After this task, production code (src/*.c) will still compile because it uses the old field paths. The migration tasks will update those files incrementally.
+**Important:** After this task, production code (src/*.c) will NOT compile until migration tasks update the accessor patterns. The migration tasks must be run immediately after this task.
 
 **Decision: Embedded vs Pointer Sub-contexts**
 

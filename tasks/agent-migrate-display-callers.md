@@ -57,13 +57,24 @@ Update all source files that access display fields to use the new path:
 ### How
 
 1. **Discovery Phase** (use sub-agents):
+
+   Search BOTH access patterns - direct agent and via repl->current:
    ```bash
+   # Direct agent access
    grep -rn "agent->scrollback\b" src/
    grep -rn "agent->layer_cake" src/
    grep -rn "agent->.*_layer\b" src/
    grep -rn "agent->viewport_offset" src/
    grep -rn "agent->spinner_state" src/
    grep -rn "agent->separator_visible\|agent->input_buffer_visible" src/
+
+   # Indirect via repl->current (accounts for 80%+ of callsites)
+   grep -rn "repl->current->scrollback\b" src/
+   grep -rn "repl->current->layer_cake" src/
+   grep -rn "repl->current->.*_layer\b" src/
+   grep -rn "repl->current->viewport_offset" src/
+   grep -rn "repl->current->spinner_state" src/
+   grep -rn "repl->current->separator_visible\|repl->current->input_buffer_visible" src/
    ```
 
 2. **Update each file**:

@@ -49,12 +49,22 @@ Update all source files that access identity fields to use the new path:
 ### How
 
 1. **Discovery Phase** (use sub-agents):
+
+   Search BOTH access patterns - direct agent and via repl->current:
    ```bash
+   # Direct agent access
    grep -rn "agent->uuid" src/
    grep -rn "agent->name" src/
    grep -rn "agent->parent_uuid" src/
    grep -rn "agent->created_at" src/
    grep -rn "agent->fork_message_id" src/
+
+   # Indirect via repl->current (accounts for 80%+ of callsites)
+   grep -rn "repl->current->uuid" src/
+   grep -rn "repl->current->name" src/
+   grep -rn "repl->current->parent_uuid" src/
+   grep -rn "repl->current->created_at" src/
+   grep -rn "repl->current->fork_message_id" src/
    ```
 
 2. **Update each file**:
