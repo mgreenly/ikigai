@@ -57,6 +57,7 @@ static void setup(void)
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->shared = shared;
     repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->current->streaming_line_buffer = NULL;
     repl->current->http_error_message = NULL;
@@ -128,7 +129,7 @@ START_TEST(test_debug_output_response_success) {
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Read and verify logger output */
@@ -188,7 +189,7 @@ START_TEST(test_debug_output_response_error)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Read and verify logger output */
@@ -240,7 +241,7 @@ START_TEST(test_debug_output_response_with_tool_call)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Read and verify logger output */
@@ -303,7 +304,7 @@ START_TEST(test_debug_output_null_metadata)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Read and verify logger output */
@@ -362,7 +363,7 @@ START_TEST(test_debug_output_no_logger)
     };
 
     /* Call callback - should not crash with NULL logger */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 }
 

@@ -242,8 +242,8 @@ static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
 {
     bool limit_reached = (repl->shared->cfg != NULL && repl->current->tool_iteration_count >= repl->shared->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
     res_t result = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
-                                               ik_repl_streaming_callback, repl,
-                                               ik_repl_http_completion_callback, repl,
+                                               ik_repl_streaming_callback, repl->current,
+                                               ik_repl_http_completion_callback, repl->current,
                                                limit_reached,
                                                repl->shared->logger);
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE

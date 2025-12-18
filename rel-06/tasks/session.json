@@ -788,5 +788,25 @@
     "event": "start",
     "task": "agent-repl-backpointer.md",
     "time": "2025-12-18T00:33:58.021Z"
+  },
+  {
+    "event": "done",
+    "task": "agent-repl-backpointer.md",
+    "time": "2025-12-18T00:41:43.337Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-state-transitions.md",
+    "time": "2025-12-18T00:42:03.000Z"
+  },
+  {
+    "event": "done",
+    "task": "agent-state-transitions.md",
+    "time": "2025-12-18T00:52:03.444Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-callback-context.md",
+    "time": "2025-12-18T00:52:22.235Z"
   }
 ]

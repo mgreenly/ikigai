@@ -129,8 +129,8 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
     ik_agent_transition_to_waiting_for_llm(repl->current);
 
     result = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
-                                         ik_repl_streaming_callback, repl,
-                                         ik_repl_http_completion_callback, repl, false,
+                                         ik_repl_streaming_callback, repl->current,
+                                         ik_repl_http_completion_callback, repl->current, false,
                                          repl->shared->logger);
     if (is_err(&result)) {
         const char *err_msg = error_message(result.err);

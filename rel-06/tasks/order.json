@@ -1,12 +1,48 @@
 {
   "todo": [
-    {"task": "agent-repl-backpointer.md", "group": "Background Agent", "model": "sonnet", "thinking": "none"},
-    {"task": "agent-state-transitions.md", "group": "Background Agent", "model": "sonnet", "thinking": "thinking"},
-    {"task": "agent-callback-context.md", "group": "Background Agent", "model": "sonnet", "thinking": "extended"},
-    {"task": "agent-tool-execution.md", "group": "Background Agent", "model": "sonnet", "thinking": "thinking"},
-    {"task": "all-agents-fd-monitoring.md", "group": "Background Agent", "model": "sonnet", "thinking": "thinking"},
-    {"task": "all-agents-http-handling.md", "group": "Background Agent", "model": "sonnet", "thinking": "extended"},
-    {"task": "all-agents-tool-polling.md", "group": "Background Agent", "model": "sonnet", "thinking": "thinking"}
+    {
+      "task": "agent-callback-context.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "agent-tool-execution.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "all-agents-fd-monitoring.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "all-agents-http-handling.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "all-agents-tool-polling.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
   ],
-  "done": []
+  "done": [
+    {
+      "task": "agent-repl-backpointer.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "agent-state-transitions.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
+  ]
 }

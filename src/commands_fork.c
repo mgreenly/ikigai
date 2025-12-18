@@ -130,8 +130,8 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
 
     // Trigger LLM request
     res = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
-                                      ik_repl_streaming_callback, repl,
-                                      ik_repl_http_completion_callback, repl, false,
+                                      ik_repl_streaming_callback, repl->current,
+                                      ik_repl_http_completion_callback, repl->current, false,
                                       repl->shared->logger);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         const char *err_msg = error_message(res.err);     // LCOV_EXCL_LINE
