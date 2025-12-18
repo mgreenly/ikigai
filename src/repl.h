@@ -93,11 +93,6 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl);
 res_t ik_repl_handle_resize(ik_repl_ctx_t *repl);
 
 // State transition functions (Phase 1.6)
-void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl);
-void ik_repl_transition_to_idle(ik_repl_ctx_t *repl);
-void ik_repl_transition_to_executing_tool(ik_repl_ctx_t *repl);
-void ik_repl_transition_from_executing_tool(ik_repl_ctx_t *repl);
-
 // Internal helper functions moved to repl_event_handlers.h
 
 // Tool execution helper (exposed to reduce complexity in handle_request_success)

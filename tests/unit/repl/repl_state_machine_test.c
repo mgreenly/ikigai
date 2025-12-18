@@ -215,7 +215,7 @@ START_TEST(test_repl_transition_to_waiting_for_llm_function)
     ck_assert(repl->current->input_buffer_visible);
 
     // Call transition function
-    ik_repl_transition_to_waiting_for_llm(repl);
+    ik_agent_transition_to_waiting_for_llm(repl->current);
 
     // Verify state changed
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
@@ -242,7 +242,7 @@ START_TEST(test_repl_transition_to_idle_function)
     ck_assert(!repl->current->input_buffer_visible);
 
     // Call transition function
-    ik_repl_transition_to_idle(repl);
+    ik_agent_transition_to_idle(repl->current);
 
     // Verify state changed
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
@@ -263,13 +263,13 @@ START_TEST(test_repl_state_full_cycle)
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Transition to WAITING_FOR_LLM
-    ik_repl_transition_to_waiting_for_llm(repl);
+    ik_agent_transition_to_waiting_for_llm(repl->current);
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     ck_assert(repl->current->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     // Transition back to IDLE
-    ik_repl_transition_to_idle(repl);
+    ik_agent_transition_to_idle(repl->current);
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_IDLE);
     ck_assert(!repl->current->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);

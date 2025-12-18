@@ -126,7 +126,7 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
     repl->current->tool_iteration_count = 0;
 
     // Transition to waiting for LLM
-    ik_repl_transition_to_waiting_for_llm(repl);
+    ik_agent_transition_to_waiting_for_llm(repl->current);
 
     // Trigger LLM request
     res = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
@@ -136,7 +136,7 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         const char *err_msg = error_message(res.err);     // LCOV_EXCL_LINE
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));     // LCOV_EXCL_LINE
-        ik_repl_transition_to_idle(repl);     // LCOV_EXCL_LINE
+        ik_agent_transition_to_idle(repl->current);     // LCOV_EXCL_LINE
         talloc_free(res.err);     // LCOV_EXCL_LINE
     } else {
         repl->current->curl_still_running = 1;     // LCOV_EXCL_LINE

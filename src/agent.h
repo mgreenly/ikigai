@@ -173,3 +173,46 @@ res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *pa
  * @return true if agent has running tools, false otherwise
  */
 bool ik_agent_has_running_tools(const ik_agent_ctx_t *agent);
+
+// State transition functions (moved from repl.h/repl.c)
+// These operate on a specific agent, enabling proper multi-agent support.
+
+/**
+ * Transition agent from IDLE to WAITING_FOR_LLM state
+ *
+ * Updates state, shows spinner, hides input buffer.
+ * Thread-safe: Uses mutex for state update.
+ *
+ * @param agent Agent context to transition
+ */
+void ik_agent_transition_to_waiting_for_llm(ik_agent_ctx_t *agent);
+
+/**
+ * Transition agent from WAITING_FOR_LLM to IDLE state
+ *
+ * Updates state, hides spinner, shows input buffer.
+ * Thread-safe: Uses mutex for state update.
+ *
+ * @param agent Agent context to transition
+ */
+void ik_agent_transition_to_idle(ik_agent_ctx_t *agent);
+
+/**
+ * Transition agent from WAITING_FOR_LLM to EXECUTING_TOOL state
+ *
+ * Updates state. Spinner stays visible, input stays hidden.
+ * Thread-safe: Uses mutex for state update.
+ *
+ * @param agent Agent context to transition
+ */
+void ik_agent_transition_to_executing_tool(ik_agent_ctx_t *agent);
+
+/**
+ * Transition agent from EXECUTING_TOOL to WAITING_FOR_LLM state
+ *
+ * Updates state. Spinner stays visible, input stays hidden.
+ * Thread-safe: Uses mutex for state update.
+ *
+ * @param agent Agent context to transition
+ */
+void ik_agent_transition_from_executing_tool(ik_agent_ctx_t *agent);

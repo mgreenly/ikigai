@@ -209,54 +209,6 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl)
     return ik_repl_render_frame(repl);
 }
 
-void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl)
-{
-    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
-
-    // Update state with mutex protection for thread safety
-    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-    assert(repl->current->state == IK_AGENT_STATE_IDLE);   /* LCOV_EXCL_BR_LINE */
-    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
-    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
-
-    // Show spinner, hide input
-    repl->current->spinner_state.visible = true;
-    repl->current->input_buffer_visible = false;
-}
-
-void ik_repl_transition_to_idle(ik_repl_ctx_t *repl)
-{
-    assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
-
-    // Update state with mutex protection for thread safety
-    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-    assert(repl->current->state == IK_AGENT_STATE_WAITING_FOR_LLM);   /* LCOV_EXCL_BR_LINE */
-    repl->current->state = IK_AGENT_STATE_IDLE;
-    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
-
-    // Hide spinner, show input
-    repl->current->spinner_state.visible = false;
-    repl->current->input_buffer_visible = true;
-}
-
-void ik_repl_transition_to_executing_tool(ik_repl_ctx_t *repl)
-{
-    assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
-    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-    assert(repl->current->state == IK_AGENT_STATE_WAITING_FOR_LLM); /* LCOV_EXCL_BR_LINE */
-    repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;
-    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
-}
-
-void ik_repl_transition_from_executing_tool(ik_repl_ctx_t *repl)
-{
-    assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
-    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-    assert(repl->current->state == IK_AGENT_STATE_EXECUTING_TOOL); /* LCOV_EXCL_BR_LINE */
-    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
-    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
-}
-
 bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */

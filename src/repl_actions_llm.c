@@ -126,7 +126,7 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
     }
 
     repl->current->tool_iteration_count = 0;
-    ik_repl_transition_to_waiting_for_llm(repl);
+    ik_agent_transition_to_waiting_for_llm(repl->current);
 
     result = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
                                          ik_repl_streaming_callback, repl,
@@ -135,7 +135,7 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
     if (is_err(&result)) {
         const char *err_msg = error_message(result.err);
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
-        ik_repl_transition_to_idle(repl);
+        ik_agent_transition_to_idle(repl->current);
         talloc_free(result.err);
     } else {
         repl->current->curl_still_running = 1;

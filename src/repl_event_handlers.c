@@ -249,7 +249,7 @@ static void submit_tool_loop_continuation(ik_repl_ctx_t *repl)
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
         const char *err_msg = error_message(result.err);  // LCOV_EXCL_LINE
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));  // LCOV_EXCL_LINE
-        ik_repl_transition_to_idle(repl);  // LCOV_EXCL_LINE
+        ik_agent_transition_to_idle(repl->current);  // LCOV_EXCL_LINE
         talloc_free(result.err);  // LCOV_EXCL_LINE
     } else {
         repl->current->curl_still_running = 1;
@@ -289,7 +289,7 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
             pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
 
             if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
-                ik_repl_transition_to_idle(repl);
+                ik_agent_transition_to_idle(repl->current);
             }
 
             // Trigger re-render to update UI
@@ -312,7 +312,7 @@ void handle_tool_completion(ik_repl_ctx_t *repl)
         submit_tool_loop_continuation(repl);
     } else {
         // Tool loop done - transition to IDLE, show input prompt
-        ik_repl_transition_to_idle(repl);
+        ik_agent_transition_to_idle(repl->current);
     }
 
     // Re-render to show tool result in scrollback

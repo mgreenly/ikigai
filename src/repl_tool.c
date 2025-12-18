@@ -180,7 +180,7 @@ void ik_repl_start_tool_execution(ik_repl_ctx_t *repl)
 
     // Transition to EXECUTING_TOOL state.
     // Spinner stays visible, input stays hidden.
-    ik_repl_transition_to_executing_tool(repl);
+    ik_agent_transition_to_executing_tool(repl->current);
 }
 
 // Complete async tool execution - harvest result after thread finishes.
@@ -277,5 +277,5 @@ void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
 
     // Transition back to WAITING_FOR_LLM.
     // Caller will check if tool loop should continue.
-    ik_repl_transition_from_executing_tool(repl);
+    ik_agent_transition_from_executing_tool(repl->current);
 }
