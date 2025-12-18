@@ -16,9 +16,12 @@
 #include "tool.h"
 #include "wrapper.h"
 #include "db/message.h"
+
 #include <check.h>
-#include <talloc.h>
+#include <inttypes.h>
 #include <pthread.h>
+#include <talloc.h>
+#include <unistd.h>
 
 /* Forward declarations */
 void handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
@@ -29,6 +32,22 @@ res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid
     (void)db; (void)session_id; (void)agent_uuid;
     (void)kind; (void)content; (void)data_json;
     return OK(NULL);
+}
+
+/* Thread function for tool execution - sets result and marks complete */
+static void *tool_completion_thread_func(void *arg)
+{
+    ik_agent_ctx_t *agent = (ik_agent_ctx_t *)arg;
+
+    /* Set result */
+    agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "test result");
+
+    /* Mark as complete */
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    agent->tool_thread_complete = true;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+
+    return NULL;
 }
 
 static void *ctx;
@@ -64,10 +83,13 @@ static void setup(void)
 
     pthread_mutex_init_(&agent_a->tool_thread_mutex, NULL);
     agent_a->tool_thread_running = true;
-    agent_a->tool_thread_complete = true;  // Tool finished
+    agent_a->tool_thread_complete = false;  // Thread will set this
     agent_a->tool_thread_ctx = talloc_new(agent_a);
-    agent_a->tool_thread_result = talloc_strdup(agent_a->tool_thread_ctx, "test result");
+    agent_a->tool_thread_result = NULL;  // Thread will set this
     agent_a->tool_iteration_count = 0;
+
+    /* Spawn actual thread that will complete and set the result */
+    pthread_create_(&agent_a->tool_thread, NULL, tool_completion_thread_func, agent_a);
 
     /* Create pending tool call for agent A */
     agent_a->pending_tool_call = ik_tool_call_create(agent_a,
@@ -121,6 +143,18 @@ static void teardown(void)
  */
 START_TEST(test_handle_agent_tool_completion_uses_agent_param)
 {
+    /* Wait for thread to complete */
+    int32_t max_wait = 200;
+    bool complete = false;
+    for (int32_t i = 0; i < max_wait; i++) {
+        pthread_mutex_lock_(&agent_a->tool_thread_mutex);
+        complete = agent_a->tool_thread_complete;
+        pthread_mutex_unlock_(&agent_a->tool_thread_mutex);
+        if (complete) break;
+        usleep(10000);  // 10ms
+    }
+    ck_assert(complete);
+
     /* Verify initial state */
     ck_assert_ptr_eq(repl->current, agent_b);
     ck_assert_int_eq(agent_a->state, IK_AGENT_STATE_EXECUTING_TOOL);
@@ -158,16 +192,28 @@ END_TEST
  */
 START_TEST(test_event_loop_polls_all_agents)
 {
+    /* Wait for agent_a's thread to complete */
+    int32_t max_wait = 200;
+    bool complete = false;
+    for (int32_t i = 0; i < max_wait; i++) {
+        pthread_mutex_lock_(&agent_a->tool_thread_mutex);
+        complete = agent_a->tool_thread_complete;
+        pthread_mutex_unlock_(&agent_a->tool_thread_mutex);
+        if (complete) break;
+        usleep(10000);  // 10ms
+    }
+    ck_assert(complete);
+
     /* Simulate event loop polling all agents */
     for (size_t i = 0; i < repl->agent_count; i++) {
         ik_agent_ctx_t *agent = repl->agents[i];
 
         pthread_mutex_lock_(&agent->tool_thread_mutex);
         ik_agent_state_t state = agent->state;
-        bool complete = agent->tool_thread_complete;
+        bool complete_flag = agent->tool_thread_complete;
         pthread_mutex_unlock_(&agent->tool_thread_mutex);
 
-        if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
+        if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete_flag) {
             handle_agent_tool_completion(repl, agent);
         }
     }
