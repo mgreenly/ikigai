@@ -12,6 +12,10 @@ Refactoring #3: Fix Public API Namespace Pollution (commands functions)
 ### Source patterns
 - src/commands.h
 - src/commands.c
+- src/commands_fork.c
+- src/commands_kill.c
+- src/commands_mail.c
+- src/commands_agent_list.c
 
 ### Test patterns
 - tests/**/test_command*.c

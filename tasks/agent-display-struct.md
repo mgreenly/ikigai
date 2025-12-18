@@ -24,12 +24,18 @@ Refactoring #1: Decompose `ik_agent_ctx_t` God Object - Display Sub-context
 - src/scrollback.h (scrollback interface)
 - src/layer.h (layer interfaces)
 - src/layer_wrappers.h (layer creation wrappers)
+- src/layer_spinner.c
+- src/layer_completion.c
+- src/layer_input.c
+- src/layer_separator.c
+- src/layer_scrollback.c
 
 ## Pre-read Tests (patterns)
 
 - tests/unit/agent/agent_test.c (display field initialization tests)
 - tests/unit/layer/scrollback_layer_test.c (layer test patterns)
 - tests/unit/agent/agent_identity_test.c (pattern from previous task)
+- tests/unit/agent/meson.build (test registration pattern)
 
 ## Pre-conditions
 

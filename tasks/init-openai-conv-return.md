@@ -9,7 +9,6 @@ Refactoring #4: Standardize Initialization Patterns (Return Type Semantics - Pha
 - scm
 - di
 - errors
-- naming
 - style
 - tdd
 

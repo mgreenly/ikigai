@@ -17,6 +17,12 @@ Refactoring #1: Decompose `ik_agent_ctx_t` God Object - Identity Field Migration
 
 - src/agent.h (ik_agent_ctx_t with embedded ik_agent_identity_t)
 - src/agent.c (ik_agent_create, ik_agent_restore)
+- src/commands.c
+- src/commands_kill.c
+- src/commands_mark.c
+- src/repl_actions_llm.c
+- src/repl_init.c
+- src/repl.c
 
 ## Pre-read Tests (patterns)
 

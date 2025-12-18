@@ -29,6 +29,7 @@ Refactoring #1: Decompose `ik_agent_ctx_t` God Object - LLM Interaction Sub-cont
 - tests/unit/agent/agent_test.c (LLM field initialization tests)
 - tests/unit/agent/agent_identity_test.c (pattern from previous task)
 - tests/unit/agent/agent_display_test.c (pattern from previous task)
+- tests/unit/agent/meson.build (test registration pattern)
 
 ## Pre-conditions
 

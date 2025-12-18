@@ -19,6 +19,17 @@ Refactoring #1: Decompose `ik_agent_ctx_t` God Object - Display Field Migration
 - src/agent.c (display initialization in factories)
 - src/render.c (main rendering code)
 - src/layer_wrappers.c (layer creation)
+- src/repl_actions.c
+- src/repl_viewport.c
+- src/repl_actions_viewport.c
+- src/repl_actions_history.c
+- src/marks.c
+- src/completion.c
+- src/commands.c
+- src/commands_mail.c
+- src/commands_kill.c
+- src/commands_mark.c
+- src/commands_agent_list.c
 
 ## Pre-read Tests (patterns)
 

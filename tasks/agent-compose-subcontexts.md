@@ -30,6 +30,7 @@ Refactoring #1: Decompose `ik_agent_ctx_t` God Object - Composition
 - tests/unit/agent/agent_display_test.c
 - tests/unit/agent/agent_llm_test.c
 - tests/unit/agent/agent_tool_executor_test.c
+- tests/unit/agent/meson.build (test registration pattern)
 
 ## Pre-conditions
 

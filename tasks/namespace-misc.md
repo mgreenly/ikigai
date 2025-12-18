@@ -16,6 +16,8 @@ Refactoring #3: Fix Public API Namespace Pollution (miscellaneous functions)
 - src/repl.c
 - src/openai/client.h
 - src/openai/client.c
+- src/commands_kill.c
+- src/repl/agent_restore.c
 
 ### Test patterns
 - tests/**/test_config*.c

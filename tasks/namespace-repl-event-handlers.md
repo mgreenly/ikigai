@@ -12,6 +12,7 @@ Refactoring #3: Fix Public API Namespace Pollution (repl_event_handlers function
 ### Source patterns
 - src/repl_event_handlers.h
 - src/repl_event_handlers.c
+- src/repl.c (7 callsites)
 
 ### Test patterns
 - tests/**/test_repl*.c

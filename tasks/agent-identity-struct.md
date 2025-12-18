@@ -27,6 +27,7 @@ Refactoring #1: Decompose `ik_agent_ctx_t` God Object - Identity Sub-context
 
 - tests/unit/agent/agent_test.c (agent creation and field tests)
 - tests/unit/agent/agent_restore_test.c (restore patterns)
+- tests/unit/agent/meson.build (test registration pattern)
 
 ## Pre-conditions
 

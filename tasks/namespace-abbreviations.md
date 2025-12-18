@@ -14,6 +14,7 @@ Refactoring #3: Fix Public API Namespace Pollution (abbreviation violations)
 - src/debug_pipe.c
 - src/tool.h
 - src/tool.c
+- src/shared.c
 
 ### Test patterns
 - tests/**/test_debug*.c

@@ -19,6 +19,10 @@ Refactoring #1: Decompose `ik_agent_ctx_t` God Object - LLM Field Migration
 - src/agent.c (LLM initialization and state transitions)
 - src/repl_actions_llm.c (LLM request handling)
 - src/openai/client.c (conversation operations)
+- src/completion.c
+- src/repl_viewport.c
+- src/marks.c
+- src/commands.c
 
 ## Pre-read Tests (patterns)
 

@@ -30,6 +30,7 @@ Refactoring #1: Decompose `ik_agent_ctx_t` God Object - Tool Execution Sub-conte
 - tests/unit/agent/agent_test.c (tool field initialization tests)
 - tests/unit/repl/agent_tool_execution_test.c (tool execution tests)
 - tests/unit/agent/agent_identity_test.c (pattern from previous task)
+- tests/unit/agent/meson.build (test registration pattern)
 
 ## Pre-conditions
 

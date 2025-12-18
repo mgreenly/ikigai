@@ -19,6 +19,8 @@ Refactoring #1: Decompose `ik_agent_ctx_t` God Object - Tool Field Migration
 - src/agent.c (tool executor initialization and state transitions)
 - src/repl_tool.c (tool execution thread functions)
 - src/repl_event_handlers.c (tool completion polling)
+- src/repl.h
+- src/repl_viewport.c
 
 ## Pre-read Tests (patterns)
 
