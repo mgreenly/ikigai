@@ -83,7 +83,7 @@ static void verify_required(yyjson_mut_val *parameters, const char *required_par
     }
 }
 
-// Test: ik_tool_add_string_param adds parameter correctly
+// Test: ik_tool_add_string_parameter adds parameter correctly
 START_TEST(test_tool_add_string_param) {
     // Create yyjson document
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -94,7 +94,7 @@ START_TEST(test_tool_add_string_param) {
     ck_assert_ptr_nonnull(properties);
 
     // Call function under test
-    ik_tool_add_string_param(doc, properties, "test_param", "Test description");
+    ik_tool_add_string_parameter(doc, properties, "test_param", "Test description");
 
     // Verify parameter was added
     yyjson_mut_val *param = yyjson_mut_obj_get(properties, "test_param");

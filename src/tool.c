@@ -33,7 +33,7 @@ ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx,
     return call;
 }
 
-void ik_tool_add_string_param(yyjson_mut_doc *doc,
+void ik_tool_add_string_parameter(yyjson_mut_doc *doc,
                               yyjson_mut_val *properties,
                               const char *name,
                               const char *description)
@@ -77,8 +77,8 @@ yyjson_mut_val *ik_tool_build_glob_schema(yyjson_mut_doc *doc)
     yyjson_mut_val *properties = yyjson_mut_obj(doc);
     if (properties == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    ik_tool_add_string_param(doc, properties, "pattern", "Glob pattern (e.g., 'src/**/*.c')");
-    ik_tool_add_string_param(doc, properties, "path", "Base directory (default: cwd)");
+    ik_tool_add_string_parameter(doc, properties, "pattern", "Glob pattern (e.g., 'src/**/*.c')");
+    ik_tool_add_string_parameter(doc, properties, "path", "Base directory (default: cwd)");
 
     yyjson_mut_val *parameters = yyjson_mut_obj(doc);
     if (parameters == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -115,7 +115,7 @@ yyjson_mut_val *ik_tool_build_file_read_schema(yyjson_mut_doc *doc)
     yyjson_mut_val *properties = yyjson_mut_obj(doc);
     if (properties == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    ik_tool_add_string_param(doc, properties, "path", "Path to file");
+    ik_tool_add_string_parameter(doc, properties, "path", "Path to file");
 
     yyjson_mut_val *parameters = yyjson_mut_obj(doc);
     if (parameters == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -152,9 +152,9 @@ yyjson_mut_val *ik_tool_build_grep_schema(yyjson_mut_doc *doc)
     yyjson_mut_val *properties = yyjson_mut_obj(doc);
     if (properties == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    ik_tool_add_string_param(doc, properties, "pattern", "Search pattern (regex)");
-    ik_tool_add_string_param(doc, properties, "path", "File or directory to search");
-    ik_tool_add_string_param(doc, properties, "glob", "File pattern filter (e.g., '*.c')");
+    ik_tool_add_string_parameter(doc, properties, "pattern", "Search pattern (regex)");
+    ik_tool_add_string_parameter(doc, properties, "path", "File or directory to search");
+    ik_tool_add_string_parameter(doc, properties, "glob", "File pattern filter (e.g., '*.c')");
 
     yyjson_mut_val *parameters = yyjson_mut_obj(doc);
     if (parameters == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -191,8 +191,8 @@ yyjson_mut_val *ik_tool_build_file_write_schema(yyjson_mut_doc *doc)
     yyjson_mut_val *properties = yyjson_mut_obj(doc);
     if (properties == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    ik_tool_add_string_param(doc, properties, "path", "Path to file");
-    ik_tool_add_string_param(doc, properties, "content", "Content to write");
+    ik_tool_add_string_parameter(doc, properties, "path", "Path to file");
+    ik_tool_add_string_parameter(doc, properties, "content", "Content to write");
 
     yyjson_mut_val *parameters = yyjson_mut_obj(doc);
     if (parameters == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -230,7 +230,7 @@ yyjson_mut_val *ik_tool_build_bash_schema(yyjson_mut_doc *doc)
     yyjson_mut_val *properties = yyjson_mut_obj(doc);
     if (properties == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    ik_tool_add_string_param(doc, properties, "command", "Command to execute");
+    ik_tool_add_string_parameter(doc, properties, "command", "Command to execute");
 
     yyjson_mut_val *parameters = yyjson_mut_obj(doc);
     if (parameters == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE

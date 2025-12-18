@@ -25,7 +25,7 @@ static ik_repl_ctx_t *create_test_repl(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create debug pipe manager
-    res_t res = ik_debug_mgr_create(parent);
+    res_t res = ik_debug_manager_create(parent);
     ck_assert(is_ok(&res));
     ik_debug_pipe_manager_t *debug_mgr = res.ok;
     ck_assert_ptr_nonnull(debug_mgr);

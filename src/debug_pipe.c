@@ -189,7 +189,7 @@ res_t ik_debug_pipe_read(ik_debug_pipe_t *pipe, char ***lines_out, size_t *count
     return OK(NULL);
 }
 
-res_t ik_debug_mgr_create(void *parent)
+res_t ik_debug_manager_create(void *parent)
 {
     // Allocate manager structure
     ik_debug_pipe_manager_t *mgr = talloc_zero_(parent, sizeof(ik_debug_pipe_manager_t));
@@ -206,7 +206,7 @@ res_t ik_debug_mgr_create(void *parent)
     return OK(mgr);
 }
 
-res_t ik_debug_mgr_add_pipe(ik_debug_pipe_manager_t *mgr, const char *prefix)
+res_t ik_debug_manager_add_pipe(ik_debug_pipe_manager_t *mgr, const char *prefix)
 {
     assert(mgr != NULL);  // LCOV_EXCL_BR_LINE
 
@@ -235,7 +235,7 @@ res_t ik_debug_mgr_add_pipe(ik_debug_pipe_manager_t *mgr, const char *prefix)
     return OK(pipe);
 }
 
-void ik_debug_mgr_add_to_fdset(ik_debug_pipe_manager_t *mgr, fd_set *read_fds, int *max_fd)
+void ik_debug_manager_add_to_fdset(ik_debug_pipe_manager_t *mgr, fd_set *read_fds, int *max_fd)
 {
     assert(mgr != NULL);       // LCOV_EXCL_BR_LINE
     assert(read_fds != NULL);  // LCOV_EXCL_BR_LINE
@@ -253,8 +253,8 @@ void ik_debug_mgr_add_to_fdset(ik_debug_pipe_manager_t *mgr, fd_set *read_fds, i
     }
 }
 
-res_t ik_debug_mgr_handle_ready(ik_debug_pipe_manager_t *mgr, fd_set *read_fds,
-                                ik_scrollback_t *scrollback, bool debug_enabled)
+res_t ik_debug_manager_handle_ready(ik_debug_pipe_manager_t *mgr, fd_set *read_fds,
+                                    ik_scrollback_t *scrollback, bool debug_enabled)
 {
     assert(mgr != NULL);       // LCOV_EXCL_BR_LINE
     assert(read_fds != NULL);  // LCOV_EXCL_BR_LINE

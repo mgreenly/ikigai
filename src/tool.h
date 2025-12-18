@@ -31,8 +31,8 @@ ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx, const char *id, const char 
 // @param properties The properties object to add to
 // @param name Parameter name
 // @param description Parameter description
-void ik_tool_add_string_param(yyjson_mut_doc *doc, yyjson_mut_val *properties, const char *name,
-                              const char *description);
+void ik_tool_add_string_parameter(yyjson_mut_doc *doc, yyjson_mut_val *properties, const char *name,
+                                  const char *description);
 
 // Build JSON schema for the glob tool.
 //

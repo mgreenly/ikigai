@@ -19,12 +19,12 @@ START_TEST(test_debug_mgr_handle_ready_adds_blank_lines)
     void *ctx = talloc_new(NULL);
 
     /* Create manager */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
     /* Add pipe with prefix */
-    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    res_t pipe_res = ik_debug_manager_add_pipe(mgr, "[test]");
     ck_assert(is_ok(&pipe_res));
     ik_debug_pipe_t *pipe = pipe_res.ok;
 
@@ -43,7 +43,7 @@ START_TEST(test_debug_mgr_handle_ready_adds_blank_lines)
     FD_SET(pipe->read_fd, &read_fds);
 
     /* Handle ready pipes with debug enabled */
-    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
+    res_t handle_res = ik_debug_manager_handle_ready(mgr, &read_fds, scrollback, true);
     ck_assert(is_ok(&handle_res));
 
     /* Should have 4 lines: line1, blank, line2, blank */
@@ -79,12 +79,12 @@ START_TEST(test_debug_mgr_handle_ready_disabled_no_blank_lines)
     void *ctx = talloc_new(NULL);
 
     /* Create manager */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
     /* Add pipe */
-    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    res_t pipe_res = ik_debug_manager_add_pipe(mgr, "[test]");
     ck_assert(is_ok(&pipe_res));
     ik_debug_pipe_t *pipe = pipe_res.ok;
 
@@ -102,7 +102,7 @@ START_TEST(test_debug_mgr_handle_ready_disabled_no_blank_lines)
     FD_SET(pipe->read_fd, &read_fds);
 
     /* Handle ready pipes with debug DISABLED */
-    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, false);
+    res_t handle_res = ik_debug_manager_handle_ready(mgr, &read_fds, scrollback, false);
     ck_assert(is_ok(&handle_res));
 
     /* Should have 0 lines (debug disabled) */
@@ -130,11 +130,11 @@ START_TEST(test_debug_mgr_handle_ready_read_error)
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
-    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    res_t pipe_res = ik_debug_manager_add_pipe(mgr, "[test]");
     ck_assert(is_ok(&pipe_res));
     ik_debug_pipe_t *pipe = pipe_res.ok;
 
@@ -150,7 +150,7 @@ START_TEST(test_debug_mgr_handle_ready_read_error)
     fail_read = 1;
 
     /* Handle ready pipes - should fail with read error */
-    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
+    res_t handle_res = ik_debug_manager_handle_ready(mgr, &read_fds, scrollback, true);
     ck_assert(is_err(&handle_res));
 
     /* Disable failure for cleanup */
