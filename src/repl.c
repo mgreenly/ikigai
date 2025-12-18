@@ -52,9 +52,17 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             ik_debug_mgr_add_to_fdset(repl->shared->debug_mgr, &read_fds, &max_fd);  // LCOV_EXCL_LINE
         }
 
-        // Calculate timeout
+        // Calculate minimum curl timeout across ALL agents
         long curl_timeout_ms = -1;
-        CHECK(ik_openai_multi_timeout(repl->current->multi, &curl_timeout_ms));
+        for (size_t i = 0; i < repl->agent_count; i++) {
+            long agent_timeout = -1;
+            CHECK(ik_openai_multi_timeout(repl->agents[i]->multi, &agent_timeout));
+            if (agent_timeout >= 0) {
+                if (curl_timeout_ms < 0 || agent_timeout < curl_timeout_ms) {
+                    curl_timeout_ms = agent_timeout;
+                }
+            }
+        }
         long effective_timeout_ms = calculate_select_timeout_ms(repl, curl_timeout_ms);
 
         struct timeval timeout;

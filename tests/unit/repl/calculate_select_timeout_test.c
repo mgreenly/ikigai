@@ -29,6 +29,12 @@ static void setup(void)
     repl->current->spinner_state.visible = false;
     repl->current->spinner_state.frame_index = 0;
 
+    /* Initialize agents array with current agent */
+    repl->agent_count = 1;
+    repl->agent_capacity = 4;
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, (unsigned int)repl->agent_capacity);
+    repl->agents[0] = repl->current;
+
     /* Initialize scroll detector (rel-05) */
     repl->scroll_det = ik_scroll_detector_create(repl);
 }

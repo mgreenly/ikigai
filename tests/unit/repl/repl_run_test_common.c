@@ -194,4 +194,10 @@ void init_repl_multi_handle(ik_repl_ctx_t *repl)
     } else {
         repl->current->multi = (struct ik_openai_multi *)res.ok;
     }
+
+    // Initialize agents array with current agent
+    repl->agent_count = 1;
+    repl->agent_capacity = 4;
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, (unsigned int)repl->agent_capacity);
+    repl->agents[0] = repl->current;
 }

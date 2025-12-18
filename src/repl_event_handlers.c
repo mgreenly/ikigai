@@ -30,11 +30,18 @@ long calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
     // Spinner timer: 80ms when visible, no timeout when hidden
     long spinner_timeout_ms = repl->current->spinner_state.visible ? 80 : -1;  // LCOV_EXCL_BR_LINE
 
-    // Tool polling: 50ms when executing tool to detect completion quickly
-    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-    ik_agent_state_t current_state = repl->current->state;
-    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
-    long tool_poll_timeout_ms = (current_state == IK_AGENT_STATE_EXECUTING_TOOL) ? 50 : -1;
+    // Tool polling: check ALL agents for executing tools
+    long tool_poll_timeout_ms = -1;
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        ik_agent_ctx_t *agent = repl->agents[i];
+        pthread_mutex_lock_(&agent->tool_thread_mutex);
+        bool executing = (agent->state == IK_AGENT_STATE_EXECUTING_TOOL);
+        pthread_mutex_unlock_(&agent->tool_thread_mutex);
+        if (executing) {
+            tool_poll_timeout_ms = 50;
+            break;  // Found one, no need to check more
+        }
+    }
 
     // Scroll detector timeout: get time until pending arrow must flush
     long scroll_timeout_ms = -1;
@@ -79,14 +86,15 @@ res_t setup_fd_sets(ik_repl_ctx_t *repl,
     FD_SET(terminal_fd, read_fds);
     int max_fd = terminal_fd;
 
-    // Add curl_multi fds
-    int curl_max_fd = -1;
-    res_t result = ik_openai_multi_fdset(repl->current->multi, read_fds, write_fds, exc_fds, &curl_max_fd);
-    if (is_err(&result)) {
-        return result;
-    }
-    if (curl_max_fd > max_fd) {  // LCOV_EXCL_BR_LINE
-        max_fd = curl_max_fd;  // LCOV_EXCL_LINE
+    // Add curl_multi fds for ALL agents
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        ik_agent_ctx_t *agent = repl->agents[i];
+        int agent_max_fd = -1;
+        res_t result = ik_openai_multi_fdset(agent->multi, read_fds, write_fds, exc_fds, &agent_max_fd);
+        if (is_err(&result)) return result;
+        if (agent_max_fd > max_fd) {
+            max_fd = agent_max_fd;
+        }
     }
 
     *max_fd_out = max_fd;
