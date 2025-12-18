@@ -111,21 +111,19 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - CSI u keyboard protocol (Kitty) with XKB layout-aware key translation
 - Scroll detector state machine with burst absorption for smooth scrolling
 
-### Future: Background Agents
+### rel-06: Background Agents
 
-**Objective**: Support multiple concurrent agents with human and LLM spawning
+**Objective**: Support multiple concurrent agents with fork-based creation and autonomous background execution
 
 **Tasks**:
-- Multiple top-level agents (human-spawned via command or hotkey)
-- LLM-spawned sub-agents for parallel task execution
-- Refactor existing single-agent code for multi-agent architecture
-- Hot-key navigation between active agents (e.g., Alt+1, Alt+2)
-- Agent lifecycle management (spawn, switch, terminate)
-- Slash commands for agent control (/agents, /spawn, /switch, /kill)
-- Visual indicator showing current agent and status of all agents
-- Inter-agent communication (optional: message passing between agents)
-
-**Rationale**: Complex tasks benefit from parallel execution. Human users may want multiple conversations active simultaneously. LLMs can delegate subtasks to specialized sub-agents, improving throughput and enabling divide-and-conquer workflows.
+- Agent registry with UUID identity and parent-child relationships
+- Fork command for agent creation with history inheritance
+- Navigation commands for tree traversal (siblings, parent, child, /agents tree view)
+- Lifecycle management with /kill and cascade deletion
+- Mailbox system for inter-agent communication (/send, /check-mail, /read-mail, /filter-mail)
+- Background agent event loop monitoring all agents' HTTP and tool execution
+- Per-agent state isolation with callback context refactoring
+- Session restoration with full agent tree reconstruction
 
 ### Future: Multi-LLM Provider Support
 
