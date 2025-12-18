@@ -77,13 +77,14 @@ static void setup(void)
     }
 
     repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->current = talloc_zero(repl, ik_agent_ctx_t);
 
     /* Create shared context */
     repl->shared = talloc_zero(ctx, ik_shared_ctx_t);
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    agent->shared = repl->shared;
+    agent->repl = repl;
     repl->current = agent;
 
     /* Create conversation */

@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "agent-callback-context.md",
-      "group": "Background Agent",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
       "task": "agent-tool-execution.md",
       "group": "Background Agent",
       "model": "sonnet",
@@ -43,6 +37,12 @@
       "group": "Background Agent",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "agent-callback-context.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "extended"
     }
   ]
 }

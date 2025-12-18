@@ -216,3 +216,23 @@ void ik_agent_transition_to_executing_tool(ik_agent_ctx_t *agent);
  * @param agent Agent context to transition
  */
 void ik_agent_transition_from_executing_tool(ik_agent_ctx_t *agent);
+
+/**
+ * Start async tool execution on specific agent
+ *
+ * Spawns background thread to execute pending tool call.
+ * Works with agent-specific context, not repl->current.
+ *
+ * @param agent Agent context with pending_tool_call set
+ */
+void ik_agent_start_tool_execution(ik_agent_ctx_t *agent);
+
+/**
+ * Complete async tool execution on specific agent
+ *
+ * Harvests result from thread, adds messages to conversation,
+ * updates scrollback and database. Works with agent-specific context.
+ *
+ * @param agent Agent context with completed tool thread
+ */
+void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent);

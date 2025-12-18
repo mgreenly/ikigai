@@ -78,6 +78,8 @@ static void setup(void)
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    agent->shared = shared;
+    agent->repl = repl;
     repl->current = agent;
 
     /* Create input buffer */
