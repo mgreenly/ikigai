@@ -1,5 +1,30 @@
 {
-  "todo": [],
+  "todo": [
+    {
+      "task": "static-fn-lcov-investigation.md",
+      "group": "Static Function Policy",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "static-fn-lcov-config.md",
+      "group": "Static Function Policy",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "static-fn-policy-update.md",
+      "group": "Static Function Policy",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "static-fn-helper-abstractions.md",
+      "group": "Static Function Policy",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
+  ],
   "done": [
     {
       "task": "agent-repl-backpointer.md",

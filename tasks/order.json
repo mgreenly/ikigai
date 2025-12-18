@@ -1,0 +1,12 @@
+{
+  "todo": [
+    {"task": "namespace-repl-event-handlers.md", "group": "Namespace Fixes", "model": "sonnet", "thinking": "none"},
+    {"task": "namespace-commands.md", "group": "Namespace Fixes", "model": "sonnet", "thinking": "none"},
+    {"task": "namespace-misc.md", "group": "Namespace Fixes", "model": "sonnet", "thinking": "none"},
+    {"task": "namespace-abbreviations.md", "group": "Namespace Fixes", "model": "sonnet", "thinking": "none"},
+    {"task": "agent-identity-struct.md", "group": "Agent Context Decomposition", "model": "sonnet", "thinking": "thinking"},
+    {"task": "agent-display-struct.md", "group": "Agent Context Decomposition", "model": "sonnet", "thinking": "thinking"},
+    {"task": "init-openai-conv-return.md", "group": "Initialization Patterns", "model": "sonnet", "thinking": "none"}
+  ],
+  "done": []
+}
