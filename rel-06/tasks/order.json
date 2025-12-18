@@ -1,18 +1,5 @@
 {
-  "todo": [
-    {
-      "task": "all-agents-http-handling.md",
-      "group": "Background Agent",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
-      "task": "all-agents-tool-polling.md",
-      "group": "Background Agent",
-      "model": "sonnet",
-      "thinking": "thinking"
-    }
-  ],
+  "todo": [],
   "done": [
     {
       "task": "agent-repl-backpointer.md",
@@ -40,6 +27,18 @@
     },
     {
       "task": "all-agents-fd-monitoring.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "all-agents-http-handling.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "all-agents-tool-polling.md",
       "group": "Background Agent",
       "model": "sonnet",
       "thinking": "thinking"
