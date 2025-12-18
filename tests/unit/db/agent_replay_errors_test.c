@@ -144,7 +144,7 @@ START_TEST(test_find_clear_query_failure)
     mock_parse_fail = false;
 
     int64_t clear_id = 0;
-    res_t res = ik_agent_find_clear(db, "test-uuid", 0, &clear_id);
+    res_t res = ik_agent_find_clear(db, ctx, "test-uuid", 0, &clear_id);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
@@ -165,7 +165,7 @@ START_TEST(test_find_clear_parse_failure)
     snprintf(mock_invalid_value, sizeof(mock_invalid_value), "not_a_number");
 
     int64_t clear_id = 0;
-    res_t res = ik_agent_find_clear(db, "test-uuid", 0, &clear_id);
+    res_t res = ik_agent_find_clear(db, ctx, "test-uuid", 0, &clear_id);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_PARSE);

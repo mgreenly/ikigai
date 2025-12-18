@@ -12,13 +12,15 @@
  * specified agent, optionally limiting by maximum message ID.
  *
  * @param db_ctx Database context (must not be NULL)
+ * @param mem_ctx Talloc context for error allocation (must not be NULL)
  * @param agent_uuid Agent UUID to search (must not be NULL)
  * @param max_id Maximum message ID to consider (0 = no limit)
  * @param clear_id_out Output for clear message ID (0 if not found)
  * @return OK on success, ERR on database failure
  */
-res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, const char *agent_uuid,
-                          int64_t max_id, int64_t *clear_id_out);
+res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+                          const char *agent_uuid, int64_t max_id,
+                          int64_t *clear_id_out);
 
 /**
  * Build replay ranges by walking ancestor chain

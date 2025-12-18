@@ -159,7 +159,7 @@ START_TEST(test_find_clear_no_clear)
 
     // Find clear - should return 0
     int64_t clear_id = -1;
-    res_t res = ik_agent_find_clear(db, "agent-no-clear", 0, &clear_id);
+    res_t res = ik_agent_find_clear(db, test_ctx, "agent-no-clear", 0, &clear_id);
     ck_assert(is_ok(&res));
     ck_assert_int_eq(clear_id, 0);
 }
@@ -180,7 +180,7 @@ START_TEST(test_find_clear_returns_id)
 
     // Find clear - should return the clear's ID
     int64_t clear_id = 0;
-    res_t res = ik_agent_find_clear(db, "agent-with-clear", 0, &clear_id);
+    res_t res = ik_agent_find_clear(db, test_ctx, "agent-with-clear", 0, &clear_id);
     ck_assert(is_ok(&res));
     ck_assert(clear_id > 0);
 }
@@ -203,14 +203,14 @@ START_TEST(test_find_clear_respects_max_id)
 
     // Find clear with no limit - should return later clear
     int64_t clear_id_all = 0;
-    res_t res1 = ik_agent_find_clear(db, "agent-clear-limit", 0, &clear_id_all);
+    res_t res1 = ik_agent_find_clear(db, test_ctx, "agent-clear-limit", 0, &clear_id_all);
     ck_assert(is_ok(&res1));
     ck_assert(clear_id_all > 0);
 
     // Find clear with max_id = earlier clear id + 1
     // First get the earlier clear id by querying with a limit between them
     int64_t earlier_clear_id = 0;
-    res_t res2 = ik_agent_find_clear(db, "agent-clear-limit", clear_id_all - 1, &earlier_clear_id);
+    res_t res2 = ik_agent_find_clear(db, test_ctx, "agent-clear-limit", clear_id_all - 1, &earlier_clear_id);
     ck_assert(is_ok(&res2));
 
     // If earlier clear exists, it should be less than the later clear
