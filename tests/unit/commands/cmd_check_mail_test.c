@@ -165,7 +165,7 @@ static void suite_teardown(void)
 // Test: empty inbox shows "No messages"
 START_TEST(test_check_mail_empty_inbox)
 {
-    res_t res = cmd_check_mail(test_ctx, repl, NULL);
+    res_t res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify message in scrollback
@@ -207,7 +207,7 @@ START_TEST(test_check_mail_displays_summary)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output contains summary
@@ -239,7 +239,7 @@ START_TEST(test_check_mail_unread_marker)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists
@@ -275,7 +275,7 @@ START_TEST(test_check_mail_message_preview)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists
@@ -307,7 +307,7 @@ START_TEST(test_check_mail_relative_timestamp)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists
@@ -358,7 +358,7 @@ START_TEST(test_check_mail_only_current_agent)
     ck_assert(is_ok(&res));
 
     // Check mail (should only see msg1)
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists

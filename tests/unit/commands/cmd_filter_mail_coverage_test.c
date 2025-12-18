@@ -165,7 +165,7 @@ static void suite_teardown(void)
 // Test: missing args shows error
 START_TEST(test_filter_mail_missing_args)
 {
-    res_t res = cmd_filter_mail(test_ctx, repl, NULL);
+    res_t res = ik_cmd_filter_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -174,7 +174,7 @@ END_TEST
 // Test: wrong format (no --from) shows error
 START_TEST(test_filter_mail_wrong_format)
 {
-    res_t res = cmd_filter_mail(test_ctx, repl, "sender-uuid");
+    res_t res = ik_cmd_filter_mail(test_ctx, repl, "sender-uuid");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -183,7 +183,7 @@ END_TEST
 // Test: --from with only whitespace shows error
 START_TEST(test_filter_mail_empty_uuid)
 {
-    res_t res = cmd_filter_mail(test_ctx, repl, "--from   ");
+    res_t res = ik_cmd_filter_mail(test_ctx, repl, "--from   ");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -218,7 +218,7 @@ START_TEST(test_filter_mail_ambiguous_uuid)
     ck_assert(is_ok(&res));
 
     // Try to filter with ambiguous partial UUID
-    res = cmd_filter_mail(test_ctx, repl, "--from sender-abc");
+    res = ik_cmd_filter_mail(test_ctx, repl, "--from sender-abc");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -227,7 +227,7 @@ END_TEST
 // Test: non-existent UUID shows error
 START_TEST(test_filter_mail_nonexistent_uuid)
 {
-    res_t res = cmd_filter_mail(test_ctx, repl, "--from nonexistent-uuid");
+    res_t res = ik_cmd_filter_mail(test_ctx, repl, "--from nonexistent-uuid");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -260,7 +260,7 @@ START_TEST(test_filter_mail_timestamp_seconds)
     // Filter
     char args[64];
     snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = cmd_filter_mail(test_ctx, repl, args);
+    res = ik_cmd_filter_mail(test_ctx, repl, args);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -293,7 +293,7 @@ START_TEST(test_filter_mail_timestamp_minutes)
     // Filter
     char args[64];
     snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = cmd_filter_mail(test_ctx, repl, args);
+    res = ik_cmd_filter_mail(test_ctx, repl, args);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -326,7 +326,7 @@ START_TEST(test_filter_mail_timestamp_hours)
     // Filter
     char args[64];
     snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = cmd_filter_mail(test_ctx, repl, args);
+    res = ik_cmd_filter_mail(test_ctx, repl, args);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -359,7 +359,7 @@ START_TEST(test_filter_mail_timestamp_days)
     // Filter
     char args[64];
     snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = cmd_filter_mail(test_ctx, repl, args);
+    res = ik_cmd_filter_mail(test_ctx, repl, args);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -395,7 +395,7 @@ START_TEST(test_filter_mail_short_body)
     // Filter
     char args[64];
     snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = cmd_filter_mail(test_ctx, repl, args);
+    res = ik_cmd_filter_mail(test_ctx, repl, args);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -427,7 +427,7 @@ START_TEST(test_filter_mail_single_message)
     // Filter
     char args[64];
     snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = cmd_filter_mail(test_ctx, repl, args);
+    res = ik_cmd_filter_mail(test_ctx, repl, args);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -460,7 +460,7 @@ START_TEST(test_filter_mail_timestamp_one_hour)
     // Filter
     char args[64];
     snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = cmd_filter_mail(test_ctx, repl, args);
+    res = ik_cmd_filter_mail(test_ctx, repl, args);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -493,7 +493,7 @@ START_TEST(test_filter_mail_timestamp_one_day)
     // Filter
     char args[64];
     snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = cmd_filter_mail(test_ctx, repl, args);
+    res = ik_cmd_filter_mail(test_ctx, repl, args);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }

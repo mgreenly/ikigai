@@ -130,7 +130,7 @@ static res_t cmd_kill_cascade(void *ctx, ik_repl_ctx_t *repl, const char *uuid)
     return OK(NULL);
 }
 
-res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
+res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
@@ -254,7 +254,7 @@ res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // If killing current, use self-kill logic
     if (target == repl->current) {
-        return cmd_kill(ctx, repl, NULL);
+        return ik_cmd_kill(ctx, repl, NULL);
     }
 
     const char *target_uuid = target->uuid;

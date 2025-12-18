@@ -197,7 +197,7 @@ START_TEST(test_delete_mail_removes_message)
 
     // Delete the message using position 1 (first in inbox)
     (void)mail_id;  // Suppress unused variable warning
-    res = cmd_delete_mail(test_ctx, repl, "1");
+    res = ik_cmd_delete_mail(test_ctx, repl, "1");
     ck_assert(is_ok(&res));
 
     // Verify message is gone
@@ -233,7 +233,7 @@ START_TEST(test_delete_mail_shows_confirmation)
     ck_assert(is_ok(&res));
 
     // Delete the message using position 1
-    res = cmd_delete_mail(test_ctx, repl, "1");
+    res = ik_cmd_delete_mail(test_ctx, repl, "1");
     ck_assert(is_ok(&res));
 
     // Verify confirmation in scrollback
@@ -245,7 +245,7 @@ END_TEST
 START_TEST(test_delete_mail_nonexistent_id)
 {
     // Try to delete non-existent message
-    res_t res = cmd_delete_mail(test_ctx, repl, "999999");
+    res_t res = ik_cmd_delete_mail(test_ctx, repl, "999999");
     ck_assert(is_ok(&res));
 
     // Verify error message in scrollback
@@ -290,7 +290,7 @@ START_TEST(test_delete_mail_different_agent)
     ck_assert(is_ok(&res));
 
     // Try to delete it from current agent using position 1 (should fail - not in current agent's inbox)
-    res = cmd_delete_mail(test_ctx, repl, "1");
+    res = ik_cmd_delete_mail(test_ctx, repl, "1");
     ck_assert(is_ok(&res));
 
     // Verify error message in scrollback
@@ -346,7 +346,7 @@ START_TEST(test_delete_mail_not_in_check_mail)
     ck_assert_uint_eq(count, 2);
 
     // Delete position 1 (newest message)
-    res = cmd_delete_mail(test_ctx, repl, "1");
+    res = ik_cmd_delete_mail(test_ctx, repl, "1");
     ck_assert(is_ok(&res));
 
     // Verify only one message remains
@@ -382,14 +382,14 @@ START_TEST(test_delete_mail_cannot_read_after)
     ck_assert(is_ok(&res));
 
     // Delete the message using position 1
-    res = cmd_delete_mail(test_ctx, repl, "1");
+    res = ik_cmd_delete_mail(test_ctx, repl, "1");
     ck_assert(is_ok(&res));
 
     // Clear scrollback to check for read error
     ik_scrollback_clear(repl->current->scrollback);
 
     // Try to read deleted message (should fail)
-    res = cmd_read_mail(test_ctx, repl, "1");
+    res = ik_cmd_read_mail(test_ctx, repl, "1");
     ck_assert(is_ok(&res));
 
     // Verify error appears in scrollback
@@ -441,7 +441,7 @@ START_TEST(test_delete_by_position_multi_message)
     const char *position_2_body = talloc_strdup(test_ctx, inbox[1]->body);
 
     // Delete position 2
-    res = cmd_delete_mail(test_ctx, repl, "2");
+    res = ik_cmd_delete_mail(test_ctx, repl, "2");
     ck_assert(is_ok(&res));
 
     // Verify only one message remains

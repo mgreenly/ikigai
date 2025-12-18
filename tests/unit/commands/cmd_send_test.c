@@ -181,7 +181,7 @@ START_TEST(test_send_creates_mail)
     ck_assert(is_ok(&res));
 
     // Send mail
-    res = cmd_send(test_ctx, repl, "recipient-uuid-456 \"Hello, world!\"");
+    res = ik_cmd_send(test_ctx, repl, "recipient-uuid-456 \"Hello, world!\"");
     ck_assert(is_ok(&res));
 
     // Verify mail exists in database
@@ -214,7 +214,7 @@ START_TEST(test_send_correct_uuids)
     ck_assert(is_ok(&res));
 
     // Send mail
-    res = cmd_send(test_ctx, repl, "recipient-uuid-789 \"Test message\"");
+    res = ik_cmd_send(test_ctx, repl, "recipient-uuid-789 \"Test message\"");
     ck_assert(is_ok(&res));
 
     // Verify UUIDs
@@ -249,7 +249,7 @@ START_TEST(test_send_body_stored)
     ck_assert(is_ok(&res));
 
     // Send mail with specific body
-    res = cmd_send(test_ctx, repl, "recipient-uuid-abc \"Test message body\"");
+    res = ik_cmd_send(test_ctx, repl, "recipient-uuid-abc \"Test message body\"");
     ck_assert(is_ok(&res));
 
     // Verify body
@@ -266,7 +266,7 @@ END_TEST
 // Test: non-existent recipient shows error
 START_TEST(test_send_nonexistent_recipient)
 {
-    res_t res = cmd_send(test_ctx, repl, "nonexistent-uuid \"Message\"");
+    res_t res = ik_cmd_send(test_ctx, repl, "nonexistent-uuid \"Message\"");
     ck_assert(is_ok(&res));
 
     // Verify error message in scrollback
@@ -299,7 +299,7 @@ START_TEST(test_send_dead_recipient_error)
 
     // Attempt to send mail
     size_t initial_lines = ik_scrollback_get_line_count(repl->current->scrollback);
-    res = cmd_send(test_ctx, repl, "dead-recipient-uuid \"Message\"");
+    res = ik_cmd_send(test_ctx, repl, "dead-recipient-uuid \"Message\"");
     ck_assert(is_ok(&res));
 
     // Verify error message appeared
@@ -332,7 +332,7 @@ START_TEST(test_send_dead_recipient_no_mail)
     ck_assert(is_ok(&res));
 
     // Attempt to send mail
-    res = cmd_send(test_ctx, repl, "dead-recipient-uuid2 \"Message\"");
+    res = ik_cmd_send(test_ctx, repl, "dead-recipient-uuid2 \"Message\"");
     ck_assert(is_ok(&res));
 
     // Verify no mail was created
@@ -349,7 +349,7 @@ END_TEST
 START_TEST(test_send_self_mail_allowed)
 {
     // Send mail to self
-    res_t res = cmd_send(test_ctx, repl, "sender-uuid-123 \"Note to self\"");
+    res_t res = ik_cmd_send(test_ctx, repl, "sender-uuid-123 \"Note to self\"");
     ck_assert(is_ok(&res));
 
     // Verify mail was created
@@ -385,7 +385,7 @@ START_TEST(test_send_empty_body)
 
     // Attempt to send with empty body
     size_t initial_lines = ik_scrollback_get_line_count(repl->current->scrollback);
-    res = cmd_send(test_ctx, repl, "recipient-uuid-empty \"\"");
+    res = ik_cmd_send(test_ctx, repl, "recipient-uuid-empty \"\"");
     ck_assert(is_ok(&res));
 
     // Verify error message appeared
@@ -415,7 +415,7 @@ START_TEST(test_send_confirmation)
 
     // Send mail
     size_t initial_lines = ik_scrollback_get_line_count(repl->current->scrollback);
-    res = cmd_send(test_ctx, repl, "recipient-uuid-conf \"Message\"");
+    res = ik_cmd_send(test_ctx, repl, "recipient-uuid-conf \"Message\"");
     ck_assert(is_ok(&res));
 
     // Verify confirmation appeared

@@ -216,7 +216,7 @@ START_TEST(test_delete_mail_not_found_error_path)
     call_count = 0;
 
     // Use position 1 (valid in inbox), but delete will fail
-    res_t res = cmd_delete_mail(test_ctx, repl, "1");
+    res_t res = ik_cmd_delete_mail(test_ctx, repl, "1");
 
     // Command should return OK after handling the error
     ck_assert(is_ok(&res));

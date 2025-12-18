@@ -159,12 +159,12 @@ static void suite_teardown(void)
 START_TEST(test_kill_cascade_kills_target_and_children)
 {
     // Create parent with 2 children
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     const char *child1_uuid = repl->current->uuid;
 
@@ -172,7 +172,7 @@ START_TEST(test_kill_cascade_kills_target_and_children)
     res = ik_repl_switch_agent(repl, parent);
     ck_assert(is_ok(&res));
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     const char *child2_uuid = repl->current->uuid;
 
@@ -185,7 +185,7 @@ START_TEST(test_kill_cascade_kills_target_and_children)
     // Kill parent with --cascade
     char args[128];
     snprintf(args, sizeof(args), "%s --cascade", parent_uuid);
-    res = cmd_kill(test_ctx, repl, args);
+    res = ik_cmd_kill(test_ctx, repl, args);
     ck_assert(is_ok(&res));
 
     // Should have removed 3 agents (parent + 2 children)
@@ -204,17 +204,17 @@ END_TEST
 START_TEST(test_kill_cascade_includes_grandchildren)
 {
     // Create 3-level hierarchy: root -> parent -> child -> grandchild
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ik_agent_ctx_t *child = repl->current;
     const char *child_uuid = child->uuid;
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     const char *grandchild_uuid = repl->current->uuid;
 
@@ -227,7 +227,7 @@ START_TEST(test_kill_cascade_includes_grandchildren)
     // Kill parent with --cascade
     char args[128];
     snprintf(args, sizeof(args), "%s --cascade", parent_uuid);
-    res = cmd_kill(test_ctx, repl, args);
+    res = ik_cmd_kill(test_ctx, repl, args);
     ck_assert(is_ok(&res));
 
     // Should have removed 3 agents
@@ -246,18 +246,18 @@ END_TEST
 START_TEST(test_kill_cascade_reports_count)
 {
     // Create parent with 2 children
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     res = ik_repl_switch_agent(repl, parent);
     ck_assert(is_ok(&res));
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Switch to root
@@ -267,7 +267,7 @@ START_TEST(test_kill_cascade_reports_count)
     // Kill parent with --cascade
     char args[128];
     snprintf(args, sizeof(args), "%s --cascade", parent_uuid);
-    res = cmd_kill(test_ctx, repl, args);
+    res = ik_cmd_kill(test_ctx, repl, args);
     ck_assert(is_ok(&res));
 
     // Check scrollback for "Killed 3 agents" message
@@ -290,19 +290,19 @@ END_TEST
 START_TEST(test_kill_without_cascade_only_kills_target)
 {
     // Create parent with 2 children
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     const char *child1_uuid = repl->current->uuid;
 
     res = ik_repl_switch_agent(repl, parent);
     ck_assert(is_ok(&res));
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     const char *child2_uuid = repl->current->uuid;
 
@@ -313,7 +313,7 @@ START_TEST(test_kill_without_cascade_only_kills_target)
     size_t initial_count = repl->agent_count;
 
     // Kill parent WITHOUT --cascade (just UUID)
-    res = cmd_kill(test_ctx, repl, parent_uuid);
+    res = ik_cmd_kill(test_ctx, repl, parent_uuid);
     ck_assert(is_ok(&res));
 
     // Should have removed only 1 agent (parent)
@@ -349,19 +349,19 @@ END_TEST
 START_TEST(test_kill_cascade_all_have_ended_at)
 {
     // Create parent with 2 children
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     const char *child1_uuid = repl->current->uuid;
 
     res = ik_repl_switch_agent(repl, parent);
     ck_assert(is_ok(&res));
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     const char *child2_uuid = repl->current->uuid;
 
@@ -374,7 +374,7 @@ START_TEST(test_kill_cascade_all_have_ended_at)
     // Kill parent with --cascade
     char args[128];
     snprintf(args, sizeof(args), "%s --cascade", parent_uuid);
-    res = cmd_kill(test_ctx, repl, args);
+    res = ik_cmd_kill(test_ctx, repl, args);
     ck_assert(is_ok(&res));
 
     time_t after_kill = time(NULL);
@@ -402,11 +402,11 @@ END_TEST
 START_TEST(test_kill_cascade_event_has_cascade_metadata)
 {
     // Create parent with 1 child
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     const char *parent_uuid = repl->current->uuid;
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Switch to root
@@ -417,7 +417,7 @@ START_TEST(test_kill_cascade_event_has_cascade_metadata)
     // Kill parent with --cascade
     char args[128];
     snprintf(args, sizeof(args), "%s --cascade", parent_uuid);
-    res = cmd_kill(test_ctx, repl, args);
+    res = ik_cmd_kill(test_ctx, repl, args);
     ck_assert(is_ok(&res));
 
     // Query database for agent_killed event in current agent's history
@@ -443,17 +443,17 @@ END_TEST
 START_TEST(test_kill_cascade_event_count_matches)
 {
     // Create parent with 2 children
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     const char *parent_uuid = repl->current->uuid;
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     res = ik_repl_switch_agent(repl, ik_repl_find_agent(repl, parent_uuid));
     ck_assert(is_ok(&res));
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Switch to root
@@ -464,7 +464,7 @@ START_TEST(test_kill_cascade_event_count_matches)
     // Kill parent with --cascade (should kill 3 agents)
     char args[128];
     snprintf(args, sizeof(args), "%s --cascade", parent_uuid);
-    res = cmd_kill(test_ctx, repl, args);
+    res = ik_cmd_kill(test_ctx, repl, args);
     ck_assert(is_ok(&res));
 
     // Query database for agent_killed event

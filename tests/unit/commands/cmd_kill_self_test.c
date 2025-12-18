@@ -160,7 +160,7 @@ static void suite_teardown(void)
 START_TEST(test_kill_terminates_non_root)
 {
     // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->current;
@@ -170,9 +170,9 @@ START_TEST(test_kill_terminates_non_root)
     size_t initial_count = repl->agent_count;
 
     // Kill child (current agent)
-    res = cmd_kill(test_ctx, repl, NULL);
+    res = ik_cmd_kill(test_ctx, repl, NULL);
     if (is_err(&res)) {
-        fprintf(stderr, "cmd_kill failed: %s\n", error_message(res.err));
+        fprintf(stderr, "ik_cmd_kill failed: %s\n", error_message(res.err));
     }
     ck_assert(is_ok(&res));
 
@@ -198,13 +198,13 @@ END_TEST
 START_TEST(test_kill_marks_dead_in_registry)
 {
     // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     const char *child_uuid = repl->current->uuid;
 
     // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
+    res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Check registry
@@ -220,14 +220,14 @@ END_TEST
 START_TEST(test_kill_sets_ended_at)
 {
     // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     const char *child_uuid = repl->current->uuid;
     time_t before_kill = time(NULL);
 
     // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
+    res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     time_t after_kill = time(NULL);
@@ -249,14 +249,14 @@ END_TEST
 START_TEST(test_kill_removes_from_array)
 {
     // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     const char *child_uuid = repl->current->uuid;
     size_t initial_count = repl->agent_count;
 
     // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
+    res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify count decreased
@@ -275,14 +275,14 @@ START_TEST(test_kill_switches_to_parent)
     ik_agent_ctx_t *parent = repl->current;
 
     // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->current;
     ck_assert_ptr_ne(child, parent);
 
     // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
+    res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Should be back to parent
@@ -296,7 +296,7 @@ START_TEST(test_kill_root_shows_error)
     // Current agent is root (parent_uuid == NULL)
     ck_assert_ptr_null(repl->current->parent_uuid);
 
-    res_t res = cmd_kill(test_ctx, repl, NULL);
+    res_t res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));  // Command returns OK but shows error
 
     // Check scrollback for error message
@@ -321,7 +321,7 @@ START_TEST(test_kill_root_not_modified)
     const char *root_uuid = repl->current->uuid;
 
     // Try to kill root
-    res_t res = cmd_kill(test_ctx, repl, NULL);
+    res_t res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Root should still be current
@@ -340,7 +340,7 @@ END_TEST
 START_TEST(test_kill_waits_for_fork_pending)
 {
     // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Set fork_pending (simulating concurrent fork)
@@ -351,7 +351,7 @@ START_TEST(test_kill_waits_for_fork_pending)
     // by manually clearing it before calling
     atomic_store(&repl->shared->fork_pending, false);
 
-    res = cmd_kill(test_ctx, repl, NULL);
+    res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Kill should have succeeded
@@ -363,13 +363,13 @@ END_TEST
 START_TEST(test_kill_records_event_in_parent_history)
 {
     // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     const char *parent_uuid = repl->current->parent_uuid;
 
     // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
+    res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Query database for agent_killed event in parent's message history
@@ -398,13 +398,13 @@ END_TEST
 START_TEST(test_kill_event_has_killed_by_user)
 {
     // Create child agent
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     const char *parent_uuid = repl->current->parent_uuid;
 
     // Kill child
-    res = cmd_kill(test_ctx, repl, NULL);
+    res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Query database for agent_killed event

@@ -237,7 +237,7 @@ START_TEST(test_send_db_agent_get_error)
     // Enable agent_get failure
     mock_agent_get_fail = true;
 
-    res_t res = cmd_send(test_ctx, repl, "recipient-uuid-456 \"Test message\"");
+    res_t res = ik_cmd_send(test_ctx, repl, "recipient-uuid-456 \"Test message\"");
 
     // Should propagate the error
     ck_assert(is_err(&res));
@@ -253,7 +253,7 @@ START_TEST(test_send_db_mail_insert_error)
     // Enable mail_insert failure
     mock_mail_insert_fail = true;
 
-    res_t res = cmd_send(test_ctx, repl, "recipient-uuid-456 \"Test message\"");
+    res_t res = ik_cmd_send(test_ctx, repl, "recipient-uuid-456 \"Test message\"");
 
     // Should propagate the error
     ck_assert(is_err(&res));

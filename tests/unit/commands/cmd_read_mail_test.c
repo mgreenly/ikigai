@@ -187,7 +187,7 @@ START_TEST(test_read_mail_displays_full_message)
     ck_assert(is_ok(&res));
 
     // Read the message using ID 1
-    res = cmd_read_mail(test_ctx, repl, "1");
+    res = ik_cmd_read_mail(test_ctx, repl, "1");
     ck_assert(is_ok(&res));
 
     // Verify message appears in scrollback
@@ -229,7 +229,7 @@ START_TEST(test_read_mail_marks_as_read)
     ck_assert(!inbox[0]->read);
 
     // Read the message
-    res = cmd_read_mail(test_ctx, repl, "1");
+    res = ik_cmd_read_mail(test_ctx, repl, "1");
     ck_assert(is_ok(&res));
 
     // Verify message is now read
@@ -245,7 +245,7 @@ END_TEST
 START_TEST(test_read_mail_nonexistent_id)
 {
     // Try to read non-existent message
-    res_t res = cmd_read_mail(test_ctx, repl, "999");
+    res_t res = ik_cmd_read_mail(test_ctx, repl, "999");
     ck_assert(is_ok(&res));
 
     // Verify error message in scrollback
@@ -290,7 +290,7 @@ START_TEST(test_read_mail_different_agent)
     ck_assert(is_ok(&res));
 
     // Try to read it from current agent (should fail)
-    res = cmd_read_mail(test_ctx, repl, "1");
+    res = ik_cmd_read_mail(test_ctx, repl, "1");
     ck_assert(is_ok(&res));
 
     // Verify error message in scrollback

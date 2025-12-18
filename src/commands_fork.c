@@ -143,7 +143,7 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
     }
 }
 
-res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
+res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE

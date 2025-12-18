@@ -206,7 +206,7 @@ START_TEST(test_filter_mail_by_sender)
     // Filter by sender1
     char args[64];
     snprintf(args, sizeof(args), "--from %s", sender1->uuid);
-    res = cmd_filter_mail(test_ctx, repl, args);
+    res = ik_cmd_filter_mail(test_ctx, repl, args);
     ck_assert(is_ok(&res));
 
     // Verify output exists
@@ -238,7 +238,7 @@ START_TEST(test_filter_mail_partial_uuid)
     ck_assert(is_ok(&res));
 
     // Filter using partial UUID
-    res = cmd_filter_mail(test_ctx, repl, "--from sender-uuid");
+    res = ik_cmd_filter_mail(test_ctx, repl, "--from sender-uuid");
     ck_assert(is_ok(&res));
 
     // Verify output exists
@@ -272,7 +272,7 @@ START_TEST(test_filter_mail_shows_header)
     // Filter by sender
     char args[64];
     snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = cmd_filter_mail(test_ctx, repl, args);
+    res = ik_cmd_filter_mail(test_ctx, repl, args);
     ck_assert(is_ok(&res));
 
     // Verify output exists
@@ -299,7 +299,7 @@ START_TEST(test_filter_mail_no_matches)
     // Filter by sender (no messages)
     char args[64];
     snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = cmd_filter_mail(test_ctx, repl, args);
+    res = ik_cmd_filter_mail(test_ctx, repl, args);
     ck_assert(is_ok(&res));
 
     // Verify output exists (should show empty result)

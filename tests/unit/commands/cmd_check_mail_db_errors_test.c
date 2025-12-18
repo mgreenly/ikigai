@@ -164,7 +164,7 @@ static void teardown(void)
 // Test: /check-mail propagates ik_db_mail_inbox error (line 165)
 START_TEST(test_check_mail_db_inbox_error)
 {
-    res_t res = cmd_check_mail(test_ctx, repl, NULL);
+    res_t res = ik_cmd_check_mail(test_ctx, repl, NULL);
 
     // Should propagate the error
     ck_assert(is_err(&res));

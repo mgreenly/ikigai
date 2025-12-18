@@ -152,7 +152,7 @@ START_TEST(test_kill_target_terminates_specific_agent)
 {
     ik_agent_ctx_t *parent = repl->current;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->current;
@@ -163,7 +163,7 @@ START_TEST(test_kill_target_terminates_specific_agent)
 
     size_t initial_count = repl->agent_count;
 
-    res = cmd_kill(test_ctx, repl, child_uuid);
+    res = ik_cmd_kill(test_ctx, repl, child_uuid);
     ck_assert(is_ok(&res));
 
     ck_assert_ptr_eq(repl->current, parent);
@@ -185,7 +185,7 @@ START_TEST(test_kill_target_partial_uuid_match)
 {
     ik_agent_ctx_t *parent = repl->current;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->current;
@@ -198,7 +198,7 @@ START_TEST(test_kill_target_partial_uuid_match)
     res = ik_repl_switch_agent(repl, parent);
     ck_assert(is_ok(&res));
 
-    res = cmd_kill(test_ctx, repl, partial);
+    res = ik_cmd_kill(test_ctx, repl, partial);
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *found = ik_repl_find_agent(repl, child_uuid);
@@ -211,14 +211,14 @@ START_TEST(test_kill_target_ambiguous_uuid_error)
 {
     ik_agent_ctx_t *parent = repl->current;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ik_agent_ctx_t *child1 = repl->current;
 
     res = ik_repl_switch_agent(repl, parent);
     ck_assert(is_ok(&res));
 
-    res = cmd_fork(test_ctx, repl, NULL);
+    res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     res = ik_repl_switch_agent(repl, parent);
@@ -226,7 +226,7 @@ START_TEST(test_kill_target_ambiguous_uuid_error)
 
     ik_scrollback_clear(parent->scrollback);
 
-    res = cmd_kill(test_ctx, repl, "");
+    res = ik_cmd_kill(test_ctx, repl, "");
     ck_assert(is_ok(&res));
 
     ck_assert_ptr_eq(repl->current, parent);
@@ -242,7 +242,7 @@ START_TEST(test_kill_target_nonexistent_uuid_error)
 
     ik_scrollback_clear(parent->scrollback);
 
-    res_t res = cmd_kill(test_ctx, repl, "nonexistent-uuid-123");
+    res_t res = ik_cmd_kill(test_ctx, repl, "nonexistent-uuid-123");
     ck_assert(is_ok(&res));
 
     size_t line_count = ik_scrollback_get_line_count(parent->scrollback);
@@ -265,13 +265,13 @@ START_TEST(test_kill_target_current_switches_to_parent)
 {
     ik_agent_ctx_t *parent = repl->current;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->current;
     const char *child_uuid = child->uuid;
 
-    res = cmd_kill(test_ctx, repl, child_uuid);
+    res = ik_cmd_kill(test_ctx, repl, child_uuid);
     ck_assert(is_ok(&res));
 
     ck_assert_ptr_eq(repl->current, parent);
@@ -283,14 +283,14 @@ START_TEST(test_kill_target_root_shows_error)
 {
     const char *root_uuid = repl->current->uuid;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->current;
 
     ik_scrollback_clear(child->scrollback);
 
-    res = cmd_kill(test_ctx, repl, root_uuid);
+    res = ik_cmd_kill(test_ctx, repl, root_uuid);
     ck_assert(is_ok(&res));
 
     size_t line_count = ik_scrollback_get_line_count(child->scrollback);
@@ -313,7 +313,7 @@ START_TEST(test_kill_target_user_stays_on_current)
 {
     ik_agent_ctx_t *parent = repl->current;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     const char *child_uuid = repl->current->uuid;
@@ -321,7 +321,7 @@ START_TEST(test_kill_target_user_stays_on_current)
     res = ik_repl_switch_agent(repl, parent);
     ck_assert(is_ok(&res));
 
-    res = cmd_kill(test_ctx, repl, child_uuid);
+    res = ik_cmd_kill(test_ctx, repl, child_uuid);
     ck_assert(is_ok(&res));
 
     ck_assert_ptr_eq(repl->current, parent);
@@ -333,7 +333,7 @@ START_TEST(test_kill_target_sets_ended_at)
 {
     ik_agent_ctx_t *parent = repl->current;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     const char *child_uuid = repl->current->uuid;
@@ -343,7 +343,7 @@ START_TEST(test_kill_target_sets_ended_at)
 
     time_t before_kill = time(NULL);
 
-    res = cmd_kill(test_ctx, repl, child_uuid);
+    res = ik_cmd_kill(test_ctx, repl, child_uuid);
     ck_assert(is_ok(&res));
 
     time_t after_kill = time(NULL);
@@ -365,7 +365,7 @@ START_TEST(test_kill_target_records_event_in_current_history)
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     const char *child_uuid = repl->current->uuid;
@@ -373,7 +373,7 @@ START_TEST(test_kill_target_records_event_in_current_history)
     res = ik_repl_switch_agent(repl, parent);
     ck_assert(is_ok(&res));
 
-    res = cmd_kill(test_ctx, repl, child_uuid);
+    res = ik_cmd_kill(test_ctx, repl, child_uuid);
     ck_assert(is_ok(&res));
 
     const char *query = "SELECT kind, data FROM messages WHERE agent_uuid = $1 AND kind = 'agent_killed'";
@@ -397,7 +397,7 @@ START_TEST(test_kill_target_event_has_target_uuid)
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     const char *child_uuid = repl->current->uuid;
@@ -405,7 +405,7 @@ START_TEST(test_kill_target_event_has_target_uuid)
     res = ik_repl_switch_agent(repl, parent);
     ck_assert(is_ok(&res));
 
-    res = cmd_kill(test_ctx, repl, child_uuid);
+    res = ik_cmd_kill(test_ctx, repl, child_uuid);
     ck_assert(is_ok(&res));
 
     const char *query = "SELECT data FROM messages WHERE agent_uuid = $1 AND kind = 'agent_killed'";

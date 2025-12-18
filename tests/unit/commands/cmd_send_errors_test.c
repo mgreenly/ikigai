@@ -164,7 +164,7 @@ static void suite_teardown(void)
 // Test: missing args shows error
 START_TEST(test_send_missing_args)
 {
-    res_t res = cmd_send(test_ctx, repl, NULL);
+    res_t res = ik_cmd_send(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -173,7 +173,7 @@ END_TEST
 // Test: empty args shows error
 START_TEST(test_send_empty_args)
 {
-    res_t res = cmd_send(test_ctx, repl, "");
+    res_t res = ik_cmd_send(test_ctx, repl, "");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -182,7 +182,7 @@ END_TEST
 // Test: only whitespace shows error
 START_TEST(test_send_only_whitespace)
 {
-    res_t res = cmd_send(test_ctx, repl, "   ");
+    res_t res = ik_cmd_send(test_ctx, repl, "   ");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -191,7 +191,7 @@ END_TEST
 // Test: missing message part shows error
 START_TEST(test_send_missing_message)
 {
-    res_t res = cmd_send(test_ctx, repl, "some-uuid");
+    res_t res = ik_cmd_send(test_ctx, repl, "some-uuid");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -204,7 +204,7 @@ START_TEST(test_send_uuid_too_long)
     memset(long_uuid, 'x', sizeof(long_uuid) - 10);
     strcpy(long_uuid + sizeof(long_uuid) - 10, " \"msg\"");
 
-    res_t res = cmd_send(test_ctx, repl, long_uuid);
+    res_t res = ik_cmd_send(test_ctx, repl, long_uuid);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -213,7 +213,7 @@ END_TEST
 // Test: missing opening quote shows error
 START_TEST(test_send_missing_opening_quote)
 {
-    res_t res = cmd_send(test_ctx, repl, "uuid-123 message\"");
+    res_t res = ik_cmd_send(test_ctx, repl, "uuid-123 message\"");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -222,7 +222,7 @@ END_TEST
 // Test: missing closing quote shows error
 START_TEST(test_send_missing_closing_quote)
 {
-    res_t res = cmd_send(test_ctx, repl, "uuid-123 \"message");
+    res_t res = ik_cmd_send(test_ctx, repl, "uuid-123 \"message");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -238,7 +238,7 @@ START_TEST(test_send_message_too_long)
     long_msg[sizeof(long_msg) - 2] = '"';
     long_msg[sizeof(long_msg) - 1] = '\0';
 
-    res_t res = cmd_send(test_ctx, repl, long_msg);
+    res_t res = ik_cmd_send(test_ctx, repl, long_msg);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }

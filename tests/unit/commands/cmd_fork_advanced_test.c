@@ -116,7 +116,7 @@ static void setup(void)
     }
     ck_assert_ptr_nonnull(db);
     ck_assert_ptr_nonnull(db->conn);
-    // Don't call ik_test_db_begin - cmd_fork manages its own transactions
+    // Don't call ik_test_db_begin - ik_cmd_fork manages its own transactions
 
     setup_repl();
 }
@@ -146,7 +146,7 @@ static void suite_teardown(void)
 // Test: Fork records fork_message_id (parent has no messages)
 START_TEST(test_fork_records_fork_message_id_no_messages)
 {
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Child should have fork_message_id = 0 (parent has no messages)
@@ -158,7 +158,7 @@ END_TEST
 // Test: Fork stores fork_message_id in registry
 START_TEST(test_fork_registry_has_fork_message_id)
 {
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Query registry for child
@@ -184,7 +184,7 @@ START_TEST(test_fork_child_inherits_conversation)
     ck_assert(is_ok(&add_res));
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Child should inherit parent's conversation
@@ -204,7 +204,7 @@ START_TEST(test_fork_no_running_tools_proceeds)
     // Ensure no running tools
     ck_assert(!repl->current->tool_thread_running);
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Fork should have succeeded
@@ -273,7 +273,7 @@ START_TEST(test_fork_child_post_fork_messages_separate)
     ik_agent_ctx_t *parent = repl->current;
     size_t parent_msg_count_before_fork = parent->conversation->message_count;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Add message to child's conversation (simulating post-fork message)
@@ -303,7 +303,7 @@ START_TEST(test_fork_persists_parent_side_event)
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->current;
@@ -350,7 +350,7 @@ START_TEST(test_fork_persists_child_side_event)
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->current;
@@ -397,7 +397,7 @@ START_TEST(test_fork_events_linked_by_fork_message_id)
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->current;
@@ -460,7 +460,7 @@ START_TEST(test_fork_child_inherits_scrollback)
     size_t parent_line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_eq(parent_line_count, 3);
 
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Child should inherit parent's scrollback (plus fork confirmation message)

@@ -162,7 +162,7 @@ static void suite_teardown(void)
 // Test: displays tree structure with single root agent
 START_TEST(test_agents_single_root)
 {
-    res_t res = cmd_agents(test_ctx, repl, NULL);
+    res_t res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output in scrollback
@@ -173,7 +173,7 @@ END_TEST
 // Test: current agent marked with *
 START_TEST(test_agents_current_marked)
 {
-    res_t res = cmd_agents(test_ctx, repl, NULL);
+    res_t res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists
@@ -184,7 +184,7 @@ END_TEST
 // Test: shows status (running/dead)
 START_TEST(test_agents_shows_status)
 {
-    res_t res = cmd_agents(test_ctx, repl, NULL);
+    res_t res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists
@@ -195,7 +195,7 @@ END_TEST
 // Test: root labeled
 START_TEST(test_agents_root_labeled)
 {
-    res_t res = cmd_agents(test_ctx, repl, NULL);
+    res_t res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists
@@ -223,7 +223,7 @@ START_TEST(test_agents_indentation_depth)
     ck_assert(is_ok(&res));
 
     // Run command
-    res = cmd_agents(test_ctx, repl, NULL);
+    res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists
@@ -275,7 +275,7 @@ START_TEST(test_agents_root_alignment)
     repl->current = child;
 
     // Run command
-    res = cmd_agents(test_ctx, repl, NULL);
+    res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Line 2 should be the root agent (not current)
@@ -319,7 +319,7 @@ START_TEST(test_agents_grandchild_indentation)
     ck_assert(is_ok(&res));
 
     // Run command
-    res = cmd_agents(test_ctx, repl, NULL);
+    res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Line 4 should be the grandchild (lines 0,1=header, 2=root, 3=child)
@@ -368,7 +368,7 @@ START_TEST(test_agents_summary_count)
     ck_assert(is_ok(&res));
 
     // Run command
-    res = cmd_agents(test_ctx, repl, NULL);
+    res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists (should show 2 running, 1 dead)

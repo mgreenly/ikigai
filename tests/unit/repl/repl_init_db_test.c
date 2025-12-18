@@ -86,7 +86,7 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
     return OK(NULL);
 }
 
-// Mock ik_db_agent_insert (needed because cmd_fork calls it)
+// Mock ik_db_agent_insert (needed because ik_cmd_fork calls it)
 res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
 {
     (void)db_ctx;
@@ -94,7 +94,7 @@ res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
     return OK(NULL);
 }
 
-// Mock ik_db_agent_get (needed because cmd_fork tests call it)
+// Mock ik_db_agent_get (needed because ik_cmd_fork tests call it)
 res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out)
 {
     (void)db_ctx;
@@ -108,7 +108,7 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik
     return OK(NULL);
 }
 
-// Mock ik_db_agent_get_last_message_id (needed because cmd_fork calls it)
+// Mock ik_db_agent_get_last_message_id (needed because ik_cmd_fork calls it)
 res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid,
                                        int64_t *out_message_id)
 {
@@ -118,7 +118,7 @@ res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uui
     return OK(NULL);
 }
 
-// Mock ik_db_agent_mark_dead (needed because cmd_kill calls it)
+// Mock ik_db_agent_mark_dead (needed because ik_cmd_kill calls it)
 res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
 {
     (void)db_ctx;
@@ -126,7 +126,7 @@ res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
     return OK(NULL);
 }
 
-// Mock ik_db_agent_list_running (needed because cmd_agents calls it)
+// Mock ik_db_agent_list_running (needed because ik_cmd_agents calls it)
 res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
                                 ik_db_agent_row_t ***out, size_t *count)
 {

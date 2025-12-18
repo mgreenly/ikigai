@@ -154,7 +154,7 @@ static void suite_teardown(void)
 // Test: Fork with unterminated quoted string shows error
 START_TEST(test_fork_unterminated_quote_error)
 {
-    res_t res = cmd_fork(test_ctx, repl, "\"unterminated string");
+    res_t res = ik_cmd_fork(test_ctx, repl, "\"unterminated string");
     ck_assert(is_ok(&res));  // Returns OK but shows error
 
     // Check scrollback for error message
@@ -177,7 +177,7 @@ END_TEST
 START_TEST(test_kill_parent_not_found_error)
 {
     // Create child
-    res_t res = cmd_fork(test_ctx, repl, NULL);
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->current;
@@ -195,7 +195,7 @@ START_TEST(test_kill_parent_not_found_error)
 
     // Now child's parent_uuid points to non-existent agent
     // Try to kill child - should error
-    res = cmd_kill(test_ctx, repl, NULL);
+    res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(res.err->code, ERR_INVALID_ARG);
 
@@ -219,7 +219,7 @@ START_TEST(test_kill_uuid_not_found_shows_error)
     ik_scrollback_clear(parent->scrollback);
 
     // Try to kill with non-existent UUID
-    res_t res = cmd_kill(test_ctx, repl, "zzz");
+    res_t res = ik_cmd_kill(test_ctx, repl, "zzz");
     ck_assert(is_ok(&res));
 
     // Should show "Agent not found" error

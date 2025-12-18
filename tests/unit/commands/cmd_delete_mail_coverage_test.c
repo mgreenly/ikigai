@@ -165,7 +165,7 @@ static void suite_teardown(void)
 // Test: missing args shows error
 START_TEST(test_delete_mail_missing_args)
 {
-    res_t res = cmd_delete_mail(test_ctx, repl, NULL);
+    res_t res = ik_cmd_delete_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -174,7 +174,7 @@ END_TEST
 // Test: invalid ID format shows error
 START_TEST(test_delete_mail_invalid_id_format)
 {
-    res_t res = cmd_delete_mail(test_ctx, repl, "abc");
+    res_t res = ik_cmd_delete_mail(test_ctx, repl, "abc");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }

@@ -187,7 +187,7 @@ START_TEST(test_check_mail_timestamp_seconds)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -218,7 +218,7 @@ START_TEST(test_check_mail_timestamp_minutes)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -249,7 +249,7 @@ START_TEST(test_check_mail_timestamp_hours)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -280,7 +280,7 @@ START_TEST(test_check_mail_timestamp_1_hour)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -311,7 +311,7 @@ START_TEST(test_check_mail_timestamp_days)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -342,7 +342,7 @@ START_TEST(test_check_mail_timestamp_1_day)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -376,7 +376,7 @@ START_TEST(test_check_mail_short_body)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
@@ -406,7 +406,7 @@ START_TEST(test_check_mail_single_message)
     ck_assert(is_ok(&res));
 
     // Check mail
-    res = cmd_check_mail(test_ctx, repl, NULL);
+    res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }

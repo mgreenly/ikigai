@@ -40,27 +40,27 @@ static res_t cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args);
 static res_t cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args);
 static res_t cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
-// Public declaration for cmd_fork (non-static, declared in commands.h)
-res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
+// Public declaration for ik_cmd_fork (non-static, declared in commands.h)
+res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
-// Public declaration for cmd_kill (non-static, declared in commands.h)
-res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
+// Public declaration for ik_cmd_kill (non-static, declared in commands.h)
+res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
-// Public declaration for cmd_send (non-static, declared in commands.h)
-res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
+// Public declaration for ik_cmd_send (non-static, declared in commands.h)
+res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
-// Public declaration for cmd_check_mail (non-static, declared in commands.h)
-res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+// Public declaration for ik_cmd_check_mail (non-static, declared in commands.h)
+res_t ik_cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
-// Public declaration for cmd_read_mail (non-static, declared in commands.h)
-res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
-res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+// Public declaration for ik_cmd_read_mail (non-static, declared in commands.h)
+res_t ik_cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
-// Public declaration for cmd_filter_mail (non-static, declared in commands.h)
-res_t cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+// Public declaration for ik_cmd_filter_mail (non-static, declared in commands.h)
+res_t ik_cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
-// Public declaration for cmd_agents (non-static, declared in commands.h)
-res_t cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args);
+// Public declaration for ik_cmd_agents (non-static, declared in commands.h)
+res_t ik_cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 // Command registry
 static const ik_command_t commands[] = {
@@ -68,14 +68,14 @@ static const ik_command_t commands[] = {
     {"mark", "Create a checkpoint for rollback (usage: /mark [label])",
      ik_cmd_mark},
     {"rewind", "Rollback to a checkpoint (usage: /rewind [label])", ik_cmd_rewind},
-    {"fork", "Create a child agent (usage: /fork)", cmd_fork},
-    {"kill", "Terminate agent (usage: /kill [uuid])", cmd_kill},
-    {"send", "Send mail to agent (usage: /send <uuid> \"message\")", cmd_send},
-    {"check-mail", "Check inbox for messages", cmd_check_mail},
-    {"read-mail", "Read a message (usage: /read-mail <id>)", cmd_read_mail},
-    {"delete-mail", "Delete a message (usage: /delete-mail <id>)", cmd_delete_mail},
-    {"filter-mail", "Filter inbox by sender (usage: /filter-mail --from <uuid>)", cmd_filter_mail},
-    {"agents", "Display agent hierarchy tree", cmd_agents},
+    {"fork", "Create a child agent (usage: /fork)", ik_cmd_fork},
+    {"kill", "Terminate agent (usage: /kill [uuid])", ik_cmd_kill},
+    {"send", "Send mail to agent (usage: /send <uuid> \"message\")", ik_cmd_send},
+    {"check-mail", "Check inbox for messages", ik_cmd_check_mail},
+    {"read-mail", "Read a message (usage: /read-mail <id>)", ik_cmd_read_mail},
+    {"delete-mail", "Delete a message (usage: /delete-mail <id>)", ik_cmd_delete_mail},
+    {"filter-mail", "Filter inbox by sender (usage: /filter-mail --from <uuid>)", ik_cmd_filter_mail},
+    {"agents", "Display agent hierarchy tree", ik_cmd_agents},
     {"help", "Show available commands", cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", cmd_model},
     {"system", "Set system message (usage: /system <text>)", cmd_system},

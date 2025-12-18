@@ -22,7 +22,7 @@
 #include <string.h>
 #include <time.h>
 
-res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
+res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
@@ -148,7 +148,7 @@ res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
     return OK(NULL);
 }
 
-res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
+res_t ik_cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
@@ -254,7 +254,7 @@ res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     return OK(NULL);
 }
 
-res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
+res_t ik_cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
@@ -328,7 +328,7 @@ res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     return OK(NULL);
 }
 
-res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
+res_t ik_cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
@@ -390,7 +390,7 @@ res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     return OK(NULL);
 }
 
-res_t cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
+res_t ik_cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE

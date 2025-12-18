@@ -71,7 +71,7 @@ const ik_command_t *ik_cmd_get_all(size_t *count);
  * @param args Command arguments (NULL for this basic version)
  * @return OK on success, ERR on failure
  */
-res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
  * Kill command handler - terminates agent
@@ -84,7 +84,7 @@ res_t cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
  * @param args Command arguments (NULL for self-kill)
  * @return OK on success, ERR on failure
  */
-res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
  * Send command handler - sends mail to another agent
@@ -97,7 +97,7 @@ res_t cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
  * @param args Command arguments: "<uuid> \"message\""
  * @return OK on success, ERR on failure
  */
-res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
  * Check mail command handler - lists inbox contents
@@ -110,7 +110,7 @@ res_t cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
  * @param args Command arguments (unused)
  * @return OK on success, ERR on failure
  */
-res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
  * Read mail command handler - displays full message and marks as read
@@ -123,7 +123,7 @@ res_t cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
  * @param args Command arguments (message index)
  * @return OK on success, ERR on failure
  */
-res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
  * Delete mail command handler - permanently removes a message
@@ -136,7 +136,7 @@ res_t cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
  * @param args Command arguments (mail ID)
  * @return OK on success, ERR on failure
  */
-res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
  * Filter mail command handler - filters inbox by sender UUID
@@ -149,7 +149,7 @@ res_t cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
  * @param args Command arguments: "--from <uuid>"
  * @return OK on success, ERR on failure
  */
-res_t cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
  * Agents command handler - displays agent hierarchy tree
@@ -163,7 +163,7 @@ res_t cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
  * @param args Command arguments (unused)
  * @return OK on success, ERR on failure
  */
-res_t cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
  * Persist command execution to database
