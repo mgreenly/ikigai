@@ -23,5 +23,8 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready);
 // Handle request success (LLM response complete)
 void handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 
-// Handle tool thread completion
+// Handle tool thread completion (legacy - uses repl->current)
 void handle_tool_completion(ik_repl_ctx_t *repl);
+
+// Handle tool thread completion for specific agent
+void handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);

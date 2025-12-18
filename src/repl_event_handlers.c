@@ -336,21 +336,28 @@ res_t handle_curl_events(ik_repl_ctx_t *repl, int ready)
 
 // Handle tool thread completion - extracted from event loop
 // Non-static for testing
-void handle_tool_completion(ik_repl_ctx_t *repl)
+void handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     // Thread finished - harvest result and continue
-    ik_repl_complete_tool_execution(repl);
+    ik_agent_complete_tool_execution(agent);
 
     // Check if tool loop should continue
-    if (ik_agent_should_continue_tool_loop(repl->current)) {
-        repl->current->tool_iteration_count++;
-        submit_tool_loop_continuation(repl, repl->current);
+    if (ik_agent_should_continue_tool_loop(agent)) {
+        agent->tool_iteration_count++;
+        submit_tool_loop_continuation(repl, agent);
     } else {
         // Tool loop done - transition to IDLE, show input prompt
-        ik_agent_transition_to_idle(repl->current);
+        ik_agent_transition_to_idle(agent);
     }
 
-    // Re-render to show tool result in scrollback
-    res_t result = ik_repl_render_frame(repl);
-    if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
+    // Only render if this is the current agent
+    if (agent == repl->current) {
+        res_t result = ik_repl_render_frame(repl);
+        if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
+    }
+}
+
+void handle_tool_completion(ik_repl_ctx_t *repl)
+{
+    handle_agent_tool_completion(repl, repl->current);
 }

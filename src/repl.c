@@ -122,14 +122,31 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         // Handle curl_multi events
         CHECK(handle_curl_events(repl, ready));  // LCOV_EXCL_BR_LINE
 
-        // Poll for tool thread completion
-        pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-        ik_agent_state_t current_state = repl->current->state;
-        bool complete = repl->current->tool_thread_complete;
-        pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
+        // Poll for tool thread completion - check ALL agents
+        if (repl->agent_count > 0) {
+            // Multi-agent mode: check all agents
+            for (size_t i = 0; i < repl->agent_count; i++) {
+                ik_agent_ctx_t *agent = repl->agents[i];
 
-        if (current_state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
-            handle_tool_completion(repl);
+                pthread_mutex_lock_(&agent->tool_thread_mutex);
+                ik_agent_state_t state = agent->state;
+                bool complete = agent->tool_thread_complete;
+                pthread_mutex_unlock_(&agent->tool_thread_mutex);
+
+                if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
+                    handle_agent_tool_completion(repl, agent);
+                }
+            }
+        } else if (repl->current != NULL) {
+            // Single-agent mode (tests/legacy): check current only
+            pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+            ik_agent_state_t state = repl->current->state;
+            bool complete = repl->current->tool_thread_complete;
+            pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
+
+            if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
+                handle_agent_tool_completion(repl, repl->current);
+            }
         }
     }
 
