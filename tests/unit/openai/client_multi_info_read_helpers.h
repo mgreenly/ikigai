@@ -19,9 +19,7 @@ static inline ik_cfg_t *create_test_config(void)
 /* Helper to create a conversation with a single message */
 static inline ik_openai_conversation_t *create_test_conversation(const char *msg_text)
 {
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    if (conv_res.is_err) return NULL;
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", msg_text);
     if (msg_res.is_err) return NULL;
