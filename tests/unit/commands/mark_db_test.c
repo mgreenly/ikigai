@@ -327,9 +327,8 @@ START_TEST(test_rewind_db_insert_error)
     ck_assert(is_ok(&res));
 
     // Add a message
-    res = ik_openai_msg_create(repl->current->conversation, "user", "test");
-    ck_assert(is_ok(&res));
-    res = ik_openai_conversation_add_msg(repl->current->conversation, res.ok);
+    ik_msg_t *msg = ik_openai_msg_create(repl->current->conversation, "user", "test");
+    res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
     ck_assert(is_ok(&res));
 
     // Rewind - should succeed in memory even with DB issues

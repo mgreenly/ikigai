@@ -124,10 +124,8 @@ START_TEST(verify_stream_hello_world) {
     /* Create conversation with simple greeting */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello!");
-    ck_assert(!msg_res.is_err);
-
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello!");
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     /* Make real API call with streaming */
@@ -192,11 +190,9 @@ END_TEST START_TEST(verify_stream_multiline)
     /* Create conversation requesting code (likely to be multi-line) */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user",
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user",
                                          "Write a short Python function to add two numbers.");
-    ck_assert(!msg_res.is_err);
-
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     /* Make real API call with streaming */
@@ -253,9 +249,8 @@ END_TEST START_TEST(verify_stream_conversation)
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     /* First message */
-    res_t msg1_res = ik_openai_msg_create(ctx, "user", "What is 2+2?");
-    ck_assert(!msg1_res.is_err);
-    res_t add1_res = ik_openai_conversation_add_msg(conv, msg1_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "What is 2+2?");
+    res_t add1_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add1_res.is_err);
 
     /* Get first response */
@@ -268,15 +263,13 @@ END_TEST START_TEST(verify_stream_conversation)
     ck_assert_ptr_nonnull(response1->content);
 
     /* Add assistant response to conversation */
-    res_t msg2_res = ik_openai_msg_create(ctx, "assistant", response1->content);
-    ck_assert(!msg2_res.is_err);
-    res_t add2_res = ik_openai_conversation_add_msg(conv, msg2_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "assistant", response1->content);
+    res_t add2_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add2_res.is_err);
 
     /* Second message */
-    res_t msg3_res = ik_openai_msg_create(ctx, "user", "What is double that?");
-    ck_assert(!msg3_res.is_err);
-    res_t add3_res = ik_openai_conversation_add_msg(conv, msg3_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "What is double that?");
+    res_t add3_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add3_res.is_err);
 
     /* Get second response */

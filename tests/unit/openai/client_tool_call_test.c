@@ -237,9 +237,8 @@ END_TEST START_TEST(test_serialize_mixed_messages)
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     /* Add user message */
-    res_t user_msg_res = ik_openai_msg_create(ctx, "user", "Find all C files");
-    ck_assert(!user_msg_res.is_err);
-    res_t add_user = ik_openai_conversation_add_msg(conv, user_msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Find all C files");
+    res_t add_user = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_user.is_err);
 
     /* Add tool_call message */
@@ -255,9 +254,8 @@ END_TEST START_TEST(test_serialize_mixed_messages)
     ck_assert(!add_tool.is_err);
 
     /* Add assistant message */
-    res_t asst_msg_res = ik_openai_msg_create(ctx, "assistant", "I found the files");
-    ck_assert(!asst_msg_res.is_err);
-    res_t add_asst = ik_openai_conversation_add_msg(conv, asst_msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "assistant", "I found the files");
+    res_t add_asst = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_asst.is_err);
 
     /* Create and serialize request */

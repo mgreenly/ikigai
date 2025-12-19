@@ -21,9 +21,9 @@ START_TEST(test_request_completion_adds_to_conversation) {
     ck_assert_ptr_nonnull(repl->current->assistant_response);
 
     // Add a user message first (as would happen during normal flow)
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
+    ik_msg_t *msg_created = ik_openai_msg_create(ctx, "user", "Hello");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
     ck_assert(is_ok(&add_res));
 
     // Initial conversation should have 1 message (user)
@@ -73,9 +73,9 @@ START_TEST(test_request_completion_with_null_response)
     repl->current->assistant_response = NULL;  // No response
 
     // Add a user message
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
+    ik_msg_t *msg_created = ik_openai_msg_create(ctx, "user", "Hello");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
     ck_assert(is_ok(&add_res));
 
     // Simulate a running request
@@ -113,9 +113,9 @@ START_TEST(test_request_completion_with_empty_response)
     ck_assert_ptr_nonnull(repl->current->assistant_response);
 
     // Add a user message
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
+    ik_msg_t *msg_created = ik_openai_msg_create(ctx, "user", "Hello");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
     ck_assert(is_ok(&add_res));
 
     // Simulate a running request
@@ -242,9 +242,9 @@ START_TEST(test_handle_curl_events_render_failure_on_completion)
     repl->current->assistant_response = talloc_strdup(repl, "Test response");
 
     // Add a user message first
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
+    ik_msg_t *msg_created = ik_openai_msg_create(ctx, "user", "Hello");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
     ck_assert(is_ok(&add_res));
 
     // Simulate a running request

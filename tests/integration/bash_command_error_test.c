@@ -258,9 +258,7 @@ START_TEST(test_bash_error_conversation_persistence)
     ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
 
     // Step 1: User message "Compile the project with gcc main.c"
-    res_t user_msg_res = ik_openai_msg_create(test_ctx, "user", "Compile the project with gcc main.c");
-    ck_assert(!user_msg_res.is_err);
-    ik_msg_t *user_msg = user_msg_res.ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(test_ctx, "user", "Compile the project with gcc main.c");
 
     res_t add_res = ik_openai_conversation_add_msg(conv, user_msg);
     ck_assert(!add_res.is_err);
@@ -338,11 +336,9 @@ START_TEST(test_bash_error_conversation_persistence)
     ck_assert(!insert_res.is_err);
 
     // Step 5: Model responds with explanation (simulated)
-    res_t assistant_msg_res = ik_openai_msg_create(test_ctx,
+    ik_msg_t *assistant_msg = ik_openai_msg_create(test_ctx,
                                                    "assistant",
                                                    "The compilation failed. GCC reported an error. The file does not exist.");
-    ck_assert(!assistant_msg_res.is_err);
-    ik_msg_t *assistant_msg = assistant_msg_res.ok;
 
     add_res = ik_openai_conversation_add_msg(conv, assistant_msg);
     ck_assert(!add_res.is_err);

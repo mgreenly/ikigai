@@ -69,14 +69,10 @@ static char *parse_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *args)
 static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *prompt)
 {
     // Create user message
-    res_t res = ik_openai_msg_create(repl->current->conversation, "user", prompt);
-    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-        return;  // Error already logged     // LCOV_EXCL_LINE
-    }     // LCOV_EXCL_LINE
-    ik_msg_t *user_msg = res.ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", prompt);
 
     // Add to conversation
-    res = ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
+    res_t res = ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         return;  // Error already logged     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE

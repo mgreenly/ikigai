@@ -78,7 +78,7 @@ static void setup_repl(void)
     repl->agent_capacity = 16;
 
     // Insert sender agent into registry
-    res = ik_db_agent_insert(db, agent);
+    res_t res = ik_db_agent_insert(db, agent);
     if (is_err(&res)) {
         fprintf(stderr, "Failed to insert sender agent: %s\n", error_message(res.err));
         ck_abort_msg("Failed to setup sender agent in registry");

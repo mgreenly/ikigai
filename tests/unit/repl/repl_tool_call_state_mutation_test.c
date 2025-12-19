@@ -51,7 +51,7 @@ static void teardown(void)
  */
 START_TEST(test_add_tool_call_message_to_conversation) {
     /* Add a user message first */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files");
     res_t res = ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
     ck_assert(is_ok(&res));
 
@@ -93,7 +93,7 @@ END_TEST
 START_TEST(test_execute_tool_and_add_result_message)
 {
     /* Start with a user message and tool_call message */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     ik_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
@@ -155,7 +155,7 @@ START_TEST(test_message_ordering_preserved)
     /* Build complete conversation: user -> tool_call -> tool_result */
 
     /* 1. User message */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "List files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "List files");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* 2. Tool call message */
@@ -170,7 +170,7 @@ START_TEST(test_message_ordering_preserved)
     ik_openai_conversation_add_msg(repl->current->conversation, tool_call_msg);
 
     /* 3. Tool result message */
-    ik_msg_t *tool_result_msg = ik_openai_msg_create(repl->current->conversation, "tool_result", "Found 3 files").ok;
+    ik_msg_t *tool_result_msg = ik_openai_msg_create(repl->current->conversation, "tool_result", "Found 3 files");
     tool_result_msg->data_json = talloc_strdup(tool_result_msg,
                                                "{\"tool_call_id\":\"call_123\",\"name\":\"glob\",\"output\":\"{}\",\"success\":true}"
                                                );

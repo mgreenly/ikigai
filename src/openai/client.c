@@ -276,12 +276,7 @@ res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
     } else {
         /* Regular text response - create canonical assistant message */
         /* http_resp->content is never NULL (guaranteed by http_handler) */
-        res_t msg_res = ik_openai_msg_create(parent, "assistant", http_resp->content);
-        if (msg_res.is_err) {  // LCOV_EXCL_BR_LINE
-            talloc_free(http_resp);  // LCOV_EXCL_LINE
-            return msg_res;  // LCOV_EXCL_LINE
-        }
-        msg = msg_res.ok;
+        msg = ik_openai_msg_create(parent, "assistant", http_resp->content);
     }
 
     talloc_free(http_resp);

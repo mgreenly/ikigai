@@ -237,7 +237,7 @@ START_TEST(test_tool_conversation_e2e)
     ik_openai_conversation_t *conv = ik_openai_conversation_create(replay_ctx);
 
     // Add user message
-    res_t msg_res = ik_openai_msg_create(replay_ctx, "user",
+    ik_msg_t *msg_tmp = ik_openai_msg_create(replay_ctx, "user",
                                           context->messages[0]->content);
     ck_assert(is_ok(&msg_res));
     res = ik_openai_conversation_add_msg(conv, msg_res.ok);
@@ -252,16 +252,13 @@ START_TEST(test_tool_conversation_e2e)
         "{\"path\":\"config.json\"}",
         "file_read(path=\"config.json\")"
     );
-    ck_assert(tool_call_msg != NULL);
     res = ik_openai_conversation_add_msg(conv, tool_call_msg);
     ck_assert(is_ok(&res));
 
     // Add tool result message (role="tool" for OpenAI API)
     // Note: OpenAI expects role="tool" with tool_call_id and content
-    res_t tool_msg_res = ik_openai_msg_create(replay_ctx, "tool",
+    ik_msg_t *tool_result_msg = ik_openai_msg_create(replay_ctx, "tool",
         "{\"success\":true,\"data\":{\"output\":\"{\\\"debug\\\":true,\\\"port\\\":8080}\"}}");
-    ck_assert(is_ok(&tool_msg_res));
-    ik_msg_t *tool_result_msg = tool_msg_res.ok;
     // Set data_json to include tool_call_id for serialization
     tool_result_msg->data_json = talloc_strdup(tool_result_msg,
         "{\"tool_call_id\":\"call_xyz\"}");
@@ -272,7 +269,7 @@ START_TEST(test_tool_conversation_e2e)
     msg_res = ik_openai_msg_create(replay_ctx, "assistant",
                                     context->messages[3]->content);
     ck_assert(is_ok(&msg_res));
-    res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(is_ok(&res));
 
     // Create config for request serialization

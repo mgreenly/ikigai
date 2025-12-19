@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "init-openai-conv-return.md",
-      "group": "Init Pattern Standardization",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "init-openai-msg-return.md",
       "group": "Init Pattern Standardization",
       "model": "sonnet",
@@ -295,6 +289,12 @@
       "group": "Tool Response Refactoring",
       "model": "sonnet",
       "thinking": "none"
+    },
+    {
+      "task": "init-openai-conv-return.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "thinking"
     }
   ]
 }

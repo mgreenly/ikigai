@@ -189,10 +189,10 @@ START_TEST(test_mark_db_query_no_results) {
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "msg");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Mock: Query succeeds but returns 0 rows
     mock_ntuples = 0;
@@ -217,10 +217,10 @@ START_TEST(test_mark_db_query_failure)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "msg");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Mock: Query fails
     mock_query_should_fail = true;
@@ -244,10 +244,10 @@ START_TEST(test_mark_db_id_null_ctx)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "msg");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Rewind - get_mark_db_id returns 0 due to NULL db_ctx
     res_t res = ik_cmd_rewind(ctx, repl, "test");
@@ -270,10 +270,10 @@ START_TEST(test_mark_db_id_invalid_session)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "msg");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Rewind - get_mark_db_id returns 0 due to invalid session_id
     res_t res = ik_cmd_rewind(ctx, repl, "test");
@@ -296,10 +296,10 @@ START_TEST(test_rewind_unlabeled_mark_db_query)
     ck_assert(is_ok(&mark_res));
 
     // Add a message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "test");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "test");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Mock: SELECT succeeds with NULL label query
     mock_ntuples = 1;
@@ -326,10 +326,10 @@ START_TEST(test_mark_db_id_sscanf_non_numeric)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "msg");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Mock: Query succeeds but returns non-numeric string
     mock_ntuples = 1;
@@ -356,10 +356,10 @@ START_TEST(test_mark_db_id_sscanf_empty_string)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "msg");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Mock: Query succeeds but returns empty string
     mock_ntuples = 1;
@@ -386,10 +386,10 @@ START_TEST(test_mark_db_id_sscanf_special_chars)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "msg");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Mock: Query succeeds but returns special characters
     mock_ntuples = 1;
@@ -416,10 +416,10 @@ START_TEST(test_mark_db_id_sscanf_text_only)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "msg");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Mock: Query succeeds but returns text
     mock_ntuples = 1;

@@ -269,11 +269,7 @@ res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *pa
         ik_msg_t *src_msg = parent->conversation->messages[i];
 
         // Create a new message with copied content
-        res_t msg_res = ik_openai_msg_create(child->conversation, src_msg->kind, src_msg->content);
-        if (is_err(&msg_res)) {     // LCOV_EXCL_BR_LINE
-            return msg_res;     // LCOV_EXCL_LINE
-        }
-        ik_msg_t *new_msg = msg_res.ok;
+        ik_msg_t *new_msg = ik_openai_msg_create(child->conversation, src_msg->kind, src_msg->content);
 
         // Copy data_json if present
         if (src_msg->data_json != NULL) {

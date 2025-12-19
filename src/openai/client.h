@@ -85,12 +85,12 @@ typedef res_t (*ik_openai_stream_cb_t)(const char *chunk, void *ctx);
 /**
  * Create a new canonical message
  *
- * @param parent  Talloc context parent (or NULL)
+ * @param ctx     Talloc context parent (or NULL)
  * @param role    Message role ("user", "assistant", "system")
  * @param content Message text content
- * @return        OK(message) or ERR(...)
+ * @return        Pointer to message (never NULL, PANICs on OOM)
  */
-res_t ik_openai_msg_create(void *parent, const char *role, const char *content);
+ik_msg_t *ik_openai_msg_create(TALLOC_CTX *ctx, const char *role, const char *content);
 
 /**
  * Create a canonical tool_call message

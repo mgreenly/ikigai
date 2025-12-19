@@ -17,9 +17,8 @@ START_TEST(test_multi_info_read_callback_error_with_model) {
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
@@ -55,9 +54,8 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_finish_reason)
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
@@ -93,9 +91,8 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_both_metadata)
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
@@ -142,9 +139,8 @@ END_TEST START_TEST(test_multi_info_read_callback_error_multiple_requests_shift)
     for (int i = 0; i < 3; i++) {
         ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-        res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-        ck_assert(!msg_res.is_err);
-        ik_openai_conversation_add_msg(conv, msg_res.ok);
+        ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
         /* Only first request has error callback */
         if (i == 0) {

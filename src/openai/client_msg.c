@@ -17,11 +17,11 @@
  * Message functions
  */
 
-res_t ik_openai_msg_create(void *parent, const char *role, const char *content) {
+ik_msg_t *ik_openai_msg_create(TALLOC_CTX *ctx, const char *role, const char *content) {
     assert(role != NULL); // LCOV_EXCL_BR_LINE
     assert(content != NULL); // LCOV_EXCL_BR_LINE
 
-    ik_msg_t *msg = talloc_zero(parent, ik_msg_t);
+    ik_msg_t *msg = talloc_zero(ctx, ik_msg_t);
     if (!msg) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to allocate message"); // LCOV_EXCL_LINE
     }
@@ -39,7 +39,7 @@ res_t ik_openai_msg_create(void *parent, const char *role, const char *content) 
 
     msg->data_json = NULL;  /* Text messages have no structured data */
 
-    return OK(msg);
+    return msg;
 }
 
 ik_msg_t *ik_openai_msg_create_tool_call(void *parent,

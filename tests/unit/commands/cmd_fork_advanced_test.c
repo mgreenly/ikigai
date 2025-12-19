@@ -76,7 +76,7 @@ static void setup_repl(void)
     repl->agent_capacity = 16;
 
     // Insert parent agent into registry
-    res = ik_db_agent_insert(db, agent);
+    res_t res = ik_db_agent_insert(db, agent);
     if (is_err(&res)) {
         fprintf(stderr, "Failed to insert parent agent: %s\n", error_message(res.err));
         ck_abort_msg("Failed to setup parent agent in registry");
@@ -174,9 +174,7 @@ END_TEST
 START_TEST(test_fork_child_inherits_conversation)
 {
     // Add a message to parent's conversation before forking
-    res_t msg_res = ik_openai_msg_create(test_ctx, "user", "Test message from parent");
-    ck_assert(is_ok(&msg_res));
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(test_ctx, "user", "Test message from parent");
 
     res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
     ck_assert(is_ok(&add_res));
@@ -263,9 +261,8 @@ END_TEST
 START_TEST(test_fork_child_post_fork_messages_separate)
 {
     // Add initial message to parent
-    res_t msg_res = ik_openai_msg_create(test_ctx, "user", "Parent message before fork");
-    ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
+    ik_msg_t *parent_msg = ik_openai_msg_create(test_ctx, "user", "Parent message before fork");
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, parent_msg);
     ck_assert(is_ok(&add_res));
 
     ik_agent_ctx_t *parent = repl->current;
@@ -276,9 +273,8 @@ START_TEST(test_fork_child_post_fork_messages_separate)
 
     // Add message to child's conversation (simulating post-fork message)
     ik_agent_ctx_t *child = repl->current;
-    res_t child_msg_res = ik_openai_msg_create(test_ctx, "user", "Child message after fork");
-    ck_assert(is_ok(&child_msg_res));
-    res_t child_add_res = ik_openai_conversation_add_msg(child->conversation, child_msg_res.ok);
+    ik_msg_t *child_msg = ik_openai_msg_create(test_ctx, "user", "Child message after fork");
+    res_t child_add_res = ik_openai_conversation_add_msg(child->conversation, child_msg);
     ck_assert(is_ok(&child_add_res));
 
     // Child should have the post-fork message

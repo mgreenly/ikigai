@@ -36,9 +36,7 @@ END_TEST START_TEST(test_multi_add_request_no_api_key)
     /* Create conversation with one message */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(ctx, "user", "Hello");
 
     ik_openai_conversation_add_msg(conv, msg);
 
@@ -64,9 +62,7 @@ END_TEST START_TEST(test_multi_add_request_empty_api_key)
     /* Create conversation with one message */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(ctx, "user", "Hello");
 
     ik_openai_conversation_add_msg(conv, msg);
 
@@ -93,9 +89,8 @@ END_TEST START_TEST(test_multi_add_request_curl_easy_init_failure)
     /* Create conversation */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -124,9 +119,8 @@ END_TEST START_TEST(test_multi_add_request_api_key_too_long)
     /* Create conversation */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config with very long API key (> 512 - "Authorization: Bearer " length) */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -153,9 +147,8 @@ END_TEST START_TEST(test_multi_add_request_snprintf_error)
     /* Create conversation */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -184,9 +177,8 @@ END_TEST START_TEST(test_multi_add_request_success)
     /* Create conversation */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config with normal API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -210,9 +202,8 @@ END_TEST START_TEST(test_multi_add_request_curl_multi_add_handle_failure)
     /* Create conversation */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -241,9 +232,8 @@ END_TEST START_TEST(test_multi_destructor_with_active_requests)
     /* Create conversation */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -270,9 +260,8 @@ END_TEST START_TEST(test_multi_add_request_limit_reached)
     /* Create conversation */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config with normal API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);

@@ -96,7 +96,7 @@ START_TEST(test_handle_request_success_with_tool_calls_continues_loop) {
     repl->current->assistant_response = talloc_strdup(repl, "");
 
     /* Add initial user message to conversation */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Call handle_request_success */
@@ -128,7 +128,7 @@ START_TEST(test_handle_request_success_with_stop_ends_loop)
     repl->current->assistant_response = talloc_strdup(repl, "I found 3 C files.");
 
     /* Add initial user message to conversation */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Record initial conversation size */
@@ -160,7 +160,7 @@ START_TEST(test_handle_request_success_with_null_finish_reason)
     repl->current->assistant_response = talloc_strdup(repl, "Response text");
 
     /* Add initial user message to conversation */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Test").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Test");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Call handle_request_success */
@@ -177,7 +177,7 @@ END_TEST
 START_TEST(test_multiple_tool_loop_iterations)
 {
     /* Add initial user message */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find files");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* First iteration: finish_reason = "tool_calls" */
@@ -210,7 +210,7 @@ END_TEST
 START_TEST(test_tool_loop_with_empty_content)
 {
     /* Add initial user message */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Test").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Test");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Set finish_reason to "tool_calls" with empty response */

@@ -211,7 +211,7 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
     if (agent->assistant_response != NULL && strlen(agent->assistant_response) > 0) {
         ik_msg_t *assistant_msg = ik_openai_msg_create(agent->conversation,
                                                 "assistant",
-                                                agent->assistant_response).ok;
+                                                agent->assistant_response);
         res_t result = ik_openai_conversation_add_msg(agent->conversation, assistant_msg);
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 

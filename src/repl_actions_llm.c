@@ -88,7 +88,7 @@ static void handle_slash_cmd_(ik_repl_ctx_t *repl, char *command_text)
  */
 static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
 {
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", message_text).ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", message_text);
     res_t result = ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 

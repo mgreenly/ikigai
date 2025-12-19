@@ -20,9 +20,8 @@ START_TEST(test_multi_info_read_callback_error_with_client_error) {
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
@@ -58,9 +57,8 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_server_error)
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
@@ -96,9 +94,8 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_network_error)
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
@@ -133,9 +130,8 @@ END_TEST START_TEST(test_multi_info_read_http_599_edge_case)
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
@@ -169,9 +165,8 @@ END_TEST START_TEST(test_multi_info_read_http_600_unexpected)
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
@@ -217,9 +212,8 @@ START_TEST(test_multi_info_read_callback_success_with_error_message) {
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test");

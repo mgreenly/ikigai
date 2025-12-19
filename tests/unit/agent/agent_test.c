@@ -638,21 +638,17 @@ START_TEST(test_agent_copy_conversation)
     ck_assert_ptr_nonnull(parent);
 
     // Add messages to parent - some with data_json, some without
-    res_t msg_res = ik_openai_msg_create(parent->conversation, "user", "Hello");
-    ck_assert(is_ok(&msg_res));
-    res = ik_openai_conversation_add_msg(parent->conversation, msg_res.ok);
+    ik_msg_t *msg1 = ik_openai_msg_create(parent->conversation, "user", "Hello");
+    res = ik_openai_conversation_add_msg(parent->conversation, msg1);
     ck_assert(is_ok(&res));
 
     // Message without data_json
-    msg_res = ik_openai_msg_create(parent->conversation, "assistant", "Hi there");
-    ck_assert(is_ok(&msg_res));
-    res = ik_openai_conversation_add_msg(parent->conversation, msg_res.ok);
+    ik_msg_t *msg2 = ik_openai_msg_create(parent->conversation, "assistant", "Hi there");
+    res = ik_openai_conversation_add_msg(parent->conversation, msg2);
     ck_assert(is_ok(&res));
 
     // Message with data_json
-    msg_res = ik_openai_msg_create(parent->conversation, "assistant", "With data");
-    ck_assert(is_ok(&msg_res));
-    ik_msg_t *msg_with_data = msg_res.ok;
+    ik_msg_t *msg_with_data = ik_openai_msg_create(parent->conversation, "assistant", "With data");
     msg_with_data->data_json = talloc_strdup(msg_with_data, "{\"test\": true}");
     res = ik_openai_conversation_add_msg(parent->conversation, msg_with_data);
     ck_assert(is_ok(&res));
