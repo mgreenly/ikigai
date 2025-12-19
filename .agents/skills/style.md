@@ -53,30 +53,40 @@ Example:
 
 Rationale: Project headers before system headers catches non-self-contained headers early.
 
-### Avoid Static Functions
+### Static Functions
 
-Do not use `static` helper functions in implementation files. Instead, inline the code directly.
+Use static functions judiciously with these guidelines:
 
-**Why:** LCOV exclusion markers (`LCOV_EXCL_BR_LINE`) on PANIC/assert calls inside static functions are not reliably honored, breaking 100% branch coverage requirements.
+**When to use static functions:**
+- Complex logic (>5 lines) repeated within a file
+- Named code blocks for readability
+- Callback implementations (layer callbacks, command handlers)
+- Helper functions with clear single responsibility
 
-**Exception:** MOCKABLE wrapper functions (see `wrapper.h`) - these use static functions by design for the mocking interface.
+**When to inline instead:**
+- Helper is 1-3 lines and only used once
+- Code is trivially simple (single statement)
+- For absolute coverage certainty (rare edge cases)
 
-**Instead of:**
+**Coverage handling:**
+- Use LCOV_EXCL_BR_LINE on individual unreachable branches
+- For larger unreachable blocks, use LCOV_EXCL_START/STOP
+- Both markers work correctly in static functions (verified in LCOV 2.0-1)
+- **Important:** Avoid mentioning marker keywords in nearby comments (LCOV parses all comments)
+
+**Exception:** MOCKABLE wrapper functions use static by design.
+
+**Example:**
 ```c
-static yyjson_mut_val *build_param(yyjson_mut_doc *doc, const char *desc)
+// Helper for validation (avoid saying "LCOV exclusion" here)
+static int32_t validate(int32_t input)
 {
-    yyjson_mut_val *p = yyjson_mut_obj(doc);
-    if (p == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE - NOT HONORED!
-    return p;
+    if (input < 0) PANIC("Invalid");  // LCOV_EXCL_BR_LINE
+    return input;
 }
 ```
 
-**Do:**
-```c
-// Inline the code at each call site
-yyjson_mut_val *p = yyjson_mut_obj(doc);
-if (p == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE - works
-```
+**Reference:** See `rel-06/docs/lcov-static-fn-findings.md` for investigation details.
 
 ### Test Code Style
 
