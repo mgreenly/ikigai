@@ -1,42 +1,6 @@
 {
   "todo": [
     {
-      "task": "static-fn-helper-abstractions.md",
-      "group": "Static Function Policy",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "tool-param-def-struct.md",
-      "group": "Tool Schema Refactoring",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "tool-schema-def-struct.md",
-      "group": "Tool Schema Refactoring",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "tool-schema-builder.md",
-      "group": "Tool Schema Refactoring",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "tool-schema-convert-glob.md",
-      "group": "Tool Schema Refactoring",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "tool-schema-convert-remaining.md",
-      "group": "Tool Schema Refactoring",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
       "task": "tool-schema-cleanup.md",
       "group": "Tool Schema Refactoring",
       "model": "sonnet",
@@ -293,6 +257,42 @@
     {
       "task": "static-fn-policy-update.md",
       "group": "Static Function Policy",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "static-fn-helper-abstractions.md",
+      "group": "Static Function Policy",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "tool-param-def-struct.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-schema-def-struct.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-schema-builder.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "tool-schema-convert-glob.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-schema-convert-remaining.md",
+      "group": "Tool Schema Refactoring",
       "model": "sonnet",
       "thinking": "none"
     }

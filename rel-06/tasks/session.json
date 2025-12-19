@@ -943,5 +943,65 @@
     "event": "start",
     "task": "static-fn-helper-abstractions.md",
     "time": "2025-12-19T01:51:46.350Z"
+  },
+  {
+    "event": "done",
+    "task": "static-fn-helper-abstractions.md",
+    "time": "2025-12-19T03:29:46.119Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-param-def-struct.md",
+    "time": "2025-12-19T03:30:13.265Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-param-def-struct.md",
+    "time": "2025-12-19T03:33:13.142Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-schema-def-struct.md",
+    "time": "2025-12-19T03:33:39.140Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-schema-def-struct.md",
+    "time": "2025-12-19T03:35:59.034Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-schema-builder.md",
+    "time": "2025-12-19T03:36:23.258Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-schema-builder.md",
+    "time": "2025-12-19T03:39:44.716Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-schema-convert-glob.md",
+    "time": "2025-12-19T03:40:10.763Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-schema-convert-glob.md",
+    "time": "2025-12-19T03:42:29.619Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-schema-convert-remaining.md",
+    "time": "2025-12-19T03:42:55.023Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-schema-convert-remaining.md",
+    "time": "2025-12-19T03:47:15.578Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-schema-cleanup.md",
+    "time": "2025-12-19T03:47:41.302Z"
   }
 ]
