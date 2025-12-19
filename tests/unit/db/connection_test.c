@@ -11,7 +11,7 @@
 
 // Mock PostgreSQL connection string for testing
 // Note: Tests requiring actual database connectivity will need appropriate setup
-#define INVALID_HOST_CONN_STR "postgresql://nonexistent-host-12345/test_db"
+#define INVALID_HOST_CONN_STR "postgresql://nonexistent-host-12345/test_db?connect_timeout=1"
 #define MALFORMED_CONN_STR "not-a-valid-connection-string"
 
 // Get PostgreSQL host from environment or default to localhost
@@ -135,7 +135,8 @@ END_TEST START_TEST(test_db_init_postgres_scheme)
 
     // Test postgres:// scheme (alternative to postgresql://)
     // This will likely fail to connect but should pass validation
-    res_t res = ik_db_init(test_ctx, "postgres://nonexistent-host-99999/testdb", &db_ctx);
+    // Use connect_timeout=1 to fail fast in CI environments
+    res_t res = ik_db_init(test_ctx, "postgres://nonexistent-host-99999/testdb?connect_timeout=1", &db_ctx);
 
     // Should fail with DB_CONNECT, not INVALID_ARG (validation should pass)
     ck_assert(is_err(&res));
@@ -148,7 +149,8 @@ END_TEST START_TEST(test_db_init_key_value_format)
 
     // Test libpq key=value format
     // This will likely fail to connect but should pass validation
-    res_t res = ik_db_init(test_ctx, "host=nonexistent-host-99999 dbname=testdb", &db_ctx);
+    // Use connect_timeout=1 to fail fast in CI environments
+    res_t res = ik_db_init(test_ctx, "host=nonexistent-host-99999 dbname=testdb connect_timeout=1", &db_ctx);
 
     // Should fail with DB_CONNECT (libpq handles the parsing)
     ck_assert(is_err(&res));
