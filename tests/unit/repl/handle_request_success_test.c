@@ -103,7 +103,7 @@ static void setup(void)
         return;
     }
 
-    res = ik_test_db_connect(test_ctx, DB_NAME, &db);
+    res_t res = ik_test_db_connect(test_ctx, DB_NAME, &db);
     if (is_err(&res)) {
         db = NULL;
         repl->shared->db_ctx = NULL;

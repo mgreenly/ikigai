@@ -100,15 +100,15 @@ static void teardown(void)
 // Test: Rewind should render messages without "You:" and "Assistant:" prefixes
 START_TEST(test_rewind_no_role_prefixes) {
     // Add a user message
-    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "what is 2 + 2");
+    ik_msg_t *msg_user1 = ik_openai_msg_create(repl->current->conversation, "user", "what is 2 + 2");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_user1);
     // removed assertion
 
     // Add an assistant response
-    res_t add_res = ik_openai_msg_create(repl->current->conversation, "assistant", "2 + 2 = 4");
+    ik_msg_t *msg_asst1 = ik_openai_msg_create(repl->current->conversation, "assistant", "2 + 2 = 4");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_asst1);
     // removed assertion
 
     // Create a mark
@@ -116,14 +116,14 @@ START_TEST(test_rewind_no_role_prefixes) {
     ck_assert(is_ok(&mark_res));
 
     // Add another exchange
-    res_t add_res = ik_openai_msg_create(repl->current->conversation, "user", "what is 3 + 3");
+    ik_msg_t *msg_user2 = ik_openai_msg_create(repl->current->conversation, "user", "what is 3 + 3");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_user2);
     // removed assertion
 
-    res_t add_res = ik_openai_msg_create(repl->current->conversation, "assistant", "3 + 3 = 6");
+    ik_msg_t *msg_asst2 = ik_openai_msg_create(repl->current->conversation, "assistant", "3 + 3 = 6");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_asst2);
     // removed assertion
 
     // Rewind to mark
@@ -171,9 +171,9 @@ END_TEST
 START_TEST(test_rewind_includes_system_message)
 {
     // Add a user message
-    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "Hello");
+    ik_msg_t *msg_user = ik_openai_msg_create(repl->current->conversation, "user", "Hello");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_user);
     // removed assertion
 
     // Create a mark
@@ -181,9 +181,9 @@ START_TEST(test_rewind_includes_system_message)
     ck_assert(is_ok(&mark_res));
 
     // Add more content
-    res_t add_res = ik_openai_msg_create(repl->current->conversation, "assistant", "World");
+    ik_msg_t *msg_asst = ik_openai_msg_create(repl->current->conversation, "assistant", "World");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_asst);
     // removed assertion
 
     // Rewind
@@ -208,9 +208,9 @@ START_TEST(test_rewind_without_system_message)
     cfg->openai_system_message = NULL;
 
     // Add a user message
-    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "Hello");
+    ik_msg_t *msg_user = ik_openai_msg_create(repl->current->conversation, "user", "Hello");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_user);
     // removed assertion
 
     // Create a mark
@@ -218,9 +218,9 @@ START_TEST(test_rewind_without_system_message)
     ck_assert(is_ok(&mark_res));
 
     // Add more content
-    res_t add_res = ik_openai_msg_create(repl->current->conversation, "assistant", "World");
+    ik_msg_t *msg_asst = ik_openai_msg_create(repl->current->conversation, "assistant", "World");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_asst);
     // removed assertion
 
     // Rewind
@@ -244,9 +244,9 @@ START_TEST(test_rewind_with_null_config)
     repl->shared->cfg = NULL;
 
     // Add a user message
-    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "Test message");
+    ik_msg_t *msg_user = ik_openai_msg_create(repl->current->conversation, "user", "Test message");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_user);
     // removed assertion
 
     // Create a mark
@@ -254,9 +254,9 @@ START_TEST(test_rewind_with_null_config)
     ck_assert(is_ok(&mark_res));
 
     // Add more content
-    res_t add_res = ik_openai_msg_create(repl->current->conversation, "assistant", "Response");
+    ik_msg_t *msg_asst = ik_openai_msg_create(repl->current->conversation, "assistant", "Response");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_asst);
     // removed assertion
 
     // Rewind should succeed even without config

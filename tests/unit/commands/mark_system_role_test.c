@@ -83,9 +83,9 @@ START_TEST(test_rewind_with_system_role) {
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
 
     // Create a user message
-    res_t add_res = ik_openai_msg_create(repl->current->conversation, "user", "Hello");
+    ik_msg_t *msg_user = ik_openai_msg_create(repl->current->conversation, "user", "Hello");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_user);
     // removed assertion
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 
@@ -95,9 +95,9 @@ START_TEST(test_rewind_with_system_role) {
     ck_assert_uint_eq(repl->current->mark_count, 1);
 
     // Add another message
-    res_t add_res = ik_openai_msg_create(repl->current->conversation, "assistant", "Hi there!");
+    ik_msg_t *msg_asst = ik_openai_msg_create(repl->current->conversation, "assistant", "Hi there!");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_asst);
     // removed assertion
     ck_assert_uint_eq(repl->current->conversation->message_count, 3);
 

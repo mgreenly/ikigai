@@ -45,7 +45,7 @@ static void setup(void)
     agent->repl = repl;  // Set backpointer
 
     /* Create multi-handle */
-    res = ik_openai_multi_create(ctx);
+    res_t res = ik_openai_multi_create(ctx);
     ck_assert(is_ok(&res));
     repl->current->multi = res.ok;
 
@@ -254,7 +254,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
 {
     /* Initial state: User asks to find and read config file */
     ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user",
-                                                     "Find config file and show contents").ok;
+                                                     "Find config file and show contents");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Verify initial state: 1 message (user) */
@@ -276,7 +276,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     /* Simulate tool execution: Add tool result to conversation */
     /* In real scenario, tool dispatcher would add this */
     ik_msg_t *tool_result_1 = ik_openai_msg_create(repl->current->conversation, "tool",
-                                                          "{\"output\":\"config.json\"}").ok;
+                                                          "{\"output\":\"config.json\"}");
     ik_openai_conversation_add_msg(repl->current->conversation, tool_result_1);
 
     /* Verify: 2 messages now (user + tool result) */
@@ -302,7 +302,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
 
     /* Simulate tool execution: Add second tool result to conversation */
     ik_msg_t *tool_result_2 = ik_openai_msg_create(repl->current->conversation, "tool",
-                                                          "{\"output\":\"{\\\"debug\\\":true}\"}").ok;
+                                                          "{\"output\":\"{\\\"debug\\\":true}\"}");
     ik_openai_conversation_add_msg(repl->current->conversation, tool_result_2);
 
     /* Verify: 3 messages now (user + 2 tool results) */

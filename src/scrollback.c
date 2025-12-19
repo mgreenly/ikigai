@@ -16,12 +16,12 @@
 #include <talloc.h>
 #include <utf8proc.h>
 
-ik_scrollback_t *ik_scrollback_create(void *parent, int32_t terminal_width)
+ik_scrollback_t *ik_scrollback_create(TALLOC_CTX *ctx, int32_t terminal_width)
 {
     assert(terminal_width > 0);  // LCOV_EXCL_BR_LINE
 
     // Allocate scrollback struct
-    ik_scrollback_t *scrollback = talloc_zero_(parent, sizeof(ik_scrollback_t));
+    ik_scrollback_t *scrollback = talloc_zero_(ctx, sizeof(ik_scrollback_t));
     if (scrollback == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Initialize metadata

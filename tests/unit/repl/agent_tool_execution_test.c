@@ -77,9 +77,7 @@ static void setup(void)
     agent_b->scrollback = ik_scrollback_create(agent_b, 80);
     agent_b->state = IK_AGENT_STATE_IDLE;
 
-    conv_res = ik_openai_conversation_create(agent_b);
-    ck_assert(!conv_res.is_err);
-    agent_b->conversation = conv_res.ok;
+    agent_b->conversation = ik_openai_conversation_create(agent_b);
 
     pthread_mutex_init_(&agent_b->tool_thread_mutex, NULL);
     agent_b->tool_thread_running = false;

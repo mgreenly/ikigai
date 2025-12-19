@@ -66,14 +66,14 @@ typedef struct ik_scrollback_t {
  * Allocates and initializes a scrollback buffer with specified terminal width.
  * Initial capacity is set to a reasonable default (16 lines, 1KB text buffer).
  *
- * @param parent Talloc parent context
+ * @param ctx Talloc parent context
  * @param terminal_width Terminal width in columns (must be > 0)
  * @return Pointer to allocated scrollback buffer (never NULL - PANICs on OOM)
  *
  * Assertions:
  * - terminal_width must be > 0
  */
-ik_scrollback_t *ik_scrollback_create(void *parent, int32_t terminal_width);
+ik_scrollback_t *ik_scrollback_create(TALLOC_CTX *ctx, int32_t terminal_width);
 
 /**
  * @brief Append a line to the scrollback buffer

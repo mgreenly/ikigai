@@ -126,7 +126,7 @@ START_TEST(test_execute_tool_and_add_result_message)
         repl->current->conversation,
         "tool_result",
         "Files found: src/main.c, src/config.c"  /* human-readable summary */
-        ).ok;
+        );
     tool_result_msg->data_json = talloc_steal(tool_result_msg, data_json);
 
     /* Add tool_result message to conversation */

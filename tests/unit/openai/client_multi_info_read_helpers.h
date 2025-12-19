@@ -21,9 +21,8 @@ static inline ik_openai_conversation_t *create_test_conversation(const char *msg
 {
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    ik_msg_t *msg_created = ik_openai_msg_create(ctx, "user", msg_text);
-    if (msg_res.is_err) return NULL;
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg = ik_openai_msg_create(ctx, "user", msg_text);
+    ik_openai_conversation_add_msg(conv, msg);
 
     return conv;
 }

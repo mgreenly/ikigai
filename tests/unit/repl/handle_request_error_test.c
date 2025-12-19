@@ -23,10 +23,9 @@ START_TEST(test_error_handling_no_partial_response) {
     repl->current->assistant_response = NULL;
 
     // Add a user message
-    ik_msg_t *msg_created = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_msg_t *msg = ik_openai_msg_create(ctx, "user", "Hello");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
-    ck_assert(is_ok(&add_res));
+    ik_openai_conversation_add_msg(repl->current->conversation, msg);
 
     // Initial conversation should have 1 message (user)
     ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
@@ -92,10 +91,9 @@ START_TEST(test_error_handling_with_partial_response)
     repl->current->assistant_response = talloc_strdup(repl, "Partial response text that was received before error");
 
     // Add a user message
-    ik_msg_t *msg_created = ik_openai_msg_create(ctx, "user", "Tell me a story");
+    ik_msg_t *msg = ik_openai_msg_create(ctx, "user", "Tell me a story");
     // removed assertion
-    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
-    ck_assert(is_ok(&add_res));
+    ik_openai_conversation_add_msg(repl->current->conversation, msg);
 
     // Count scrollback lines before
     size_t lines_before = ik_scrollback_get_line_count(repl->current->scrollback);

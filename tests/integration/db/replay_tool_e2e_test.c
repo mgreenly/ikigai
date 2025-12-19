@@ -239,8 +239,7 @@ START_TEST(test_tool_conversation_e2e)
     // Add user message
     ik_msg_t *msg_tmp = ik_openai_msg_create(replay_ctx, "user",
                                           context->messages[0]->content);
-    ck_assert(is_ok(&msg_res));
-    res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(is_ok(&res));
 
     // Add tool_call message (canonical format)
@@ -266,9 +265,8 @@ START_TEST(test_tool_conversation_e2e)
     ck_assert(is_ok(&res));
 
     // Add assistant message
-    msg_res = ik_openai_msg_create(replay_ctx, "assistant",
+    msg_tmp = ik_openai_msg_create(replay_ctx, "assistant",
                                     context->messages[3]->content);
-    ck_assert(is_ok(&msg_res));
     res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(is_ok(&res));
 
