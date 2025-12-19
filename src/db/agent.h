@@ -52,12 +52,12 @@ typedef struct {
  * Retrieves a single agent record by UUID. Returns error if agent not found.
  *
  * @param db_ctx Database context (must not be NULL)
- * @param mem_ctx Talloc context for result allocation (must not be NULL)
+ * @param ctx Talloc context for result allocation (must not be NULL)
  * @param uuid Agent UUID to lookup (must not be NULL)
  * @param out Output parameter for agent row (must not be NULL)
  * @return OK with agent row on success, ERR if not found or on failure
  */
-res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                       const char *uuid, ik_db_agent_row_t **out);
 
 /**
@@ -66,12 +66,12 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
  * Returns all agents with status='running' ordered by created_at.
  *
  * @param db_ctx Database context (must not be NULL)
- * @param mem_ctx Talloc context for result allocation (must not be NULL)
+ * @param ctx Talloc context for result allocation (must not be NULL)
  * @param out Output parameter for array of agent row pointers (must not be NULL)
  * @param count Output parameter for array size (must not be NULL)
  * @return OK with agent rows on success, ERR on failure
  */
-res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                                ik_db_agent_row_t ***out, size_t *count);
 
 /**
@@ -80,13 +80,13 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
  * Returns all agents whose parent_uuid matches the given UUID, ordered by created_at.
  *
  * @param db_ctx Database context (must not be NULL)
- * @param mem_ctx Talloc context for result allocation (must not be NULL)
+ * @param ctx Talloc context for result allocation (must not be NULL)
  * @param parent_uuid Parent agent UUID (must not be NULL)
  * @param out Output parameter for array of agent row pointers (must not be NULL)
  * @param count Output parameter for array size (must not be NULL)
  * @return OK with agent rows on success, ERR on failure
  */
-res_t ik_db_agent_get_children(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_db_agent_get_children(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                                const char *parent_uuid,
                                ik_db_agent_row_t ***out, size_t *count);
 
@@ -97,12 +97,12 @@ res_t ik_db_agent_get_children(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
  * Sets *out to NULL if agent has no parent (root agent).
  *
  * @param db_ctx Database context (must not be NULL)
- * @param mem_ctx Talloc context for result allocation (must not be NULL)
+ * @param ctx Talloc context for result allocation (must not be NULL)
  * @param uuid Child agent UUID (must not be NULL)
  * @param out Output parameter for parent agent row (must not be NULL)
  * @return OK with parent row (or NULL for root) on success, ERR on failure
  */
-res_t ik_db_agent_get_parent(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_db_agent_get_parent(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                               const char *uuid, ik_db_agent_row_t **out);
 
 /**

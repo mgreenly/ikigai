@@ -12,13 +12,13 @@
  * specified agent, optionally limiting by maximum message ID.
  *
  * @param db_ctx Database context (must not be NULL)
- * @param mem_ctx Talloc context for error allocation (must not be NULL)
+ * @param ctx Talloc context for error allocation (must not be NULL)
  * @param agent_uuid Agent UUID to search (must not be NULL)
  * @param max_id Maximum message ID to consider (0 = no limit)
  * @param clear_id_out Output for clear message ID (0 if not found)
  * @return OK on success, ERR on database failure
  */
-res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                           const char *agent_uuid, int64_t max_id,
                           int64_t *clear_id_out);
 
@@ -33,13 +33,13 @@ res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
  * 5. Reverse array for chronological order (root first)
  *
  * @param db_ctx Database context (must not be NULL)
- * @param mem_ctx Talloc context for result allocation (must not be NULL)
+ * @param ctx Talloc context for result allocation (must not be NULL)
  * @param agent_uuid Leaf agent UUID to start from (must not be NULL)
  * @param ranges_out Output for array of replay ranges (must not be NULL)
  * @param count_out Output for number of ranges (must not be NULL)
  * @return OK on success, ERR on failure
  */
-res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                                     const char *agent_uuid,
                                     ik_replay_range_t **ranges_out,
                                     size_t *count_out);
@@ -51,13 +51,13 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
  * Uses the query: WHERE agent_uuid=$1 AND id>$2 AND ($3=0 OR id<=$3)
  *
  * @param db_ctx Database context (must not be NULL)
- * @param mem_ctx Talloc context for result allocation (must not be NULL)
+ * @param ctx Talloc context for result allocation (must not be NULL)
  * @param range Replay range specification (must not be NULL)
  * @param messages_out Output for array of message pointers (must not be NULL)
  * @param count_out Output for number of messages (must not be NULL)
  * @return OK on success, ERR on failure
  */
-res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                             const ik_replay_range_t *range,
                             ik_msg_t ***messages_out,
                             size_t *count_out);
@@ -69,12 +69,12 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
  * to reconstruct an agent's full conversation context on startup.
  *
  * @param db_ctx Database context (must not be NULL)
- * @param mem_ctx Talloc context for result allocation (must not be NULL)
+ * @param ctx Talloc context for result allocation (must not be NULL)
  * @param agent_uuid Agent UUID to replay (must not be NULL)
  * @param ctx_out Output for replay context (must not be NULL)
  * @return OK on success, ERR on failure
  */
-res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                                const char *agent_uuid,
                                ik_replay_context_t **ctx_out);
 

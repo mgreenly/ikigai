@@ -99,13 +99,13 @@ res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
     return OK(NULL);
 }
 
-res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                       const char *uuid, ik_db_agent_row_t **out)
 {
     assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
-    assert(mem_ctx != NULL);  // LCOV_EXCL_BR_LINE
-    assert(uuid != NULL);     // LCOV_EXCL_BR_LINE
-    assert(out != NULL);      // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);     // LCOV_EXCL_BR_LINE
+    assert(uuid != NULL);    // LCOV_EXCL_BR_LINE
+    assert(out != NULL);     // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query
     TALLOC_CTX *tmp = talloc_new(NULL);
@@ -140,7 +140,7 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     }
 
     // Allocate row on provided context
-    ik_db_agent_row_t *row = talloc_zero(mem_ctx, ik_db_agent_row_t);
+    ik_db_agent_row_t *row = talloc_zero(ctx, ik_db_agent_row_t);
     if (row == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Extract fields
@@ -184,13 +184,13 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     return OK(NULL);
 }
 
-res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                                ik_db_agent_row_t ***out, size_t *count)
 {
     assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
-    assert(mem_ctx != NULL);  // LCOV_EXCL_BR_LINE
-    assert(out != NULL);      // LCOV_EXCL_BR_LINE
-    assert(count != NULL);    // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);     // LCOV_EXCL_BR_LINE
+    assert(out != NULL);     // LCOV_EXCL_BR_LINE
+    assert(count != NULL);   // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query
     TALLOC_CTX *tmp = talloc_new(NULL);
@@ -225,7 +225,7 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     }
 
     // Allocate array of pointers
-    ik_db_agent_row_t **rows = talloc_array(mem_ctx, ik_db_agent_row_t *, (unsigned int)num_rows);
+    ik_db_agent_row_t **rows = talloc_array(ctx, ik_db_agent_row_t *, (unsigned int)num_rows);
     if (rows == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Process each row
@@ -277,15 +277,15 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     return OK(NULL);
 }
 
-res_t ik_db_agent_get_children(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_db_agent_get_children(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                                const char *parent_uuid,
                                ik_db_agent_row_t ***out, size_t *count)
 {
     assert(db_ctx != NULL);      // LCOV_EXCL_BR_LINE
-    assert(mem_ctx != NULL);      // LCOV_EXCL_BR_LINE
-    assert(parent_uuid != NULL);  // LCOV_EXCL_BR_LINE
-    assert(out != NULL);          // LCOV_EXCL_BR_LINE
-    assert(count != NULL);        // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);         // LCOV_EXCL_BR_LINE
+    assert(parent_uuid != NULL); // LCOV_EXCL_BR_LINE
+    assert(out != NULL);         // LCOV_EXCL_BR_LINE
+    assert(count != NULL);       // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query
     TALLOC_CTX *tmp = talloc_new(NULL);
@@ -323,7 +323,7 @@ res_t ik_db_agent_get_children(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     }
 
     // Allocate array of pointers
-    ik_db_agent_row_t **rows = talloc_array(mem_ctx, ik_db_agent_row_t *, (unsigned int)num_rows);
+    ik_db_agent_row_t **rows = talloc_array(ctx, ik_db_agent_row_t *, (unsigned int)num_rows);
     if (rows == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Process each row
@@ -375,13 +375,13 @@ res_t ik_db_agent_get_children(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     return OK(NULL);
 }
 
-res_t ik_db_agent_get_parent(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_db_agent_get_parent(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                               const char *uuid, ik_db_agent_row_t **out)
 {
     assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
-    assert(mem_ctx != NULL);  // LCOV_EXCL_BR_LINE
-    assert(uuid != NULL);     // LCOV_EXCL_BR_LINE
-    assert(out != NULL);      // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);     // LCOV_EXCL_BR_LINE
+    assert(uuid != NULL);    // LCOV_EXCL_BR_LINE
+    assert(out != NULL);     // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query
     TALLOC_CTX *tmp = talloc_new(NULL);
@@ -420,7 +420,7 @@ res_t ik_db_agent_get_parent(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     }
 
     // Allocate row on provided context
-    ik_db_agent_row_t *row = talloc_zero(mem_ctx, ik_db_agent_row_t);
+    ik_db_agent_row_t *row = talloc_zero(ctx, ik_db_agent_row_t);
     if (row == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Extract fields

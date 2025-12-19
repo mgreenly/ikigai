@@ -14,12 +14,12 @@
 #include <string.h>
 #include <talloc.h>
 
-res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                           const char *agent_uuid, int64_t max_id,
                           int64_t *clear_id_out)
 {
     assert(db_ctx != NULL);       // LCOV_EXCL_BR_LINE
-    assert(mem_ctx != NULL);      // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(agent_uuid != NULL);   // LCOV_EXCL_BR_LINE
     assert(clear_id_out != NULL); // LCOV_EXCL_BR_LINE
 
@@ -58,7 +58,7 @@ res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
         const char *pq_err = PQerrorMessage(db_ctx->conn);
         talloc_free(tmp);
-        return ERR(mem_ctx, IO, "Failed to find clear: %s", pq_err);
+        return ERR(ctx, IO, "Failed to find clear: %s", pq_err);
     }
 
     // Parse result - MAX() returns NULL if no rows match
@@ -68,7 +68,7 @@ res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
         const char *id_str = PQgetvalue_(res, 0, 0);
         if (sscanf(id_str, "%lld", (long long *)clear_id_out) != 1) {
             talloc_free(tmp);
-            return ERR(mem_ctx, PARSE, "Failed to parse clear ID");
+            return ERR(ctx, PARSE, "Failed to parse clear ID");
         }
     }
 
@@ -76,13 +76,13 @@ res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     return OK(NULL);
 }
 
-res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                                     const char *agent_uuid,
                                     ik_replay_range_t **ranges_out,
                                     size_t *count_out)
 {
     assert(db_ctx != NULL);      // LCOV_EXCL_BR_LINE
-    assert(mem_ctx != NULL);     // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);         // LCOV_EXCL_BR_LINE
     assert(agent_uuid != NULL);  // LCOV_EXCL_BR_LINE
     assert(ranges_out != NULL);  // LCOV_EXCL_BR_LINE
     assert(count_out != NULL);   // LCOV_EXCL_BR_LINE
@@ -104,7 +104,7 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     while (current_uuid != NULL) { // LCOV_EXCL_BR_LINE
         // Find most recent clear for this agent (within range)
         int64_t clear_id = 0;
-        res_t res = ik_agent_find_clear(db_ctx, mem_ctx, current_uuid, end_id, &clear_id);
+        res_t res = ik_agent_find_clear(db_ctx, ctx, current_uuid, end_id, &clear_id);
         if (is_err(&res)) { // LCOV_EXCL_BR_LINE
             talloc_free(tmp); // LCOV_EXCL_LINE
             return res; // LCOV_EXCL_LINE
@@ -152,7 +152,7 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
             int64_t fork_id = 0;
             if (sscanf(agent_row->fork_message_id, "%lld", (long long *)&fork_id) != 1) { // LCOV_EXCL_BR_LINE
                 talloc_free(tmp); // LCOV_EXCL_LINE
-                return ERR(mem_ctx, PARSE, "Failed to parse fork_message_id"); // LCOV_EXCL_LINE
+                return ERR(ctx, PARSE, "Failed to parse fork_message_id"); // LCOV_EXCL_LINE
             }
             end_id = fork_id;
             current_uuid = agent_row->parent_uuid;
@@ -160,7 +160,7 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     }
 
     // Reverse the array to get chronological order (root first)
-    ik_replay_range_t *result = talloc_array(mem_ctx, ik_replay_range_t, (unsigned int)count);
+    ik_replay_range_t *result = talloc_array(ctx, ik_replay_range_t, (unsigned int)count);
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (size_t i = 0; i < count; i++) {
@@ -177,13 +177,13 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     return OK(NULL);
 }
 
-res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                             const ik_replay_range_t *range,
                             ik_msg_t ***messages_out,
                             size_t *count_out)
 {
     assert(db_ctx != NULL);       // LCOV_EXCL_BR_LINE
-    assert(mem_ctx != NULL);      // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(range != NULL);        // LCOV_EXCL_BR_LINE
     assert(messages_out != NULL); // LCOV_EXCL_BR_LINE
     assert(count_out != NULL);    // LCOV_EXCL_BR_LINE
@@ -218,7 +218,7 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     if (PQresultStatus(pg_res) != PGRES_TUPLES_OK) {
         const char *pq_err = PQerrorMessage(db_ctx->conn);
         talloc_free(tmp);
-        return ERR(mem_ctx, IO, "Failed to query range: %s", pq_err);
+        return ERR(ctx, IO, "Failed to query range: %s", pq_err);
     }
 
     // Process results
@@ -231,7 +231,7 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     }
 
     // Allocate message array
-    ik_msg_t **messages = talloc_array(mem_ctx, ik_msg_t *, (unsigned int)num_rows);
+    ik_msg_t **messages = talloc_array(ctx, ik_msg_t *, (unsigned int)num_rows);
     if (messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (int i = 0; i < num_rows; i++) {
@@ -242,7 +242,7 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
         const char *id_str = PQgetvalue_(pg_res, i, 0);
         if (sscanf(id_str, "%lld", (long long *)&msg->id) != 1) {
             talloc_free(tmp);
-            return ERR(mem_ctx, PARSE, "Failed to parse message ID");
+            return ERR(ctx, PARSE, "Failed to parse message ID");
         }
 
         // Kind
@@ -274,12 +274,12 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     return OK(NULL);
 }
 
-res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                                const char *agent_uuid,
                                ik_replay_context_t **ctx_out)
 {
     assert(db_ctx != NULL);     // LCOV_EXCL_BR_LINE
-    assert(mem_ctx != NULL);    // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(agent_uuid != NULL); // LCOV_EXCL_BR_LINE
     assert(ctx_out != NULL);    // LCOV_EXCL_BR_LINE
 
@@ -292,22 +292,22 @@ res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
     size_t range_count = 0;
     res_t res = ik_agent_build_replay_ranges(db_ctx, tmp, agent_uuid, &ranges, &range_count);
     if (is_err(&res)) { // LCOV_EXCL_BR_LINE
-        talloc_steal(mem_ctx, res.err); // LCOV_EXCL_LINE
+        talloc_steal(ctx, res.err); // LCOV_EXCL_LINE
         talloc_free(tmp); // LCOV_EXCL_LINE
         return res; // LCOV_EXCL_LINE
     }
 
     // Create replay context
-    ik_replay_context_t *ctx = talloc_zero(mem_ctx, ik_replay_context_t);
-    if (ctx == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    ik_replay_context_t *replay_ctx = talloc_zero(ctx, ik_replay_context_t);
+    if (replay_ctx == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Initialize context
-    ctx->messages = NULL;
-    ctx->count = 0;
-    ctx->capacity = 0;
-    ctx->mark_stack.marks = NULL;
-    ctx->mark_stack.count = 0;
-    ctx->mark_stack.capacity = 0;
+    replay_ctx->messages = NULL;
+    replay_ctx->count = 0;
+    replay_ctx->capacity = 0;
+    replay_ctx->mark_stack.marks = NULL;
+    replay_ctx->mark_stack.count = 0;
+    replay_ctx->mark_stack.capacity = 0;
 
     // Process each range in chronological order
     for (size_t i = 0; i < range_count; i++) {
@@ -316,7 +316,7 @@ res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
 
         res = ik_agent_query_range(db_ctx, tmp, &ranges[i], &range_msgs, &range_msg_count);
         if (is_err(&res)) { // LCOV_EXCL_BR_LINE
-            talloc_steal(mem_ctx, res.err); // LCOV_EXCL_LINE
+            talloc_steal(ctx, res.err); // LCOV_EXCL_LINE
             talloc_free(tmp); // LCOV_EXCL_LINE
             return res; // LCOV_EXCL_LINE
         }
@@ -324,18 +324,18 @@ res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
         // Append messages to context
         for (size_t j = 0; j < range_msg_count; j++) {
             // Ensure capacity
-            if (ctx->count >= ctx->capacity) {
-                size_t new_capacity = ctx->capacity == 0 ? 16 : ctx->capacity * 2;
-                ik_msg_t **new_messages = talloc_realloc(ctx, ctx->messages, ik_msg_t *,
+            if (replay_ctx->count >= replay_ctx->capacity) {
+                size_t new_capacity = replay_ctx->capacity == 0 ? 16 : replay_ctx->capacity * 2;
+                ik_msg_t **new_messages = talloc_realloc(replay_ctx, replay_ctx->messages, ik_msg_t *,
                                                               (unsigned int)new_capacity);
                 if (new_messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-                ctx->messages = new_messages;
-                ctx->capacity = new_capacity;
+                replay_ctx->messages = new_messages;
+                replay_ctx->capacity = new_capacity;
             }
 
             // Copy message to context
             ik_msg_t *src_msg = range_msgs[j];
-            ik_msg_t *msg = talloc_zero(ctx, ik_msg_t);
+            ik_msg_t *msg = talloc_zero(replay_ctx, ik_msg_t);
             if (msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
             msg->id = src_msg->id;
@@ -357,12 +357,12 @@ res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
                 msg->data_json = NULL;
             }
 
-            ctx->messages[ctx->count] = msg;
-            ctx->count++;
+            replay_ctx->messages[replay_ctx->count] = msg;
+            replay_ctx->count++;
         }
     }
 
-    *ctx_out = ctx;
+    *ctx_out = replay_ctx;
     talloc_free(tmp);
     return OK(NULL);
 }

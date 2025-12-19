@@ -32,11 +32,11 @@ typedef struct {
  *   postgresql://user:pass@localhost:5432/mydb
  *
  * Memory management:
- * - db_ctx allocated as child of mem_ctx
+ * - db_ctx allocated as child of ctx
  * - Talloc destructor registered to call PQfinish()
- * - Single talloc_free(mem_ctx) cleans up everything
+ * - Single talloc_free(ctx) cleans up everything
  *
- * @param mem_ctx Talloc context for allocations (must not be NULL)
+ * @param ctx Talloc context for allocations (must not be NULL)
  * @param conn_str PostgreSQL connection string (must not be NULL or empty)
  * @param out_ctx Output parameter for database context (must not be NULL)
  * @return OK with db_ctx on success, ERR on failure
@@ -46,7 +46,7 @@ typedef struct {
  * - ERR_DB_CONNECT: Connection failed (network, auth, etc.)
  * - ERR_DB_MIGRATE: Migration failed
  */
-res_t ik_db_init(TALLOC_CTX *mem_ctx, const char *conn_str, ik_db_ctx_t **out_ctx);
+res_t ik_db_init(TALLOC_CTX *ctx, const char *conn_str, ik_db_ctx_t **out_ctx);
 
 /**
  * Initialize database connection with custom migrations directory
@@ -54,7 +54,7 @@ res_t ik_db_init(TALLOC_CTX *mem_ctx, const char *conn_str, ik_db_ctx_t **out_ct
  * Like ik_db_init(), but allows specifying a custom migrations directory.
  * Useful for testing migration failure scenarios.
  *
- * @param mem_ctx Talloc context for allocations (must not be NULL)
+ * @param ctx Talloc context for allocations (must not be NULL)
  * @param conn_str PostgreSQL connection string (must not be NULL or empty)
  * @param migrations_dir Path to migrations directory (must not be NULL)
  * @param out_ctx Output parameter for database context (must not be NULL)
@@ -66,7 +66,7 @@ res_t ik_db_init(TALLOC_CTX *mem_ctx, const char *conn_str, ik_db_ctx_t **out_ct
  * - ERR_DB_MIGRATE: Migration failed
  * - ERR_IO: Cannot read migrations directory
  */
-res_t ik_db_init_with_migrations(TALLOC_CTX *mem_ctx, const char *conn_str, const char *migrations_dir, ik_db_ctx_t **out_ctx);
+res_t ik_db_init_with_migrations(TALLOC_CTX *ctx, const char *conn_str, const char *migrations_dir, ik_db_ctx_t **out_ctx);
 
 /**
  * Begin transaction

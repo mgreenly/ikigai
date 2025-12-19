@@ -16,8 +16,8 @@ static int32_t pg_result_destructor(ik_pg_result_wrapper_t *wrapper) {
     return 0;
 }
 
-ik_pg_result_wrapper_t *ik_db_wrap_pg_result(TALLOC_CTX *mem_ctx, PGresult *pg_res) {
-    ik_pg_result_wrapper_t *wrapper = talloc(mem_ctx, ik_pg_result_wrapper_t);
+ik_pg_result_wrapper_t *ik_db_wrap_pg_result(TALLOC_CTX *ctx, PGresult *pg_res) {
+    ik_pg_result_wrapper_t *wrapper = talloc(ctx, ik_pg_result_wrapper_t);
     if (wrapper == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     wrapper->pg_result = pg_res;

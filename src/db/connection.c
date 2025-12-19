@@ -60,26 +60,26 @@ static bool validate_conn_str(const char *conn_str)
     return true;
 }
 
-res_t ik_db_init(TALLOC_CTX *mem_ctx, const char *conn_str, ik_db_ctx_t **out_ctx)
+res_t ik_db_init(TALLOC_CTX *ctx, const char *conn_str, ik_db_ctx_t **out_ctx)
 {
-    return ik_db_init_with_migrations(mem_ctx, conn_str, "migrations", out_ctx);
+    return ik_db_init_with_migrations(ctx, conn_str, "migrations", out_ctx);
 }
 
-res_t ik_db_init_with_migrations(TALLOC_CTX *mem_ctx, const char *conn_str, const char *migrations_dir, ik_db_ctx_t **out_ctx)
+res_t ik_db_init_with_migrations(TALLOC_CTX *ctx, const char *conn_str, const char *migrations_dir, ik_db_ctx_t **out_ctx)
 {
     // Validate input parameters
-    assert(mem_ctx != NULL);        // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);            // LCOV_EXCL_BR_LINE
     assert(conn_str != NULL);       // LCOV_EXCL_BR_LINE
     assert(migrations_dir != NULL); // LCOV_EXCL_BR_LINE
     assert(out_ctx != NULL);        // LCOV_EXCL_BR_LINE
 
     // Validate connection string format
     if (!validate_conn_str(conn_str)) {
-        return ERR(mem_ctx, INVALID_ARG, "Invalid connection string format");
+        return ERR(ctx, INVALID_ARG, "Invalid connection string format");
     }
 
     // Allocate database context on caller's talloc context
-    ik_db_ctx_t *db_ctx = talloc_zero(mem_ctx, ik_db_ctx_t);
+    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     if (db_ctx == NULL) {                 // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");           // LCOV_EXCL_LINE
     }
@@ -101,7 +101,7 @@ res_t ik_db_init_with_migrations(TALLOC_CTX *mem_ctx, const char *conn_str, cons
         const char *pq_err = PQerrorMessage(db_ctx->conn);
 
         // Create error with libpq's message
-        res_t result = ERR(mem_ctx, DB_CONNECT, "Database connection failed: %s", pq_err);
+        res_t result = ERR(ctx, DB_CONNECT, "Database connection failed: %s", pq_err);
 
         // Clean up failed connection
         talloc_free(db_ctx);
@@ -113,8 +113,8 @@ res_t ik_db_init_with_migrations(TALLOC_CTX *mem_ctx, const char *conn_str, cons
     // Now run pending migrations from specified migrations directory
     res_t migrate_result = ik_db_migrate(db_ctx, migrations_dir);
     if (is_err(&migrate_result)) {
-        // Migration failed - reparent error to mem_ctx before cleanup
-        talloc_steal(mem_ctx, migrate_result.err);
+        // Migration failed - reparent error to ctx before cleanup
+        talloc_steal(ctx, migrate_result.err);
         talloc_free(db_ctx);
         return migrate_result;
     }

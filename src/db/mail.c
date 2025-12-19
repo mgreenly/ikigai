@@ -56,13 +56,13 @@ res_t ik_db_mail_insert(ik_db_ctx_t *db, int64_t session_id,
     return OK(NULL);
 }
 
-res_t ik_db_mail_inbox(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
+res_t ik_db_mail_inbox(ik_db_ctx_t *db, TALLOC_CTX *ctx,
                        int64_t session_id, const char *to_uuid,
                        ik_mail_msg_t ***out, size_t *count)
 {
     assert(db != NULL);            // LCOV_EXCL_BR_LINE
     assert(db->conn != NULL);      // LCOV_EXCL_BR_LINE
-    assert(mem_ctx != NULL);       // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);           // LCOV_EXCL_BR_LINE
     assert(session_id > 0);        // LCOV_EXCL_BR_LINE
     assert(to_uuid != NULL);       // LCOV_EXCL_BR_LINE
     assert(out != NULL);           // LCOV_EXCL_BR_LINE
@@ -105,7 +105,7 @@ res_t ik_db_mail_inbox(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
     }
 
     // Allocate array of pointers
-    ik_mail_msg_t **messages = talloc_array(mem_ctx, ik_mail_msg_t *, (unsigned int)nrows);
+    ik_mail_msg_t **messages = talloc_array(ctx, ik_mail_msg_t *, (unsigned int)nrows);
     if (messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Build message structures
@@ -214,14 +214,14 @@ res_t ik_db_mail_delete(ik_db_ctx_t *db, int64_t mail_id,
     return OK(NULL);
 }
 
-res_t ik_db_mail_inbox_filtered(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
+res_t ik_db_mail_inbox_filtered(ik_db_ctx_t *db, TALLOC_CTX *ctx,
                                  int64_t session_id, const char *to_uuid,
                                  const char *from_uuid,
                                  ik_mail_msg_t ***out, size_t *count)
 {
     assert(db != NULL);         // LCOV_EXCL_BR_LINE
     assert(db->conn != NULL);   // LCOV_EXCL_BR_LINE
-    assert(mem_ctx != NULL);    // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(session_id > 0);     // LCOV_EXCL_BR_LINE
     assert(to_uuid != NULL);    // LCOV_EXCL_BR_LINE
     assert(from_uuid != NULL);  // LCOV_EXCL_BR_LINE
@@ -266,7 +266,7 @@ res_t ik_db_mail_inbox_filtered(ik_db_ctx_t *db, TALLOC_CTX *mem_ctx,
     }
 
     // Allocate array of pointers
-    ik_mail_msg_t **messages = talloc_array(mem_ctx, ik_mail_msg_t *, (unsigned int)nrows);
+    ik_mail_msg_t **messages = talloc_array(ctx, ik_mail_msg_t *, (unsigned int)nrows);
     if (messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Build message structures
