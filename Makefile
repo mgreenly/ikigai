@@ -132,7 +132,7 @@ TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration verify-mocks check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -327,6 +327,10 @@ DB_INTEGRATION_TEST_RUNS = $(DB_INTEGRATION_TEST_TARGETS:%=%.run)
 check: check-unit check-integration
 	@echo "All tests passed!"
 
+# Build test binaries without running them
+build-tests: $(TEST_TARGETS)
+	@echo "Test binaries built successfully!"
+
 # Parallel-safe test execution using Make's -j flag
 # Each test creates a .run target that depends on the test binary
 # This allows Make to build and run tests in parallel when -j is used
@@ -402,14 +406,12 @@ check-valgrind:
 	echo "Valgrind: $$total passed, 0 failed"
 
 check-helgrind:
-	@echo "Building for Helgrind with enhanced debug info..."
+	@echo "Building tests for Helgrind (serialized to avoid DB test pollution)..."
 	@rm -rf build-helgrind
-	@mkdir -p build-helgrind/tests/unit build-helgrind/tests/integration
-	@find tests/unit -type d | sed 's|tests/unit|build-helgrind/tests/unit|' | xargs mkdir -p
-	@$(MAKE) -j$(MAKE_JOBS) check BUILD=valgrind BUILDDIR=build-helgrind SKIP_SIGNAL_TESTS=1
-	@echo "Running tests under Valgrind Helgrind..."
+	@BUILD=valgrind BUILDDIR=build-helgrind SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
+	@echo "Running tests under Valgrind Helgrind (serialized)..."
 	@ulimit -n 1024; \
-	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P 4 sh -c \
+	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P 1 sh -c \
 		'echo -n "Helgrind: {}... "; \
 		if CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 valgrind --tool=helgrind --error-exitcode=1 \
 		            --history-level=approx --quiet \
