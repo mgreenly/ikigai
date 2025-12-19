@@ -22,8 +22,8 @@ typedef struct {
 static void add_file_write_data(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx)
 {
     file_write_result_data_t *d = user_ctx;
-    yyjson_mut_obj_add_str(doc, data, "output", d->output);
-    yyjson_mut_obj_add_uint(doc, data, "bytes", d->bytes);
+    yyjson_mut_obj_add_str_(doc, data, "output", d->output);
+    yyjson_mut_obj_add_uint_(doc, data, "bytes", d->bytes);
 }
 
 res_t ik_tool_exec_file_write(void *parent, const char *path, const char *content)

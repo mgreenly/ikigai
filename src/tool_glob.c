@@ -2,6 +2,7 @@
 #include "tool_response.h"
 
 #include "panic.h"
+#include "wrapper.h"
 
 #include <assert.h>
 #include <glob.h>
@@ -19,8 +20,8 @@ typedef struct {
 static void add_glob_data(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx)
 {
     glob_result_data_t *d = user_ctx;
-    yyjson_mut_obj_add_str(doc, data, "output", d->output);
-    yyjson_mut_obj_add_uint(doc, data, "count", d->count);
+    yyjson_mut_obj_add_str_(doc, data, "output", d->output);
+    yyjson_mut_obj_add_uint_(doc, data, "count", d->count);
 }
 
 res_t ik_tool_exec_glob(void *parent, const char *pattern, const char *path)

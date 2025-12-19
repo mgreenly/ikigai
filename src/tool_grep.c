@@ -2,6 +2,7 @@
 #include "tool_response.h"
 
 #include "panic.h"
+#include "wrapper.h"
 
 #include <assert.h>
 #include <dirent.h>
@@ -89,8 +90,8 @@ typedef struct {
 static void add_grep_data(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx)
 {
     grep_result_data_t *d = user_ctx;
-    yyjson_mut_obj_add_str(doc, data, "output", d->output);
-    yyjson_mut_obj_add_uint(doc, data, "count", d->count);
+    yyjson_mut_obj_add_str_(doc, data, "output", d->output);
+    yyjson_mut_obj_add_uint_(doc, data, "count", d->count);
 }
 
 res_t ik_tool_exec_grep(void *parent, const char *pattern, const char *glob_filter, const char *path)

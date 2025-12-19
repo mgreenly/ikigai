@@ -21,8 +21,8 @@ typedef struct {
 static void add_bash_data(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx)
 {
     bash_result_data_t *d = user_ctx;
-    yyjson_mut_obj_add_str(doc, data, "output", d->output);
-    yyjson_mut_obj_add_int(doc, data, "exit_code", d->exit_code);
+    yyjson_mut_obj_add_str_(doc, data, "output", d->output);
+    yyjson_mut_obj_add_int_(doc, data, "exit_code", d->exit_code);
 }
 
 res_t ik_tool_exec_bash(void *parent, const char *command)

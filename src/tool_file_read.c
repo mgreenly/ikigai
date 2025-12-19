@@ -21,7 +21,7 @@ typedef struct {
 static void add_file_read_data(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx)
 {
     file_read_result_data_t *d = user_ctx;
-    yyjson_mut_obj_add_str(doc, data, "output", d->output);
+    yyjson_mut_obj_add_str_(doc, data, "output", d->output);
 }
 
 res_t ik_tool_exec_file_read(void *parent, const char *path)
