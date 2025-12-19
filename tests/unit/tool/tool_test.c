@@ -435,6 +435,28 @@ START_TEST(test_tool_param_def_struct_exists)
 }
 END_TEST
 
+// Test: ik_tool_schema_def_t struct exists and is usable
+START_TEST(test_tool_schema_def_struct_exists)
+{
+    static const ik_tool_param_def_t params[] = {
+        {"pattern", "Pattern to match", true},
+        {"path", "Base path", false}
+    };
+
+    ik_tool_schema_def_t schema = {
+        .name = "test_tool",
+        .description = "Test tool description",
+        .params = params,
+        .param_count = 2
+    };
+
+    ck_assert_str_eq(schema.name, "test_tool");
+    ck_assert_str_eq(schema.description, "Test tool description");
+    ck_assert_ptr_eq(schema.params, params);
+    ck_assert_uint_eq(schema.param_count, 2);
+}
+END_TEST
+
 // Test suite
 static Suite *tool_suite(void)
 {
@@ -498,6 +520,11 @@ static Suite *tool_suite(void)
     tcase_add_checked_fixture(tc_param_def, setup, teardown);
     tcase_add_test(tc_param_def, test_tool_param_def_struct_exists);
     suite_add_tcase(s, tc_param_def);
+
+    TCase *tc_schema_def = tcase_create("Schema Definition");
+    tcase_add_checked_fixture(tc_schema_def, setup, teardown);
+    tcase_add_test(tc_schema_def, test_tool_schema_def_struct_exists);
+    suite_add_tcase(s, tc_schema_def);
 
     return s;
 }

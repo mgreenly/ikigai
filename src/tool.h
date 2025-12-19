@@ -19,6 +19,14 @@ typedef struct {
     bool required;           // true if parameter is required
 } ik_tool_param_def_t;
 
+// Tool schema definition for data-driven schema building
+typedef struct {
+    const char *name;                     // Tool name (e.g., "glob")
+    const char *description;              // Tool description
+    const ik_tool_param_def_t *params;    // Array of parameter definitions
+    size_t param_count;                   // Number of parameters
+} ik_tool_schema_def_t;
+
 // Create a new tool call struct.
 //
 // Allocates a new tool call struct on the given context.
