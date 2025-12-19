@@ -135,10 +135,10 @@ ik_msg_t *ik_openai_msg_create_tool_result(void *parent,
 /**
  * Create a new conversation
  *
- * @param ctx  Talloc context (or NULL)
- * @return     New conversation (never NULL; panics on OOM)
+ * @param parent  Talloc context parent (or NULL)
+ * @return        OK(conversation) or ERR(...)
  */
-ik_openai_conversation_t *ik_openai_conversation_create(TALLOC_CTX *ctx);
+res_t ik_openai_conversation_create(void *parent);
 
 /**
  * Add a message to a conversation

@@ -65,7 +65,7 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->completion = NULL;  // Created on Tab press, destroyed on completion
 
     // Initialize conversation state (per-agent)
-    agent->conversation = ik_openai_conversation_create(agent);
+    agent->conversation = ik_openai_conversation_create(agent).ok;
     agent->marks = NULL;
     agent->mark_count = 0;
 
@@ -182,7 +182,7 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->completion = NULL;  // Created on Tab press, destroyed on completion
 
     // Initialize conversation state (per-agent)
-    agent->conversation = ik_openai_conversation_create(agent);
+    agent->conversation = ik_openai_conversation_create(agent).ok;
     agent->marks = NULL;
     agent->mark_count = 0;
 

@@ -33,8 +33,8 @@ ik_msg_t *ik_openai_get_message_at_index(ik_msg_t **messages, size_t idx)
  * Conversation functions
  */
 
-ik_openai_conversation_t *ik_openai_conversation_create(TALLOC_CTX *ctx) {
-    ik_openai_conversation_t *conv = talloc_zero(ctx, ik_openai_conversation_t);
+res_t ik_openai_conversation_create(void *parent) {
+    ik_openai_conversation_t *conv = talloc_zero(parent, ik_openai_conversation_t);
     if (!conv) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to allocate conversation"); // LCOV_EXCL_LINE
     }
@@ -42,7 +42,7 @@ ik_openai_conversation_t *ik_openai_conversation_create(TALLOC_CTX *ctx) {
     conv->messages = NULL;
     conv->message_count = 0;
 
-    return conv;
+    return OK(conv);
 }
 
 res_t ik_openai_conversation_add_msg(ik_openai_conversation_t *conv, ik_msg_t *msg) {
