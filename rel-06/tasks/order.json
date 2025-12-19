@@ -1,18 +1,6 @@
 {
   "todo": [
     {
-      "task": "init-openai-msg-return.md",
-      "group": "Init Pattern Standardization",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "init-scrollback-naming.md",
-      "group": "Init Pattern Standardization",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
       "task": "init-terminal-naming.md",
       "group": "Init Pattern Standardization",
       "model": "sonnet",
@@ -295,6 +283,18 @@
       "group": "Init Pattern Standardization",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "init-openai-msg-return.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "init-scrollback-naming.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "none"
     }
   ]
 }
