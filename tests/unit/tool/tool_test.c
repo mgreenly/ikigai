@@ -469,6 +469,27 @@ START_TEST(test_tool_build_schema_from_def_basic) {
 }
 END_TEST
 
+// Test: All schema definitions produce correct output (completeness check)
+START_TEST(test_schema_definitions_complete) {
+    // Verify all 5 tool schemas can be built and have expected tool names
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    ck_assert_ptr_nonnull(doc);
+
+    const char *expected_names[] = {"glob", "file_read", "grep", "file_write", "bash"};
+    yyjson_mut_val *arr = ik_tool_build_all(doc);
+    ck_assert_uint_eq(yyjson_mut_arr_size(arr), 5);
+
+    for (size_t i = 0; i < 5; i++) {
+        yyjson_mut_val *schema = yyjson_mut_arr_get(arr, i);
+        yyjson_mut_val *function = yyjson_mut_obj_get(schema, "function");
+        yyjson_mut_val *name = yyjson_mut_obj_get(function, "name");
+        ck_assert_str_eq(yyjson_mut_get_str(name), expected_names[i]);
+    }
+
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
 // Test: ik_tool_schema_def_t struct exists and is usable
 START_TEST(test_tool_schema_def_struct_exists)
 {
@@ -563,6 +584,7 @@ static Suite *tool_suite(void)
     TCase *tc_build_from_def = tcase_create("Build Schema From Def");
     tcase_add_checked_fixture(tc_build_from_def, setup, teardown);
     tcase_add_test(tc_build_from_def, test_tool_build_schema_from_def_basic);
+    tcase_add_test(tc_build_from_def, test_schema_definitions_complete);
     suite_add_tcase(s, tc_build_from_def);
 
     return s;

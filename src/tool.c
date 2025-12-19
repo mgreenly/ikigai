@@ -59,6 +59,22 @@ void ik_tool_add_string_parameter(yyjson_mut_doc *doc,
     }
 }
 
+// =============================================================================
+// Tool Schema Definitions (Data-Driven)
+//
+// Each tool is defined declaratively using ik_tool_schema_def_t:
+// - Static parameter arrays specify name, description, and required flag
+// - Static schema definitions tie together name, description, and parameters
+// - Public ik_tool_build_*_schema() functions delegate to ik_tool_build_schema_from_def()
+//
+// To add a new tool:
+// 1. Define static const ik_tool_param_def_t params[] = {...};
+// 2. Define static const ik_tool_schema_def_t schema_def = {...};
+// 3. Add thin wrapper: yyjson_mut_val *ik_tool_build_X_schema(doc) {
+//        return ik_tool_build_schema_from_def(doc, &schema_def);
+//    }
+// =============================================================================
+
 // Static definitions for glob tool schema
 static const ik_tool_param_def_t glob_params[] = {
     {"pattern", "Glob pattern (e.g., 'src/**/*.c')", true},
