@@ -91,8 +91,10 @@ MAX_FILE_BYTES = 24000
 
 # Coverage settings
 # LCOV 2.0-1 supports exclusion markers (LCOV_EXCL_BR_LINE, LCOV_EXCL_START/STOP)
-# in both static and non-static functions. When using exclusion markers in comments,
-# avoid mentioning marker keywords in nearby text to prevent LCOV comment parsing issues.
+# in both static and non-static functions. Investigation confirmed exclusion markers
+# work reliably in static functions (see rel-06/docs/lcov-static-fn-findings.md).
+# When using exclusion markers: avoid mentioning marker keywords in nearby comments
+# to prevent LCOV comment parsing issues.
 COVERAGE_DIR = coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
