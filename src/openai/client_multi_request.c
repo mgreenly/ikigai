@@ -27,7 +27,8 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
                                    void *stream_ctx,
                                    ik_http_completion_cb_t completion_cb,
                                    void *completion_ctx,
-                                   bool limit_reached) {
+                                   bool limit_reached,
+                                   ik_logger_t *logger) {
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);  // LCOV_EXCL_BR_LINE
     assert(conv != NULL);  // LCOV_EXCL_BR_LINE
@@ -139,7 +140,7 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
             yyjson_doc_free(body_doc);
         }
 
-        ik_log_debug_json(log_doc);
+        ik_logger_debug_json(logger, log_doc);
     }
 
     // Add to multi handle

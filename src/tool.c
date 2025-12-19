@@ -33,7 +33,7 @@ ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx,
     return call;
 }
 
-void ik_tool_add_string_param(yyjson_mut_doc *doc,
+void ik_tool_add_string_parameter(yyjson_mut_doc *doc,
                               yyjson_mut_val *properties,
                               const char *name,
                               const char *description)
@@ -59,192 +59,155 @@ void ik_tool_add_string_param(yyjson_mut_doc *doc,
     }
 }
 
+// =============================================================================
+// Tool Schema Definitions (Data-Driven)
+//
+// Each tool is defined declaratively using ik_tool_schema_def_t:
+// - Static parameter arrays specify name, description, and required flag
+// - Static schema definitions tie together name, description, and parameters
+// - Public ik_tool_build_*_schema() functions delegate to ik_tool_build_schema_from_def()
+//
+// To add a new tool:
+// 1. Define static const ik_tool_param_def_t params[] = {...};
+// 2. Define static const ik_tool_schema_def_t schema_def = {...};
+// 3. Add thin wrapper: yyjson_mut_val *ik_tool_build_X_schema(doc) {
+//        return ik_tool_build_schema_from_def(doc, &schema_def);
+//    }
+// =============================================================================
+
+// Static definitions for glob tool schema
+static const ik_tool_param_def_t glob_params[] = {
+    {"pattern", "Glob pattern (e.g., 'src/**/*.c')", true},
+    {"path", "Base directory (default: cwd)", false}
+};
+
+static const ik_tool_schema_def_t glob_schema_def = {
+    .name = "glob",
+    .description = "Find files matching a glob pattern",
+    .params = glob_params,
+    .param_count = 2
+};
+
 yyjson_mut_val *ik_tool_build_glob_schema(yyjson_mut_doc *doc)
 {
-    assert(doc != NULL); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *schema = yyjson_mut_obj(doc);
-    if (schema == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, schema, "type", "function")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *function = yyjson_mut_obj(doc);
-    if (function == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, function, "name", "glob")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_str(doc, function, "description", "Find files matching a glob pattern")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *properties = yyjson_mut_obj(doc);
-    if (properties == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    ik_tool_add_string_param(doc, properties, "pattern", "Glob pattern (e.g., 'src/**/*.c')");
-    ik_tool_add_string_param(doc, properties, "path", "Base directory (default: cwd)");
-
-    yyjson_mut_val *parameters = yyjson_mut_obj(doc);
-    if (parameters == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, parameters, "type", "object")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, parameters, "properties", properties)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *required = yyjson_mut_arr(doc);
-    if (required == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_arr_add_str(doc, required, "pattern")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, parameters, "required", required)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, function, "parameters", parameters)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, schema, "function", function)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    return schema;
+    return ik_tool_build_schema_from_def(doc, &glob_schema_def);
 }
+
+// Static definitions for file_read tool schema
+static const ik_tool_param_def_t file_read_params[] = {
+    {"path", "Path to file", true}
+};
+
+static const ik_tool_schema_def_t file_read_schema_def = {
+    .name = "file_read",
+    .description = "Read contents of a file",
+    .params = file_read_params,
+    .param_count = 1
+};
 
 yyjson_mut_val *ik_tool_build_file_read_schema(yyjson_mut_doc *doc)
 {
-    assert(doc != NULL); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *schema = yyjson_mut_obj(doc);
-    if (schema == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, schema, "type", "function")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *function = yyjson_mut_obj(doc);
-    if (function == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, function, "name", "file_read")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_str(doc, function, "description", "Read contents of a file")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *properties = yyjson_mut_obj(doc);
-    if (properties == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    ik_tool_add_string_param(doc, properties, "path", "Path to file");
-
-    yyjson_mut_val *parameters = yyjson_mut_obj(doc);
-    if (parameters == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, parameters, "type", "object")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, parameters, "properties", properties)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *required = yyjson_mut_arr(doc);
-    if (required == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_arr_add_str(doc, required, "path")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, parameters, "required", required)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, function, "parameters", parameters)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, schema, "function", function)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    return schema;
+    return ik_tool_build_schema_from_def(doc, &file_read_schema_def);
 }
+
+// Static definitions for grep tool schema
+static const ik_tool_param_def_t grep_params[] = {
+    {"pattern", "Search pattern (regex)", true},
+    {"path", "File or directory to search", false},
+    {"glob", "File pattern filter (e.g., '*.c')", false}
+};
+
+static const ik_tool_schema_def_t grep_schema_def = {
+    .name = "grep",
+    .description = "Search file contents for a pattern",
+    .params = grep_params,
+    .param_count = 3
+};
 
 yyjson_mut_val *ik_tool_build_grep_schema(yyjson_mut_doc *doc)
 {
-    assert(doc != NULL); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *schema = yyjson_mut_obj(doc);
-    if (schema == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, schema, "type", "function")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *function = yyjson_mut_obj(doc);
-    if (function == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, function, "name", "grep")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_str(doc, function, "description", "Search file contents for a pattern")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *properties = yyjson_mut_obj(doc);
-    if (properties == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    ik_tool_add_string_param(doc, properties, "pattern", "Search pattern (regex)");
-    ik_tool_add_string_param(doc, properties, "path", "File or directory to search");
-    ik_tool_add_string_param(doc, properties, "glob", "File pattern filter (e.g., '*.c')");
-
-    yyjson_mut_val *parameters = yyjson_mut_obj(doc);
-    if (parameters == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, parameters, "type", "object")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, parameters, "properties", properties)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *required = yyjson_mut_arr(doc);
-    if (required == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_arr_add_str(doc, required, "pattern")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, parameters, "required", required)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, function, "parameters", parameters)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, schema, "function", function)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    return schema;
+    return ik_tool_build_schema_from_def(doc, &grep_schema_def);
 }
+
+// Static definitions for file_write tool schema
+static const ik_tool_param_def_t file_write_params[] = {
+    {"path", "Path to file", true},
+    {"content", "Content to write", true}
+};
+
+static const ik_tool_schema_def_t file_write_schema_def = {
+    .name = "file_write",
+    .description = "Write content to a file",
+    .params = file_write_params,
+    .param_count = 2
+};
 
 yyjson_mut_val *ik_tool_build_file_write_schema(yyjson_mut_doc *doc)
 {
-    assert(doc != NULL); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *schema = yyjson_mut_obj(doc);
-    if (schema == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, schema, "type", "function")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *function = yyjson_mut_obj(doc);
-    if (function == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, function, "name", "file_write")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_str(doc, function, "description", "Write content to a file")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *properties = yyjson_mut_obj(doc);
-    if (properties == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    ik_tool_add_string_param(doc, properties, "path", "Path to file");
-    ik_tool_add_string_param(doc, properties, "content", "Content to write");
-
-    yyjson_mut_val *parameters = yyjson_mut_obj(doc);
-    if (parameters == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, parameters, "type", "object")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, parameters, "properties", properties)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *required = yyjson_mut_arr(doc);
-    if (required == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_arr_add_str(doc, required, "path")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_arr_add_str(doc, required, "content")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, parameters, "required", required)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, function, "parameters", parameters)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, schema, "function", function)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-
-    return schema;
+    return ik_tool_build_schema_from_def(doc, &file_write_schema_def);
 }
+
+// Static definitions for bash tool schema
+static const ik_tool_param_def_t bash_params[] = {
+    {"command", "Command to execute", true}
+};
+
+static const ik_tool_schema_def_t bash_schema_def = {
+    .name = "bash",
+    .description = "Execute a shell command",
+    .params = bash_params,
+    .param_count = 1
+};
 
 yyjson_mut_val *ik_tool_build_bash_schema(yyjson_mut_doc *doc)
 {
-    assert(doc != NULL); // LCOV_EXCL_BR_LINE
+    return ik_tool_build_schema_from_def(doc, &bash_schema_def);
+}
+
+yyjson_mut_val *ik_tool_build_schema_from_def(yyjson_mut_doc *doc,
+                                               const ik_tool_schema_def_t *def)
+{
+    assert(doc != NULL);  // LCOV_EXCL_BR_LINE
+    assert(def != NULL);  // LCOV_EXCL_BR_LINE
 
     yyjson_mut_val *schema = yyjson_mut_obj(doc);
-    if (schema == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (schema == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_mut_obj_add_str(doc, schema, "type", "function")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str(doc, schema, "type", "function")) PANIC("Failed");  // LCOV_EXCL_BR_LINE
 
     yyjson_mut_val *function = yyjson_mut_obj(doc);
-    if (function == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (function == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_mut_obj_add_str(doc, function, "name", "bash")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_str(doc, function, "description", "Execute a shell command")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str(doc, function, "name", def->name)) PANIC("Failed");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str(doc, function, "description", def->description)) PANIC("Failed");  // LCOV_EXCL_BR_LINE
 
     yyjson_mut_val *properties = yyjson_mut_obj(doc);
-    if (properties == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (properties == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    ik_tool_add_string_param(doc, properties, "command", "Command to execute");
+    // Add all parameters from definition
+    for (size_t i = 0; i < def->param_count; i++) {
+        ik_tool_add_string_parameter(doc, properties, def->params[i].name, def->params[i].description);
+    }
 
     yyjson_mut_val *parameters = yyjson_mut_obj(doc);
-    if (parameters == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (parameters == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_mut_obj_add_str(doc, parameters, "type", "object")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, parameters, "properties", properties)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str(doc, parameters, "type", "object")) PANIC("Failed");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_val(doc, parameters, "properties", properties)) PANIC("Failed");  // LCOV_EXCL_BR_LINE
 
+    // Build required array from params marked as required
     yyjson_mut_val *required = yyjson_mut_arr(doc);
-    if (required == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (required == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_mut_arr_add_str(doc, required, "command")) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, parameters, "required", required)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, function, "parameters", parameters)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, schema, "function", function)) PANIC("Failed"); // LCOV_EXCL_BR_LINE
+    for (size_t i = 0; i < def->param_count; i++) {
+        if (def->params[i].required) {
+            if (!yyjson_mut_arr_add_str(doc, required, def->params[i].name)) PANIC("Failed");  // LCOV_EXCL_BR_LINE
+        }
+    }
+
+    if (!yyjson_mut_obj_add_val(doc, parameters, "required", required)) PANIC("Failed");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_val(doc, function, "parameters", parameters)) PANIC("Failed");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_val(doc, schema, "function", function)) PANIC("Failed");  // LCOV_EXCL_BR_LINE
 
     return schema;
 }

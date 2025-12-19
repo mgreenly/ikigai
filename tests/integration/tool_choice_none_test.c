@@ -141,14 +141,10 @@ START_TEST(test_request_has_tool_choice_none) {
     cfg->openai_max_completion_tokens = 4096;
 
     // Create conversation with user message
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Find all C files in src/");
-    ck_assert(!msg_res.is_err);
-
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Find all C files in src/");
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     // Create request
@@ -198,7 +194,7 @@ START_TEST(test_tool_choice_none_end_to_end)
 
     // Step 1: User message
     const char *user_message = "Find all C files in src/";
-    res_t res = ik_db_message_insert(db, session_id, "user", user_message, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "user", user_message, NULL);
     ck_assert(!res.is_err);
 
     // Step 2: Model responds with text only (tool_choice was "none")
@@ -209,7 +205,7 @@ START_TEST(test_tool_choice_none_end_to_end)
         "or check the directory listing. I don't have access to your filesystem to search directly.";
 
     // Persist assistant message to database
-    res = ik_db_message_insert(db, session_id, "assistant", assistant_response,
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", assistant_response,
                                "{\"model\": \"gpt-4o-mini\", \"finish_reason\": \"stop\"}");
     ck_assert(!res.is_err);
 

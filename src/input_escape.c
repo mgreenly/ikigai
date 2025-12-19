@@ -63,38 +63,63 @@ static bool parse_first_escape_byte(ik_input_parser_t *parser, char byte,
 }
 
 
-// Handle arrow key sequences: ESC [ A/B/C/D
+// Handle arrow key sequences: ESC [ A/B/C/D and ESC [ 1 ; 5 A/B/C/D
 static bool parse_arrow_keys(ik_input_parser_t *parser, char byte,
                               ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
 
-    // Only handle 2-character sequences
-    if (parser->esc_len != 2) {
-        return false;
+    // Handle plain arrow keys: ESC [ A/B/C/D (2-character sequences)
+    if (parser->esc_len == 2) {
+        // Check for arrow keys
+        if (byte == 'A') {
+            reset_escape_state(parser);
+            action_out->type = IK_INPUT_ARROW_UP;
+            return true;
+        }
+        if (byte == 'B') {
+            reset_escape_state(parser);
+            action_out->type = IK_INPUT_ARROW_DOWN;
+            return true;
+        }
+        if (byte == 'C') {
+            reset_escape_state(parser);
+            action_out->type = IK_INPUT_ARROW_RIGHT;
+            return true;
+        }
+        if (byte == 'D') {
+            reset_escape_state(parser);
+            action_out->type = IK_INPUT_ARROW_LEFT;
+            return true;
+        }
     }
 
-    // Check for arrow keys
-    if (byte == 'A') {
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_ARROW_UP;
-        return true;
-    }
-    if (byte == 'B') {
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_ARROW_DOWN;
-        return true;
-    }
-    if (byte == 'C') {
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_ARROW_RIGHT;
-        return true;
-    }
-    if (byte == 'D') {
-        reset_escape_state(parser);
-        action_out->type = IK_INPUT_ARROW_LEFT;
-        return true;
+    // Handle Ctrl+Arrow keys: ESC [ 1 ; 5 A/B/C/D (5-character sequences)
+    if (parser->esc_len == 5) {
+        // Check for Ctrl modifier pattern: [ 1 ; 5
+        if (parser->esc_buf[1] == '1' && parser->esc_buf[2] == ';' && parser->esc_buf[3] == '5') {
+            if (byte == 'A') {
+                reset_escape_state(parser);
+                action_out->type = IK_INPUT_NAV_PARENT;
+                return true;
+            }
+            if (byte == 'B') {
+                reset_escape_state(parser);
+                action_out->type = IK_INPUT_NAV_CHILD;
+                return true;
+            }
+            if (byte == 'C') {
+                reset_escape_state(parser);
+                action_out->type = IK_INPUT_NAV_NEXT_SIBLING;
+                return true;
+            }
+            if (byte == 'D') {
+                reset_escape_state(parser);
+                action_out->type = IK_INPUT_NAV_PREV_SIBLING;
+                return true;
+            }
+        }
     }
 
     return false; // Not an arrow key

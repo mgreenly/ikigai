@@ -17,11 +17,11 @@
  * Usage:
  * ```c
  * // Create debug pipe manager in REPL
- * repl->debug_mgr = ik_debug_mgr_create(repl);
+ * repl->debug_mgr = ik_debug_manager_create(repl);
  * repl->debug_enabled = false;
  *
  * // Create pipe for curl output
- * ik_debug_pipe_t *curl_pipe = ik_debug_mgr_add_pipe(repl->debug_mgr, "[curl]");
+ * ik_debug_pipe_t *curl_pipe = ik_debug_manager_add_pipe(repl->debug_mgr, "[curl]");
  * curl_easy_setopt(handle, CURLOPT_VERBOSE, 1L);
  * curl_easy_setopt(handle, CURLOPT_STDERR, curl_pipe->write_end);
  *
@@ -100,7 +100,7 @@ res_t ik_debug_pipe_read(ik_debug_pipe_t *pipe, char ***lines_out, size_t *count
  * @param parent Talloc parent context (typically the repl)
  * @return Result containing new manager, or error on failure
  */
-res_t ik_debug_mgr_create(void *parent);
+res_t ik_debug_manager_create(void *parent);
 
 /**
  * @brief Add a new debug pipe to the manager
@@ -112,7 +112,7 @@ res_t ik_debug_mgr_create(void *parent);
  * @param prefix Optional prefix for the pipe's output (NULL for no prefix)
  * @return Result containing new debug pipe, or error on failure
  */
-res_t ik_debug_mgr_add_pipe(ik_debug_pipe_manager_t *mgr, const char *prefix);
+res_t ik_debug_manager_add_pipe(ik_debug_pipe_manager_t *mgr, const char *prefix);
 
 /**
  * @brief Add all managed pipe read descriptors to fd_set
@@ -124,7 +124,7 @@ res_t ik_debug_mgr_add_pipe(ik_debug_pipe_manager_t *mgr, const char *prefix);
  * @param read_fds File descriptor set to populate
  * @param max_fd Pointer to max fd value (updated if necessary)
  */
-void ik_debug_mgr_add_to_fdset(ik_debug_pipe_manager_t *mgr, fd_set *read_fds, int *max_fd);
+void ik_debug_manager_add_to_fdset(ik_debug_pipe_manager_t *mgr, fd_set *read_fds, int *max_fd);
 
 /**
  * @brief Handle ready pipe descriptors after select()
@@ -139,9 +139,9 @@ void ik_debug_mgr_add_to_fdset(ik_debug_pipe_manager_t *mgr, fd_set *read_fds, i
  * @param debug_enabled Whether to append output to scrollback
  * @return Result with OK(NULL) on success, ERR() on failure
  */
-res_t ik_debug_mgr_handle_ready(ik_debug_pipe_manager_t *mgr,
-                                fd_set *read_fds,
-                                ik_scrollback_t *scrollback,
-                                bool debug_enabled);
+res_t ik_debug_manager_handle_ready(ik_debug_pipe_manager_t *mgr,
+                                    fd_set *read_fds,
+                                    ik_scrollback_t *scrollback,
+                                    bool debug_enabled);
 
 #endif // IKIGAI_DEBUG_PIPE_H

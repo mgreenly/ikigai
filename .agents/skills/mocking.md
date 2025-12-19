@@ -156,7 +156,6 @@ void test_write_error_handling(void) {
 | `ik_db_message_insert_()` | `ik_db_message_insert()` |
 | `ik_repl_restore_session_()` | `ik_repl_restore_session()` |
 | `ik_scrollback_append_line_()` | `ik_scrollback_append_line()` |
-| `ik_msg_from_db_()` | `ik_msg_from_db()` |
 | `ik_openai_conversation_add_msg_()` | `ik_openai_conversation_add_msg()` |
 
 ## Adding New Wrappers

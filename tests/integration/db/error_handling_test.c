@@ -112,7 +112,7 @@ START_TEST(test_message_insert_invalid_session)
     // Try to insert message with non-existent session_id
     int64_t invalid_session_id = 999999;
     res_t insert_res = ik_db_message_insert(db, invalid_session_id,
-                                             "user", "test", "{}");
+                                             NULL, "user", "test", "{}");
 
     // Should return ERR due to foreign key violation
     ck_assert(is_err(&insert_res));
@@ -127,7 +127,7 @@ START_TEST(test_replay_nonexistent_session)
     // Try to replay non-existent session
     int64_t nonexistent_session = 999999;
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, nonexistent_session);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, nonexistent_session, NULL);
 
     // Should succeed with empty context
     ck_assert(is_ok(&replay_res));
@@ -175,7 +175,7 @@ START_TEST(test_multiple_errors_dont_crash)
     // Try multiple invalid operations - should all return ERR
     for (int i = 0; i < 5; i++) {
         res_t insert_res = ik_db_message_insert(db, 999999,
-                                                 "user", "test", "{}");
+                                                 NULL, "user", "test", "{}");
         ck_assert(is_err(&insert_res));
     }
 }

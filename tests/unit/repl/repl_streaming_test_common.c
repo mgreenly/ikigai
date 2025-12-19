@@ -169,9 +169,7 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     shared->cfg = cfg;
 
     // Create conversation (agent already created above)
-    res = ik_openai_conversation_create(ctx);
-    ck_assert(is_ok(&res));
-    agent->conversation = res.ok;
+    agent->conversation = ik_openai_conversation_create(ctx);
     repl->current = agent;
 
     // Create multi handle

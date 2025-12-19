@@ -178,7 +178,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
 {
     SKIP_IF_NO_DB();
 
-    res_t res = ik_db_message_insert(db, session_id, "user",
+    res_t res = ik_db_message_insert(db, session_id, NULL, "user",
                                      "Keep searching for errors in every file", NULL);
     ck_assert(!res.is_err);
 
@@ -192,11 +192,11 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
                                              tool_name,
                                              tool_arguments_1);
 
-    res = ik_db_message_insert(db, session_id, "tool_call", NULL, tool_call_data_1);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", NULL, tool_call_data_1);
     ck_assert(!res.is_err);
 
     const char *tool_result_1 = "{\"output\": \"src/main.c:12: log_error(...)\", \"count\": 1}";
-    ik_message_t *tool_result_msg_1 = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg_1 = ik_msg_create_tool_result(
         test_ctx,
         tool_call_id_1,
         tool_name,
@@ -206,7 +206,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
         );
     ck_assert_ptr_nonnull(tool_result_msg_1);
 
-    res = ik_db_message_insert(db, session_id, "tool_result",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                tool_result_msg_1->content,
                                tool_result_msg_1->data_json);
     ck_assert(!res.is_err);
@@ -218,12 +218,12 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
                                              tool_call_id_2,
                                              tool_name);
 
-    res = ik_db_message_insert(db, session_id, "tool_call", NULL, tool_call_data_2);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", NULL, tool_call_data_2);
     ck_assert(!res.is_err);
 
     const char *tool_result_2 = "{\"output\": \"src/config.c:45: return CONFIG_ERROR;\", \"count\": 1}";
 
-    ik_message_t *tool_result_msg_2 = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg_2 = ik_msg_create_tool_result(
         test_ctx,
         tool_call_id_2,
         tool_name,
@@ -232,7 +232,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
         "Found 1 match"
         );
 
-    res = ik_db_message_insert(db, session_id, "tool_result",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                tool_result_msg_2->content,
                                tool_result_msg_2->data_json);
     ck_assert(!res.is_err);
@@ -244,7 +244,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
                                              tool_call_id_3,
                                              tool_name);
 
-    res = ik_db_message_insert(db, session_id, "tool_call", NULL, tool_call_data_3);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", NULL, tool_call_data_3);
     ck_assert(!res.is_err);
 
     const char *tool_result_3 = "{\"output\": \"src/parser.c:78: parse_error(line, col);\", \"count\": 1}";
@@ -259,7 +259,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
     ck_assert(yyjson_get_bool(limit_reached_field) == true);
     yyjson_doc_free(limit_doc);
 
-    ik_message_t *tool_result_msg_3 = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg_3 = ik_msg_create_tool_result(
         test_ctx,
         tool_call_id_3,
         tool_name,
@@ -268,13 +268,14 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
         "Found 1 match (limit reached)"
         );
 
-    res = ik_db_message_insert(db, session_id, "tool_result",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                tool_result_msg_3->content,
                                tool_result_msg_3->data_json);
     ck_assert(!res.is_err);
 
     res = ik_db_message_insert(db,
                                session_id,
+                               NULL,
                                "assistant",
                                "I searched but reached the tool call limit (3 calls). Found errors in main.c, config.c, parser.c.",
                                "{\"model\": \"gpt-4o-mini\", \"finish_reason\": \"stop\"}");
@@ -314,10 +315,9 @@ END_TEST START_TEST(test_request_serialization_with_tool_choice)
     cfg->openai_max_completion_tokens = 4096;
     cfg->max_tool_turns = 3;
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ik_openai_conversation_t *conv = conv_res.ok;
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Search for errors");
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
+    ik_msg_t *msg_created = ik_openai_msg_create(ctx, "user", "Search for errors");
+    ik_openai_conversation_add_msg(conv, msg_created);
     ik_openai_request_t *request = ik_openai_request_create(ctx, cfg, conv);
 
     ik_tool_choice_t choice_auto = ik_tool_choice_auto();

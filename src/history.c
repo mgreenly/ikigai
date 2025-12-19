@@ -234,7 +234,7 @@ res_t ik_history_ensure_directory(TALLOC_CTX *ctx)
 
 // Parse a single JSONL history line and extract the cmd field
 // Returns OK(cmd_string) on success, ERR on parse failure, OK(NULL) to skip
-static res_t parse_history_line(TALLOC_CTX *ctx, const char *line)
+static res_t parse_history_line(TALLOC_CTX *ctx, const char *line, ik_logger_t *logger)
 {
     // Parse JSON line
     yyjson_doc *doc = yyjson_read_(line, strlen(line), 0);
@@ -244,7 +244,7 @@ static res_t parse_history_line(TALLOC_CTX *ctx, const char *line)
         yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
         if (root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Skipping malformed history line: not valid json")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        ik_log_warn_json(log_doc);
+        ik_logger_warn_json(logger, log_doc);
         return OK(NULL);  // Skip this line
     }
 
@@ -255,7 +255,7 @@ static res_t parse_history_line(TALLOC_CTX *ctx, const char *line)
         yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
         if (log_root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping non-object history line")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        ik_log_warn_json(log_doc);
+        ik_logger_warn_json(logger, log_doc);
         yyjson_doc_free(doc);
         return OK(NULL);  // Skip this line
     }
@@ -268,7 +268,7 @@ static res_t parse_history_line(TALLOC_CTX *ctx, const char *line)
         yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
         if (log_root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping history line with missing/invalid cmd field")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        ik_log_warn_json(log_doc);
+        ik_logger_warn_json(logger, log_doc);
         yyjson_doc_free(doc);
         return OK(NULL);  // Skip this line
     }
@@ -281,7 +281,7 @@ static res_t parse_history_line(TALLOC_CTX *ctx, const char *line)
     return OK(result);
 }
 
-res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
+res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist, ik_logger_t *logger)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(hist != NULL);  // LCOV_EXCL_BR_LINE
@@ -358,7 +358,7 @@ res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist)
         }
 
         // Parse line and extract cmd
-        res_t parse_result = parse_history_line(parse_ctx, line);
+        res_t parse_result = parse_history_line(parse_ctx, line, logger);
         if (parse_result.is_err) {  // LCOV_EXCL_START - parse_history_line never returns error
             talloc_free(parse_ctx);
             return parse_result;

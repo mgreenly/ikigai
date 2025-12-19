@@ -76,17 +76,17 @@ END_TEST
 // Test: Empty prefix (just "/") matches all commands (up to max 10)
 START_TEST(test_empty_prefix_all_commands)
 {
-    // "/" should match all commands (7 total)
+    // "/" should match all commands
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/");
     ck_assert_ptr_nonnull(comp);
-    ck_assert_uint_eq(comp->count, 7);  // clear, debug, help, mark, model, rewind, system
+    ck_assert_uint_eq(comp->count, 15);  // clear, debug, fork, help, kill, mark, model, rewind, send, check-mail, read-mail, delete-mail, filter-mail, agents, system
 
     // Verify all commands are present (order determined by fzy score, not alphabetical)
-    bool found[7] = {false};
-    const char *expected[] = {"clear", "debug", "help", "mark", "model", "rewind", "system"};
+    bool found[15] = {false};
+    const char *expected[] = {"clear", "debug", "fork", "help", "kill", "mark", "model", "rewind", "send", "check-mail", "read-mail", "delete-mail", "filter-mail", "agents", "system"};
 
     for (size_t i = 0; i < comp->count; i++) {
-        for (size_t j = 0; j < 7; j++) {
+        for (size_t j = 0; j < 15; j++) {
             if (strcmp(comp->candidates[i], expected[j]) == 0) {
                 found[j] = true;
                 break;
@@ -94,7 +94,7 @@ START_TEST(test_empty_prefix_all_commands)
         }
     }
 
-    for (size_t i = 0; i < 7; i++) {
+    for (size_t i = 0; i < 15; i++) {
         ck_assert(found[i]);
     }
 }
@@ -242,11 +242,13 @@ END_TEST
 // Test: Single character prefix
 START_TEST(test_single_char_prefix)
 {
-    // "/c" should match "clear"
+    // "/c" should match "clear" and "check-mail"
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/c");
     ck_assert_ptr_nonnull(comp);
-    ck_assert_uint_eq(comp->count, 1);
-    ck_assert_str_eq(comp->candidates[0], "clear");
+    ck_assert_uint_eq(comp->count, 2);
+    // Both commands start with 'c'
+    ck_assert(strcmp(comp->candidates[0], "clear") == 0 || strcmp(comp->candidates[0], "check-mail") == 0);
+    ck_assert(strcmp(comp->candidates[1], "clear") == 0 || strcmp(comp->candidates[1], "check-mail") == 0);
 }
 END_TEST
 

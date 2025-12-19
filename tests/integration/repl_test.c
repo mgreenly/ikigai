@@ -466,13 +466,13 @@ START_TEST(test_transition_to_executing_tool)
     ck_assert(is_ok(&result));
 
     // Transition to WAITING_FOR_LLM first
-    ik_repl_transition_to_waiting_for_llm(repl);
+    ik_agent_transition_to_waiting_for_llm(repl->current);
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     ck_assert(repl->current->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     // Transition to EXECUTING_TOOL
-    ik_repl_transition_to_executing_tool(repl);
+    ik_agent_transition_to_executing_tool(repl->current);
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
     ck_assert(repl->current->spinner_state.visible);  // Spinner stays visible
     ck_assert(!repl->current->input_buffer_visible);  // Input stays hidden
@@ -502,12 +502,12 @@ START_TEST(test_transition_from_executing_tool)
     ck_assert(is_ok(&result));
 
     // Set up state: IDLE -> WAITING_FOR_LLM -> EXECUTING_TOOL
-    ik_repl_transition_to_waiting_for_llm(repl);
-    ik_repl_transition_to_executing_tool(repl);
+    ik_agent_transition_to_waiting_for_llm(repl->current);
+    ik_agent_transition_to_executing_tool(repl->current);
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
 
     // Transition from EXECUTING_TOOL back to WAITING_FOR_LLM
-    ik_repl_transition_from_executing_tool(repl);
+    ik_agent_transition_from_executing_tool(repl->current);
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     ik_repl_cleanup(repl);

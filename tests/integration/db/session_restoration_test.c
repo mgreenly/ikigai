@@ -122,7 +122,7 @@ START_TEST(test_fresh_start_no_active_session)
     ck_assert_int_gt(new_session_id, 0);
 
     // Write initial clear event
-    ik_db_message_insert(db, new_session_id, "clear", NULL, "{}");
+    ik_db_message_insert(db, new_session_id, NULL, "clear", NULL, "{}");
 }
 END_TEST
 
@@ -134,9 +134,9 @@ START_TEST(test_active_session_continuation)
     // Launch 1: Create session and add messages
     int64_t session_id = 0;
     ik_db_session_create(db, &session_id);
-    ik_db_message_insert(db, session_id, "clear", NULL, "{}");
-    ik_db_message_insert(db, session_id, "user", "Hello", "{}");
-    ik_db_message_insert(db, session_id, "assistant", "Hi there", "{}");
+    ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Hello", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "Hi there", "{}");
 
     // Launch 2: Detect active session
     int64_t active_session_id = 0;
@@ -146,7 +146,7 @@ START_TEST(test_active_session_continuation)
 
     // Replay to restore context
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, active_session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, active_session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -166,9 +166,9 @@ START_TEST(test_multi_launch_conversation)
     // Launch 1: Create session, add initial messages
     int64_t session_id = 0;
     ik_db_session_create(db, &session_id);
-    ik_db_message_insert(db, session_id, "clear", NULL, "{}");
-    ik_db_message_insert(db, session_id, "user", "Q1", "{}");
-    ik_db_message_insert(db, session_id, "assistant", "A1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Q1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "A1", "{}");
     // Simulate app exit (session stays active)
 
     // Launch 2: Detect active session, add more messages
@@ -178,14 +178,14 @@ START_TEST(test_multi_launch_conversation)
 
     // Replay to restore context
     TALLOC_CTX *replay_ctx1 = talloc_new(test_ctx);
-    res_t replay1 = ik_db_messages_load(replay_ctx1, db, active_id);
+    res_t replay1 = ik_db_messages_load(replay_ctx1, db, active_id, NULL);
     ik_replay_context_t *ctx1 = replay1.ok;
     ck_assert_int_eq((int)ctx1->count, 2);  // Q1, A1
     talloc_free(replay_ctx1);
 
     // Continue conversation
-    ik_db_message_insert(db, active_id, "user", "Q2", "{}");
-    ik_db_message_insert(db, active_id, "assistant", "A2", "{}");
+    ik_db_message_insert(db, active_id, NULL, "user", "Q2", "{}");
+    ik_db_message_insert(db, active_id, NULL, "assistant", "A2", "{}");
     // Simulate app exit
 
     // Launch 3: Detect active session, verify full context
@@ -194,7 +194,7 @@ START_TEST(test_multi_launch_conversation)
     ck_assert_int_eq(active_id2, session_id);
 
     TALLOC_CTX *replay_ctx2 = talloc_new(test_ctx);
-    res_t replay2 = ik_db_messages_load(replay_ctx2, db, active_id2);
+    res_t replay2 = ik_db_messages_load(replay_ctx2, db, active_id2, NULL);
     ik_replay_context_t *ctx2 = replay2.ok;
     ck_assert_int_eq((int)ctx2->count, 4);  // Q1, A1, Q2, A2
     ck_assert_str_eq(ctx2->messages[0]->content, "Q1");
@@ -214,11 +214,11 @@ START_TEST(test_clear_persists_across_launches)
     // Launch 1: Create session with messages, then clear, then new message
     int64_t session_id = 0;
     ik_db_session_create(db, &session_id);
-    ik_db_message_insert(db, session_id, "clear", NULL, "{}");
-    ik_db_message_insert(db, session_id, "user", "Old message", "{}");
-    ik_db_message_insert(db, session_id, "assistant", "Old response", "{}");
-    ik_db_message_insert(db, session_id, "clear", NULL, "{}");
-    ik_db_message_insert(db, session_id, "user", "New message", "{}");
+    ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Old message", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "Old response", "{}");
+    ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "New message", "{}");
     // Simulate app exit
 
     // Launch 2: Detect active session and replay
@@ -227,7 +227,7 @@ START_TEST(test_clear_persists_across_launches)
     ck_assert_int_eq(active_id, session_id);
 
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, active_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, active_id, NULL);
     ik_replay_context_t *context = replay_res.ok;
 
     // Only message after last clear should be in context
@@ -246,13 +246,13 @@ START_TEST(test_active_session_with_multiple_sessions)
     // Create session 1 and end it
     int64_t session1_id = 0;
     ik_db_session_create(db, &session1_id);
-    ik_db_message_insert(db, session1_id, "user", "Session 1", "{}");
+    ik_db_message_insert(db, session1_id, NULL, "user", "Session 1", "{}");
     ik_db_session_end(db, session1_id);
 
     // Create session 2 (leave active)
     int64_t session2_id = 0;
     ik_db_session_create(db, &session2_id);
-    ik_db_message_insert(db, session2_id, "user", "Session 2", "{}");
+    ik_db_message_insert(db, session2_id, NULL, "user", "Session 2", "{}");
 
     // Get active session - should return session 2, not session 1
     int64_t active_id = 0;
@@ -270,7 +270,7 @@ START_TEST(test_ended_sessions_not_restored)
     // Create session and end it
     int64_t session_id = 0;
     ik_db_session_create(db, &session_id);
-    ik_db_message_insert(db, session_id, "user", "Message", "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Message", "{}");
     ik_db_session_end(db, session_id);
 
     // Try to get active session - should return 0 (none)
@@ -289,12 +289,12 @@ START_TEST(test_most_recent_active_session)
     // Create session 1 (older, active)
     int64_t session1_id = 0;
     ik_db_session_create(db, &session1_id);
-    ik_db_message_insert(db, session1_id, "user", "Session 1", "{}");
+    ik_db_message_insert(db, session1_id, NULL, "user", "Session 1", "{}");
 
     // Create session 2 (newer, active)
     int64_t session2_id = 0;
     ik_db_session_create(db, &session2_id);
-    ik_db_message_insert(db, session2_id, "user", "Session 2", "{}");
+    ik_db_message_insert(db, session2_id, NULL, "user", "Session 2", "{}");
 
     // Get active session - should return most recent (session 2)
     int64_t active_id = 0;

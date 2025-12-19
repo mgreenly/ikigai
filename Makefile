@@ -90,13 +90,18 @@ LINE_LENGTH = 120
 MAX_FILE_BYTES = 24000
 
 # Coverage settings
+# LCOV 2.0-1 supports exclusion markers (LCOV_EXCL_BR_LINE, LCOV_EXCL_START/STOP)
+# in both static and non-static functions. Investigation confirmed exclusion markers
+# work reliably in static functions (see rel-06/docs/lcov-static-fn-findings.md).
+# When using exclusion markers: avoid mentioning marker keywords in nearby comments
+# to prevent LCOV comment parsing issues.
 COVERAGE_DIR = coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
-LCOV_EXCL_COVERAGE = 1823
+LCOV_EXCL_COVERAGE = 2684
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/config.c src/wrapper.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_event_handlers.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/openai/client.c src/openai/client_msg.c src/openai/client_serialize.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_mark.c src/marks.c src/history.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/repl/session_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/ansi.c src/shared.c src/agent.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/config.c src/wrapper.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_event_handlers.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/openai/client.c src/openai/client_msg.c src/openai/client_serialize.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_fork.c src/commands_kill.c src/commands_agent_list.c src/commands_mail.c src/commands_mark.c src/marks.c src/history.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/db/agent.c src/db/agent_replay.c src/db/mail.c src/repl/agent_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/ansi.c src/shared.c src/agent.c src/uuid.c src/mail/msg.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
@@ -111,12 +116,15 @@ DB_INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/db/%_test.c,$(BUILDDI
 
 TEST_TARGETS = $(UNIT_TEST_TARGETS) $(INTEGRATION_TEST_TARGETS) $(DB_INTEGRATION_TEST_TARGETS)
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_event_handlers.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/openai/client.c src/openai/client_msg.c src/openai/client_serialize.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_mark.c src/marks.c src/history.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/repl/session_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/ansi.c src/shared.c src/agent.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/wrapper.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_event_handlers.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/openai/client.c src/openai/client_msg.c src/openai/client_serialize.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_fork.c src/commands_kill.c src/commands_agent_list.c src/commands_mail.c src/commands_mark.c src/marks.c src/history.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/db/agent.c src/db/agent_replay.c src/db/mail.c src/repl/agent_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/ansi.c src/shared.c src/agent.c src/uuid.c src/mail/msg.c
 MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 
-# Module objects without DB (for session_restore_test mocking) - keeps connection for repl_init.c
-MODULE_SOURCES_NO_DB = src/error.c src/logger.c src/config.c src/wrapper.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_event_handlers.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/openai/client.c src/openai/client_msg.c src/openai/client_serialize.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_mark.c src/marks.c src/history.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/repl/session_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/ansi.c src/shared.c src/agent.c
+# Module objects without DB (for some tests) - keeps connection for repl_init.c
+MODULE_SOURCES_NO_DB = src/error.c src/logger.c src/config.c src/wrapper.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_event_handlers.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/openai/client.c src/openai/client_msg.c src/openai/client_serialize.c src/openai/http_handler.c src/openai/client_multi.c src/openai/client_multi_request.c src/openai/client_multi_callbacks.c src/openai/sse_parser.c src/openai/tool_choice.c src/commands.c src/commands_fork.c src/commands_kill.c src/commands_agent_list.c src/commands_mail.c src/commands_mark.c src/marks.c src/history.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/agent.c src/db/agent_replay.c src/db/mail.c src/repl/agent_restore.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/ansi.c src/shared.c src/agent.c src/uuid.c src/mail/msg.c
 MODULE_OBJ_NO_DB = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES_NO_DB))
+
+# Module objects excluding db/agent.c (for repl_init_db_test mocking)
+MODULE_OBJ_NO_DB_AGENT = $(filter-out $(BUILDDIR)/db/agent.o,$(MODULE_OBJ_NO_DB))
 
 # Test utilities (linked with all tests)
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
@@ -124,7 +132,7 @@ TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration verify-mocks check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -200,6 +208,11 @@ $(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test: $(BUILDDIR)/tests/unit/re
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
+# Special rule for repl_agent_lookup_test that needs test_contexts
+$(BUILDDIR)/tests/unit/repl/repl_agent_lookup_test: $(BUILDDIR)/tests/unit/repl/repl_agent_lookup_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(TEST_CONTEXTS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
 # Special rules for repl streaming/completion tests that need the streaming common object
 $(BUILDDIR)/tests/unit/repl/repl_streaming_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
@@ -225,21 +238,6 @@ $(BUILDDIR)/tests/unit/repl/repl_streaming_advanced_test: $(BUILDDIR)/tests/unit
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-# Special rule for session_restore_test (uses mocks, excludes DB modules)
-$(BUILDDIR)/tests/unit/repl/session_restore_test: $(BUILDDIR)/tests/unit/repl/session_restore_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ)
-	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
-
-# Special rule for session_restore_marks_test (uses mocks, excludes DB modules)
-$(BUILDDIR)/tests/unit/repl/session_restore_marks_test: $(BUILDDIR)/tests/unit/repl/session_restore_marks_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ)
-	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
-
-# Special rule for session_restore_errors_test (uses mocks, excludes DB modules)
-$(BUILDDIR)/tests/unit/repl/session_restore_errors_test: $(BUILDDIR)/tests/unit/repl/session_restore_errors_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ)
-	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
-
 # Special rule for repl_actions_db_error_test (uses mocks, excludes DB modules)
 $(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
@@ -252,6 +250,11 @@ $(BUILDDIR)/tests/unit/repl/repl_actions_db_advanced_test: $(BUILDDIR)/tests/uni
 
 # Special rule for repl_actions_db_basic_test (uses mocks, excludes DB modules)
 $(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+# Special rule for repl_init_db_test (uses mocks, excludes src/db/agent.c and src/repl/agent_restore.c)
+$(BUILDDIR)/tests/unit/repl/repl_init_db_test: $(BUILDDIR)/tests/unit/repl/repl_init_db_test.o $(filter-out $(BUILDDIR)/repl/agent_restore.o,$(MODULE_OBJ_NO_DB_AGENT)) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
@@ -324,6 +327,10 @@ DB_INTEGRATION_TEST_RUNS = $(DB_INTEGRATION_TEST_TARGETS:%=%.run)
 check: check-unit check-integration
 	@echo "All tests passed!"
 
+# Build test binaries without running them
+build-tests: $(TEST_TARGETS)
+	@echo "Test binaries built successfully!"
+
 # Parallel-safe test execution using Make's -j flag
 # Each test creates a .run target that depends on the test binary
 # This allows Make to build and run tests in parallel when -j is used
@@ -366,7 +373,7 @@ check-sanitize:
 	@rm -rf build-sanitize
 	@mkdir -p build-sanitize/tests/unit build-sanitize/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-sanitize/tests/unit|' | xargs mkdir -p
-	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $(MAKE) -j$(MAKE_JOBS) check BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1
+	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $(MAKE) -j2 check BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1
 	@echo "✓ Sanitizer checks passed!"
 
 check-valgrind:
@@ -399,14 +406,12 @@ check-valgrind:
 	echo "Valgrind: $$total passed, 0 failed"
 
 check-helgrind:
-	@echo "Building for Helgrind with enhanced debug info..."
+	@echo "Building tests for Helgrind (serialized to avoid DB test pollution)..."
 	@rm -rf build-helgrind
-	@mkdir -p build-helgrind/tests/unit build-helgrind/tests/integration
-	@find tests/unit -type d | sed 's|tests/unit|build-helgrind/tests/unit|' | xargs mkdir -p
-	@$(MAKE) -j$(MAKE_JOBS) check BUILD=valgrind BUILDDIR=build-helgrind SKIP_SIGNAL_TESTS=1
-	@echo "Running tests under Valgrind Helgrind..."
+	@BUILD=valgrind BUILDDIR=build-helgrind SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
+	@echo "Running tests under Valgrind Helgrind (serialized)..."
 	@ulimit -n 1024; \
-	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
+	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P 1 sh -c \
 		'echo -n "Helgrind: {}... "; \
 		if CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 valgrind --tool=helgrind --error-exitcode=1 \
 		            --history-level=approx --quiet \

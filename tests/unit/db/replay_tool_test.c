@@ -116,21 +116,21 @@ START_TEST(test_replay_tool_call_message) {
     SKIP_IF_NO_DB();
 
     // Insert clear first
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user message
-    res = ik_db_message_insert(db, session_id, "user", "Find all C files", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Find all C files", NULL);
     ck_assert(is_ok(&res));
 
     // Insert tool_call message with data_json
     const char *tool_call_data =
         "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}";
-    res = ik_db_message_insert(db, session_id, "tool_call", "glob(pattern=\"*.c\")", tool_call_data);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", "glob(pattern=\"*.c\")", tool_call_data);
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -154,17 +154,17 @@ START_TEST(test_replay_tool_result_message)
     SKIP_IF_NO_DB();
 
     // Insert clear first
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert tool_result message with data_json
     const char *tool_result_data =
         "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"file1.c\\nfile2.c\",\"success\":true}";
-    res = ik_db_message_insert(db, session_id, "tool_result", "2 files found", tool_result_data);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result", "2 files found", tool_result_data);
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -186,31 +186,31 @@ START_TEST(test_replay_full_tool_conversation)
     SKIP_IF_NO_DB();
 
     // Insert clear first
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user message
-    res = ik_db_message_insert(db, session_id, "user", "Find all C files", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Find all C files", NULL);
     ck_assert(is_ok(&res));
 
     // Insert tool_call
     const char *tool_call_data =
         "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}";
-    res = ik_db_message_insert(db, session_id, "tool_call", "glob(pattern=\"*.c\")", tool_call_data);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", "glob(pattern=\"*.c\")", tool_call_data);
     ck_assert(is_ok(&res));
 
     // Insert tool_result
     const char *tool_result_data =
         "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"file1.c\\nfile2.c\",\"success\":true}";
-    res = ik_db_message_insert(db, session_id, "tool_result", "2 files found", tool_result_data);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result", "2 files found", tool_result_data);
     ck_assert(is_ok(&res));
 
     // Insert assistant response
-    res = ik_db_message_insert(db, session_id, "assistant", "I found 2 C files: file1.c and file2.c", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", "I found 2 C files: file1.c and file2.c", NULL);
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -230,17 +230,17 @@ START_TEST(test_replay_tool_message_preserves_data_json)
     SKIP_IF_NO_DB();
 
     // Insert clear first
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert tool_call with complex data_json
     const char *complex_data =
         "{\"id\":\"call_xyz\",\"type\":\"function\",\"function\":{\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"TODO\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
-    res = ik_db_message_insert(db, session_id, "tool_call", "grep(pattern=\"TODO\", path=\"src/\")", complex_data);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", "grep(pattern=\"TODO\", path=\"src/\")", complex_data);
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -261,33 +261,33 @@ START_TEST(test_replay_multiple_tool_calls)
     SKIP_IF_NO_DB();
 
     // Insert clear first
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // First tool call/result pair
     const char *tool_call_data_1 =
         "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}";
-    res = ik_db_message_insert(db, session_id, "tool_call", "glob(pattern=\"*.c\")", tool_call_data_1);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", "glob(pattern=\"*.c\")", tool_call_data_1);
     ck_assert(is_ok(&res));
 
     const char *tool_result_data_1 =
         "{\"tool_call_id\":\"call_1\",\"name\":\"glob\",\"output\":\"file1.c\",\"success\":true}";
-    res = ik_db_message_insert(db, session_id, "tool_result", "1 file found", tool_result_data_1);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result", "1 file found", tool_result_data_1);
     ck_assert(is_ok(&res));
 
     // Second tool call/result pair
     const char *tool_call_data_2 =
         "{\"id\":\"call_2\",\"type\":\"function\",\"function\":{\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"TODO\\\"}\"}}";
-    res = ik_db_message_insert(db, session_id, "tool_call", "grep(pattern=\"TODO\")", tool_call_data_2);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", "grep(pattern=\"TODO\")", tool_call_data_2);
     ck_assert(is_ok(&res));
 
     const char *tool_result_data_2 =
         "{\"tool_call_id\":\"call_2\",\"name\":\"grep\",\"output\":\"src/main.c:10: TODO\",\"success\":true}";
-    res = ik_db_message_insert(db, session_id, "tool_result", "1 match found", tool_result_data_2);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result", "1 match found", tool_result_data_2);
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;

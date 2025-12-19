@@ -144,13 +144,10 @@ START_TEST(test_tool_call_single_chunk) {
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
-    ck_assert(!msg_res.is_err);
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(conv, "user", "Test");
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     /* Set up mock response with tool call */
@@ -215,13 +212,10 @@ START_TEST(test_tool_call_streaming_multiple_chunks)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
-    ck_assert(!msg_res.is_err);
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(conv, "user", "Test");
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     /* Set up mock response with tool call split across multiple chunks
@@ -291,13 +285,10 @@ START_TEST(test_tool_call_no_content)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
-    ck_assert(!msg_res.is_err);
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(conv, "user", "Test");
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     /* Set up mock response with tool call but no content */
@@ -364,13 +355,10 @@ START_TEST(test_parse_tool_calls_ok_null)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
-    ck_assert(!msg_res.is_err);
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(conv, "user", "Test");
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     /* Set up mock response with delta events that have no tool_calls
@@ -414,13 +402,10 @@ START_TEST(test_parse_tool_calls_error)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
-    ck_assert(!msg_res.is_err);
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(conv, "user", "Test");
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     /* Set up mock response with malformed JSON in the middle

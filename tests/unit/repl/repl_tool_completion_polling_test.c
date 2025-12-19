@@ -3,7 +3,7 @@
  * @file repl_tool_completion_polling_test.c
  * @brief Targeted test for tool thread completion polling in ik_repl_run
  *
- * This test covers lines 92-96 in src/repl.c by testing handle_tool_completion
+ * This test covers lines 92-96 in src/repl.c by testing ik_repl_handle_tool_completion
  * which is what gets called when the polling detects completion.
  */
 
@@ -78,6 +78,8 @@ static void setup(void)
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    agent->shared = shared;
+    agent->repl = repl;
     repl->current = agent;
 
     /* Create input buffer */
@@ -89,9 +91,7 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->current->scrollback);
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(repl);
-    ck_assert(!conv_res.is_err);
-    repl->current->conversation = conv_res.ok;
+    repl->current->conversation = ik_openai_conversation_create(repl);
 
     /* Create curl_multi handle */
     res_t multi_res = ik_openai_multi_create(repl);
@@ -124,7 +124,7 @@ static void teardown(void)
  * The main thread will join this thread and handle the completion.
  *
  * Note: This thread must NOT wait for state changes because the main
- * thread calls pthread_join during handle_tool_completion, which would
+ * thread calls pthread_join during ik_repl_handle_tool_completion, which would
  * cause a deadlock if we waited here.
  */
 static void *quick_complete_thread_func(void *arg)
@@ -247,7 +247,7 @@ static void *completion_test_thread_func(void *arg)
 }
 
 /*
- * Test tool completion with continuation by directly calling handle_tool_completion
+ * Test tool completion with continuation by directly calling ik_repl_handle_tool_completion
  * (We can't test continuation via ik_repl_run easily because it requires HTTP mocking)
  */
 START_TEST(test_tool_completion_with_continuation) {
@@ -285,8 +285,8 @@ START_TEST(test_tool_completion_with_continuation) {
     /* Set finish reason to "tool_calls" to trigger continuation */
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
-    /* Directly call handle_tool_completion */
-    handle_tool_completion(repl);
+    /* Directly call ik_repl_handle_tool_completion */
+    ik_repl_handle_tool_completion(repl);
 
     /* Verify pending_tool_call was cleared */
     ck_assert_ptr_null(repl->current->pending_tool_call);
@@ -336,7 +336,7 @@ START_TEST(test_polling_while_tool_executing_not_complete) {
     pthread_t quit_thread;
     pthread_create_(&quit_thread, NULL, wait_then_quit_thread_func, repl);
 
-    /* Run event loop - should poll multiple times and NOT call handle_tool_completion */
+    /* Run event loop - should poll multiple times and NOT call ik_repl_handle_tool_completion */
     res_t result = ik_repl_run(repl);
 
     /* Join the quit thread */
@@ -371,7 +371,7 @@ START_TEST(test_polling_when_idle_state)
     /* Set quit immediately so we only do one iteration */
     atomic_store(&repl->quit, true);
 
-    /* Run event loop - should NOT call handle_tool_completion because state is IDLE */
+    /* Run event loop - should NOT call ik_repl_handle_tool_completion because state is IDLE */
     res_t result = ik_repl_run(repl);
 
     /* Verify event loop ran successfully */
@@ -396,7 +396,7 @@ START_TEST(test_polling_when_waiting_for_llm_state)
     /* Set quit immediately so we only do one iteration */
     atomic_store(&repl->quit, true);
 
-    /* Run event loop - should NOT call handle_tool_completion because state is not EXECUTING_TOOL */
+    /* Run event loop - should NOT call ik_repl_handle_tool_completion because state is not EXECUTING_TOOL */
     res_t result = ik_repl_run(repl);
 
     /* Verify event loop ran successfully */

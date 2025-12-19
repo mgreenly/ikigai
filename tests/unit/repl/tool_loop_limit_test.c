@@ -39,13 +39,12 @@ static void setup(void)
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    agent->repl = repl;  // Set backpointer
 
     repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* Create conversation */
-    res_t res = ik_openai_conversation_create(ctx);
-    ck_assert(is_ok(&res));
-    repl->current->conversation = res.ok;
+    repl->current->conversation = ik_openai_conversation_create(ctx);
 
     /* Initialize counter to 0 (simulating start of user request) */
     repl->current->tool_iteration_count = 0;
@@ -98,7 +97,7 @@ START_TEST(test_should_continue_when_under_limit)
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should continue - we haven't hit the limit yet */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(should_continue);
 }
 
@@ -113,7 +112,7 @@ START_TEST(test_should_not_continue_when_at_limit)
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should NOT continue - we've hit the limit */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(!should_continue);
 }
 
@@ -128,7 +127,7 @@ START_TEST(test_should_not_continue_when_over_limit)
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should NOT continue - we're over the limit */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(!should_continue);
 }
 
@@ -143,7 +142,7 @@ START_TEST(test_should_not_continue_when_finish_reason_is_stop)
     repl->current->response_finish_reason = talloc_strdup(repl, "stop");
 
     /* Should NOT continue - finish_reason is "stop" */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(!should_continue);
 }
 
@@ -159,7 +158,7 @@ START_TEST(test_should_continue_at_limit_minus_one)
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should continue */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(should_continue);
 }
 
@@ -175,7 +174,7 @@ START_TEST(test_zero_limit_means_no_tool_calls)
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should NOT continue - limit is 0 */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(!should_continue);
 }
 
@@ -191,7 +190,7 @@ START_TEST(test_negative_limit)
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should NOT continue - negative limit should be treated as invalid */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(!should_continue);
 }
 
@@ -208,7 +207,7 @@ START_TEST(test_should_continue_when_cfg_is_null)
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
 
     /* Should continue - when cfg is NULL, no limit is enforced */
-    bool should_continue = ik_repl_should_continue_tool_loop(repl);
+    bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
     ck_assert(should_continue);
 }
 

@@ -39,6 +39,7 @@ static void setup(void)
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
+    repl->current->shared = shared;
     repl->current->scrollback = ik_scrollback_create(repl, 80);
     repl->current->streaming_line_buffer = NULL;
     repl->current->http_error_message = NULL;
@@ -69,7 +70,7 @@ START_TEST(test_completion_flushes_streaming_buffer) {
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify buffer was flushed to scrollback (content + blank line) and cleared */
@@ -95,7 +96,7 @@ START_TEST(test_completion_clears_previous_error)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify error was cleared */
@@ -119,7 +120,7 @@ START_TEST(test_completion_stores_error_on_failure)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify error message was stored */
@@ -145,7 +146,7 @@ START_TEST(test_completion_stores_metadata_on_success)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify metadata was stored */
@@ -179,7 +180,7 @@ START_TEST(test_completion_clears_previous_metadata)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify old metadata was replaced */
@@ -204,7 +205,7 @@ START_TEST(test_completion_null_metadata)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify no metadata was stored */
@@ -230,7 +231,7 @@ START_TEST(test_completion_network_error)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify error message was stored */
@@ -255,7 +256,7 @@ START_TEST(test_completion_client_error)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify error message was stored */
@@ -283,7 +284,7 @@ START_TEST(test_completion_flushes_buffer_and_stores_error)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify buffer was flushed */
@@ -311,7 +312,7 @@ START_TEST(test_completion_error_null_message)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify no error message was stored (NULL && branch) */
@@ -338,7 +339,7 @@ START_TEST(test_completion_stores_tool_call)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify tool_call was stored */
@@ -371,7 +372,7 @@ START_TEST(test_completion_clears_previous_tool_call)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify new tool_call replaced old one */
@@ -400,7 +401,7 @@ START_TEST(test_completion_null_tool_call_clears_pending)
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl);
+    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify pending_tool_call was cleared */

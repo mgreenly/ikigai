@@ -31,12 +31,12 @@ static void setup(void)
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    agent->shared = repl->shared;
+    agent->repl = repl;
     repl->current = agent;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(repl);
-    ck_assert(!conv_res.is_err);
-    repl->current->conversation = conv_res.ok;
+    repl->current->conversation = ik_openai_conversation_create(repl);
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 10);

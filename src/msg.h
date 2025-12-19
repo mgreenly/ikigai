@@ -2,10 +2,9 @@
 #define IK_MSG_H
 
 #include "error.h"
+#include <stdbool.h>
+#include <stdint.h>
 #include <talloc.h>
-
-/* Forward declaration - full definition in db/replay.h */
-typedef struct ik_message ik_message_t;
 
 /**
  * Canonical message structure
@@ -27,27 +26,25 @@ typedef struct ik_message ik_message_t;
  *   - "rewind": Rewind event (navigation metadata)
  */
 typedef struct {
+    int64_t id;       /* DB row ID (0 if not from DB) */
     char *kind;       /* Message kind discriminator */
     char *content;    /* Message text content or human-readable summary */
     char *data_json;  /* Structured data for tool messages (NULL for text messages) */
 } ik_msg_t;
 
 /**
- * Create canonical message from database message
+ * Check if a message kind should be included in LLM conversation context
  *
- * Converts database format (ik_message_t) to canonical in-memory format (ik_msg_t).
- * The DB and canonical formats use the same 'kind' discriminator, so this is
- * primarily a copy/validation operation.
+ * @param kind Message kind string (e.g., "user", "assistant", "clear")
+ * @return true if kind should be sent to LLM, false otherwise
  *
- * Loading rules:
- *   - system/user/assistant: Copy kind and content, set data_json to NULL
- *   - tool_call/tool_result: Copy kind, content, and data_json
- *   - clear/mark/rewind: Return OK(NULL) - not conversation messages
+ * Conversation kinds (returns true):
+ *   - "system", "user", "assistant", "tool_call", "tool_result", "tool"
  *
- * @param parent  Talloc context parent (or NULL)
- * @param db_msg  Database message to convert (must not be NULL)
- * @return        OK(msg) for conversation kinds, OK(NULL) for non-conversation kinds, ERR(...) on failure
+ * Metadata kinds (returns false):
+ *   - "clear", "mark", "rewind", "agent_killed"
+ *   - NULL or unknown kinds
  */
-res_t ik_msg_from_db(void *parent, const ik_message_t *db_msg);
+bool ik_msg_is_conversation_kind(const char *kind);
 
 #endif /* IK_MSG_H */

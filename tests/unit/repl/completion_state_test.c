@@ -291,10 +291,12 @@ START_TEST(test_enter_commits_and_submits)
     ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = NULL;  /* No history for this test */
 
-    // Type "/c" (unique prefix for "/clear")
+    // Type "/cl" (unique prefix for "/clear")
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
     ik_repl_process_action(repl, &action);
     action.codepoint = 'c';
+    ik_repl_process_action(repl, &action);
+    action.codepoint = 'l';
     ik_repl_process_action(repl, &action);
 
     // Completion is active

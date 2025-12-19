@@ -1,11 +1,16 @@
 // LCOV_EXCL_START - Panic handlers cannot be tested (they abort the process)
 #include "panic.h"
+#include "logger.h"
 #include "terminal.h"
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 // Global terminal context for panic handler
 ik_term_ctx_t *g_term_ctx_for_panic = NULL;
+
+// Global logger context for panic handler
+ik_logger_t *volatile g_panic_logger = NULL;
 
 /**
  * Safe string length calculation (async-signal-safe).
@@ -107,6 +112,22 @@ void ik_panic_impl(const char *msg, const char *file, int32_t line)
         // but it's necessary for terminal cleanup and generally safe in practice
         tcsetattr(g_term_ctx_for_panic->tty_fd, TCSANOW,
                   &g_term_ctx_for_panic->orig_termios);
+    }
+
+    // Best-effort logger write BEFORE stderr output
+    ik_logger_t *logger = g_panic_logger;  // Read volatile once
+    if (logger != NULL) {
+        int fd = ik_logger_get_fd(logger);
+        if (fd >= 0) {
+            char buf[512];
+            int len = snprintf(buf, sizeof(buf),
+                "{\"level\":\"fatal\",\"event\":\"panic\","
+                "\"message\":\"%s\",\"file\":\"%s\",\"line\":%d}\n",
+                msg ? msg : "", file ? file : "", line);
+            if (len > 0 && (size_t)len < sizeof(buf)) {
+                write_ignore(fd, buf, (size_t)len);
+            }
+        }
     }
 
     // Format line number

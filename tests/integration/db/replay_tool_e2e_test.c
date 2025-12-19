@@ -140,7 +140,7 @@ START_TEST(test_tool_conversation_e2e)
     // ========== Phase 1: Persist tool conversation ==========
 
     // Event 1: User message - "Show me config.json"
-    res_t res = ik_db_message_insert(db, session_id, "user",
+    res_t res = ik_db_message_insert(db, session_id, NULL, "user",
                                       "Show me config.json", "{}");
     ck_assert(is_ok(&res));
 
@@ -154,7 +154,7 @@ START_TEST(test_tool_conversation_e2e)
             "\"arguments\":\"{\\\"path\\\":\\\"config.json\\\"}\""
         "}"
     "}";
-    res = ik_db_message_insert(db, session_id, "tool_call",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call",
                                "file_read(path=\"config.json\")",
                                tool_call_data);
     ck_assert(is_ok(&res));
@@ -166,13 +166,13 @@ START_TEST(test_tool_conversation_e2e)
         "\"output\":\"{\\\"success\\\":true,\\\"data\\\":{\\\"output\\\":\\\"{\\\\\\\"debug\\\\\\\":true,\\\\\\\"port\\\\\\\":8080}\\\"}}\","
         "\"success\":true"
     "}";
-    res = ik_db_message_insert(db, session_id, "tool_result",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                "File read successfully",
                                tool_result_data);
     ck_assert(is_ok(&res));
 
     // Event 4: Assistant message - summary response
-    res = ik_db_message_insert(db, session_id, "assistant",
+    res = ik_db_message_insert(db, session_id, NULL, "assistant",
                                "Here's config.json with your debug and port settings.",
                                "{}");
     ck_assert(is_ok(&res));
@@ -180,7 +180,7 @@ START_TEST(test_tool_conversation_e2e)
     // ========== Phase 2: Simulate app restart - new replay context ==========
 
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -234,15 +234,12 @@ START_TEST(test_tool_conversation_e2e)
     // ========== Phase 4: Verify API serialization format ==========
 
     // Build conversation for API request using replayed messages
-    res_t conv_res = ik_openai_conversation_create(replay_ctx);
-    ck_assert(is_ok(&conv_res));
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(replay_ctx);
 
     // Add user message
-    res_t msg_res = ik_openai_msg_create(replay_ctx, "user",
+    ik_msg_t *msg_tmp = ik_openai_msg_create(replay_ctx, "user",
                                           context->messages[0]->content);
-    ck_assert(is_ok(&msg_res));
-    res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(is_ok(&res));
 
     // Add tool_call message (canonical format)
@@ -254,16 +251,13 @@ START_TEST(test_tool_conversation_e2e)
         "{\"path\":\"config.json\"}",
         "file_read(path=\"config.json\")"
     );
-    ck_assert(tool_call_msg != NULL);
     res = ik_openai_conversation_add_msg(conv, tool_call_msg);
     ck_assert(is_ok(&res));
 
     // Add tool result message (role="tool" for OpenAI API)
     // Note: OpenAI expects role="tool" with tool_call_id and content
-    res_t tool_msg_res = ik_openai_msg_create(replay_ctx, "tool",
+    ik_msg_t *tool_result_msg = ik_openai_msg_create(replay_ctx, "tool",
         "{\"success\":true,\"data\":{\"output\":\"{\\\"debug\\\":true,\\\"port\\\":8080}\"}}");
-    ck_assert(is_ok(&tool_msg_res));
-    ik_msg_t *tool_result_msg = tool_msg_res.ok;
     // Set data_json to include tool_call_id for serialization
     tool_result_msg->data_json = talloc_strdup(tool_result_msg,
         "{\"tool_call_id\":\"call_xyz\"}");
@@ -271,10 +265,9 @@ START_TEST(test_tool_conversation_e2e)
     ck_assert(is_ok(&res));
 
     // Add assistant message
-    msg_res = ik_openai_msg_create(replay_ctx, "assistant",
+    msg_tmp = ik_openai_msg_create(replay_ctx, "assistant",
                                     context->messages[3]->content);
-    ck_assert(is_ok(&msg_res));
-    res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(is_ok(&res));
 
     // Create config for request serialization

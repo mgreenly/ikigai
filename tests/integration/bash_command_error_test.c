@@ -19,6 +19,7 @@
 #include "../../src/db/message.h"
 #include "../../src/db/session.h"
 #include "../../src/error.h"
+#include "../../src/msg.h"
 #include "../../src/openai/client.h"
 #include "../../src/tool.h"
 #include "../test_utils.h"
@@ -254,20 +255,16 @@ START_TEST(test_bash_error_conversation_persistence)
     SKIP_IF_NO_DB();
 
     // Create conversation simulating the user story flow
-    res_t conv_res = ik_openai_conversation_create(test_ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
 
     // Step 1: User message "Compile the project with gcc main.c"
-    res_t user_msg_res = ik_openai_msg_create(test_ctx, "user", "Compile the project with gcc main.c");
-    ck_assert(!user_msg_res.is_err);
-    ik_msg_t *user_msg = user_msg_res.ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(test_ctx, "user", "Compile the project with gcc main.c");
 
     res_t add_res = ik_openai_conversation_add_msg(conv, user_msg);
     ck_assert(!add_res.is_err);
 
     // Persist user message to database
-    res_t insert_res = ik_db_message_insert(db, session_id, "user",
+    res_t insert_res = ik_db_message_insert(db, session_id, NULL, "user",
                                             "Compile the project with gcc main.c", NULL);
     ck_assert(!insert_res.is_err);
 
@@ -291,7 +288,7 @@ START_TEST(test_bash_error_conversation_persistence)
     ck_assert(!add_res.is_err);
 
     // Persist assistant tool call to database
-    insert_res = ik_db_message_insert(db, session_id, "assistant",
+    insert_res = ik_db_message_insert(db, session_id, NULL, "assistant",
                                       "bash(command=\"gcc main.c\")",
                                       tool_call_msg->data_json);
     ck_assert(!insert_res.is_err);
@@ -322,7 +319,7 @@ START_TEST(test_bash_error_conversation_persistence)
     yyjson_doc_free(tool_doc);
 
     // Step 4: Create tool result message with error
-    ik_message_t *tool_result_msg = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg = ik_msg_create_tool_result(
         test_ctx,
         "call_bash1",
         "bash",
@@ -333,23 +330,21 @@ START_TEST(test_bash_error_conversation_persistence)
     ck_assert_ptr_nonnull(tool_result_msg);
 
     // Persist tool result to database
-    insert_res = ik_db_message_insert(db, session_id, "tool_result",
+    insert_res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                       tool_result_msg->content,
                                       tool_result_msg->data_json);
     ck_assert(!insert_res.is_err);
 
     // Step 5: Model responds with explanation (simulated)
-    res_t assistant_msg_res = ik_openai_msg_create(test_ctx,
+    ik_msg_t *assistant_msg = ik_openai_msg_create(test_ctx,
                                                    "assistant",
                                                    "The compilation failed. GCC reported an error. The file does not exist.");
-    ck_assert(!assistant_msg_res.is_err);
-    ik_msg_t *assistant_msg = assistant_msg_res.ok;
 
     add_res = ik_openai_conversation_add_msg(conv, assistant_msg);
     ck_assert(!add_res.is_err);
 
     // Persist assistant response to database
-    insert_res = ik_db_message_insert(db, session_id, "assistant",
+    insert_res = ik_db_message_insert(db, session_id, NULL, "assistant",
                                       assistant_msg->content, NULL);
     ck_assert(!insert_res.is_err);
 
@@ -422,7 +417,7 @@ START_TEST(test_multiple_bash_failures_persistence)
 
         // Create and persist tool result
         char *tool_call_id = talloc_asprintf(test_ctx, "call_bash_%zu", i);
-        ik_message_t *tool_result_msg = ik_msg_create_tool_result(
+        ik_msg_t *tool_result_msg = ik_msg_create_tool_result(
             test_ctx,
             tool_call_id,
             "bash",
@@ -432,7 +427,7 @@ START_TEST(test_multiple_bash_failures_persistence)
             );
         ck_assert_ptr_nonnull(tool_result_msg);
 
-        res_t insert_res = ik_db_message_insert(db, session_id, "tool_result",
+        res_t insert_res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                                 tool_result_msg->content,
                                                 tool_result_msg->data_json);
         ck_assert(!insert_res.is_err);

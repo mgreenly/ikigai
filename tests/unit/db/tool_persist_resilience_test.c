@@ -32,6 +32,7 @@ static bool fail_all = false;
 // Mock ik_db_message_insert to simulate database failures
 res_t ik_db_message_insert_(void *db,
                             int64_t session_id,
+                            const char *agent_uuid,
                             const char *kind,
                             const char *content,
                             const char *data_json)
@@ -50,7 +51,7 @@ res_t ik_db_message_insert_(void *db,
     }
 
     // For other kinds or no failure, call the real function
-    return ik_db_message_insert(db, session_id, kind, content, data_json);
+    return ik_db_message_insert(db, session_id, agent_uuid, kind, content, data_json);
 }
 
 // ========== Test Database Setup ==========
@@ -179,7 +180,7 @@ START_TEST(test_tool_call_persist_fails_result_succeeds) {
     const char *tool_call_data =
         "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
 
-    res_t res = ik_db_message_insert_(db, session_id, "tool_call", tool_call_content, tool_call_data);
+    res_t res = ik_db_message_insert_(db, session_id, NULL, "tool_call", tool_call_content, tool_call_data);
 
     // Verify it failed
     ck_assert(is_err(&res));
@@ -192,7 +193,7 @@ START_TEST(test_tool_call_persist_fails_result_succeeds) {
     const char *tool_result_data =
         "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
 
-    res = ik_db_message_insert_(db, session_id, "tool_result", tool_result_content, tool_result_data);
+    res = ik_db_message_insert_(db, session_id, NULL, "tool_result", tool_result_content, tool_result_data);
 
     // Verify it succeeded
     ck_assert(is_ok(&res));
@@ -223,7 +224,7 @@ START_TEST(test_tool_result_persist_fails_call_succeeds)
     const char *tool_call_data =
         "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
 
-    res_t res = ik_db_message_insert_(db, session_id, "tool_call", tool_call_content, tool_call_data);
+    res_t res = ik_db_message_insert_(db, session_id, NULL, "tool_call", tool_call_content, tool_call_data);
 
     // Verify it succeeded
     ck_assert(is_ok(&res));
@@ -233,7 +234,7 @@ START_TEST(test_tool_result_persist_fails_call_succeeds)
     const char *tool_result_data =
         "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
 
-    res = ik_db_message_insert_(db, session_id, "tool_result", tool_result_content, tool_result_data);
+    res = ik_db_message_insert_(db, session_id, NULL, "tool_result", tool_result_content, tool_result_data);
 
     // Verify it failed
     ck_assert(is_err(&res));
@@ -266,7 +267,7 @@ START_TEST(test_both_persists_fail)
     const char *tool_call_data =
         "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
 
-    res_t res = ik_db_message_insert_(db, session_id, "tool_call", tool_call_content, tool_call_data);
+    res_t res = ik_db_message_insert_(db, session_id, NULL, "tool_call", tool_call_content, tool_call_data);
 
     // Verify it failed
     ck_assert(is_err(&res));
@@ -278,7 +279,7 @@ START_TEST(test_both_persists_fail)
     const char *tool_result_data =
         "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":\"src/main.c\\nsrc/config.c\\nsrc/repl.c\",\"success\":true}";
 
-    res = ik_db_message_insert_(db, session_id, "tool_result", tool_result_content, tool_result_data);
+    res = ik_db_message_insert_(db, session_id, NULL, "tool_result", tool_result_content, tool_result_data);
 
     // Verify it failed
     ck_assert(is_err(&res));
@@ -308,7 +309,7 @@ START_TEST(test_error_object_lifetime)
     const char *tool_call_data =
         "{\"id\":\"call_abc123\",\"type\":\"function\",\"function\":{\"name\":\"glob\",\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
 
-    res_t res = ik_db_message_insert_(db, session_id, "tool_call", tool_call_content, tool_call_data);
+    res_t res = ik_db_message_insert_(db, session_id, NULL, "tool_call", tool_call_content, tool_call_data);
 
     // Verify error is accessible
     ck_assert(is_err(&res));

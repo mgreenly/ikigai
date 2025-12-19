@@ -131,7 +131,7 @@ res_t ik_openai_multi_timeout(ik_openai_multi_t *multi, long *timeout_ms) {
     return OK(NULL);
 }
 
-res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
+void ik_openai_multi_info_read(ik_openai_multi_t *multi, ik_logger_t *logger) {
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
 
     int msgs_left;
@@ -182,7 +182,7 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                                 yyjson_mut_obj_add_obj_wrapper(resp_log_doc, resp_log_root, "body");
                             }
 
-                            ik_log_debug_json(resp_log_doc);
+                            ik_logger_debug_json(logger, resp_log_doc);
                         }
 
                         /* Categorize response */
@@ -193,13 +193,16 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                             /* Transfer metadata from write context */
                             if (completed->write_ctx->model != NULL) {
                                 completion.model = talloc_steal(multi, completed->write_ctx->model);
+                                completed->write_ctx->model = NULL;
                             }
                             if (completed->write_ctx->finish_reason != NULL) {
                                 completion.finish_reason = talloc_steal(multi, completed->write_ctx->finish_reason);
+                                completed->write_ctx->finish_reason = NULL;
                             }
                             completion.completion_tokens = completed->write_ctx->completion_tokens;
                             if (completed->write_ctx->tool_call != NULL) {
                                 completion.tool_call = talloc_steal(multi, completed->write_ctx->tool_call);
+                                completed->write_ctx->tool_call = NULL;
                             } else {
                                 completion.tool_call = NULL;
                             }
@@ -253,8 +256,9 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
                                 multi->active_requests[j] = multi->active_requests[j + 1];
                             }
                             multi->active_count--;
-                            /* Return the callback error */
-                            return cb_result;
+                            /* Callback error - continue processing other requests */
+                            (void)cb_result;
+                            break;
                         }
                     }
 
@@ -291,6 +295,4 @@ res_t ik_openai_multi_info_read(ik_openai_multi_t *multi) {
             }
         }
     }
-
-    return OK(NULL);
 }

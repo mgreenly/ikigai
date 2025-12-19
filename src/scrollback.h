@@ -66,14 +66,14 @@ typedef struct ik_scrollback_t {
  * Allocates and initializes a scrollback buffer with specified terminal width.
  * Initial capacity is set to a reasonable default (16 lines, 1KB text buffer).
  *
- * @param parent Talloc parent context
+ * @param ctx Talloc parent context
  * @param terminal_width Terminal width in columns (must be > 0)
  * @return Pointer to allocated scrollback buffer (never NULL - PANICs on OOM)
  *
  * Assertions:
  * - terminal_width must be > 0
  */
-ik_scrollback_t *ik_scrollback_create(void *parent, int32_t terminal_width);
+ik_scrollback_t *ik_scrollback_create(TALLOC_CTX *ctx, int32_t terminal_width);
 
 /**
  * @brief Append a line to the scrollback buffer
@@ -189,6 +189,22 @@ res_t ik_scrollback_find_logical_line_at_physical_row(ik_scrollback_t *scrollbac
  * - scrollback must not be NULL
  */
 void ik_scrollback_clear(ik_scrollback_t *scrollback);
+
+/**
+ * @brief Copy all lines from source scrollback to destination scrollback
+ *
+ * Copies all lines from the source scrollback buffer to the destination.
+ * The destination scrollback should typically be empty before calling this.
+ *
+ * @param dest Destination scrollback buffer
+ * @param src Source scrollback buffer
+ * @return RES_OK on success, RES_ERR on failure (OOM)
+ *
+ * Assertions:
+ * - dest must not be NULL
+ * - src must not be NULL
+ */
+res_t ik_scrollback_copy_from(ik_scrollback_t *dest, const ik_scrollback_t *src);
 
 /**
  * @brief Get byte offset at a given display column within a line

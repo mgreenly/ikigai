@@ -141,14 +141,10 @@ START_TEST(test_request_has_tool_choice_auto) {
     cfg->openai_max_completion_tokens = 4096;
 
     // Create conversation with user message
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Find all C files in src/");
-    ck_assert(!msg_res.is_err);
-
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Find all C files in src/");
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     // Create request
@@ -199,7 +195,7 @@ START_TEST(test_tool_choice_auto_end_to_end)
 
     // Step 1: User message
     const char *user_message = "Find all C files in src/";
-    res_t res = ik_db_message_insert(db, session_id, "user", user_message, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "user", user_message, NULL);
     ck_assert(!res.is_err);
 
     // Step 2: Model decides to use glob tool (tool_choice was "auto")
@@ -217,7 +213,7 @@ START_TEST(test_tool_choice_auto_end_to_end)
     ck_assert_ptr_nonnull(tool_call_data);
 
     // Persist tool_call message to database
-    res = ik_db_message_insert(db, session_id, "tool_call", NULL, tool_call_data);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", NULL, tool_call_data);
     ck_assert(!res.is_err);
 
     // Step 3: Execute tool
@@ -262,7 +258,7 @@ START_TEST(test_tool_choice_auto_end_to_end)
     char *output_str_copy = talloc_strdup(test_ctx, output_str);
     char *content = talloc_asprintf(test_ctx, "%d file(s) found", count);
 
-    ik_message_t *tool_result_msg = ik_msg_create_tool_result(
+    ik_msg_t *tool_result_msg = ik_msg_create_tool_result(
         test_ctx,
         tool_call_id,
         tool_name,
@@ -276,7 +272,7 @@ START_TEST(test_tool_choice_auto_end_to_end)
     yyjson_doc_free(result_doc);
 
     // Step 5: Persist tool_result message to database
-    res = ik_db_message_insert(db, session_id, "tool_result",
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result",
                                tool_result_msg->content,
                                tool_result_msg->data_json);
     ck_assert(!res.is_err);
@@ -288,7 +284,7 @@ START_TEST(test_tool_choice_auto_end_to_end)
                                                      count,
                                                      output_str_copy);
 
-    res = ik_db_message_insert(db, session_id, "assistant", assistant_response,
+    res = ik_db_message_insert(db, session_id, NULL, "assistant", assistant_response,
                                "{\"model\": \"gpt-4o-mini\", \"finish_reason\": \"stop\"}");
     ck_assert(!res.is_err);
 

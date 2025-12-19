@@ -354,7 +354,7 @@ res_t ik_test_db_truncate_all(ik_db_ctx_t *db)
 
     // Truncate all application tables (order matters due to FK constraints)
     const char *truncate_sql =
-        "TRUNCATE TABLE messages, sessions RESTART IDENTITY CASCADE";
+        "TRUNCATE TABLE agents, messages, sessions RESTART IDENTITY CASCADE";
 
     PGresult *result = PQexec(db->conn, truncate_sql);
     if (PQresultStatus(result) != PGRES_COMMAND_OK) {

@@ -12,6 +12,18 @@
 #include <string.h>
 #include <talloc.h>
 
+// File read result data for response callback
+typedef struct {
+    const char *output;
+} file_read_result_data_t;
+
+// Callback to add file_read-specific fields to data object
+static void add_file_read_data(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx)
+{
+    file_read_result_data_t *d = user_ctx;
+    yyjson_mut_obj_add_str_(doc, data, "output", d->output);
+}
+
 res_t ik_tool_exec_file_read(void *parent, const char *path)
 {
     assert(path != NULL); // LCOV_EXCL_BR_LINE
@@ -62,43 +74,10 @@ res_t ik_tool_exec_file_read(void *parent, const char *path)
     }
 
     // Build success JSON
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *root = yyjson_mut_obj(doc);
-    if (root == NULL) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-    yyjson_mut_doc_set_root(doc, root);
-
-    yyjson_mut_obj_add_bool(doc, root, "success", true);
-
-    yyjson_mut_val *data = yyjson_mut_obj(doc);
-    if (data == NULL) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-
-    if (!yyjson_mut_obj_add_str(doc, data, "output", buffer)) {  // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc);  // LCOV_EXCL_LINE
-        PANIC("Out of memory");  // LCOV_EXCL_LINE
-    }
-    if (!yyjson_mut_obj_add_val(doc, root, "data", data)) {  // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc);  // LCOV_EXCL_LINE
-        PANIC("Out of memory");  // LCOV_EXCL_LINE
-    }
-
-    char *json = yyjson_mut_write_opts(doc, 0, NULL, NULL, NULL);
-    if (json == NULL) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-
-    char *result = talloc_strdup(parent, json);
-    free(json);
-    yyjson_mut_doc_free(doc);
-
-    if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    file_read_result_data_t result_data = {
+        .output = buffer
+    };
+    char *result;
+    ik_tool_response_success_with_data(parent, add_file_read_data, &result_data, &result);
     return OK(result);
 }

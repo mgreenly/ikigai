@@ -181,13 +181,10 @@ START_TEST(test_api_key_too_long) {
     cfg->openai_api_key = long_key;
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
-    ck_assert(!msg_res.is_err);
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(conv, "user", "Test");
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     /* Should fail with INVALID_ARG error */
@@ -219,13 +216,10 @@ START_TEST(test_callback_error_propagation_defensive) {
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
-    ck_assert(!msg_res.is_err);
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(conv, "user", "Test");
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     /* Set up mock response */
@@ -256,13 +250,10 @@ START_TEST(test_callback_error_normal_path)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
-    ck_assert(!msg_res.is_err);
-    res_t add_res = ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(conv, "user", "Test");
+    res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 
     /* Set up mock response */

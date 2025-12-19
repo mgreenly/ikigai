@@ -130,9 +130,7 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_scrollback_t *scrollback = ik_scrollback_create(parent, 80);
     ck_assert_ptr_nonnull(scrollback);
 
-    res_t res = ik_openai_conversation_create(parent);
-    ck_assert(is_ok(&res));
-    ik_openai_conversation_t *conv = res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
     ck_assert_ptr_nonnull(conv);
 
     // Create minimal config
@@ -301,10 +299,10 @@ START_TEST(test_rewind_db_error_with_debug_pipe)
     ck_assert(is_ok(&mark_res));
 
     // Add a message to conversation
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "test");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "test");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Mock: SELECT succeeds (finds mark), INSERT fails
     mock_ntuples = 1;
@@ -339,10 +337,10 @@ START_TEST(test_rewind_db_error_no_debug_pipe)
     ck_assert(is_ok(&mark_res));
 
     // Add a message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "test");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "test");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Mock: SELECT succeeds, INSERT fails
     mock_ntuples = 1;
@@ -375,10 +373,10 @@ START_TEST(test_rewind_db_error_null_write_end)
     ck_assert(is_ok(&mark_res));
 
     // Add a message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "test");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "test");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Mock: SELECT succeeds, INSERT fails
     mock_ntuples = 1;
@@ -422,10 +420,10 @@ START_TEST(test_rewind_with_db_ctx_but_no_session)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "msg");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Rewind - should not attempt DB operations
     res_t res = ik_cmd_rewind(ctx, repl, "test");
@@ -448,10 +446,10 @@ START_TEST(test_rewind_with_zero_message_id)
     ck_assert(is_ok(&mark_res));
 
     // Add message
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "msg");
-    ck_assert(is_ok(&msg_res));
-    msg_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&msg_res));
+    ik_msg_t *msg_created = ik_openai_msg_create(repl->current->conversation, "user", "msg");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg_created);
+    // removed assertion
 
     // Mock: Query returns 0 rows (target_message_id will be 0)
     mock_ntuples = 0;

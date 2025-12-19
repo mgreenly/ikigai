@@ -16,9 +16,9 @@ typedef struct {
 // The wrapper's destructor will automatically call PQclear() on the PGresult
 // when the parent talloc context is freed.
 //
-// mem_ctx: Parent talloc context
+// ctx: Parent talloc context
 // pg_res: PGresult to wrap (may be NULL)
 // Returns: Wrapper object (never NULL - panics on allocation failure)
-ik_pg_result_wrapper_t *ik_db_wrap_pg_result(TALLOC_CTX *mem_ctx, PGresult *pg_res);
+ik_pg_result_wrapper_t *ik_db_wrap_pg_result(TALLOC_CTX *ctx, PGresult *pg_res);
 
 #endif // IK_DB_PG_RESULT_H

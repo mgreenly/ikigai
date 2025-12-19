@@ -37,9 +37,7 @@ START_TEST(test_chat_create_empty_conversation) {
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     /* Create empty conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     /* Call chat_create - should fail with empty conversation */
     res_t result = ik_openai_chat_create(ctx, cfg, conv, NULL, NULL);
@@ -60,13 +58,9 @@ START_TEST(test_chat_create_missing_api_key)
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(conv, "user", "Hello");
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -91,13 +85,9 @@ START_TEST(test_chat_create_empty_api_key)
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(conv, "user", "Hello");
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -125,13 +115,9 @@ START_TEST(test_chat_create_valid_inputs)
     cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Test message");
-    ck_assert(!msg_res.is_err);
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(conv, "user", "Test message");
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);

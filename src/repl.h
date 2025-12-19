@@ -43,6 +43,11 @@ typedef struct ik_repl_ctx_t {
     // All per-agent fields accessed via this pointer
     ik_agent_ctx_t *current;
 
+    // Agent array (for navigation and /agents command)
+    ik_agent_ctx_t **agents;     // Array of all loaded agents
+    size_t agent_count;           // Number of agents in array
+    size_t agent_capacity;        // Allocated capacity
+
     ik_input_parser_t *input_parser;  // Input parser
     atomic_bool quit;           // Exit flag (atomic for thread safety)
     ik_scroll_detector_t *scroll_det;  // Scroll detector (rel-05)
@@ -88,11 +93,6 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl);
 res_t ik_repl_handle_resize(ik_repl_ctx_t *repl);
 
 // State transition functions (Phase 1.6)
-void ik_repl_transition_to_waiting_for_llm(ik_repl_ctx_t *repl);
-void ik_repl_transition_to_idle(ik_repl_ctx_t *repl);
-void ik_repl_transition_to_executing_tool(ik_repl_ctx_t *repl);
-void ik_repl_transition_from_executing_tool(ik_repl_ctx_t *repl);
-
 // Internal helper functions moved to repl_event_handlers.h
 
 // Tool execution helper (exposed to reduce complexity in handle_request_success)
@@ -103,4 +103,41 @@ void ik_repl_start_tool_execution(ik_repl_ctx_t *repl);
 void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl);
 
 // Tool loop decision function (Phase 2: Story 02)
-bool ik_repl_should_continue_tool_loop(const ik_repl_ctx_t *repl);
+bool ik_agent_should_continue_tool_loop(const ik_agent_ctx_t *agent);
+
+// Agent array management
+res_t ik_repl_add_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
+res_t ik_repl_remove_agent(ik_repl_ctx_t *repl, const char *uuid);
+
+// Find agent by UUID (exact or prefix match)
+// Returns first matching agent, or NULL if no match or ambiguous
+ik_agent_ctx_t *ik_repl_find_agent(ik_repl_ctx_t *repl, const char *uuid_prefix);
+
+// Check if UUID prefix is ambiguous (matches multiple agents)
+bool ik_repl_uuid_ambiguous(ik_repl_ctx_t *repl, const char *uuid_prefix);
+
+// Switch from current agent to new_agent
+// Saves state on outgoing, restores on incoming
+// Returns ERR if new_agent is NULL or same as current
+res_t ik_repl_switch_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *new_agent);
+
+// Navigate to previous sibling agent (wraps around)
+// Siblings are agents with the same parent_uuid
+res_t ik_repl_nav_prev_sibling(ik_repl_ctx_t *repl);
+
+// Navigate to next sibling agent (wraps around)
+// Siblings are agents with the same parent_uuid
+res_t ik_repl_nav_next_sibling(ik_repl_ctx_t *repl);
+
+// Navigate to parent agent
+// No action if at root or parent not in agents array
+res_t ik_repl_nav_parent(ik_repl_ctx_t *repl);
+
+// Navigate to most recent running child
+// No action if no children
+res_t ik_repl_nav_child(ik_repl_ctx_t *repl);
+
+// Calculate and update navigation context for current agent's separator
+// Called automatically after agent switch, fork, and kill
+// Can be called manually to refresh navigation indicators
+void ik_repl_update_nav_context(ik_repl_ctx_t *repl);

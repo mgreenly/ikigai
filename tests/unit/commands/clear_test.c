@@ -6,6 +6,7 @@
 #include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
+#include "../../../src/logger.h"
 #include "../../../src/shared.h"
 #include "../../../src/error.h"
 #include "../../../src/marks.h"
@@ -33,9 +34,7 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation
-    res_t res = ik_openai_conversation_create(parent);
-    ck_assert(is_ok(&res));
-    ik_openai_conversation_t *conv = res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
     ck_assert_ptr_nonnull(conv);
 
     // Create minimal config
@@ -46,6 +45,9 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(shared);
     shared->cfg = cfg;
+
+    // Create logger (required by /clear command)
+    shared->logger = ik_logger_create(parent, ".");
 
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
@@ -119,16 +121,12 @@ END_TEST
 START_TEST(test_clear_conversation_with_messages)
 {
     // Add messages to conversation
-    res_t res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(is_ok(&res));
-    ik_msg_t *msg1 = res.ok;
+    ik_msg_t *msg1 = ik_openai_msg_create(ctx, "user", "Hello");
 
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg1);
+    res_t res = ik_openai_conversation_add_msg(repl->current->conversation, msg1);
     ck_assert(is_ok(&res));
 
-    res = ik_openai_msg_create(ctx, "assistant", "Hi there!");
-    ck_assert(is_ok(&res));
-    ik_msg_t *msg2 = res.ok;
+    ik_msg_t *msg2 = ik_openai_msg_create(ctx, "assistant", "Hi there!");
 
     res = ik_openai_conversation_add_msg(repl->current->conversation, msg2);
     ck_assert(is_ok(&res));
@@ -156,15 +154,11 @@ START_TEST(test_clear_both_scrollback_and_conversation)
     ck_assert(is_ok(&res));
 
     // Add conversation messages
-    res = ik_openai_msg_create(ctx, "user", "User message");
-    ck_assert(is_ok(&res));
-    ik_msg_t *msg1 = res.ok;
+    ik_msg_t *msg1 = ik_openai_msg_create(ctx, "user", "User message");
     res = ik_openai_conversation_add_msg(repl->current->conversation, msg1);
     ck_assert(is_ok(&res));
 
-    res = ik_openai_msg_create(ctx, "assistant", "Assistant response");
-    ck_assert(is_ok(&res));
-    ik_msg_t *msg2 = res.ok;
+    ik_msg_t *msg2 = ik_openai_msg_create(ctx, "assistant", "Assistant response");
     res = ik_openai_conversation_add_msg(repl->current->conversation, msg2);
     ck_assert(is_ok(&res));
 
@@ -227,9 +221,7 @@ START_TEST(test_clear_with_marks)
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
 
-    res = ik_openai_msg_create(ctx, "user", "Message");
-    ck_assert(is_ok(&res));
-    ik_msg_t *msg = res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(ctx, "user", "Message");
     res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
     ck_assert(is_ok(&res));
 
@@ -270,6 +262,7 @@ START_TEST(test_clear_with_system_message_displays_in_scrollback)
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
+    shared->logger = ik_logger_create(ctx, ".");
     repl->shared = shared;
 
     // Add some content to scrollback first
@@ -317,6 +310,7 @@ START_TEST(test_clear_without_system_message_empty_scrollback)
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
+    shared->logger = ik_logger_create(ctx, ".");
     repl->shared = shared;
 
     // Add some content to scrollback
@@ -358,6 +352,7 @@ START_TEST(test_clear_with_system_message_append_failure)
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
+    shared->logger = ik_logger_create(ctx, ".");
     repl->shared = shared;
 
     // Add some content to scrollback first

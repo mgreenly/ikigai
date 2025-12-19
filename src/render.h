@@ -14,7 +14,7 @@ typedef struct ik_render_ctx_t {
 } ik_render_ctx_t;
 
 // Create render context
-res_t ik_render_create(void *parent, int32_t rows, int32_t cols, int32_t tty_fd, ik_render_ctx_t **ctx_out);
+res_t ik_render_create(TALLOC_CTX *ctx, int32_t rows, int32_t cols, int32_t tty_fd, ik_render_ctx_t **render_ctx_out);
 
 // Render input buffer to terminal (text + cursor positioning)
 res_t ik_render_input_buffer(ik_render_ctx_t *ctx, const char *text, size_t text_len, size_t cursor_byte_offset);

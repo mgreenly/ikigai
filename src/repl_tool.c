@@ -5,6 +5,7 @@
 #include "db/message.h"
 #include "event_render.h"
 #include "format.h"
+#include "logger.h"
 #include "panic.h"
 #include "shared.h"
 #include "tool.h"
@@ -17,20 +18,20 @@
 
 // Arguments passed to the worker thread.
 // All strings are copied into tool_thread_ctx so the thread owns them.
-// The repl pointer is used to write results back - this is safe because
+// The agent pointer is used to write results back - this is safe because
 // main thread only reads these fields after seeing tool_thread_complete=true.
 typedef struct {
     TALLOC_CTX *ctx;           // Memory context for allocations (owned by main thread)
     const char *tool_name;     // Copied into ctx, safe for thread to use
     const char *arguments;     // Copied into ctx, safe for thread to use
-    ik_repl_ctx_t *repl;       // For writing result and signaling completion
+    ik_agent_ctx_t *agent;     // Direct reference to target agent
 } tool_thread_args_t;
 
 // Worker thread function - runs tool dispatch in background.
 //
 // Thread safety model:
-// - Worker WRITES to repl->current->tool_thread_result (no mutex - see D1 above)
-// - Worker WRITES to repl->current->tool_thread_complete UNDER MUTEX
+// - Worker WRITES to agent->tool_thread_result (no mutex - see D1 above)
+// - Worker WRITES to agent->tool_thread_complete UNDER MUTEX
 // - Main thread only READS result AFTER seeing complete=true
 // - The mutex on the flag provides the memory barrier
 static void *tool_thread_worker(void *arg)
@@ -44,15 +45,15 @@ static void *tool_thread_worker(void *arg)
     // Store result directly in agent context.
     // Safe without mutex: main thread won't read until complete=true,
     // and setting complete=true (below) provides the memory barrier.
-    args->repl->current->tool_thread_result = result.ok;
+    args->agent->tool_thread_result = result.ok;
 
     // Signal completion under mutex.
     // The mutex ensures main thread sees result before or after this,
     // never during. Combined with the read-after-complete pattern,
     // this guarantees main thread sees the final result value.
-    pthread_mutex_lock_(&args->repl->current->tool_thread_mutex);
-    args->repl->current->tool_thread_complete = true;
-    pthread_mutex_unlock_(&args->repl->current->tool_thread_mutex);
+    pthread_mutex_lock_(&args->agent->tool_thread_mutex);
+    args->agent->tool_thread_complete = true;
+    pthread_mutex_unlock_(&args->agent->tool_thread_mutex);
 
     return NULL;
 }
@@ -75,11 +76,12 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
-    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->shared->openai_debug_pipe->write_end,
-                "<< TOOL_CALL: %s\n",
-                summary);
-        fflush(repl->shared->openai_debug_pipe->write_end);
+    {
+        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_call");  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "summary", summary);  // LCOV_EXCL_LINE
+        ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
 
     // 2. Execute tool
@@ -94,11 +96,12 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added
-    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->shared->openai_debug_pipe->write_end,
-                "<< TOOL_RESULT: %s\n",
-                result_json);
-        fflush(repl->shared->openai_debug_pipe->write_end);
+    {
+        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_result");  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "result", result_json);  // LCOV_EXCL_LINE
+        ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
 
     // 4. Display tool call and result in scrollback via event renderer
@@ -110,9 +113,9 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     // 5. Persist to database
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              "tool_call", formatted_call, tc_msg->data_json);
+                              repl->current->uuid, "tool_call", formatted_call, tc_msg->data_json);
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              "tool_result", formatted_result, result_msg->data_json);
+                              repl->current->uuid, "tool_result", formatted_result, result_msg->data_json);
     }
 
     // 6. Clear pending tool call
@@ -128,29 +131,29 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
 // - State is EXECUTING_TOOL
 // - Thread is running (or we PANICed)
 // - Event loop resumes, spinner animates
-void ik_repl_start_tool_execution(ik_repl_ctx_t *repl)
+void ik_agent_start_tool_execution(ik_agent_ctx_t *agent)
 {
-    assert(repl != NULL);                    // LCOV_EXCL_BR_LINE
-    assert(repl->current->pending_tool_call != NULL); // LCOV_EXCL_BR_LINE
-    assert(!repl->current->tool_thread_running);      // LCOV_EXCL_BR_LINE
+    assert(agent != NULL);                    // LCOV_EXCL_BR_LINE
+    assert(agent->pending_tool_call != NULL); // LCOV_EXCL_BR_LINE
+    assert(!agent->tool_thread_running);      // LCOV_EXCL_BR_LINE
 
-    ik_tool_call_t *tc = repl->current->pending_tool_call;
+    ik_tool_call_t *tc = agent->pending_tool_call;
 
     // Create memory context for thread allocations.
     // Owned by main thread (child of agent), freed after completion.
     // Thread allocates into this but doesn't free it.
-    repl->current->tool_thread_ctx = talloc_new(repl->current);
-    if (repl->current->tool_thread_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    agent->tool_thread_ctx = talloc_new(agent);
+    if (agent->tool_thread_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Create thread arguments in the thread context.
     // Copy strings so thread has its own copies (original may be freed).
-    tool_thread_args_t *args = talloc(repl->current->tool_thread_ctx, tool_thread_args_t);
+    tool_thread_args_t *args = talloc(agent->tool_thread_ctx, tool_thread_args_t);
     if (args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    args->ctx = repl->current->tool_thread_ctx;
-    args->tool_name = talloc_strdup(repl->current->tool_thread_ctx, tc->name);
-    args->arguments = talloc_strdup(repl->current->tool_thread_ctx, tc->arguments);
-    args->repl = repl;
+    args->ctx = agent->tool_thread_ctx;
+    args->tool_name = talloc_strdup(agent->tool_thread_ctx, tc->name);
+    args->arguments = talloc_strdup(agent->tool_thread_ctx, tc->arguments);
+    args->agent = agent;
 
     if (args->tool_name == NULL || args->arguments == NULL) { // LCOV_EXCL_BR_LINE
         PANIC("Out of memory"); // LCOV_EXCL_LINE
@@ -159,25 +162,31 @@ void ik_repl_start_tool_execution(ik_repl_ctx_t *repl)
     // Set flags BEFORE spawning thread to avoid race condition.
     // If thread runs faster than main thread, we must have flags set first.
     // If spawn fails, we reset flags and PANIC.
-    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-    repl->current->tool_thread_complete = false;
-    repl->current->tool_thread_running = true;
-    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    agent->tool_thread_complete = false;
+    agent->tool_thread_running = true;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
 
     // Spawn thread - if this fails, reset flags and PANIC.
-    int ret = pthread_create_(&repl->current->tool_thread, NULL, tool_thread_worker, args);
+    int ret = pthread_create_(&agent->tool_thread, NULL, tool_thread_worker, args);
     if (ret != 0) { // LCOV_EXCL_BR_LINE
         // Thread creation failure is rare (resource exhaustion).
         // Reset flags before PANIC to maintain consistency.
-        pthread_mutex_lock_(&repl->current->tool_thread_mutex); // LCOV_EXCL_LINE
-        repl->current->tool_thread_running = false; // LCOV_EXCL_LINE
-        pthread_mutex_unlock_(&repl->current->tool_thread_mutex); // LCOV_EXCL_LINE
+        pthread_mutex_lock_(&agent->tool_thread_mutex); // LCOV_EXCL_LINE
+        agent->tool_thread_running = false; // LCOV_EXCL_LINE
+        pthread_mutex_unlock_(&agent->tool_thread_mutex); // LCOV_EXCL_LINE
         PANIC("Failed to create tool thread"); // LCOV_EXCL_LINE
     }
 
     // Transition to EXECUTING_TOOL state.
     // Spinner stays visible, input stays hidden.
-    ik_repl_transition_to_executing_tool(repl);
+    ik_agent_transition_to_executing_tool(agent);
+}
+
+// Wrapper for backward compatibility - calls new agent-based function
+void ik_repl_start_tool_execution(ik_repl_ctx_t *repl)
+{
+    ik_agent_start_tool_execution(repl->current);
 }
 
 // Complete async tool execution - harvest result after thread finishes.
@@ -192,85 +201,93 @@ void ik_repl_start_tool_execution(ik_repl_ctx_t *repl)
 // - Scrollback updated
 // - Thread context freed
 // - State back to WAITING_FOR_LLM
-void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
+void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
 {
-    assert(repl != NULL);                  // LCOV_EXCL_BR_LINE
-    assert(repl->current->tool_thread_running);     // LCOV_EXCL_BR_LINE
-    assert(repl->current->tool_thread_complete);    // LCOV_EXCL_BR_LINE
+    assert(agent != NULL);                  // LCOV_EXCL_BR_LINE
+    assert(agent->tool_thread_running);     // LCOV_EXCL_BR_LINE
+    assert(agent->tool_thread_complete);    // LCOV_EXCL_BR_LINE
 
     // Join thread - it's already done, so this returns immediately.
     // We still call join to clean up thread resources.
-    pthread_join_(repl->current->tool_thread, NULL);
+    pthread_join_(agent->tool_thread, NULL);
 
-    ik_tool_call_t *tc = repl->current->pending_tool_call;
+    ik_tool_call_t *tc = agent->pending_tool_call;
 
     // Steal result from thread context before freeing it.
     // talloc_steal moves ownership to agent so it survives context free.
-    char *result_json = talloc_steal(repl->current, repl->current->tool_thread_result);
+    char *result_json = talloc_steal(agent, agent->tool_thread_result);
 
     // 1. Add tool_call message to conversation
-    char *summary = talloc_asprintf(repl, "%s(%s)", tc->name, tc->arguments);
+    char *summary = talloc_asprintf(agent, "%s(%s)", tc->name, tc->arguments);
     if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     ik_msg_t *tc_msg = ik_openai_msg_create_tool_call(
-        repl->current->conversation, tc->id, "function", tc->name, tc->arguments, summary);
-    res_t result = ik_openai_conversation_add_msg(repl->current->conversation, tc_msg);
+        agent->conversation, tc->id, "function", tc->name, tc->arguments, summary);
+    res_t result = ik_openai_conversation_add_msg(agent->conversation, tc_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
-    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->shared->openai_debug_pipe->write_end,
-                "<< TOOL_CALL: %s\n",
-                summary);
-        fflush(repl->shared->openai_debug_pipe->write_end);
+    {
+        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_call");  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "summary", summary);  // LCOV_EXCL_LINE
+        ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
 
     // 2. Add tool result message to conversation
     ik_msg_t *result_msg = ik_openai_msg_create_tool_result(
-        repl->current->conversation, tc->id, result_json);
-    result = ik_openai_conversation_add_msg(repl->current->conversation, result_msg);
+        agent->conversation, tc->id, result_json);
+    result = ik_openai_conversation_add_msg(agent->conversation, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added
-    if (repl->shared->openai_debug_pipe != NULL && repl->shared->openai_debug_pipe->write_end != NULL) {
-        fprintf(repl->shared->openai_debug_pipe->write_end,
-                "<< TOOL_RESULT: %s\n",
-                result_json);
-        fflush(repl->shared->openai_debug_pipe->write_end);
+    {
+        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_result");  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "result", result_json);  // LCOV_EXCL_LINE
+        ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
 
     // 3. Display in scrollback via event renderer
-    const char *formatted_call = ik_format_tool_call(repl, tc);
-    ik_event_render(repl->current->scrollback, "tool_call", formatted_call, "{}");
-    const char *formatted_result = ik_format_tool_result(repl, tc->name, result_json);
-    ik_event_render(repl->current->scrollback, "tool_result", formatted_result, "{}");
+    const char *formatted_call = ik_format_tool_call(agent, tc);
+    ik_event_render(agent->scrollback, "tool_call", formatted_call, "{}");
+    const char *formatted_result = ik_format_tool_result(agent, tc->name, result_json);
+    ik_event_render(agent->scrollback, "tool_result", formatted_result, "{}");
 
     // 4. Persist to database
-    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
-        ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              "tool_call", formatted_call, tc_msg->data_json);
-        ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              "tool_result", formatted_result, result_msg->data_json);
+    if (agent->shared->db_ctx != NULL && agent->shared->session_id > 0) {
+        ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
+                              agent->uuid, "tool_call", formatted_call, tc_msg->data_json);
+        ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
+                              agent->uuid, "tool_result", formatted_result, result_msg->data_json);
     }
 
     // 5. Clean up
     talloc_free(summary);
-    talloc_free(repl->current->pending_tool_call);
-    repl->current->pending_tool_call = NULL;
+    talloc_free(agent->pending_tool_call);
+    agent->pending_tool_call = NULL;
 
     // Free thread context (includes args struct and copied strings).
     // result_json was stolen out, so it survives.
-    talloc_free(repl->current->tool_thread_ctx);
-    repl->current->tool_thread_ctx = NULL;
+    talloc_free(agent->tool_thread_ctx);
+    agent->tool_thread_ctx = NULL;
 
     // Reset thread state for next tool call
-    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-    repl->current->tool_thread_running = false;
-    repl->current->tool_thread_complete = false;
-    repl->current->tool_thread_result = NULL;
-    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    agent->tool_thread_running = false;
+    agent->tool_thread_complete = false;
+    agent->tool_thread_result = NULL;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
 
     // Transition back to WAITING_FOR_LLM.
     // Caller will check if tool loop should continue.
-    ik_repl_transition_from_executing_tool(repl);
+    ik_agent_transition_from_executing_tool(agent);
+}
+
+// Wrapper for backward compatibility - calls new agent-based function
+void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
+{
+    ik_agent_complete_tool_execution(repl->current);
 }

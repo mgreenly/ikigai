@@ -1,0 +1,13 @@
+{
+  "deferred": [
+    {
+      "task": "init-mark-decouple.md",
+      "group": "Standardize Initialization Patterns",
+      "model": "sonnet",
+      "thinking": "extended",
+      "reason": "Touches src/agent.h which conflicts with all agent decomposition tasks. High complexity - reconsider after agent refactor completes.",
+      "deferred_from": "rel-06/tasks/order.json",
+      "deferred_date": "2025-12-18"
+    }
+  ]
+}

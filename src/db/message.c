@@ -23,6 +23,9 @@ static const char *VALID_KINDS[] = {
     "tool_result",
     "mark",
     "rewind",
+    "agent_killed",
+    "command",
+    "fork",
     NULL
 };
 
@@ -43,6 +46,7 @@ bool ik_db_message_is_valid_kind(const char *kind) {
 
 res_t ik_db_message_insert(ik_db_ctx_t *db,
                             int64_t session_id,
+                            const char *agent_uuid,
                             const char *kind,
                             const char *content,
                             const char *data_json) {
@@ -58,22 +62,23 @@ res_t ik_db_message_insert(ik_db_ctx_t *db,
 
     // Build parameterized query
     const char *query =
-        "INSERT INTO messages (session_id, kind, content, data) "
-        "VALUES ($1, $2, $3, $4)";
+        "INSERT INTO messages (session_id, agent_uuid, kind, content, data) "
+        "VALUES ($1, $2, $3, $4, $5)";
 
     // Prepare parameters
     char *session_id_str = talloc_asprintf(tmp, "%lld", (long long)session_id);
     if (session_id_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    const char *params[4];
+    const char *params[5];
     params[0] = session_id_str;
-    params[1] = kind;
-    params[2] = content;      // Can be NULL
-    params[3] = data_json;    // Can be NULL
+    params[1] = agent_uuid;   // Can be NULL
+    params[2] = kind;
+    params[3] = content;      // Can be NULL
+    params[4] = data_json;    // Can be NULL
 
     // Execute query and wrap result for automatic cleanup
     ik_pg_result_wrapper_t *res_wrapper =
-        ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, query, 4, NULL, params, NULL, NULL, 0));
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, query, 5, NULL, params, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
     // Check result
@@ -93,20 +98,23 @@ res_t ik_db_message_insert(ik_db_ctx_t *db,
     return OK(NULL);
 }
 
-ik_message_t *ik_msg_create_tool_result(void *parent,
-                                        const char *tool_call_id,
-                                        const char *name,
-                                        const char *output,
-                                        bool success,
-                                        const char *content) {
+ik_msg_t *ik_msg_create_tool_result(void *parent,
+                                    const char *tool_call_id,
+                                    const char *name,
+                                    const char *output,
+                                    bool success,
+                                    const char *content) {
     assert(tool_call_id != NULL);  // LCOV_EXCL_BR_LINE
     assert(name != NULL);           // LCOV_EXCL_BR_LINE
     assert(output != NULL);         // LCOV_EXCL_BR_LINE
     assert(content != NULL);        // LCOV_EXCL_BR_LINE
 
     // Allocate message struct
-    ik_message_t *msg = talloc_zero(parent, ik_message_t);
+    ik_msg_t *msg = talloc_zero(parent, ik_msg_t);
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Initialize ID to 0 for in-memory message
+    msg->id = 0;
 
     // Set kind to "tool_result"
     msg->kind = talloc_strdup(msg, "tool_result");

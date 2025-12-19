@@ -26,7 +26,9 @@ bool ik_event_renders_visible(const char *kind)
     if (strcmp(kind, "user") == 0 ||
         strcmp(kind, "assistant") == 0 ||
         strcmp(kind, "system") == 0 ||
-        strcmp(kind, "mark") == 0) {
+        strcmp(kind, "mark") == 0 ||
+        strcmp(kind, "command") == 0 ||
+        strcmp(kind, "fork") == 0) {
         return true;
     }
 
@@ -165,7 +167,9 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         color = IK_ANSI_GRAY_LIGHT;  // 249 - slightly subdued
     } else if (strcmp(kind, "tool_call") == 0 ||
                strcmp(kind, "tool_result") == 0 ||
-               strcmp(kind, "system") == 0) {
+               strcmp(kind, "system") == 0 ||
+               strcmp(kind, "command") == 0 ||
+               strcmp(kind, "fork") == 0) {
         color = IK_ANSI_GRAY_SUBDUED;  // 242 - very subdued
     }
     // user, mark, rewind, clear: color = 0 (no color)
@@ -175,7 +179,9 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         strcmp(kind, "assistant") == 0 ||
         strcmp(kind, "system") == 0 ||
         strcmp(kind, "tool_call") == 0 ||
-        strcmp(kind, "tool_result") == 0) {
+        strcmp(kind, "tool_result") == 0 ||
+        strcmp(kind, "command") == 0 ||
+        strcmp(kind, "fork") == 0) {
         return render_content_event(scrollback, content, color);
     }
 
@@ -183,10 +189,11 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         return render_mark_event(scrollback, data_json);
     }
 
-    if (strcmp(kind, "rewind") == 0 || strcmp(kind, "clear") == 0) {
+    if (strcmp(kind, "rewind") == 0 || strcmp(kind, "clear") == 0 || strcmp(kind, "agent_killed") == 0) {
         // These events don't render visual content
         // rewind: truncation is handled by replay logic
         // clear: clearing is handled by caller
+        // agent_killed: metadata event for tracking killed agents
         return OK(NULL);
     }
 

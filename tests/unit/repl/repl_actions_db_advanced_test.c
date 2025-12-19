@@ -11,16 +11,21 @@
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../../src/db/message.h"
+#include "../../../src/db/agent.h"
 #include "../../../src/db/connection.h"
-#include "../../../src/db/session.h"
+#include "../../../src/db/mail.h"
+#include "../../../src/db/message.h"
 #include "../../../src/db/replay.h"
+#include "../../../src/db/session.h"
 #include "../../../src/error.h"
+#include "../../../src/mail/msg.h"
 #include "../../../src/openai/client.h"
 #include "../../../src/openai/client_multi.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../test_utils.h"
+
+// Note: ik_db_ensure_agent_zero is no longer mocked - using real implementation from db/agent.c
 
 // Mock state for ik_db_message_insert
 static bool mock_message_insert_should_fail = false;
@@ -29,12 +34,14 @@ static TALLOC_CTX *mock_err_ctx = NULL;
 // Mock ik_db_message_insert to simulate database error
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
                            int64_t session_id,
+                           const char *agent_uuid,
                            const char *kind,
                            const char *content,
                            const char *data_json)
 {
     (void)db_ctx;
     (void)session_id;
+    (void)agent_uuid;
     (void)kind;
     (void)content;
     (void)data_json;
@@ -64,13 +71,17 @@ res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 }
 
 // Mock ik_db_messages_load (not used in this test, but needed for linking)
-res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id)
+res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger)
 {
     (void)ctx;
     (void)db_ctx;
     (void)session_id;
+    (void)logger;
     return OK(NULL);
 }
+
+// Note: ik_db_ensure_agent_zero and ik_db_mail_insert mocks removed
+// - now using real implementations from db/agent.c and db/mail.c (included in MODULE_SOURCES_NO_DB)
 
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
@@ -120,9 +131,7 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->current->input_buffer);
 
     // Create conversation
-    res_t conv_res = ik_openai_conversation_create(repl);
-    ck_assert(is_ok(&conv_res));
-    repl->current->conversation = conv_res.ok;
+    repl->current->conversation = ik_openai_conversation_create(repl);
 
     // Create multi client (opaque pointer)
     repl->current->multi = talloc_zero_(repl, 1);

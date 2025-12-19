@@ -11,7 +11,7 @@
 
 // Mock PostgreSQL connection string for testing
 // Note: Tests requiring actual database connectivity will need appropriate setup
-#define INVALID_HOST_CONN_STR "postgresql://nonexistent-host-12345/test_db"
+#define INVALID_HOST_CONN_STR "postgresql://nonexistent-host-12345/test_db?connect_timeout=1"
 #define MALFORMED_CONN_STR "not-a-valid-connection-string"
 
 // Get PostgreSQL host from environment or default to localhost
@@ -135,7 +135,8 @@ END_TEST START_TEST(test_db_init_postgres_scheme)
 
     // Test postgres:// scheme (alternative to postgresql://)
     // This will likely fail to connect but should pass validation
-    res_t res = ik_db_init(test_ctx, "postgres://nonexistent-host-99999/testdb", &db_ctx);
+    // Use connect_timeout=1 to fail fast in CI environments
+    res_t res = ik_db_init(test_ctx, "postgres://nonexistent-host-99999/testdb?connect_timeout=1", &db_ctx);
 
     // Should fail with DB_CONNECT, not INVALID_ARG (validation should pass)
     ck_assert(is_err(&res));
@@ -148,7 +149,8 @@ END_TEST START_TEST(test_db_init_key_value_format)
 
     // Test libpq key=value format
     // This will likely fail to connect but should pass validation
-    res_t res = ik_db_init(test_ctx, "host=nonexistent-host-99999 dbname=testdb", &db_ctx);
+    // Use connect_timeout=1 to fail fast in CI environments
+    res_t res = ik_db_init(test_ctx, "host=nonexistent-host-99999 dbname=testdb connect_timeout=1", &db_ctx);
 
     // Should fail with DB_CONNECT (libpq handles the parsing)
     ck_assert(is_err(&res));
@@ -289,6 +291,37 @@ START_TEST(test_db_init_migration_failure)
 
 END_TEST
 
+// ========== Transaction Tests ==========
+
+START_TEST(test_db_transaction_success)
+{
+    SKIP_IF_NO_DB();
+
+    ik_db_ctx_t *db_ctx = NULL;
+    char *conn_str = get_test_conn_str(test_ctx);
+
+    res_t res = ik_db_init(test_ctx, conn_str, &db_ctx);
+    ck_assert(is_ok(&res));
+
+    // Test BEGIN
+    res = ik_db_begin(db_ctx);
+    ck_assert(is_ok(&res));
+
+    // Test ROLLBACK
+    res = ik_db_rollback(db_ctx);
+    ck_assert(is_ok(&res));
+
+    // Test BEGIN again
+    res = ik_db_begin(db_ctx);
+    ck_assert(is_ok(&res));
+
+    // Test COMMIT
+    res = ik_db_commit(db_ctx);
+    ck_assert(is_ok(&res));
+}
+
+END_TEST
+
 // ========== Suite Configuration ==========
 
 static Suite *connection_suite(void)
@@ -330,6 +363,12 @@ static Suite *connection_suite(void)
     tcase_add_checked_fixture(tc_migration, test_setup, test_teardown);
     tcase_add_test(tc_migration, test_db_init_migration_failure);
     suite_add_tcase(s, tc_migration);
+
+    TCase *tc_transactions = tcase_create("transactions");
+    tcase_add_unchecked_fixture(tc_transactions, suite_setup, suite_teardown);
+    tcase_add_checked_fixture(tc_transactions, test_setup, test_teardown);
+    tcase_add_test(tc_transactions, test_db_transaction_success);
+    suite_add_tcase(s, tc_transactions);
 
     return s;
 }

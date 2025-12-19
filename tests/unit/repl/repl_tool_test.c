@@ -30,11 +30,13 @@ static char *last_insert_data_json = NULL;
 /* Mock implementation of ik_db_message_insert_ */
 res_t ik_db_message_insert_(void *db,
                              int64_t session_id,
+                             const char *agent_uuid,
                              const char *kind,
                              const char *content,
                              const char *data_json) {
     (void)db;
     (void)session_id;
+    (void)agent_uuid;
 
     db_insert_call_count++;
 
@@ -91,9 +93,7 @@ static void setup(void)
     repl->current = agent;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(repl);
-    ck_assert(!conv_res.is_err);
-    repl->current->conversation = conv_res.ok;
+    repl->current->conversation = ik_openai_conversation_create(repl);
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 10);
@@ -197,58 +197,19 @@ END_TEST START_TEST(test_execute_pending_tool_file_read)
 
 END_TEST START_TEST(test_execute_pending_tool_debug_output)
 {
-    /* Create debug pipe for OpenAI output */
-    res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
-    ck_assert(!debug_res.is_err);
-    ik_debug_pipe_t *debug_pipe = (ik_debug_pipe_t *)debug_res.ok;
-    ck_assert_ptr_nonnull(debug_pipe);
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
+    /* Note: This test previously verified debug pipe output.
+     * Debug pipes have been replaced with JSONL logger calls.
+     * The logger writes to .ikigai/logs/current.log instead of a pipe.
+     * We verify that the function executes successfully without the debug pipe. */
 
-    /* Set the debug pipe on repl */
-    repl->shared->openai_debug_pipe = debug_pipe;
-
-    /* Execute pending tool call */
+    /* Execute pending tool call (now uses logger instead of debug pipe) */
     ik_repl_execute_pending_tool(repl);
 
     /* Verify pending_tool_call is cleared */
     ck_assert_ptr_null(repl->current->pending_tool_call);
 
-    /* Read debug output from pipe */
-    fflush(debug_pipe->write_end);
-    fd_set read_fds;
-    FD_ZERO(&read_fds);
-    FD_SET(debug_pipe->read_fd, &read_fds);
-    int max_fd = debug_pipe->read_fd;
-
-    /* Use select to check if data is ready */
-    struct timeval timeout;
-    timeout.tv_sec = 1;
-    timeout.tv_usec = 0;
-    int select_result = select(max_fd + 1, &read_fds, NULL, NULL, &timeout);
-    ck_assert_int_gt(select_result, 0);
-
-    /* Read lines from debug pipe */
-    char ***lines_out = NULL;
-    size_t *count_out = NULL;
-    lines_out = talloc(ctx, char **);
-    count_out = talloc(ctx, size_t);
-    res_t read_res = ik_debug_pipe_read(debug_pipe, lines_out, count_out);
-    ck_assert(!read_res.is_err);
-
-    /* Verify debug output contains both tool call and tool result */
-    bool found_tool_call = false;
-    bool found_tool_result = false;
-    for (size_t i = 0; i < *count_out; i++) {
-        if (strstr((*lines_out)[i], "TOOL_CALL") != NULL &&
-            strstr((*lines_out)[i], "glob") != NULL) {
-            found_tool_call = true;
-        }
-        if (strstr((*lines_out)[i], "TOOL_RESULT") != NULL) {
-            found_tool_result = true;
-        }
-    }
-    ck_assert(found_tool_call);
-    ck_assert(found_tool_result);
+    /* Verify messages were added to conversation */
+    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
 }
 
 END_TEST START_TEST(test_execute_pending_tool_no_debug_pipe)

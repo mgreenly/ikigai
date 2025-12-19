@@ -398,6 +398,7 @@ ik_logger_t *ik_logger_create(TALLOC_CTX *ctx, const char *working_dir)
         talloc_free(logger);  // LCOV_EXCL_LINE
         PANIC("Failed to open log file");  // LCOV_EXCL_LINE
     }
+
     pthread_mutex_unlock(&logger->mutex);
 
     // Set destructor for cleanup
@@ -408,7 +409,8 @@ ik_logger_t *ik_logger_create(TALLOC_CTX *ctx, const char *working_dir)
 
 void ik_logger_reinit(ik_logger_t *logger, const char *working_dir)
 {
-    assert(logger != NULL);      // LCOV_EXCL_BR_LINE
+    // Allow NULL logger (no-op for tests)
+    if (logger == NULL) return;  // LCOV_EXCL_LINE
     assert(working_dir != NULL); // LCOV_EXCL_BR_LINE
 
     // Set up directories and get log file path
@@ -442,7 +444,11 @@ void ik_logger_reinit(ik_logger_t *logger, const char *working_dir)
 // Internal function to write JSONL with a specific level (DI version)
 static void ik_logger_write(ik_logger_t *logger, const char *level, yyjson_mut_doc *doc)
 {
-    assert(logger != NULL); // LCOV_EXCL_BR_LINE
+    // Allow NULL logger (no-op for tests) - free doc and return
+    if (logger == NULL) {  // LCOV_EXCL_START
+        yyjson_mut_doc_free(doc);
+        return;
+    }  // LCOV_EXCL_STOP
     assert(level != NULL);  // LCOV_EXCL_BR_LINE
 
     // Get original root object from doc
@@ -520,4 +526,12 @@ void ik_logger_fatal_json(ik_logger_t *logger, yyjson_mut_doc *doc)
 {
     ik_logger_write(logger, "fatal", doc);
     exit(1);
+}
+
+int ik_logger_get_fd(ik_logger_t *logger)
+{
+    if (logger == NULL || logger->file == NULL) {  // LCOV_EXCL_BR_LINE
+        return -1;  // LCOV_EXCL_LINE
+    }  // LCOV_EXCL_LINE
+    return fileno(logger->file);
 }

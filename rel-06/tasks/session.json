@@ -1,0 +1,1152 @@
+[
+  {
+    "event": "start",
+    "task": "registry-schema.md",
+    "time": "2025-12-14T18:56:40.958Z"
+  },
+  {
+    "event": "done",
+    "task": "registry-schema.md",
+    "time": "2025-12-14T19:16:54.361Z"
+  },
+  {
+    "event": "start",
+    "task": "registry-create.md",
+    "time": "2025-12-14T19:17:11.837Z"
+  },
+  {
+    "event": "done",
+    "task": "registry-create.md",
+    "time": "2025-12-14T19:26:57.258Z"
+  },
+  {
+    "event": "start",
+    "task": "registry-status-update.md",
+    "time": "2025-12-14T19:27:12.123Z"
+  },
+  {
+    "event": "done",
+    "task": "registry-status-update.md",
+    "time": "2025-12-14T19:32:51.562Z"
+  },
+  {
+    "event": "start",
+    "task": "registry-queries.md",
+    "time": "2025-12-14T19:33:06.255Z"
+  },
+  {
+    "event": "done",
+    "task": "registry-queries.md",
+    "time": "2025-12-14T19:41:11.276Z"
+  },
+  {
+    "event": "start",
+    "task": "uuid-refactor.md",
+    "time": "2025-12-14T19:41:26.304Z"
+  },
+  {
+    "event": "done",
+    "task": "uuid-refactor.md",
+    "time": "2025-12-14T19:49:35.915Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-zero-register.md",
+    "time": "2025-12-14T19:49:51.443Z"
+  },
+  {
+    "event": "done",
+    "task": "agent-zero-register.md",
+    "time": "2025-12-14T20:00:12.784Z"
+  },
+  {
+    "event": "start",
+    "task": "repl-agent-array.md",
+    "time": "2025-12-14T20:00:28.758Z"
+  },
+  {
+    "event": "retry",
+    "task": "repl-agent-array.md",
+    "time": "2025-12-14T20:02:36.459Z"
+  },
+  {
+    "event": "start",
+    "task": "repl-agent-array.md",
+    "time": "2025-12-14T20:02:46.593Z"
+  },
+  {
+    "event": "done",
+    "task": "repl-agent-array.md",
+    "time": "2025-12-14T20:27:55.337Z"
+  },
+  {
+    "event": "start",
+    "task": "repl-agent-lookup.md",
+    "time": "2025-12-14T20:28:11.084Z"
+  },
+  {
+    "event": "done",
+    "task": "repl-agent-lookup.md",
+    "time": "2025-12-14T20:39:19.947Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-switch-state.md",
+    "time": "2025-12-14T20:39:35.102Z"
+  },
+  {
+    "event": "done",
+    "task": "agent-switch-state.md",
+    "time": "2025-12-14T20:50:04.001Z"
+  },
+  {
+    "event": "start",
+    "task": "fork-cmd-basic.md",
+    "time": "2025-12-14T20:50:19.178Z"
+  },
+  {
+    "event": "retry",
+    "task": "fork-cmd-basic.md",
+    "time": "2025-12-14T20:58:17.867Z"
+  },
+  {
+    "event": "start",
+    "task": "fork-cmd-basic.md",
+    "time": "2025-12-14T20:58:27.233Z"
+  },
+  {
+    "event": "retry",
+    "task": "fork-cmd-basic.md",
+    "time": "2025-12-14T21:14:06.788Z"
+  },
+  {
+    "event": "start",
+    "task": "fork-cmd-basic.md",
+    "time": "2025-12-14T21:14:15.885Z"
+  },
+  {
+    "event": "done",
+    "task": "fork-cmd-basic.md",
+    "time": "2025-12-14T21:37:34.248Z"
+  },
+  {
+    "event": "start",
+    "task": "fork-cmd-prompt.md",
+    "time": "2025-12-14T21:37:48.925Z"
+  },
+  {
+    "event": "done",
+    "task": "fork-cmd-prompt.md",
+    "time": "2025-12-14T21:52:46.947Z"
+  },
+  {
+    "event": "start",
+    "task": "messages-agent-uuid.md",
+    "time": "2025-12-14T21:53:01.808Z"
+  },
+  {
+    "event": "retry",
+    "task": "messages-agent-uuid.md",
+    "time": "2025-12-14T21:56:42.004Z"
+  },
+  {
+    "event": "start",
+    "task": "messages-agent-uuid.md",
+    "time": "2025-12-14T21:56:50.517Z"
+  },
+  {
+    "event": "done",
+    "task": "messages-agent-uuid.md",
+    "time": "2025-12-14T21:59:49.814Z"
+  },
+  {
+    "event": "done",
+    "task": "messages-agent-uuid.md",
+    "time": "2025-12-14T22:56:06.320Z"
+  },
+  {
+    "event": "start",
+    "task": "fork-history-copy.md",
+    "time": "2025-12-14T22:56:23.998Z"
+  },
+  {
+    "event": "done",
+    "task": "fork-history-copy.md",
+    "time": "2025-12-14T23:05:26.908Z"
+  },
+  {
+    "event": "start",
+    "task": "startup-replay.md",
+    "time": "2025-12-14T23:05:42.508Z"
+  },
+  {
+    "event": "done",
+    "task": "startup-replay.md",
+    "time": "2025-12-14T23:24:43.785Z"
+  },
+  {
+    "event": "start",
+    "task": "fork-sync-barrier.md",
+    "time": "2025-12-14T23:24:59.782Z"
+  },
+  {
+    "event": "done",
+    "task": "fork-sync-barrier.md",
+    "time": "2025-12-14T23:31:53.540Z"
+  },
+  {
+    "event": "start",
+    "task": "kill-cmd-self.md",
+    "time": "2025-12-14T23:32:09.190Z"
+  },
+  {
+    "event": "done",
+    "task": "kill-cmd-self.md",
+    "time": "2025-12-14T23:47:03.043Z"
+  },
+  {
+    "event": "start",
+    "task": "kill-cmd-target.md",
+    "time": "2025-12-14T23:47:19.010Z"
+  },
+  {
+    "event": "retry",
+    "task": "kill-cmd-target.md",
+    "time": "2025-12-14T23:48:53.633Z"
+  },
+  {
+    "event": "start",
+    "task": "kill-cmd-target.md",
+    "time": "2025-12-14T23:49:03.760Z"
+  },
+  {
+    "event": "retry",
+    "task": "kill-cmd-target.md",
+    "time": "2025-12-14T23:50:21.712Z"
+  },
+  {
+    "event": "start",
+    "task": "kill-cmd-target.md",
+    "time": "2025-12-14T23:50:31.110Z"
+  },
+  {
+    "event": "done",
+    "task": "kill-cmd-target.md",
+    "time": "2025-12-15T00:01:55.577Z"
+  },
+  {
+    "event": "start",
+    "task": "kill-cmd-cascade.md",
+    "time": "2025-12-15T00:02:10.824Z"
+  },
+  {
+    "event": "done",
+    "task": "kill-cmd-cascade.md",
+    "time": "2025-12-15T00:10:53.695Z"
+  },
+  {
+    "event": "start",
+    "task": "nav-ctrl-arrows.md",
+    "time": "2025-12-15T00:11:10.791Z"
+  },
+  {
+    "event": "done",
+    "task": "nav-ctrl-arrows.md",
+    "time": "2025-12-15T00:18:10.332Z"
+  },
+  {
+    "event": "start",
+    "task": "nav-sibling-switch.md",
+    "time": "2025-12-15T00:18:26.678Z"
+  },
+  {
+    "event": "done",
+    "task": "nav-sibling-switch.md",
+    "time": "2025-12-15T00:27:40.556Z"
+  },
+  {
+    "event": "start",
+    "task": "nav-parent-child.md",
+    "time": "2025-12-15T00:27:57.616Z"
+  },
+  {
+    "event": "done",
+    "task": "nav-parent-child.md",
+    "time": "2025-12-15T00:38:43.694Z"
+  },
+  {
+    "event": "start",
+    "task": "mail-msg-struct.md",
+    "time": "2025-12-15T00:39:00.566Z"
+  },
+  {
+    "event": "done",
+    "task": "mail-msg-struct.md",
+    "time": "2025-12-15T00:48:04.028Z"
+  },
+  {
+    "event": "start",
+    "task": "mail-db-schema.md",
+    "time": "2025-12-15T00:48:25.577Z"
+  },
+  {
+    "event": "done",
+    "task": "mail-db-schema.md",
+    "time": "2025-12-15T00:52:44.534Z"
+  },
+  {
+    "event": "start",
+    "task": "mail-db-operations.md",
+    "time": "2025-12-15T00:53:04.992Z"
+  },
+  {
+    "event": "done",
+    "task": "mail-db-operations.md",
+    "time": "2025-12-15T01:01:52.246Z"
+  },
+  {
+    "event": "start",
+    "task": "mail-send-cmd.md",
+    "time": "2025-12-15T01:02:08.371Z"
+  },
+  {
+    "event": "done",
+    "task": "mail-send-cmd.md",
+    "time": "2025-12-15T01:20:26.281Z"
+  },
+  {
+    "event": "start",
+    "task": "mail-check-cmd.md",
+    "time": "2025-12-15T01:20:42.542Z"
+  },
+  {
+    "event": "done",
+    "task": "mail-check-cmd.md",
+    "time": "2025-12-15T01:33:52.416Z"
+  },
+  {
+    "event": "start",
+    "task": "mail-read-cmd.md",
+    "time": "2025-12-15T01:34:12.346Z"
+  },
+  {
+    "event": "done",
+    "task": "mail-read-cmd.md",
+    "time": "2025-12-15T01:45:05.608Z"
+  },
+  {
+    "event": "start",
+    "task": "mail-delete-cmd.md",
+    "time": "2025-12-15T01:45:23.954Z"
+  },
+  {
+    "event": "done",
+    "task": "mail-delete-cmd.md",
+    "time": "2025-12-15T01:58:43.157Z"
+  },
+  {
+    "event": "start",
+    "task": "mail-filter-cmd.md",
+    "time": "2025-12-15T01:59:00.280Z"
+  },
+  {
+    "event": "done",
+    "task": "mail-filter-cmd.md",
+    "time": "2025-12-15T02:09:59.032Z"
+  },
+  {
+    "event": "start",
+    "task": "agents-tree-cmd.md",
+    "time": "2025-12-15T02:10:16.389Z"
+  },
+  {
+    "event": "done",
+    "task": "agents-tree-cmd.md",
+    "time": "2025-12-15T02:29:27.838Z"
+  },
+  {
+    "event": "start",
+    "task": "separator-nav-context.md",
+    "time": "2025-12-15T02:29:45.561Z"
+  },
+  {
+    "event": "done",
+    "task": "separator-nav-context.md",
+    "time": "2025-12-15T02:39:34.027Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-created-at-init.md",
+    "time": "2025-12-16T02:14:27.141Z"
+  },
+  {
+    "event": "done",
+    "task": "agent-created-at-init.md",
+    "time": "2025-12-16T02:23:31.547Z"
+  },
+  {
+    "event": "start",
+    "task": "cmd-error-display.md",
+    "time": "2025-12-16T02:23:47.358Z"
+  },
+  {
+    "event": "done",
+    "task": "cmd-error-display.md",
+    "time": "2025-12-16T02:28:00.770Z"
+  },
+  {
+    "event": "start",
+    "task": "agents-tree-indent.md",
+    "time": "2025-12-16T02:28:22.134Z"
+  },
+  {
+    "event": "done",
+    "task": "agents-tree-indent.md",
+    "time": "2025-12-16T02:36:57.404Z"
+  },
+  {
+    "event": "start",
+    "task": "logger-lifecycle.md",
+    "time": "2025-12-16T02:37:18.669Z"
+  },
+  {
+    "event": "done",
+    "task": "logger-lifecycle.md",
+    "time": "2025-12-16T02:42:16.636Z"
+  },
+  {
+    "event": "start",
+    "task": "client-remove-stderr.md",
+    "time": "2025-12-16T02:42:34.673Z"
+  },
+  {
+    "event": "done",
+    "task": "client-remove-stderr.md",
+    "time": "2025-12-16T02:47:05.395Z"
+  },
+  {
+    "event": "start",
+    "task": "panic-log-attempt.md",
+    "time": "2025-12-16T02:47:20.392Z"
+  },
+  {
+    "event": "done",
+    "task": "panic-log-attempt.md",
+    "time": "2025-12-16T02:51:53.594Z"
+  },
+  {
+    "event": "start",
+    "task": "commands-mark-use-logger.md",
+    "time": "2025-12-16T02:52:09.065Z"
+  },
+  {
+    "event": "done",
+    "task": "commands-mark-use-logger.md",
+    "time": "2025-12-16T02:58:15.404Z"
+  },
+  {
+    "event": "start",
+    "task": "commands-use-logger.md",
+    "time": "2025-12-16T02:58:33.544Z"
+  },
+  {
+    "event": "done",
+    "task": "commands-use-logger.md",
+    "time": "2025-12-16T03:02:44.935Z"
+  },
+  {
+    "event": "start",
+    "task": "commands-agent-use-logger.md",
+    "time": "2025-12-16T03:03:02.889Z"
+  },
+  {
+    "event": "done",
+    "task": "commands-agent-use-logger.md",
+    "time": "2025-12-16T03:07:38.872Z"
+  },
+  {
+    "event": "start",
+    "task": "repl-actions-llm-use-logger.md",
+    "time": "2025-12-16T03:07:57.602Z"
+  },
+  {
+    "event": "done",
+    "task": "repl-actions-llm-use-logger.md",
+    "time": "2025-12-16T03:13:27.151Z"
+  },
+  {
+    "event": "start",
+    "task": "repl-event-handlers-use-logger.md",
+    "time": "2025-12-16T03:13:47.751Z"
+  },
+  {
+    "event": "done",
+    "task": "repl-event-handlers-use-logger.md",
+    "time": "2025-12-16T03:23:38.651Z"
+  },
+  {
+    "event": "start",
+    "task": "repl-tool-use-logger.md",
+    "time": "2025-12-16T03:23:56.396Z"
+  },
+  {
+    "event": "done",
+    "task": "repl-tool-use-logger.md",
+    "time": "2025-12-16T03:29:52.418Z"
+  },
+  {
+    "event": "start",
+    "task": "repl-callbacks-use-logger.md",
+    "time": "2025-12-16T03:30:10.773Z"
+  },
+  {
+    "event": "done",
+    "task": "repl-callbacks-use-logger.md",
+    "time": "2025-12-16T03:37:39.981Z"
+  },
+  {
+    "event": "start",
+    "task": "gap0-add-id-field.md",
+    "time": "2025-12-16T23:33:43.917Z"
+  },
+  {
+    "event": "done",
+    "task": "gap0-add-id-field.md",
+    "time": "2025-12-16T23:45:00.000Z"
+  },
+  {
+    "event": "done",
+    "task": "gap0-add-id-field.md",
+    "time": "2025-12-16T23:48:02.540Z"
+  },
+  {
+    "event": "start",
+    "task": "gap0-init-id-creators.md",
+    "time": "2025-12-16T23:48:20.116Z"
+  },
+  {
+    "event": "done",
+    "task": "gap0-init-id-creators.md",
+    "time": "2025-12-16T23:53:34.286Z"
+  },
+  {
+    "event": "start",
+    "task": "gap0-migrate-replay.md",
+    "time": "2025-12-16T23:53:51.202Z"
+  },
+  {
+    "event": "done",
+    "task": "gap0-migrate-replay.md",
+    "time": "2025-12-17T00:00:00.000Z"
+  },
+  {
+    "event": "done",
+    "task": "gap0-migrate-replay.md",
+    "time": "2025-12-16T23:58:10.924Z"
+  },
+  {
+    "event": "start",
+    "task": "gap0-migrate-agent-replay.md",
+    "time": "2025-12-16T23:58:27.284Z"
+  },
+  {
+    "event": "done",
+    "task": "gap0-delete-obsolete-tests.md",
+    "time": "2025-12-17T00:39:37.649Z"
+  },
+  {
+    "event": "start",
+    "task": "gap0-update-docs.md",
+    "time": "2025-12-17T00:40:51.788Z"
+  },
+  {
+    "event": "retry",
+    "task": "gap0-update-docs.md",
+    "time": "2025-12-17T00:43:12.702Z"
+  },
+  {
+    "event": "start",
+    "task": "gap0-update-docs.md",
+    "time": "2025-12-17T00:43:27.570Z"
+  },
+  {
+    "event": "done",
+    "task": "gap0-update-docs.md",
+    "time": "2025-12-17T00:46:43.121Z"
+  },
+  {
+    "event": "start",
+    "task": "gap0-final-verification.md",
+    "time": "2025-12-17T00:47:00.577Z"
+  },
+  {
+    "event": "done",
+    "task": "gap0-final-verification.md",
+    "time": "2025-12-17T01:03:59.843Z"
+  },
+  {
+    "event": "done",
+    "task": "gap1-agent-restore-fn.md",
+    "time": "2025-12-17T02:22:10.341Z"
+  },
+  {
+    "event": "start",
+    "task": "gap1-restore-agents-skeleton.md",
+    "time": "2025-12-17T02:22:27.066Z"
+  },
+  {
+    "event": "done",
+    "task": "gap1-restore-agents-skeleton.md",
+    "time": "2025-12-17T02:28:21.826Z"
+  },
+  {
+    "event": "start",
+    "task": "gap1-restore-loop-body.md",
+    "time": "2025-12-17T02:28:40.500Z"
+  },
+  {
+    "event": "done",
+    "task": "gap1-restore-loop-body.md",
+    "time": "2025-12-17T02:39:21.774Z"
+  },
+  {
+    "event": "start",
+    "task": "gap1-integrate-repl-init.md",
+    "time": "2025-12-17T02:39:37.371Z"
+  },
+  {
+    "event": "done",
+    "task": "gap1-integrate-repl-init.md",
+    "time": "2025-12-17T02:44:26.761Z"
+  },
+  {
+    "event": "start",
+    "task": "gap1-migrate-agent0.md",
+    "time": "2025-12-17T02:44:41.561Z"
+  },
+  {
+    "event": "done",
+    "task": "gap1-migrate-agent0.md",
+    "time": "2025-12-17T02:52:42.705Z"
+  },
+  {
+    "event": "start",
+    "task": "gap1-fresh-install.md",
+    "time": "2025-12-17T02:52:57.630Z"
+  },
+  {
+    "event": "done",
+    "task": "gap1-fresh-install.md",
+    "time": "2025-12-17T03:00:29.176Z"
+  },
+  {
+    "event": "start",
+    "task": "gap1-tests.md",
+    "time": "2025-12-17T03:00:44.240Z"
+  },
+  {
+    "event": "retry",
+    "task": "gap1-tests.md",
+    "time": "2025-12-17T03:02:09.165Z"
+  },
+  {
+    "event": "start",
+    "task": "gap1-tests.md",
+    "time": "2025-12-17T03:02:25.254Z"
+  },
+  {
+    "event": "done",
+    "task": "gap1-tests.md",
+    "time": "2025-12-17T03:15:48.990Z"
+  },
+  {
+    "event": "start",
+    "task": "gap1-delete-obsolete.md",
+    "time": "2025-12-17T03:16:11.691Z"
+  },
+  {
+    "event": "done",
+    "task": "gap1-delete-obsolete.md",
+    "time": "2025-12-17T03:27:56.391Z"
+  },
+  {
+    "event": "start",
+    "task": "gap1-final-verification.md",
+    "time": "2025-12-17T03:28:14.837Z"
+  },
+  {
+    "event": "done",
+    "task": "gap1-final-verification.md",
+    "time": "2025-12-17T03:53:50.357Z"
+  },
+  {
+    "event": "start",
+    "task": "gap2-separator-wiring.md",
+    "time": "2025-12-17T03:54:04.888Z"
+  },
+  {
+    "event": "done",
+    "task": "gap2-separator-wiring.md",
+    "time": "2025-12-17T04:09:14.265Z"
+  },
+  {
+    "event": "start",
+    "task": "bug3-nav-child-switch.md",
+    "time": "2025-12-17T06:38:24.120Z"
+  },
+  {
+    "event": "done",
+    "task": "bug3-nav-child-switch.md",
+    "time": "2025-12-17T06:47:05.690Z"
+  },
+  {
+    "event": "start",
+    "task": "bug2-separator-width.md",
+    "time": "2025-12-17T06:47:23.173Z"
+  },
+  {
+    "event": "done",
+    "task": "bug2-separator-width.md",
+    "time": "2025-12-17T06:53:00.000Z"
+  },
+  {
+    "event": "done",
+    "task": "bug2-separator-width.md",
+    "time": "2025-12-17T06:54:28.832Z"
+  },
+  {
+    "event": "start",
+    "task": "bug1-fork-duplicate-key.md",
+    "time": "2025-12-17T06:54:45.110Z"
+  },
+  {
+    "event": "done",
+    "task": "bug1-fork-duplicate-key.md",
+    "time": "2025-12-17T06:58:18.635Z"
+  },
+  {
+    "event": "start",
+    "task": "bug4-filter-metadata-events.md",
+    "time": "2025-12-17T07:24:11.744Z"
+  },
+  {
+    "event": "done",
+    "task": "bug4-filter-metadata-events.md",
+    "time": "2025-12-17T07:39:18.636Z"
+  },
+  {
+    "event": "start",
+    "task": "bug5-agent-restore-filter.md",
+    "time": "2025-12-17T07:56:26.201Z"
+  },
+  {
+    "event": "done",
+    "task": "bug5-agent-restore-filter.md",
+    "time": "2025-12-17T08:07:58.056Z"
+  },
+  {
+    "event": "done",
+    "task": "06-add-command-fork-renderers.md",
+    "time": "2025-12-17T17:06:43.570Z"
+  },
+  {
+    "event": "start",
+    "task": "07-cleanup-old-replay.md",
+    "time": "2025-12-17T17:08:24.257Z"
+  },
+  {
+    "event": "done",
+    "task": "07-cleanup-old-replay.md",
+    "time": "2025-12-17T17:13:10.353Z"
+  },
+  {
+    "event": "start",
+    "task": "08-fork-scrollback-population.md",
+    "time": "2025-12-17T17:13:24.700Z"
+  },
+  {
+    "event": "done",
+    "task": "08-fork-scrollback-population.md",
+    "time": "2025-12-17T17:23:15.195Z"
+  },
+  {
+    "event": "start",
+    "task": "bug6-delete-mail-position.md",
+    "time": "2025-12-17T21:57:23.692Z"
+  },
+  {
+    "event": "done",
+    "task": "bug6-delete-mail-position.md",
+    "time": "2025-12-17T22:05:00.000Z"
+  },
+  {
+    "event": "done",
+    "task": "bug6-delete-mail-position.md",
+    "time": "2025-12-17T22:11:25.835Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-repl-backpointer.md",
+    "time": "2025-12-18T00:33:58.021Z"
+  },
+  {
+    "event": "done",
+    "task": "agent-repl-backpointer.md",
+    "time": "2025-12-18T00:41:43.337Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-state-transitions.md",
+    "time": "2025-12-18T00:42:03.000Z"
+  },
+  {
+    "event": "done",
+    "task": "agent-state-transitions.md",
+    "time": "2025-12-18T00:52:03.444Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-callback-context.md",
+    "time": "2025-12-18T00:52:22.235Z"
+  },
+  {
+    "event": "done",
+    "task": "agent-callback-context.md",
+    "time": "2025-12-18T01:03:54.093Z"
+  },
+  {
+    "event": "start",
+    "task": "agent-tool-execution.md",
+    "time": "2025-12-18T01:04:11.649Z"
+  },
+  {
+    "event": "done",
+    "task": "agent-tool-execution.md",
+    "time": "2025-12-18T01:15:27.797Z"
+  },
+  {
+    "event": "start",
+    "task": "all-agents-fd-monitoring.md",
+    "time": "2025-12-18T01:15:52.515Z"
+  },
+  {
+    "event": "done",
+    "task": "all-agents-fd-monitoring.md",
+    "time": "2025-12-18T01:26:35.147Z"
+  },
+  {
+    "event": "start",
+    "task": "all-agents-http-handling.md",
+    "time": "2025-12-18T01:26:53.722Z"
+  },
+  {
+    "event": "done",
+    "task": "all-agents-http-handling.md",
+    "time": "2025-12-18T01:46:50.310Z"
+  },
+  {
+    "event": "start",
+    "task": "all-agents-tool-polling.md",
+    "time": "2025-12-18T01:47:09.266Z"
+  },
+  {
+    "event": "done",
+    "task": "all-agents-tool-polling.md",
+    "time": "2025-12-18T01:58:12.612Z"
+  },
+  {
+    "event": "start",
+    "task": "namespace-repl-event-handlers.md",
+    "time": "2025-12-18T23:09:09.007Z"
+  },
+  {
+    "event": "done",
+    "task": "namespace-repl-event-handlers.md",
+    "time": "2025-12-18T23:16:40.390838Z"
+  },
+  {
+    "event": "done",
+    "task": "namespace-repl-event-handlers.md",
+    "time": "2025-12-18T23:17:25.566Z"
+  },
+  {
+    "event": "start",
+    "task": "namespace-commands.md",
+    "time": "2025-12-18T23:17:45.187Z"
+  },
+  {
+    "event": "done",
+    "task": "namespace-commands.md",
+    "time": "2025-12-18T23:25:07.386Z"
+  },
+  {
+    "event": "start",
+    "task": "namespace-misc.md",
+    "time": "2025-12-18T23:25:26.866Z"
+  },
+  {
+    "event": "done",
+    "task": "namespace-misc.md",
+    "time": "2025-12-18T23:35:25.767Z"
+  },
+  {
+    "event": "start",
+    "task": "namespace-abbreviations.md",
+    "time": "2025-12-18T23:35:44.848Z"
+  },
+  {
+    "event": "done",
+    "task": "namespace-abbreviations.md",
+    "time": "2025-12-18T23:44:15.896Z"
+  },
+  {
+    "event": "start",
+    "task": "static-fn-lcov-investigation.md",
+    "time": "2025-12-18T23:44:38.700Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-response-convert-bash.md",
+    "time": "2025-12-19T01:36:30.462Z"
+  },
+  {
+    "event": "start",
+    "task": "static-fn-lcov-investigation.md",
+    "time": "2025-12-19T01:37:02.667Z"
+  },
+  {
+    "event": "done",
+    "task": "static-fn-lcov-investigation.md",
+    "time": "2025-12-19T01:44:58.706Z"
+  },
+  {
+    "event": "start",
+    "task": "static-fn-lcov-config.md",
+    "time": "2025-12-19T01:45:19.417Z"
+  },
+  {
+    "event": "done",
+    "task": "static-fn-lcov-config.md",
+    "time": "2025-12-19T01:48:24.172Z"
+  },
+  {
+    "event": "start",
+    "task": "static-fn-policy-update.md",
+    "time": "2025-12-19T01:48:45.734Z"
+  },
+  {
+    "event": "done",
+    "task": "static-fn-policy-update.md",
+    "time": "2025-12-19T01:51:23.701Z"
+  },
+  {
+    "event": "start",
+    "task": "static-fn-helper-abstractions.md",
+    "time": "2025-12-19T01:51:46.350Z"
+  },
+  {
+    "event": "done",
+    "task": "static-fn-helper-abstractions.md",
+    "time": "2025-12-19T03:29:46.119Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-param-def-struct.md",
+    "time": "2025-12-19T03:30:13.265Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-param-def-struct.md",
+    "time": "2025-12-19T03:33:13.142Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-schema-def-struct.md",
+    "time": "2025-12-19T03:33:39.140Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-schema-def-struct.md",
+    "time": "2025-12-19T03:35:59.034Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-schema-builder.md",
+    "time": "2025-12-19T03:36:23.258Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-schema-builder.md",
+    "time": "2025-12-19T03:39:44.716Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-schema-convert-glob.md",
+    "time": "2025-12-19T03:40:10.763Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-schema-convert-glob.md",
+    "time": "2025-12-19T03:42:29.619Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-schema-convert-remaining.md",
+    "time": "2025-12-19T03:42:55.023Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-schema-convert-remaining.md",
+    "time": "2025-12-19T03:47:15.578Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-schema-cleanup.md",
+    "time": "2025-12-19T03:47:41.302Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-schema-cleanup.md",
+    "time": "2025-12-19T03:51:15.863Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-response-with-data.md",
+    "time": "2025-12-19T03:51:40.820Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-response-with-data.md",
+    "time": "2025-12-19T03:54:42.646Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-response-convert-grep.md",
+    "time": "2025-12-19T03:55:07.397Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-response-convert-grep.md",
+    "time": "2025-12-19T03:58:59.706Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-response-convert-glob.md",
+    "time": "2025-12-19T03:59:24.972Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-response-convert-glob.md",
+    "time": "2025-12-19T04:02:06.852Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-response-convert-file-read.md",
+    "time": "2025-12-19T04:02:33.274Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-response-convert-file-read.md",
+    "time": "2025-12-19T04:05:27.492Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-response-convert-file-write.md",
+    "time": "2025-12-19T04:05:52.370Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-response-convert-file-write.md",
+    "time": "2025-12-19T04:08:44.032Z"
+  },
+  {
+    "event": "start",
+    "task": "tool-response-cleanup.md",
+    "time": "2025-12-19T04:09:10.378Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-response-cleanup.md",
+    "time": "2025-12-18T00:00:00.000Z"
+  },
+  {
+    "event": "done",
+    "task": "tool-response-cleanup.md",
+    "time": "2025-12-19T04:13:55.303Z"
+  },
+  {
+    "event": "start",
+    "task": "init-openai-conv-return.md",
+    "time": "2025-12-19T04:14:23.216Z"
+  },
+  {
+    "event": "done",
+    "task": "init-openai-conv-return.md",
+    "time": "2025-12-19T04:25:33.629Z"
+  },
+  {
+    "event": "start",
+    "task": "init-openai-msg-return.md",
+    "time": "2025-12-19T04:26:01.053Z"
+  },
+  {
+    "event": "done",
+    "task": "init-openai-msg-return.md",
+    "time": "2025-12-19T04:49:04.655Z"
+  },
+  {
+    "event": "start",
+    "task": "init-scrollback-naming.md",
+    "time": "2025-12-19T04:49:32.945Z"
+  },
+  {
+    "event": "done",
+    "task": "init-scrollback-naming.md",
+    "time": "2025-12-19T05:16:38.734Z"
+  },
+  {
+    "event": "start",
+    "task": "init-terminal-naming.md",
+    "time": "2025-12-19T05:17:07.680Z"
+  },
+  {
+    "event": "done",
+    "task": "init-terminal-naming.md",
+    "time": "2025-12-19T05:24:39.989Z"
+  },
+  {
+    "event": "start",
+    "task": "init-render-naming.md",
+    "time": "2025-12-19T05:25:10.021Z"
+  },
+  {
+    "event": "done",
+    "task": "init-render-naming.md",
+    "time": "2025-12-19T05:33:26.517Z"
+  },
+  {
+    "event": "start",
+    "task": "init-db-mem-ctx-naming.md",
+    "time": "2025-12-19T05:33:58.077Z"
+  },
+  {
+    "event": "done",
+    "task": "init-db-mem-ctx-naming.md",
+    "time": "2025-12-19T05:49:06.870Z"
+  },
+  {
+    "event": "start",
+    "task": "init-mark-decouple.md",
+    "time": "2025-12-19T05:49:37.663Z"
+  },
+  {
+    "event": "done",
+    "task": "init-db-session-param-order.md",
+    "time": "2025-12-19T06:00:57.811Z"
+  },
+  {
+    "event": "start",
+    "task": "init-mark-decouple.md",
+    "time": "2025-12-19T06:01:35.116Z"
+  }
+]

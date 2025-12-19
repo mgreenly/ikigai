@@ -6,6 +6,7 @@
 #include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
+#include "../../../src/logger.h"
 #include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/debug_pipe.h"
@@ -100,9 +101,7 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation
-    res_t res = ik_openai_conversation_create(parent);
-    ck_assert(is_ok(&res));
-    ik_openai_conversation_t *conv = res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
     ck_assert_ptr_nonnull(conv);
 
     // Create minimal config
@@ -113,6 +112,9 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(shared);
     shared->cfg = cfg;
+
+    // Create logger (required by /clear command)
+    shared->logger = ik_logger_create(parent, ".");
 
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);

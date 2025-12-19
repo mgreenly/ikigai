@@ -16,12 +16,12 @@
 #include <talloc.h>
 #include <utf8proc.h>
 
-ik_scrollback_t *ik_scrollback_create(void *parent, int32_t terminal_width)
+ik_scrollback_t *ik_scrollback_create(TALLOC_CTX *ctx, int32_t terminal_width)
 {
     assert(terminal_width > 0);  // LCOV_EXCL_BR_LINE
 
     // Allocate scrollback struct
-    ik_scrollback_t *scrollback = talloc_zero_(parent, sizeof(ik_scrollback_t));
+    ik_scrollback_t *scrollback = talloc_zero_(ctx, sizeof(ik_scrollback_t));
     if (scrollback == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Initialize metadata
@@ -357,6 +357,25 @@ void ik_scrollback_clear(ik_scrollback_t *scrollback)
 
     // Preserve allocated capacity for efficient reuse
     // (no need to free/reallocate arrays)
+}
+
+res_t ik_scrollback_copy_from(ik_scrollback_t *dest, const ik_scrollback_t *src)
+{
+    assert(dest != NULL);  // LCOV_EXCL_BR_LINE
+    assert(src != NULL);   // LCOV_EXCL_BR_LINE
+
+    // Copy each line from source to destination
+    for (size_t i = 0; i < src->count; i++) {
+        const char *text = src->text_buffer + src->text_offsets[i];
+        size_t length = src->text_lengths[i];
+
+        res_t res = ik_scrollback_append_line(dest, text, length);
+        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+            return res;         // LCOV_EXCL_LINE
+        }
+    }
+
+    return OK(NULL);
 }
 
 res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,

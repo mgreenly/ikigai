@@ -20,7 +20,7 @@ START_TEST(test_debug_mgr_create) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager */
-    res_t res = ik_debug_mgr_create(ctx);
+    res_t res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&res));
 
     ik_debug_pipe_manager_t *mgr = res.ok;
@@ -40,12 +40,12 @@ START_TEST(test_debug_mgr_add_pipe)
     void *ctx = talloc_new(NULL);
 
     /* Create manager */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
     /* Add pipe with prefix */
-    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test1]");
+    res_t pipe_res = ik_debug_manager_add_pipe(mgr, "[test1]");
     ck_assert(is_ok(&pipe_res));
     ik_debug_pipe_t *pipe = pipe_res.ok;
 
@@ -69,7 +69,7 @@ START_TEST(test_debug_mgr_add_multiple_pipes)
     void *ctx = talloc_new(NULL);
 
     /* Create manager */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
@@ -81,7 +81,7 @@ START_TEST(test_debug_mgr_add_multiple_pipes)
     for (int i = 0; i < 10; i++) {
         char prefix[32];
         snprintf(prefix, sizeof(prefix), "[pipe%d]", i);
-        res_t pipe_res = ik_debug_mgr_add_pipe(mgr, prefix);
+        res_t pipe_res = ik_debug_manager_add_pipe(mgr, prefix);
         ck_assert(is_ok(&pipe_res));
         pipes[i] = pipe_res.ok;
         ck_assert_ptr_nonnull(pipes[i]);
@@ -106,20 +106,20 @@ START_TEST(test_debug_mgr_add_to_fdset)
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add 3 pipes */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
     ik_debug_pipe_t *pipe1, *pipe2, *pipe3;
-    res_t res1 = ik_debug_mgr_add_pipe(mgr, "[pipe1]");
+    res_t res1 = ik_debug_manager_add_pipe(mgr, "[pipe1]");
     ck_assert(is_ok(&res1));
     pipe1 = res1.ok;
 
-    res_t res2 = ik_debug_mgr_add_pipe(mgr, "[pipe2]");
+    res_t res2 = ik_debug_manager_add_pipe(mgr, "[pipe2]");
     ck_assert(is_ok(&res2));
     pipe2 = res2.ok;
 
-    res_t res3 = ik_debug_mgr_add_pipe(mgr, "[pipe3]");
+    res_t res3 = ik_debug_manager_add_pipe(mgr, "[pipe3]");
     ck_assert(is_ok(&res3));
     pipe3 = res3.ok;
 
@@ -129,7 +129,7 @@ START_TEST(test_debug_mgr_add_to_fdset)
     int max_fd = 0;
 
     /* Add all pipes to fd_set */
-    ik_debug_mgr_add_to_fdset(mgr, &read_fds, &max_fd);
+    ik_debug_manager_add_to_fdset(mgr, &read_fds, &max_fd);
 
     /* Verify all pipe read_fds are in set */
     ck_assert(FD_ISSET(pipe1->read_fd, &read_fds));
@@ -152,11 +152,11 @@ START_TEST(test_debug_mgr_handle_ready_enabled)
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
-    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    res_t pipe_res = ik_debug_manager_add_pipe(mgr, "[test]");
     ck_assert(is_ok(&pipe_res));
     ik_debug_pipe_t *pipe = pipe_res.ok;
 
@@ -176,7 +176,7 @@ START_TEST(test_debug_mgr_handle_ready_enabled)
     FD_SET(pipe->read_fd, &read_fds);
 
     /* Handle ready pipes with debug enabled */
-    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
+    res_t handle_res = ik_debug_manager_handle_ready(mgr, &read_fds, scrollback, true);
     ck_assert(is_ok(&handle_res));
 
     /* Verify output was appended to scrollback with blank line after */
@@ -206,11 +206,11 @@ START_TEST(test_debug_mgr_handle_ready_disabled)
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
-    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    res_t pipe_res = ik_debug_manager_add_pipe(mgr, "[test]");
     ck_assert(is_ok(&pipe_res));
     ik_debug_pipe_t *pipe = pipe_res.ok;
 
@@ -230,7 +230,7 @@ START_TEST(test_debug_mgr_handle_ready_disabled)
     FD_SET(pipe->read_fd, &read_fds);
 
     /* Handle ready pipes with debug disabled */
-    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, false);
+    res_t handle_res = ik_debug_manager_handle_ready(mgr, &read_fds, scrollback, false);
     ck_assert(is_ok(&handle_res));
 
     /* Verify scrollback was NOT modified */
@@ -252,20 +252,20 @@ START_TEST(test_debug_mgr_handle_ready_partial)
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add 3 pipes */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
-    res_t pipe1_res = ik_debug_mgr_add_pipe(mgr, "[pipe1]");
+    res_t pipe1_res = ik_debug_manager_add_pipe(mgr, "[pipe1]");
     ck_assert(is_ok(&pipe1_res));
     ik_debug_pipe_t *pipe1 = pipe1_res.ok;
 
-    res_t pipe2_res = ik_debug_mgr_add_pipe(mgr, "[pipe2]");
+    res_t pipe2_res = ik_debug_manager_add_pipe(mgr, "[pipe2]");
     ck_assert(is_ok(&pipe2_res));
     ik_debug_pipe_t *pipe2 = pipe2_res.ok;
     (void)pipe2;  /* pipe2 intentionally not used - tests continue path */
 
-    res_t pipe3_res = ik_debug_mgr_add_pipe(mgr, "[pipe3]");
+    res_t pipe3_res = ik_debug_manager_add_pipe(mgr, "[pipe3]");
     ck_assert(is_ok(&pipe3_res));
     ik_debug_pipe_t *pipe3 = pipe3_res.ok;
 
@@ -287,7 +287,7 @@ START_TEST(test_debug_mgr_handle_ready_partial)
     /* pipe2 NOT set - tests continue path */
 
     /* Handle ready pipes with debug enabled */
-    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
+    res_t handle_res = ik_debug_manager_handle_ready(mgr, &read_fds, scrollback, true);
     ck_assert(is_ok(&handle_res));
 
     /* Verify we got 4 lines: pipe1 line + blank, pipe3 line + blank (but not pipe2) */
@@ -316,7 +316,7 @@ START_TEST(test_debug_mgr_add_pipe_creation_failure) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
@@ -324,7 +324,7 @@ START_TEST(test_debug_mgr_add_pipe_creation_failure) {
     fail_pipe = 1;
 
     /* Try to add pipe - should fail */
-    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    res_t pipe_res = ik_debug_manager_add_pipe(mgr, "[test]");
     ck_assert(is_err(&pipe_res));
 
     /* Manager should still be valid but empty */
@@ -343,11 +343,11 @@ START_TEST(test_debug_mgr_add_to_fdset_max_fd_large)
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
-    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    res_t pipe_res = ik_debug_manager_add_pipe(mgr, "[test]");
     ck_assert(is_ok(&pipe_res));
     ik_debug_pipe_t *pipe = pipe_res.ok;
 
@@ -358,7 +358,7 @@ START_TEST(test_debug_mgr_add_to_fdset_max_fd_large)
     int original_max_fd = max_fd;
 
     /* Add pipe to fd_set */
-    ik_debug_mgr_add_to_fdset(mgr, &read_fds, &max_fd);
+    ik_debug_manager_add_to_fdset(mgr, &read_fds, &max_fd);
 
     /* Verify pipe is in set */
     ck_assert(FD_ISSET(pipe->read_fd, &read_fds));
@@ -376,11 +376,11 @@ START_TEST(test_debug_mgr_handle_ready_no_newline)
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
-    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    res_t pipe_res = ik_debug_manager_add_pipe(mgr, "[test]");
     ck_assert(is_ok(&pipe_res));
     ik_debug_pipe_t *pipe = pipe_res.ok;
 
@@ -399,7 +399,7 @@ START_TEST(test_debug_mgr_handle_ready_no_newline)
     FD_SET(pipe->read_fd, &read_fds);
 
     /* Handle ready pipes with debug enabled */
-    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
+    res_t handle_res = ik_debug_manager_handle_ready(mgr, &read_fds, scrollback, true);
     ck_assert(is_ok(&handle_res));
 
     /* Since no newline, no lines should be added to scrollback (count == 0) */
@@ -418,11 +418,11 @@ START_TEST(test_debug_mgr_handle_ready_no_data)
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
-    res_t mgr_res = ik_debug_mgr_create(ctx);
+    res_t mgr_res = ik_debug_manager_create(ctx);
     ck_assert(is_ok(&mgr_res));
     ik_debug_pipe_manager_t *mgr = mgr_res.ok;
 
-    res_t pipe_res = ik_debug_mgr_add_pipe(mgr, "[test]");
+    res_t pipe_res = ik_debug_manager_add_pipe(mgr, "[test]");
     ck_assert(is_ok(&pipe_res));
     ik_debug_pipe_t *pipe = pipe_res.ok;
 
@@ -437,7 +437,7 @@ START_TEST(test_debug_mgr_handle_ready_no_data)
     FD_SET(pipe->read_fd, &read_fds);
 
     /* Handle ready pipes with debug enabled */
-    res_t handle_res = ik_debug_mgr_handle_ready(mgr, &read_fds, scrollback, true);
+    res_t handle_res = ik_debug_manager_handle_ready(mgr, &read_fds, scrollback, true);
     ck_assert(is_ok(&handle_res));
 
     /* No lines should be added since there was no data */

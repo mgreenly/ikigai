@@ -13,13 +13,10 @@ START_TEST(test_http_write_callback_done_marker_model) {
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -29,7 +26,7 @@ START_TEST(test_http_write_callback_done_marker_model) {
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with [DONE] marker */
@@ -55,13 +52,10 @@ END_TEST START_TEST(test_http_write_callback_missing_model)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -71,7 +65,7 @@ END_TEST START_TEST(test_http_write_callback_missing_model)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response without model field */
@@ -98,13 +92,10 @@ END_TEST START_TEST(test_http_write_callback_model_not_string)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -114,7 +105,7 @@ END_TEST START_TEST(test_http_write_callback_model_not_string)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with model as integer (not string) */
@@ -141,13 +132,10 @@ END_TEST START_TEST(test_http_write_callback_missing_completion_tokens)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -157,7 +145,7 @@ END_TEST START_TEST(test_http_write_callback_missing_completion_tokens)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with usage but no completion_tokens */
@@ -185,13 +173,10 @@ END_TEST START_TEST(test_http_write_callback_completion_tokens_valid_int)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -201,7 +186,7 @@ END_TEST START_TEST(test_http_write_callback_completion_tokens_valid_int)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with valid integer completion_tokens */
@@ -229,13 +214,10 @@ END_TEST START_TEST(test_http_write_callback_completion_tokens_not_int)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -245,7 +227,7 @@ END_TEST START_TEST(test_http_write_callback_completion_tokens_not_int)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with completion_tokens as string (not int) */

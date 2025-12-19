@@ -3,12 +3,23 @@
 
 #include "terminal.h"
 
+// Forward declaration for logger
+typedef struct ik_logger ik_logger_t;
+
 /**
  * Global terminal context for panic handler.
  * Set this after successful terminal initialization to enable
  * terminal restoration on panic.
  */
 extern ik_term_ctx_t *g_term_ctx_for_panic;
+
+/**
+ * Global logger context for panic handler.
+ * Set this after logger initialization to enable panic logging.
+ * Must be set before g_term_ctx_for_panic to ensure logging works
+ * even if terminal initialization fails.
+ */
+extern ik_logger_t *volatile g_panic_logger;
 
 /**
  * Async-signal-safe panic handler.

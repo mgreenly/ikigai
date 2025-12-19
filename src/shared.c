@@ -82,7 +82,7 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, const char *working_dir
 
     // Initialize command history
     shared->history = ik_history_create(shared, (size_t)cfg->history_size);
-    result = ik_history_load(shared, shared->history);
+    result = ik_history_load(shared, shared->history, logger);
     if (is_err(&result)) {
         // Log warning but continue with empty history (graceful degradation)
         yyjson_mut_doc *log_doc = ik_log_create();
@@ -90,19 +90,19 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, const char *working_dir
         if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Failed to load history")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         if (!yyjson_mut_obj_add_str(log_doc, root, "error", result.err->msg)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        ik_log_warn_json(log_doc);
+        ik_logger_warn_json(logger, log_doc);
         talloc_free(result.err);
     }
 
     // Initialize debug infrastructure
     shared->debug_enabled = false;
-    shared->debug_mgr = ik_debug_mgr_create(shared).ok;
+    shared->debug_mgr = ik_debug_manager_create(shared).ok;
     if (shared->debug_mgr == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    shared->openai_debug_pipe = ik_debug_mgr_add_pipe(shared->debug_mgr, "[openai]").ok;
+    shared->openai_debug_pipe = ik_debug_manager_add_pipe(shared->debug_mgr, "[openai]").ok;
     if (shared->openai_debug_pipe == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    shared->db_debug_pipe = ik_debug_mgr_add_pipe(shared->debug_mgr, "[db]").ok;
+    shared->db_debug_pipe = ik_debug_manager_add_pipe(shared->debug_mgr, "[db]").ok;
     if (shared->db_debug_pipe == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Set destructor for cleanup

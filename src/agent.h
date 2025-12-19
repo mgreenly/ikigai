@@ -15,6 +15,7 @@ typedef struct ik_shared_ctx ik_shared_ctx_t;
 typedef struct ik_input_buffer_t ik_input_buffer_t;
 typedef struct ik_openai_conversation ik_openai_conversation_t;
 struct ik_openai_multi;
+struct ik_repl_ctx_t;
 
 // Agent state machine
 typedef enum {
@@ -55,9 +56,14 @@ typedef struct ik_agent_ctx {
     char *uuid;          // Internal unique identifier
     char *name;          // Optional human-friendly name (NULL if unnamed)
     char *parent_uuid;   // Parent agent's UUID (NULL for root agent)
+    int64_t created_at;       // Unix timestamp when agent was created
+    int64_t fork_message_id;  // Message ID at which this agent forked (0 for root)
 
     // Reference to shared infrastructure
     ik_shared_ctx_t *shared;
+
+    // Backpointer to REPL context (set after agent creation)
+    struct ik_repl_ctx_t *repl;
 
     // Display state (per-agent)
     ik_scrollback_t *scrollback;
@@ -121,7 +127,112 @@ typedef struct ik_agent_ctx {
 res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
                       const char *parent_uuid, ik_agent_ctx_t **out);
 
-// Generate a new UUID as base64url string (helper function)
-// ctx: talloc parent for the returned string
-// Returns: newly allocated 22-character base64url UUID string
-char *ik_agent_generate_uuid(TALLOC_CTX *ctx);
+/**
+ * Restore agent context from database row
+ *
+ * Creates an agent context populated with data from a DB row.
+ * Used during startup to restore agents that were running when
+ * the process last exited.
+ *
+ * Unlike ik_agent_create():
+ * - Uses row->uuid instead of generating new UUID
+ * - Sets fork_message_id from row
+ * - Sets created_at from row
+ * - Sets name from row (if present)
+ * - Sets parent_uuid from row
+ * - Does NOT register agent in database (already exists)
+ *
+ * @param ctx Talloc parent (repl_ctx)
+ * @param shared Shared infrastructure
+ * @param row Database row with agent data (must not be NULL)
+ * @param out Receives allocated agent context
+ * @return OK on success, ERR on failure
+ */
+res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
+                       const void *row, ik_agent_ctx_t **out);
+
+/**
+ * Copy conversation from one agent to another
+ *
+ * Copies the in-memory conversation array from parent to child.
+ * Used during fork to give the child the parent's history.
+ *
+ * @param child Child agent context (destination)
+ * @param parent Parent agent context (source)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent);
+
+/**
+ * Check if agent has any running tools
+ *
+ * Used by fork sync barrier to wait for tool completion before forking.
+ * A tool is considered running if tool_thread_running is true.
+ *
+ * @param agent Agent context to check
+ * @return true if agent has running tools, false otherwise
+ */
+bool ik_agent_has_running_tools(const ik_agent_ctx_t *agent);
+
+// State transition functions (moved from repl.h/repl.c)
+// These operate on a specific agent, enabling proper multi-agent support.
+
+/**
+ * Transition agent from IDLE to WAITING_FOR_LLM state
+ *
+ * Updates state, shows spinner, hides input buffer.
+ * Thread-safe: Uses mutex for state update.
+ *
+ * @param agent Agent context to transition
+ */
+void ik_agent_transition_to_waiting_for_llm(ik_agent_ctx_t *agent);
+
+/**
+ * Transition agent from WAITING_FOR_LLM to IDLE state
+ *
+ * Updates state, hides spinner, shows input buffer.
+ * Thread-safe: Uses mutex for state update.
+ *
+ * @param agent Agent context to transition
+ */
+void ik_agent_transition_to_idle(ik_agent_ctx_t *agent);
+
+/**
+ * Transition agent from WAITING_FOR_LLM to EXECUTING_TOOL state
+ *
+ * Updates state. Spinner stays visible, input stays hidden.
+ * Thread-safe: Uses mutex for state update.
+ *
+ * @param agent Agent context to transition
+ */
+void ik_agent_transition_to_executing_tool(ik_agent_ctx_t *agent);
+
+/**
+ * Transition agent from EXECUTING_TOOL to WAITING_FOR_LLM state
+ *
+ * Updates state. Spinner stays visible, input stays hidden.
+ * Thread-safe: Uses mutex for state update.
+ *
+ * @param agent Agent context to transition
+ */
+void ik_agent_transition_from_executing_tool(ik_agent_ctx_t *agent);
+
+/**
+ * Start async tool execution on specific agent
+ *
+ * Spawns background thread to execute pending tool call.
+ * Works with agent-specific context, not repl->current.
+ *
+ * @param agent Agent context with pending_tool_call set
+ */
+void ik_agent_start_tool_execution(ik_agent_ctx_t *agent);
+
+/**
+ * Complete async tool execution on specific agent
+ *
+ * Harvests result from thread, adds messages to conversation,
+ * updates scrollback and database. Works with agent-specific context.
+ *
+ * @param agent Agent context with completed tool thread
+ */
+void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent);

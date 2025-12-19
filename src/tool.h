@@ -12,6 +12,21 @@ typedef struct {
     char *arguments;  // JSON string of arguments, owned by struct
 } ik_tool_call_t;
 
+// Parameter definition for data-driven schema building
+typedef struct {
+    const char *name;        // Parameter name (e.g., "pattern")
+    const char *description; // Parameter description
+    bool required;           // true if parameter is required
+} ik_tool_param_def_t;
+
+// Tool schema definition for data-driven schema building
+typedef struct {
+    const char *name;                     // Tool name (e.g., "glob")
+    const char *description;              // Tool description
+    const ik_tool_param_def_t *params;    // Array of parameter definitions
+    size_t param_count;                   // Number of parameters
+} ik_tool_schema_def_t;
+
 // Create a new tool call struct.
 //
 // Allocates a new tool call struct on the given context.
@@ -31,8 +46,8 @@ ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx, const char *id, const char 
 // @param properties The properties object to add to
 // @param name Parameter name
 // @param description Parameter description
-void ik_tool_add_string_param(yyjson_mut_doc *doc, yyjson_mut_val *properties, const char *name,
-                              const char *description);
+void ik_tool_add_string_parameter(yyjson_mut_doc *doc, yyjson_mut_val *properties, const char *name,
+                                  const char *description);
 
 // Build JSON schema for the glob tool.
 //
@@ -83,6 +98,18 @@ yyjson_mut_val *ik_tool_build_file_write_schema(yyjson_mut_doc *doc);
 // @param doc The yyjson mutable document to build the schema in
 // @return Pointer to the schema object (owned by doc), or NULL on error
 yyjson_mut_val *ik_tool_build_bash_schema(yyjson_mut_doc *doc);
+
+// Build JSON schema from tool definition (data-driven schema builder)
+//
+// Creates a tool schema object following OpenAI's function calling format
+// from a declarative definition. The schema includes the tool name,
+// description, and parameter specifications derived from the definition.
+//
+// @param doc The yyjson mutable document to build the schema in
+// @param def Tool schema definition containing name, description, and parameters
+// @return Pointer to the schema object (owned by doc), or NULL on error
+yyjson_mut_val *ik_tool_build_schema_from_def(yyjson_mut_doc *doc,
+                                               const ik_tool_schema_def_t *def);
 
 // Build array containing all 5 tool schemas.
 //

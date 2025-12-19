@@ -33,9 +33,7 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation (needed for mark/rewind commands)
-    res_t res = ik_openai_conversation_create(parent);
-    ck_assert(is_ok(&res));
-    ik_openai_conversation_t *conv = res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
     ck_assert_ptr_nonnull(conv);
 
 
@@ -172,10 +170,10 @@ START_TEST(test_help_lists_help)
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 4 should be /help
+    // Line 12 should be /help (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail, /agents)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 4, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 12, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -190,10 +188,10 @@ START_TEST(test_help_lists_model)
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 5 should be /model
+    // Line 13 should be /model (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail, /agents)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 5, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 13, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -208,10 +206,10 @@ START_TEST(test_help_lists_system)
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 6 should be /system
+    // Line 14 should be /system (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail, /agents)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 6, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 14, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 

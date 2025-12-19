@@ -28,6 +28,14 @@ void ik_separator_layer_set_debug(ik_layer_t *layer,
                                   size_t *document_height,
                                   uint64_t *render_elapsed_us);
 
+// Set navigation context on separator layer (for agent tree navigation)
+void ik_separator_layer_set_nav_context(ik_layer_t *layer,
+                                        const char *parent_uuid,
+                                        const char *prev_sibling_uuid,
+                                        const char *current_uuid,
+                                        const char *next_sibling_uuid,
+                                        size_t child_count);
+
 // Create input buffer layer (wraps existing input buffer)
 // The layer delegates to ik_input_buffer_t for height calculation and rendering
 // visible_ptr and text_ptr/len_ptr are raw pointers that must remain valid

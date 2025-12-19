@@ -2,8 +2,8 @@
 #include "repl.h"
 
 #include "agent.h"
-#include "repl/session_restore.h"
-#include "config.h"
+#include "repl/agent_restore.h"
+#include "db/agent.h"
 #include "db/connection.h"
 #include "db/session.h"
 #include "logger.h"
@@ -39,8 +39,6 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     assert(shared != NULL);     // LCOV_EXCL_BR_LINE
     assert(repl_out != NULL);   // LCOV_EXCL_BR_LINE
 
-    ik_cfg_t *cfg = shared->cfg;
-
     // Set up signal handlers (SIGWINCH for terminal resize) - must be before repl alloc
     res_t result = ik_signal_handler_init(parent);
     if (is_err(&result)) {
@@ -54,6 +52,11 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Wire up successfully initialized components
     repl->shared = shared;
 
+    // Initialize agent array
+    repl->agents = NULL;
+    repl->agent_count = 0;
+    repl->agent_capacity = 0;
+
     // Create agent context (owns display state)
     result = ik_agent_create(repl, repl->shared, NULL, &repl->current);
     if (is_err(&result)) {
@@ -61,6 +64,17 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
         talloc_steal(parent, result.err);
         talloc_free(repl);
         return result;
+    }
+
+    // Set repl backpointer on agent
+    repl->current->repl = repl;
+
+    // Add initial agent to array
+    result = ik_repl_add_agent(repl, repl->current);
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
+        talloc_steal(parent, result.err);  // LCOV_EXCL_LINE
+        talloc_free(repl);  // LCOV_EXCL_LINE
+        return result;  // LCOV_EXCL_LINE
     }
 
     // Initialize input parser
@@ -85,9 +99,38 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     result = ik_layer_cake_add_layer(repl->current->layer_cake, repl->lower_separator_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
-    // Restore session if database is configured (must be after repl allocated)
+    // Ensure Agent 0 exists in registry if database is configured
     if (shared->db_ctx != NULL) {
-        result = ik_repl_restore_session_(repl, shared->db_ctx, cfg);
+        char *agent_zero_uuid = NULL;
+        result = ik_db_ensure_agent_zero(shared->db_ctx, &agent_zero_uuid);
+        if (is_err(&result)) {
+            talloc_free(repl);
+            return result;
+        }
+        repl->current->uuid = talloc_steal(repl->current, agent_zero_uuid);
+
+        // Get or create session
+        int64_t session_id = 0;
+        result = ik_db_session_get_active(shared->db_ctx, &session_id);
+        if (is_err(&result)) {
+            talloc_free(repl);
+            return result;
+        }
+
+        // If no active session exists, create one
+        if (session_id == 0) {
+            result = ik_db_session_create(shared->db_ctx, &session_id);
+            if (is_err(&result)) {
+                talloc_free(repl);
+                return result;
+            }
+        }
+
+        // Store session_id in shared context
+        shared->session_id = session_id;
+
+        // Restore all running agents from database (including Agent 0)
+        result = ik_repl_restore_agents(repl, shared->db_ctx);
         if (is_err(&result)) {
             talloc_free(repl);
             return result;

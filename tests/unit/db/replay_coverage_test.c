@@ -24,6 +24,12 @@ static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
 static int64_t session_id;
 
+// Mock control flags (used by override functions defined later)
+static bool mock_invalid_json_for_mark = false;
+static int mock_call_count = 0;
+static bool mock_null_label_str = false;
+static int mock_get_str_count = 0;
+
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
 {
@@ -62,6 +68,12 @@ static void suite_teardown(void)
 // Per-test setup: Connect, begin transaction, create session
 static void test_setup(void)
 {
+    // Reset mock state
+    mock_invalid_json_for_mark = false;
+    mock_call_count = 0;
+    mock_null_label_str = false;
+    mock_get_str_count = 0;
+
     if (!db_available) {
         test_ctx = NULL;
         db = NULL;
@@ -120,19 +132,19 @@ START_TEST(test_mark_with_null_data) {
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user message
-    res = ik_db_message_insert(db, session_id, "user", "Before mark", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Before mark", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark with NULL data (no label)
-    res = ik_db_message_insert(db, session_id, "mark", NULL, NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -149,8 +161,6 @@ END_TEST
 
 // Test: Mark with invalid JSON in data_json (line 166, FALSE branch)
 // Mock yyjson_read_ to return NULL for invalid JSON
-static bool mock_invalid_json_for_mark = false;
-static int mock_call_count = 0;
 
 yyjson_doc *yyjson_read_(const char *dat, size_t len, yyjson_read_flag flg)
 {
@@ -169,11 +179,11 @@ START_TEST(test_mark_with_invalid_json_data) {
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark with data that will fail to parse
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"test\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"test\"}");
     ck_assert(is_ok(&res));
 
     // Enable mock to simulate invalid JSON parsing
@@ -181,7 +191,7 @@ START_TEST(test_mark_with_invalid_json_data) {
     mock_call_count = 0;
 
     // Load and replay - should succeed but mark has no label
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -205,15 +215,15 @@ START_TEST(test_mark_with_non_string_label)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark with label as number instead of string
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":123}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":123}");
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -229,8 +239,6 @@ START_TEST(test_mark_with_non_string_label)
 END_TEST
 
 // Test: Mark with valid JSON but yyjson_get_str_ returns NULL (line 170, FALSE branch)
-static bool mock_null_label_str = false;
-static int mock_get_str_count = 0;
 
 const char *yyjson_get_str_(yyjson_val *val)
 {
@@ -248,11 +256,11 @@ START_TEST(test_mark_with_null_label_string) {
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark with valid label
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"test\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"test\"}");
     ck_assert(is_ok(&res));
 
     // Enable mock to return NULL from yyjson_get_str_
@@ -260,7 +268,7 @@ START_TEST(test_mark_with_null_label_string) {
     mock_get_str_count = 0;
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;

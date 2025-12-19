@@ -65,31 +65,31 @@ static bool probe_csi_u_support(int tty_fd)
 }
 
 // Initialize terminal (raw mode + alternate screen)
-res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
+res_t ik_term_init(TALLOC_CTX *ctx, ik_term_ctx_t **ctx_out)
 {
-    assert(parent != NULL);    // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
     assert(ctx_out != NULL);   // LCOV_EXCL_BR_LINE
 
     // Open /dev/tty
     int tty_fd = posix_open_("/dev/tty", O_RDWR);
     if (tty_fd < 0) {
-        return ERR(parent, IO, "Failed to open /dev/tty");
+        return ERR(ctx, IO, "Failed to open /dev/tty");
     }
 
     // Allocate context
-    ik_term_ctx_t *ctx = talloc_zero_(parent, sizeof(ik_term_ctx_t));
-    if (ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    ik_term_ctx_t *term_ctx = talloc_zero_(ctx, sizeof(ik_term_ctx_t));
+    if (term_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    ctx->tty_fd = tty_fd;
+    term_ctx->tty_fd = tty_fd;
 
     // Get original termios settings
-    if (posix_tcgetattr_(tty_fd, &ctx->orig_termios) < 0) {
+    if (posix_tcgetattr_(tty_fd, &term_ctx->orig_termios) < 0) {
         posix_close_(tty_fd);
-        return ERR(parent, IO, "Failed to get terminal attributes");
+        return ERR(ctx, IO, "Failed to get terminal attributes");
     }
 
     // Set raw mode
-    struct termios raw = ctx->orig_termios;
+    struct termios raw = term_ctx->orig_termios;
     raw.c_iflag &= (uint32_t)(~(BRKINT | ICRNL | INPCK | ISTRIP | IXON));
     raw.c_oflag &= (uint32_t)(~(OPOST));
     raw.c_cflag |= (CS8);
@@ -100,30 +100,30 @@ res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
     // Apply raw mode immediately (no blocking)
     if (posix_tcsetattr_(tty_fd, TCSANOW, &raw) < 0) {
         posix_close_(tty_fd);
-        return ERR(parent, IO, "Failed to set raw mode");
+        return ERR(ctx, IO, "Failed to set raw mode");
     }
 
     // Flush any stale input that was queued before raw mode
     if (posix_tcflush_(tty_fd, TCIFLUSH) < 0) {
-        posix_tcsetattr_(tty_fd, TCSANOW, &ctx->orig_termios);
+        posix_tcsetattr_(tty_fd, TCSANOW, &term_ctx->orig_termios);
         (void)posix_close_(tty_fd);  // Explicitly ignore return value
-        return ERR(parent, IO, "Failed to flush input");
+        return ERR(ctx, IO, "Failed to flush input");
     }
 
     // Enter alternate screen buffer
     if (posix_write_(tty_fd, ESC_ALT_SCREEN_ENTER, 8) < 0) {
-        posix_tcsetattr_(tty_fd, TCSANOW, &ctx->orig_termios);
+        posix_tcsetattr_(tty_fd, TCSANOW, &term_ctx->orig_termios);
         posix_close_(tty_fd);
-        return ERR(parent, IO, "Failed to enter alternate screen");
+        return ERR(ctx, IO, "Failed to enter alternate screen");
     }
 
     // Probe for CSI u support and enable if available
-    ctx->csi_u_supported = probe_csi_u_support(tty_fd);
-    if (ctx->csi_u_supported) {
+    term_ctx->csi_u_supported = probe_csi_u_support(tty_fd);
+    if (term_ctx->csi_u_supported) {
         // Enable CSI u with flag 9 (disambiguate + report all keys)
         if (posix_write_(tty_fd, ESC_CSI_U_ENABLE, 6) < 0) {
             // Not critical - continue without CSI u
-            ctx->csi_u_supported = false;
+            term_ctx->csi_u_supported = false;
         }
     }
 
@@ -132,16 +132,16 @@ res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out)
     if (posix_ioctl_(tty_fd, TIOCGWINSZ, &ws) < 0) {
         // Restore before returning error
         (void)posix_write_(tty_fd, ESC_ALT_SCREEN_EXIT, 8);
-        posix_tcsetattr_(tty_fd, TCSANOW, &ctx->orig_termios);
+        posix_tcsetattr_(tty_fd, TCSANOW, &term_ctx->orig_termios);
         posix_close_(tty_fd);
-        return ERR(parent, IO, "Failed to get terminal size");
+        return ERR(ctx, IO, "Failed to get terminal size");
     }
 
-    ctx->screen_rows = (int)ws.ws_row;
-    ctx->screen_cols = (int)ws.ws_col;
+    term_ctx->screen_rows = (int)ws.ws_row;
+    term_ctx->screen_cols = (int)ws.ws_col;
 
-    *ctx_out = ctx;
-    return OK(ctx);
+    *ctx_out = term_ctx;
+    return OK(term_ctx);
 }
 
 // Cleanup terminal (restore state)

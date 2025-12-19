@@ -55,7 +55,7 @@ START_TEST(test_info_read_success_with_tool_call_steal) {
 
     /* Add request with completion callback that captures tool_call fields */
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                capture_tool_call_callback, ctx, false);
+                                                capture_tool_call_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with tool call */
@@ -75,8 +75,7 @@ START_TEST(test_info_read_success_with_tool_call_steal) {
     setup_mock_curl_msg(&msg, g_last_easy_handle, CURLE_OK, 200);
 
     /* Call info_read - should execute line 149: talloc_steal for tool_call */
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(!info_res.is_err);
+    ik_openai_multi_info_read(multi, NULL);
 
     /* Verify tool_call fields were captured by callback */
     ck_assert(captured_tool_call_id != NULL);
@@ -116,7 +115,7 @@ START_TEST(test_info_read_callback_error_with_tool_call_free)
 
     /* Add request with completion callback that returns error */
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                error_with_tool_call_callback, ctx, false);
+                                                error_with_tool_call_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with tool call */
@@ -141,9 +140,7 @@ START_TEST(test_info_read_callback_error_with_tool_call_free)
      * - Execute line 190: talloc_free for tool_call in error cleanup path
      * - Return the callback error
      */
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(info_res.is_err);
-    ck_assert_int_eq(info_res.err->code, ERR_IO);
+    ik_openai_multi_info_read(multi, NULL);
 
     /* Clean up */
     invoke_write_callback = false;
@@ -177,7 +174,7 @@ START_TEST(test_info_read_success_with_tool_call_free)
 
     /* Add request with completion callback that succeeds */
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
-                                                capture_tool_call_callback, ctx, false);
+                                                capture_tool_call_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Set up mock SSE response with tool call */
@@ -202,8 +199,7 @@ START_TEST(test_info_read_success_with_tool_call_free)
      * - Execute line 219: talloc_free for tool_call in success cleanup path
      * - Return OK
      */
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(!info_res.is_err);
+    ik_openai_multi_info_read(multi, NULL);
 
     /* Verify tool_call fields were captured by callback */
     ck_assert(captured_tool_call_id != NULL);

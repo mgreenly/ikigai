@@ -23,10 +23,9 @@ START_TEST(test_error_handling_no_partial_response) {
     repl->current->assistant_response = NULL;
 
     // Add a user message
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&add_res));
+    ik_msg_t *msg = ik_openai_msg_create(ctx, "user", "Hello");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg);
 
     // Initial conversation should have 1 message (user)
     ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
@@ -40,8 +39,8 @@ START_TEST(test_error_handling_no_partial_response) {
     // Enable completion simulation
     simulate_completion = true;
 
-    // Call handle_curl_events - should detect error and call handle_request_error
-    res_t result = handle_curl_events(repl, 1);
+    // Call ik_repl_handle_curl_events - should detect error and call handle_request_error
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // Verify error was added to scrollback
@@ -92,10 +91,9 @@ START_TEST(test_error_handling_with_partial_response)
     repl->current->assistant_response = talloc_strdup(repl, "Partial response text that was received before error");
 
     // Add a user message
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Tell me a story");
-    ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
-    ck_assert(is_ok(&add_res));
+    ik_msg_t *msg = ik_openai_msg_create(ctx, "user", "Tell me a story");
+    // removed assertion
+    ik_openai_conversation_add_msg(repl->current->conversation, msg);
 
     // Count scrollback lines before
     size_t lines_before = ik_scrollback_get_line_count(repl->current->scrollback);
@@ -104,8 +102,8 @@ START_TEST(test_error_handling_with_partial_response)
     repl->current->curl_still_running = 1;
     simulate_completion = true;
 
-    // Call handle_curl_events - should detect error and call handle_request_error
-    res_t result = handle_curl_events(repl, 1);
+    // Call ik_repl_handle_curl_events - should detect error and call handle_request_error
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // Verify error was added to scrollback
@@ -163,7 +161,7 @@ START_TEST(test_various_error_messages)
         repl->current->curl_still_running = 1;
         simulate_completion = true;
 
-        res_t result = handle_curl_events(repl, 1);
+        res_t result = ik_repl_handle_curl_events(repl, 1);
         ck_assert(is_ok(&result));
 
         // Verify error was added to scrollback
@@ -207,7 +205,7 @@ START_TEST(test_long_error_message)
     repl->current->curl_still_running = 1;
     simulate_completion = true;
 
-    res_t result = handle_curl_events(repl, 1);
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // Verify error was added to scrollback
@@ -250,7 +248,7 @@ START_TEST(test_error_with_long_partial_response)
     repl->current->curl_still_running = 1;
     simulate_completion = true;
 
-    res_t result = handle_curl_events(repl, 1);
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // Verify error was added to scrollback

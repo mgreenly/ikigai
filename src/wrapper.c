@@ -85,6 +85,24 @@ MOCKABLE const char *yyjson_get_str_(yyjson_val *val)
     return yyjson_get_str(val);
 }
 
+MOCKABLE bool yyjson_mut_obj_add_str_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
+                                      const char *key, const char *val)
+{
+    return yyjson_mut_obj_add_str(doc, obj, key, val);
+}
+
+MOCKABLE bool yyjson_mut_obj_add_int_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
+                                      const char *key, int64_t val)
+{
+    return yyjson_mut_obj_add_int(doc, obj, key, val);
+}
+
+MOCKABLE bool yyjson_mut_obj_add_uint_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
+                                       const char *key, uint64_t val)
+{
+    return yyjson_mut_obj_add_uint(doc, obj, key, val);
+}
+
 // ============================================================================
 // Pthread wrappers - debug/test builds only
 // ============================================================================
@@ -432,7 +450,6 @@ MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct 
 
 #include "db/connection.h"
 #include "db/message.h"
-#include "repl/session_restore.h"
 #include "config.h"
 #include "scrollback.h"
 #include "msg.h"
@@ -445,26 +462,18 @@ MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out
 
 MOCKABLE res_t ik_db_message_insert_(void *db,
                                      int64_t session_id,
+                                     const char *agent_uuid,
                                      const char *kind,
                                      const char *content,
                                      const char *data_json)
 {
-    return ik_db_message_insert((ik_db_ctx_t *)db, session_id, kind, content, data_json);
+    return ik_db_message_insert((ik_db_ctx_t *)db, session_id, agent_uuid, kind, content, data_json);
 }
 
-MOCKABLE res_t ik_repl_restore_session_(void *repl, void *db_ctx, void *cfg)
-{
-    return ik_repl_restore_session((ik_repl_ctx_t *)repl, (ik_db_ctx_t *)db_ctx, (ik_cfg_t *)cfg);
-}
 
 MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length)
 {
     return ik_scrollback_append_line((ik_scrollback_t *)scrollback, text, length);
-}
-
-MOCKABLE res_t ik_msg_from_db_(void *parent, const void *db_msg)
-{
-    return ik_msg_from_db(parent, (const ik_message_t *)db_msg);
 }
 
 MOCKABLE res_t ik_openai_conversation_add_msg_(void *conv, void *msg)

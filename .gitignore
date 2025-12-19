@@ -2,7 +2,8 @@ build/
 build-*/
 /bin/
 dist/
-/rel-06/
+/rel-07/
+/demo.md
 /banner.md
 coverage/
 .envrc
@@ -12,6 +13,7 @@ tags
 
 **/core.*
 **/vgcore.*
+**/*.o
 **/*.gcov
 **/*.gcda
 **/*.gcno

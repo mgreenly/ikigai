@@ -2,6 +2,7 @@
 
 #include "error.h"
 #include "json_allocator.h"
+#include "msg.h"
 #include "openai/http_handler.h"
 #include "openai/tool_choice.h"
 #include "tool.h"
@@ -23,7 +24,7 @@
  * Internal wrapper function
  */
 
-ik_msg_t *get_message_at_index(ik_msg_t **messages, size_t idx)
+ik_msg_t *ik_openai_get_message_at_index(ik_msg_t **messages, size_t idx)
 {
     return messages[idx];
 }
@@ -32,8 +33,8 @@ ik_msg_t *get_message_at_index(ik_msg_t **messages, size_t idx)
  * Conversation functions
  */
 
-res_t ik_openai_conversation_create(void *parent) {
-    ik_openai_conversation_t *conv = talloc_zero(parent, ik_openai_conversation_t);
+ik_openai_conversation_t *ik_openai_conversation_create(TALLOC_CTX *ctx) {
+    ik_openai_conversation_t *conv = talloc_zero(ctx, ik_openai_conversation_t);
     if (!conv) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to allocate conversation"); // LCOV_EXCL_LINE
     }
@@ -41,7 +42,7 @@ res_t ik_openai_conversation_create(void *parent) {
     conv->messages = NULL;
     conv->message_count = 0;
 
-    return OK(conv);
+    return conv;
 }
 
 res_t ik_openai_conversation_add_msg(ik_openai_conversation_t *conv, ik_msg_t *msg) {
@@ -154,7 +155,12 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
 
     /* Add each message to the array */
     for (size_t i = 0; i < request->conv->message_count; i++) {
-        ik_msg_t *msg = get_message_at_index(request->conv->messages, i);
+        ik_msg_t *msg = ik_openai_get_message_at_index(request->conv->messages, i);
+
+        /* Skip metadata events - they're not part of LLM conversation */
+        if (!ik_msg_is_conversation_kind(msg->kind)) {
+            continue;
+        }
 
         /* Create message object */
         yyjson_mut_val *msg_obj = yyjson_mut_arr_add_obj(doc, messages_arr);
@@ -270,12 +276,7 @@ res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
     } else {
         /* Regular text response - create canonical assistant message */
         /* http_resp->content is never NULL (guaranteed by http_handler) */
-        res_t msg_res = ik_openai_msg_create(parent, "assistant", http_resp->content);
-        if (msg_res.is_err) {  // LCOV_EXCL_BR_LINE
-            talloc_free(http_resp);  // LCOV_EXCL_LINE
-            return msg_res;  // LCOV_EXCL_LINE
-        }
-        msg = msg_res.ok;
+        msg = ik_openai_msg_create(parent, "assistant", http_resp->content);
     }
 
     talloc_free(http_resp);

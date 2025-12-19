@@ -1,6 +1,8 @@
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/error.h"
+#include "../../../src/uuid.h"
+#include "../../../src/openai/client.h"
 #include "../../test_utils.h"
 
 #include <check.h>
@@ -376,42 +378,19 @@ START_TEST(test_agent_conversation_initialized)
 }
 END_TEST
 
-// Test agent->marks is NULL initially
-START_TEST(test_agent_marks_null_initially)
+// Test agent->marks is NULL and mark_count is 0 initially
+START_TEST(test_agent_marks_and_count_initially)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
-
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(shared);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->marks);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->mark_count is 0 initially
-START_TEST(test_agent_mark_count_zero_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_uint_eq(agent->mark_count, 0);
-
     talloc_free(ctx);
 }
 END_TEST
@@ -476,102 +455,22 @@ START_TEST(test_agent_curl_still_running_zero_initially)
 }
 END_TEST
 
-// Test agent->assistant_response is NULL initially
-START_TEST(test_agent_assistant_response_null_initially)
+// Test agent response-related fields are NULL initially
+START_TEST(test_agent_response_fields_null_initially)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
-
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(shared);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->assistant_response);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->streaming_line_buffer is NULL initially
-START_TEST(test_agent_streaming_line_buffer_null_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->streaming_line_buffer);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->http_error_message is NULL initially
-START_TEST(test_agent_http_error_message_null_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->http_error_message);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->response_model is NULL initially
-START_TEST(test_agent_response_model_null_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->response_model);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->response_finish_reason is NULL initially
-START_TEST(test_agent_response_finish_reason_null_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->response_finish_reason);
-
     talloc_free(ctx);
 }
 END_TEST
@@ -596,82 +495,21 @@ START_TEST(test_agent_response_completion_tokens_zero_initially)
 }
 END_TEST
 
-// Test agent->pending_tool_call is NULL initially
-START_TEST(test_agent_pending_tool_call_null_initially)
+// Test agent tool thread fields initialized correctly
+START_TEST(test_agent_tool_fields_initialized)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
-
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(shared);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_null(agent->pending_tool_call);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->tool_thread_running is false initially
-START_TEST(test_agent_tool_thread_running_false_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert(agent->tool_thread_running == false);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->tool_thread_complete is false initially
-START_TEST(test_agent_tool_thread_complete_false_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert(agent->tool_thread_complete == false);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test agent->tool_iteration_count is 0 initially
-START_TEST(test_agent_tool_iteration_count_zero_initially)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    ck_assert_ptr_nonnull(shared);
-
-    ik_agent_ctx_t *agent = NULL;
-    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent);
     ck_assert_int_eq(agent->tool_iteration_count, 0);
-
     talloc_free(ctx);
 }
 END_TEST
@@ -743,13 +581,13 @@ START_TEST(test_agent_tool_thread_mutex_initialized)
 }
 END_TEST
 
-// Test ik_agent_generate_uuid() returns valid 22-char base64url string
+// Test ik_generate_uuid() returns valid 22-char base64url string
 START_TEST(test_generate_uuid_returns_valid_string)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    char *uuid = ik_agent_generate_uuid(ctx);
+    char *uuid = ik_generate_uuid(ctx);
     ck_assert_ptr_nonnull(uuid);
     ck_assert_uint_eq(strlen(uuid), 22);
     ck_assert(is_base64url(uuid, 22));
@@ -767,9 +605,9 @@ START_TEST(test_generate_uuid_produces_different_uuids)
     // Seed random number generator for reproducibility
     srand((unsigned int)time(NULL));
 
-    char *uuid1 = ik_agent_generate_uuid(ctx);
-    char *uuid2 = ik_agent_generate_uuid(ctx);
-    char *uuid3 = ik_agent_generate_uuid(ctx);
+    char *uuid1 = ik_generate_uuid(ctx);
+    char *uuid2 = ik_generate_uuid(ctx);
+    char *uuid3 = ik_generate_uuid(ctx);
 
     ck_assert_ptr_nonnull(uuid1);
     ck_assert_ptr_nonnull(uuid2);
@@ -779,6 +617,100 @@ START_TEST(test_generate_uuid_produces_different_uuids)
     ck_assert_str_ne(uuid1, uuid2);
     ck_assert_str_ne(uuid2, uuid3);
     ck_assert_str_ne(uuid1, uuid3);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test ik_agent_copy_conversation succeeds with messages
+START_TEST(test_agent_copy_conversation)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    // Create parent agent
+    ik_agent_ctx_t *parent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &parent);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(parent);
+
+    // Add messages to parent - some with data_json, some without
+    ik_msg_t *msg1 = ik_openai_msg_create(parent->conversation, "user", "Hello");
+    res = ik_openai_conversation_add_msg(parent->conversation, msg1);
+    ck_assert(is_ok(&res));
+
+    // Message without data_json
+    ik_msg_t *msg2 = ik_openai_msg_create(parent->conversation, "assistant", "Hi there");
+    res = ik_openai_conversation_add_msg(parent->conversation, msg2);
+    ck_assert(is_ok(&res));
+
+    // Message with data_json
+    ik_msg_t *msg_with_data = ik_openai_msg_create(parent->conversation, "assistant", "With data");
+    msg_with_data->data_json = talloc_strdup(msg_with_data, "{\"test\": true}");
+    res = ik_openai_conversation_add_msg(parent->conversation, msg_with_data);
+    ck_assert(is_ok(&res));
+
+    // Create child agent
+    ik_agent_ctx_t *child = NULL;
+    res = ik_agent_create(ctx, shared, parent->uuid, &child);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(child);
+
+    // Copy conversation (child, parent)
+    res = ik_agent_copy_conversation(child, parent);
+    ck_assert(is_ok(&res));
+
+    // Verify child has messages
+    ck_assert_ptr_nonnull(child->conversation);
+    ck_assert_uint_eq(child->conversation->message_count, parent->conversation->message_count);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->created_at is set to current time
+START_TEST(test_agent_create_sets_created_at)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    int64_t before = time(NULL);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    int64_t after = time(NULL);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_int_ge(agent->created_at, before);
+    ck_assert_int_le(agent->created_at, after);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test agent->repl backpointer is NULL initially (no repl context yet)
+START_TEST(test_agent_repl_backpointer_null_initially)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ck_assert_ptr_nonnull(shared);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_agent_create(ctx, shared, NULL, &agent);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(agent);
+    ck_assert_ptr_null(agent->repl);
 
     talloc_free(ctx);
 }
@@ -804,28 +736,23 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_agent_separator_visible_true);
     tcase_add_test(tc_core, test_agent_input_buffer_visible_true);
     tcase_add_test(tc_core, test_agent_conversation_initialized);
-    tcase_add_test(tc_core, test_agent_marks_null_initially);
-    tcase_add_test(tc_core, test_agent_mark_count_zero_initially);
+    tcase_add_test(tc_core, test_agent_marks_and_count_initially);
     tcase_add_test(tc_core, test_agent_allocated_under_parent);
     tcase_add_test(tc_core, test_agent_can_be_freed);
     tcase_add_test(tc_core, test_agent_state_idle_initially);
     tcase_add_test(tc_core, test_agent_multi_created_initially);
     tcase_add_test(tc_core, test_agent_curl_still_running_zero_initially);
-    tcase_add_test(tc_core, test_agent_assistant_response_null_initially);
-    tcase_add_test(tc_core, test_agent_streaming_line_buffer_null_initially);
-    tcase_add_test(tc_core, test_agent_http_error_message_null_initially);
-    tcase_add_test(tc_core, test_agent_response_model_null_initially);
-    tcase_add_test(tc_core, test_agent_response_finish_reason_null_initially);
+    tcase_add_test(tc_core, test_agent_response_fields_null_initially);
     tcase_add_test(tc_core, test_agent_response_completion_tokens_zero_initially);
-    tcase_add_test(tc_core, test_agent_pending_tool_call_null_initially);
-    tcase_add_test(tc_core, test_agent_tool_thread_running_false_initially);
-    tcase_add_test(tc_core, test_agent_tool_thread_complete_false_initially);
-    tcase_add_test(tc_core, test_agent_tool_iteration_count_zero_initially);
+    tcase_add_test(tc_core, test_agent_tool_fields_initialized);
     tcase_add_test(tc_core, test_agent_spinner_state_initialized);
     tcase_add_test(tc_core, test_agent_completion_null_initially);
     tcase_add_test(tc_core, test_agent_tool_thread_mutex_initialized);
     tcase_add_test(tc_core, test_generate_uuid_returns_valid_string);
     tcase_add_test(tc_core, test_generate_uuid_produces_different_uuids);
+    tcase_add_test(tc_core, test_agent_copy_conversation);
+    tcase_add_test(tc_core, test_agent_create_sets_created_at);
+    tcase_add_test(tc_core, test_agent_repl_backpointer_null_initially);
     suite_add_tcase(s, tc_core);
 
     return s;

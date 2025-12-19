@@ -149,8 +149,7 @@ START_TEST(test_multi_info_read_empty_response_body) {
     setup_mock_curl_msg(&msg, g_last_easy_handle, CURLE_OK, 200);
 
     /* This should log with empty body since complete_response is NULL */
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(!info_res.is_err);
+    ik_openai_multi_info_read(multi, NULL);
 
     talloc_free(multi);
 }
@@ -193,8 +192,7 @@ START_TEST(test_multi_info_read_with_response_body) {
     setup_mock_curl_msg(&msg, g_last_easy_handle, CURLE_OK, 200);
 
     /* This should log with body content since complete_response is populated */
-    res_t info_res = ik_openai_multi_info_read(multi);
-    ck_assert(!info_res.is_err);
+    ik_openai_multi_info_read(multi, NULL);
 
     talloc_free(multi);
 }

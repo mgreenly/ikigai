@@ -83,7 +83,7 @@ static void verify_required(yyjson_mut_val *parameters, const char *required_par
     }
 }
 
-// Test: ik_tool_add_string_param adds parameter correctly
+// Test: ik_tool_add_string_parameter adds parameter correctly
 START_TEST(test_tool_add_string_param) {
     // Create yyjson document
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -94,7 +94,7 @@ START_TEST(test_tool_add_string_param) {
     ck_assert_ptr_nonnull(properties);
 
     // Call function under test
-    ik_tool_add_string_param(doc, properties, "test_param", "Test description");
+    ik_tool_add_string_parameter(doc, properties, "test_param", "Test description");
 
     // Verify parameter was added
     yyjson_mut_val *param = yyjson_mut_obj_get(properties, "test_param");
@@ -421,6 +421,97 @@ END_TEST START_TEST(test_tool_truncate_output_zero_limit)
 
 END_TEST
 
+// Test: ik_tool_param_def_t struct exists and is usable
+START_TEST(test_tool_param_def_struct_exists)
+{
+    ik_tool_param_def_t param = {
+        .name = "test_param",
+        .description = "Test description",
+        .required = true
+    };
+    ck_assert_str_eq(param.name, "test_param");
+    ck_assert_str_eq(param.description, "Test description");
+    ck_assert(param.required);
+}
+END_TEST
+
+// Test: ik_tool_build_schema_from_def basic functionality
+START_TEST(test_tool_build_schema_from_def_basic) {
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    ck_assert_ptr_nonnull(doc);
+
+    static const ik_tool_param_def_t params[] = {
+        {"pattern", "Glob pattern", true},
+        {"path", "Base directory", false}
+    };
+
+    ik_tool_schema_def_t def = {
+        .name = "test_glob",
+        .description = "Test glob tool",
+        .params = params,
+        .param_count = 2
+    };
+
+    yyjson_mut_val *schema = ik_tool_build_schema_from_def(doc, &def);
+    verify_schema_basics(schema, "test_glob");
+
+    yyjson_mut_val *parameters = get_parameters(schema);
+    yyjson_mut_val *properties = yyjson_mut_obj_get(parameters, "properties");
+    ck_assert_ptr_nonnull(properties);
+
+    verify_string_param(properties, "pattern");
+    verify_string_param(properties, "path");
+
+    const char *required_params[] = {"pattern"};
+    verify_required(parameters, required_params, 1);
+
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
+// Test: All schema definitions produce correct output (completeness check)
+START_TEST(test_schema_definitions_complete) {
+    // Verify all 5 tool schemas can be built and have expected tool names
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    ck_assert_ptr_nonnull(doc);
+
+    const char *expected_names[] = {"glob", "file_read", "grep", "file_write", "bash"};
+    yyjson_mut_val *arr = ik_tool_build_all(doc);
+    ck_assert_uint_eq(yyjson_mut_arr_size(arr), 5);
+
+    for (size_t i = 0; i < 5; i++) {
+        yyjson_mut_val *schema = yyjson_mut_arr_get(arr, i);
+        yyjson_mut_val *function = yyjson_mut_obj_get(schema, "function");
+        yyjson_mut_val *name = yyjson_mut_obj_get(function, "name");
+        ck_assert_str_eq(yyjson_mut_get_str(name), expected_names[i]);
+    }
+
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
+// Test: ik_tool_schema_def_t struct exists and is usable
+START_TEST(test_tool_schema_def_struct_exists)
+{
+    static const ik_tool_param_def_t params[] = {
+        {"pattern", "Pattern to match", true},
+        {"path", "Base path", false}
+    };
+
+    ik_tool_schema_def_t schema = {
+        .name = "test_tool",
+        .description = "Test tool description",
+        .params = params,
+        .param_count = 2
+    };
+
+    ck_assert_str_eq(schema.name, "test_tool");
+    ck_assert_str_eq(schema.description, "Test tool description");
+    ck_assert_ptr_eq(schema.params, params);
+    ck_assert_uint_eq(schema.param_count, 2);
+}
+END_TEST
+
 // Test suite
 static Suite *tool_suite(void)
 {
@@ -479,6 +570,22 @@ static Suite *tool_suite(void)
     tcase_add_test(tc_truncate, test_tool_truncate_output_over_limit);
     tcase_add_test(tc_truncate, test_tool_truncate_output_zero_limit);
     suite_add_tcase(s, tc_truncate);
+
+    TCase *tc_param_def = tcase_create("Parameter Definition");
+    tcase_add_checked_fixture(tc_param_def, setup, teardown);
+    tcase_add_test(tc_param_def, test_tool_param_def_struct_exists);
+    suite_add_tcase(s, tc_param_def);
+
+    TCase *tc_schema_def = tcase_create("Schema Definition");
+    tcase_add_checked_fixture(tc_schema_def, setup, teardown);
+    tcase_add_test(tc_schema_def, test_tool_schema_def_struct_exists);
+    suite_add_tcase(s, tc_schema_def);
+
+    TCase *tc_build_from_def = tcase_create("Build Schema From Def");
+    tcase_add_checked_fixture(tc_build_from_def, setup, teardown);
+    tcase_add_test(tc_build_from_def, test_tool_build_schema_from_def_basic);
+    tcase_add_test(tc_build_from_def, test_schema_definitions_complete);
+    suite_add_tcase(s, tc_build_from_def);
 
     return s;
 }

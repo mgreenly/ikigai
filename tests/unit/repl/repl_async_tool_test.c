@@ -28,11 +28,13 @@ static char *last_insert_data_json = NULL;
 /* Mock implementation of ik_db_message_insert_ */
 res_t ik_db_message_insert_(void *db,
                              int64_t session_id,
+                             const char *agent_uuid,
                              const char *kind,
                              const char *content,
                              const char *data_json) {
     (void)db;
     (void)session_id;
+    (void)agent_uuid;
 
     db_insert_call_count++;
 
@@ -75,19 +77,18 @@ static void setup(void)
     }
 
     repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->current = talloc_zero(repl, ik_agent_ctx_t);
 
     /* Create shared context */
     repl->shared = talloc_zero(ctx, ik_shared_ctx_t);
 
     /* Create agent context for display state */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
+    agent->shared = repl->shared;
+    agent->repl = repl;
     repl->current = agent;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(repl);
-    ck_assert(!conv_res.is_err);
-    repl->current->conversation = conv_res.ok;
+    repl->current->conversation = ik_openai_conversation_create(repl);
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 10);

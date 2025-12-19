@@ -46,6 +46,9 @@ res_t ik_mark_create(ik_repl_ctx_t *repl, const char *label)
     assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
     // label can be NULL for unlabeled marks
 
+    // TODO(DI): This function violates DI principles - it reaches into repl internals
+    // instead of taking explicit dependencies as parameters. See marks.h for details.
+
     // Create new mark
     ik_mark_t *mark = talloc_zero(repl, ik_mark_t);
     if (mark == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -104,6 +107,9 @@ res_t ik_mark_find(ik_repl_ctx_t *repl, const char *label, ik_mark_t **mark_out)
     assert(mark_out != NULL);  /* LCOV_EXCL_BR_LINE */
     // label can be NULL to find most recent mark
 
+    // TODO(DI): This function violates DI principles - it reaches into repl internals.
+    // See marks.h for details.
+
     if (repl->current->mark_count == 0) {
         return ERR(repl, INVALID_ARG, "No marks found");
     }
@@ -130,6 +136,9 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
 {
     assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
     assert(target_mark != NULL);  /* LCOV_EXCL_BR_LINE */
+
+    // TODO(DI): This function violates DI principles - it reaches into repl internals.
+    // See marks.h for details.
 
     res_t result;
 
@@ -201,6 +210,8 @@ res_t ik_mark_rewind_to(ik_repl_ctx_t *repl, const char *label)
 {
     assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
     // label can be NULL to rewind to most recent mark
+
+    // TODO(DI): This function violates DI principles - see marks.h for details.
 
     // Find the target mark
     ik_mark_t *target_mark;

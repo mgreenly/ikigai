@@ -11,28 +11,28 @@
 #include <utf8proc.h>
 
 // Create render context
-res_t ik_render_create(void *parent, int32_t rows, int32_t cols,
-                       int32_t tty_fd, ik_render_ctx_t **ctx_out)
+res_t ik_render_create(TALLOC_CTX *ctx, int32_t rows, int32_t cols,
+                       int32_t tty_fd, ik_render_ctx_t **render_ctx_out)
 {
-    assert(parent != NULL);  // LCOV_EXCL_BR_LINE
-    assert(ctx_out != NULL); // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(render_ctx_out != NULL); // LCOV_EXCL_BR_LINE
 
     // Validate dimensions
     if (rows <= 0 || cols <= 0) {
-        return ERR(parent, INVALID_ARG, "Invalid terminal dimensions: rows=%" PRId32 ", cols=%" PRId32, rows, cols);
+        return ERR(ctx, INVALID_ARG, "Invalid terminal dimensions: rows=%" PRId32 ", cols=%" PRId32, rows, cols);
     }
 
     // Allocate context
-    ik_render_ctx_t *ctx = talloc_zero_(parent, sizeof(ik_render_ctx_t));
-    if (ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    ik_render_ctx_t *render_ctx = talloc_zero_(ctx, sizeof(ik_render_ctx_t));
+    if (render_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Initialize fields
-    ctx->rows = rows;
-    ctx->cols = cols;
-    ctx->tty_fd = tty_fd;
+    render_ctx->rows = rows;
+    render_ctx->cols = cols;
+    render_ctx->tty_fd = tty_fd;
 
-    *ctx_out = ctx;
-    return OK(ctx);
+    *render_ctx_out = render_ctx;
+    return OK(render_ctx);
 }
 
 // Render input buffer to terminal (text + cursor positioning)

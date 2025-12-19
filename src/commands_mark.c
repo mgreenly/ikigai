@@ -7,6 +7,7 @@
 
 #include "db/message.h"
 #include "db/pg_result.h"
+#include "logger.h"
 #include "marks.h"
 #include "panic.h"
 #include "repl.h"
@@ -93,15 +94,16 @@ res_t ik_cmd_mark(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
 
         res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                            "mark", NULL, data_json);
+                                            repl->current->uuid, "mark", NULL, data_json);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
-            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
-                fprintf(repl->shared->db_debug_pipe->write_end,
-                        "Warning: Failed to persist mark event to database: %s\n",
-                        error_message(db_res.err));
-            }
-            talloc_free(db_res.err);
+            yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_mark");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
+            ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
+            talloc_free(db_res.err);  // LCOV_EXCL_LINE
         }
         talloc_free(data_json);
     }
@@ -152,15 +154,16 @@ res_t ik_cmd_rewind(void *ctx, ik_repl_ctx_t *repl, const char *args)
                                           target_label ? talloc_asprintf(repl, "\"%s\"", target_label) : "null");
 
         res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                            "rewind", NULL, data_json);
+                                            repl->current->uuid, "rewind", NULL, data_json);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
-            if (repl->shared->db_debug_pipe != NULL && repl->shared->db_debug_pipe->write_end != NULL) {
-                fprintf(repl->shared->db_debug_pipe->write_end,
-                        "Warning: Failed to persist rewind event to database: %s\n",
-                        error_message(db_res.err));
-            }
-            talloc_free(db_res.err);
+            yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_rewind");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
+            ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
+            talloc_free(db_res.err);  // LCOV_EXCL_LINE
         }
         talloc_free(data_json);
     }

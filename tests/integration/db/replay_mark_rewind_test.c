@@ -121,14 +121,14 @@ START_TEST(test_replay_simple_mark)
     SKIP_IF_NO_DB();
 
     // Insert [user, assistant, mark]
-    ik_db_message_insert(db, session_id, "user", "Q1", "{}");
-    ik_db_message_insert(db, session_id, "assistant", "A1", "{}");
-    ik_db_message_insert(db, session_id, "mark", "checkpoint1",
+    ik_db_message_insert(db, session_id, NULL, "user", "Q1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "A1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "mark", "checkpoint1",
                           "{\"label\":\"checkpoint1\"}");
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -151,8 +151,8 @@ START_TEST(test_replay_rewind_to_mark)
     SKIP_IF_NO_DB();
 
     // Insert [user, mark, assistant]
-    ik_db_message_insert(db, session_id, "user", "Q1", "{}");
-    ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"m1\"}");
+    ik_db_message_insert(db, session_id, NULL, "user", "Q1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"m1\"}");
 
     // Get mark's message ID (query for mark specifically)
     char *query = talloc_asprintf(test_ctx,
@@ -167,17 +167,17 @@ START_TEST(test_replay_rewind_to_mark)
     PQclear(result);
 
     // Insert message after mark
-    ik_db_message_insert(db, session_id, "assistant", "A1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "A1", "{}");
 
     // Insert rewind to mark
     char data[128];
     snprintf(data, sizeof(data), "{\"target_message_id\":%lld,\"label\":\"m1\"}",
              (long long)mark_id);
-    ik_db_message_insert(db, session_id, "rewind", NULL, data);
+    ik_db_message_insert(db, session_id, NULL, "rewind", NULL, data);
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -198,8 +198,8 @@ START_TEST(test_replay_multiple_marks_rewind_first)
     SKIP_IF_NO_DB();
 
     // Insert [user, mark('a'), assistant, mark('b'), user]
-    ik_db_message_insert(db, session_id, "user", "U1", "{}");
-    ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"a\"}");
+    ik_db_message_insert(db, session_id, NULL, "user", "U1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"a\"}");
 
     // Get first mark's ID (query for mark with label 'a')
     char *query = talloc_asprintf(test_ctx,
@@ -212,19 +212,19 @@ START_TEST(test_replay_multiple_marks_rewind_first)
     sscanf(PQgetvalue(result, 0, 0), "%lld", (long long *)&mark_a_id);
     PQclear(result);
 
-    ik_db_message_insert(db, session_id, "assistant", "A1", "{}");
-    ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"b\"}");
-    ik_db_message_insert(db, session_id, "user", "U2", "{}");
+    ik_db_message_insert(db, session_id, NULL, "assistant", "A1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"b\"}");
+    ik_db_message_insert(db, session_id, NULL, "user", "U2", "{}");
 
     // Rewind to mark 'a'
     char data[128];
     snprintf(data, sizeof(data), "{\"target_message_id\":%lld,\"label\":\"a\"}",
              (long long)mark_a_id);
-    ik_db_message_insert(db, session_id, "rewind", NULL, data);
+    ik_db_message_insert(db, session_id, NULL, "rewind", NULL, data);
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -246,8 +246,8 @@ START_TEST(test_replay_rewind_removes_subsequent_marks)
     SKIP_IF_NO_DB();
 
     // Insert [user, mark1, user, mark2]
-    ik_db_message_insert(db, session_id, "user", "U1", "{}");
-    ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"m1\"}");
+    ik_db_message_insert(db, session_id, NULL, "user", "U1", "{}");
+    ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"m1\"}");
 
     // Get first mark's ID (query for mark with label 'm1')
     char *query = talloc_asprintf(test_ctx,
@@ -260,18 +260,18 @@ START_TEST(test_replay_rewind_removes_subsequent_marks)
     sscanf(PQgetvalue(result, 0, 0), "%lld", (long long *)&mark1_id);
     PQclear(result);
 
-    ik_db_message_insert(db, session_id, "user", "U2", "{}");
-    ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"m2\"}");
+    ik_db_message_insert(db, session_id, NULL, "user", "U2", "{}");
+    ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"m2\"}");
 
     // Rewind to mark1
     char data[128];
     snprintf(data, sizeof(data), "{\"target_message_id\":%lld,\"label\":\"m1\"}",
              (long long)mark1_id);
-    ik_db_message_insert(db, session_id, "rewind", NULL, data);
+    ik_db_message_insert(db, session_id, NULL, "rewind", NULL, data);
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -290,14 +290,14 @@ START_TEST(test_replay_mark_labels_preserved)
     SKIP_IF_NO_DB();
 
     // Insert marks with different labels
-    ik_db_message_insert(db, session_id, "mark", NULL,
+    ik_db_message_insert(db, session_id, NULL, "mark", NULL,
                           "{\"label\":\"alpha\"}");
-    ik_db_message_insert(db, session_id, "mark", NULL,
+    ik_db_message_insert(db, session_id, NULL, "mark", NULL,
                           "{\"label\":\"beta\"}");
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -317,11 +317,11 @@ START_TEST(test_replay_mark_without_label)
     SKIP_IF_NO_DB();
 
     // Insert mark with no label
-    ik_db_message_insert(db, session_id, "mark", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{}");
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;
@@ -340,13 +340,13 @@ START_TEST(test_replay_clear_resets_mark_stack)
     SKIP_IF_NO_DB();
 
     // Insert mark, then clear
-    ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"m1\"}");
-    ik_db_message_insert(db, session_id, "clear", NULL, "{}");
-    ik_db_message_insert(db, session_id, "user", "After clear", "{}");
+    ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"m1\"}");
+    ik_db_message_insert(db, session_id, NULL, "clear", NULL, "{}");
+    ik_db_message_insert(db, session_id, NULL, "user", "After clear", "{}");
 
     // Replay
     TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
-    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id);
+    res_t replay_res = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&replay_res));
 
     ik_replay_context_t *context = replay_res.ok;

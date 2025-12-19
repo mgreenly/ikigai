@@ -24,6 +24,11 @@ static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
 static int64_t session_id;
 
+// Mock control flags (used by override functions defined later)
+static bool mock_query_failure = false;
+static bool mock_invalid_json = false;
+static bool mock_invalid_id = false;
+
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
 {
@@ -62,6 +67,11 @@ static void suite_teardown(void)
 // Per-test setup: Connect, begin transaction, create session
 static void test_setup(void)
 {
+    // Reset mock state
+    mock_query_failure = false;
+    mock_invalid_json = false;
+    mock_invalid_id = false;
+
     if (!db_available) {
         test_ctx = NULL;
         db = NULL;
@@ -120,7 +130,7 @@ START_TEST(test_mark_stack_capacity_expansion) {
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert 10 marks to trigger geometric growth
@@ -129,12 +139,12 @@ START_TEST(test_mark_stack_capacity_expansion) {
     // After 8 marks, capacity should double to 16
     for (int i = 0; i < 10; i++) {
         char *label = talloc_asprintf(test_ctx, "{\"label\":\"mark%d\"}", i);
-        res = ik_db_message_insert(db, session_id, "mark", NULL, label);
+        res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, label);
         ck_assert(is_ok(&res));
     }
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -154,27 +164,27 @@ START_TEST(test_rewind_missing_data)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user message
-    res = ik_db_message_insert(db, session_id, "user", "Hello", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Hello", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"checkpoint\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"checkpoint\"}");
     ck_assert(is_ok(&res));
 
     // Insert rewind with NULL data (malformed - should be logged and skipped)
-    res = ik_db_message_insert(db, session_id, "rewind", NULL, NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "rewind", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert another message after malformed rewind
-    res = ik_db_message_insert(db, session_id, "user", "After rewind", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "After rewind", NULL);
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -194,27 +204,27 @@ START_TEST(test_rewind_missing_target_message_id)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user message
-    res = ik_db_message_insert(db, session_id, "user", "Hello", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Hello", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"checkpoint\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"checkpoint\"}");
     ck_assert(is_ok(&res));
 
     // Insert rewind with valid JSON but missing target_message_id
-    res = ik_db_message_insert(db, session_id, "rewind", NULL, "{\"other_field\":123}");
+    res = ik_db_message_insert(db, session_id, NULL, "rewind", NULL, "{\"other_field\":123}");
     ck_assert(is_ok(&res));
 
     // Insert another message
-    res = ik_db_message_insert(db, session_id, "user", "After rewind", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "After rewind", NULL);
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -230,27 +240,27 @@ START_TEST(test_rewind_invalid_target_message_id_type)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user message
-    res = ik_db_message_insert(db, session_id, "user", "Hello", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Hello", NULL);
     ck_assert(is_ok(&res));
 
     // Insert mark
-    res = ik_db_message_insert(db, session_id, "mark", NULL, "{\"label\":\"checkpoint\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "mark", NULL, "{\"label\":\"checkpoint\"}");
     ck_assert(is_ok(&res));
 
     // Insert rewind with string target_message_id (should be integer)
-    res = ik_db_message_insert(db, session_id, "rewind", NULL, "{\"target_message_id\":\"not_an_int\"}");
+    res = ik_db_message_insert(db, session_id, NULL, "rewind", NULL, "{\"target_message_id\":\"not_an_int\"}");
     ck_assert(is_ok(&res));
 
     // Insert another message
-    res = ik_db_message_insert(db, session_id, "user", "After rewind", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "After rewind", NULL);
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -266,23 +276,23 @@ START_TEST(test_rewind_mark_not_found)
     SKIP_IF_NO_DB();
 
     // Insert clear
-    res_t res = ik_db_message_insert(db, session_id, "clear", NULL, NULL);
+    res_t res = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
     ck_assert(is_ok(&res));
 
     // Insert user message
-    res = ik_db_message_insert(db, session_id, "user", "Hello", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "Hello", NULL);
     ck_assert(is_ok(&res));
 
     // Insert rewind with non-existent mark ID (999999)
-    res = ik_db_message_insert(db, session_id, "rewind", NULL, "{\"target_message_id\":999999}");
+    res = ik_db_message_insert(db, session_id, NULL, "rewind", NULL, "{\"target_message_id\":999999}");
     ck_assert(is_ok(&res));
 
     // Insert another message
-    res = ik_db_message_insert(db, session_id, "user", "After rewind", NULL);
+    res = ik_db_message_insert(db, session_id, NULL, "user", "After rewind", NULL);
     ck_assert(is_ok(&res));
 
     // Load and replay
-    res = ik_db_messages_load(test_ctx, db, session_id);
+    res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));
 
     ik_replay_context_t *context = res.ok;
@@ -295,7 +305,6 @@ END_TEST
 
 // Test: Database query failure (lines 283-287)
 // We need to mock pq_exec_params_ to return an error
-static bool mock_query_failure = false;
 
 PGresult *pq_exec_params_(PGconn *conn, const char *command, int nParams,
                           const Oid *paramTypes, const char *const *paramValues,
@@ -318,7 +327,7 @@ START_TEST(test_database_query_failure) {
     mock_query_failure = true;
 
     // Try to load messages - should fail with database error
-    res_t res = ik_db_messages_load(test_ctx, db, session_id);
+    res_t res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(res.err->code, ERR_IO);
 
@@ -329,7 +338,6 @@ END_TEST
 
 // Test: Invalid JSON in rewind data_json (lines 201-202)
 // Mock yyjson_read_ to return NULL, simulating invalid JSON
-static bool mock_invalid_json = false;
 
 yyjson_doc *yyjson_read_(const char *dat, size_t len, yyjson_read_flag flg)
 {
@@ -345,13 +353,13 @@ START_TEST(test_rewind_invalid_json) {
     SKIP_IF_NO_DB();
 
     // Insert a mark first
-    res_t mark_res = ik_db_message_insert(db, session_id, "mark", "test_mark",
+    res_t mark_res = ik_db_message_insert(db, session_id, NULL, "mark", "test_mark",
                                           "{\"label\": \"mark1\"}");
     ck_assert(is_ok(&mark_res));
 
     // Get mark ID from database - just insert a rewind with some target
     // The key is that yyjson_read_ will fail, not the target validity
-    res_t rewind_res = ik_db_message_insert(db, session_id, "rewind", NULL,
+    res_t rewind_res = ik_db_message_insert(db, session_id, NULL, "rewind", NULL,
                                             "{\"target_message_id\": 999}");
     ck_assert(is_ok(&rewind_res));
 
@@ -359,7 +367,7 @@ START_TEST(test_rewind_invalid_json) {
     mock_invalid_json = true;
 
     // Load messages - should handle invalid JSON gracefully (log error, skip rewind)
-    res_t res = ik_db_messages_load(test_ctx, db, session_id);
+    res_t res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));  // Should succeed despite invalid JSON
     ik_replay_context_t *context = res.ok;
 
@@ -395,7 +403,7 @@ START_TEST(test_unknown_event_kind)
     PQclear(insert_res);
 
     // Load messages - should handle unknown kind gracefully (log error, skip)
-    res_t res = ik_db_messages_load(test_ctx, db, session_id);
+    res_t res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_ok(&res));  // Should succeed despite unknown kind
     ik_replay_context_t *context = res.ok;
 
@@ -411,7 +419,6 @@ END_TEST
 
 // Test: sscanf failure when parsing message ID (lines 304-306)
 // Mock PQgetvalue_ to return non-numeric string for ID field
-static bool mock_invalid_id = false;
 static char invalid_id_str[] = "not_a_number";
 
 char *PQgetvalue_(const PGresult *res, int row_number, int column_number)
@@ -426,14 +433,14 @@ START_TEST(test_sscanf_parse_failure) {
     SKIP_IF_NO_DB();
 
     // Insert a message
-    res_t insert_res = ik_db_message_insert(db, session_id, "user", "test", NULL);
+    res_t insert_res = ik_db_message_insert(db, session_id, NULL, "user", "test", NULL);
     ck_assert(is_ok(&insert_res));
 
     // Enable mock to return invalid ID
     mock_invalid_id = true;
 
     // Load messages - should fail with PARSE error
-    res_t res = ik_db_messages_load(test_ctx, db, session_id);
+    res_t res = ik_db_messages_load(test_ctx, db, session_id, NULL);
     ck_assert(is_err(&res));
     ck_assert_int_eq(res.err->code, ERR_PARSE);
 

@@ -179,13 +179,9 @@ START_TEST(test_http_callback_with_finish_reason) {
     cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(conv, "user", "Hello");
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -227,13 +223,9 @@ START_TEST(test_http_callback_without_finish_reason)
     cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(conv, "user", "Hello");
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -273,13 +265,9 @@ START_TEST(test_http_callback_malformed_finish_reason)
     cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(conv, "user", "Hello");
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);
@@ -323,13 +311,9 @@ START_TEST(test_http_callback_finish_reason_edge_cases)
     cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(conv, "user", "Hello");
 
     res_t add_res = ik_openai_conversation_add_msg(conv, msg);
     ck_assert(!add_res.is_err);

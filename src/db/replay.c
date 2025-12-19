@@ -37,8 +37,8 @@ static void ensure_capacity(ik_replay_context_t *context) {
   // Reallocate messages array
   // talloc_realloc expects unsigned int, cast is safe for reasonable message
   // counts
-  ik_message_t **new_messages = talloc_realloc(
-      context, context->messages, ik_message_t *, (unsigned int)new_capacity);
+  ik_msg_t **new_messages = talloc_realloc(
+      context, context->messages, ik_msg_t *, (unsigned int)new_capacity);
   if (new_messages == NULL) // LCOV_EXCL_BR_LINE
     PANIC("Out of memory"); // LCOV_EXCL_LINE
 
@@ -98,7 +98,7 @@ static res_t append_message(ik_replay_context_t *context, int64_t id,
   ensure_capacity(context);
 
   // Allocate message structure as child of context
-  ik_message_t *msg = talloc_zero(context, ik_message_t);
+  ik_msg_t *msg = talloc_zero(context, ik_msg_t);
   if (msg == NULL)          // LCOV_EXCL_BR_LINE
     PANIC("Out of memory"); // LCOV_EXCL_LINE
 
@@ -135,7 +135,7 @@ static res_t append_message(ik_replay_context_t *context, int64_t id,
 // Helper: process a single event according to replay algorithm
 static res_t process_event(ik_replay_context_t *context, int64_t id,
                            const char *kind, const char *content,
-                           const char *data_json) {
+                           const char *data_json, ik_logger_t *logger) {
   assert(context != NULL); // LCOV_EXCL_BR_LINE
   assert(kind != NULL);    // LCOV_EXCL_BR_LINE
 
@@ -201,7 +201,7 @@ static res_t process_event(ik_replay_context_t *context, int64_t id,
       if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
       if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Malformed rewind event: missing data field")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
       if (!yyjson_mut_obj_add_int(log_doc, root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-      ik_log_error_json(log_doc);
+      ik_logger_error_json(logger, log_doc);
       return OK(NULL);
     }
 
@@ -212,7 +212,7 @@ static res_t process_event(ik_replay_context_t *context, int64_t id,
       if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
       if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Malformed rewind event: invalid JSON in data field")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
       if (!yyjson_mut_obj_add_int(log_doc, root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-      ik_log_error_json(log_doc);
+      ik_logger_error_json(logger, log_doc);
       return OK(NULL);
     }
 
@@ -224,7 +224,7 @@ static res_t process_event(ik_replay_context_t *context, int64_t id,
       if (log_root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
       if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Malformed rewind event: missing or invalid target_message_id")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
       if (!yyjson_mut_obj_add_int(log_doc, log_root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-      ik_log_error_json(log_doc);
+      ik_logger_error_json(logger, log_doc);
       yyjson_doc_free(doc);
       return OK(NULL);
     }
@@ -241,7 +241,7 @@ static res_t process_event(ik_replay_context_t *context, int64_t id,
       if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Invalid rewind event: target mark not found")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
       if (!yyjson_mut_obj_add_int(log_doc, log_root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
       if (!yyjson_mut_obj_add_int(log_doc, log_root, "target_message_id", target_message_id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-      ik_log_error_json(log_doc);
+      ik_logger_error_json(logger, log_doc);
       return OK(NULL);
     }
 
@@ -263,12 +263,16 @@ static res_t process_event(ik_replay_context_t *context, int64_t id,
   if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Unknown event kind")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
   if (!yyjson_mut_obj_add_str(log_doc, log_root, "kind", kind)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
   if (!yyjson_mut_obj_add_int(log_doc, log_root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-  ik_log_error_json(log_doc);
+  ik_logger_error_json(logger, log_doc);
   return OK(NULL);
 }
 
+// TEST-ONLY FUNCTION
+// This function queries messages by session_id only (not agent_uuid).
+// Production code uses ik_agent_replay_history() for agent-based replay.
+// Retained for test convenience - has no production callers.
 res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx,
-                          int64_t session_id) {
+                          int64_t session_id, ik_logger_t *logger) {
   // Preconditions
   assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
   assert(db_ctx != NULL);       // LCOV_EXCL_BR_LINE
@@ -340,7 +344,7 @@ res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx,
     }
 
     // Process event
-    res_t res = process_event(context, id, kind, content, data_json);
+    res_t res = process_event(context, id, kind, content, data_json, logger);
     if (is_err(&res)) { // LCOV_EXCL_BR_LINE - never returns error
       talloc_free(tmp); // LCOV_EXCL_LINE
       return res;       // LCOV_EXCL_LINE

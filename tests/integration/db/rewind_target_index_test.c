@@ -148,9 +148,7 @@ START_TEST(test_rewind_persists_correct_target_message_index)
     ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create conversation
-    res_t conv_res = ik_openai_conversation_create(repl);
-    ck_assert(is_ok(&conv_res));
-    repl->current->conversation = conv_res.ok;
+    repl->current->conversation = ik_openai_conversation_create(repl);
 
     // Initialize marks
     repl->current->marks = NULL;
@@ -170,17 +168,17 @@ START_TEST(test_rewind_persists_correct_target_message_index)
     // DB Index 5: assistant message
 
     // Persist user message (DB index 0, conversation index 0)
-    ik_db_message_insert(db, session_id, "user", "Question 1", "{}");
-    res_t msg_res = ik_openai_msg_create(repl->current->conversation, "user", "Question 1");
-    ck_assert(is_ok(&msg_res));
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
+    ik_db_message_insert(db, session_id, NULL, "user", "Question 1", "{}");
+    ik_msg_t *msg1 = ik_openai_msg_create(repl->current->conversation, "user", "Question 1");
+    // removed assertion
+    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg1);
     ck_assert(is_ok(&add_res));
 
     // Persist assistant message (DB index 1, conversation index 1)
-    ik_db_message_insert(db, session_id, "assistant", "Answer 1", "{}");
-    msg_res = ik_openai_msg_create(repl->current->conversation, "assistant", "Answer 1");
-    ck_assert(is_ok(&msg_res));
-    add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
+    ik_db_message_insert(db, session_id, NULL, "assistant", "Answer 1", "{}");
+    ik_msg_t *msg2 = ik_openai_msg_create(repl->current->conversation, "assistant", "Answer 1");
+    // removed assertion
+    add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg2);
     ck_assert(is_ok(&add_res));
 
     // Create mark "test" (DB index 2, conversation message_index = 2)
@@ -195,16 +193,16 @@ START_TEST(test_rewind_persists_correct_target_message_index)
     ck_assert_int_eq((int)repl->current->marks[1]->message_index, 2);  // Still 2, no new conversation messages
 
     // Add more messages after the marks (DB index 4, 5)
-    ik_db_message_insert(db, session_id, "user", "Question 2", "{}");
-    msg_res = ik_openai_msg_create(repl->current->conversation, "user", "Question 2");
-    ck_assert(is_ok(&msg_res));
-    add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
+    ik_db_message_insert(db, session_id, NULL, "user", "Question 2", "{}");
+    ik_msg_t *msg3 = ik_openai_msg_create(repl->current->conversation, "user", "Question 2");
+    // removed assertion
+    add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg3);
     ck_assert(is_ok(&add_res));
 
-    ik_db_message_insert(db, session_id, "assistant", "Answer 2", "{}");
-    msg_res = ik_openai_msg_create(repl->current->conversation, "assistant", "Answer 2");
-    ck_assert(is_ok(&msg_res));
-    add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg_res.ok);
+    ik_db_message_insert(db, session_id, NULL, "assistant", "Answer 2", "{}");
+    ik_msg_t *msg4 = ik_openai_msg_create(repl->current->conversation, "assistant", "Answer 2");
+    // removed assertion
+    add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg4);
     ck_assert(is_ok(&add_res));
 
     // Query for the database ID of the "checkpoint-a" mark BEFORE rewinding

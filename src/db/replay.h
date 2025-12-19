@@ -2,20 +2,13 @@
 #define IK_DB_REPLAY_H
 
 #include "../error.h"
+#include "../msg.h"
 #include "connection.h"
 #include <stdint.h>
 #include <talloc.h>
 
-/**
- * Message structure - represents a single event from the database
- */
-struct ik_message {
-    int64_t id;        // Message ID from database
-    char *kind;        // Event kind (clear, system, user, assistant, mark, rewind)
-    char *content;     // Message content
-    char *data_json;   // JSONB data as string
-};
-typedef struct ik_message ik_message_t;
+// Forward declaration
+typedef struct ik_logger ik_logger_t;
 
 /**
  * Mark entry - checkpoint information for conversation rollback
@@ -39,14 +32,35 @@ typedef struct {
  * Context array - dynamic array of messages representing conversation state
  */
 typedef struct {
-    ik_message_t **messages;          // Dynamic array of message pointers
+    ik_msg_t **messages;              // Dynamic array of message pointers (unified type)
     size_t count;                     // Number of messages in context
     size_t capacity;                  // Allocated capacity
     ik_replay_mark_stack_t mark_stack; // Stack of checkpoint marks
 } ik_replay_context_t;
 
 /**
+ * Replay range - defines a subset of messages to query for replay
+ *
+ * Each range contains enough information to query the exact subset of messages
+ * from a specific agent's history.
+ *
+ * Semantics:
+ *   - start_id is exclusive (query messages AFTER this ID)
+ *   - end_id is inclusive (query messages up to and including this ID)
+ *   - end_id = 0 means "no upper limit" (used for leaf agent)
+ */
+typedef struct {
+    char *agent_uuid;   // Which agent's messages to query
+    int64_t start_id;   // Start AFTER this message ID (0 = from beginning)
+    int64_t end_id;     // End AT this message ID (0 = no limit, i.e., leaf)
+} ik_replay_range_t;
+
+/**
  * Load messages from database and replay to build context
+ *
+ * TEST-ONLY FUNCTION: This function queries by session_id only and does not
+ * support agent-based replay. Production code should use ik_agent_replay_history()
+ * instead. This function is retained for test convenience and has no production callers.
  *
  * Queries the messages table for the specified session, ordered by created_at,
  * and processes events to build the current conversation context.
@@ -67,6 +81,6 @@ typedef struct {
  * @param session_id  Session ID to load messages for (must be positive)
  * @return            OK with replay_context on success, ERR on failure
  */
-res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id);
+res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger);
 
 #endif // IK_DB_REPLAY_H

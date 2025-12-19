@@ -328,7 +328,7 @@ START_TEST(test_repl_process_action_invalid_codepoint)
 }
 
 END_TEST
-/* Test: handle_terminal_input processes character successfully (integration test) */
+/* Test: ik_repl_handle_terminal_input processes character successfully (integration test) */
 START_TEST(test_handle_terminal_input_success)
 {
     void *ctx = talloc_new(NULL);
@@ -373,7 +373,7 @@ START_TEST(test_handle_terminal_input_success)
     mock_input_pos = 0;
 
     bool should_exit = false;
-    res = handle_terminal_input(repl, 0, &should_exit);
+    res = ik_repl_handle_terminal_input(repl, 0, &should_exit);
     ck_assert(is_ok(&res));
     ck_assert(!should_exit);
 

@@ -69,7 +69,7 @@ START_TEST(test_debug_pipe_null_write_end) {
     repl->shared->openai_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
     repl->shared->openai_debug_pipe->write_end = NULL; // This triggers Branch 3
 
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should be added to conversation
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
@@ -86,7 +86,7 @@ START_TEST(test_debug_pipe_short_message)
     repl->shared->openai_debug_pipe->write_end = tmpfile();
     ck_assert_ptr_nonnull(repl->shared->openai_debug_pipe->write_end);
 
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should be added to conversation
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
@@ -111,7 +111,7 @@ START_TEST(test_debug_pipe_long_message)
     repl->shared->openai_debug_pipe->write_end = tmpfile();
     ck_assert_ptr_nonnull(repl->shared->openai_debug_pipe->write_end);
 
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should be added to conversation
     ck_assert_uint_eq(repl->current->conversation->message_count, 1);
@@ -122,14 +122,14 @@ START_TEST(test_debug_pipe_long_message)
 }
 
 END_TEST
-// Test: handle_curl_events when curl_still_running is already 0 (Line 241, Branch 1)
+// Test: ik_repl_handle_curl_events when curl_still_running is already 0 (Line 241, Branch 1)
 START_TEST(test_handle_curl_events_already_stopped)
 {
     // Set curl_still_running to 0 (no active transfers)
     repl->current->curl_still_running = 0;
 
-    // Call handle_curl_events - should exit early without processing
-    res_t result = handle_curl_events(repl, 1);
+    // Call ik_repl_handle_curl_events - should exit early without processing
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // State should remain unchanged
@@ -158,7 +158,7 @@ START_TEST(test_request_success_starts_tool_execution)
     repl->current->tool_thread_ctx = NULL;
 
     // Call handle_request_success - should start tool execution
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     // State should be EXECUTING_TOOL (not IDLE)
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
@@ -189,7 +189,7 @@ START_TEST(test_request_success_starts_tool_execution)
 }
 
 END_TEST
-// Test: handle_curl_events with tool execution state transition
+// Test: ik_repl_handle_curl_events with tool execution state transition
 // This tests line 252, branch 1: state != WAITING_FOR_LLM after handle_request_success
 START_TEST(test_handle_curl_events_tool_execution_state)
 {
@@ -215,13 +215,13 @@ START_TEST(test_handle_curl_events_tool_execution_state)
     // Simulate request completion - curl_multi_perform will set running_handles to 0
     simulate_completion = true;
 
-    // Call handle_curl_events - this should:
+    // Call ik_repl_handle_curl_events - this should:
     // 1. Call ik_openai_multi_perform which sets curl_still_running to 0
     // 2. Detect completion (prev_running=1, curl_still_running=0, state=WAITING_FOR_LLM)
     // 3. Call handle_request_success which starts tool execution (state -> EXECUTING_TOOL)
     // 4. Check if state == WAITING_FOR_LLM (it's not, so skip transition to IDLE)
     // 5. Render frame
-    res_t result = handle_curl_events(repl, 1);
+    res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
 
     // Verify state is EXECUTING_TOOL (not IDLE)

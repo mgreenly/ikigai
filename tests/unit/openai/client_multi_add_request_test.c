@@ -12,9 +12,7 @@ START_TEST(test_multi_add_request_empty_conversation) {
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create empty conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -24,7 +22,7 @@ START_TEST(test_multi_add_request_empty_conversation) {
     cfg->openai_max_completion_tokens = 1000;
 
     /* Try to add request with empty conversation */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(add_res.is_err);
     ck_assert_int_eq(add_res.err->code, ERR_INVALID_ARG);
 }
@@ -36,13 +34,9 @@ END_TEST START_TEST(test_multi_add_request_no_api_key)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(ctx, "user", "Hello");
 
     ik_openai_conversation_add_msg(conv, msg);
 
@@ -54,7 +48,7 @@ END_TEST START_TEST(test_multi_add_request_no_api_key)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Try to add request without API key */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(add_res.is_err);
     ck_assert_int_eq(add_res.err->code, ERR_INVALID_ARG);
 }
@@ -66,13 +60,9 @@ END_TEST START_TEST(test_multi_add_request_empty_api_key)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_msg_t *msg = msg_res.ok;
+    ik_msg_t *msg = ik_openai_msg_create(ctx, "user", "Hello");
 
     ik_openai_conversation_add_msg(conv, msg);
 
@@ -84,7 +74,7 @@ END_TEST START_TEST(test_multi_add_request_empty_api_key)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Try to add request with empty API key */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(add_res.is_err);
     ck_assert_int_eq(add_res.err->code, ERR_INVALID_ARG);
 }
@@ -97,13 +87,10 @@ END_TEST START_TEST(test_multi_add_request_curl_easy_init_failure)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -115,7 +102,7 @@ END_TEST START_TEST(test_multi_add_request_curl_easy_init_failure)
     /* Mock curl_easy_init to fail */
     fail_curl_easy_init = true;
 
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(add_res.is_err);
     ck_assert_int_eq(add_res.err->code, ERR_IO);
 
@@ -130,13 +117,10 @@ END_TEST START_TEST(test_multi_add_request_api_key_too_long)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config with very long API key (> 512 - "Authorization: Bearer " length) */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -148,7 +132,7 @@ END_TEST START_TEST(test_multi_add_request_api_key_too_long)
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
 
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(add_res.is_err);
     ck_assert_int_eq(add_res.err->code, ERR_INVALID_ARG);
 }
@@ -161,13 +145,10 @@ END_TEST START_TEST(test_multi_add_request_snprintf_error)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -179,7 +160,7 @@ END_TEST START_TEST(test_multi_add_request_snprintf_error)
     /* Mock snprintf_ to fail */
     fail_snprintf = true;
 
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(add_res.is_err);
     ck_assert_int_eq(add_res.err->code, ERR_INVALID_ARG);
 
@@ -194,13 +175,10 @@ END_TEST START_TEST(test_multi_add_request_success)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config with normal API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -210,7 +188,7 @@ END_TEST START_TEST(test_multi_add_request_success)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request should succeed */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 }
 
@@ -222,13 +200,10 @@ END_TEST START_TEST(test_multi_add_request_curl_multi_add_handle_failure)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -240,7 +215,7 @@ END_TEST START_TEST(test_multi_add_request_curl_multi_add_handle_failure)
     /* Mock curl_multi_add_handle to fail */
     fail_curl_multi_add_handle = true;
 
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(add_res.is_err);
     ck_assert_int_eq(add_res.err->code, ERR_IO);
 
@@ -255,13 +230,10 @@ END_TEST START_TEST(test_multi_destructor_with_active_requests)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -271,7 +243,7 @@ END_TEST START_TEST(test_multi_destructor_with_active_requests)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add a request */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, false, NULL);
     ck_assert(!add_res.is_err);
 
     /* Free multi - should trigger destructor with active requests */
@@ -286,13 +258,10 @@ END_TEST START_TEST(test_multi_add_request_limit_reached)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
-    res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
-    ck_assert(!msg_res.is_err);
-    ik_openai_conversation_add_msg(conv, msg_res.ok);
+    ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
+    ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config with normal API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -302,7 +271,7 @@ END_TEST START_TEST(test_multi_add_request_limit_reached)
     cfg->openai_max_completion_tokens = 1000;
 
     /* Add request with limit_reached=true */
-    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, true);
+    res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL, NULL, NULL, true, NULL);
     ck_assert(!add_res.is_err);
 }
 

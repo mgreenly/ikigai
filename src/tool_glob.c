@@ -2,12 +2,27 @@
 #include "tool_response.h"
 
 #include "panic.h"
+#include "wrapper.h"
 
 #include <assert.h>
 #include <glob.h>
 #include <stdlib.h>
 #include <string.h>
 #include <talloc.h>
+
+// Glob result data for response callback
+typedef struct {
+    const char *output;
+    size_t count;
+} glob_result_data_t;
+
+// Callback to add glob-specific fields to data object
+static void add_glob_data(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx)
+{
+    glob_result_data_t *d = user_ctx;
+    yyjson_mut_obj_add_str_(doc, data, "output", d->output);
+    yyjson_mut_obj_add_uint_(doc, data, "count", d->count);
+}
 
 res_t ik_tool_exec_glob(void *parent, const char *pattern, const char *path)
 {
@@ -50,18 +65,6 @@ res_t ik_tool_exec_glob(void *parent, const char *pattern, const char *path)
     }
     // LCOV_EXCL_STOP
 
-    // Create yyjson document for result
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *root = yyjson_mut_obj(doc);
-    if (root == NULL) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        globfree(&glob_result); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-    yyjson_mut_doc_set_root(doc, root);
-
     // Build output string with newline-separated file paths
     size_t count = glob_result.gl_pathc;
     char *output;
@@ -82,7 +85,6 @@ res_t ik_tool_exec_glob(void *parent, const char *pattern, const char *path)
         // Allocate and build output string
         output = talloc_array(parent, char, (unsigned int)total_size);
         if (output == NULL) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
             globfree(&glob_result); // LCOV_EXCL_LINE
             PANIC("Out of memory"); // LCOV_EXCL_LINE
         }
@@ -98,33 +100,13 @@ res_t ik_tool_exec_glob(void *parent, const char *pattern, const char *path)
 
     if (output == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Build success JSON using yyjson
-    yyjson_mut_obj_add_bool(doc, root, "success", true);
-
-    yyjson_mut_val *data = yyjson_mut_obj(doc);
-    if (data == NULL) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        globfree(&glob_result); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-
-    yyjson_mut_obj_add_str(doc, data, "output", output);
-    yyjson_mut_obj_add_uint(doc, data, "count", count);
-    yyjson_mut_obj_add_val(doc, root, "data", data);
-
-    char *json = yyjson_mut_write_opts(doc, 0, NULL, NULL, NULL);
-    if (json == NULL) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        globfree(&glob_result); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-
-    // Copy to talloc
-    char *result = talloc_strdup(parent, json);
-    free(json);
-    yyjson_mut_doc_free(doc);
+    // Build success response with data object
+    glob_result_data_t result_data = {
+        .output = output,
+        .count = count
+    };
+    char *result;
+    ik_tool_response_success_with_data(parent, add_glob_data, &result_data, &result);
     globfree(&glob_result);
-
-    if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     return OK(result);
 }

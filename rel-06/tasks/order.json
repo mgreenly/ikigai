@@ -1,0 +1,300 @@
+{
+  "todo": [
+    {
+      "task": "init-mark-decouple.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "agent-identity-struct.md",
+      "group": "Agent Decomposition Phase 1",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "agent-display-struct.md",
+      "group": "Agent Decomposition Phase 1",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-llm-struct.md",
+      "group": "Agent Decomposition Phase 1",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-tool-executor-struct.md",
+      "group": "Agent Decomposition Phase 1",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-compose-identity.md",
+      "group": "Agent Decomposition Phase 2",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-compose-display.md",
+      "group": "Agent Decomposition Phase 2",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "agent-compose-llm.md",
+      "group": "Agent Decomposition Phase 2",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "agent-compose-tool.md",
+      "group": "Agent Decomposition Phase 2",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "agent-migrate-identity-access.md",
+      "group": "Agent Decomposition Phase 3",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-migrate-display-access.md",
+      "group": "Agent Decomposition Phase 3",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "agent-migrate-llm-access.md",
+      "group": "Agent Decomposition Phase 3",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "agent-migrate-tool-access.md",
+      "group": "Agent Decomposition Phase 3",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "agent-remove-old-fields.md",
+      "group": "Agent Decomposition Phase 4",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
+  ],
+  "done": [
+    {
+      "task": "agent-repl-backpointer.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "agent-state-transitions.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "agent-callback-context.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "agent-tool-execution.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "all-agents-fd-monitoring.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "all-agents-http-handling.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "all-agents-tool-polling.md",
+      "group": "Background Agent",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "namespace-repl-event-handlers.md",
+      "group": "Namespace Pollution Fix",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "namespace-commands.md",
+      "group": "Namespace Pollution Fix",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "namespace-misc.md",
+      "group": "Namespace Pollution Fix",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "namespace-abbreviations.md",
+      "group": "Namespace Pollution Fix",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-convert-bash.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "static-fn-lcov-investigation.md",
+      "group": "Static Function Policy",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "static-fn-lcov-config.md",
+      "group": "Static Function Policy",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "static-fn-policy-update.md",
+      "group": "Static Function Policy",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "static-fn-helper-abstractions.md",
+      "group": "Static Function Policy",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "tool-param-def-struct.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-schema-def-struct.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-schema-builder.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "tool-schema-convert-glob.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-schema-convert-remaining.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-schema-cleanup.md",
+      "group": "Tool Schema Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-with-data.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "tool-response-convert-grep.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-convert-glob.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-convert-file-read.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-convert-file-write.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "tool-response-cleanup.md",
+      "group": "Tool Response Refactoring",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "init-openai-conv-return.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "init-openai-msg-return.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "init-scrollback-naming.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "init-terminal-naming.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "init-render-naming.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "init-db-mem-ctx-naming.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "init-db-session-param-order.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
+  ]
+}

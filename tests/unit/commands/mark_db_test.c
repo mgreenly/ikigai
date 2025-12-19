@@ -14,24 +14,28 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
-#include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
+#include "../../../src/logger.h"
 #include "../../../src/marks.h"
 #include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
+#include "../../../src/vendor/yyjson/yyjson.h"
 #include "../../test_utils.h"
 
 #include <check.h>
 #include <libpq-fe.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <talloc.h>
 #include <unistd.h>
 
 // Test fixture
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
+static char test_dir[256];
+static char log_file_path[512];
 
 // Mock result for PQexecParams failure
 static PGresult *mock_failed_result = (PGresult *)1;  // Non-null sentinel
@@ -94,9 +98,7 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation
-    res_t res = ik_openai_conversation_create(parent);
-    ck_assert(is_ok(&res));
-    ik_openai_conversation_t *conv = res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
     ck_assert_ptr_nonnull(conv);
 
     // Create REPL context
@@ -126,9 +128,21 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     r->current->mark_count = 0;
     r->shared->db_ctx = NULL;
     r->shared->session_id = 0;
-    r->shared->db_debug_pipe = NULL;
 
     return r;
+}
+
+// Helper to read log file
+static char *read_log_file(void)
+{
+    FILE *f = fopen(log_file_path, "r");
+    if (!f) return NULL;
+
+    static char buffer[4096];
+    size_t len = fread(buffer, 1, sizeof(buffer) - 1, f);
+    buffer[len] = '\0';
+    fclose(f);
+    return buffer;
 }
 
 // Per-test setup
@@ -136,6 +150,12 @@ static void test_setup(void)
 {
     test_ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(test_ctx);
+
+    // Set up logger
+    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_mark_db_test_%d", getpid());
+    mkdir(test_dir, 0755);
+    ik_log_init(test_dir);
+    snprintf(log_file_path, sizeof(log_file_path), "%s/.ikigai/logs/current.log", test_dir);
 
     repl = create_test_repl_with_db(test_ctx);
     ck_assert_ptr_nonnull(repl);
@@ -152,11 +172,22 @@ static void test_teardown(void)
         test_ctx = NULL;
         repl = NULL;
     }
+
+    // Cleanup logger
+    ik_log_shutdown();
+    unlink(log_file_path);
+    char logs_dir[512];
+    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
+    rmdir(logs_dir);
+    char ikigai_dir[512];
+    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
+    rmdir(ikigai_dir);
+    rmdir(test_dir);
 }
 
 // ========== Tests ==========
 
-// Test: DB error during mark persistence with NULL label (lines 81, 88-93)
+// Test: DB error during mark persistence with NULL label
 START_TEST(test_mark_db_insert_error_with_null_label) {
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
@@ -167,11 +198,6 @@ START_TEST(test_mark_db_insert_error_with_null_label) {
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
 
-    // Create a debug pipe to capture error messages
-    repl->shared->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    repl->shared->db_debug_pipe->write_end = tmpfile();
-    ck_assert_ptr_nonnull(repl->shared->db_debug_pipe->write_end);
-
     // Create unlabeled mark - DB insert will fail but command succeeds
     res_t res = ik_cmd_mark(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -180,14 +206,34 @@ START_TEST(test_mark_db_insert_error_with_null_label) {
     ck_assert_uint_eq(repl->current->mark_count, 1);
     ck_assert_ptr_null(repl->current->marks[0]->label);
 
-    // Read debug output to verify error was logged
-    rewind(repl->shared->db_debug_pipe->write_end);
-    char buffer[256] = {0};
-    size_t bytes_read = fread(buffer, 1, sizeof(buffer) - 1, repl->shared->db_debug_pipe->write_end);
-    ck_assert(bytes_read > 0);
-    ck_assert(strstr(buffer, "Warning: Failed to persist mark event") != NULL);
+    // Read log output to verify error was logged
+    char *log_output = read_log_file();
+    ck_assert_ptr_nonnull(log_output);
 
-    fclose(repl->shared->db_debug_pipe->write_end);
+    // Parse the log output as JSON
+    yyjson_doc *parsed = yyjson_read(log_output, strlen(log_output), 0);
+    ck_assert_ptr_nonnull(parsed);
+
+    yyjson_val *root = yyjson_doc_get_root(parsed);
+    yyjson_val *level = yyjson_obj_get(root, "level");
+    ck_assert_ptr_nonnull(level);
+    ck_assert_str_eq(yyjson_get_str(level), "warn");
+
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "db_persist_failed");
+
+    yyjson_val *operation = yyjson_obj_get(logline, "operation");
+    ck_assert_ptr_nonnull(operation);
+    ck_assert_str_eq(yyjson_get_str(operation), "persist_mark");
+
+    yyjson_val *error = yyjson_obj_get(logline, "error");
+    ck_assert_ptr_nonnull(error);
+
+    yyjson_doc_free(parsed);
 }
 END_TEST
 // Test: DB error during mark persistence with label
@@ -202,11 +248,6 @@ START_TEST(test_mark_db_insert_error_with_label)
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
 
-    // Create a debug pipe
-    repl->shared->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    repl->shared->db_debug_pipe->write_end = tmpfile();
-    ck_assert_ptr_nonnull(repl->shared->db_debug_pipe->write_end);
-
     // Create labeled mark - DB insert will fail but command succeeds
     res_t res = ik_cmd_mark(test_ctx, repl, "testlabel");
     ck_assert(is_ok(&res));
@@ -215,14 +256,34 @@ START_TEST(test_mark_db_insert_error_with_label)
     ck_assert_uint_eq(repl->current->mark_count, 1);
     ck_assert_str_eq(repl->current->marks[0]->label, "testlabel");
 
-    // Read debug output
-    rewind(repl->shared->db_debug_pipe->write_end);
-    char buffer[256] = {0};
-    size_t bytes_read = fread(buffer, 1, sizeof(buffer) - 1, repl->shared->db_debug_pipe->write_end);
-    ck_assert(bytes_read > 0);
-    ck_assert(strstr(buffer, "Warning: Failed to persist mark event") != NULL);
+    // Read log output to verify error was logged
+    char *log_output = read_log_file();
+    ck_assert_ptr_nonnull(log_output);
 
-    fclose(repl->shared->db_debug_pipe->write_end);
+    // Parse the log output as JSON
+    yyjson_doc *parsed = yyjson_read(log_output, strlen(log_output), 0);
+    ck_assert_ptr_nonnull(parsed);
+
+    yyjson_val *root = yyjson_doc_get_root(parsed);
+    yyjson_val *level = yyjson_obj_get(root, "level");
+    ck_assert_ptr_nonnull(level);
+    ck_assert_str_eq(yyjson_get_str(level), "warn");
+
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "db_persist_failed");
+
+    yyjson_val *operation = yyjson_obj_get(logline, "operation");
+    ck_assert_ptr_nonnull(operation);
+    ck_assert_str_eq(yyjson_get_str(operation), "persist_mark");
+
+    yyjson_val *error = yyjson_obj_get(logline, "error");
+    ck_assert_ptr_nonnull(error);
+
+    yyjson_doc_free(parsed);
 }
 
 END_TEST
@@ -248,10 +309,8 @@ START_TEST(test_rewind_error_handling)
 }
 
 END_TEST
-// Test: DB error during rewind persistence (lines 152-157)
+// Test: DB error during rewind persistence
 // Note: This test verifies that rewind works in memory even when DB is unavailable
-// The actual DB persistence error logging requires a valid target_message_id from DB
-// which isn't available with mocks. The mark_errors_test.c tests this path more thoroughly.
 START_TEST(test_rewind_db_insert_error)
 {
     // Set up mock DB context
@@ -263,19 +322,13 @@ START_TEST(test_rewind_db_insert_error)
     // Set mock to fail
     mock_status = PGRES_FATAL_ERROR;
 
-    // Create a debug pipe
-    repl->shared->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    repl->shared->db_debug_pipe->write_end = tmpfile();
-    ck_assert_ptr_nonnull(repl->shared->db_debug_pipe->write_end);
-
     // Create a mark in memory only (for rewind to work)
     res_t res = ik_mark_create(repl, "checkpoint");
     ck_assert(is_ok(&res));
 
     // Add a message
-    res = ik_openai_msg_create(repl->current->conversation, "user", "test");
-    ck_assert(is_ok(&res));
-    res = ik_openai_conversation_add_msg(repl->current->conversation, res.ok);
+    ik_msg_t *msg = ik_openai_msg_create(repl->current->conversation, "user", "test");
+    res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
     ck_assert(is_ok(&res));
 
     // Rewind - should succeed in memory even with DB issues
@@ -285,52 +338,9 @@ START_TEST(test_rewind_db_insert_error)
     // Rewind should succeed in memory
     ck_assert_uint_eq(repl->current->conversation->message_count, 0);
 
-    fclose(repl->shared->db_debug_pipe->write_end);
-}
-
-END_TEST
-// Test: DB error with NULL debug pipe
-START_TEST(test_mark_db_error_no_debug_pipe)
-{
-    // Set up mock DB context
-    ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
-    mock_db->conn = (PGconn *)0x1234;
-    repl->shared->db_ctx = mock_db;
-    repl->shared->session_id = 1;
-
-    // Set mock to fail
-    mock_status = PGRES_FATAL_ERROR;
-
-    // Ensure debug pipe is NULL
-    repl->shared->db_debug_pipe = NULL;
-
-    // Create mark - should not crash even without debug pipe
-    res_t res = ik_cmd_mark(test_ctx, repl, "test");
-    ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->current->mark_count, 1);
-}
-
-END_TEST
-// Test: DB error with debug pipe but NULL write_end
-START_TEST(test_mark_db_error_null_write_end)
-{
-    // Set up mock DB context
-    ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
-    mock_db->conn = (PGconn *)0x1234;
-    repl->shared->db_ctx = mock_db;
-    repl->shared->session_id = 1;
-
-    // Set mock to fail
-    mock_status = PGRES_FATAL_ERROR;
-
-    // Create debug pipe with NULL write_end
-    repl->shared->db_debug_pipe = talloc_zero(test_ctx, ik_debug_pipe_t);
-    repl->shared->db_debug_pipe->write_end = NULL;
-
-    // Create mark - should not crash
-    res_t res = ik_cmd_mark(test_ctx, repl, "test");
-    ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->current->mark_count, 1);
+    // Note: The logger output won't be generated in this test because
+    // target_message_id is 0 (no DB query succeeds with mocks), so the
+    // db_persist_failed log only happens when target_message_id > 0
 }
 
 END_TEST
@@ -348,8 +358,6 @@ static Suite *commands_mark_db_suite(void)
     tcase_add_test(tc_db_errors, test_mark_db_insert_error_with_label);
     tcase_add_test(tc_db_errors, test_rewind_error_handling);
     tcase_add_test(tc_db_errors, test_rewind_db_insert_error);
-    tcase_add_test(tc_db_errors, test_mark_db_error_no_debug_pipe);
-    tcase_add_test(tc_db_errors, test_mark_db_error_null_write_end);
     suite_add_tcase(s, tc_db_errors);
 
     return s;

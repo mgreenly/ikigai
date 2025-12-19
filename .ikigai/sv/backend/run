@@ -1,7 +1,0 @@
-#!/bin/bash
-exec 2>&1
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-AGENTS_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
-
-exec "$AGENTS_DIR/bin/deno" run --allow-net "$SCRIPT_DIR/main.ts"

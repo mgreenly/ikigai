@@ -85,12 +85,12 @@ typedef res_t (*ik_openai_stream_cb_t)(const char *chunk, void *ctx);
 /**
  * Create a new canonical message
  *
- * @param parent  Talloc context parent (or NULL)
+ * @param ctx     Talloc context parent (or NULL)
  * @param role    Message role ("user", "assistant", "system")
  * @param content Message text content
- * @return        OK(message) or ERR(...)
+ * @return        Pointer to message (never NULL, PANICs on OOM)
  */
-res_t ik_openai_msg_create(void *parent, const char *role, const char *content);
+ik_msg_t *ik_openai_msg_create(TALLOC_CTX *ctx, const char *role, const char *content);
 
 /**
  * Create a canonical tool_call message
@@ -135,10 +135,10 @@ ik_msg_t *ik_openai_msg_create_tool_result(void *parent,
 /**
  * Create a new conversation
  *
- * @param parent  Talloc context parent (or NULL)
- * @return        OK(conversation) or ERR(...)
+ * @param ctx  Talloc context parent (or NULL)
+ * @return     Pointer to conversation (never NULL, PANICs on OOM)
  */
-res_t ik_openai_conversation_create(void *parent);
+ik_openai_conversation_t *ik_openai_conversation_create(TALLOC_CTX *ctx);
 
 /**
  * Add a message to a conversation
@@ -227,7 +227,7 @@ res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
  * Internal wrapper function (exposed for testing)
  */
 
-ik_msg_t *get_message_at_index(ik_msg_t **messages, size_t idx);
+ik_msg_t *ik_openai_get_message_at_index(ik_msg_t **messages, size_t idx);
 
 /*
  * Message serialization helpers (in client_serialize.c)

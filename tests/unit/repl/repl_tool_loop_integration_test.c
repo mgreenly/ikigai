@@ -40,13 +40,12 @@ static void setup(void)
     ck_assert_ptr_nonnull(agent);
 
     /* Create conversation */
-    res_t res = ik_openai_conversation_create(ctx);
-    ck_assert(is_ok(&res));
-    agent->conversation = res.ok;
+    agent->conversation = ik_openai_conversation_create(ctx);
     repl->current = agent;
+    agent->repl = repl;  // Set backpointer
 
     /* Create multi-handle */
-    res = ik_openai_multi_create(ctx);
+    res_t res = ik_openai_multi_create(ctx);
     ck_assert(is_ok(&res));
     repl->current->multi = res.ok;
 
@@ -97,11 +96,11 @@ START_TEST(test_handle_request_success_with_tool_calls_continues_loop) {
     repl->current->assistant_response = talloc_strdup(repl, "");
 
     /* Add initial user message to conversation */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Call handle_request_success */
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify:
      * 1. State should still be WAITING_FOR_LLM (not transitioned to IDLE)
@@ -129,14 +128,14 @@ START_TEST(test_handle_request_success_with_stop_ends_loop)
     repl->current->assistant_response = talloc_strdup(repl, "I found 3 C files.");
 
     /* Add initial user message to conversation */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Record initial conversation size */
     size_t initial_count = repl->current->conversation->message_count;
 
     /* Call handle_request_success */
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify:
      * 1. Assistant message was added to conversation
@@ -161,11 +160,11 @@ START_TEST(test_handle_request_success_with_null_finish_reason)
     repl->current->assistant_response = talloc_strdup(repl, "Response text");
 
     /* Add initial user message to conversation */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Test").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Test");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Call handle_request_success */
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify: curl_still_running should still be 0 (no new request) */
     ck_assert_int_eq(repl->current->curl_still_running, 0);
@@ -178,14 +177,14 @@ END_TEST
 START_TEST(test_multiple_tool_loop_iterations)
 {
     /* Add initial user message */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find files").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find files");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* First iteration: finish_reason = "tool_calls" */
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
     repl->current->assistant_response = talloc_strdup(repl, "");
 
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     ck_assert_int_eq(repl->current->curl_still_running, 1);
@@ -198,7 +197,7 @@ START_TEST(test_multiple_tool_loop_iterations)
     repl->current->response_finish_reason = talloc_strdup(repl, "stop");
     repl->current->assistant_response = talloc_strdup(repl, "Done!");
 
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify loop stops */
     ck_assert_int_eq(repl->current->curl_still_running, 0);
@@ -211,7 +210,7 @@ END_TEST
 START_TEST(test_tool_loop_with_empty_content)
 {
     /* Add initial user message */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Test").ok;
+    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Test");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Set finish_reason to "tool_calls" with empty response */
@@ -220,7 +219,7 @@ START_TEST(test_tool_loop_with_empty_content)
 
     size_t initial_count = repl->current->conversation->message_count;
 
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify: No assistant message added (response was NULL) */
     ck_assert_uint_eq(repl->current->conversation->message_count, initial_count);
@@ -255,7 +254,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
 {
     /* Initial state: User asks to find and read config file */
     ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user",
-                                                     "Find config file and show contents").ok;
+                                                     "Find config file and show contents");
     ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
 
     /* Verify initial state: 1 message (user) */
@@ -268,7 +267,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     repl->current->response_model = talloc_strdup(repl, "gpt-4");
     repl->current->response_completion_tokens = 10;
 
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify: Still in WAITING_FOR_LLM state (loop continues) */
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
@@ -277,7 +276,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     /* Simulate tool execution: Add tool result to conversation */
     /* In real scenario, tool dispatcher would add this */
     ik_msg_t *tool_result_1 = ik_openai_msg_create(repl->current->conversation, "tool",
-                                                          "{\"output\":\"config.json\"}").ok;
+                                                          "{\"output\":\"config.json\"}");
     ik_openai_conversation_add_msg(repl->current->conversation, tool_result_1);
 
     /* Verify: 2 messages now (user + tool result) */
@@ -295,7 +294,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     repl->current->response_model = talloc_strdup(repl, "gpt-4");
     repl->current->response_completion_tokens = 15;
 
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify: Still in WAITING_FOR_LLM state (loop continues) */
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
@@ -303,7 +302,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
 
     /* Simulate tool execution: Add second tool result to conversation */
     ik_msg_t *tool_result_2 = ik_openai_msg_create(repl->current->conversation, "tool",
-                                                          "{\"output\":\"{\\\"debug\\\":true}\"}").ok;
+                                                          "{\"output\":\"{\\\"debug\\\":true}\"}");
     ik_openai_conversation_add_msg(repl->current->conversation, tool_result_2);
 
     /* Verify: 3 messages now (user + 2 tool results) */
@@ -320,7 +319,7 @@ START_TEST(test_multi_tool_scenario_glob_then_file_read)
     repl->current->response_model = talloc_strdup(repl, "gpt-4");
     repl->current->response_completion_tokens = 20;
 
-    handle_request_success(repl);
+    ik_repl_handle_agent_request_success(repl, repl->current);
 
     /* Verify: Loop stops (no new request initiated) */
     ck_assert_int_eq(repl->current->curl_still_running, 0);
