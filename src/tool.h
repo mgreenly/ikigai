@@ -99,6 +99,18 @@ yyjson_mut_val *ik_tool_build_file_write_schema(yyjson_mut_doc *doc);
 // @return Pointer to the schema object (owned by doc), or NULL on error
 yyjson_mut_val *ik_tool_build_bash_schema(yyjson_mut_doc *doc);
 
+// Build JSON schema from tool definition (data-driven schema builder)
+//
+// Creates a tool schema object following OpenAI's function calling format
+// from a declarative definition. The schema includes the tool name,
+// description, and parameter specifications derived from the definition.
+//
+// @param doc The yyjson mutable document to build the schema in
+// @param def Tool schema definition containing name, description, and parameters
+// @return Pointer to the schema object (owned by doc), or NULL on error
+yyjson_mut_val *ik_tool_build_schema_from_def(yyjson_mut_doc *doc,
+                                               const ik_tool_schema_def_t *def);
+
 // Build array containing all 5 tool schemas.
 //
 // Creates a JSON array containing all tool schemas in order:

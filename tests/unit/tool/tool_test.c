@@ -435,6 +435,40 @@ START_TEST(test_tool_param_def_struct_exists)
 }
 END_TEST
 
+// Test: ik_tool_build_schema_from_def basic functionality
+START_TEST(test_tool_build_schema_from_def_basic) {
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    ck_assert_ptr_nonnull(doc);
+
+    static const ik_tool_param_def_t params[] = {
+        {"pattern", "Glob pattern", true},
+        {"path", "Base directory", false}
+    };
+
+    ik_tool_schema_def_t def = {
+        .name = "test_glob",
+        .description = "Test glob tool",
+        .params = params,
+        .param_count = 2
+    };
+
+    yyjson_mut_val *schema = ik_tool_build_schema_from_def(doc, &def);
+    verify_schema_basics(schema, "test_glob");
+
+    yyjson_mut_val *parameters = get_parameters(schema);
+    yyjson_mut_val *properties = yyjson_mut_obj_get(parameters, "properties");
+    ck_assert_ptr_nonnull(properties);
+
+    verify_string_param(properties, "pattern");
+    verify_string_param(properties, "path");
+
+    const char *required_params[] = {"pattern"};
+    verify_required(parameters, required_params, 1);
+
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
 // Test: ik_tool_schema_def_t struct exists and is usable
 START_TEST(test_tool_schema_def_struct_exists)
 {
@@ -525,6 +559,11 @@ static Suite *tool_suite(void)
     tcase_add_checked_fixture(tc_schema_def, setup, teardown);
     tcase_add_test(tc_schema_def, test_tool_schema_def_struct_exists);
     suite_add_tcase(s, tc_schema_def);
+
+    TCase *tc_build_from_def = tcase_create("Build Schema From Def");
+    tcase_add_checked_fixture(tc_build_from_def, setup, teardown);
+    tcase_add_test(tc_build_from_def, test_tool_build_schema_from_def_basic);
+    suite_add_tcase(s, tc_build_from_def);
 
     return s;
 }
