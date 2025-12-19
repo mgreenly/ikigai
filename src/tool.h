@@ -12,6 +12,13 @@ typedef struct {
     char *arguments;  // JSON string of arguments, owned by struct
 } ik_tool_call_t;
 
+// Parameter definition for data-driven schema building
+typedef struct {
+    const char *name;        // Parameter name (e.g., "pattern")
+    const char *description; // Parameter description
+    bool required;           // true if parameter is required
+} ik_tool_param_def_t;
+
 // Create a new tool call struct.
 //
 // Allocates a new tool call struct on the given context.

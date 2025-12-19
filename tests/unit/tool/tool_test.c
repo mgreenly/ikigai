@@ -421,6 +421,20 @@ END_TEST START_TEST(test_tool_truncate_output_zero_limit)
 
 END_TEST
 
+// Test: ik_tool_param_def_t struct exists and is usable
+START_TEST(test_tool_param_def_struct_exists)
+{
+    ik_tool_param_def_t param = {
+        .name = "test_param",
+        .description = "Test description",
+        .required = true
+    };
+    ck_assert_str_eq(param.name, "test_param");
+    ck_assert_str_eq(param.description, "Test description");
+    ck_assert(param.required);
+}
+END_TEST
+
 // Test suite
 static Suite *tool_suite(void)
 {
@@ -479,6 +493,11 @@ static Suite *tool_suite(void)
     tcase_add_test(tc_truncate, test_tool_truncate_output_over_limit);
     tcase_add_test(tc_truncate, test_tool_truncate_output_zero_limit);
     suite_add_tcase(s, tc_truncate);
+
+    TCase *tc_param_def = tcase_create("Parameter Definition");
+    tcase_add_checked_fixture(tc_param_def, setup, teardown);
+    tcase_add_test(tc_param_def, test_tool_param_def_struct_exists);
+    suite_add_tcase(s, tc_param_def);
 
     return s;
 }
