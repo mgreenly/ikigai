@@ -1,0 +1,15 @@
+[
+  "default",
+  "di",
+  "errors",
+  "naming",
+  "patterns/context-struct",
+  "patterns/result-type",
+  "quality",
+  "refactoring/memory",
+  "refactoring/smells",
+  "refactoring/techniques",
+  "scm",
+  "source-code",
+  "style"
+]

@@ -1,7 +1,8 @@
-Orchestrate task execution from a tasks directory with automatic retry and escalation.
+Orchestrate task execution from the task database with automatic retry and escalation.
 
-**Usage:**
-- `/orchestrate PATH` - Run tasks from PATH (e.g., `rel-05/tasks`)
+**Usage:** `/orchestrate`
+
+Executes all pending tasks for the current git branch, one at a time.
 
 ## CRITICAL: SEQUENTIAL EXECUTION ONLY
 
@@ -16,18 +17,8 @@ Orchestrate task execution from a tasks directory with automatic retry and escal
 
 The workflow is: **get next task → spawn ONE agent → wait for completion → process result → repeat**
 
-**Behavior:**
-1. Call `.ikigai/scripts/tasks/next.ts` to get next task (with current model/thinking)
-2. Call `.ikigai/scripts/tasks/session.ts start <task>`
-3. Spawn sub-agent with model/thinking from order.json
-4. Sub-agent returns `{"ok": true}` or `{"ok": false, "reason": "..."}`
-5. If ok: `session.ts done`, `done.ts`, report success, loop to step 1
-6. If not ok:
-   - Call `escalate.ts` to bump model/thinking
-   - If escalation available: `session.ts retry`, report escalation, loop to step 1
-   - If at max level: `session.ts done`, report max-level failure, stop
+## Escalation Ladder
 
-**Escalation Ladder:**
 | Level | Model | Thinking |
 |-------|-------|----------|
 | 1 | sonnet | thinking |
@@ -35,40 +26,17 @@ The workflow is: **get next task → spawn ONE agent → wait for completion →
 | 3 | opus | extended |
 | 4 | opus | ultrathink |
 
-**Critical rules:**
-- **SEQUENTIAL ONLY:** Run ONE task at a time. Never parallelize. Never use run_in_background.
-- NEVER read task files yourself (sub-agents do)
-- NEVER run make commands yourself (sub-agents do)
-- Only: spawn ONE agent, WAIT for it to finish, parse response, call scripts, report progress, then loop
+## Progress Reporting
 
-**Sub-agent prompt template:**
 ```
-Read and execute <PATH>/<task>.
-
-Return ONLY a JSON response:
-- {"ok": true} on success
-- {"ok": false, "reason": "..."} on failure
-
-You must:
-1. Read the task file completely
-2. Verify pre-conditions
-3. Execute the TDD cycle
-4. Verify post-conditions
-5. Commit your changes
-6. Return JSON response
-```
-
-**Progress reporting:**
-```
-✓ <task> [3m 42s] | Total: 12m 15s | Remaining: 48
-⚠ <task> failed. Escalating to opus/extended (level 3/4)...
-✗ <task> failed at max level (opus/ultrathink). Human review needed.
+✓ task-name.md [3m 42s] | Remaining: 5
+⚠ task-name.md failed. Escalating to opus/extended (level 3/4)...
+✗ task-name.md failed at max level. Human review needed.
 ```
 
 ---
 
-{{#if args}}
-You are the task orchestrator for `{{args}}`.
+You are the task orchestrator for the current branch.
 
 ## MANDATORY: PRE-FLIGHT CHECKS
 
@@ -94,6 +62,13 @@ Run: `make check`
 
 Only proceed with orchestration if ALL THREE checks pass.
 
+## MANDATORY: INITIALIZE DATABASE
+
+Run:
+```bash
+deno run --allow-read --allow-write --allow-ffi --allow-env --allow-net .claude/skills/task-db/init.ts
+```
+
 ## MANDATORY: SEQUENTIAL EXECUTION
 
 You MUST execute tasks ONE AT A TIME. This is non-negotiable.
@@ -112,43 +87,54 @@ You MUST execute tasks ONE AT A TIME. This is non-negotiable.
    - `make check` - abort if fails
    If any check fails, report the specific failure and stop.
 
-1. Run: `deno run --allow-read .ikigai/scripts/tasks/next.ts {{args}}/order.json`
+1. Run: `deno run --allow-read --allow-write --allow-ffi --allow-env --allow-net --allow-run .claude/skills/task-db/next.ts`
 2. Parse the JSON response
-3. If `data` is null, all tasks complete:
-   - Commit task documents: `git add {{args}}/order.json {{args}}/session.json && git commit -m "chore: update task documents after orchestration"`
+3. If `data.task` is null, all tasks complete:
+   - Run: `deno run --allow-read --allow-write --allow-ffi --allow-env --allow-net --allow-run .claude/skills/task-db/stats.ts`
    - Report summary and stop
-4. If `data` has a task:
-   - Run: `deno run --allow-read --allow-write .ikigai/scripts/tasks/session.ts {{args}}/session.json start <task>`
+4. If `data.task` has content:
+   - Run: `deno run --allow-read --allow-write --allow-ffi --allow-env --allow-net --allow-run .claude/skills/task-db/start.ts <task.name>`
    - Spawn ONE sub-agent (do NOT use run_in_background - wait for completion)
-   - Use Task tool with specified model, do NOT set run_in_background=true
-   - Sub-agent prompt: "Read and execute {{args}}/<task>. Return only JSON: {\"ok\": true} or {\"ok\": false, \"reason\": \"...\"}. You must: read task file, verify pre-conditions, execute TDD cycle, verify post-conditions, commit changes, return JSON."
+   - Use Task tool with specified model from task data, do NOT set run_in_background=true
+   - Sub-agent prompt should include the task content directly:
+     ```
+     Execute this task:
+
+     <task>
+     [task content here]
+     </task>
+
+     Return ONLY a JSON response:
+     - {"ok": true} on success
+     - {"ok": false, "reason": "..."} on failure
+
+     You must:
+     1. Read and understand the task
+     2. Verify pre-conditions
+     3. Execute the TDD cycle
+     4. Verify post-conditions
+     5. Commit your changes
+     6. Return JSON response
+     ```
    - Wait for sub-agent to fully complete (do not proceed until done)
    - Parse sub-agent response for `{"ok": ...}`
 
 5. If ok:
-   - Run: `deno run --allow-read --allow-write .ikigai/scripts/tasks/session.ts {{args}}/session.json done <task>`
-   - Run: `deno run --allow-read --allow-write .ikigai/scripts/tasks/done.ts {{args}}/order.json <task>`
-   - Report: `✓ <task> [task_time] | Total: elapsed_human | Remaining: N`
+   - Run: `deno run --allow-read --allow-write --allow-ffi --allow-env --allow-net --allow-run .claude/skills/task-db/done.ts <task.name>`
+   - Report: `✓ <task.name> [elapsed_human] | Remaining: N`
    - Loop to step 1
 
 6. If not ok:
-   - Run: `deno run --allow-read --allow-write .ikigai/scripts/tasks/escalate.ts {{args}}/order.json <task>`
-   - If escalation data is not null:
-     - Run: `deno run --allow-read --allow-write .ikigai/scripts/tasks/session.ts {{args}}/session.json retry <task>`
-     - Report: `⚠ <task> failed. Escalating to <model>/<thinking> (level N/4)...`
-     - Loop to step 1 (next.ts will return updated model/thinking)
-   - If escalation data is null (at max level):
-     - Run: `deno run --allow-read --allow-write .ikigai/scripts/tasks/session.ts {{args}}/session.json done <task>`
-     - Commit task documents: `git add {{args}}/order.json {{args}}/session.json && git commit -m "chore: update task documents after orchestration (stopped at <task>)"`
-     - Report: `✗ <task> failed at max level (opus/ultrathink). Human review needed.`
+   - Run: `deno run --allow-read --allow-write --allow-ffi --allow-env --allow-net --allow-run .claude/skills/task-db/escalate.ts <task.name> "<reason>"`
+   - If escalation `data.escalated` is true:
+     - Report: `⚠ <task.name> failed. Escalating to <model>/<thinking> (level N/4)...`
+     - Loop to step 1 (next.ts will return task with updated model/thinking)
+   - If escalation `data.at_max_level` is true:
+     - Run: `deno run --allow-read --allow-write --allow-ffi --allow-env --allow-net --allow-run .claude/skills/task-db/fail.ts <task.name> "<reason>"`
+     - Report: `✗ <task.name> failed at max level (opus/ultrathink). Human review needed.`
      - Report failure reason from sub-agent
      - Stop and wait for human input
 
-**Remember:** You only orchestrate. Never read task files. Never run make. Sub-agents do all implementation work. **Execute ONE task at a time, sequentially. Never parallelize.**
+**Remember:** You only orchestrate. Never read task files yourself - the task content comes from the database. Never run make commands yourself - sub-agents do all implementation work. **Execute ONE task at a time, sequentially. Never parallelize.**
 
 Begin orchestration now.
-{{else}}
-Error: Please provide the tasks directory path.
-
-Example: `/orchestrate rel-05/tasks`
-{{/if}}

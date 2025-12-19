@@ -6,12 +6,12 @@ Load a persona (composite skill set) from `.agents/personas/`.
 **Available personas:**
 - `architect` - For architectural decisions (DDD, DI, patterns, naming, style)
 - `coverage` - For achieving and maintaining 100% test coverage
+- `debugger` - For debugging and troubleshooting issues
 - `developer` - For writing new code (TDD, style, naming, quality, coverage, zero-debt, git)
 - `meta` - For improving the .agents/ system and task framework
+- `orchestrator` - For running tasks and orchestrating sub-agents via task system
+- `researcher` - For research, user stories, and task authoring
 - `security` - For discovering security flaws
-- `task-architect` - For creating detailed task files with concrete steps
-- `task-runner` - For running tasks and orchestrating sub-agents via task system
-- `task-strategist` - For high-level task planning aligned with project phases
 
 **Persona JSON format:** Array of skill names/paths (without .md extension):
 ```
@@ -29,7 +29,7 @@ Skills can reference subfolders for organized skill libraries.
 Read `.agents/skills/{{this}}.md`
 {{/each}}
 {{else}}
-Error: Please specify a persona name (coverage-closer, developer, meta, security, task-architect, task-runner, or task-strategist)
+Error: Please specify a persona name (architect, coverage, debugger, developer, meta, orchestrator, researcher, or security)
 {{/if}}
 
 Then wait for instructions.

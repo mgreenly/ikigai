@@ -28,6 +28,8 @@ coverage_html/
 .agents/db/
 .agents/deno/
 .ikigai/deno/
+.claude/data/
+.claude/logs/
 
 # Nginx runtime
 .agents/httpd/pid/
