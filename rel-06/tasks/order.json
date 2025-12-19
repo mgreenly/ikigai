@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "init-render-naming.md",
-      "group": "Init Pattern Standardization",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
       "task": "init-db-mem-ctx-naming.md",
       "group": "Init Pattern Standardization",
       "model": "sonnet",
@@ -292,6 +286,12 @@
     },
     {
       "task": "init-terminal-naming.md",
+      "group": "Init Pattern Standardization",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "init-render-naming.md",
       "group": "Init Pattern Standardization",
       "model": "sonnet",
       "thinking": "none"
