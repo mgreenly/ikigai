@@ -70,17 +70,29 @@ You must:
 {{#if args}}
 You are the task orchestrator for `{{args}}`.
 
-## MANDATORY: CLEAN WORKING TREE PRECHECK
+## MANDATORY: PRE-FLIGHT CHECKS
 
-Before starting ANY orchestration, you MUST verify the working tree is clean:
+Before starting ANY orchestration, you MUST verify these conditions:
 
-1. Run: `git status --porcelain`
-2. If there is ANY output (uncommitted changes exist):
-   - Report: `✗ Orchestration ABORTED: Uncommitted changes detected.`
-   - Show the output of `git status --short`
-   - Tell the user: "Please commit or stash your changes before running /orchestrate."
-   - **STOP IMMEDIATELY. Do not proceed with any tasks.**
-3. Only if the output is empty (clean working tree), proceed with orchestration.
+### 1. Clean Working Tree
+Run: `git status --porcelain`
+- If ANY output: Report `✗ Orchestration ABORTED: Uncommitted changes detected.`
+- Show `git status --short` output
+- **STOP IMMEDIATELY**
+
+### 2. Lint Passes
+Run: `make lint`
+- If fails: Report `✗ Orchestration ABORTED: make lint failed.`
+- Show the lint errors
+- **STOP IMMEDIATELY**
+
+### 3. Tests Pass
+Run: `make check`
+- If fails: Report `✗ Orchestration ABORTED: make check failed.`
+- Show the failing tests
+- **STOP IMMEDIATELY**
+
+Only proceed with orchestration if ALL THREE checks pass.
 
 ## MANDATORY: SEQUENTIAL EXECUTION
 
@@ -94,7 +106,11 @@ You MUST execute tasks ONE AT A TIME. This is non-negotiable.
 
 **Your workflow (strictly sequential):**
 
-0. **PRECHECK:** Run `git status --porcelain`. If output is not empty, abort with error message. Do not proceed.
+0. **PRE-FLIGHT:** Run all three checks in order:
+   - `git status --porcelain` - abort if any output
+   - `make lint` - abort if fails
+   - `make check` - abort if fails
+   If any check fails, report the specific failure and stop.
 
 1. Run: `deno run --allow-read .ikigai/scripts/tasks/next.ts {{args}}/order.json`
 2. Parse the JSON response

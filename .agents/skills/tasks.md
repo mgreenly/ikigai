@@ -67,7 +67,12 @@ Each file specifies:
 
 **Required Skill:** All task files MUST include `scm` in their Pre-read Skills section. This ensures agents commit after every testable change and never lose work.
 
-**Implicit Pre-condition (ALL tasks):** Working tree must be clean (`git status --porcelain` returns empty). If uncommitted changes exist, abort immediately without making any changes.
+**Implicit Pre-conditions (ALL tasks):**
+1. Working tree must be clean (`git status --porcelain` returns empty)
+2. `make lint` must pass
+3. `make check` must pass
+
+If ANY of these fail, abort immediately without making any changes.
 
 ## Scripts
 
@@ -140,6 +145,37 @@ Sub-agents MUST leave the working tree clean before returning, regardless of suc
 - Run `git status --porcelain` before returning - if not empty, you haven't finished cleanup
 
 This ensures the next task (or retry) starts with a clean slate.
+
+**Task Commit Message Format:**
+
+Use this format for task completion commits:
+
+```
+task(<task-name>): <brief description>
+
+Task: <path/to/task.md>
+Status: SUCCESS|PARTIAL|FAILED
+```
+
+Status values:
+- `SUCCESS` - Task fully completed, all post-conditions met
+- `PARTIAL - <what remains>` - Tests pass but not all goals achieved
+- `FAILED - <reason>` - Committed partial progress before aborting
+
+Examples:
+```
+task(agent-identity-struct): add identity sub-context type
+
+Task: rel-06/tasks/agent-identity-struct.md
+Status: SUCCESS
+```
+
+```
+task(agent-migrate-display): migrate 45 of 51 callsites
+
+Task: rel-06/tasks/agent-migrate-display-callers.md
+Status: PARTIAL - 6 callsites in tests remain
+```
 
 **Response format:**
 ```json
