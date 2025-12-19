@@ -1,24 +1,6 @@
 {
   "todo": [
     {
-      "task": "namespace-commands.md",
-      "group": "Namespace Pollution Fix",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "namespace-misc.md",
-      "group": "Namespace Pollution Fix",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "namespace-abbreviations.md",
-      "group": "Namespace Pollution Fix",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
       "task": "static-fn-lcov-investigation.md",
       "group": "Static Function Policy",
       "model": "sonnet",
@@ -292,6 +274,24 @@
     },
     {
       "task": "namespace-repl-event-handlers.md",
+      "group": "Namespace Pollution Fix",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "namespace-commands.md",
+      "group": "Namespace Pollution Fix",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "namespace-misc.md",
+      "group": "Namespace Pollution Fix",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "namespace-abbreviations.md",
       "group": "Namespace Pollution Fix",
       "model": "sonnet",
       "thinking": "none"
