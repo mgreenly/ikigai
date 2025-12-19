@@ -23,4 +23,15 @@ res_t ik_tool_response_success_ex(TALLOC_CTX *ctx,
                                    void *user_ctx,
                                    char **out);
 
+// Callback type for adding fields to the data object
+typedef void (*ik_tool_data_adder_t)(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx);
+
+// Build success response with data object: {"success": true, "data": {...}}
+// Caller provides a callback to populate the data object with tool-specific fields.
+// Returns: OK(json_string) where json_string is talloc-allocated on ctx
+res_t ik_tool_response_success_with_data(TALLOC_CTX *ctx,
+                                          ik_tool_data_adder_t add_data,
+                                          void *user_ctx,
+                                          char **out);
+
 #endif

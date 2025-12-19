@@ -115,6 +115,17 @@ static void add_custom_fields(yyjson_mut_doc *doc, yyjson_mut_val *root, void *u
     yyjson_mut_obj_add_str(doc, root, "custom", "value");
 }
 
+typedef struct {
+    const char *output;
+    size_t count;
+} test_data_t;
+
+static void add_test_data(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx) {
+    test_data_t *d = user_ctx;
+    yyjson_mut_obj_add_str(doc, data, "output", d->output);
+    yyjson_mut_obj_add_uint(doc, data, "count", d->count);
+}
+
 START_TEST(test_tool_response_success_ex_with_fields) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
@@ -177,6 +188,38 @@ START_TEST(test_tool_response_success_ex_without_fields) {
 }
 END_TEST
 
+START_TEST(test_tool_response_success_with_data) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    char *result = NULL;
+
+    test_data_t data = {.output = "test output", .count = 42};
+    res_t res = ik_tool_response_success_with_data(ctx, add_test_data, &data, &result);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(result);
+
+    // Parse and verify JSON structure
+    yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *success = yyjson_obj_get(root, "success");
+    ck_assert(yyjson_get_bool(success));
+
+    yyjson_val *data_obj = yyjson_obj_get(root, "data");
+    ck_assert_ptr_nonnull(data_obj);
+
+    yyjson_val *output = yyjson_obj_get(data_obj, "output");
+    ck_assert_str_eq(yyjson_get_str(output), "test output");
+
+    yyjson_val *count = yyjson_obj_get(data_obj, "count");
+    ck_assert_uint_eq(yyjson_get_uint(count), 42);
+
+    yyjson_doc_free(doc);
+    talloc_free(ctx);
+}
+END_TEST
+
 #ifndef SKIP_SIGNAL_TESTS
 START_TEST(test_tool_response_null_ctx) {
     char *result = NULL;
@@ -211,6 +254,7 @@ static Suite *tool_response_suite(void) {
     tcase_add_test(tc_success, test_tool_response_success_empty_output);
     tcase_add_test(tc_success, test_tool_response_success_ex_with_fields);
     tcase_add_test(tc_success, test_tool_response_success_ex_without_fields);
+    tcase_add_test(tc_success, test_tool_response_success_with_data);
     suite_add_tcase(s, tc_success);
 
     TCase *tc_null = tcase_create("NULL Arguments");
