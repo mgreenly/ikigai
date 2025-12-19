@@ -255,9 +255,7 @@ START_TEST(test_bash_error_conversation_persistence)
     SKIP_IF_NO_DB();
 
     // Create conversation simulating the user story flow
-    res_t conv_res = ik_openai_conversation_create(test_ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
 
     // Step 1: User message "Compile the project with gcc main.c"
     res_t user_msg_res = ik_openai_msg_create(test_ctx, "user", "Compile the project with gcc main.c");

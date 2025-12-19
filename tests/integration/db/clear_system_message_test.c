@@ -173,9 +173,7 @@ START_TEST(test_clear_persists_system_message_event)
     ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create conversation
-    res_t conv_res = ik_openai_conversation_create(repl);
-    ck_assert(is_ok(&conv_res));
-    repl->current->conversation = conv_res.ok;
+    repl->current->conversation = ik_openai_conversation_create(repl);
 
     // Initialize marks
     repl->current->marks = NULL;
@@ -230,9 +228,7 @@ START_TEST(test_clear_no_system_message_when_null)
     ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create conversation
-    res_t conv_res = ik_openai_conversation_create(repl);
-    ck_assert(is_ok(&conv_res));
-    repl->current->conversation = conv_res.ok;
+    repl->current->conversation = ik_openai_conversation_create(repl);
 
     // Initialize marks
     repl->current->marks = NULL;

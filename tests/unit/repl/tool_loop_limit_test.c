@@ -44,9 +44,7 @@ static void setup(void)
     repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* Create conversation */
-    res_t res = ik_openai_conversation_create(ctx);
-    ck_assert(is_ok(&res));
-    repl->current->conversation = res.ok;
+    repl->current->conversation = ik_openai_conversation_create(ctx);
 
     /* Initialize counter to 0 (simulating start of user request) */
     repl->current->tool_iteration_count = 0;

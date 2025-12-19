@@ -144,9 +144,7 @@ START_TEST(test_tool_call_single_chunk) {
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
     ck_assert(!msg_res.is_err);
@@ -215,9 +213,7 @@ START_TEST(test_tool_call_streaming_multiple_chunks)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
     ck_assert(!msg_res.is_err);
@@ -291,9 +287,7 @@ START_TEST(test_tool_call_no_content)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
     ck_assert(!msg_res.is_err);
@@ -364,9 +358,7 @@ START_TEST(test_parse_tool_calls_ok_null)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
     ck_assert(!msg_res.is_err);
@@ -414,9 +406,7 @@ START_TEST(test_parse_tool_calls_error)
     cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Test");
     ck_assert(!msg_res.is_err);

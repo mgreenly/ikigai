@@ -170,9 +170,7 @@ START_TEST(test_http_curl_init_failure) {
     cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Test message");
     ck_assert(!msg_res.is_err);
@@ -203,9 +201,7 @@ START_TEST(test_http_curl_perform_failure)
     cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Test message");
     ck_assert(!msg_res.is_err);
@@ -245,9 +241,7 @@ START_TEST(test_http_api_key_too_long)
     cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Test message");
     ck_assert(!msg_res.is_err);
@@ -293,9 +287,7 @@ START_TEST(test_http_successful_request)
     cfg->openai_max_completion_tokens = 100;
 
     /* Create conversation with one message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(conv, "user", "Hello");
     ck_assert(!msg_res.is_err);

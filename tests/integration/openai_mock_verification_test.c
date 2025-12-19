@@ -122,9 +122,7 @@ START_TEST(verify_stream_hello_world) {
     ik_cfg_t *cfg = create_test_cfg(ctx, api_key, "gpt-5-mini");
 
     /* Create conversation with simple greeting */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello!");
     ck_assert(!msg_res.is_err);
@@ -192,9 +190,7 @@ END_TEST START_TEST(verify_stream_multiline)
     ik_cfg_t *cfg = create_test_cfg(ctx, api_key, "gpt-5-mini");
 
     /* Create conversation requesting code (likely to be multi-line) */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user",
                                          "Write a short Python function to add two numbers.");
@@ -254,9 +250,7 @@ END_TEST START_TEST(verify_stream_conversation)
     ik_cfg_t *cfg = create_test_cfg(ctx, api_key, "gpt-5-mini");
 
     /* Create multi-turn conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     /* First message */
     res_t msg1_res = ik_openai_msg_create(ctx, "user", "What is 2+2?");

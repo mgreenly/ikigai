@@ -18,9 +18,7 @@ START_TEST(test_multi_info_read_callback_error_with_client_error) {
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -58,9 +56,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_server_error)
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -98,9 +94,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_network_error)
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -137,9 +131,7 @@ END_TEST START_TEST(test_multi_info_read_http_599_edge_case)
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -175,9 +167,7 @@ END_TEST START_TEST(test_multi_info_read_http_600_unexpected)
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -225,9 +215,7 @@ START_TEST(test_multi_info_read_callback_success_with_error_message) {
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);

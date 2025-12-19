@@ -86,9 +86,7 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->shared->logger);
 
     // Create conversation
-    res_t res = ik_openai_conversation_create(test_ctx);
-    ck_assert(is_ok(&res));
-    agent->conversation = res.ok;
+    agent->conversation = ik_openai_conversation_create(test_ctx);
     ck_assert_ptr_nonnull(agent->conversation);
     repl->current = agent;
 

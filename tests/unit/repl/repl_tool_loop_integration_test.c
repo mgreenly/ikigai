@@ -40,9 +40,7 @@ static void setup(void)
     ck_assert_ptr_nonnull(agent);
 
     /* Create conversation */
-    res_t res = ik_openai_conversation_create(ctx);
-    ck_assert(is_ok(&res));
-    agent->conversation = res.ok;
+    agent->conversation = ik_openai_conversation_create(ctx);
     repl->current = agent;
     agent->repl = repl;  // Set backpointer
 

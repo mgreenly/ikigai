@@ -138,9 +138,7 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->current->input_buffer);
 
     // Create conversation
-    res_t conv_res = ik_openai_conversation_create(repl);
-    ck_assert(is_ok(&conv_res));
-    repl->current->conversation = conv_res.ok;
+    repl->current->conversation = ik_openai_conversation_create(repl);
 
     // Create multi client (opaque pointer)
     repl->current->multi = talloc_zero_(repl, 1);

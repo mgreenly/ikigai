@@ -315,8 +315,7 @@ END_TEST START_TEST(test_request_serialization_with_tool_choice)
     cfg->openai_max_completion_tokens = 4096;
     cfg->max_tool_turns = 3;
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Search for errors");
     ik_openai_conversation_add_msg(conv, msg_res.ok);
     ik_openai_request_t *request = ik_openai_request_create(ctx, cfg, conv);

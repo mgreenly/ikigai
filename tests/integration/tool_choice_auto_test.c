@@ -141,9 +141,7 @@ START_TEST(test_request_has_tool_choice_auto) {
     cfg->openai_max_completion_tokens = 4096;
 
     // Create conversation with user message
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Find all C files in src/");
     ck_assert(!msg_res.is_err);

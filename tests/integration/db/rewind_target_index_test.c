@@ -148,9 +148,7 @@ START_TEST(test_rewind_persists_correct_target_message_index)
     ck_assert_ptr_nonnull(repl->current->scrollback);
 
     // Create conversation
-    res_t conv_res = ik_openai_conversation_create(repl);
-    ck_assert(is_ok(&conv_res));
-    repl->current->conversation = conv_res.ok;
+    repl->current->conversation = ik_openai_conversation_create(repl);
 
     // Initialize marks
     repl->current->marks = NULL;

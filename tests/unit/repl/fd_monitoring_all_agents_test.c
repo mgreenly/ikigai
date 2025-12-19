@@ -63,9 +63,7 @@ static ik_agent_ctx_t *create_test_agent(ik_repl_ctx_t *parent, const char *uuid
     agent->multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(agent);
-    ck_assert(!is_err(&conv_res));
-    agent->conversation = conv_res.ok;
+    agent->conversation = ik_openai_conversation_create(agent);
 
     return agent;
 }

@@ -157,9 +157,7 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    res_t res = ik_openai_conversation_create(test_ctx);
-    ck_assert(is_ok(&res));
-    ik_openai_conversation_t *conv = res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
 
     ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);

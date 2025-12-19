@@ -13,9 +13,7 @@ START_TEST(test_http_write_callback_missing_choices) {
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -55,9 +53,7 @@ END_TEST START_TEST(test_http_write_callback_empty_choices)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -98,9 +94,7 @@ END_TEST START_TEST(test_http_write_callback_choice_not_object)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -141,9 +135,7 @@ END_TEST START_TEST(test_http_write_callback_finish_reason_not_string)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -184,9 +176,7 @@ END_TEST START_TEST(test_http_write_callback_metadata_already_captured)
     ik_openai_multi_t *multi = multi_res.ok;
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);

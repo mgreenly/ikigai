@@ -88,14 +88,12 @@ static void setup(void)
     repl->shared = talloc_zero(test_ctx, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
 
-    // Create conversation
-    res_t res = ik_openai_conversation_create(test_ctx);
-    ck_assert(is_ok(&res));
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
 
-    agent->conversation = res.ok;
+    // Create conversation
+    agent->conversation = ik_openai_conversation_create(test_ctx);
     repl->current = agent;
     ck_assert_ptr_nonnull(repl->current->conversation);
 

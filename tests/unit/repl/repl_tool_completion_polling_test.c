@@ -91,9 +91,7 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->current->scrollback);
 
     /* Create conversation */
-    res_t conv_res = ik_openai_conversation_create(repl);
-    ck_assert(!conv_res.is_err);
-    repl->current->conversation = conv_res.ok;
+    repl->current->conversation = ik_openai_conversation_create(repl);
 
     /* Create curl_multi handle */
     res_t multi_res = ik_openai_multi_create(repl);

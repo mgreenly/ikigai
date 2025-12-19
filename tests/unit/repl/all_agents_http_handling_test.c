@@ -51,9 +51,7 @@ static ik_agent_ctx_t *create_test_agent(ik_repl_ctx_t *parent, const char *uuid
     agent->curl_still_running = 0;
 
     // Create conversation
-    res_t conv_res = ik_openai_conversation_create(agent);
-    ck_assert(!is_err(&conv_res));
-    agent->conversation = conv_res.ok;
+    agent->conversation = ik_openai_conversation_create(agent);
 
     // Create scrollback
     agent->scrollback = ik_scrollback_create(agent, 1000);

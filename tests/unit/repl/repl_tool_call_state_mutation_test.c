@@ -35,9 +35,7 @@ static void setup(void)
     repl->current = agent;
 
     /* Create conversation */
-    res_t res = ik_openai_conversation_create(ctx);
-    ck_assert(is_ok(&res));
-    repl->current->conversation = res.ok;
+    repl->current->conversation = ik_openai_conversation_create(ctx);
     ck_assert_ptr_nonnull(repl->current->conversation);
 
     repl->current->scrollback = ik_scrollback_create(repl, 80);

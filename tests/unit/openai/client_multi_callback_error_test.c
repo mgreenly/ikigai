@@ -15,9 +15,7 @@ START_TEST(test_multi_info_read_callback_error_with_model) {
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -55,9 +53,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_finish_reason)
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -95,9 +91,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_both_metadata)
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
     ck_assert(!msg_res.is_err);
@@ -146,9 +140,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_multiple_requests_shift)
 
     /* Add three requests - the first one will have the error callback */
     for (int i = 0; i < 3; i++) {
-        res_t conv_res = ik_openai_conversation_create(ctx);
-        ck_assert(!conv_res.is_err);
-        ik_openai_conversation_t *conv = conv_res.ok;
+        ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
         res_t msg_res = ik_openai_msg_create(ctx, "user", "Hello");
         ck_assert(!msg_res.is_err);

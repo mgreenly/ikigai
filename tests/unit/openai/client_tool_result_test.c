@@ -80,9 +80,7 @@ END_TEST START_TEST(test_tool_result_message_talloc_hierarchy)
 END_TEST START_TEST(test_serialize_tool_result_message)
 {
     /* Create conversation with tool_result message */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     ik_msg_t *msg = ik_openai_msg_create_tool_result(
         ctx,
@@ -137,9 +135,7 @@ END_TEST START_TEST(test_serialize_tool_result_message)
 END_TEST START_TEST(test_serialize_tool_call_and_result_sequence)
 {
     /* Create conversation with user, tool_call, tool_result messages */
-    res_t conv_res = ik_openai_conversation_create(ctx);
-    ck_assert(!conv_res.is_err);
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     /* Add user message */
     res_t user_msg_res = ik_openai_msg_create(ctx, "user", "Find all C files");

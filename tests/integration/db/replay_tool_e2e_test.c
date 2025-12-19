@@ -234,9 +234,7 @@ START_TEST(test_tool_conversation_e2e)
     // ========== Phase 4: Verify API serialization format ==========
 
     // Build conversation for API request using replayed messages
-    res_t conv_res = ik_openai_conversation_create(replay_ctx);
-    ck_assert(is_ok(&conv_res));
-    ik_openai_conversation_t *conv = conv_res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(replay_ctx);
 
     // Add user message
     res_t msg_res = ik_openai_msg_create(replay_ctx, "user",

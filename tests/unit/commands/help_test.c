@@ -33,9 +33,7 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation (needed for mark/rewind commands)
-    res_t res = ik_openai_conversation_create(parent);
-    ck_assert(is_ok(&res));
-    ik_openai_conversation_t *conv = res.ok;
+    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
     ck_assert_ptr_nonnull(conv);
 
 
