@@ -79,43 +79,18 @@ static void search_file(void *parent, const char *filename, regex_t *regex,
     fclose(f);
 }
 
-// Build success response JSON
-static char *build_grep_success(void *parent, const char *output, size_t count)
+// Grep result data for response callback
+typedef struct {
+    const char *output;
+    size_t count;
+} grep_result_data_t;
+
+// Callback to add grep-specific fields to data object
+static void add_grep_data(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx)
 {
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *root = yyjson_mut_obj(doc);
-    if (root == NULL) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-    yyjson_mut_doc_set_root(doc, root);
-
-    yyjson_mut_obj_add_bool(doc, root, "success", true);
-
-    yyjson_mut_val *data = yyjson_mut_obj(doc);
-    if (data == NULL) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-
-    yyjson_mut_obj_add_str(doc, data, "output", output);
-    yyjson_mut_obj_add_uint(doc, data, "count", count);
-    yyjson_mut_obj_add_val(doc, root, "data", data);
-
-    char *json = yyjson_mut_write_opts(doc, 0, NULL, NULL, NULL);
-    if (json == NULL) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-
-    char *result = talloc_strdup(parent, json);
-    free(json);
-    yyjson_mut_doc_free(doc);
-
-    if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    return result;
+    grep_result_data_t *d = user_ctx;
+    yyjson_mut_obj_add_str(doc, data, "output", d->output);
+    yyjson_mut_obj_add_uint(doc, data, "count", d->count);
 }
 
 res_t ik_tool_exec_grep(void *parent, const char *pattern, const char *glob_filter, const char *path)
@@ -182,6 +157,11 @@ res_t ik_tool_exec_grep(void *parent, const char *pattern, const char *glob_filt
     regfree(&regex);
 
     // Build and return success response
-    char *result = build_grep_success(parent, output_buffer, match_count);
+    grep_result_data_t result_data = {
+        .output = output_buffer,
+        .count = match_count
+    };
+    char *result;
+    ik_tool_response_success_with_data(parent, add_grep_data, &result_data, &result);
     return OK(result);
 }
