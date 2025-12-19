@@ -1,12 +1,6 @@
 {
   "todo": [
     {
-      "task": "static-fn-policy-update.md",
-      "group": "Static Function Policy",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
       "task": "static-fn-helper-abstractions.md",
       "group": "Static Function Policy",
       "model": "sonnet",
@@ -292,6 +286,12 @@
     },
     {
       "task": "static-fn-lcov-config.md",
+      "group": "Static Function Policy",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "static-fn-policy-update.md",
       "group": "Static Function Policy",
       "model": "sonnet",
       "thinking": "none"
