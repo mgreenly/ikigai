@@ -16,7 +16,7 @@ typedef struct {
 } ik_term_ctx_t;
 
 // Initialize terminal (raw mode + alternate screen)
-res_t ik_term_init(void *parent, ik_term_ctx_t **ctx_out);
+res_t ik_term_init(TALLOC_CTX *ctx, ik_term_ctx_t **ctx_out);
 
 // Cleanup terminal (restore state)
 void ik_term_cleanup(ik_term_ctx_t *ctx);
