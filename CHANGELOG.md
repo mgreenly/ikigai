@@ -5,6 +5,126 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rel-06] - 2025-12-19
+
+### Added
+
+#### Multi-Agent System (Complete)
+- **Agent registry**: Database-backed agent tracking with UUID-based identification
+- **Agent lifecycle**: Creation, state management, and termination of multiple agents
+- **/fork command**: Create child agents with optional prompt argument
+  - History inheritance via fork_message_id
+  - Sync barrier for running tools
+  - Parent scrollback population
+- **/kill command**: Agent termination with multiple modes
+  - Self termination (/kill self)
+  - Targeted termination (/kill \<uuid\>)
+  - Cascade termination (--cascade flag)
+- **Agent navigation**: Keyboard shortcuts for agent switching
+  - Ctrl+Arrow navigation events
+  - Parent/child navigation
+  - Sibling navigation
+  - UUID prefix matching for agent lookup
+- **/agents command**: Display agent hierarchy tree with visual indentation
+- **Agent persistence**: Fork and command events stored in database
+- **Agent restoration**: Range-based replay algorithm for multi-agent startup
+
+#### Inter-Agent Mailbox System (Complete)
+- **Mail database schema**: Migration 004 with inbox/outbox tables
+- **Mail message structure**: ik_mail_t with sender/recipient tracking
+- **/send command**: Inter-agent message delivery
+- **/check-mail command**: List inbox contents with sender information
+- **/read-mail command**: View individual messages
+- **/delete-mail command**: Permanent message deletion using inbox position
+- **/filter-mail command**: Inbox management and filtering
+
+#### Infrastructure Improvements
+- **JSONL logger integration**: Replaced debug pipe with structured logging
+  - Lifecycle management (first in, last out)
+  - Panic event logging
+  - Request/response logging
+- **UUID generation module**: Standalone base64url UUID creation (22 chars)
+- **Database transactions**: begin/commit/rollback support for atomic operations
+- **Agent state switching**: Preserve state when switching between agents
+- **Message structure**: Added agent_uuid and id fields to ik_msg_t
+- **Response builder pattern**: Standardized tool response JSON construction
+- **Schema builder pattern**: Data-driven tool schema definitions
+- **Temporary context helper**: tmp_ctx_create() for simplified memory management
+
+### Changed
+
+#### Code Quality & Refactoring
+- **Namespace standardization**: Applied ik_MODULE_ prefix to public functions
+  - Event handlers: ik_repl_ prefix
+  - Commands: ik_cmd_ prefix
+  - Tools: ik_tool_ prefix
+- **Parameter naming**: Standardized TALLOC_CTX parameters to 'ctx' across codebase
+- **Function clarity**: Expanded abbreviated names in debug_pipe and tool modules
+- **Message consolidation**: Migrated from ik_message_t to unified ik_msg_t structure
+- **Tool system refactoring**:
+  - Response builders for all tools (bash, file_read, file_write, glob, grep)
+  - Declarative schema builders with ik_tool_schema_def_t
+  - Data-driven parameter definitions with ik_tool_param_def_t
+- **Creator functions**: Changed OOM-only creators to return pointers directly
+- **Static function policy**: Updated with pragmatic guidelines and LCOV support
+- **Code organization**: Deleted obsolete session_restore module and msg_from_db code
+
+#### Bug Fixes
+- **Bug 6**: Fixed /delete-mail to use inbox position instead of database ID
+- **Bug 5**: Fixed agent restore to filter metadata events correctly
+- **Bug 4**: Filter metadata events from OpenAI API serialization
+- **Bug 2**: Fixed separator width calculation to handle ANSI escape codes
+- **Initialization fixes**:
+  - Random seed initialization in main() for UUID generation
+  - Agent created_at timestamp initialization
+  - Session_id initialization before agent restoration
+  - Proper handling of created_at=0 in child agent navigation
+- **Race conditions**:
+  - Fixed fork_pending flag data race
+  - Fixed helgrind race in test mock state
+  - Fixed database connection parallel test issues
+- **Error handling**:
+  - Display slash command errors to user
+  - NULL pointer checks after talloc_steal
+  - Unchecked database connection return values
+
+#### Quality Gate Fixes
+- **Helgrind**: Serialized test execution to fix flaky database tests (Makefile -P 1)
+- **Coverage**: Wrapped yyjson inline mutation functions to achieve 100% branch coverage
+- **Lint**: Split large files to comply with 16KB size limit
+- **File splits**: Divided oversized modules for better maintainability
+
+### Development
+
+#### Testing & Quality Gates
+- **Test coverage**: Maintained 100% (lines, functions, branches)
+- **Quality pipeline**: Clean run through lint, check, sanitize, tsan, valgrind, helgrind, coverage
+- **Comprehensive testing**:
+  - Agent restoration tests
+  - Mail system integration tests
+  - Database error path coverage
+  - Command execution tests
+  - Navigation event tests
+- **Build improvements**:
+  - Added build-tests target (build without execution)
+  - Fixed parallel test execution issues
+  - Enhanced error path testing
+
+#### Documentation
+- **Multi-agent architecture**: Complete documentation for agent registry and lifecycle
+- **Gap analysis**: Systematic identification and resolution of architectural gaps
+- **Refactoring recommendations**: Comprehensive plan for code quality improvements
+- **Task system**: 247 TDD task files with detailed specifications
+- **Static function policy**: Guidelines for static vs public function decisions
+- **Mocking patterns**: Updated documentation for test infrastructure
+
+### Technical Metrics
+- **Changes**: 450 files modified, +53,594/-5,362 lines
+- **Commits**: 247 commits over development cycle
+- **Test coverage**: 100% lines, functions, and branches
+- **Code quality**: All lint, format, and sanitizer checks pass
+- **Quality gates**: 7 gates (lint, check, sanitize, tsan, valgrind, helgrind, coverage)
+
 ## [rel-05] - 2025-12-14
 
 ### Added
@@ -376,6 +496,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
+[rel-06]: https://github.com/mgreenly/ikigai/releases/tag/rel-06
 [rel-05]: https://github.com/mgreenly/ikigai/releases/tag/rel-05
 [rel-04]: https://github.com/mgreenly/ikigai/releases/tag/rel-04
 [rel-03]: https://github.com/mgreenly/ikigai/releases/tag/rel-03
