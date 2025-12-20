@@ -1,4 +1,3 @@
-#include "agent.h"
 /**
  * @file repl_debug_response_test.c
  * @brief Unit tests for debug output in HTTP completion callback
@@ -8,46 +7,43 @@
  */
 
 #include "repl.h"
+
 #include "../../../src/agent.h"
-#include "repl_callbacks.h"
-#include "shared.h"
-#include "scrollback.h"
+#include "../../test_utils.h"
 #include "config.h"
-#include "openai/client_multi.h"
-#include "tool.h"
 #include "logger.h"
+#include "openai/client_multi.h"
+#include "repl_callbacks.h"
+#include "scrollback.h"
+#include "shared.h"
+#include "tool.h"
 #include "vendor/yyjson/yyjson.h"
+
 #include <check.h>
-#include <talloc.h>
 #include <curl/curl.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <talloc.h>
+#include <unistd.h>
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
-static char *log_file_path;
-static char *log_base_dir;
+
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
 
 static void setup(void)
 {
     ctx = talloc_new(NULL);
 
-    /* Create unique log directory based on PID to avoid race conditions */
-    log_base_dir = talloc_asprintf(ctx, "/tmp/repl_debug_response_test_%d", getpid());
-
-    /* Ensure the base directory exists */
-    mkdir(log_base_dir, 0755);
-
-    /* Create temporary log file */
-    log_file_path = talloc_strdup(ctx, "/tmp/repl_debug_response_test.log");
-    unlink(log_file_path);  // Remove if exists from previous run
-
     /* Create minimal shared context */
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
 
-    /* Create logger instance for testing */
-    shared->logger = ik_logger_create(shared, log_base_dir);
+    /* Create logger instance for testing - uses IKIGAI_LOG_DIR env var */
+    shared->logger = ik_logger_create(shared, "/tmp");
 
     /* Create minimal REPL context for testing callback */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -68,23 +64,19 @@ static void setup(void)
 
 static void teardown(void)
 {
-    if (log_file_path != NULL) {
-        unlink(log_file_path);
-    }
-    if (log_base_dir != NULL) {
-        /* Clean up the unique log directory */
-        char cmd[1024];
-        snprintf(cmd, sizeof(cmd), "rm -rf %s", log_base_dir);
-        system(cmd);
-    }
     talloc_free(ctx);
 }
 
 /* Helper function to read last JSONL entry from log file */
 static yyjson_doc *read_last_log_entry(void)
 {
+    const char *log_dir = getenv("IKIGAI_LOG_DIR");
+    if (log_dir == NULL) {
+        return NULL;
+    }
+
     char log_path[512];
-    snprintf(log_path, sizeof(log_path), "%s/.ikigai/logs/current.log", log_base_dir);
+    snprintf(log_path, sizeof(log_path), "%s/current.log", log_dir);
 
     FILE *fp = fopen(log_path, "r");
     if (fp == NULL) {
@@ -378,6 +370,7 @@ static Suite *repl_debug_response_suite(void)
     Suite *s = suite_create("repl_debug_response");
 
     TCase *tc_debug = tcase_create("debug_output");
+    tcase_add_unchecked_fixture(tc_debug, suite_setup, NULL);
     tcase_add_checked_fixture(tc_debug, setup, teardown);
     tcase_add_test(tc_debug, test_debug_output_response_success);
     tcase_add_test(tc_debug, test_debug_output_response_error);
