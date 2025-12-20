@@ -414,6 +414,37 @@ res_t ik_test_db_destroy(const char *db_name)
     return OK(NULL);
 }
 
+void ik_test_set_log_dir(const char *file_path)
+{
+    if (file_path == NULL) {
+        return;
+    }
+
+    // Find basename (same logic as ik_test_db_name)
+    const char *basename = strrchr(file_path, '/');
+    if (basename != NULL) {
+        basename++;
+    } else {
+        basename = file_path;
+    }
+
+    // Remove extension
+    const char *dot = strrchr(basename, '.');
+    size_t name_len;
+    if (dot != NULL && dot > basename) {
+        name_len = (size_t)(dot - basename);
+    } else {
+        name_len = strlen(basename);
+    }
+
+    // Build path: /tmp/ikigai_logs_{basename}
+    char log_dir[256];
+    snprintf(log_dir, sizeof(log_dir), "/tmp/ikigai_logs_%.*s", (int)name_len, basename);
+
+    // Set environment variable
+    setenv("IKIGAI_LOG_DIR", log_dir, 1);
+}
+
 // ========== Terminal Reset Utilities ==========
 
 void ik_test_reset_terminal(void)

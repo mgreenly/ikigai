@@ -161,6 +161,14 @@ res_t ik_test_db_truncate_all(ik_db_ctx_t *db);
  */
 res_t ik_test_db_destroy(const char *db_name);
 
+/**
+ * Set IKIGAI_LOG_DIR to a unique path based on test file.
+ * Call this in suite_setup() before any logger is created.
+ *
+ * @param file_path  Pass __FILE__ to derive unique directory name
+ */
+void ik_test_set_log_dir(const char *file_path);
+
 // ========== Terminal Reset Utilities ==========
 
 /**
