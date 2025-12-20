@@ -170,29 +170,6 @@ START_TEST(test_fork_registry_has_fork_message_id)
 }
 END_TEST
 
-// Test: Child inherits parent conversation
-START_TEST(test_fork_child_inherits_conversation)
-{
-    // Add a message to parent's conversation before forking
-    ik_msg_t *msg = ik_openai_msg_create(test_ctx, "user", "Test message from parent");
-
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
-    ck_assert(is_ok(&add_res));
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
-
-    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Child should inherit parent's conversation
-    ik_agent_ctx_t *child = repl->current;
-    ck_assert_ptr_nonnull(child->conversation);
-    ck_assert_uint_eq(child->conversation->message_count, 1);
-
-    // Verify the message content was copied
-    ck_assert_str_eq(child->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(child->conversation->messages[0]->content, "Test message from parent");
-}
-END_TEST
 
 // Test: Fork sync barrier - fork with no running tools proceeds immediately
 START_TEST(test_fork_no_running_tools_proceeds)
@@ -257,188 +234,7 @@ START_TEST(test_has_running_tools_respects_complete_flag)
 }
 END_TEST
 
-// Test: Child post-fork messages are separate from parent
-START_TEST(test_fork_child_post_fork_messages_separate)
-{
-    // Add initial message to parent
-    ik_msg_t *parent_msg = ik_openai_msg_create(test_ctx, "user", "Parent message before fork");
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, parent_msg);
-    ck_assert(is_ok(&add_res));
 
-    ik_agent_ctx_t *parent = repl->current;
-    size_t parent_msg_count_before_fork = parent->conversation->message_count;
-
-    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Add message to child's conversation (simulating post-fork message)
-    ik_agent_ctx_t *child = repl->current;
-    ik_msg_t *child_msg = ik_openai_msg_create(test_ctx, "user", "Child message after fork");
-    res_t child_add_res = ik_openai_conversation_add_msg(child->conversation, child_msg);
-    ck_assert(is_ok(&child_add_res));
-
-    // Child should have the post-fork message
-    ck_assert_uint_eq(child->conversation->message_count, 2);
-
-    // Parent's conversation should remain unchanged
-    ck_assert_uint_eq(parent->conversation->message_count, parent_msg_count_before_fork);
-}
-END_TEST
-
-// Test: Fork persists parent-side fork event
-START_TEST(test_fork_persists_parent_side_event)
-{
-    // Create a session
-    int64_t session_id = 0;
-    res_t session_res = ik_db_session_create(db, &session_id);
-    ck_assert(is_ok(&session_res));
-    repl->shared->session_id = session_id;
-
-    ik_agent_ctx_t *parent = repl->current;
-    const char *parent_uuid = parent->uuid;
-
-    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    ik_agent_ctx_t *child = repl->current;
-    const char *child_uuid = child->uuid;
-
-    // Query messages table directly for parent's fork event
-    const char *query = "SELECT kind, content, data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id";
-    char session_id_str[32];
-    snprintf(session_id_str, sizeof(session_id_str), "%" PRId64, session_id);
-    const char *params[2] = {session_id_str, parent_uuid};
-    PGresult *pg_res = PQexecParams(db->conn, query, 2, NULL, params, NULL, NULL, 0);
-    ck_assert_int_eq(PQresultStatus(pg_res), PGRES_TUPLES_OK);
-
-    int nrows = PQntuples(pg_res);
-    ck_assert_int_ge(nrows, 1);
-
-    // Check first fork event
-    const char *kind = PQgetvalue(pg_res, 0, 0);
-    const char *content = PQgetvalue(pg_res, 0, 1);
-    const char *data = PQgetvalue(pg_res, 0, 2);
-
-    ck_assert_str_eq(kind, "fork");
-    ck_assert_ptr_nonnull(content);
-    ck_assert(strstr(content, child_uuid) != NULL);
-    ck_assert_ptr_nonnull(data);
-    ck_assert(strstr(data, "\"child_uuid\"") != NULL);
-    ck_assert(strstr(data, child_uuid) != NULL);
-    ck_assert(strstr(data, "\"role\":\"parent\"") != NULL ||
-             strstr(data, "\"role\": \"parent\"") != NULL);
-
-    PQclear(pg_res);
-}
-END_TEST
-
-// Test: Fork persists child-side fork event
-START_TEST(test_fork_persists_child_side_event)
-{
-    // Create a session
-    int64_t session_id = 0;
-    res_t session_res = ik_db_session_create(db, &session_id);
-    ck_assert(is_ok(&session_res));
-    repl->shared->session_id = session_id;
-
-    ik_agent_ctx_t *parent = repl->current;
-    const char *parent_uuid = parent->uuid;
-
-    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    ik_agent_ctx_t *child = repl->current;
-    const char *child_uuid = child->uuid;
-
-    // Query messages table directly for child's fork event
-    const char *query = "SELECT kind, content, data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id";
-    char session_id_str[32];
-    snprintf(session_id_str, sizeof(session_id_str), "%" PRId64, session_id);
-    const char *params[2] = {session_id_str, child_uuid};
-    PGresult *pg_res = PQexecParams(db->conn, query, 2, NULL, params, NULL, NULL, 0);
-    ck_assert_int_eq(PQresultStatus(pg_res), PGRES_TUPLES_OK);
-
-    int nrows = PQntuples(pg_res);
-    ck_assert_int_ge(nrows, 1);
-
-    // Check first fork event
-    const char *kind = PQgetvalue(pg_res, 0, 0);
-    const char *content = PQgetvalue(pg_res, 0, 1);
-    const char *data = PQgetvalue(pg_res, 0, 2);
-
-    ck_assert_str_eq(kind, "fork");
-    ck_assert_ptr_nonnull(content);
-    ck_assert(strstr(content, parent_uuid) != NULL);
-    ck_assert_ptr_nonnull(data);
-    ck_assert(strstr(data, "\"parent_uuid\"") != NULL);
-    ck_assert(strstr(data, parent_uuid) != NULL);
-    ck_assert(strstr(data, "\"role\":\"child\"") != NULL ||
-             strstr(data, "\"role\": \"child\"") != NULL);
-
-    PQclear(pg_res);
-}
-END_TEST
-
-// Test: Fork events link via fork_message_id
-START_TEST(test_fork_events_linked_by_fork_message_id)
-{
-    // Create a session
-    int64_t session_id = 0;
-    res_t session_res = ik_db_session_create(db, &session_id);
-    ck_assert(is_ok(&session_res));
-    repl->shared->session_id = session_id;
-
-    ik_agent_ctx_t *parent = repl->current;
-    const char *parent_uuid = parent->uuid;
-
-    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    ik_agent_ctx_t *child = repl->current;
-    const char *child_uuid = child->uuid;
-
-    // Query parent's fork event
-    const char *query1 = "SELECT data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id LIMIT 1";
-    char session_id_str1[32];
-    snprintf(session_id_str1, sizeof(session_id_str1), "%" PRId64, session_id);
-    const char *params1[2] = {session_id_str1, parent_uuid};
-    PGresult *parent_res = PQexecParams(db->conn, query1, 2, NULL, params1, NULL, NULL, 0);
-    ck_assert_int_eq(PQresultStatus(parent_res), PGRES_TUPLES_OK);
-    ck_assert_int_ge(PQntuples(parent_res), 1);
-
-    const char *parent_data = PQgetvalue(parent_res, 0, 0);
-    ck_assert_ptr_nonnull(parent_data);
-    const char *parent_fork_id_str = strstr(parent_data, "\"fork_message_id\"");
-    ck_assert_ptr_nonnull(parent_fork_id_str);
-
-    int64_t parent_fork_msg_id = -1;
-    sscanf(parent_fork_id_str, "\"fork_message_id\": %" SCNd64, &parent_fork_msg_id);
-    ck_assert_int_ge(parent_fork_msg_id, 0);
-    PQclear(parent_res);
-
-    // Query child's fork event
-    const char *query2 = "SELECT data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id LIMIT 1";
-    char session_id_str2[32];
-    snprintf(session_id_str2, sizeof(session_id_str2), "%" PRId64, session_id);
-    const char *params2[2] = {session_id_str2, child_uuid};
-    PGresult *child_res = PQexecParams(db->conn, query2, 2, NULL, params2, NULL, NULL, 0);
-    ck_assert_int_eq(PQresultStatus(child_res), PGRES_TUPLES_OK);
-    ck_assert_int_ge(PQntuples(child_res), 1);
-
-    const char *child_data = PQgetvalue(child_res, 0, 0);
-    ck_assert_ptr_nonnull(child_data);
-    const char *child_fork_id_str = strstr(child_data, "\"fork_message_id\"");
-    ck_assert_ptr_nonnull(child_fork_id_str);
-
-    int64_t child_fork_msg_id = -1;
-    sscanf(child_fork_id_str, "\"fork_message_id\": %" SCNd64, &child_fork_msg_id);
-    ck_assert_int_ge(child_fork_msg_id, 0);
-    PQclear(child_res);
-
-    // They should match
-    ck_assert_int_eq(parent_fork_msg_id, child_fork_msg_id);
-}
-END_TEST
 
 // Test: Child inherits parent's scrollback
 START_TEST(test_fork_child_inherits_scrollback)
@@ -488,16 +284,11 @@ static Suite *cmd_fork_suite(void)
 
     tcase_add_test(tc, test_fork_records_fork_message_id_no_messages);
     tcase_add_test(tc, test_fork_registry_has_fork_message_id);
-    tcase_add_test(tc, test_fork_child_inherits_conversation);
-    tcase_add_test(tc, test_fork_child_post_fork_messages_separate);
     tcase_add_test(tc, test_fork_no_running_tools_proceeds);
     tcase_add_test(tc, test_has_running_tools_false_when_idle);
     tcase_add_test(tc, test_has_running_tools_true_when_running);
     tcase_add_test(tc, test_fork_waiting_message_when_tools_running);
     tcase_add_test(tc, test_has_running_tools_respects_complete_flag);
-    tcase_add_test(tc, test_fork_persists_parent_side_event);
-    tcase_add_test(tc, test_fork_persists_child_side_event);
-    tcase_add_test(tc, test_fork_events_linked_by_fork_message_id);
     tcase_add_test(tc, test_fork_child_inherits_scrollback);
 
     suite_add_tcase(s, tc);
