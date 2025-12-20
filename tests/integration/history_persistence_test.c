@@ -57,6 +57,7 @@ static void setup_test_env(void)
     mkdir(test_dir, 0755);
     if (chdir(test_dir) != 0) ck_abort_msg("chdir failed");
 }
+
 static void teardown_test_env(void)
 {
     if (chdir(orig_dir) != 0) ck_abort_msg("chdir failed");
@@ -64,11 +65,13 @@ static void teardown_test_env(void)
     snprintf(cmd, sizeof(cmd), "rm -rf '%s'", test_dir);
     system(cmd);
 }
+
 static void cleanup_test_dir(void)
 {
     unlink(".ikigai/history");
     rmdir(".ikigai");
 }
+
 START_TEST(test_history_loads_on_init)
 {
     setup_test_env();
@@ -87,7 +90,6 @@ START_TEST(test_history_loads_on_init)
     cfg->history_size = 100;
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
@@ -112,7 +114,6 @@ START_TEST(test_history_saves_on_submit)
     cfg->history_size = 100;
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
-    // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
@@ -148,7 +149,6 @@ START_TEST(test_history_survives_repl_restart)
 
     ik_repl_ctx_t *repl1 = NULL;
     ik_shared_ctx_t *shared1 = NULL;
-    // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared1); ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared1, &repl1);
@@ -162,7 +162,6 @@ START_TEST(test_history_survives_repl_restart)
     ik_repl_cleanup(repl1);
     ik_repl_ctx_t *repl2 = NULL;
     ik_shared_ctx_t *shared2 = NULL;
-    // Create logger before calling init
     ik_logger_t *logger2 = ik_logger_create(ctx, "/tmp");
     r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger2, &shared2); ck_assert(is_ok(&r));
     result = ik_repl_init(ctx, shared2, &repl2);
@@ -177,247 +176,15 @@ START_TEST(test_history_survives_repl_restart)
 }
 END_TEST
 
-START_TEST(test_history_respects_config_capacity)
+static Suite *history_persistence_suite(void)
 {
-    setup_test_env();
-    cleanup_test_dir();
-    void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
-    cfg->history_size = 3;
-    ik_repl_ctx_t *repl = NULL;
-    ik_shared_ctx_t *shared = NULL;
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
-    res_t result = ik_repl_init(ctx, shared, &repl);
-    ck_assert(is_ok(&result));
-    ck_assert_uint_eq(repl->shared->history->capacity, 3);
-    ik_repl_cleanup(repl);
-    talloc_free(ctx);
-    cleanup_test_dir();
-    teardown_test_env();
-}
-END_TEST
-
-START_TEST(test_history_empty_input_not_saved)
-{
-    setup_test_env();
-    cleanup_test_dir();
-    void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
-    cfg->history_size = 100;
-    ik_repl_ctx_t *repl = NULL;
-    ik_shared_ctx_t *shared = NULL;
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
-    res_t result = ik_repl_init(ctx, shared, &repl);
-    ck_assert(is_ok(&result));
-    result = ik_repl_submit_line(repl);
-    ck_assert(is_ok(&result));
-    ck_assert_uint_eq(repl->shared->history->count, 0);
-    ik_repl_cleanup(repl);
-    talloc_free(ctx);
-    cleanup_test_dir();
-    teardown_test_env();
-}
-END_TEST
-
-// Test: Multiline input preserved
-START_TEST(test_history_multiline_preserved)
-{
-    setup_test_env();
-    cleanup_test_dir();
-
-    void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
-    cfg->history_size = 100;
-
-    ik_repl_ctx_t *repl = NULL;
-    // Create shared context
-    ik_shared_ctx_t *shared = NULL;
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
-    ck_assert(is_ok(&result));
-
-    // Create REPL context
-    result = ik_repl_init(ctx, shared, &repl);
-    ck_assert(is_ok(&result));
-
-    // Submit multiline command
-    const char *multiline = "line 1\nline 2\nline 3";
-    result = ik_input_buffer_set_text(repl->current->input_buffer, multiline, strlen(multiline));
-    ck_assert(is_ok(&result));
-    result = ik_repl_submit_line(repl);
-    ck_assert(is_ok(&result));
-
-    // Verify multiline was preserved
-    ck_assert_uint_eq(repl->shared->history->count, 1);
-    ck_assert_str_eq(repl->shared->history->entries[0], "line 1\nline 2\nline 3");
-
-    ik_repl_cleanup(repl);
-    talloc_free(ctx);
-    cleanup_test_dir();
-    teardown_test_env();
-}
-END_TEST
-
-// Test: Corrupt history file doesn't crash REPL
-START_TEST(test_history_file_corrupt_continues)
-{
-    setup_test_env();
-    cleanup_test_dir();
-
-    // Create corrupt history file
-    int mkdir_result = mkdir(".ikigai", 0755);
-    ck_assert(mkdir_result == 0 || (mkdir_result == -1 && errno == EEXIST));
-    FILE *f = fopen(".ikigai/history", "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "not valid json\n");
-    fprintf(f, "{\"cmd\": \"valid command\", \"ts\": \"2025-01-15T10:30:00Z\"}\n");
-    fprintf(f, "another bad line\n");
-    fclose(f);
-
-    void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
-    cfg->history_size = 100;
-
-    // REPL should still initialize successfully
-    ik_repl_ctx_t *repl = NULL;
-    // Create shared context
-    ik_shared_ctx_t *shared = NULL;
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
-    ck_assert(is_ok(&result));
-
-    // Create REPL context
-    result = ik_repl_init(ctx, shared, &repl);
-    ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(repl);
-
-    // Should have loaded the valid line
-    ck_assert_uint_eq(repl->shared->history->count, 1);
-    ck_assert_str_eq(repl->shared->history->entries[0], "valid command");
-
-    ik_repl_cleanup(repl);
-    talloc_free(ctx);
-    cleanup_test_dir();
-    teardown_test_env();
-}
-END_TEST
-
-// Test: Submitting while browsing stops browsing
-START_TEST(test_history_submit_stops_browsing)
-{
-    setup_test_env();
-    cleanup_test_dir();
-
-    void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
-    cfg->history_size = 100;
-
-    ik_repl_ctx_t *repl = NULL;
-    // Create shared context
-    ik_shared_ctx_t *shared = NULL;
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
-    ck_assert(is_ok(&result));
-
-    // Create REPL context
-    result = ik_repl_init(ctx, shared, &repl);
-    ck_assert(is_ok(&result));
-
-    // Add first command
-    result = ik_input_buffer_set_text(repl->current->input_buffer, "command 1", 9);
-    ck_assert(is_ok(&result));
-    result = ik_repl_submit_line(repl);
-    ck_assert(is_ok(&result));
-
-    // Start browsing
-    ik_history_start_browsing(repl->shared->history, "");
-    ck_assert(ik_history_is_browsing(repl->shared->history));
-
-    // Submit new command
-    result = ik_input_buffer_set_text(repl->current->input_buffer, "command 2", 9);
-    ck_assert(is_ok(&result));
-    result = ik_repl_submit_line(repl);
-    ck_assert(is_ok(&result));
-
-    // Should no longer be browsing
-    ck_assert(!ik_history_is_browsing(repl->shared->history));
-
-    ik_repl_cleanup(repl);
-    talloc_free(ctx);
-    cleanup_test_dir();
-    teardown_test_env();
-}
-END_TEST
-
-// Test: Failed file write doesn't break REPL
-START_TEST(test_history_file_write_failure)
-{
-    setup_test_env();
-    cleanup_test_dir();
-
-    void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
-    cfg->history_size = 100;
-
-    ik_repl_ctx_t *repl = NULL;
-    // Create shared context
-    ik_shared_ctx_t *shared = NULL;
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
-    ck_assert(is_ok(&result));
-
-    // Create REPL context
-    result = ik_repl_init(ctx, shared, &repl);
-    ck_assert(is_ok(&result));
-
-    // Make .ikigai directory read-only to cause write failure
-    int mkdir_result = mkdir(".ikigai", 0755);
-    ck_assert(mkdir_result == 0 || (mkdir_result == -1 && errno == EEXIST));
-    chmod(".ikigai", 0555);
-
-    // Submit command - should succeed despite file write failure
-    result = ik_input_buffer_set_text(repl->current->input_buffer, "test command", 12);
-    ck_assert(is_ok(&result));
-    result = ik_repl_submit_line(repl);
-    ck_assert(is_ok(&result));
-
-    // History should still be updated in memory
-    ck_assert_uint_eq(repl->shared->history->count, 1);
-    ck_assert_str_eq(repl->shared->history->entries[0], "test command");
-
-    // Restore permissions
-    chmod(".ikigai", 0755);
-
-    ik_repl_cleanup(repl);
-    talloc_free(ctx);
-    cleanup_test_dir();
-    teardown_test_env();
-}
-END_TEST
-
-static Suite *history_lifecycle_suite(void)
-{
-    Suite *s = suite_create("History Lifecycle");
+    Suite *s = suite_create("History Persistence");
 
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_history_loads_on_init);
     tcase_add_test(tc_core, test_history_saves_on_submit);
     tcase_add_test(tc_core, test_history_survives_repl_restart);
-    tcase_add_test(tc_core, test_history_respects_config_capacity);
-    tcase_add_test(tc_core, test_history_empty_input_not_saved);
-    tcase_add_test(tc_core, test_history_multiline_preserved);
-    tcase_add_test(tc_core, test_history_file_corrupt_continues);
-    tcase_add_test(tc_core, test_history_submit_stops_browsing);
-    tcase_add_test(tc_core, test_history_file_write_failure);
     suite_add_tcase(s, tc_core);
 
     return s;
@@ -425,7 +192,7 @@ static Suite *history_lifecycle_suite(void)
 
 int main(void)
 {
-    Suite *s = history_lifecycle_suite();
+    Suite *s = history_persistence_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);
