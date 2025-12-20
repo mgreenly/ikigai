@@ -9,6 +9,7 @@
 #include "panic.h"
 #include "scrollback.h"
 #include "scrollback_utils.h"
+#include "tmp_ctx.h"
 #include "vendor/yyjson/yyjson.h"
 #include "wrapper.h"
 
@@ -81,8 +82,7 @@ static char *extract_label_from_json(TALLOC_CTX *ctx, const char *data_json)
 // Helper: render mark event
 static res_t render_mark_event(ik_scrollback_t *scrollback, const char *data_json)
 {
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Extract label from data_json
     char *label = extract_label_from_json(tmp, data_json);
@@ -118,8 +118,7 @@ static res_t render_content_event(ik_scrollback_t *scrollback, const char *conte
         return OK(NULL);
     }
 
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Trim trailing whitespace
     char *trimmed = ik_scrollback_trim_trailing(tmp, content, strlen(content));
