@@ -380,7 +380,7 @@ check-sanitize:
 	@rm -rf build-sanitize
 	@mkdir -p build-sanitize/tests/unit build-sanitize/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-sanitize/tests/unit|' | xargs mkdir -p
-	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $(MAKE) -j2 check BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1
+	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $(MAKE) -j$(MAKE_JOBS) check BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1
 	@echo "✓ Sanitizer checks passed!"
 
 check-valgrind:
@@ -413,12 +413,12 @@ check-valgrind:
 	echo "Valgrind: $$total passed, 0 failed"
 
 check-helgrind:
-	@echo "Building tests for Helgrind (serialized to avoid DB test pollution)..."
+	@echo "Building tests for Helgrind..."
 	@rm -rf build-helgrind
 	@BUILD=valgrind BUILDDIR=build-helgrind SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
-	@echo "Running tests under Valgrind Helgrind (serialized)..."
+	@echo "Running tests under Valgrind Helgrind..."
 	@ulimit -n 1024; \
-	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P 1 sh -c \
+	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
 		'echo -n "Helgrind: {}... "; \
 		if CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 valgrind --tool=helgrind --error-exitcode=1 \
 		            --history-level=approx --quiet \
