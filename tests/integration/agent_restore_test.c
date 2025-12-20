@@ -139,24 +139,27 @@ static void insert_agent(const char *uuid, const char *parent_uuid,
 }
 
 // Helper: Insert a message and return its ID
-static int64_t insert_message_get_id(const char *agent_uuid, const char *kind,
-                                      const char *content)
+static int64_t insert_msg_id(const char *uuid, const char *kind, const char *content)
 {
-    res_t res = ik_db_message_insert(db, session_id, agent_uuid, kind, content, "{}");
+    res_t res = ik_db_message_insert(db, session_id, uuid, kind, content, "{}");
     ck_assert(is_ok(&res));
-
     int64_t msg_id = 0;
-    res = ik_db_agent_get_last_message_id(db, agent_uuid, &msg_id);
+    res = ik_db_agent_get_last_message_id(db, uuid, &msg_id);
     ck_assert(is_ok(&res));
     return msg_id;
 }
 
 // Helper: Insert a message
-static void insert_message(const char *agent_uuid, const char *kind,
-                           const char *content)
+static void insert_msg(const char *uuid, const char *kind, const char *content)
 {
-    res_t res = ik_db_message_insert(db, session_id, agent_uuid, kind, content, "{}");
+    res_t res = ik_db_message_insert(db, session_id, uuid, kind, content, "{}");
     ck_assert(is_ok(&res));
+}
+
+// Helper: Verify message content at index
+static void verify_msg(ik_agent_ctx_t *agent, size_t idx, const char *expected)
+{
+    ck_assert_str_eq(agent->conversation->messages[idx]->content, expected);
 }
 
 // Helper: Create minimal repl context for testing
@@ -209,39 +212,21 @@ START_TEST(test_multi_agent_restart_preserves_hierarchy)
 {
     SKIP_IF_NO_DB();
 
-    // Setup:
-    // 1. Insert parent agent (Agent 0)
-    insert_agent("parent-hierarchy-te", NULL, 1000, 0);
-    insert_message("parent-hierarchy-te", "clear", NULL);
-    insert_message("parent-hierarchy-te", "user", "Parent msg 1");
-    insert_message("parent-hierarchy-te", "assistant", "Parent msg 2");
+    insert_agent("parent-hier-test", NULL, 1000, 0);
+    insert_msg("parent-hier-test", "clear", NULL);
+    insert_msg("parent-hier-test", "user", "Parent msg 1");
+    int64_t fork_id = insert_msg_id("parent-hier-test", "assistant", "Parent msg 2");
 
-    // 2. Get fork point
-    int64_t fork_id = 0;
-    res_t res = ik_db_agent_get_last_message_id(db, "parent-hierarchy-te", &fork_id);
+    insert_agent("child-hier-test", "parent-hier-test", 2000, fork_id);
+    insert_msg("child-hier-test", "user", "Child msg 1");
+
+    ik_repl_ctx_t *repl = create_test_repl("parent-hier-test");
+    res_t res = ik_repl_restore_agents(repl, db);
     ck_assert(is_ok(&res));
 
-    // 3. Insert child agent forked from parent
-    insert_agent("child-hierarchy-tes", "parent-hierarchy-te", 2000, fork_id);
-    insert_message("child-hierarchy-tes", "user", "Child msg 1");
-
-    // Simulate restart:
-    // 4. Create fresh repl context with Agent 0
-    ik_repl_ctx_t *repl = create_test_repl("parent-hierarchy-te");
-
-    // 5. Call ik_repl_restore_agents()
-    res = ik_repl_restore_agents(repl, db);
-    ck_assert(is_ok(&res));
-
-    // Verify:
-    // - Child agent exists in repl->agents[]
     ck_assert_uint_eq(repl->agent_count, 2);
-
-    // - Child's parent_uuid points to Agent 0
     ik_agent_ctx_t *child = repl->agents[1];
-    ck_assert_str_eq(child->parent_uuid, "parent-hierarchy-te");
-
-    // - Child's conversation contains messages
+    ck_assert_str_eq(child->parent_uuid, "parent-hier-test");
     ck_assert_uint_ge(child->conversation->message_count, 3);
 }
 END_TEST
@@ -251,46 +236,31 @@ START_TEST(test_forked_agent_survives_restart)
 {
     SKIP_IF_NO_DB();
 
-    // Setup:
-    // 1. Create parent with messages: [A, B]
-    insert_agent("parent-fork-surv-te", NULL, 1000, 0);
-    insert_message("parent-fork-surv-te", "clear", NULL);
-    insert_message("parent-fork-surv-te", "user", "A");
-    int64_t fork_point = insert_message_get_id("parent-fork-surv-te", "assistant", "B");
+    insert_agent("parent-fork-test", NULL, 1000, 0);
+    insert_msg("parent-fork-test", "clear", NULL);
+    insert_msg("parent-fork-test", "user", "A");
+    int64_t fork_point = insert_msg_id("parent-fork-test", "assistant", "B");
 
-    // 2. Fork child after message B
-    insert_agent("child-fork-surv-tes", "parent-fork-surv-te", 2000, fork_point);
+    insert_agent("child-fork-test", "parent-fork-test", 2000, fork_point);
+    insert_msg("parent-fork-test", "user", "C");
+    insert_msg("parent-fork-test", "assistant", "D");
+    insert_msg("child-fork-test", "user", "X");
+    insert_msg("child-fork-test", "assistant", "Y");
 
-    // 3. Add parent messages after fork: [C, D]
-    insert_message("parent-fork-surv-te", "user", "C");
-    insert_message("parent-fork-surv-te", "assistant", "D");
-
-    // 4. Add child messages: [X, Y]
-    insert_message("child-fork-surv-tes", "user", "X");
-    insert_message("child-fork-surv-tes", "assistant", "Y");
-
-    // Simulate restart and restore
-    ik_repl_ctx_t *repl = create_test_repl("parent-fork-surv-te");
-
+    ik_repl_ctx_t *repl = create_test_repl("parent-fork-test");
     res_t res = ik_repl_restore_agents(repl, db);
     ck_assert(is_ok(&res));
-
-    // Verify:
     ck_assert_uint_eq(repl->agent_count, 2);
 
-    // Parent sees: [A, B, C, D]
     ik_agent_ctx_t *parent = repl->current;
     ck_assert_uint_ge(parent->conversation->message_count, 4);
 
-    // Child sees: [A, B, X, Y] (not C, D)
     ik_agent_ctx_t *child = repl->agents[1];
     ck_assert_uint_eq(child->conversation->message_count, 4);
-
-    // Verify child has A, B, X, Y
-    ck_assert_str_eq(child->conversation->messages[0]->content, "A");
-    ck_assert_str_eq(child->conversation->messages[1]->content, "B");
-    ck_assert_str_eq(child->conversation->messages[2]->content, "X");
-    ck_assert_str_eq(child->conversation->messages[3]->content, "Y");
+    verify_msg(child, 0, "A");
+    verify_msg(child, 1, "B");
+    verify_msg(child, 2, "X");
+    verify_msg(child, 3, "Y");
 }
 END_TEST
 
@@ -299,32 +269,23 @@ START_TEST(test_killed_agent_not_restored)
 {
     SKIP_IF_NO_DB();
 
-    // Setup:
-    // 1. Insert running agent
-    insert_agent("running-kill-test12", NULL, 1000, 0);
-    insert_message("running-kill-test12", "clear", NULL);
+    insert_agent("parent-kill-test", NULL, 1000, 0);
+    insert_msg("parent-kill-test", "clear", NULL);
 
-    // 2. Insert child, then kill it
-    insert_agent("dead-child-kill-te", "running-kill-test12", 2000, 0);
-    res_t res = ik_db_agent_mark_dead(db, "dead-child-kill-te");
+    insert_agent("dead-kill-test", "parent-kill-test", 2000, 0);
+    res_t res = ik_db_agent_mark_dead(db, "dead-kill-test");
     ck_assert(is_ok(&res));
 
-    // 3. Insert another running child
-    insert_agent("live-child-kill-te", "running-kill-test12", 3000, 0);
+    insert_agent("live-kill-test", "parent-kill-test", 3000, 0);
 
-    // Call ik_repl_restore_agents()
-    ik_repl_ctx_t *repl = create_test_repl("running-kill-test12");
+    ik_repl_ctx_t *repl = create_test_repl("parent-kill-test");
     res = ik_repl_restore_agents(repl, db);
     ck_assert(is_ok(&res));
-
-    // Verify:
-    // - Only running agent restored (root + live child)
     ck_assert_uint_eq(repl->agent_count, 2);
 
-    // - Dead agent not in repl->agents[]
     bool found_dead = false;
     for (size_t i = 0; i < repl->agent_count; i++) {
-        if (strcmp(repl->agents[i]->uuid, "dead-child-kill-te") == 0) {
+        if (strcmp(repl->agents[i]->uuid, "dead-kill-test") == 0) {
             found_dead = true;
             break;
         }
@@ -333,49 +294,35 @@ START_TEST(test_killed_agent_not_restored)
 }
 END_TEST
 
-// Test: Fork points respected on restore - child doesn't see parent's post-fork messages
+// Test: Fork points respected on restore
 START_TEST(test_fork_points_respected_on_restore)
 {
     SKIP_IF_NO_DB();
 
-    // Setup scenario:
-    // - Parent: msg1, msg2, msg3 (fork here), msg4, msg5
-    insert_agent("parent-forkpt-test", NULL, 1000, 0);
-    insert_message("parent-forkpt-test", "clear", NULL);
-    insert_message("parent-forkpt-test", "user", "msg1");
-    insert_message("parent-forkpt-test", "assistant", "msg2");
-    int64_t fork_point = insert_message_get_id("parent-forkpt-test", "user", "msg3");
+    insert_agent("parent-forkpt", NULL, 1000, 0);
+    insert_msg("parent-forkpt", "clear", NULL);
+    insert_msg("parent-forkpt", "user", "msg1");
+    insert_msg("parent-forkpt", "assistant", "msg2");
+    int64_t fork_point = insert_msg_id("parent-forkpt", "user", "msg3");
 
-    // Child forked at msg3
-    insert_agent("child-forkpt-test1", "parent-forkpt-test", 2000, fork_point);
+    insert_agent("child-forkpt", "parent-forkpt", 2000, fork_point);
+    insert_msg("parent-forkpt", "assistant", "msg4");
+    insert_msg("parent-forkpt", "user", "msg5");
+    insert_msg("child-forkpt", "user", "child_msg1");
+    insert_msg("child-forkpt", "assistant", "child_msg2");
 
-    // Parent continues after fork
-    insert_message("parent-forkpt-test", "assistant", "msg4");
-    insert_message("parent-forkpt-test", "user", "msg5");
-
-    // Child adds its own messages
-    insert_message("child-forkpt-test1", "user", "child_msg1");
-    insert_message("child-forkpt-test1", "assistant", "child_msg2");
-
-    // Restore
-    ik_repl_ctx_t *repl = create_test_repl("parent-forkpt-test");
+    ik_repl_ctx_t *repl = create_test_repl("parent-forkpt");
     res_t res = ik_repl_restore_agents(repl, db);
     ck_assert(is_ok(&res));
 
-    // After restore:
-    // - Child's conversation should have: msg1, msg2, msg3, child_msg1, child_msg2
-    // - Child should NOT have: msg4, msg5
     ik_agent_ctx_t *child = repl->agents[1];
     ck_assert_uint_eq(child->conversation->message_count, 5);
+    verify_msg(child, 0, "msg1");
+    verify_msg(child, 1, "msg2");
+    verify_msg(child, 2, "msg3");
+    verify_msg(child, 3, "child_msg1");
+    verify_msg(child, 4, "child_msg2");
 
-    // Verify child messages
-    ck_assert_str_eq(child->conversation->messages[0]->content, "msg1");
-    ck_assert_str_eq(child->conversation->messages[1]->content, "msg2");
-    ck_assert_str_eq(child->conversation->messages[2]->content, "msg3");
-    ck_assert_str_eq(child->conversation->messages[3]->content, "child_msg1");
-    ck_assert_str_eq(child->conversation->messages[4]->content, "child_msg2");
-
-    // Verify child does NOT have msg4 or msg5
     for (size_t i = 0; i < child->conversation->message_count; i++) {
         ck_assert_str_ne(child->conversation->messages[i]->content, "msg4");
         ck_assert_str_ne(child->conversation->messages[i]->content, "msg5");
@@ -383,142 +330,105 @@ START_TEST(test_fork_points_respected_on_restore)
 }
 END_TEST
 
-// Test: Clear events respected - don't walk past clear
+// Test: Clear events respected
 START_TEST(test_clear_events_respected_on_restore)
 {
     SKIP_IF_NO_DB();
 
-    // Setup:
-    // - Agent with: msg1, msg2, clear, msg3, msg4
-    insert_agent("agent-clear-test123", NULL, 1000, 0);
-    insert_message("agent-clear-test123", "user", "msg1");
-    insert_message("agent-clear-test123", "assistant", "msg2");
-    insert_message("agent-clear-test123", "clear", NULL);
-    insert_message("agent-clear-test123", "user", "msg3");
-    insert_message("agent-clear-test123", "assistant", "msg4");
+    insert_agent("agent-clear-test", NULL, 1000, 0);
+    insert_msg("agent-clear-test", "user", "msg1");
+    insert_msg("agent-clear-test", "assistant", "msg2");
+    insert_msg("agent-clear-test", "clear", NULL);
+    insert_msg("agent-clear-test", "user", "msg3");
+    insert_msg("agent-clear-test", "assistant", "msg4");
 
-    // Restore
-    ik_repl_ctx_t *repl = create_test_repl("agent-clear-test123");
+    ik_repl_ctx_t *repl = create_test_repl("agent-clear-test");
     res_t res = ik_repl_restore_agents(repl, db);
     ck_assert(is_ok(&res));
 
-    // After restore:
-    // - Agent's conversation should have: msg3, msg4
-    // - Agent should NOT have: msg1, msg2
     ck_assert_uint_eq(repl->current->conversation->message_count, 2);
-    ck_assert_str_eq(repl->current->conversation->messages[0]->content, "msg3");
-    ck_assert_str_eq(repl->current->conversation->messages[1]->content, "msg4");
+    verify_msg(repl->current, 0, "msg3");
+    verify_msg(repl->current, 1, "msg4");
 }
 END_TEST
 
-// Test: Deep ancestry - grandchild accessing grandparent context
+// Test: Deep ancestry
 START_TEST(test_deep_ancestry_on_restore)
 {
     SKIP_IF_NO_DB();
 
-    // Setup 3-level hierarchy:
-    // - Grandparent: gp_msg1, gp_msg2
-    insert_agent("grandparent-deep-te", NULL, 1000, 0);
-    insert_message("grandparent-deep-te", "clear", NULL);
-    insert_message("grandparent-deep-te", "user", "gp_msg1");
-    int64_t gp_fork = insert_message_get_id("grandparent-deep-te", "assistant", "gp_msg2");
+    insert_agent("grandparent-deep", NULL, 1000, 0);
+    insert_msg("grandparent-deep", "clear", NULL);
+    insert_msg("grandparent-deep", "user", "gp_msg1");
+    int64_t gp_fork = insert_msg_id("grandparent-deep", "assistant", "gp_msg2");
 
-    // - Parent (forked from grandparent): p_msg1
-    insert_agent("parent-deep-test-12", "grandparent-deep-te", 2000, gp_fork);
-    int64_t p_fork = insert_message_get_id("parent-deep-test-12", "user", "p_msg1");
+    insert_agent("parent-deep", "grandparent-deep", 2000, gp_fork);
+    int64_t p_fork = insert_msg_id("parent-deep", "user", "p_msg1");
 
-    // - Child (forked from parent): c_msg1
-    insert_agent("child-deep-test-123", "parent-deep-test-12", 3000, p_fork);
-    insert_message("child-deep-test-123", "user", "c_msg1");
+    insert_agent("child-deep", "parent-deep", 3000, p_fork);
+    insert_msg("child-deep", "user", "c_msg1");
 
-    // Restore
-    ik_repl_ctx_t *repl = create_test_repl("grandparent-deep-te");
+    ik_repl_ctx_t *repl = create_test_repl("grandparent-deep");
     res_t res = ik_repl_restore_agents(repl, db);
     ck_assert(is_ok(&res));
-
-    // After restore, child should see:
-    // - gp_msg1, gp_msg2 (from grandparent, up to fork point)
-    // - p_msg1 (from parent, up to fork point)
-    // - c_msg1 (own messages)
     ck_assert_uint_eq(repl->agent_count, 3);
 
-    // Find child agent
     ik_agent_ctx_t *child = NULL;
     for (size_t i = 0; i < repl->agent_count; i++) {
-        if (strcmp(repl->agents[i]->uuid, "child-deep-test-123") == 0) {
+        if (strcmp(repl->agents[i]->uuid, "child-deep") == 0) {
             child = repl->agents[i];
             break;
         }
     }
     ck_assert_ptr_nonnull(child);
-
-    // Child should have 4 messages: gp_msg1, gp_msg2, p_msg1, c_msg1
     ck_assert_uint_eq(child->conversation->message_count, 4);
-    ck_assert_str_eq(child->conversation->messages[0]->content, "gp_msg1");
-    ck_assert_str_eq(child->conversation->messages[1]->content, "gp_msg2");
-    ck_assert_str_eq(child->conversation->messages[2]->content, "p_msg1");
-    ck_assert_str_eq(child->conversation->messages[3]->content, "c_msg1");
+    verify_msg(child, 0, "gp_msg1");
+    verify_msg(child, 1, "gp_msg2");
+    verify_msg(child, 2, "p_msg1");
+    verify_msg(child, 3, "c_msg1");
 }
 END_TEST
 
-// Test: Dependency ordering - parents created before children
+// Test: Dependency ordering
 START_TEST(test_dependency_ordering_on_restore)
 {
     SKIP_IF_NO_DB();
 
-    // Setup:
-    // - Insert agents with timestamps ensuring child is created before parent
-    // (edge case that shouldn't happen in practice but tests robustness)
-    insert_agent("parent-order-test12", NULL, 2000, 0);  // Later timestamp
-    insert_message("parent-order-test12", "clear", NULL);
+    insert_agent("parent-order", NULL, 2000, 0);
+    insert_msg("parent-order", "clear", NULL);
+    insert_agent("child-order", "parent-order", 1000, 0);
 
-    // Insert child with earlier created_at (abnormal case)
-    insert_agent("child-order-test123", "parent-order-test12", 1000, 0);  // Earlier timestamp
-
-    // After restore:
-    ik_repl_ctx_t *repl = create_test_repl("parent-order-test12");
+    ik_repl_ctx_t *repl = create_test_repl("parent-order");
     res_t res = ik_repl_restore_agents(repl, db);
     ck_assert(is_ok(&res));
-
-    // Verify both agents exist (sorting by created_at should still work)
     ck_assert_uint_eq(repl->agent_count, 2);
-
-    // The child with earlier created_at should be processed first during sorting
-    // but since parent_uuid reference exists, it should be handled correctly
 }
 END_TEST
 
-// Test: Metadata events filtered from conversation during restore
+// Test: Metadata events filtered
 START_TEST(test_metadata_events_filtered_on_restore)
 {
     SKIP_IF_NO_DB();
 
-    // Setup:
-    // - Agent with conversation messages and metadata events
-    insert_agent("agent-metadata-test", NULL, 1000, 0);
-    insert_message("agent-metadata-test", "clear", NULL);
-    insert_message("agent-metadata-test", "user", "Hello");
-    insert_message("agent-metadata-test", "assistant", "Hi there");
-    insert_message("agent-metadata-test", "agent_killed", NULL);  // Metadata event
-    insert_message("agent-metadata-test", "mark", NULL);           // Metadata event
-    insert_message("agent-metadata-test", "user", "Follow up");
-    insert_message("agent-metadata-test", "assistant", "Response");
+    insert_agent("agent-metadata", NULL, 1000, 0);
+    insert_msg("agent-metadata", "clear", NULL);
+    insert_msg("agent-metadata", "user", "Hello");
+    insert_msg("agent-metadata", "assistant", "Hi there");
+    insert_msg("agent-metadata", "agent_killed", NULL);
+    insert_msg("agent-metadata", "mark", NULL);
+    insert_msg("agent-metadata", "user", "Follow up");
+    insert_msg("agent-metadata", "assistant", "Response");
 
-    // Restore
-    ik_repl_ctx_t *repl = create_test_repl("agent-metadata-test");
+    ik_repl_ctx_t *repl = create_test_repl("agent-metadata");
     res_t res = ik_repl_restore_agents(repl, db);
     ck_assert(is_ok(&res));
 
-    // After restore:
-    // - Conversation should only have: Hello, Hi there, Follow up, Response
-    // - Metadata events (agent_killed, mark) should NOT be in conversation
     ck_assert_uint_eq(repl->current->conversation->message_count, 4);
-    ck_assert_str_eq(repl->current->conversation->messages[0]->content, "Hello");
-    ck_assert_str_eq(repl->current->conversation->messages[1]->content, "Hi there");
-    ck_assert_str_eq(repl->current->conversation->messages[2]->content, "Follow up");
-    ck_assert_str_eq(repl->current->conversation->messages[3]->content, "Response");
+    verify_msg(repl->current, 0, "Hello");
+    verify_msg(repl->current, 1, "Hi there");
+    verify_msg(repl->current, 2, "Follow up");
+    verify_msg(repl->current, 3, "Response");
 
-    // Verify no metadata events in conversation
     for (size_t i = 0; i < repl->current->conversation->message_count; i++) {
         ck_assert_str_ne(repl->current->conversation->messages[i]->kind, "agent_killed");
         ck_assert_str_ne(repl->current->conversation->messages[i]->kind, "mark");
