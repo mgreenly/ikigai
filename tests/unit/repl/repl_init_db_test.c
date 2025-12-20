@@ -51,6 +51,12 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx);
 // Forward declaration for suite function
 static Suite *repl_init_db_suite(void);
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 // Mock ik_db_init_ to test database connection failure
 res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
 {
@@ -389,6 +395,7 @@ static Suite *repl_init_db_suite(void)
 
     TCase *tc_db = tcase_create("Database Failures");
     tcase_set_timeout(tc_db, 30);
+    tcase_add_unchecked_fixture(tc_db, suite_setup, NULL);
     tcase_add_test(tc_db, test_repl_init_db_init_failure);
     tcase_add_test(tc_db, test_repl_init_ensure_agent_zero_failure);
     tcase_add_test(tc_db, test_repl_init_signal_handler_failure_with_db);
@@ -396,6 +403,7 @@ static Suite *repl_init_db_suite(void)
 
     TCase *tc_db_success = tcase_create("Database Success");
     tcase_set_timeout(tc_db_success, 30);
+    tcase_add_unchecked_fixture(tc_db_success, suite_setup, NULL);
     tcase_add_test(tc_db_success, test_repl_init_db_success);
     suite_add_tcase(s, tc_db_success);
 
