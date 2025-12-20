@@ -150,12 +150,18 @@ START_TEST(test_completion_dynamic_update)
 
 END_TEST
 
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 static Suite *completion_e2e_suite(void)
 {
     Suite *s = suite_create("Completion E2E");
 
     TCase *tc = tcase_create("Core");
     tcase_set_timeout(tc, 30);
+    tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_add_test(tc, test_completion_no_matches);
     tcase_add_test(tc, test_completion_history_no_conflict);
     tcase_add_test(tc, test_completion_layer_visibility);
