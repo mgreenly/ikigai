@@ -2,6 +2,7 @@
 #include "../error.h"
 #include "../file_utils.h"
 #include "../panic.h"
+#include "../tmp_ctx.h"
 #include "../wrapper.h"
 #include "pg_result.h"
 #include <ctype.h>
@@ -34,10 +35,7 @@ static int get_current_version(PGconn *conn)
 {
     assert(conn != NULL); // LCOV_EXCL_BR_LINE
 
-    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {  // LCOV_EXCL_BR_LINE
-        PANIC("Out of memory");  // LCOV_EXCL_LINE
-    }
+    TALLOC_CTX *tmp_ctx = tmp_ctx_create();
 
     ik_pg_result_wrapper_t *res_wrapper = ik_db_wrap_pg_result(tmp_ctx, PQexec(conn, "SELECT schema_version FROM schema_metadata LIMIT 1"));
     PGresult *res = res_wrapper->pg_result;
