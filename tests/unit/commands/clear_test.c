@@ -24,6 +24,12 @@
 static void *ctx;
 static ik_repl_ctx_t *repl;
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 /**
  * Create a REPL context with scrollback and conversation for clear testing.
  */
@@ -386,6 +392,7 @@ static Suite *commands_clear_suite(void)
     Suite *s = suite_create("Commands/Clear");
     TCase *tc = tcase_create("Core");
 
+    tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_add_checked_fixture(tc, setup, teardown);
 
     tcase_add_test(tc, test_clear_empty);
