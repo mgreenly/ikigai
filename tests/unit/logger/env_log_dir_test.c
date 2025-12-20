@@ -91,8 +91,7 @@ static char *read_log_file(void)
 }
 
 // Test: when IKIGAI_LOG_DIR is set, logger uses that directory
-START_TEST(test_env_log_dir_overrides_default)
-{
+START_TEST(test_env_log_dir_overrides_default) {
     setup_with_env();
 
     // Write a log entry
@@ -118,7 +117,6 @@ START_TEST(test_env_log_dir_overrides_default)
     teardown_with_env();
 }
 END_TEST
-
 // Test: when IKIGAI_LOG_DIR is not set, logger uses default location
 START_TEST(test_no_env_uses_default_location)
 {
@@ -137,8 +135,8 @@ START_TEST(test_no_env_uses_default_location)
 
     teardown_without_env();
 }
-END_TEST
 
+END_TEST
 // Test: when IKIGAI_LOG_DIR is empty string, logger uses default location
 START_TEST(test_empty_env_uses_default_location)
 {
@@ -180,6 +178,7 @@ START_TEST(test_empty_env_uses_default_location)
 
     rmdir(test_dir);
 }
+
 END_TEST
 
 static Suite *env_log_dir_suite(void)

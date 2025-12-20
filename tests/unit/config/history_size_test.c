@@ -8,8 +8,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-START_TEST(test_config_history_size_default)
-{
+START_TEST(test_config_history_size_default) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -45,9 +44,7 @@ START_TEST(test_config_history_size_default)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
-
-START_TEST(test_config_history_size_custom)
+END_TEST START_TEST(test_config_history_size_custom)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -85,9 +82,8 @@ START_TEST(test_config_history_size_custom)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_config_history_size_zero)
+END_TEST START_TEST(test_config_history_size_zero)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -121,9 +117,8 @@ START_TEST(test_config_history_size_zero)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_config_history_size_negative)
+END_TEST START_TEST(test_config_history_size_negative)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -157,9 +152,8 @@ START_TEST(test_config_history_size_negative)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_config_history_size_large_value)
+END_TEST START_TEST(test_config_history_size_large_value)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -196,9 +190,8 @@ START_TEST(test_config_history_size_large_value)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_config_history_size_exceeds_int32)
+END_TEST START_TEST(test_config_history_size_exceeds_int32)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -232,9 +225,8 @@ START_TEST(test_config_history_size_exceeds_int32)
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_config_history_size_invalid_type)
+END_TEST START_TEST(test_config_history_size_invalid_type)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -268,6 +260,7 @@ START_TEST(test_config_history_size_invalid_type)
     unlink(test_config);
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *config_history_size_suite(void)

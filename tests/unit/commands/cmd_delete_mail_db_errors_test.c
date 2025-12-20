@@ -208,8 +208,7 @@ static void teardown(void)
 }
 
 // Test: /delete-mail with "not found" error takes error path (line 377)
-START_TEST(test_delete_mail_not_found_error_path)
-{
+START_TEST(test_delete_mail_not_found_error_path) {
     // Reset call count for this test
     call_count = 0;
 

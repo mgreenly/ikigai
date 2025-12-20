@@ -23,8 +23,7 @@ FILE *fopen_(const char *pathname, const char *mode)
 }
 
 #if !defined(SKIP_SIGNAL_TESTS)
-START_TEST(test_fopen_init_fail_panics)
-{
+START_TEST(test_fopen_init_fail_panics) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
     mkdir(test_dir, 0755);

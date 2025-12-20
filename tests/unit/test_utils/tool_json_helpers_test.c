@@ -20,8 +20,7 @@ static void teardown(void)
 }
 
 // Test: ik_test_tool_parse_success with valid success response
-START_TEST(test_parse_success_valid)
-{
+START_TEST(test_parse_success_valid) {
     const char *json = "{\"success\": true, \"data\": {\"output\": \"test\"}}";
     yyjson_doc *doc = NULL;
 
@@ -40,7 +39,6 @@ START_TEST(test_parse_success_valid)
     yyjson_doc_free(doc);
 }
 END_TEST
-
 // Test: ik_test_tool_parse_error with valid error response
 START_TEST(test_parse_error_valid)
 {
@@ -56,8 +54,8 @@ START_TEST(test_parse_error_valid)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 // Test: ik_test_tool_get_output extracts output field
 START_TEST(test_get_output)
 {
@@ -73,8 +71,8 @@ START_TEST(test_get_output)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 // Test: ik_test_tool_get_exit_code extracts exit_code field
 START_TEST(test_get_exit_code)
 {
@@ -89,6 +87,7 @@ START_TEST(test_get_exit_code)
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 // Create test suite

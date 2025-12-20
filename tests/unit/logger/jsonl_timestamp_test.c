@@ -49,8 +49,7 @@ static char *read_log_file(void)
 }
 
 // Test: timestamp format matches ISO 8601 pattern with milliseconds and timezone
-START_TEST(test_jsonl_timestamp_iso8601_format)
-{
+START_TEST(test_jsonl_timestamp_iso8601_format) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -74,7 +73,9 @@ START_TEST(test_jsonl_timestamp_iso8601_format)
 
     // Verify format: YYYY-MM-DDTHH:MM:SS.mmm±HH:MM
     regex_t regex;
-    int reti = regcomp(&regex, "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}[+-][0-9]{2}:[0-9]{2}$", REG_EXTENDED);
+    int reti = regcomp(&regex,
+                       "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}[+-][0-9]{2}:[0-9]{2}$",
+                       REG_EXTENDED);
     ck_assert_int_eq(reti, 0);
 
     reti = regexec(&regex, timestamp, 0, NULL, 0);
@@ -85,7 +86,6 @@ START_TEST(test_jsonl_timestamp_iso8601_format)
     teardown_logger();
 }
 END_TEST
-
 // Test: timestamp includes exactly 3 millisecond digits
 START_TEST(test_jsonl_timestamp_milliseconds)
 {
@@ -122,8 +122,8 @@ START_TEST(test_jsonl_timestamp_milliseconds)
     yyjson_doc_free(parsed);
     teardown_logger();
 }
-END_TEST
 
+END_TEST
 // Test: timestamp includes timezone offset ±HH:MM
 START_TEST(test_jsonl_timestamp_timezone_offset)
 {
@@ -159,8 +159,8 @@ START_TEST(test_jsonl_timestamp_timezone_offset)
     yyjson_doc_free(parsed);
     teardown_logger();
 }
-END_TEST
 
+END_TEST
 // Test: timestamp is approximately current time (within 1 second tolerance)
 START_TEST(test_jsonl_timestamp_current_time)
 {
@@ -206,6 +206,7 @@ START_TEST(test_jsonl_timestamp_current_time)
     yyjson_doc_free(parsed);
     teardown_logger();
 }
+
 END_TEST
 
 static Suite *jsonl_timestamp_suite(void)

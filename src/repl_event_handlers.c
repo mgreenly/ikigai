@@ -68,10 +68,10 @@ long ik_repl_calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_
 }
 
 res_t ik_repl_setup_fd_sets(ik_repl_ctx_t *repl,
-                    fd_set *read_fds,
-                    fd_set *write_fds,
-                    fd_set *exc_fds,
-                    int *max_fd_out)
+                            fd_set *read_fds,
+                            fd_set *write_fds,
+                            fd_set *exc_fds,
+                            int *max_fd_out)
 {
     FD_ZERO(read_fds);
     FD_ZERO(write_fds);
@@ -144,7 +144,8 @@ static void persist_assistant_msg(ik_repl_ctx_t *repl)
     data_json = talloc_strdup_append(data_json, "}");
 
     res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                                         repl->current->uuid, "assistant", repl->current->assistant_response, data_json);
+                                         repl->current->uuid, "assistant", repl->current->assistant_response,
+                                         data_json);
     if (is_err(&db_res)) {  // LCOV_EXCL_BR_LINE
         talloc_free(db_res.err);  // LCOV_EXCL_LINE
     }
@@ -175,8 +176,8 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
 {
     if (agent->assistant_response != NULL && strlen(agent->assistant_response) > 0) {
         ik_msg_t *assistant_msg = ik_openai_msg_create(agent->conversation,
-                                                "assistant",
-                                                agent->assistant_response);
+                                                       "assistant",
+                                                       agent->assistant_response);
         res_t result = ik_openai_conversation_add_msg(agent->conversation, assistant_msg);
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
         persist_assistant_msg(repl);
@@ -197,7 +198,8 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
 
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
-    bool limit_reached = (repl->shared->cfg != NULL && agent->tool_iteration_count >= repl->shared->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
+    bool limit_reached = (repl->shared->cfg != NULL &&
+                          agent->tool_iteration_count >= repl->shared->cfg->max_tool_turns);                               // LCOV_EXCL_BR_LINE
     res_t result = ik_openai_multi_add_request(agent->multi, repl->shared->cfg, agent->conversation,
                                                ik_repl_streaming_callback, agent,
                                                ik_repl_http_completion_callback, agent,

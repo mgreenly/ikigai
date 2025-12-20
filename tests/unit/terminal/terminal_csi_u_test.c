@@ -9,8 +9,7 @@
 #include "terminal_test_mocks.h"
 
 // Test: csi_u_supported field exists and is initialized
-START_TEST(test_term_init_sets_csi_u_supported)
-{
+START_TEST(test_term_init_sets_csi_u_supported) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
@@ -28,7 +27,6 @@ START_TEST(test_term_init_sets_csi_u_supported)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: CSI u probe write failure
 START_TEST(test_csi_u_probe_write_fails)
 {
@@ -49,8 +47,8 @@ START_TEST(test_csi_u_probe_write_fails)
     ik_term_cleanup(term);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: CSI u probe read failure
 START_TEST(test_csi_u_probe_read_fails)
 {
@@ -71,8 +69,8 @@ START_TEST(test_csi_u_probe_read_fails)
     ik_term_cleanup(term);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: CSI u probe succeeds and enables CSI u mode
 START_TEST(test_csi_u_probe_succeeds)
 {
@@ -95,8 +93,8 @@ START_TEST(test_csi_u_probe_succeeds)
     ik_term_cleanup(term);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: CSI u enable fails after successful probe
 START_TEST(test_csi_u_enable_fails)
 {
@@ -118,8 +116,8 @@ START_TEST(test_csi_u_enable_fails)
     ik_term_cleanup(term);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: CSI u cleanup disables when enabled
 START_TEST(test_csi_u_cleanup_disables)
 {
@@ -146,8 +144,8 @@ START_TEST(test_csi_u_cleanup_disables)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: CSI u probe with invalid response (no 'u' terminator)
 START_TEST(test_csi_u_probe_invalid_response)
 {
@@ -168,8 +166,8 @@ START_TEST(test_csi_u_probe_invalid_response)
     ik_term_cleanup(term);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: CSI u probe with response that's too short (< 4 bytes)
 START_TEST(test_csi_u_probe_short_response)
 {
@@ -190,8 +188,8 @@ START_TEST(test_csi_u_probe_short_response)
     ik_term_cleanup(term);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: CSI u probe with response missing ESC prefix
 START_TEST(test_csi_u_probe_no_esc_prefix)
 {
@@ -212,8 +210,8 @@ START_TEST(test_csi_u_probe_no_esc_prefix)
     ik_term_cleanup(term);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: CSI u probe with response missing '[' after ESC
 START_TEST(test_csi_u_probe_no_bracket)
 {
@@ -234,8 +232,8 @@ START_TEST(test_csi_u_probe_no_bracket)
     ik_term_cleanup(term);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: CSI u probe with response missing '?' after '['
 START_TEST(test_csi_u_probe_no_question)
 {
@@ -256,6 +254,7 @@ START_TEST(test_csi_u_probe_no_question)
     ik_term_cleanup(term);
     talloc_free(ctx);
 }
+
 END_TEST
 
 // Test suite

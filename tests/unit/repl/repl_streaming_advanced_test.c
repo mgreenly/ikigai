@@ -9,8 +9,7 @@
 #include "../../../src/agent.h"
 
 /* Test: Streaming callback with empty lines in content (Task 6.2: line length branch) */
-START_TEST(test_streaming_callback_with_empty_lines)
-{
+START_TEST(test_streaming_callback_with_empty_lines) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl_with_llm(ctx);
 

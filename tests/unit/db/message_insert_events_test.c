@@ -111,8 +111,7 @@ static void test_teardown(void)
 // ========== Tests ==========
 
 // Test: Insert tool_call event with tool details
-START_TEST(test_db_message_insert_tool_call_event)
-{
+START_TEST(test_db_message_insert_tool_call_event) {
     SKIP_IF_NO_DB();
 
     const char *tool_call_content = "glob(pattern='*.c', path='src/')";

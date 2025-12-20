@@ -30,8 +30,7 @@ static void teardown(void)
 }
 
 // Test: Browsing workflow (start -> prev -> prev -> next -> stop)
-START_TEST(test_browsing_workflow)
-{
+START_TEST(test_browsing_workflow) {
     hist = ik_history_create(ctx, 10);
 
     // Add some entries
@@ -92,7 +91,6 @@ START_TEST(test_browsing_workflow)
     ck_assert_ptr_null(entry);
 }
 END_TEST
-
 // Test: Pending input preservation
 START_TEST(test_pending_input_preservation)
 {
@@ -118,8 +116,8 @@ START_TEST(test_pending_input_preservation)
     ck_assert_ptr_nonnull(entry);
     ck_assert_str_eq(entry, "my incomplete command");
 }
-END_TEST
 
+END_TEST
 // Test: Stop browsing
 START_TEST(test_stop_browsing)
 {
@@ -136,8 +134,8 @@ START_TEST(test_stop_browsing)
     ck_assert_uint_eq(hist->index, 1); // index = count
     ck_assert_ptr_null(hist->pending);
 }
-END_TEST
 
+END_TEST
 // Test: Stop browsing when not browsing (no pending)
 START_TEST(test_stop_browsing_no_pending)
 {
@@ -154,8 +152,8 @@ START_TEST(test_stop_browsing_no_pending)
     ck_assert_uint_eq(hist->index, 1); // index = count
     ck_assert_ptr_null(hist->pending);
 }
-END_TEST
 
+END_TEST
 // Test: Empty history browsing (no-op)
 START_TEST(test_empty_history_browsing)
 {
@@ -181,8 +179,8 @@ START_TEST(test_empty_history_browsing)
     entry = ik_history_next(hist);
     ck_assert_ptr_null(entry);
 }
-END_TEST
 
+END_TEST
 // Test: Navigation boundaries
 START_TEST(test_navigation_boundaries)
 {
@@ -207,8 +205,8 @@ START_TEST(test_navigation_boundaries)
     entry = ik_history_next(hist);
     ck_assert_ptr_null(entry);
 }
-END_TEST
 
+END_TEST
 // Test: Get current when not browsing
 START_TEST(test_get_current_not_browsing)
 {
@@ -222,8 +220,8 @@ START_TEST(test_get_current_not_browsing)
     const char *current = ik_history_get_current(hist);
     ck_assert_ptr_null(current);
 }
-END_TEST
 
+END_TEST
 // Test: Restart browsing updates pending input
 START_TEST(test_restart_browsing_updates_pending)
 {
@@ -243,8 +241,8 @@ START_TEST(test_restart_browsing_updates_pending)
     ck_assert_str_eq(hist->pending, "second pending");
     ck_assert_uint_eq(hist->index, 1); // Should be at last entry again
 }
-END_TEST
 
+END_TEST
 // Test: Add entry while browsing frees pending
 START_TEST(test_add_entry_while_browsing)
 {
@@ -267,8 +265,8 @@ START_TEST(test_add_entry_while_browsing)
     ck_assert_uint_eq(hist->index, 3); // index should be at count
     ck_assert_uint_eq(hist->count, 3);
 }
-END_TEST
 
+END_TEST
 // Test: Start browsing twice on empty history
 START_TEST(test_start_browsing_twice_empty_history)
 {
@@ -288,8 +286,8 @@ START_TEST(test_start_browsing_twice_empty_history)
     ck_assert_str_eq(hist->pending, "second pending");
     ck_assert(!ik_history_is_browsing(hist));
 }
-END_TEST
 
+END_TEST
 // Test: Call next when index > count
 START_TEST(test_next_past_pending)
 {
@@ -315,6 +313,7 @@ START_TEST(test_next_past_pending)
     ck_assert_ptr_null(entry);
     ck_assert_uint_eq(hist->index, 2); // index stays at count+1
 }
+
 END_TEST
 
 // Suite setup

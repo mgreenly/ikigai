@@ -41,8 +41,7 @@ static bool read_single_line(const char *file_path, char *line, size_t line_len)
 }
 
 // Test: Initialize logger with dir1, write entries, reinit to dir2, write new entries
-START_TEST(test_reinit_switches_directory)
-{
+START_TEST(test_reinit_switches_directory) {
     char test_dir1[256];
     char test_dir2[256];
     snprintf(test_dir1, sizeof(test_dir1), "/tmp/ikigai_reinit_test1_%d", getpid());
@@ -105,7 +104,6 @@ START_TEST(test_reinit_switches_directory)
     rmdir(test_dir2);
 }
 END_TEST
-
 // Test: Reinit rotates existing current.log in new directory
 START_TEST(test_reinit_rotates_existing_log_in_new_dir)
 {
@@ -193,8 +191,8 @@ START_TEST(test_reinit_rotates_existing_log_in_new_dir)
     rmdir(dir1_ikigai);
     rmdir(test_dir1);
 }
-END_TEST
 
+END_TEST
 // Test: Reinit with no existing log in new directory doesn't create archives
 START_TEST(test_reinit_no_existing_log_in_new_dir)
 {
@@ -262,6 +260,7 @@ START_TEST(test_reinit_no_existing_log_in_new_dir)
     rmdir(dir1_ikigai);
     rmdir(test_dir1);
 }
+
 END_TEST
 
 static Suite *logger_jsonl_reinit_suite(void)

@@ -185,8 +185,7 @@ static ik_repl_ctx_t *create_test_repl(void)
 // ========== Test Cases ==========
 
 // Test: Fresh install scenario - Agent 0 with no history writes clear and system message
-START_TEST(test_restore_agents_fresh_install_with_system_message)
-{
+START_TEST(test_restore_agents_fresh_install_with_system_message) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0 with NO messages (fresh install)
@@ -211,7 +210,6 @@ START_TEST(test_restore_agents_fresh_install_with_system_message)
     ck_assert_uint_ge(repl->current->conversation->message_count, 1);
 }
 END_TEST
-
 // Test: Fresh install scenario - Agent 0 with no history and NO system message configured
 START_TEST(test_restore_agents_fresh_install_no_system_message)
 {
@@ -234,8 +232,8 @@ START_TEST(test_restore_agents_fresh_install_no_system_message)
     // Verify Agent 0 restored
     ck_assert_uint_eq(repl->agent_count, 1);
 }
-END_TEST
 
+END_TEST
 // Test: Agent 0 with marks in history - marks tested in agent_restore_test.c
 // (mark_stack population depends on replay logic implementation)
 START_TEST(test_restore_agents_agent0_with_mark_events)
@@ -249,7 +247,7 @@ START_TEST(test_restore_agents_agent0_with_mark_events)
 
     // Insert mark event with label
     res_t res = ik_db_message_insert(db, session_id, "agent0-marks-test34",
-                                      "mark", NULL, "{\"label\":\"checkpoint1\"}");
+                                     "mark", NULL, "{\"label\":\"checkpoint1\"}");
     ck_assert(is_ok(&res));
 
     insert_message("agent0-marks-test34", "user", "After mark");
@@ -264,8 +262,8 @@ START_TEST(test_restore_agents_agent0_with_mark_events)
     // Verify restore succeeded (marks are in DB)
     ck_assert_uint_eq(repl->agent_count, 1);
 }
-END_TEST
 
+END_TEST
 // Test: Child agent with mark events in history
 START_TEST(test_restore_agents_child_with_mark_events)
 {
@@ -287,7 +285,7 @@ START_TEST(test_restore_agents_child_with_mark_events)
 
     // Insert mark in child
     res = ik_db_message_insert(db, session_id, "child-marks-test123",
-                                "mark", NULL, "{\"label\":\"child_checkpoint\"}");
+                               "mark", NULL, "{\"label\":\"child_checkpoint\"}");
     ck_assert(is_ok(&res));
 
     ik_repl_ctx_t *repl = create_test_repl();
@@ -300,8 +298,8 @@ START_TEST(test_restore_agents_child_with_mark_events)
     // Verify child exists
     ck_assert_uint_eq(repl->agent_count, 2);
 }
-END_TEST
 
+END_TEST
 // Test: Agent with only one message in comparison function
 START_TEST(test_restore_agents_single_agent_comparison)
 {
@@ -320,8 +318,8 @@ START_TEST(test_restore_agents_single_agent_comparison)
 
     ck_assert_uint_eq(repl->agent_count, 1);
 }
-END_TEST
 
+END_TEST
 // Test: Agents with identical timestamps (exercises comparison return 0)
 START_TEST(test_restore_agents_identical_timestamps)
 {
@@ -345,8 +343,8 @@ START_TEST(test_restore_agents_identical_timestamps)
     // Should succeed even with identical timestamps
     ck_assert_uint_eq(repl->agent_count, 3);
 }
-END_TEST
 
+END_TEST
 // Test: Agents sorted correctly with return 1 from comparison (newer timestamp)
 START_TEST(test_restore_agents_comparison_return_1)
 {
@@ -372,8 +370,8 @@ START_TEST(test_restore_agents_comparison_return_1)
     ck_assert_str_eq(repl->agents[1]->uuid, "older-child-cmp1-t");
     ck_assert_str_eq(repl->agents[2]->uuid, "newer-child-cmp1-t");
 }
-END_TEST
 
+END_TEST
 // Test: Agent 0 with multiple message kinds (exercises conversation filter)
 START_TEST(test_restore_agents_agent0_multiple_kinds)
 {
@@ -398,8 +396,8 @@ START_TEST(test_restore_agents_agent0_multiple_kinds)
     ck_assert_uint_eq(repl->agent_count, 1);
     ck_assert_uint_ge(repl->current->conversation->message_count, 2);
 }
-END_TEST
 
+END_TEST
 // Test: Child agent with multiple message kinds
 START_TEST(test_restore_agents_child_multiple_kinds)
 {
@@ -433,6 +431,7 @@ START_TEST(test_restore_agents_child_multiple_kinds)
     ik_agent_ctx_t *child = repl->agents[1];
     ck_assert_uint_ge(child->conversation->message_count, 2);
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

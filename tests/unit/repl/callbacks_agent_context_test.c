@@ -65,8 +65,7 @@ static void teardown(void)
 }
 
 /* Test: Streaming callback updates agent A when called with agent A, not repl->current */
-START_TEST(test_streaming_callback_uses_agent_context)
-{
+START_TEST(test_streaming_callback_uses_agent_context) {
     /* repl->current is agent_b, but we'll pass agent_a to callback */
     const char *chunk = "Hello from agent A\n";
 
@@ -84,7 +83,6 @@ START_TEST(test_streaming_callback_uses_agent_context)
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent_b->scrollback), 0);
 }
 END_TEST
-
 /* Test: Completion callback updates agent A when called with agent A, not repl->current */
 START_TEST(test_completion_callback_uses_agent_context)
 {
@@ -114,8 +112,8 @@ START_TEST(test_completion_callback_uses_agent_context)
     ck_assert_ptr_null(agent_b->response_model);
     ck_assert_int_eq(agent_b->response_completion_tokens, 0);
 }
-END_TEST
 
+END_TEST
 /* Test: Streaming callback with partial line buffer updates correct agent */
 START_TEST(test_streaming_partial_buffer_uses_agent_context)
 {
@@ -146,8 +144,8 @@ START_TEST(test_streaming_partial_buffer_uses_agent_context)
     /* Verify agent_b still has no scrollback */
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent_b->scrollback), 0);
 }
-END_TEST
 
+END_TEST
 /* Test: Completion callback flushes buffer for correct agent */
 START_TEST(test_completion_flushes_correct_agent_buffer)
 {
@@ -180,6 +178,7 @@ START_TEST(test_completion_flushes_correct_agent_buffer)
     ck_assert_ptr_null(agent_b->streaming_line_buffer);
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent_b->scrollback), 0);
 }
+
 END_TEST
 
 /*

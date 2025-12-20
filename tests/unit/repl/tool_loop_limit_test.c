@@ -195,7 +195,6 @@ START_TEST(test_negative_limit)
 }
 
 END_TEST
-
 /*
  * Test: Should continue when cfg is NULL (no limit enforcement)
  */

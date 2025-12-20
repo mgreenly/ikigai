@@ -79,12 +79,9 @@ MOCKABLE yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc);
 MOCKABLE yyjson_val *yyjson_obj_get_(yyjson_val *obj, const char *key);
 MOCKABLE int64_t yyjson_get_sint_(yyjson_val *val);
 MOCKABLE const char *yyjson_get_str_(yyjson_val *val);
-MOCKABLE bool yyjson_mut_obj_add_str_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                                      const char *key, const char *val);
-MOCKABLE bool yyjson_mut_obj_add_int_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                                      const char *key, int64_t val);
-MOCKABLE bool yyjson_mut_obj_add_uint_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                                       const char *key, uint64_t val);
+MOCKABLE bool yyjson_mut_obj_add_str_(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key, const char *val);
+MOCKABLE bool yyjson_mut_obj_add_int_(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key, int64_t val);
+MOCKABLE bool yyjson_mut_obj_add_uint_(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key, uint64_t val);
 #endif
 
 #endif // IK_WRAPPER_JSON_H

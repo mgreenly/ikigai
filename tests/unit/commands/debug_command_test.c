@@ -30,7 +30,6 @@ static ik_repl_ctx_t *create_test_repl(void *parent)
     ik_debug_pipe_manager_t *debug_mgr = res.ok;
     ck_assert_ptr_nonnull(debug_mgr);
 
-
     // Create minimal config
     ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
@@ -45,13 +44,12 @@ static ik_repl_ctx_t *create_test_repl(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    
+
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
     r->current = agent;
-
 
     r->shared = shared;
 

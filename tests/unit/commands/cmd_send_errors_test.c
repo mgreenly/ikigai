@@ -160,14 +160,12 @@ static void suite_teardown(void)
 }
 
 // Test: missing args shows error
-START_TEST(test_send_missing_args)
-{
+START_TEST(test_send_missing_args) {
     res_t res = ik_cmd_send(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
-
 // Test: empty args shows error
 START_TEST(test_send_empty_args)
 {
@@ -175,8 +173,8 @@ START_TEST(test_send_empty_args)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: only whitespace shows error
 START_TEST(test_send_only_whitespace)
 {
@@ -184,8 +182,8 @@ START_TEST(test_send_only_whitespace)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: leading whitespace before UUID (coverage for line 49)
 START_TEST(test_send_leading_whitespace)
 {
@@ -193,8 +191,8 @@ START_TEST(test_send_leading_whitespace)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: missing message part shows error
 START_TEST(test_send_missing_message)
 {
@@ -202,8 +200,8 @@ START_TEST(test_send_missing_message)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: UUID too long shows error
 START_TEST(test_send_uuid_too_long)
 {
@@ -215,8 +213,8 @@ START_TEST(test_send_uuid_too_long)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: missing opening quote shows error
 START_TEST(test_send_missing_opening_quote)
 {
@@ -224,8 +222,8 @@ START_TEST(test_send_missing_opening_quote)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: missing closing quote shows error
 START_TEST(test_send_missing_closing_quote)
 {
@@ -233,8 +231,8 @@ START_TEST(test_send_missing_closing_quote)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: message too long shows error
 START_TEST(test_send_message_too_long)
 {
@@ -249,6 +247,7 @@ START_TEST(test_send_message_too_long)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
+
 END_TEST
 
 static Suite *send_errors_suite(void)

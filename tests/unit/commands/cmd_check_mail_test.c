@@ -161,8 +161,7 @@ static void suite_teardown(void)
 }
 
 // Test: empty inbox shows "No messages"
-START_TEST(test_check_mail_empty_inbox)
-{
+START_TEST(test_check_mail_empty_inbox) {
     res_t res = ik_cmd_check_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
@@ -170,7 +169,6 @@ START_TEST(test_check_mail_empty_inbox)
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
-
 // Test: displays inbox summary with count
 START_TEST(test_check_mail_displays_summary)
 {
@@ -189,13 +187,13 @@ START_TEST(test_check_mail_displays_summary)
 
     // Create two messages (one unread)
     ik_mail_msg_t *msg1 = ik_mail_msg_create(test_ctx, sender->uuid,
-                                              repl->current->uuid, "First message");
+                                             repl->current->uuid, "First message");
     ck_assert_ptr_nonnull(msg1);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg1);
     ck_assert(is_ok(&res));
 
     ik_mail_msg_t *msg2 = ik_mail_msg_create(test_ctx, sender->uuid,
-                                              repl->current->uuid, "Second message");
+                                             repl->current->uuid, "Second message");
     ck_assert_ptr_nonnull(msg2);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg2);
     ck_assert(is_ok(&res));
@@ -211,8 +209,8 @@ START_TEST(test_check_mail_displays_summary)
     // Verify output contains summary
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: shows unread marker (*)
 START_TEST(test_check_mail_unread_marker)
 {
@@ -231,7 +229,7 @@ START_TEST(test_check_mail_unread_marker)
 
     // Create unread message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Unread message");
+                                            repl->current->uuid, "Unread message");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -243,8 +241,8 @@ START_TEST(test_check_mail_unread_marker)
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: shows message preview (truncated if long)
 START_TEST(test_check_mail_message_preview)
 {
@@ -267,7 +265,7 @@ START_TEST(test_check_mail_message_preview)
     long_msg[sizeof(long_msg) - 1] = '\0';
 
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, long_msg);
+                                            repl->current->uuid, long_msg);
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -279,8 +277,8 @@ START_TEST(test_check_mail_message_preview)
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: shows relative timestamp
 START_TEST(test_check_mail_relative_timestamp)
 {
@@ -299,7 +297,7 @@ START_TEST(test_check_mail_relative_timestamp)
 
     // Create message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Test message");
+                                            repl->current->uuid, "Test message");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -311,8 +309,8 @@ START_TEST(test_check_mail_relative_timestamp)
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: only shows current agent's mail
 START_TEST(test_check_mail_only_current_agent)
 {
@@ -343,14 +341,14 @@ START_TEST(test_check_mail_only_current_agent)
 
     // Send message to current agent
     ik_mail_msg_t *msg1 = ik_mail_msg_create(test_ctx, sender->uuid,
-                                              repl->current->uuid, "To current");
+                                             repl->current->uuid, "To current");
     ck_assert_ptr_nonnull(msg1);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg1);
     ck_assert(is_ok(&res));
 
     // Send message to other agent
     ik_mail_msg_t *msg2 = ik_mail_msg_create(test_ctx, sender->uuid,
-                                              other->uuid, "To other");
+                                             other->uuid, "To other");
     ck_assert_ptr_nonnull(msg2);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg2);
     ck_assert(is_ok(&res));
@@ -362,6 +360,7 @@ START_TEST(test_check_mail_only_current_agent)
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
+
 END_TEST
 
 static Suite *check_mail_suite(void)

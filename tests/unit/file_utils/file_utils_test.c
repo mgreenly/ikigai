@@ -40,9 +40,9 @@ START_TEST(test_file_read_all_success) {
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: Return error for missing file
-START_TEST(test_file_read_all_file_not_found) {
+START_TEST(test_file_read_all_file_not_found)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     char *out_content = NULL;
@@ -54,10 +54,11 @@ START_TEST(test_file_read_all_file_not_found) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Handle empty file
-START_TEST(test_file_read_all_empty_file) {
+START_TEST(test_file_read_all_empty_file)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create empty temporary file
@@ -80,21 +81,24 @@ START_TEST(test_file_read_all_empty_file) {
     unlink(template);
     talloc_free(ctx);
 }
+
 END_TEST
 
 #ifndef SKIP_SIGNAL_TESTS
 // Test: Assert on NULL context
-START_TEST(test_file_read_all_null_ctx) {
+START_TEST(test_file_read_all_null_ctx)
+{
     char *out_content = NULL;
     size_t out_size = 0;
 
     // This should trigger an assertion failure
     ik_file_read_all(NULL, "/tmp/test.txt", &out_content, &out_size);
 }
-END_TEST
 
+END_TEST
 // Test: Assert on NULL path
-START_TEST(test_file_read_all_null_path) {
+START_TEST(test_file_read_all_null_path)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *out_content = NULL;
     size_t out_size = 0;
@@ -104,10 +108,11 @@ START_TEST(test_file_read_all_null_path) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Assert on NULL output pointer
-START_TEST(test_file_read_all_null_out) {
+START_TEST(test_file_read_all_null_out)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     size_t out_size = 0;
 
@@ -116,6 +121,7 @@ START_TEST(test_file_read_all_null_out) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 #endif
 

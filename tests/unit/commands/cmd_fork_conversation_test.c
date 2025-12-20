@@ -136,8 +136,7 @@ static void suite_teardown(void)
 }
 
 // Test: Child inherits parent conversation
-START_TEST(test_fork_child_inherits_conversation)
-{
+START_TEST(test_fork_child_inherits_conversation) {
     // Add a message to parent's conversation before forking
     ik_msg_t *msg = ik_openai_msg_create(test_ctx, "user", "Test message from parent");
 
@@ -158,7 +157,6 @@ START_TEST(test_fork_child_inherits_conversation)
     ck_assert_str_eq(child->conversation->messages[0]->content, "Test message from parent");
 }
 END_TEST
-
 // Test: Child post-fork messages are separate from parent
 START_TEST(test_fork_child_post_fork_messages_separate)
 {
@@ -185,8 +183,8 @@ START_TEST(test_fork_child_post_fork_messages_separate)
     // Parent's conversation should remain unchanged
     ck_assert_uint_eq(parent->conversation->message_count, parent_msg_count_before_fork);
 }
-END_TEST
 
+END_TEST
 
 static Suite *cmd_fork_suite(void)
 {
@@ -201,6 +199,7 @@ static Suite *cmd_fork_suite(void)
     suite_add_tcase(s, tc);
     return s;
 }
+
 int main(void)
 {
     if (!suite_setup()) {

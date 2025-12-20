@@ -191,7 +191,7 @@ END_TEST START_TEST(verify_stream_multiline)
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user",
-                                         "Write a short Python function to add two numbers.");
+                                             "Write a short Python function to add two numbers.");
     res_t add_res = ik_openai_conversation_add_msg(conv, msg_tmp);
     ck_assert(!add_res.is_err);
 

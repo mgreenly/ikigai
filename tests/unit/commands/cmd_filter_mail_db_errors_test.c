@@ -155,8 +155,7 @@ static void teardown(void)
 }
 
 // Test: /filter-mail propagates ik_db_mail_inbox_filtered error (line 413)
-START_TEST(test_filter_mail_db_inbox_filtered_error)
-{
+START_TEST(test_filter_mail_db_inbox_filtered_error) {
     res_t res = ik_cmd_filter_mail(test_ctx, repl, "--from sender-uuid-456");
 
     // Should propagate the error

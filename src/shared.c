@@ -22,7 +22,12 @@ static int shared_destructor(ik_shared_ctx_t *shared)
     return 0;
 }
 
-res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, const char *working_dir, const char *ikigai_path, ik_logger_t *logger, ik_shared_ctx_t **out)
+res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
+                         ik_cfg_t *cfg,
+                         const char *working_dir,
+                         const char *ikigai_path,
+                         ik_logger_t *logger,
+                         ik_shared_ctx_t **out)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);   // LCOV_EXCL_BR_LINE

@@ -83,8 +83,7 @@ static void verify_required(yyjson_mut_val *parameters, const char *required_par
 }
 
 // Test: ik_tool_param_def_t struct exists and is usable
-START_TEST(test_tool_param_def_struct_exists)
-{
+START_TEST(test_tool_param_def_struct_exists) {
     ik_tool_param_def_t param = {
         .name = "test_param",
         .description = "Test description",
@@ -95,7 +94,6 @@ START_TEST(test_tool_param_def_struct_exists)
     ck_assert(param.required);
 }
 END_TEST
-
 // Test: ik_tool_schema_def_t struct exists and is usable
 START_TEST(test_tool_schema_def_struct_exists)
 {
@@ -116,8 +114,8 @@ START_TEST(test_tool_schema_def_struct_exists)
     ck_assert_ptr_eq(schema.params, params);
     ck_assert_uint_eq(schema.param_count, 2);
 }
-END_TEST
 
+END_TEST
 // Test: ik_tool_build_schema_from_def basic functionality
 START_TEST(test_tool_build_schema_from_def_basic)
 {
@@ -151,8 +149,8 @@ START_TEST(test_tool_build_schema_from_def_basic)
 
     yyjson_mut_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 // Test: All schema definitions produce correct output (completeness check)
 START_TEST(test_schema_definitions_complete)
 {
@@ -173,6 +171,7 @@ START_TEST(test_schema_definitions_complete)
 
     yyjson_mut_doc_free(doc);
 }
+
 END_TEST
 
 // Test suite

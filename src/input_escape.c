@@ -37,7 +37,7 @@ static bool is_discardable_csi_terminal(const ik_input_parser_t *parser, char by
 
 // Handle first byte after ESC (validation)
 static bool parse_first_escape_byte(ik_input_parser_t *parser, char byte,
-                                     ik_input_action_t *action_out)
+                                    ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
@@ -62,10 +62,9 @@ static bool parse_first_escape_byte(ik_input_parser_t *parser, char byte,
     return true; // Handled
 }
 
-
 // Handle arrow key sequences: ESC [ A/B/C/D and ESC [ 1 ; 5 A/B/C/D
 static bool parse_arrow_keys(ik_input_parser_t *parser, char byte,
-                              ik_input_action_t *action_out)
+                             ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
@@ -127,7 +126,7 @@ static bool parse_arrow_keys(ik_input_parser_t *parser, char byte,
 
 // Handle mouse SGR sequences: ESC [ < button ; col ; row M/m
 static bool parse_mouse_sgr(ik_input_parser_t *parser, char byte,
-                             ik_input_action_t *action_out)
+                            ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
@@ -185,7 +184,7 @@ static bool parse_mouse_sgr(ik_input_parser_t *parser, char byte,
 // Parse CSI u sequence: ESC [ keycode ; modifiers u
 // Returns true if valid CSI u sequence parsed
 static bool parse_csi_u_sequence(ik_input_parser_t *parser,
-                                  ik_input_action_t *action_out)
+                                 ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
@@ -302,7 +301,7 @@ static bool parse_csi_u_sequence(ik_input_parser_t *parser,
 
 // Handle 3-character tilde-terminated sequences: ESC [ N ~
 static bool parse_tilde_sequences(ik_input_parser_t *parser, char byte,
-                                   ik_input_action_t *action_out)
+                                  ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
@@ -338,7 +337,7 @@ static bool parse_tilde_sequences(ik_input_parser_t *parser, char byte,
 
 // Parse escape sequence byte
 void ik_input_parse_escape_sequence(ik_input_parser_t *parser, char byte,
-                                     ik_input_action_t *action_out)
+                                    ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE

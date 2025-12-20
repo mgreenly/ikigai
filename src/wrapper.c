@@ -470,7 +470,6 @@ MOCKABLE res_t ik_db_message_insert_(void *db,
     return ik_db_message_insert((ik_db_ctx_t *)db, session_id, agent_uuid, kind, content, data_json);
 }
 
-
 MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length)
 {
     return ik_scrollback_append_line((ik_scrollback_t *)scrollback, text, length);

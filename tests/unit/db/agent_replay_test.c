@@ -112,10 +112,10 @@ static void test_teardown(void)
 
 // Skip macro for tests when DB not available
 #define SKIP_IF_NO_DB() do { \
-    if (!db_available) { \
-        return; \
-    } \
-} while(0)
+            if (!db_available) { \
+                return; \
+            } \
+} while (0)
 
 // Helper: Insert an agent into the registry
 static void insert_agent(const char *uuid, const char *parent_uuid,
@@ -143,8 +143,7 @@ static void insert_message(const char *agent_uuid, const char *kind,
 // ========== Full Replay Tests ==========
 
 // Test: full replay produces correct chronological order
-START_TEST(test_replay_chronological_order)
-{
+START_TEST(test_replay_chronological_order) {
     SKIP_IF_NO_DB();
 
     // Insert root agent with messages
@@ -175,7 +174,6 @@ START_TEST(test_replay_chronological_order)
     ck_assert_str_eq(ctx->messages[3]->content, "Child-2");
 }
 END_TEST
-
 // Test: replay handles agent with no history
 START_TEST(test_replay_empty_history)
 {
@@ -191,8 +189,8 @@ START_TEST(test_replay_empty_history)
     ck_assert(ctx != NULL);
     ck_assert_int_eq((int)ctx->count, 0);
 }
-END_TEST
 
+END_TEST
 // Test: replay handles deep ancestry (4+ levels)
 START_TEST(test_replay_deep_ancestry)
 {
@@ -236,6 +234,7 @@ START_TEST(test_replay_deep_ancestry)
     ck_assert_str_eq(ctx->messages[2]->content, "P");
     ck_assert_str_eq(ctx->messages[3]->content, "C");
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

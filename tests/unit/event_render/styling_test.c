@@ -11,8 +11,7 @@
 #include "../../../src/ansi.h"
 
 // Test: user message has no color codes
-START_TEST(test_user_message_no_color)
-{
+START_TEST(test_user_message_no_color) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -30,7 +29,6 @@ START_TEST(test_user_message_no_color)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: assistant message wrapped with gray 249
 START_TEST(test_assistant_message_gray_249)
 {
@@ -51,8 +49,8 @@ START_TEST(test_assistant_message_gray_249)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: tool_call message wrapped with gray 242
 START_TEST(test_tool_call_message_gray_242)
 {
@@ -73,8 +71,8 @@ START_TEST(test_tool_call_message_gray_242)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: tool_result message wrapped with gray 242
 START_TEST(test_tool_result_message_gray_242)
 {
@@ -95,8 +93,8 @@ START_TEST(test_tool_result_message_gray_242)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: system message wrapped with gray 242
 START_TEST(test_system_message_gray_242)
 {
@@ -117,8 +115,8 @@ START_TEST(test_system_message_gray_242)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: mark renders without color (it's user input)
 START_TEST(test_mark_no_color)
 {
@@ -138,8 +136,8 @@ START_TEST(test_mark_no_color)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: rewind has no visible output (command input)
 START_TEST(test_rewind_no_color)
 {
@@ -152,8 +150,8 @@ START_TEST(test_rewind_no_color)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: clear has no visible output (command input)
 START_TEST(test_clear_no_color)
 {
@@ -166,8 +164,8 @@ START_TEST(test_clear_no_color)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: colors disabled - no escape sequences in output
 START_TEST(test_colors_disabled)
 {
@@ -195,8 +193,8 @@ START_TEST(test_colors_disabled)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: verify scrollback line contains expected escape sequences
 START_TEST(test_scrollback_contains_escapes)
 {
@@ -225,6 +223,7 @@ START_TEST(test_scrollback_contains_escapes)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *event_render_styling_suite(void)

@@ -243,7 +243,6 @@ START_TEST(test_input_parse_arrow_still_works_with_sgr)
 }
 
 END_TEST
-
 // Test: ESC m with no '[' should reset (esc_len == 0 when checking 'm')
 START_TEST(test_input_parse_sgr_no_bracket)
 {

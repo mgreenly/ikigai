@@ -161,14 +161,12 @@ static void suite_teardown(void)
 }
 
 // Test: missing args shows error
-START_TEST(test_read_mail_missing_args)
-{
+START_TEST(test_read_mail_missing_args) {
     res_t res = ik_cmd_read_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
-
 // Test: empty args shows error
 START_TEST(test_read_mail_empty_args)
 {
@@ -176,8 +174,8 @@ START_TEST(test_read_mail_empty_args)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: invalid ID (non-numeric) shows error
 START_TEST(test_read_mail_invalid_id_format)
 {
@@ -185,8 +183,8 @@ START_TEST(test_read_mail_invalid_id_format)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: invalid ID (zero) shows error
 START_TEST(test_read_mail_invalid_id_zero)
 {
@@ -194,8 +192,8 @@ START_TEST(test_read_mail_invalid_id_zero)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: invalid ID (negative) shows error
 START_TEST(test_read_mail_invalid_id_negative)
 {
@@ -203,6 +201,7 @@ START_TEST(test_read_mail_invalid_id_negative)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
+
 END_TEST
 
 static Suite *read_mail_coverage_suite(void)

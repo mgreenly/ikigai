@@ -20,8 +20,7 @@ static bool is_base64url(const char *str, size_t len)
 }
 
 // Test ik_generate_uuid() returns non-NULL string
-START_TEST(test_generate_uuid_returns_non_null)
-{
+START_TEST(test_generate_uuid_returns_non_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -31,7 +30,6 @@ START_TEST(test_generate_uuid_returns_non_null)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test ik_generate_uuid() returns exactly 22 characters
 START_TEST(test_generate_uuid_returns_22_chars)
 {
@@ -44,8 +42,8 @@ START_TEST(test_generate_uuid_returns_22_chars)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_generate_uuid() returns valid base64url characters
 START_TEST(test_generate_uuid_returns_base64url_chars)
 {
@@ -58,8 +56,8 @@ START_TEST(test_generate_uuid_returns_base64url_chars)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_generate_uuid() returns unique values
 START_TEST(test_generate_uuid_returns_unique_values)
 {
@@ -84,8 +82,8 @@ START_TEST(test_generate_uuid_returns_unique_values)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_generate_uuid() result is owned by ctx
 START_TEST(test_generate_uuid_owned_by_ctx)
 {
@@ -101,8 +99,8 @@ START_TEST(test_generate_uuid_owned_by_ctx)
 
     talloc_free(parent);
 }
-END_TEST
 
+END_TEST
 // Test ik_generate_uuid() uniqueness without explicit srand() call
 // This test verifies that production code properly initializes random seed
 START_TEST(test_generate_uuid_unique_without_srand)
@@ -128,6 +126,7 @@ START_TEST(test_generate_uuid_unique_without_srand)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *uuid_suite(void)

@@ -63,9 +63,9 @@ static void init_layer_cake(ik_repl_ctx_t *repl, int32_t rows)
     repl->current->spinner_layer = ik_spinner_layer_create(repl, "spinner", &repl->current->spinner_state);
     repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &repl->current->separator_visible);
     repl->current->input_layer = ik_input_layer_create(repl, "input", &repl->current->input_buffer_visible,
-                                              &repl->current->input_text, &repl->current->input_text_len);
+                                                       &repl->current->input_text, &repl->current->input_text_len);
     repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator",
-                                                             &repl->lower_separator_visible);
+                                                            &repl->lower_separator_visible);
 
     res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
     ck_assert(is_ok(&res));
@@ -158,7 +158,7 @@ static test_fixture_t *create_test_fixture(const char *input_text, int32_t scrol
 static bool is_cursor_escape(const char *buffer, size_t len, size_t i)
 {
     if (i + 5 >= len) return false;
-    if (buffer[i] != '\x1b' || buffer[i+1] != '[') return false;
+    if (buffer[i] != '\x1b' || buffer[i + 1] != '[') return false;
 
     size_t j = i + 2;
     while (j < len && buffer[j] >= '0' && buffer[j] <= '9') j++;
@@ -245,13 +245,13 @@ START_TEST(test_cursor_position_with_one_blank_line) {
     talloc_free(fixture->ctx);
 }
 END_TEST
-
 /**
  * Test: Cursor position when viewport is full (no blank lines)
  *
  * Verify cursor is still correct when viewport is completely full.
  */
-START_TEST(test_cursor_position_viewport_full) {
+START_TEST(test_cursor_position_viewport_full)
+{
     test_fixture_t *fixture = create_test_fixture("test", 100);
     res_t res;
 
@@ -275,12 +275,13 @@ START_TEST(test_cursor_position_viewport_full) {
 
     talloc_free(fixture->ctx);
 }
-END_TEST
 
+END_TEST
 /**
  * Test: Cursor position when viewport is half full
  */
-START_TEST(test_cursor_position_viewport_half_full) {
+START_TEST(test_cursor_position_viewport_half_full)
+{
     test_fixture_t *fixture = create_test_fixture("hi", 5);
     res_t res;
 
@@ -303,6 +304,7 @@ START_TEST(test_cursor_position_viewport_half_full) {
 
     talloc_free(fixture->ctx);
 }
+
 END_TEST
 
 /* Create test suite */

@@ -155,8 +155,7 @@ static void teardown(void)
 }
 
 // Test: /help command output is persisted with kind="command"
-START_TEST(test_help_persisted)
-{
+START_TEST(test_help_persisted) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -177,7 +176,6 @@ START_TEST(test_help_persisted)
     ck_assert(strstr(last_data_json, "\"command\":\"help\"") != NULL);
 }
 END_TEST
-
 // Test: /model command output is persisted
 START_TEST(test_model_persisted)
 {
@@ -201,8 +199,8 @@ START_TEST(test_model_persisted)
     ck_assert(strstr(last_data_json, "\"command\":\"model\"") != NULL);
     ck_assert(strstr(last_data_json, "\"args\":\"gpt-4\"") != NULL);
 }
-END_TEST
 
+END_TEST
 // Test: /debug command output is persisted
 START_TEST(test_debug_persisted)
 {
@@ -221,8 +219,8 @@ START_TEST(test_debug_persisted)
     ck_assert(strncmp(last_content, "/debug on\n", 10) == 0);
     ck_assert(strstr(last_content, "Debug output enabled") != NULL);
 }
-END_TEST
 
+END_TEST
 // Test: Command persistence without database context (should not crash)
 START_TEST(test_command_persist_no_db)
 {
@@ -239,8 +237,8 @@ START_TEST(test_command_persist_no_db)
     // Command should still execute and show output in scrollback
     ck_assert(ik_scrollback_get_line_count(repl->current->scrollback) > 0);
 }
-END_TEST
 
+END_TEST
 // Test: Unknown command is not persisted
 START_TEST(test_unknown_command_not_persisted)
 {
@@ -251,6 +249,7 @@ START_TEST(test_unknown_command_not_persisted)
     // Should not have called ik_db_message_insert for error
     ck_assert_int_eq(insert_call_count, 0);
 }
+
 END_TEST
 
 static Suite *cmd_persist_suite(void)

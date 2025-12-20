@@ -102,9 +102,9 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Create input layer - pass pointers to agent fields
     agent->input_layer = ik_input_layer_create(agent, "input",
-        &agent->input_buffer_visible,
-        &agent->input_text,
-        &agent->input_text_len);
+                                               &agent->input_buffer_visible,
+                                               &agent->input_text,
+                                               &agent->input_text_len);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->input_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
@@ -219,9 +219,9 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Create input layer - pass pointers to agent fields
     agent->input_layer = ik_input_layer_create(agent, "input",
-        &agent->input_buffer_visible,
-        &agent->input_text,
-        &agent->input_text_len);
+                                               &agent->input_buffer_visible,
+                                               &agent->input_text,
+                                               &agent->input_text_len);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->input_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 

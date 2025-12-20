@@ -178,8 +178,11 @@ res_t ik_cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args);
  * @param args Command arguments (NULL if no arguments)
  * @param lines_before Scrollback line count before command execution
  */
-void ik_cmd_persist_to_db(void *ctx, ik_repl_ctx_t *repl, const char *input,
-                          const char *cmd_name, const char *args,
+void ik_cmd_persist_to_db(void *ctx,
+                          ik_repl_ctx_t *repl,
+                          const char *input,
+                          const char *cmd_name,
+                          const char *args,
                           size_t lines_before);
 
 #endif // IK_COMMANDS_H

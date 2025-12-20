@@ -112,8 +112,7 @@ static void test_teardown(void)
 
 // Test: Insert with non-existent session_id triggers foreign key constraint
 // Bug 9 regression test: error message must be accessible without crash
-START_TEST(test_db_message_insert_fk_constraint)
-{
+START_TEST(test_db_message_insert_fk_constraint) {
     SKIP_IF_NO_DB();
 
     // Try to insert message with non-existent session_id

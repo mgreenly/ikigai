@@ -35,9 +35,9 @@ START_TEST(test_partial_render_with_newlines) {
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: Wrapped segment with newline
-START_TEST(test_wrapped_segment_with_newline) {
+START_TEST(test_wrapped_segment_with_newline)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -70,10 +70,11 @@ START_TEST(test_wrapped_segment_with_newline) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Skip multiple newline segments
-START_TEST(test_skip_multiple_newline_segments) {
+START_TEST(test_skip_multiple_newline_segments)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -101,9 +102,11 @@ START_TEST(test_skip_multiple_newline_segments) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 
-static Suite *layer_scrollback_partial_newline_suite(void) {
+static Suite *layer_scrollback_partial_newline_suite(void)
+{
     Suite *s = suite_create("Layer Scrollback Partial Newline");
 
     TCase *tc_core = tcase_create("Core");
@@ -115,7 +118,8 @@ static Suite *layer_scrollback_partial_newline_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     int number_failed;
     Suite *s = layer_scrollback_partial_newline_suite();
     SRunner *sr = srunner_create(s);

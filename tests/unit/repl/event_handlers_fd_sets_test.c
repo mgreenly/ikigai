@@ -136,8 +136,7 @@ static ik_agent_ctx_t *create_test_agent(ik_repl_ctx_t *parent, const char *uuid
  * Test: ik_repl_setup_fd_sets with agent_max_fd > terminal_fd (line 100)
  * This covers the branch where we update max_fd
  */
-START_TEST(test_setup_fd_sets_agent_max_fd_greater)
-{
+START_TEST(test_setup_fd_sets_agent_max_fd_greater) {
     /* Create one agent */
     ik_agent_ctx_t *agent = create_test_agent(repl, "agent-uuid");
     repl->agents[0] = agent;

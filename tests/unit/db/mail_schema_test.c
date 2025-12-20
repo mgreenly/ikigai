@@ -61,8 +61,7 @@ static PGresult *exec_query(PGconn *conn, const char *query)
 }
 
 // Test that mail table exists
-START_TEST(test_mail_table_exists)
-{
+START_TEST(test_mail_table_exists) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -74,10 +73,10 @@ START_TEST(test_mail_table_exists)
     }
 
     PGresult *res = exec_query(db->conn,
-        "SELECT EXISTS ("
-        "  SELECT FROM information_schema.tables "
-        "  WHERE table_schema = 'public' AND table_name = 'mail'"
-        ")");
+                               "SELECT EXISTS ("
+                               "  SELECT FROM information_schema.tables "
+                               "  WHERE table_schema = 'public' AND table_name = 'mail'"
+                               ")");
 
     ck_assert(PQresultStatus(res) == PGRES_TUPLES_OK);
     ck_assert_str_eq(PQgetvalue(res, 0, 0), "t");
@@ -85,7 +84,6 @@ START_TEST(test_mail_table_exists)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test that all required columns exist with correct types
 START_TEST(test_mail_columns_exist)
 {
@@ -116,25 +114,25 @@ START_TEST(test_mail_columns_exist)
     for (size_t i = 0; i < sizeof(columns) / sizeof(columns[0]); i++) {
         char query[512];
         snprintf(query, sizeof(query),
-            "SELECT data_type FROM information_schema.columns "
-            "WHERE table_name = 'mail' AND column_name = '%s'",
-            columns[i].column);
+                 "SELECT data_type FROM information_schema.columns "
+                 "WHERE table_name = 'mail' AND column_name = '%s'",
+                 columns[i].column);
 
         PGresult *res = exec_query(db->conn, query);
         ck_assert_msg(PQresultStatus(res) == PGRES_TUPLES_OK,
-            "Query failed for column %s", columns[i].column);
+                      "Query failed for column %s", columns[i].column);
         ck_assert_msg(PQntuples(res) == 1,
-            "Column %s does not exist", columns[i].column);
+                      "Column %s does not exist", columns[i].column);
         ck_assert_msg(strcmp(PQgetvalue(res, 0, 0), columns[i].type) == 0,
-            "Column %s has wrong type: expected %s, got %s",
-            columns[i].column, columns[i].type, PQgetvalue(res, 0, 0));
+                      "Column %s has wrong type: expected %s, got %s",
+                      columns[i].column, columns[i].type, PQgetvalue(res, 0, 0));
         PQclear(res);
     }
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test foreign key to sessions table
 START_TEST(test_mail_foreign_key_sessions)
 {
@@ -149,22 +147,22 @@ START_TEST(test_mail_foreign_key_sessions)
     }
 
     PGresult *res = exec_query(db->conn,
-        "SELECT tc.constraint_name, ccu.table_name AS foreign_table "
-        "FROM information_schema.table_constraints tc "
-        "JOIN information_schema.constraint_column_usage ccu "
-        "  ON tc.constraint_name = ccu.constraint_name "
-        "WHERE tc.table_name = 'mail' "
-        "  AND tc.constraint_type = 'FOREIGN KEY' "
-        "  AND ccu.table_name = 'sessions'");
+                               "SELECT tc.constraint_name, ccu.table_name AS foreign_table "
+                               "FROM information_schema.table_constraints tc "
+                               "JOIN information_schema.constraint_column_usage ccu "
+                               "  ON tc.constraint_name = ccu.constraint_name "
+                               "WHERE tc.table_name = 'mail' "
+                               "  AND tc.constraint_type = 'FOREIGN KEY' "
+                               "  AND ccu.table_name = 'sessions'");
 
     ck_assert(PQresultStatus(res) == PGRES_TUPLES_OK);
     ck_assert_msg(PQntuples(res) >= 1,
-        "Foreign key to sessions table does not exist");
+                  "Foreign key to sessions table does not exist");
     PQclear(res);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test that idx_mail_recipient index exists
 START_TEST(test_mail_recipient_index_exists)
 {
@@ -179,17 +177,17 @@ START_TEST(test_mail_recipient_index_exists)
     }
 
     PGresult *res = exec_query(db->conn,
-        "SELECT indexname FROM pg_indexes "
-        "WHERE tablename = 'mail' AND indexname = 'idx_mail_recipient'");
+                               "SELECT indexname FROM pg_indexes "
+                               "WHERE tablename = 'mail' AND indexname = 'idx_mail_recipient'");
 
     ck_assert(PQresultStatus(res) == PGRES_TUPLES_OK);
     ck_assert_msg(PQntuples(res) == 1,
-        "Index idx_mail_recipient does not exist");
+                  "Index idx_mail_recipient does not exist");
     PQclear(res);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test migration is idempotent (running migrations again should not fail)
 START_TEST(test_mail_migration_idempotent)
 {
@@ -209,16 +207,17 @@ START_TEST(test_mail_migration_idempotent)
 
     // Verify table still exists after re-migration
     PGresult *pgres = exec_query(db->conn,
-        "SELECT EXISTS ("
-        "  SELECT FROM information_schema.tables "
-        "  WHERE table_schema = 'public' AND table_name = 'mail'"
-        ")");
+                                 "SELECT EXISTS ("
+                                 "  SELECT FROM information_schema.tables "
+                                 "  WHERE table_schema = 'public' AND table_name = 'mail'"
+                                 ")");
 
     ck_assert(PQresultStatus(pgres) == PGRES_TUPLES_OK);
     ck_assert_str_eq(PQgetvalue(pgres, 0, 0), "t");
     PQclear(pgres);
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *mail_schema_suite(void)

@@ -39,14 +39,12 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    
+
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
     r->current = agent;
-
-
 
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);

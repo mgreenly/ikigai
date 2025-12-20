@@ -167,7 +167,6 @@ START_TEST(test_scrollback_ensure_layout_with_empty_lines)
 }
 
 END_TEST
-
 // Test: append line with embedded SGR should only count visible characters
 START_TEST(test_scrollback_append_line_with_embedded_sgr)
 {
@@ -188,8 +187,8 @@ START_TEST(test_scrollback_append_line_with_embedded_sgr)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: append line with SGR at start
 START_TEST(test_scrollback_append_line_with_sgr_at_start)
 {
@@ -210,8 +209,8 @@ START_TEST(test_scrollback_append_line_with_sgr_at_start)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: append line with SGR at end
 START_TEST(test_scrollback_append_line_with_sgr_at_end)
 {
@@ -232,8 +231,8 @@ START_TEST(test_scrollback_append_line_with_sgr_at_end)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: append line with multiple SGRs
 START_TEST(test_scrollback_append_line_with_multiple_sgrs)
 {
@@ -254,8 +253,8 @@ START_TEST(test_scrollback_append_line_with_multiple_sgrs)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: physical lines calculation with colors (verify wrapping still works)
 START_TEST(test_scrollback_append_line_with_sgr_wrapping)
 {
@@ -281,6 +280,7 @@ START_TEST(test_scrollback_append_line_with_sgr_wrapping)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *scrollback_layout_suite(void)

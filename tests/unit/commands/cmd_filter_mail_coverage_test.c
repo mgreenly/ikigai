@@ -161,14 +161,12 @@ static void suite_teardown(void)
 }
 
 // Test: missing args shows error
-START_TEST(test_filter_mail_missing_args)
-{
+START_TEST(test_filter_mail_missing_args) {
     res_t res = ik_cmd_filter_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
-
 // Test: wrong format (no --from) shows error
 START_TEST(test_filter_mail_wrong_format)
 {
@@ -176,8 +174,8 @@ START_TEST(test_filter_mail_wrong_format)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: --from with only whitespace shows error
 START_TEST(test_filter_mail_empty_uuid)
 {
@@ -185,8 +183,8 @@ START_TEST(test_filter_mail_empty_uuid)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: ambiguous UUID shows error
 START_TEST(test_filter_mail_ambiguous_uuid)
 {
@@ -220,8 +218,8 @@ START_TEST(test_filter_mail_ambiguous_uuid)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: non-existent UUID shows error
 START_TEST(test_filter_mail_nonexistent_uuid)
 {
@@ -229,6 +227,7 @@ START_TEST(test_filter_mail_nonexistent_uuid)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
+
 END_TEST
 
 static Suite *filter_mail_coverage_suite(void)

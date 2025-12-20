@@ -127,8 +127,7 @@ int PQgetisnull(const PGresult *res, int row_number, int column_number)
 }
 
 // Test: ik_db_agent_mark_dead handles query failure (line 92)
-START_TEST(test_agent_mark_dead_query_failure)
-{
+START_TEST(test_agent_mark_dead_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -144,7 +143,6 @@ START_TEST(test_agent_mark_dead_query_failure)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: ik_db_agent_get handles query failure (line 129)
 START_TEST(test_agent_get_query_failure)
 {
@@ -163,8 +161,8 @@ START_TEST(test_agent_get_query_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_get handles created_at parse failure (line 171)
 START_TEST(test_agent_get_created_at_parse_failure)
 {
@@ -185,8 +183,8 @@ START_TEST(test_agent_get_created_at_parse_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_get handles ended_at parse failure (line 177)
 START_TEST(test_agent_get_ended_at_parse_failure)
 {
@@ -207,8 +205,8 @@ START_TEST(test_agent_get_ended_at_parse_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_list_running handles query failure (line 211)
 START_TEST(test_agent_list_running_query_failure)
 {
@@ -228,8 +226,8 @@ START_TEST(test_agent_list_running_query_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_list_running handles created_at parse failure (line 261)
 START_TEST(test_agent_list_running_created_at_parse_failure)
 {
@@ -251,8 +249,8 @@ START_TEST(test_agent_list_running_created_at_parse_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_list_running handles ended_at parse failure (line 267)
 START_TEST(test_agent_list_running_ended_at_parse_failure)
 {
@@ -274,8 +272,8 @@ START_TEST(test_agent_list_running_ended_at_parse_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_get_children handles query failure (line 309)
 START_TEST(test_agent_get_children_query_failure)
 {
@@ -295,8 +293,8 @@ START_TEST(test_agent_get_children_query_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_get_children handles created_at parse failure (line 359)
 START_TEST(test_agent_get_children_created_at_parse_failure)
 {
@@ -318,8 +316,8 @@ START_TEST(test_agent_get_children_created_at_parse_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_get_children handles ended_at parse failure (line 365)
 START_TEST(test_agent_get_children_ended_at_parse_failure)
 {
@@ -341,8 +339,8 @@ START_TEST(test_agent_get_children_ended_at_parse_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_get_parent handles query failure (line 407)
 START_TEST(test_agent_get_parent_query_failure)
 {
@@ -361,8 +359,8 @@ START_TEST(test_agent_get_parent_query_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_get_parent handles created_at parse failure (line 451)
 START_TEST(test_agent_get_parent_created_at_parse_failure)
 {
@@ -383,8 +381,8 @@ START_TEST(test_agent_get_parent_created_at_parse_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_get_parent handles ended_at parse failure (line 457)
 START_TEST(test_agent_get_parent_ended_at_parse_failure)
 {
@@ -405,8 +403,8 @@ START_TEST(test_agent_get_parent_ended_at_parse_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_ensure_agent_zero handles root query failure (line 483)
 START_TEST(test_ensure_agent_zero_root_query_failure)
 {
@@ -425,8 +423,8 @@ START_TEST(test_ensure_agent_zero_root_query_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_get_last_message_id handles query failure (line 605)
 START_TEST(test_agent_get_last_message_id_query_failure)
 {
@@ -445,8 +443,8 @@ START_TEST(test_agent_get_last_message_id_query_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_db_agent_get_last_message_id handles parse failure (line 613)
 START_TEST(test_agent_get_last_message_id_parse_failure)
 {
@@ -465,6 +463,7 @@ START_TEST(test_agent_get_last_message_id_parse_failure)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 // Setup function to reset mock state before each test

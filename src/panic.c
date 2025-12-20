@@ -121,9 +121,9 @@ void ik_panic_impl(const char *msg, const char *file, int32_t line)
         if (fd >= 0) {
             char buf[512];
             int len = snprintf(buf, sizeof(buf),
-                "{\"level\":\"fatal\",\"event\":\"panic\","
-                "\"message\":\"%s\",\"file\":\"%s\",\"line\":%d}\n",
-                msg ? msg : "", file ? file : "", line);
+                               "{\"level\":\"fatal\",\"event\":\"panic\","
+                               "\"message\":\"%s\",\"file\":\"%s\",\"line\":%d}\n",
+                               msg ? msg : "", file ? file : "", line);
             if (len > 0 && (size_t)len < sizeof(buf)) {
                 write_ignore(fd, buf, (size_t)len);
             }

@@ -143,8 +143,7 @@ static ik_agent_ctx_t *create_test_agent(ik_repl_ctx_t *parent, const char *uuid
  * Test: ik_repl_calculate_curl_min_timeout with positive agent timeout (lines 379-380)
  * This covers the branch where we update curl_timeout_ms
  */
-START_TEST(test_calculate_curl_min_timeout_positive)
-{
+START_TEST(test_calculate_curl_min_timeout_positive) {
     /* Create two agents */
     ik_agent_ctx_t *agent_a = create_test_agent(repl, "agent-a");
     ik_agent_ctx_t *agent_b = create_test_agent(repl, "agent-b");
@@ -168,7 +167,6 @@ START_TEST(test_calculate_curl_min_timeout_positive)
     ck_assert_int_eq(timeout, 100);
 }
 END_TEST
-
 /*
  * Test: ik_repl_calculate_curl_min_timeout with multiple agents, one with larger timeout (line 379 branch 2)
  * This covers the case where agent_timeout >= curl_timeout_ms (don't update)
@@ -201,6 +199,7 @@ START_TEST(test_calculate_curl_min_timeout_keeps_minimum)
     /* Timeout should be 50 (the minimum) */
     ck_assert_int_eq(timeout, 50);
 }
+
 END_TEST
 
 /*

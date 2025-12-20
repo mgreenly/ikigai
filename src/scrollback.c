@@ -122,7 +122,7 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
     // Calculate layout for this line
     ik_line_layout_t layout;
     res_t layout_res = ik_scrollback_calculate_layout(scrollback, text, length,
-                                                       scrollback->cached_width, &layout);
+                                                      scrollback->cached_width, &layout);
     if (is_err(&layout_res)) {     // LCOV_EXCL_BR_LINE
         return layout_res;         // LCOV_EXCL_LINE
     }
@@ -293,9 +293,9 @@ res_t ik_scrollback_copy_from(ik_scrollback_t *dest, const ik_scrollback_t *src)
 }
 
 res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,
-                                                    size_t line_index,
-                                                    size_t display_col,
-                                                    size_t *byte_offset_out)
+                                                   size_t line_index,
+                                                   size_t display_col,
+                                                   size_t *byte_offset_out)
 {
     assert(scrollback != NULL);       // LCOV_EXCL_BR_LINE
     assert(byte_offset_out != NULL);  // LCOV_EXCL_BR_LINE

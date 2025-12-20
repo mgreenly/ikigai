@@ -15,7 +15,6 @@
 // Maximum number of completion suggestions to return
 #define MAX_COMPLETIONS 15
 
-
 // Argument provider function type
 typedef struct {
     const char **args;
@@ -105,7 +104,7 @@ static arg_provider_result_t provide_rewind_args(TALLOC_CTX *ctx, ik_repl_ctx_t 
 }
 
 ik_completion_t *ik_completion_create_for_commands(TALLOC_CTX *ctx,
-                                                    const char *prefix)
+                                                   const char *prefix)
 {
     assert(ctx != NULL);       // LCOV_EXCL_BR_LINE
     assert(prefix != NULL);    // LCOV_EXCL_BR_LINE
@@ -216,7 +215,7 @@ void ik_completion_prev(ik_completion_t *comp)
 }
 
 bool ik_completion_matches_prefix(const ik_completion_t *comp,
-                                   const char *current_input)
+                                  const char *current_input)
 {
     assert(comp != NULL);          // LCOV_EXCL_BR_LINE
     assert(current_input != NULL); // LCOV_EXCL_BR_LINE
@@ -234,8 +233,8 @@ bool ik_completion_matches_prefix(const ik_completion_t *comp,
 }
 
 ik_completion_t *ik_completion_create_for_arguments(TALLOC_CTX *ctx,
-                                                     ik_repl_ctx_t *repl,
-                                                     const char *input)
+                                                    ik_repl_ctx_t *repl,
+                                                    const char *input)
 {
     assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
     assert(repl != NULL);   // LCOV_EXCL_BR_LINE

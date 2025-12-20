@@ -142,8 +142,7 @@ static void suite_teardown(void)
 }
 
 // Test: Fork records fork_message_id (parent has no messages)
-START_TEST(test_fork_records_fork_message_id_no_messages)
-{
+START_TEST(test_fork_records_fork_message_id_no_messages) {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
@@ -152,7 +151,6 @@ START_TEST(test_fork_records_fork_message_id_no_messages)
     ck_assert_int_eq(child->fork_message_id, 0);
 }
 END_TEST
-
 // Test: Fork stores fork_message_id in registry
 START_TEST(test_fork_registry_has_fork_message_id)
 {
@@ -168,9 +166,8 @@ START_TEST(test_fork_registry_has_fork_message_id)
     // Should be "0" for parent with no messages
     ck_assert_str_eq(row->fork_message_id, "0");
 }
+
 END_TEST
-
-
 // Test: Fork sync barrier - fork with no running tools proceeds immediately
 START_TEST(test_fork_no_running_tools_proceeds)
 {
@@ -183,16 +180,16 @@ START_TEST(test_fork_no_running_tools_proceeds)
     // Fork should have succeeded
     ck_assert_uint_eq(repl->agent_count, 2);
 }
-END_TEST
 
+END_TEST
 // Test: Fork sync barrier - ik_agent_has_running_tools returns false when no tools
 START_TEST(test_has_running_tools_false_when_idle)
 {
     repl->current->tool_thread_running = false;
     ck_assert(!ik_agent_has_running_tools(repl->current));
 }
-END_TEST
 
+END_TEST
 // Test: Fork sync barrier - ik_agent_has_running_tools returns true when tool running
 START_TEST(test_has_running_tools_true_when_running)
 {
@@ -201,8 +198,8 @@ START_TEST(test_has_running_tools_true_when_running)
     // Reset for cleanup
     repl->current->tool_thread_running = false;
 }
-END_TEST
 
+END_TEST
 // Test: Fork sync barrier - waiting message displayed when tools running
 START_TEST(test_fork_waiting_message_when_tools_running)
 {
@@ -218,8 +215,8 @@ START_TEST(test_fork_waiting_message_when_tools_running)
     // Reset for cleanup
     repl->current->tool_thread_running = false;
 }
-END_TEST
 
+END_TEST
 // Test: Fork sync barrier - tool_thread_complete is respected
 START_TEST(test_has_running_tools_respects_complete_flag)
 {
@@ -232,10 +229,8 @@ START_TEST(test_has_running_tools_respects_complete_flag)
     repl->current->tool_thread_running = false;
     ck_assert(!ik_agent_has_running_tools(repl->current));
 }
+
 END_TEST
-
-
-
 // Test: Child inherits parent's scrollback
 START_TEST(test_fork_child_inherits_scrollback)
 {
@@ -272,8 +267,8 @@ START_TEST(test_fork_child_inherits_scrollback)
         ck_assert_int_eq(strncmp(text, expected, length), 0);
     }
 }
-END_TEST
 
+END_TEST
 
 static Suite *cmd_fork_suite(void)
 {
@@ -294,6 +289,7 @@ static Suite *cmd_fork_suite(void)
     suite_add_tcase(s, tc);
     return s;
 }
+
 int main(void)
 {
     if (!suite_setup()) {

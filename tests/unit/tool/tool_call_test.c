@@ -18,8 +18,7 @@ static void teardown(void)
 }
 
 // Test: ik_tool_call_create returns non-NULL struct
-START_TEST(test_tool_call_create_returns_nonnull)
-{
+START_TEST(test_tool_call_create_returns_nonnull) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_abc123", "glob", "{\"pattern\": \"*.c\"}");
 
     ck_assert_ptr_nonnull(call);
@@ -28,7 +27,6 @@ START_TEST(test_tool_call_create_returns_nonnull)
     ctx = talloc_new(NULL);
 }
 END_TEST
-
 // Test: ik_tool_call_create sets id correctly
 START_TEST(test_tool_call_create_sets_id)
 {
@@ -41,8 +39,8 @@ START_TEST(test_tool_call_create_sets_id)
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
+END_TEST
 // Test: ik_tool_call_create sets name correctly
 START_TEST(test_tool_call_create_sets_name)
 {
@@ -55,8 +53,8 @@ START_TEST(test_tool_call_create_sets_name)
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
+END_TEST
 // Test: ik_tool_call_create sets arguments correctly
 START_TEST(test_tool_call_create_sets_arguments)
 {
@@ -70,8 +68,8 @@ START_TEST(test_tool_call_create_sets_arguments)
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
+END_TEST
 // Test: ik_tool_call_create works with NULL parent context (talloc root)
 START_TEST(test_tool_call_create_null_parent)
 {
@@ -84,6 +82,7 @@ START_TEST(test_tool_call_create_null_parent)
 
     talloc_free(call);
 }
+
 END_TEST
 
 // Test suite

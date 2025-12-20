@@ -161,8 +161,7 @@ static void suite_teardown(void)
 }
 
 // Test: check-mail with message exactly 59 seconds old (< 60)
-START_TEST(test_check_mail_timestamp_seconds)
-{
+START_TEST(test_check_mail_timestamp_seconds) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -178,7 +177,7 @@ START_TEST(test_check_mail_timestamp_seconds)
 
     // Create message with timestamp 59 seconds ago
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Recent message");
+                                            repl->current->uuid, "Recent message");
     ck_assert_ptr_nonnull(msg);
     msg->timestamp = (int64_t)time(NULL) - 59;
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
@@ -190,7 +189,6 @@ START_TEST(test_check_mail_timestamp_seconds)
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
-
 // Test: check-mail with message 120 seconds old (< 3600)
 START_TEST(test_check_mail_timestamp_minutes)
 {
@@ -209,7 +207,7 @@ START_TEST(test_check_mail_timestamp_minutes)
 
     // Create message with timestamp 2 minutes ago
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Message from minutes ago");
+                                            repl->current->uuid, "Message from minutes ago");
     ck_assert_ptr_nonnull(msg);
     msg->timestamp = (int64_t)time(NULL) - 120;
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
@@ -220,8 +218,8 @@ START_TEST(test_check_mail_timestamp_minutes)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: check-mail with message 7200 seconds old (< 86400)
 START_TEST(test_check_mail_timestamp_hours)
 {
@@ -240,7 +238,7 @@ START_TEST(test_check_mail_timestamp_hours)
 
     // Create message with timestamp 2 hours ago
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Message from hours ago");
+                                            repl->current->uuid, "Message from hours ago");
     ck_assert_ptr_nonnull(msg);
     msg->timestamp = (int64_t)time(NULL) - 7200;
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
@@ -251,8 +249,8 @@ START_TEST(test_check_mail_timestamp_hours)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: check-mail with message exactly 1 hour old (singular form)
 START_TEST(test_check_mail_timestamp_1_hour)
 {
@@ -271,7 +269,7 @@ START_TEST(test_check_mail_timestamp_1_hour)
 
     // Create message with timestamp exactly 1 hour ago
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Message from 1 hour ago");
+                                            repl->current->uuid, "Message from 1 hour ago");
     ck_assert_ptr_nonnull(msg);
     msg->timestamp = (int64_t)time(NULL) - 3600;
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
@@ -282,8 +280,8 @@ START_TEST(test_check_mail_timestamp_1_hour)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: check-mail with message >= 86400 seconds old (days)
 START_TEST(test_check_mail_timestamp_days)
 {
@@ -302,7 +300,7 @@ START_TEST(test_check_mail_timestamp_days)
 
     // Create message with timestamp 2 days ago
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Message from days ago");
+                                            repl->current->uuid, "Message from days ago");
     ck_assert_ptr_nonnull(msg);
     msg->timestamp = (int64_t)time(NULL) - 172800;
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
@@ -313,8 +311,8 @@ START_TEST(test_check_mail_timestamp_days)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: check-mail with message exactly 1 day old (singular form)
 START_TEST(test_check_mail_timestamp_1_day)
 {
@@ -333,7 +331,7 @@ START_TEST(test_check_mail_timestamp_1_day)
 
     // Create message with timestamp exactly 1 day ago
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Message from 1 day ago");
+                                            repl->current->uuid, "Message from 1 day ago");
     ck_assert_ptr_nonnull(msg);
     msg->timestamp = (int64_t)time(NULL) - 86400;
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
@@ -344,8 +342,8 @@ START_TEST(test_check_mail_timestamp_1_day)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: check-mail with short message (body <= 50 chars)
 START_TEST(test_check_mail_short_body)
 {
@@ -368,7 +366,7 @@ START_TEST(test_check_mail_short_body)
     short_msg[50] = '\0';
 
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, short_msg);
+                                            repl->current->uuid, short_msg);
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -378,8 +376,8 @@ START_TEST(test_check_mail_short_body)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: check-mail with single message (singular form in summary)
 START_TEST(test_check_mail_single_message)
 {
@@ -398,7 +396,7 @@ START_TEST(test_check_mail_single_message)
 
     // Create exactly one message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Single message");
+                                            repl->current->uuid, "Single message");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -408,6 +406,7 @@ START_TEST(test_check_mail_single_message)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
+
 END_TEST
 
 static Suite *check_mail_coverage_suite(void)

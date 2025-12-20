@@ -143,24 +143,24 @@ static void separator_render(const ik_layer_t *layer,
         if (render_us >= 1000) {
             // LCOV_EXCL_BR_START - Defensive: these pointers set together with viewport_offset
             debug_len = (size_t)snprintf(debug_str, sizeof(debug_str),
-                " off=%zu row=%zu h=%zu doc=%zu sb=%zu t=%.1fms ",
-                data->debug.viewport_offset ? *data->debug.viewport_offset : 0,
-                data->debug.viewport_row ? *data->debug.viewport_row : 0,
-                data->debug.viewport_height ? *data->debug.viewport_height : 0,
-                data->debug.document_height ? *data->debug.document_height : 0,
-                sb_rows,
-                (double)render_us / 1000.0);
+                                         " off=%zu row=%zu h=%zu doc=%zu sb=%zu t=%.1fms ",
+                                         data->debug.viewport_offset ? *data->debug.viewport_offset : 0,
+                                         data->debug.viewport_row ? *data->debug.viewport_row : 0,
+                                         data->debug.viewport_height ? *data->debug.viewport_height : 0,
+                                         data->debug.document_height ? *data->debug.document_height : 0,
+                                         sb_rows,
+                                         (double)render_us / 1000.0);
             // LCOV_EXCL_BR_STOP
         } else {
             // LCOV_EXCL_BR_START - Defensive: these pointers set together with viewport_offset
             debug_len = (size_t)snprintf(debug_str, sizeof(debug_str),
-                " off=%zu row=%zu h=%zu doc=%zu sb=%zu t=%" PRIu64 "us ",
-                data->debug.viewport_offset ? *data->debug.viewport_offset : 0,
-                data->debug.viewport_row ? *data->debug.viewport_row : 0,
-                data->debug.viewport_height ? *data->debug.viewport_height : 0,
-                data->debug.document_height ? *data->debug.document_height : 0,
-                sb_rows,
-                render_us);
+                                         " off=%zu row=%zu h=%zu doc=%zu sb=%zu t=%" PRIu64 "us ",
+                                         data->debug.viewport_offset ? *data->debug.viewport_offset : 0,
+                                         data->debug.viewport_row ? *data->debug.viewport_row : 0,
+                                         data->debug.viewport_height ? *data->debug.viewport_height : 0,
+                                         data->debug.document_height ? *data->debug.document_height : 0,
+                                         sb_rows,
+                                         render_us);
             // LCOV_EXCL_BR_STOP
         }
     }

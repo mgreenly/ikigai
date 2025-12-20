@@ -183,8 +183,7 @@ static void teardown(void)
 }
 
 // Test message submission when session_id is 0 (no active session)
-START_TEST(test_message_submission_no_session)
-{
+START_TEST(test_message_submission_no_session) {
     // Set session_id to 0 (no active session)
     repl->shared->db_ctx = mock_db_ctx;
     repl->shared->session_id = 0;
@@ -250,7 +249,6 @@ START_TEST(test_db_error_null_write_end)
 }
 
 END_TEST
-
 // Test backspace success path (line 79 error path is defensive)
 START_TEST(test_backspace_error_path)
 {
@@ -278,8 +276,8 @@ START_TEST(test_backspace_error_path)
     ck_assert_uint_eq(len, 1);
     ck_assert_int_eq(text[0], 'x');
 }
-END_TEST
 
+END_TEST
 // Test ESC with completion original_input revert (lines 134-137)
 START_TEST(test_escape_revert_original_input)
 {
@@ -313,6 +311,7 @@ START_TEST(test_escape_revert_original_input)
     // Verify completion was dismissed
     ck_assert_ptr_null(repl->current->completion);
 }
+
 END_TEST
 
 static Suite *repl_actions_db_error_suite(void)

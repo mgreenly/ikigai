@@ -18,11 +18,9 @@
 #include "../../test_utils.h"
 
 /* Test: TAB cycles to next match and dismisses */
-START_TEST(test_tab_cycles_to_next)
-{
+START_TEST(test_tab_cycles_to_next) {
     void *ctx = talloc_new(NULL);
 
-    
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res_t agent_res = ik_test_create_agent(ctx, &agent);
@@ -35,7 +33,7 @@ START_TEST(test_tab_cycles_to_next)
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -74,13 +72,11 @@ START_TEST(test_tab_cycles_to_next)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: TAB updates input buffer with current selection and dismisses */
 START_TEST(test_tab_updates_input_buffer)
 {
     void *ctx = talloc_new(NULL);
 
-    
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res_t agent_res = ik_test_create_agent(ctx, &agent);
@@ -93,7 +89,7 @@ START_TEST(test_tab_updates_input_buffer)
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -134,14 +130,13 @@ START_TEST(test_tab_updates_input_buffer)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: ESC reverts to original input */
 START_TEST(test_esc_reverts_to_original)
 {
     void *ctx = talloc_new(NULL);
 
-    
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res_t agent_res = ik_test_create_agent(ctx, &agent);
@@ -154,7 +149,7 @@ START_TEST(test_esc_reverts_to_original)
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -201,14 +196,13 @@ START_TEST(test_esc_reverts_to_original)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Space commits selection and continues editing */
 START_TEST(test_space_commits_selection)
 {
     void *ctx = talloc_new(NULL);
 
-    
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res_t agent_res = ik_test_create_agent(ctx, &agent);
@@ -221,7 +215,7 @@ START_TEST(test_space_commits_selection)
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -265,14 +259,13 @@ START_TEST(test_space_commits_selection)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Tab with single candidate accepts and dismisses */
 START_TEST(test_enter_commits_and_submits)
 {
     void *ctx = talloc_new(NULL);
 
-    
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res_t agent_res = ik_test_create_agent(ctx, &agent);
@@ -285,7 +278,7 @@ START_TEST(test_enter_commits_and_submits)
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -323,6 +316,7 @@ START_TEST(test_enter_commits_and_submits)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Test Suite */

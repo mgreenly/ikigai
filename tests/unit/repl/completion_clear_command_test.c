@@ -21,8 +21,7 @@
 #include "../../test_utils.h"
 
 /* Test: /clear command clears autocomplete state */
-START_TEST(test_clear_command_clears_autocomplete)
-{
+START_TEST(test_clear_command_clears_autocomplete) {
     void *ctx = talloc_new(NULL);
 
     // Create agent

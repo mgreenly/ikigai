@@ -251,7 +251,6 @@ START_TEST(test_repl_init_signal_handler_failure)
 }
 
 END_TEST
-
 /* Test: History load failure (graceful degradation) */
 START_TEST(test_repl_init_history_load_failure)
 {
@@ -363,7 +362,6 @@ START_TEST(test_repl_init_creates_agent)
 }
 
 END_TEST
-
 /* Test: Initial agent is added to agents array */
 START_TEST(test_repl_init_agent_in_array)
 {
@@ -393,7 +391,6 @@ START_TEST(test_repl_init_agent_in_array)
 }
 
 END_TEST
-
 /* Test: ik_repl_find_agent returns correct agent */
 START_TEST(test_repl_find_agent_found)
 {
@@ -422,7 +419,6 @@ START_TEST(test_repl_find_agent_found)
 }
 
 END_TEST
-
 /* Test: ik_repl_find_agent returns NULL for unknown UUID */
 START_TEST(test_repl_find_agent_not_found)
 {

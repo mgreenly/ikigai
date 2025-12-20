@@ -16,14 +16,14 @@
 #include "../test_utils.h"
 #include "completion_test_mocks.h"
 
-static void press_space(ik_repl_ctx_t *r) {
+static void press_space(ik_repl_ctx_t *r)
+{
     ik_input_action_t a = {.type = IK_INPUT_CHAR, .codepoint = ' '};
     ik_repl_process_action(r, &a);
 }
 
 /* Test: Tab accepts selection and dismisses completion */
-START_TEST(test_completion_space_commits)
-{
+START_TEST(test_completion_space_commits) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
@@ -52,7 +52,6 @@ START_TEST(test_completion_space_commits)
     cleanup_test_dir();
 }
 END_TEST
-
 /* Test: Multiple Tab presses - each press accepts and dismisses */
 START_TEST(test_completion_tab_wraparound)
 {
@@ -78,9 +77,8 @@ START_TEST(test_completion_tab_wraparound)
     talloc_free(ctx);
     cleanup_test_dir();
 }
-END_TEST
 
-START_TEST(test_completion_single_item)
+END_TEST START_TEST(test_completion_single_item)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
@@ -107,8 +105,8 @@ START_TEST(test_completion_single_item)
     talloc_free(ctx);
     cleanup_test_dir();
 }
-END_TEST
 
+END_TEST
 /* Test: Tab accepts completion, ESC on empty input does nothing */
 START_TEST(test_completion_escape_exact_revert)
 {
@@ -151,8 +149,8 @@ START_TEST(test_completion_escape_exact_revert)
     talloc_free(ctx);
     cleanup_test_dir();
 }
-END_TEST
 
+END_TEST
 /* Test: Tab accepts and dismisses immediately */
 START_TEST(test_completion_tab_cycle_then_space)
 {
@@ -178,9 +176,8 @@ START_TEST(test_completion_tab_cycle_then_space)
     talloc_free(ctx);
     cleanup_test_dir();
 }
-END_TEST
 
-START_TEST(test_completion_space_on_first_tab)
+END_TEST START_TEST(test_completion_space_on_first_tab)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
@@ -210,8 +207,8 @@ START_TEST(test_completion_space_on_first_tab)
     talloc_free(ctx);
     cleanup_test_dir();
 }
-END_TEST
 
+END_TEST
 /* Test: Type after Tab adds to accepted completion */
 START_TEST(test_completion_type_cancels)
 {
@@ -244,8 +241,8 @@ START_TEST(test_completion_type_cancels)
     talloc_free(ctx);
     cleanup_test_dir();
 }
-END_TEST
 
+END_TEST
 /* Test: /rewind command has no args without marks */
 START_TEST(test_completion_rewind_args)
 {
@@ -274,8 +271,8 @@ START_TEST(test_completion_rewind_args)
     talloc_free(ctx);
     cleanup_test_dir();
 }
-END_TEST
 
+END_TEST
 /* Test: /mark command has no argument completion */
 START_TEST(test_completion_mark_no_args)
 {
@@ -303,8 +300,8 @@ START_TEST(test_completion_mark_no_args)
     talloc_free(ctx);
     cleanup_test_dir();
 }
-END_TEST
 
+END_TEST
 /* Test: /help command has no argument completion */
 START_TEST(test_completion_help_no_args)
 {
@@ -332,6 +329,7 @@ START_TEST(test_completion_help_no_args)
     talloc_free(ctx);
     cleanup_test_dir();
 }
+
 END_TEST
 
 static Suite *completion_edge_cases_suite(void)

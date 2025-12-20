@@ -46,7 +46,7 @@ static ik_repl_ctx_t *create_test_repl_minimal(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    
+
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
@@ -82,8 +82,7 @@ char *posix_getcwd_(char *buf, size_t size)
 }
 
 // Test: Clear when getcwd fails
-START_TEST(test_clear_getcwd_failure)
-{
+START_TEST(test_clear_getcwd_failure) {
     // Execute /clear - should fail when getcwd returns NULL
     res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_err(&res));

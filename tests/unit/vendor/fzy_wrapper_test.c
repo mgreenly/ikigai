@@ -11,14 +11,12 @@
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 
 /* Test: NULL ctx assertion */
-START_TEST(test_fzy_filter_null_ctx)
-{
+START_TEST(test_fzy_filter_null_ctx) {
     const char *candidates[] = {"test"};
     size_t count = 0;
     ik_fzy_filter(NULL, candidates, 1, "t", 10, &count);
 }
 END_TEST
-
 /* Test: NULL candidates assertion */
 START_TEST(test_fzy_filter_null_candidates)
 {
@@ -27,8 +25,8 @@ START_TEST(test_fzy_filter_null_candidates)
     ik_fzy_filter(ctx, NULL, 1, "t", 10, &count);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: NULL search assertion */
 START_TEST(test_fzy_filter_null_search)
 {
@@ -38,8 +36,8 @@ START_TEST(test_fzy_filter_null_search)
     ik_fzy_filter(ctx, candidates, 1, NULL, 10, &count);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: NULL count_out assertion */
 START_TEST(test_fzy_filter_null_count_out)
 {
@@ -48,6 +46,7 @@ START_TEST(test_fzy_filter_null_count_out)
     ik_fzy_filter(ctx, candidates, 1, "t", 10, NULL);
     talloc_free(ctx);
 }
+
 END_TEST
 
 #endif // !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
@@ -66,8 +65,8 @@ START_TEST(test_fzy_filter_normal)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: No matches */
 START_TEST(test_fzy_filter_no_matches)
 {
@@ -82,8 +81,8 @@ START_TEST(test_fzy_filter_no_matches)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Zero candidates */
 START_TEST(test_fzy_filter_zero_candidates)
 {
@@ -98,8 +97,8 @@ START_TEST(test_fzy_filter_zero_candidates)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Prefix matching only - "m" matches "mark", "model" but NOT "system" */
 START_TEST(test_fzy_filter_prefix_only)
 {
@@ -127,8 +126,8 @@ START_TEST(test_fzy_filter_prefix_only)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Case-insensitive prefix matching - "m" matches "Mark", "MODEL" */
 START_TEST(test_fzy_filter_prefix_case_insensitive)
 {
@@ -156,8 +155,8 @@ START_TEST(test_fzy_filter_prefix_case_insensitive)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: No prefix match - "m" with candidates that don't start with "m" returns NULL */
 START_TEST(test_fzy_filter_no_prefix_match)
 {
@@ -172,6 +171,7 @@ START_TEST(test_fzy_filter_no_prefix_match)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *fzy_wrapper_suite(void)

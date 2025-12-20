@@ -9,8 +9,7 @@
 #include <string.h>
 
 // Test: ik_test_set_log_dir sets IKIGAI_LOG_DIR from file path
-START_TEST(test_set_log_dir_from_file_path)
-{
+START_TEST(test_set_log_dir_from_file_path) {
     // Clear environment variable first
     unsetenv("IKIGAI_LOG_DIR");
 
@@ -21,7 +20,6 @@ START_TEST(test_set_log_dir_from_file_path)
     ck_assert_str_eq(log_dir, "/tmp/ikigai_logs_jsonl_basic_test");
 }
 END_TEST
-
 // Test: ik_test_set_log_dir handles nested paths
 START_TEST(test_set_log_dir_from_nested_path)
 {
@@ -33,8 +31,8 @@ START_TEST(test_set_log_dir_from_nested_path)
     ck_assert_ptr_nonnull(log_dir);
     ck_assert_str_eq(log_dir, "/tmp/ikigai_logs_mark_db_test");
 }
-END_TEST
 
+END_TEST
 // Test: ik_test_set_log_dir handles simple filename
 START_TEST(test_set_log_dir_simple_file)
 {
@@ -46,8 +44,8 @@ START_TEST(test_set_log_dir_simple_file)
     ck_assert_ptr_nonnull(log_dir);
     ck_assert_str_eq(log_dir, "/tmp/ikigai_logs_foo_test");
 }
-END_TEST
 
+END_TEST
 // Test: ik_test_set_log_dir handles NULL gracefully
 START_TEST(test_set_log_dir_null)
 {
@@ -58,8 +56,8 @@ START_TEST(test_set_log_dir_null)
     const char *log_dir = getenv("IKIGAI_LOG_DIR");
     ck_assert_ptr_null(log_dir);
 }
-END_TEST
 
+END_TEST
 // Test: ik_test_set_log_dir handles file without extension
 START_TEST(test_set_log_dir_no_extension)
 {
@@ -71,6 +69,7 @@ START_TEST(test_set_log_dir_no_extension)
     ck_assert_ptr_nonnull(log_dir);
     ck_assert_str_eq(log_dir, "/tmp/ikigai_logs_test_file");
 }
+
 END_TEST
 
 static Suite *log_dir_suite(void)

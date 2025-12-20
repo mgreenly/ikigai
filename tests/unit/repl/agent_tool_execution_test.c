@@ -25,7 +25,8 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent);
 
 /* Mock for db message insert */
 res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
-                            const char *kind, const char *content, const char *data_json) {
+                            const char *kind, const char *content, const char *data_json)
+{
     (void)db; (void)session_id; (void)agent_uuid;
     (void)kind; (void)content; (void)data_json;
     return OK(NULL);
@@ -66,9 +67,9 @@ static void setup(void)
 
     /* Create pending tool call for agent A */
     agent_a->pending_tool_call = ik_tool_call_create(agent_a,
-                                                      "call_a123",
-                                                      "glob",
-                                                      "{\"pattern\": \"*.c\"}");
+                                                     "call_a123",
+                                                     "glob",
+                                                     "{\"pattern\": \"*.c\"}");
 
     /* Create agent B */
     agent_b = talloc_zero(repl, ik_agent_ctx_t);
@@ -104,8 +105,7 @@ static void teardown(void)
  * 3. Complete tool execution for agent A
  * 4. Verify agent A has the tool result, agent B is unaffected
  */
-START_TEST(test_tool_execution_uses_agent_context)
-{
+START_TEST(test_tool_execution_uses_agent_context) {
     /* Start tool execution on agent A */
     ik_agent_start_tool_execution(agent_a);
 
@@ -152,7 +152,6 @@ START_TEST(test_tool_execution_uses_agent_context)
     ck_assert_ptr_null(agent_a->pending_tool_call);
 }
 END_TEST
-
 /**
  * Test: Start tool execution directly on agent (not via repl)
  */
@@ -183,6 +182,7 @@ START_TEST(test_start_tool_execution_on_agent)
 
     ik_agent_complete_tool_execution(agent_a);
 }
+
 END_TEST
 
 /**

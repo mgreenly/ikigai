@@ -114,7 +114,7 @@ res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Create mail message
     ik_mail_msg_t *msg = ik_mail_msg_create(ctx,
-        repl->current->uuid, recipient->uuid, body);
+                                            repl->current->uuid, recipient->uuid, body);
     if (msg == NULL) {     // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");     // LCOV_EXCL_LINE
     }
@@ -128,7 +128,7 @@ res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Display confirmation
     char confirm[64];
     int32_t written = snprintf(confirm, sizeof(confirm), "Mail sent to %.22s",
-        recipient->uuid);
+                               recipient->uuid);
     if (written < 0 || (size_t)written >= sizeof(confirm)) {     // LCOV_EXCL_BR_LINE
         PANIC("snprintf failed");     // LCOV_EXCL_LINE
     }
@@ -147,9 +147,9 @@ res_t ik_cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     ik_mail_msg_t **inbox = NULL;
     size_t count = 0;
     res_t res = ik_db_mail_inbox(repl->shared->db_ctx, ctx,
-                                  repl->shared->session_id,
-                                  repl->current->uuid,
-                                  &inbox, &count);
+                                 repl->shared->session_id,
+                                 repl->current->uuid,
+                                 &inbox, &count);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         return res;     // LCOV_EXCL_LINE
     }
@@ -210,9 +210,9 @@ res_t ik_cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     ik_mail_msg_t **inbox = NULL;
     size_t count = 0;
     res_t res = ik_db_mail_inbox(repl->shared->db_ctx, ctx,
-                                  repl->shared->session_id,
-                                  repl->current->uuid,
-                                  &inbox, &count);
+                                 repl->shared->session_id,
+                                 repl->current->uuid,
+                                 &inbox, &count);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         return res;     // LCOV_EXCL_LINE
     }
@@ -278,9 +278,9 @@ res_t ik_cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     ik_mail_msg_t **inbox = NULL;
     size_t count = 0;
     res_t res = ik_db_mail_inbox(repl->shared->db_ctx, ctx,
-                                  repl->shared->session_id,
-                                  repl->current->uuid,
-                                  &inbox, &count);
+                                 repl->shared->session_id,
+                                 repl->current->uuid,
+                                 &inbox, &count);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         return res;     // LCOV_EXCL_LINE
     }

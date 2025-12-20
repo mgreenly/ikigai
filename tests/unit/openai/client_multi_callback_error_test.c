@@ -140,7 +140,7 @@ END_TEST START_TEST(test_multi_info_read_callback_error_multiple_requests_shift)
         ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
         ik_msg_t *msg_tmp = ik_openai_msg_create(ctx, "user", "Hello");
-    ik_openai_conversation_add_msg(conv, msg_tmp);
+        ik_openai_conversation_add_msg(conv, msg_tmp);
 
         /* Only first request has error callback */
         if (i == 0) {

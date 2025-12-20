@@ -9,8 +9,7 @@
 #include "../../test_utils.h"
 
 // Test: Mouse scroll up sequence ESC [ < 64 ; col ; row M should generate IK_INPUT_SCROLL_UP
-START_TEST(test_mouse_scroll_up_parsing)
-{
+START_TEST(test_mouse_scroll_up_parsing) {
     void *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -33,7 +32,6 @@ START_TEST(test_mouse_scroll_up_parsing)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: Mouse scroll down sequence ESC [ < 65 ; col ; row M should generate IK_INPUT_SCROLL_DOWN
 START_TEST(test_mouse_scroll_down_parsing)
 {
@@ -58,8 +56,8 @@ START_TEST(test_mouse_scroll_down_parsing)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Mouse sequence without button field separator should be discarded
 START_TEST(test_mouse_sequence_missing_separator)
 {
@@ -79,8 +77,8 @@ START_TEST(test_mouse_sequence_missing_separator)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Mouse click event (button 0) should be discarded
 START_TEST(test_mouse_click_discarded)
 {
@@ -100,8 +98,8 @@ START_TEST(test_mouse_click_discarded)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Mouse release event (m) should be handled
 START_TEST(test_mouse_release_event)
 {
@@ -121,8 +119,8 @@ START_TEST(test_mouse_release_event)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Mouse button with single digit should be discarded
 START_TEST(test_mouse_single_digit_button)
 {
@@ -142,8 +140,8 @@ START_TEST(test_mouse_single_digit_button)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Mouse button with triple digits should be discarded
 START_TEST(test_mouse_triple_digit_button)
 {
@@ -163,8 +161,8 @@ START_TEST(test_mouse_triple_digit_button)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Mouse button 63 (not scroll) should be discarded
 START_TEST(test_mouse_button_63)
 {
@@ -184,8 +182,8 @@ START_TEST(test_mouse_button_63)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Mouse button 66 (not scroll) should be discarded
 START_TEST(test_mouse_button_66)
 {
@@ -205,8 +203,8 @@ START_TEST(test_mouse_button_66)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Mouse button 60 (b0='6' but b1='0', not scroll) should be discarded
 START_TEST(test_mouse_button_60)
 {
@@ -226,8 +224,8 @@ START_TEST(test_mouse_button_60)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Mouse button 62 (b0='6' but b1='2', not scroll) should be discarded
 START_TEST(test_mouse_button_62)
 {
@@ -247,6 +245,7 @@ START_TEST(test_mouse_button_62)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 // Create test suite

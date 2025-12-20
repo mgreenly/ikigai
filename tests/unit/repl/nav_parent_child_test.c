@@ -83,8 +83,7 @@ static void add_agent_to_array(ik_agent_ctx_t *agent)
 }
 
 // Test: nav_parent switches to parent
-START_TEST(test_nav_parent_switches_to_parent)
-{
+START_TEST(test_nav_parent_switches_to_parent) {
     // Create parent and child
     ik_agent_ctx_t *parent = create_test_agent("parent-uuid", NULL, 100);
     ik_agent_ctx_t *child = create_test_agent("child-uuid", "parent-uuid", 200);
@@ -99,7 +98,6 @@ START_TEST(test_nav_parent_switches_to_parent)
     ck_assert_ptr_eq(repl->current, parent);
 }
 END_TEST
-
 // Test: nav_parent at root = no action
 START_TEST(test_nav_parent_at_root_no_action)
 {
@@ -113,8 +111,8 @@ START_TEST(test_nav_parent_at_root_no_action)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, root);  // No change
 }
-END_TEST
 
+END_TEST
 // Test: nav_child switches to child
 START_TEST(test_nav_child_switches_to_child)
 {
@@ -131,8 +129,8 @@ START_TEST(test_nav_child_switches_to_child)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child);
 }
-END_TEST
 
+END_TEST
 // Test: nav_child selects most recent running child
 START_TEST(test_nav_child_selects_most_recent_child)
 {
@@ -153,8 +151,8 @@ START_TEST(test_nav_child_selects_most_recent_child)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child3);  // Most recent
 }
-END_TEST
 
+END_TEST
 // Test: nav_child with no children = no action
 START_TEST(test_nav_child_no_children_no_action)
 {
@@ -168,8 +166,8 @@ START_TEST(test_nav_child_no_children_no_action)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, parent);  // No change
 }
-END_TEST
 
+END_TEST
 // Test: nav_child skips dead children (not in agents array)
 START_TEST(test_nav_child_skips_dead_children)
 {
@@ -188,8 +186,8 @@ START_TEST(test_nav_child_skips_dead_children)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child1);  // Only running child
 }
-END_TEST
 
+END_TEST
 // Test: nav_parent with dead parent = no action
 START_TEST(test_nav_parent_with_dead_parent_no_action)
 {
@@ -203,8 +201,8 @@ START_TEST(test_nav_parent_with_dead_parent_no_action)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child);  // No change - parent not found
 }
-END_TEST
 
+END_TEST
 // Test: nav_child with multiple children of different parents
 START_TEST(test_nav_child_with_mixed_children)
 {
@@ -228,8 +226,8 @@ START_TEST(test_nav_child_with_mixed_children)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child3_of_p1);  // Most recent child of parent1
 }
-END_TEST
 
+END_TEST
 // Test: nav_child with zero created_at (legacy data)
 START_TEST(test_nav_child_with_zero_created_at)
 {
@@ -247,6 +245,7 @@ START_TEST(test_nav_child_with_zero_created_at)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child);
 }
+
 END_TEST
 
 // Create suite

@@ -123,8 +123,7 @@ static void teardown(void)
 }
 
 // Test: Agent A completes HTTP request while Agent B is current
-START_TEST(test_background_agent_http_completion)
-{
+START_TEST(test_background_agent_http_completion) {
     // Setup: Agent A has HTTP request in progress
     agent_a->state = IK_AGENT_STATE_WAITING_FOR_LLM;
     agent_a->curl_still_running = 1;  // Will be set to 0 by curl_multi_perform
@@ -159,7 +158,6 @@ START_TEST(test_background_agent_http_completion)
     ck_assert_int_eq(state_b, IK_AGENT_STATE_IDLE);
 }
 END_TEST
-
 // Test: Multiple background agents complete HTTP
 START_TEST(test_multiple_background_agents_completion)
 {
@@ -213,8 +211,8 @@ START_TEST(test_multiple_background_agents_completion)
     pthread_mutex_unlock(&agent_b->tool_thread_mutex);
     ck_assert_int_eq(state_b, IK_AGENT_STATE_IDLE);
 }
-END_TEST
 
+END_TEST
 // Test: HTTP error on background agent
 START_TEST(test_background_agent_http_error)
 {
@@ -252,6 +250,7 @@ START_TEST(test_background_agent_http_error)
     // Verify Agent B was not affected
     ck_assert_uint_eq(agent_b->conversation->message_count, 0);
 }
+
 END_TEST
 
 static Suite *all_agents_http_handling_suite(void)

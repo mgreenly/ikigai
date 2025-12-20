@@ -53,7 +53,8 @@ static char *read_log_file(void)
 }
 
 // Mock posix_rename_ to always fail
-int posix_rename_(const char *old, const char *new) {
+int posix_rename_(const char *old, const char *new)
+{
     (void)old;
     (void)new;
     errno = EACCES;
@@ -61,8 +62,7 @@ int posix_rename_(const char *old, const char *new) {
 }
 
 // Test: log file rotation failure is handled gracefully
-START_TEST(test_logger_rotation_failure_ignored)
-{
+START_TEST(test_logger_rotation_failure_ignored) {
     setup_test();
 
     // Create first logger and write to it

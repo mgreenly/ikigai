@@ -16,8 +16,7 @@
  * A line with embedded newlines like "Line1\nLine2\nLine3" should count
  * as at least 3 physical lines (one per newline-delimited segment).
  */
-START_TEST(test_scrollback_newline_basic_count)
-{
+START_TEST(test_scrollback_newline_basic_count) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -33,7 +32,6 @@ START_TEST(test_scrollback_newline_basic_count)
     talloc_free(ctx);
 }
 END_TEST
-
 /**
  * Test: Newline reflow preserves minimum line count
  *
@@ -63,8 +61,8 @@ START_TEST(test_scrollback_newline_reflow)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /**
  * Test: Trailing newline counts as empty line
  *
@@ -92,8 +90,8 @@ START_TEST(test_scrollback_trailing_newline)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /**
  * Test: Long segments wrap correctly after reflow
  *
@@ -139,8 +137,8 @@ START_TEST(test_scrollback_long_segment_reflow)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /**
  * Test: Multiple newlines create empty line segments
  *
@@ -167,6 +165,7 @@ START_TEST(test_scrollback_consecutive_newlines)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *scrollback_newline_reflow_suite(void)

@@ -5,8 +5,7 @@
 #include <talloc.h>
 #include <string.h>
 
-START_TEST(test_separator_layer_debug_info_microseconds)
-{
+START_TEST(test_separator_layer_debug_info_microseconds) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -37,9 +36,7 @@ START_TEST(test_separator_layer_debug_info_microseconds)
 
     talloc_free(ctx);
 }
-END_TEST
-
-START_TEST(test_separator_layer_debug_info_milliseconds)
+END_TEST START_TEST(test_separator_layer_debug_info_milliseconds)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -71,9 +68,8 @@ START_TEST(test_separator_layer_debug_info_milliseconds)
 
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_separator_layer_debug_info_small_document)
+END_TEST START_TEST(test_separator_layer_debug_info_small_document)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -99,9 +95,8 @@ START_TEST(test_separator_layer_debug_info_small_document)
 
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_separator_layer_debug_info_null_render_elapsed)
+END_TEST START_TEST(test_separator_layer_debug_info_null_render_elapsed)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -126,9 +121,8 @@ START_TEST(test_separator_layer_debug_info_null_render_elapsed)
 
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_separator_layer_debug_info_null_document_height)
+END_TEST START_TEST(test_separator_layer_debug_info_null_document_height)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -154,9 +148,8 @@ START_TEST(test_separator_layer_debug_info_null_document_height)
 
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_separator_layer_nav_context_with_debug_info)
+END_TEST START_TEST(test_separator_layer_nav_context_with_debug_info)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -186,6 +179,7 @@ START_TEST(test_separator_layer_nav_context_with_debug_info)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *separator_layer_debug_suite(void)

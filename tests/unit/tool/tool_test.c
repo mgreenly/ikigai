@@ -18,8 +18,7 @@ static void teardown(void)
 }
 
 // Test: ik_tool_add_string_parameter adds parameter correctly
-START_TEST(test_tool_add_string_param)
-{
+START_TEST(test_tool_add_string_param) {
     // Create yyjson document
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     ck_assert_ptr_nonnull(doc);

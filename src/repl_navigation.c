@@ -68,7 +68,7 @@ res_t ik_repl_nav_prev_sibling(ik_repl_ctx_t *repl)
         ik_agent_ctx_t *a = repl->agents[i];
         // Same parent means sibling (both NULL or both equal strings)
         bool same_parent = (parent == NULL && a->parent_uuid == NULL) ||
-                          (parent != NULL && a->parent_uuid != NULL && strcmp(parent, a->parent_uuid) == 0);     // LCOV_EXCL_BR_LINE
+                           (parent != NULL && a->parent_uuid != NULL && strcmp(parent, a->parent_uuid) == 0);    // LCOV_EXCL_BR_LINE
         if (same_parent) {
             siblings[sibling_count++] = a;
         }
@@ -105,7 +105,7 @@ res_t ik_repl_nav_next_sibling(ik_repl_ctx_t *repl)
         ik_agent_ctx_t *a = repl->agents[i];
         // Same parent means sibling (both NULL or both equal strings)
         bool same_parent = (parent == NULL && a->parent_uuid == NULL) ||
-                          (parent != NULL && a->parent_uuid != NULL && strcmp(parent, a->parent_uuid) == 0);     // LCOV_EXCL_BR_LINE
+                           (parent != NULL && a->parent_uuid != NULL && strcmp(parent, a->parent_uuid) == 0);    // LCOV_EXCL_BR_LINE
         if (same_parent) {
             siblings[sibling_count++] = a;
         }
@@ -140,7 +140,7 @@ res_t ik_repl_nav_parent(ik_repl_ctx_t *repl)
     // Dead agents are removed from agents[], so find returns NULL
     // if parent was killed. Separator shows grayed indicator.
     ik_agent_ctx_t *parent = ik_repl_find_agent(repl,
-        repl->current->parent_uuid);
+                                                repl->current->parent_uuid);
     if (parent) {
         CHECK(ik_repl_switch_agent(repl, parent));     // LCOV_EXCL_BR_LINE
     }
@@ -240,5 +240,5 @@ void ik_repl_update_nav_context(ik_repl_ctx_t *repl)
         repl->current->uuid,
         next_sibling,
         child_count
-    );
+        );
 }

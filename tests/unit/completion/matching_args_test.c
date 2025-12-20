@@ -53,8 +53,7 @@ static void teardown(void)
 }
 
 // Test: /debug argument completion
-START_TEST(test_completion_debug_arguments)
-{
+START_TEST(test_completion_debug_arguments) {
     // "/debug " should complete to ["off", "on"] (order may vary by fzy score)
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/debug ");
     ck_assert_ptr_nonnull(comp);
@@ -91,7 +90,6 @@ START_TEST(test_completion_debug_arguments)
     ck_assert_str_eq(comp->candidates[0], "off");
 }
 END_TEST
-
 // Test: /rewind argument completion with marks
 START_TEST(test_completion_rewind_arguments)
 {
@@ -120,8 +118,8 @@ START_TEST(test_completion_rewind_arguments)
     ck_assert_ptr_nonnull(comp);
     ck_assert_uint_ge(comp->count, 1);
 }
-END_TEST
 
+END_TEST
 // Test: /rewind with no marks
 START_TEST(test_completion_rewind_no_marks)
 {
@@ -129,8 +127,8 @@ START_TEST(test_completion_rewind_no_marks)
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/rewind ");
     ck_assert_ptr_null(comp);
 }
-END_TEST
 
+END_TEST
 // Test: /model argument completion
 START_TEST(test_completion_model_arguments)
 {
@@ -138,8 +136,8 @@ START_TEST(test_completion_model_arguments)
     ck_assert_ptr_nonnull(comp);
     ck_assert(comp->count > 0);
 }
-END_TEST
 
+END_TEST
 // Test: Uppercase argument prefix (tests case handling in fzy)
 START_TEST(test_completion_argument_case_sensitive)
 {
@@ -149,8 +147,8 @@ START_TEST(test_completion_argument_case_sensitive)
     // Accept either matches or no matches - the important part is it doesn't crash
     // (either result is valid depending on fzy implementation)
 }
-END_TEST
 
+END_TEST
 // Test: No space in input (just command name)
 START_TEST(test_completion_no_space_in_input)
 {
@@ -158,8 +156,8 @@ START_TEST(test_completion_no_space_in_input)
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/debug");
     ck_assert_ptr_null(comp);
 }
-END_TEST
 
+END_TEST
 // Test: Empty command name ("/ ")
 START_TEST(test_completion_empty_command_name)
 {
@@ -167,8 +165,8 @@ START_TEST(test_completion_empty_command_name)
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/ ");
     ck_assert_ptr_null(comp);
 }
-END_TEST
 
+END_TEST
 // Test: Clear completion state
 START_TEST(test_completion_clear)
 {
@@ -189,8 +187,8 @@ START_TEST(test_completion_clear)
     ck_assert_ptr_null(comp->prefix);
     ck_assert_ptr_null(comp->original_input);
 }
-END_TEST
 
+END_TEST
 // Test: Clear completion with original_input set
 START_TEST(test_completion_clear_with_original_input)
 {
@@ -212,6 +210,7 @@ START_TEST(test_completion_clear_with_original_input)
     ck_assert_ptr_null(comp->prefix);
     ck_assert_ptr_null(comp->original_input);
 }
+
 END_TEST
 
 static Suite *completion_matching_args_suite(void)

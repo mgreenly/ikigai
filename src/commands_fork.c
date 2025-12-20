@@ -249,13 +249,15 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
             PANIC("Out of memory");     // LCOV_EXCL_LINE
         }
         char *parent_data = talloc_asprintf(ctx,
-            "{\"child_uuid\":\"%s\",\"fork_message_id\":%" PRId64 ",\"role\":\"parent\"}",
-            child->uuid, fork_message_id);
+                                            "{\"child_uuid\":\"%s\",\"fork_message_id\":%" PRId64
+                                            ",\"role\":\"parent\"}",
+                                            child->uuid,
+                                            fork_message_id);
         if (parent_data == NULL) {     // LCOV_EXCL_BR_LINE
             PANIC("Out of memory");     // LCOV_EXCL_LINE
         }
         res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                    parent->uuid, "fork", parent_content, parent_data);
+                                   parent->uuid, "fork", parent_content, parent_data);
         talloc_free(parent_content);
         talloc_free(parent_data);
         if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
@@ -270,13 +272,14 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
             PANIC("Out of memory");     // LCOV_EXCL_LINE
         }
         char *child_data = talloc_asprintf(ctx,
-            "{\"parent_uuid\":\"%s\",\"fork_message_id\":%" PRId64 ",\"role\":\"child\"}",
-            parent->uuid, fork_message_id);
+                                           "{\"parent_uuid\":\"%s\",\"fork_message_id\":%" PRId64 ",\"role\":\"child\"}",
+                                           parent->uuid,
+                                           fork_message_id);
         if (child_data == NULL) {     // LCOV_EXCL_BR_LINE
             PANIC("Out of memory");     // LCOV_EXCL_LINE
         }
         res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                    child->uuid, "fork", child_content, child_data);
+                                   child->uuid, "fork", child_content, child_data);
         talloc_free(child_content);
         talloc_free(child_data);
         if (is_err(&res)) {     // LCOV_EXCL_BR_LINE

@@ -76,8 +76,7 @@ static void teardown(void)
 }
 
 // Test: Load from empty file (creates file if missing)
-START_TEST(test_history_load_empty_file)
-{
+START_TEST(test_history_load_empty_file) {
     // Load when file doesn't exist - should succeed with empty history
     res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
@@ -90,7 +89,6 @@ START_TEST(test_history_load_empty_file)
     ck_assert_int_eq(stat(".ikigai/history", &st), 0);
 }
 END_TEST
-
 // Test: Load valid JSONL entries
 START_TEST(test_history_load_valid_entries)
 {
@@ -114,8 +112,8 @@ START_TEST(test_history_load_valid_entries)
     ck_assert_str_eq(hist->entries[1], "hello\nworld");  // Multi-line preserved
     ck_assert_str_eq(hist->entries[2], "/model gpt-4o");
 }
-END_TEST
 
+END_TEST
 // Test: Load respects capacity limit
 START_TEST(test_history_load_respects_capacity)
 {
@@ -140,8 +138,8 @@ START_TEST(test_history_load_respects_capacity)
     ck_assert_str_eq(hist->entries[0], "command 5");   // First kept entry
     ck_assert_str_eq(hist->entries[9], "command 14");  // Last entry
 }
-END_TEST
 
+END_TEST
 // Test: Load skips malformed lines
 START_TEST(test_history_load_malformed_line)
 {
@@ -167,8 +165,8 @@ START_TEST(test_history_load_malformed_line)
     ck_assert_str_eq(hist->entries[1], "valid2");
     ck_assert_str_eq(hist->entries[2], "valid3");
 }
-END_TEST
 
+END_TEST
 // Test: Save writes atomic JSONL file
 START_TEST(test_history_save_atomic_write)
 {
@@ -214,8 +212,8 @@ START_TEST(test_history_save_atomic_write)
     // Verify temp file was cleaned up
     ck_assert_int_eq(stat(".ikigai/history.tmp", &st), -1);
 }
-END_TEST
 
+END_TEST
 // Test: Append entry to file
 START_TEST(test_history_append_entry)
 {
@@ -249,8 +247,8 @@ START_TEST(test_history_append_entry)
     ck_assert_int_eq(line_count, 3);
     fclose(f);
 }
-END_TEST
 
+END_TEST
 // Test: Load when file missing creates empty history
 START_TEST(test_history_load_file_missing)
 {
@@ -267,8 +265,8 @@ START_TEST(test_history_load_file_missing)
     ck_assert(S_ISDIR(st.st_mode));
     ck_assert_int_eq(stat(".ikigai/history", &st), 0);
 }
-END_TEST
 
+END_TEST
 // Test: Append creates file if missing
 START_TEST(test_history_append_creates_file)
 {
@@ -290,8 +288,8 @@ START_TEST(test_history_append_creates_file)
 
     fclose(f);
 }
-END_TEST
 
+END_TEST
 // Test: Save empty history
 START_TEST(test_history_save_empty)
 {
@@ -304,8 +302,8 @@ START_TEST(test_history_save_empty)
     ck_assert_int_eq(stat(".ikigai/history", &st), 0);
     ck_assert_int_eq((int)st.st_size, 0);
 }
-END_TEST
 
+END_TEST
 // Test: Load from file with size 0 (truly empty file)
 START_TEST(test_history_load_file_size_zero)
 {
@@ -328,8 +326,8 @@ START_TEST(test_history_load_file_size_zero)
     // Verify history is empty
     ck_assert_uint_eq(hist->count, 0);
 }
-END_TEST
 
+END_TEST
 // Test: Load from file with last line without newline
 START_TEST(test_history_load_last_line_no_newline)
 {
@@ -351,8 +349,8 @@ START_TEST(test_history_load_last_line_no_newline)
     ck_assert_str_eq(hist->entries[0], "entry1");
     ck_assert_str_eq(hist->entries[1], "entry2");
 }
-END_TEST
 
+END_TEST
 // Test: Load from file with empty lines
 START_TEST(test_history_load_empty_lines)
 {
@@ -379,8 +377,8 @@ START_TEST(test_history_load_empty_lines)
     ck_assert_str_eq(hist->entries[1], "entry2");
     ck_assert_str_eq(hist->entries[2], "entry3");
 }
-END_TEST
 
+END_TEST
 // Test: Load from file with non-object JSON
 START_TEST(test_history_load_non_object_json)
 {
@@ -405,8 +403,8 @@ START_TEST(test_history_load_non_object_json)
     ck_assert_str_eq(hist->entries[0], "entry1");
     ck_assert_str_eq(hist->entries[1], "entry2");
 }
-END_TEST
 
+END_TEST
 // Test: Load from file with cmd field that is not a string
 START_TEST(test_history_load_cmd_not_string)
 {
@@ -431,6 +429,7 @@ START_TEST(test_history_load_cmd_not_string)
     ck_assert_str_eq(hist->entries[0], "entry1");
     ck_assert_str_eq(hist->entries[1], "entry2");
 }
+
 END_TEST
 
 static Suite *history_file_io_suite(void)

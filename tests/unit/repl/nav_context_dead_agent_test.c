@@ -57,8 +57,7 @@ static ik_agent_ctx_t *create_agent_with_separator(const char *uuid, const char 
 
 // Test: Exercise edge case where agents have mismatched state
 // This test creates a scenario that exercises defensive NULL checks
-START_TEST(test_nav_context_with_removed_prev_sibling)
-{
+START_TEST(test_nav_context_with_removed_prev_sibling) {
     // Create 4 siblings with different timestamps, ensuring we test
     // the comparison logic paths at lines 610 and 620
     ik_agent_ctx_t *sibling1 = create_agent_with_separator("sibling1-uuid-xxx", NULL, 1000);
@@ -89,7 +88,6 @@ START_TEST(test_nav_context_with_removed_prev_sibling)
     ck_assert_ptr_nonnull(sibling4->separator_layer);
 }
 END_TEST
-
 // Test: ik_repl_update_nav_context with dead/removed next sibling
 START_TEST(test_nav_context_with_removed_next_sibling)
 {
@@ -115,8 +113,8 @@ START_TEST(test_nav_context_with_removed_next_sibling)
     // Clean up temporary agent not in repl
     talloc_free(sibling3);
 }
-END_TEST
 
+END_TEST
 // Test: ik_repl_update_nav_context with multiple prev siblings (tests line 610 branches)
 START_TEST(test_nav_context_multiple_prev_siblings)
 {
@@ -142,8 +140,8 @@ START_TEST(test_nav_context_multiple_prev_siblings)
     // Should complete without crash
     ck_assert_ptr_nonnull(sibling4->separator_layer);
 }
-END_TEST
 
+END_TEST
 // Test: ik_repl_update_nav_context with multiple next siblings (tests line 620 branches)
 START_TEST(test_nav_context_multiple_next_siblings)
 {
@@ -169,6 +167,7 @@ START_TEST(test_nav_context_multiple_next_siblings)
     // Should complete without crash
     ck_assert_ptr_nonnull(sibling1->separator_layer);
 }
+
 END_TEST
 
 static Suite *nav_context_dead_agent_suite(void)

@@ -145,9 +145,9 @@ START_TEST(test_request_success_starts_tool_execution)
 
     // Create a pending tool call - this will trigger tool execution
     repl->current->pending_tool_call = ik_tool_call_create(test_ctx,
-                                                  "call_test123",
-                                                  "glob",
-                                                  "{\"pattern\": \"*.c\"}");
+                                                           "call_test123",
+                                                           "glob",
+                                                           "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 
     // Initialize thread infrastructure for tool execution
@@ -200,9 +200,9 @@ START_TEST(test_handle_curl_events_tool_execution_state)
 
     // Create a pending tool call - this will cause state to become EXECUTING_TOOL
     repl->current->pending_tool_call = ik_tool_call_create(test_ctx,
-                                                  "call_abc",
-                                                  "glob",
-                                                  "{\"pattern\": \"*.c\"}");
+                                                           "call_abc",
+                                                           "glob",
+                                                           "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 
     // Initialize thread infrastructure

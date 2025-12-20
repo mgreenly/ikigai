@@ -104,7 +104,6 @@ START_TEST(test_render_frame_empty_scrollback) {
     mock_write_reset();
 }
 END_TEST
-
 /* Test: Render frame with scrollback content */
 START_TEST(test_render_frame_with_scrollback)
 {

@@ -176,7 +176,6 @@ START_TEST(test_format_tool_result_bash_tool)
 }
 
 END_TEST
-
 // Test: Format tool call with multiple arguments (order may vary)
 START_TEST(test_format_tool_call_multiple_args)
 {
@@ -195,7 +194,6 @@ START_TEST(test_format_tool_call_multiple_args)
 }
 
 END_TEST
-
 // Test: Format tool call with no arguments (empty object)
 START_TEST(test_format_tool_call_no_args)
 {
@@ -210,7 +208,6 @@ START_TEST(test_format_tool_call_no_args)
 }
 
 END_TEST
-
 // Test: Format tool call with empty string arguments
 START_TEST(test_format_tool_call_null_args)
 {
@@ -225,7 +222,6 @@ START_TEST(test_format_tool_call_null_args)
 }
 
 END_TEST
-
 // Test: Format tool call with invalid JSON (fallback)
 START_TEST(test_format_tool_call_invalid_json)
 {
@@ -240,7 +236,6 @@ START_TEST(test_format_tool_call_invalid_json)
 }
 
 END_TEST
-
 // Test: Format tool call with boolean value
 START_TEST(test_format_tool_call_bool_value)
 {
@@ -257,7 +252,6 @@ START_TEST(test_format_tool_call_bool_value)
 }
 
 END_TEST
-
 // Test: Format tool call with integer value
 START_TEST(test_format_tool_call_int_value)
 {
@@ -271,7 +265,6 @@ START_TEST(test_format_tool_call_int_value)
 }
 
 END_TEST
-
 // Test: Format tool call with real/float value
 START_TEST(test_format_tool_call_real_value)
 {
@@ -286,7 +279,6 @@ START_TEST(test_format_tool_call_real_value)
 }
 
 END_TEST
-
 // Test: Format tool call with null value
 START_TEST(test_format_tool_call_null_value)
 {
@@ -300,7 +292,6 @@ START_TEST(test_format_tool_call_null_value)
 }
 
 END_TEST
-
 // Test: Format tool result - short string array
 START_TEST(test_format_tool_result_short)
 {
@@ -310,7 +301,6 @@ START_TEST(test_format_tool_result_short)
 }
 
 END_TEST
-
 // Test: Format tool result - empty string
 START_TEST(test_format_tool_result_empty_string)
 {
@@ -320,7 +310,6 @@ START_TEST(test_format_tool_result_empty_string)
 }
 
 END_TEST
-
 // Test: Format tool result - truncate by characters (>400 chars)
 START_TEST(test_format_tool_result_truncate_chars)
 {
@@ -341,7 +330,6 @@ START_TEST(test_format_tool_result_truncate_chars)
 }
 
 END_TEST
-
 // Test: Format tool result - truncate by lines (>3 lines)
 START_TEST(test_format_tool_result_truncate_lines)
 {
@@ -358,7 +346,6 @@ START_TEST(test_format_tool_result_truncate_lines)
 }
 
 END_TEST
-
 // Test: Format tool result - error object
 START_TEST(test_format_tool_result_error_object)
 {
@@ -371,7 +358,6 @@ START_TEST(test_format_tool_result_error_object)
 }
 
 END_TEST
-
 // Test: Format tool result - array of strings joined with comma
 START_TEST(test_format_tool_result_array_of_strings)
 {
@@ -381,7 +367,6 @@ START_TEST(test_format_tool_result_array_of_strings)
 }
 
 END_TEST
-
 // Test: Format tool result - exactly three lines (no truncation)
 START_TEST(test_format_tool_result_exactly_three_lines)
 {
@@ -396,7 +381,6 @@ START_TEST(test_format_tool_result_exactly_three_lines)
 }
 
 END_TEST
-
 // Test: Format tool result - invalid JSON (fallback to raw)
 START_TEST(test_format_tool_result_invalid_json)
 {
@@ -408,7 +392,6 @@ START_TEST(test_format_tool_result_invalid_json)
 }
 
 END_TEST
-
 // Test: Format tool result - simple string content
 START_TEST(test_format_tool_result_simple_string)
 {

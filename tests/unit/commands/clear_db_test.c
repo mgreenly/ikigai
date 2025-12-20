@@ -329,7 +329,6 @@ START_TEST(test_clear_system_db_error_no_debug_pipe)
 }
 
 END_TEST
-
 // Test: Clear with DB error and debug pipe but write_end is NULL
 START_TEST(test_clear_db_error_write_end_null)
 {
@@ -405,7 +404,6 @@ START_TEST(test_clear_system_db_error_write_end_null)
 }
 
 END_TEST
-
 // Test: Clear with session_id <= 0 (no DB persistence)
 START_TEST(test_clear_with_invalid_session_id)
 {

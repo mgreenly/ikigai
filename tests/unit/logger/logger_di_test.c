@@ -54,8 +54,7 @@ static char *read_log_file(void)
 }
 
 // Test: ik_logger_create returns non-NULL logger
-START_TEST(test_logger_create_returns_logger)
-{
+START_TEST(test_logger_create_returns_logger) {
     setup_test();
 
     ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);
@@ -64,7 +63,6 @@ START_TEST(test_logger_create_returns_logger)
     teardown_test();
 }
 END_TEST
-
 // Test: ik_logger_debug_json writes to log file
 START_TEST(test_logger_debug_writes_jsonl)
 {
@@ -86,8 +84,8 @@ START_TEST(test_logger_debug_writes_jsonl)
 
     teardown_test();
 }
-END_TEST
 
+END_TEST
 // Test: logger output has correct level field
 START_TEST(test_logger_has_level_field)
 {
@@ -116,8 +114,8 @@ START_TEST(test_logger_has_level_field)
     yyjson_doc_free(parsed);
     teardown_test();
 }
-END_TEST
 
+END_TEST
 // Test: logger output has timestamp field
 START_TEST(test_logger_has_timestamp_field)
 {
@@ -145,8 +143,8 @@ START_TEST(test_logger_has_timestamp_field)
     yyjson_doc_free(parsed);
     teardown_test();
 }
-END_TEST
 
+END_TEST
 // Test: logger output has logline field with original content
 START_TEST(test_logger_has_logline_field)
 {
@@ -181,8 +179,8 @@ START_TEST(test_logger_has_logline_field)
     yyjson_doc_free(parsed);
     teardown_test();
 }
-END_TEST
 
+END_TEST
 // Test: talloc cleanup properly closes logger
 START_TEST(test_logger_cleanup_on_talloc_free)
 {
@@ -209,8 +207,8 @@ START_TEST(test_logger_cleanup_on_talloc_free)
 
     teardown_test();
 }
-END_TEST
 
+END_TEST
 // Test: ik_logger_reinit changes log file location
 START_TEST(test_logger_reinit_changes_location)
 {
@@ -271,8 +269,8 @@ START_TEST(test_logger_reinit_changes_location)
 
     teardown_test();
 }
-END_TEST
 
+END_TEST
 // Test: ik_logger_get_fd returns valid fd for normal logger
 START_TEST(test_logger_get_fd_returns_valid_fd)
 {
@@ -286,14 +284,50 @@ START_TEST(test_logger_get_fd_returns_valid_fd)
 
     teardown_test();
 }
-END_TEST
 
+END_TEST
 // Test: ik_logger_get_fd returns -1 for NULL logger
 START_TEST(test_logger_get_fd_null_logger)
 {
     int fd = ik_logger_get_fd(NULL);
     ck_assert_int_eq(fd, -1);
 }
+
+END_TEST
+// Test: logger respects IKIGAI_LOG_DIR environment variable
+START_TEST(test_logger_respects_env_var_override)
+{
+    // Create unique temp directory for this test
+    char override_dir[256];
+    snprintf(override_dir, sizeof(override_dir), "/tmp/ikigai_logger_env_test_%d", getpid());
+    mkdir(override_dir, 0755);
+
+    // Set the environment variable
+    setenv("IKIGAI_LOG_DIR", override_dir, 1);
+
+    // Create logger (working_dir doesn't matter when env var is set)
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp/should_be_ignored");
+    ck_assert_ptr_nonnull(logger);
+
+    // Verify log file exists in override directory
+    char expected_log[512];
+    snprintf(expected_log, sizeof(expected_log), "%s/current.log", override_dir);
+
+    struct stat st;
+    ck_assert_int_eq(stat(expected_log, &st), 0);
+
+    // Verify log file does NOT exist in default location
+    struct stat st2;
+    ck_assert_int_ne(stat("/tmp/should_be_ignored/.ikigai/logs/current.log", &st2), 0);
+
+    // Cleanup
+    talloc_free(ctx);
+    unsetenv("IKIGAI_LOG_DIR");
+    unlink(expected_log);
+    rmdir(override_dir);
+}
+
 END_TEST
 
 #ifndef SKIP_SIGNAL_TESTS
@@ -317,9 +351,9 @@ START_TEST(test_logger_fatal_exits)
 
     teardown_test();
 }
+
 END_TEST
 #endif
-
 
 static Suite *logger_di_suite(void)
 {
@@ -338,6 +372,7 @@ static Suite *logger_di_suite(void)
     tcase_add_test(tc_core, test_logger_reinit_changes_location);
     tcase_add_test(tc_core, test_logger_get_fd_returns_valid_fd);
     tcase_add_test(tc_core, test_logger_get_fd_null_logger);
+    tcase_add_test(tc_core, test_logger_respects_env_var_override);
 #ifndef SKIP_SIGNAL_TESTS
     tcase_add_exit_test(tc_core, test_logger_fatal_exits, 1);
 #endif

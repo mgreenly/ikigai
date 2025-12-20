@@ -88,10 +88,10 @@ res_t ik_repl_process_scroll_detection(ik_repl_ctx_t *repl, const ik_input_actio
             return OK(NULL);
         case IK_SCROLL_RESULT_NONE:
             // Buffered, waiting for more - signal handled
-            return OK((void*)1);
+            return OK((void *)1);
         case IK_SCROLL_RESULT_ABSORBED:
             // Arrow absorbed as part of burst - signal handled
-            return OK((void*)1);
+            return OK((void *)1);
     }
     // LCOV_EXCL_STOP
 
@@ -249,7 +249,7 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
                 // Revert to original input
                 const char *original = repl->current->completion->original_input;
                 res_t res = ik_input_buffer_set_text(repl->current->input_buffer,
-                                                      original, strlen(original));
+                                                     original, strlen(original));
                 if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
                     return res;  // LCOV_EXCL_LINE
                 }

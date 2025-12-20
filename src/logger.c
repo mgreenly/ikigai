@@ -43,6 +43,7 @@ static void ik_log_format_timestamp_impl(char *buf, size_t buf_len, const char *
              tm.tm_hour, tm.tm_min, tm.tm_sec,
              milliseconds, offset_hours, abs(offset_minutes));
 }
+
 #pragma GCC diagnostic pop
 
 static void ik_log_format_timestamp(char *buf, size_t buf_len)
@@ -77,6 +78,7 @@ static void ik_log_rotate_if_exists(const char *log_path)
         return;
     }
 }
+
 static void ik_log_setup_directories(const char *working_dir, char *log_path)
 {
     assert(working_dir != NULL); // LCOV_EXCL_BR_LINE

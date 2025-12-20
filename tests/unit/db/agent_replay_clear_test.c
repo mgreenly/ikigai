@@ -111,10 +111,10 @@ static void test_teardown(void)
 
 // Skip macro for tests when DB not available
 #define SKIP_IF_NO_DB() do { \
-    if (!db_available) { \
-        return; \
-    } \
-} while(0)
+            if (!db_available) { \
+                return; \
+            } \
+} while (0)
 
 // Helper: Insert an agent into the registry
 static void insert_agent(const char *uuid, const char *parent_uuid,
@@ -142,8 +142,7 @@ static void insert_message(const char *agent_uuid, const char *kind,
 // ========== find_clear Tests ==========
 
 // Test: find_clear returns 0 when no clear exists
-START_TEST(test_find_clear_no_clear)
-{
+START_TEST(test_find_clear_no_clear) {
     SKIP_IF_NO_DB();
 
     // Insert agent
@@ -160,7 +159,6 @@ START_TEST(test_find_clear_no_clear)
     ck_assert_int_eq(clear_id, 0);
 }
 END_TEST
-
 // Test: find_clear returns correct message ID
 START_TEST(test_find_clear_returns_id)
 {
@@ -180,8 +178,8 @@ START_TEST(test_find_clear_returns_id)
     ck_assert(is_ok(&res));
     ck_assert(clear_id > 0);
 }
-END_TEST
 
+END_TEST
 // Test: find_clear respects max_id limit
 START_TEST(test_find_clear_respects_max_id)
 {
@@ -214,6 +212,7 @@ START_TEST(test_find_clear_respects_max_id)
         ck_assert(earlier_clear_id < clear_id_all);
     }
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

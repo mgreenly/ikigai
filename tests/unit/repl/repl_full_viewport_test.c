@@ -24,14 +24,16 @@
 
 // Mock write wrapper for testing (required by render system)
 ssize_t posix_write_(int fd, const void *buf, size_t count);
-ssize_t posix_write_(int fd, const void *buf, size_t count) {
+ssize_t posix_write_(int fd, const void *buf, size_t count)
+{
     (void)fd;
     (void)buf;
     return (ssize_t)count;
 }
 
 // Helper function to create a basic REPL context for testing
-static void create_test_repl(TALLOC_CTX *ctx, int32_t rows, int32_t cols, ik_repl_ctx_t **repl_out) {
+static void create_test_repl(TALLOC_CTX *ctx, int32_t rows, int32_t cols, ik_repl_ctx_t **repl_out)
+{
     res_t res;
 
     // Create render context
@@ -215,13 +217,13 @@ START_TEST(test_layer_positions_when_viewport_full) {
     talloc_free(ctx);
 }
 END_TEST
-
 /**
  * Test: Verify lower separator is accounted for in document height
  *
  * This test verifies that the document height calculation includes the lower separator.
  */
-START_TEST(test_document_height_includes_lower_separator) {
+START_TEST(test_document_height_includes_lower_separator)
+{
     void *ctx = talloc_new(NULL);
 
     // Create REPL with small terminal (10 rows x 80 cols)
@@ -261,15 +263,16 @@ START_TEST(test_document_height_includes_lower_separator) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /**
  * Test: Bottom separator visible when viewport is full
  *
  * When the viewport is filled with content, the bottom separator should still be visible
  * (not pushed off-screen).
  */
-START_TEST(test_bottom_separator_visible_when_viewport_full) {
+START_TEST(test_bottom_separator_visible_when_viewport_full)
+{
     void *ctx = talloc_new(NULL);
 
     // Create REPL with 20 rows x 80 cols
@@ -310,8 +313,8 @@ START_TEST(test_bottom_separator_visible_when_viewport_full) {
     bool found_separator = false;
     for (size_t i = 0; i < output->size - 2; i++) {
         if ((unsigned char)output->data[i] == 0xE2 &&
-            (unsigned char)output->data[i+1] == 0x94 &&
-            (unsigned char)output->data[i+2] == 0x80) {
+            (unsigned char)output->data[i + 1] == 0x94 &&
+            (unsigned char)output->data[i + 2] == 0x80) {
             found_separator = true;
             break;
         }
@@ -322,9 +325,11 @@ START_TEST(test_bottom_separator_visible_when_viewport_full) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 
-static Suite *repl_full_viewport_suite(void) {
+static Suite *repl_full_viewport_suite(void)
+{
     Suite *s = suite_create("REPL Full Viewport");
 
     TCase *tc_core = tcase_create("Core");
@@ -336,7 +341,8 @@ static Suite *repl_full_viewport_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     Suite *s = repl_full_viewport_suite();
     SRunner *sr = srunner_create(s);
     srunner_run_all(sr, CK_NORMAL);

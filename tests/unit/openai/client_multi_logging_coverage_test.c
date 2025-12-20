@@ -21,9 +21,8 @@ START_TEST(test_yyjson_mut_doc_get_root_wrapper_null) {
     ck_assert_ptr_null(result);
 }
 
-END_TEST
-
-START_TEST(test_yyjson_mut_doc_get_root_wrapper_valid) {
+END_TEST START_TEST(test_yyjson_mut_doc_get_root_wrapper_valid)
+{
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     ck_assert_ptr_nonnull(doc);
 
@@ -37,25 +36,22 @@ START_TEST(test_yyjson_mut_doc_get_root_wrapper_valid) {
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_yyjson_mut_obj_add_str_wrapper_null_doc) {
+END_TEST START_TEST(test_yyjson_mut_obj_add_str_wrapper_null_doc)
+{
     bool result = yyjson_mut_obj_add_str_wrapper(NULL, NULL, "key", "value");
     ck_assert(!result);
 }
 
-END_TEST
-
-START_TEST(test_yyjson_mut_obj_add_str_wrapper_null_obj) {
+END_TEST START_TEST(test_yyjson_mut_obj_add_str_wrapper_null_obj)
+{
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     bool result = yyjson_mut_obj_add_str_wrapper(doc, NULL, "key", "value");
     ck_assert(!result);
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_yyjson_mut_obj_add_str_wrapper_valid) {
+END_TEST START_TEST(test_yyjson_mut_obj_add_str_wrapper_valid)
+{
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *obj = yyjson_mut_obj(doc);
     bool result = yyjson_mut_obj_add_str_wrapper(doc, obj, "key", "value");
@@ -63,9 +59,8 @@ START_TEST(test_yyjson_mut_obj_add_str_wrapper_valid) {
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_yyjson_mut_obj_add_str_wrapper_null_val) {
+END_TEST START_TEST(test_yyjson_mut_obj_add_str_wrapper_null_val)
+{
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *obj = yyjson_mut_obj(doc);
     bool result = yyjson_mut_obj_add_str_wrapper(doc, obj, "key", NULL);
@@ -73,25 +68,22 @@ START_TEST(test_yyjson_mut_obj_add_str_wrapper_null_val) {
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_yyjson_mut_obj_add_int_wrapper_null_doc) {
+END_TEST START_TEST(test_yyjson_mut_obj_add_int_wrapper_null_doc)
+{
     bool result = yyjson_mut_obj_add_int_wrapper(NULL, NULL, "key", 42);
     ck_assert(!result);
 }
 
-END_TEST
-
-START_TEST(test_yyjson_mut_obj_add_int_wrapper_null_obj) {
+END_TEST START_TEST(test_yyjson_mut_obj_add_int_wrapper_null_obj)
+{
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     bool result = yyjson_mut_obj_add_int_wrapper(doc, NULL, "key", 42);
     ck_assert(!result);
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_yyjson_mut_obj_add_int_wrapper_valid) {
+END_TEST START_TEST(test_yyjson_mut_obj_add_int_wrapper_valid)
+{
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *obj = yyjson_mut_obj(doc);
     bool result = yyjson_mut_obj_add_int_wrapper(doc, obj, "key", 42);
@@ -99,25 +91,22 @@ START_TEST(test_yyjson_mut_obj_add_int_wrapper_valid) {
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_yyjson_mut_obj_add_obj_wrapper_null_doc) {
+END_TEST START_TEST(test_yyjson_mut_obj_add_obj_wrapper_null_doc)
+{
     yyjson_mut_val *result = yyjson_mut_obj_add_obj_wrapper(NULL, NULL, "key");
     ck_assert_ptr_null(result);
 }
 
-END_TEST
-
-START_TEST(test_yyjson_mut_obj_add_obj_wrapper_null_obj) {
+END_TEST START_TEST(test_yyjson_mut_obj_add_obj_wrapper_null_obj)
+{
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *result = yyjson_mut_obj_add_obj_wrapper(doc, NULL, "key");
     ck_assert_ptr_null(result);
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST
-
-START_TEST(test_yyjson_mut_obj_add_obj_wrapper_valid) {
+END_TEST START_TEST(test_yyjson_mut_obj_add_obj_wrapper_valid)
+{
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *obj = yyjson_mut_obj(doc);
     yyjson_mut_val *result = yyjson_mut_obj_add_obj_wrapper(doc, obj, "key");
@@ -126,13 +115,13 @@ START_TEST(test_yyjson_mut_obj_add_obj_wrapper_valid) {
 }
 
 END_TEST
-
 /*
  * Test for empty response body (complete_response == NULL)
  * This covers the else branch when complete_response is NULL
  */
 
-START_TEST(test_multi_info_read_empty_response_body) {
+START_TEST(test_multi_info_read_empty_response_body)
+{
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
@@ -155,13 +144,13 @@ START_TEST(test_multi_info_read_empty_response_body) {
 }
 
 END_TEST
-
 /*
  * Test for non-empty response body (complete_response != NULL)
  * This covers lines 178-179 (the true branch when complete_response has content)
  */
 
-START_TEST(test_multi_info_read_with_response_body) {
+START_TEST(test_multi_info_read_with_response_body)
+{
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;

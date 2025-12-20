@@ -186,7 +186,6 @@ END_TEST START_TEST(test_scrollback_render_end_row_beyond_content)
 }
 
 END_TEST
-
 // Test: Render starting from middle of wrapped line
 START_TEST(test_scrollback_layer_render_partial_start)
 {
@@ -213,8 +212,8 @@ START_TEST(test_scrollback_layer_render_partial_start)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render ending in middle of wrapped line (no trailing \r\n)
 START_TEST(test_scrollback_layer_render_partial_end)
 {
@@ -238,8 +237,8 @@ START_TEST(test_scrollback_layer_render_partial_end)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render middle portion of wrapped line (skip start, stop before end)
 START_TEST(test_scrollback_layer_render_partial_middle)
 {
@@ -262,8 +261,8 @@ START_TEST(test_scrollback_layer_render_partial_middle)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render with UTF-8 content (multi-byte chars)
 START_TEST(test_scrollback_layer_render_partial_utf8)
 {
@@ -287,8 +286,8 @@ START_TEST(test_scrollback_layer_render_partial_utf8)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render with ANSI escape sequences
 START_TEST(test_scrollback_layer_render_partial_ansi)
 {
@@ -314,8 +313,8 @@ START_TEST(test_scrollback_layer_render_partial_ansi)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Single-row line doesn't break when rendered partially
 START_TEST(test_scrollback_layer_render_single_row_line)
 {
@@ -336,8 +335,8 @@ START_TEST(test_scrollback_layer_render_single_row_line)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Multiple lines with first partial, last partial
 START_TEST(test_scrollback_layer_render_multiple_lines_partial)
 {
@@ -368,6 +367,7 @@ START_TEST(test_scrollback_layer_render_multiple_lines_partial)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *scrollback_layer_suite(void)

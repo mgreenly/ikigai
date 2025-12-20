@@ -111,8 +111,7 @@ static void test_teardown(void)
 // ========== Schema Tests ==========
 
 // Test: messages table has agent_uuid column after migration
-START_TEST(test_messages_has_agent_uuid_column)
-{
+START_TEST(test_messages_has_agent_uuid_column) {
     SKIP_IF_NO_DB();
 
     // Query information_schema to check for column
@@ -134,7 +133,6 @@ START_TEST(test_messages_has_agent_uuid_column)
     PQclear(result);
 }
 END_TEST
-
 // Test: agent_uuid references agents(uuid) with FK constraint
 START_TEST(test_agent_uuid_fk_constraint)
 {
@@ -163,8 +161,8 @@ START_TEST(test_agent_uuid_fk_constraint)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // Test: idx_messages_agent index exists
 START_TEST(test_idx_messages_agent_exists)
 {
@@ -181,8 +179,8 @@ START_TEST(test_idx_messages_agent_exists)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // ========== Insert Tests ==========
 
 // Test: message insert with agent_uuid succeeds
@@ -201,7 +199,7 @@ START_TEST(test_message_insert_with_agent_uuid)
 
     // Now insert message with agent_uuid
     res_t res = ik_db_message_insert(db, session_id, "test-agent-uuid-12345",
-                                      "user", "Hello from agent", NULL);
+                                     "user", "Hello from agent", NULL);
     ck_assert(is_ok(&res));
 
     // Verify message was inserted with agent_uuid
@@ -216,8 +214,8 @@ START_TEST(test_message_insert_with_agent_uuid)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // Test: message insert with NULL agent_uuid succeeds (backward compatibility)
 START_TEST(test_message_insert_null_agent_uuid)
 {
@@ -225,7 +223,7 @@ START_TEST(test_message_insert_null_agent_uuid)
 
     // Insert message with NULL agent_uuid
     res_t res = ik_db_message_insert(db, session_id, NULL,
-                                      "user", "Hello without agent", NULL);
+                                     "user", "Hello without agent", NULL);
     ck_assert(is_ok(&res));
 
     // Verify message was inserted with NULL agent_uuid
@@ -240,8 +238,8 @@ START_TEST(test_message_insert_null_agent_uuid)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // Test: query by agent_uuid returns correct subset
 START_TEST(test_query_by_agent_uuid)
 {
@@ -249,14 +247,14 @@ START_TEST(test_query_by_agent_uuid)
 
     // Insert two agents
     PGresult *r1 = PQexec(db->conn,
-        "INSERT INTO agents (uuid, status, created_at) "
-        "VALUES ('agent-1', 'running', 1234567890)");
+                          "INSERT INTO agents (uuid, status, created_at) "
+                          "VALUES ('agent-1', 'running', 1234567890)");
     ck_assert_int_eq(PQresultStatus(r1), PGRES_COMMAND_OK);
     PQclear(r1);
 
     PGresult *r2 = PQexec(db->conn,
-        "INSERT INTO agents (uuid, status, created_at) "
-        "VALUES ('agent-2', 'running', 1234567890)");
+                          "INSERT INTO agents (uuid, status, created_at) "
+                          "VALUES ('agent-2', 'running', 1234567890)");
     ck_assert_int_eq(PQresultStatus(r2), PGRES_COMMAND_OK);
     PQclear(r2);
 
@@ -283,8 +281,8 @@ START_TEST(test_query_by_agent_uuid)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // Test: query with agent_uuid and id range works (replay algorithm)
 START_TEST(test_query_agent_uuid_with_range)
 {
@@ -292,8 +290,8 @@ START_TEST(test_query_agent_uuid_with_range)
 
     // Insert an agent
     PGresult *r1 = PQexec(db->conn,
-        "INSERT INTO agents (uuid, status, created_at) "
-        "VALUES ('range-agent', 'running', 1234567890)");
+                          "INSERT INTO agents (uuid, status, created_at) "
+                          "VALUES ('range-agent', 'running', 1234567890)");
     ck_assert_int_eq(PQresultStatus(r1), PGRES_COMMAND_OK);
     PQclear(r1);
 
@@ -341,8 +339,8 @@ START_TEST(test_query_agent_uuid_with_range)
 
     PQclear(range_result);
 }
-END_TEST
 
+END_TEST
 // ========== Event Kind Tests ==========
 
 // Test: "agent_killed" is valid event kind
@@ -352,8 +350,8 @@ START_TEST(test_agent_killed_is_valid_kind)
 
     ck_assert(ik_db_message_is_valid_kind("agent_killed"));
 }
-END_TEST
 
+END_TEST
 // Test: message insert with kind="agent_killed" succeeds
 START_TEST(test_message_insert_agent_killed)
 {
@@ -361,15 +359,15 @@ START_TEST(test_message_insert_agent_killed)
 
     // Insert an agent
     PGresult *r1 = PQexec(db->conn,
-        "INSERT INTO agents (uuid, status, created_at) "
-        "VALUES ('killed-agent', 'running', 1234567890)");
+                          "INSERT INTO agents (uuid, status, created_at) "
+                          "VALUES ('killed-agent', 'running', 1234567890)");
     ck_assert_int_eq(PQresultStatus(r1), PGRES_COMMAND_OK);
     PQclear(r1);
 
     // Insert agent_killed event
     const char *data_json = "{\"killed_by\":\"user\",\"target\":\"killed-agent\"}";
     res_t res = ik_db_message_insert(db, session_id, "killed-agent",
-                                      "agent_killed", NULL, data_json);
+                                     "agent_killed", NULL, data_json);
     ck_assert(is_ok(&res));
 
     // Verify message was inserted
@@ -388,6 +386,7 @@ START_TEST(test_message_insert_agent_killed)
 
     PQclear(result);
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

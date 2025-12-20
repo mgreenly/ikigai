@@ -113,10 +113,10 @@ static void test_teardown(void)
 
 // Skip macro for tests when DB not available
 #define SKIP_IF_NO_DB() do { \
-    if (!db_available) { \
-        return; \
-    } \
-} while(0)
+            if (!db_available) { \
+                return; \
+            } \
+} while (0)
 
 // Helper: Insert an agent into the registry
 static void insert_agent(const char *uuid, const char *parent_uuid,
@@ -144,8 +144,7 @@ static void insert_message(const char *agent_uuid, const char *kind,
 // ========== query_range Tests ==========
 
 // Test: query_range returns correct message subset
-START_TEST(test_query_range_subset)
-{
+START_TEST(test_query_range_subset) {
     SKIP_IF_NO_DB();
 
     // Insert agent with multiple messages
@@ -174,7 +173,6 @@ START_TEST(test_query_range_subset)
     ck_assert_int_eq((int)msg_count, 4);
 }
 END_TEST
-
 // Test: query_range with start_id=0 returns from beginning
 START_TEST(test_query_range_from_beginning)
 {
@@ -201,8 +199,8 @@ START_TEST(test_query_range_from_beginning)
     // Verify first message
     ck_assert_str_eq(messages[0]->content, "First");
 }
-END_TEST
 
+END_TEST
 // Test: query_range with end_id=0 returns to end
 START_TEST(test_query_range_to_end)
 {
@@ -245,6 +243,7 @@ START_TEST(test_query_range_to_end)
     ck_assert_str_eq(messages[0]->content, "Two");
     ck_assert_str_eq(messages[1]->content, "Three");
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

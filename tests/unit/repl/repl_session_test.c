@@ -34,9 +34,12 @@ ssize_t posix_write_(int fd, const void *buf, size_t count);
 ssize_t posix_read_(int fd, void *buf, size_t count);
 int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
 res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx);
-res_t ik_db_message_insert(ik_db_ctx_t *db_ctx, int64_t session_id,
-                           const char *agent_uuid, const char *kind,
-                           const char *content, const char *data_json);
+res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
+                           int64_t session_id,
+                           const char *agent_uuid,
+                           const char *kind,
+                           const char *content,
+                           const char *data_json);
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger);
@@ -95,7 +98,7 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik
 
 // Mock ik_db_agent_get_last_message_id
 res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid,
-                                       int64_t *out_message_id)
+                                      int64_t *out_message_id)
 {
     (void)db_ctx;
     (void)agent_uuid;
@@ -113,7 +116,7 @@ res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
 
 // Mock ik_db_agent_list_running
 res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
-                                ik_db_agent_row_t ***out, size_t *count)
+                               ik_db_agent_row_t ***out, size_t *count)
 {
     (void)db_ctx;
     *out = talloc_zero_array(mem_ctx, ik_db_agent_row_t *, 0);
@@ -255,8 +258,7 @@ int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *
 }
 
 /* Test: Session get active failure */
-START_TEST(test_repl_init_session_get_active_failure)
-{
+START_TEST(test_repl_init_session_get_active_failure) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -284,7 +286,6 @@ START_TEST(test_repl_init_session_get_active_failure)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Session create failure */
 START_TEST(test_repl_init_session_create_failure)
 {
@@ -314,8 +315,8 @@ START_TEST(test_repl_init_session_create_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Restore agents failure */
 START_TEST(test_repl_init_restore_agents_failure)
 {
@@ -345,8 +346,8 @@ START_TEST(test_repl_init_restore_agents_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Existing session found (session_id != 0) */
 START_TEST(test_repl_init_existing_session)
 {
@@ -381,6 +382,7 @@ START_TEST(test_repl_init_existing_session)
     ik_repl_cleanup(repl);
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *repl_session_suite(void)

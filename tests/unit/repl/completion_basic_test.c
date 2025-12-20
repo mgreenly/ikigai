@@ -17,8 +17,7 @@
 #include "../../test_utils.h"
 
 /* Test: Typing "/" triggers completion automatically */
-START_TEST(test_tab_triggers_completion)
-{
+START_TEST(test_tab_triggers_completion) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -65,12 +64,10 @@ START_TEST(test_tab_triggers_completion)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: TAB accepts selection and dismisses completion */
 START_TEST(test_tab_accepts_selection)
 {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -116,13 +113,12 @@ START_TEST(test_tab_accepts_selection)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Arrow up changes selection to previous candidate */
 START_TEST(test_arrow_up_changes_selection)
 {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -173,13 +169,12 @@ START_TEST(test_arrow_up_changes_selection)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Arrow down changes selection to next candidate */
 START_TEST(test_arrow_down_changes_selection)
 {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -230,13 +225,12 @@ START_TEST(test_arrow_down_changes_selection)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Escape dismisses completion without accepting */
 START_TEST(test_escape_dismisses_completion)
 {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -286,13 +280,12 @@ START_TEST(test_escape_dismisses_completion)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Typing updates completion dynamically */
 START_TEST(test_typing_updates_completion)
 {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -338,6 +331,7 @@ START_TEST(test_typing_updates_completion)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *completion_navigation_suite(void)

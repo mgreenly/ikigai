@@ -102,16 +102,15 @@ static void test_teardown(void)
 
 // Skip macro for tests when DB not available
 #define SKIP_IF_NO_DB() do { \
-    if (!db_available) { \
-        return; \
-    } \
-} while(0)
+            if (!db_available) { \
+                return; \
+            } \
+} while (0)
 
 // ========== Query Tests ==========
 
 // Test: get returns correct row for existing UUID
-START_TEST(test_get_returns_correct_row)
-{
+START_TEST(test_get_returns_correct_row) {
     SKIP_IF_NO_DB();
 
     // Insert an agent
@@ -141,7 +140,6 @@ START_TEST(test_get_returns_correct_row)
     ck_assert_int_eq(row->ended_at, 0);
 }
 END_TEST
-
 // Test: get returns error for non-existent UUID
 START_TEST(test_get_nonexistent_uuid)
 {
@@ -151,8 +149,8 @@ START_TEST(test_get_nonexistent_uuid)
     res_t get_res = ik_db_agent_get(db, test_ctx, "nonexistent-uuid", &row);
     ck_assert(is_err(&get_res));
 }
-END_TEST
 
+END_TEST
 // Test: list_running returns only status='running' agents
 START_TEST(test_list_running_only_running)
 {
@@ -218,8 +216,8 @@ START_TEST(test_list_running_only_running)
     ck_assert(found_running2);
     ck_assert(!found_dead);
 }
-END_TEST
 
+END_TEST
 // Test: list_running excludes dead agents
 START_TEST(test_list_running_excludes_dead)
 {
@@ -246,8 +244,8 @@ START_TEST(test_list_running_excludes_dead)
     ck_assert(is_ok(&list_res));
     ck_assert_int_eq((int)count, 0);
 }
-END_TEST
 
+END_TEST
 // Test: get_children returns children ordered by created_at
 START_TEST(test_get_children_ordered)
 {
@@ -307,8 +305,8 @@ START_TEST(test_get_children_ordered)
     ck_assert_str_eq(rows[1]->uuid, "child-3");  // 1500
     ck_assert_str_eq(rows[2]->uuid, "child-2");  // 2000
 }
-END_TEST
 
+END_TEST
 // Test: get_children returns empty for agent with no children
 START_TEST(test_get_children_empty)
 {
@@ -332,8 +330,8 @@ START_TEST(test_get_children_empty)
     ck_assert(is_ok(&get_res));
     ck_assert_int_eq((int)count, 0);
 }
-END_TEST
 
+END_TEST
 // Test: get_parent returns parent row for child agent
 START_TEST(test_get_parent_returns_parent)
 {
@@ -371,8 +369,8 @@ START_TEST(test_get_parent_returns_parent)
     ck_assert_str_eq(parent_row->uuid, "parent-get-test");
     ck_assert_str_eq(parent_row->name, "Parent Agent");
 }
-END_TEST
 
+END_TEST
 // Test: get_parent returns NULL for root agent (no parent)
 START_TEST(test_get_parent_null_for_root)
 {
@@ -395,8 +393,8 @@ START_TEST(test_get_parent_null_for_root)
     ck_assert(is_ok(&get_res));
     ck_assert(parent_row == NULL);
 }
-END_TEST
 
+END_TEST
 // Test: get_parent allows iterative chain walking
 START_TEST(test_get_parent_chain_walking)
 {
@@ -453,6 +451,7 @@ START_TEST(test_get_parent_chain_walking)
     ck_assert(is_ok(&res3));
     ck_assert(row3 == NULL);  // Root has no parent
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

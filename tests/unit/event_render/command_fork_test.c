@@ -10,19 +10,17 @@
 #include "../../../src/scrollback.h"
 
 // Test: ik_event_renders_visible - command events are visible
-START_TEST(test_renders_visible_command)
-{
+START_TEST(test_renders_visible_command) {
     ck_assert(ik_event_renders_visible("command"));
 }
 END_TEST
-
 // Test: ik_event_renders_visible - fork events are visible
 START_TEST(test_renders_visible_fork)
 {
     ck_assert(ik_event_renders_visible("fork"));
 }
-END_TEST
 
+END_TEST
 // Test: Render command event
 START_TEST(test_render_command_event)
 {
@@ -42,8 +40,8 @@ START_TEST(test_render_command_event)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render fork event - parent role
 START_TEST(test_render_fork_event_parent)
 {
@@ -67,8 +65,8 @@ START_TEST(test_render_fork_event_parent)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render fork event - child role
 START_TEST(test_render_fork_event_child)
 {
@@ -92,8 +90,8 @@ START_TEST(test_render_fork_event_child)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render command event with NULL content
 START_TEST(test_render_command_null_content)
 {
@@ -106,8 +104,8 @@ START_TEST(test_render_command_null_content)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render command event with empty content
 START_TEST(test_render_command_empty_content)
 {
@@ -120,8 +118,8 @@ START_TEST(test_render_command_empty_content)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render fork event with NULL content
 START_TEST(test_render_fork_null_content)
 {
@@ -134,8 +132,8 @@ START_TEST(test_render_fork_null_content)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render fork event with empty content
 START_TEST(test_render_fork_empty_content)
 {
@@ -148,6 +146,7 @@ START_TEST(test_render_fork_empty_content)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *event_render_command_fork_suite(void)

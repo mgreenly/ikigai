@@ -12,31 +12,35 @@ START_TEST(test_conversation_kinds) {
     ck_assert(ik_msg_is_conversation_kind("tool") == true);
 }
 END_TEST
-
 /* Test metadata kinds return false */
-START_TEST(test_metadata_kinds) {
+START_TEST(test_metadata_kinds)
+{
     ck_assert(ik_msg_is_conversation_kind("clear") == false);
     ck_assert(ik_msg_is_conversation_kind("mark") == false);
     ck_assert(ik_msg_is_conversation_kind("rewind") == false);
     ck_assert(ik_msg_is_conversation_kind("agent_killed") == false);
 }
-END_TEST
 
+END_TEST
 /* Test NULL returns false */
-START_TEST(test_null_kind) {
+START_TEST(test_null_kind)
+{
     ck_assert(ik_msg_is_conversation_kind(NULL) == false);
 }
-END_TEST
 
+END_TEST
 /* Test unknown kinds return false */
-START_TEST(test_unknown_kinds) {
+START_TEST(test_unknown_kinds)
+{
     ck_assert(ik_msg_is_conversation_kind("bogus") == false);
     ck_assert(ik_msg_is_conversation_kind("unknown") == false);
     ck_assert(ik_msg_is_conversation_kind("") == false);
 }
+
 END_TEST
 
-static Suite *msg_suite(void) {
+static Suite *msg_suite(void)
+{
     Suite *s;
     TCase *tc_core;
 
@@ -54,7 +58,8 @@ static Suite *msg_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     int number_failed;
     Suite *s;
     SRunner *sr;

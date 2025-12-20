@@ -117,8 +117,7 @@ static ik_agent_ctx_t *create_test_agent(ik_repl_ctx_t *parent, const char *uuid
  * Test: ik_repl_handle_curl_events with current not in agents array (line 325 branch)
  * This covers the path where current agent is not in the array (single-agent/test mode)
  */
-START_TEST(test_handle_curl_events_current_not_in_array)
-{
+START_TEST(test_handle_curl_events_current_not_in_array) {
     /* Create two agents for the array */
     ik_agent_ctx_t *agent_a = create_test_agent(repl, "agent-a");
     ik_agent_ctx_t *agent_b = create_test_agent(repl, "agent-b");
@@ -139,7 +138,6 @@ START_TEST(test_handle_curl_events_current_not_in_array)
     ck_assert(!is_err(&result));
 }
 END_TEST
-
 /*
  * Test: ik_repl_handle_curl_events with current IN agents array (line 325 false branch)
  * This covers the path where current is in the array (normal multi-agent mode)
@@ -164,8 +162,8 @@ START_TEST(test_handle_curl_events_current_in_array)
     /* Should succeed */
     ck_assert(!is_err(&result));
 }
-END_TEST
 
+END_TEST
 /*
  * Test: ik_repl_handle_curl_events with current NULL (line 325 branch 1)
  * This covers the case where repl->current is NULL
@@ -189,6 +187,7 @@ START_TEST(test_handle_curl_events_current_null)
     /* Should succeed */
     ck_assert(!is_err(&result));
 }
+
 END_TEST
 
 /*

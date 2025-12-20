@@ -7,8 +7,7 @@
 #include <talloc.h>
 
 // Test agent_ctx is allocated under provided parent
-START_TEST(test_agent_allocated_under_parent)
-{
+START_TEST(test_agent_allocated_under_parent) {
     TALLOC_CTX *parent = talloc_new(NULL);
     ck_assert_ptr_nonnull(parent);
 
@@ -28,7 +27,6 @@ START_TEST(test_agent_allocated_under_parent)
     talloc_free(parent);
 }
 END_TEST
-
 // Test agent_ctx can be freed via talloc_free
 START_TEST(test_agent_can_be_freed)
 {
@@ -50,6 +48,7 @@ START_TEST(test_agent_can_be_freed)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *agent_lifecycle_suite(void)

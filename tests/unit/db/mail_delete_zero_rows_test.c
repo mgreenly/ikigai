@@ -72,8 +72,7 @@ char *PQcmdTuples(PGresult *res)
 }
 
 // Test: ik_db_mail_delete handles zero rows affected
-START_TEST(test_db_mail_delete_zero_rows_affected)
-{
+START_TEST(test_db_mail_delete_zero_rows_affected) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 

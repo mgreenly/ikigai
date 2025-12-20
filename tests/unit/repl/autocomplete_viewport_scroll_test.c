@@ -139,13 +139,13 @@ START_TEST(test_autocomplete_viewport_includes_completion_height) {
     talloc_free(ctx);
 }
 END_TEST
-
 /**
  * Test: Document height does NOT include completion when inactive
  *
  * Same scenario but without completion - should be shorter document.
  */
-START_TEST(test_autocomplete_viewport_without_completion) {
+START_TEST(test_autocomplete_viewport_without_completion)
+{
     void *ctx = talloc_new(NULL);
 
     // Terminal: 10 rows x 80 cols
@@ -210,6 +210,7 @@ START_TEST(test_autocomplete_viewport_without_completion) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Create test suite */

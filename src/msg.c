@@ -9,7 +9,8 @@
 #include <string.h>
 #include <talloc.h>
 
-bool ik_msg_is_conversation_kind(const char *kind) {
+bool ik_msg_is_conversation_kind(const char *kind)
+{
     if (kind == NULL) {
         return false;
     }

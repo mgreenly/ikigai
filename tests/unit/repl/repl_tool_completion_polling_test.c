@@ -133,7 +133,7 @@ static void *quick_complete_thread_func(void *arg)
 
     /* Set result immediately */
     repl_ctx->current->tool_thread_result = talloc_strdup(repl_ctx->current->tool_thread_ctx,
-                                                 "{\"status\":\"success\",\"output\":\"test result\"}");
+                                                          "{\"status\":\"success\",\"output\":\"test result\"}");
 
     /* Mark as complete - main thread will join us after seeing this */
     pthread_mutex_lock_(&repl_ctx->current->tool_thread_mutex);
@@ -188,9 +188,9 @@ START_TEST(test_tool_completion_polling_and_handling) {
 
     /* Create pending tool call */
     repl->current->pending_tool_call = ik_tool_call_create(repl,
-                                                  "call_test123",
-                                                  "glob",
-                                                  "{\"pattern\": \"*.c\"}");
+                                                           "call_test123",
+                                                           "glob",
+                                                           "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 
     /* Set finish reason to "stop" so we don't continue the tool loop */
@@ -236,7 +236,7 @@ static void *completion_test_thread_func(void *arg)
 
     /* Set result */
     repl_ctx->current->tool_thread_result = talloc_strdup(repl_ctx->current->tool_thread_ctx,
-                                                 "{\"status\":\"success\",\"output\":\"test\"}");
+                                                          "{\"status\":\"success\",\"output\":\"test\"}");
 
     /* Mark as complete */
     pthread_mutex_lock_(&repl_ctx->current->tool_thread_mutex);
@@ -262,9 +262,9 @@ START_TEST(test_tool_completion_with_continuation) {
 
     /* Create pending tool call */
     repl->current->pending_tool_call = ik_tool_call_create(repl,
-                                                  "call_test456",
-                                                  "glob",
-                                                  "{\"pattern\": \"*.h\"}");
+                                                           "call_test456",
+                                                           "glob",
+                                                           "{\"pattern\": \"*.h\"}");
     ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 
     /* Start thread that will complete */
@@ -327,9 +327,9 @@ START_TEST(test_polling_while_tool_executing_not_complete) {
 
     /* Create pending tool call */
     repl->current->pending_tool_call = ik_tool_call_create(repl,
-                                                  "call_test789",
-                                                  "glob",
-                                                  "{\"pattern\": \"*.h\"}");
+                                                           "call_test789",
+                                                           "glob",
+                                                           "{\"pattern\": \"*.h\"}");
     ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 
     /* Start a thread that will set quit after a delay to allow multiple loop iterations */

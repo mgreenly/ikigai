@@ -30,8 +30,7 @@ static void teardown(void)
 }
 
 // Test: Create history with capacity
-START_TEST(test_create_history)
-{
+START_TEST(test_create_history) {
     hist = ik_history_create(ctx, 10);
     ck_assert_ptr_nonnull(hist);
     ck_assert_uint_eq(hist->count, 0);
@@ -41,7 +40,6 @@ START_TEST(test_create_history)
     ck_assert_ptr_nonnull(hist->entries);
 }
 END_TEST
-
 // Test: Add entries within capacity
 START_TEST(test_add_entries_within_capacity)
 {
@@ -62,8 +60,8 @@ START_TEST(test_add_entries_within_capacity)
     ck_assert_uint_eq(hist->count, 3);
     ck_assert_str_eq(hist->entries[2], "command3");
 }
-END_TEST
 
+END_TEST
 // Test: Add entries exceeding capacity (oldest removed)
 START_TEST(test_add_entries_exceeds_capacity)
 {
@@ -83,8 +81,8 @@ START_TEST(test_add_entries_exceeds_capacity)
     ck_assert_str_eq(hist->entries[1], "cmd3");
     ck_assert_str_eq(hist->entries[2], "cmd4");
 }
-END_TEST
 
+END_TEST
 // Test: Empty string not added to history
 START_TEST(test_empty_string_not_added)
 {
@@ -94,6 +92,7 @@ START_TEST(test_empty_string_not_added)
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(hist->count, 0);
 }
+
 END_TEST
 
 // Suite setup

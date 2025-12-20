@@ -9,8 +9,7 @@
 #include "../../../src/logger.h"
 
 // Test: ik_log_init creates .ikigai/logs directory and current.log file
-START_TEST(test_log_init_creates_log_file)
-{
+START_TEST(test_log_init_creates_log_file) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
 
@@ -43,7 +42,6 @@ START_TEST(test_log_init_creates_log_file)
     rmdir(test_dir);
 }
 END_TEST
-
 // Test: ik_log_debug_json writes to current.log file
 START_TEST(test_log_writes_to_file)
 {
@@ -91,8 +89,8 @@ START_TEST(test_log_writes_to_file)
     rmdir(ikigai_dir);
     rmdir(test_dir);
 }
-END_TEST
 
+END_TEST
 // Test: multiple log entries append correctly
 START_TEST(test_multiple_log_entries_append)
 {
@@ -144,8 +142,8 @@ START_TEST(test_multiple_log_entries_append)
     rmdir(ikigai_dir);
     rmdir(test_dir);
 }
-END_TEST
 
+END_TEST
 // Test: ik_log_shutdown closes file
 START_TEST(test_log_shutdown_closes_file)
 {
@@ -175,6 +173,7 @@ START_TEST(test_log_shutdown_closes_file)
     rmdir(ikigai_dir);
     rmdir(test_dir);
 }
+
 END_TEST
 
 static Suite *logger_jsonl_file_suite(void)

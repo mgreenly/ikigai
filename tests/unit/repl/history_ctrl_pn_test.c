@@ -21,8 +21,7 @@
 #include "../../test_utils.h"
 
 /* Test: Ctrl+P starts browsing with empty input */
-START_TEST(test_ctrl_p_starts_browsing_empty)
-{
+START_TEST(test_ctrl_p_starts_browsing_empty) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -75,7 +74,6 @@ START_TEST(test_ctrl_p_starts_browsing_empty)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Ctrl+P starts browsing with non-empty input */
 START_TEST(test_ctrl_p_starts_browsing_with_text)
 {
@@ -136,8 +134,8 @@ START_TEST(test_ctrl_p_starts_browsing_with_text)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Ctrl+P while already browsing moves to previous entry */
 START_TEST(test_ctrl_p_moves_to_previous)
 {
@@ -193,8 +191,8 @@ START_TEST(test_ctrl_p_moves_to_previous)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Ctrl+P at oldest entry returns NULL (no change) */
 START_TEST(test_ctrl_p_at_oldest_entry)
 {
@@ -252,8 +250,8 @@ START_TEST(test_ctrl_p_at_oldest_entry)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Ctrl+N when not browsing does nothing */
 START_TEST(test_ctrl_n_when_not_browsing)
 {
@@ -308,8 +306,8 @@ START_TEST(test_ctrl_n_when_not_browsing)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Ctrl+N while browsing moves to next entry */
 START_TEST(test_ctrl_n_moves_to_next)
 {
@@ -373,8 +371,8 @@ START_TEST(test_ctrl_n_moves_to_next)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Ctrl+N at newest entry returns pending (empty if started empty) */
 START_TEST(test_ctrl_n_at_newest_returns_pending)
 {
@@ -444,6 +442,7 @@ START_TEST(test_ctrl_n_at_newest_returns_pending)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *history_ctrl_pn_suite(void)

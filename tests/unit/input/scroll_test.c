@@ -7,8 +7,7 @@
 #include "../../test_utils.h"
 
 // Test: IK_INPUT_SCROLL_UP enum value exists and is distinct
-START_TEST(test_scroll_up_enum_exists)
-{
+START_TEST(test_scroll_up_enum_exists) {
     // Compile-time verification: IK_INPUT_SCROLL_UP should exist
     // and be different from other action types
     ik_input_action_type_t scroll_up = IK_INPUT_SCROLL_UP;
@@ -22,7 +21,6 @@ START_TEST(test_scroll_up_enum_exists)
 }
 
 END_TEST
-
 // Test: IK_INPUT_SCROLL_DOWN enum value exists and is distinct
 START_TEST(test_scroll_down_enum_exists)
 {
@@ -39,7 +37,6 @@ START_TEST(test_scroll_down_enum_exists)
 }
 
 END_TEST
-
 
 // Test suite
 static Suite *input_scroll_suite(void)

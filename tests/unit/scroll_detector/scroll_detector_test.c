@@ -28,8 +28,7 @@ static void teardown(void)
 }
 
 // Test 1: First arrow is buffered (returns NONE, transitions to WAITING)
-START_TEST(test_first_arrow_buffered)
-{
+START_TEST(test_first_arrow_buffered) {
     ik_scroll_detector_t *det = ik_scroll_detector_create(ctx);
 
     ik_scroll_result_t r = ik_scroll_detector_process_arrow(
@@ -38,7 +37,6 @@ START_TEST(test_first_arrow_buffered)
     ck_assert_int_eq(det->state, IK_SCROLL_STATE_WAITING);
 }
 END_TEST
-
 // Test 2: Rapid second arrow emits SCROLL, transitions to ABSORBING
 START_TEST(test_rapid_second_arrow_emits_scroll)
 {
@@ -50,8 +48,8 @@ START_TEST(test_rapid_second_arrow_emits_scroll)
     ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);
     ck_assert_int_eq(det->state, IK_SCROLL_STATE_ABSORBING);
 }
-END_TEST
 
+END_TEST
 // Test 3: Slow second arrow emits ARROW for first, stays in WAITING with new arrow
 START_TEST(test_slow_second_arrow_emits_arrow)
 {
@@ -63,8 +61,8 @@ START_TEST(test_slow_second_arrow_emits_arrow)
     ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
     ck_assert_int_eq(det->state, IK_SCROLL_STATE_WAITING);
 }
-END_TEST
 
+END_TEST
 // Test 4: Timeout from WAITING flushes as ARROW, transitions to IDLE
 START_TEST(test_timeout_flushes_arrow)
 {
@@ -75,8 +73,8 @@ START_TEST(test_timeout_flushes_arrow)
     ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
     ck_assert_int_eq(det->state, IK_SCROLL_STATE_IDLE);
 }
-END_TEST
 
+END_TEST
 // Test 5: Timeout before threshold returns NONE
 START_TEST(test_timeout_before_threshold_returns_none)
 {
@@ -87,8 +85,8 @@ START_TEST(test_timeout_before_threshold_returns_none)
     ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
     ck_assert_int_eq(det->state, IK_SCROLL_STATE_WAITING);
 }
-END_TEST
 
+END_TEST
 // Test 6: get_timeout_ms returns correct value
 START_TEST(test_get_timeout_ms)
 {
@@ -107,8 +105,8 @@ START_TEST(test_get_timeout_ms)
     t = ik_scroll_detector_get_timeout_ms(det, 1000 + IK_SCROLL_BURST_THRESHOLD_MS + 1);
     ck_assert_int_eq(t, 0);
 }
-END_TEST
 
+END_TEST
 // Test 7: flush() from WAITING emits ARROW
 START_TEST(test_flush_emits_arrow)
 {
@@ -123,8 +121,8 @@ START_TEST(test_flush_emits_arrow)
     r = ik_scroll_detector_flush(det);
     ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
 }
-END_TEST
 
+END_TEST
 // Test 8: Scroll direction preserved
 START_TEST(test_scroll_direction)
 {
@@ -135,8 +133,8 @@ START_TEST(test_scroll_direction)
         det, IK_INPUT_ARROW_DOWN, 1001);
     ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_DOWN);
 }
-END_TEST
 
+END_TEST
 // Test 9: Mixed directions - each burst independent
 START_TEST(test_mixed_directions)
 {
@@ -156,8 +154,8 @@ START_TEST(test_mixed_directions)
     r = ik_scroll_detector_process_arrow(det, IK_INPUT_ARROW_DOWN, 1101);
     ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_DOWN);
 }
-END_TEST
 
+END_TEST
 // Test 10: Reset clears state to IDLE
 START_TEST(test_reset_clears_state)
 {
@@ -173,8 +171,8 @@ START_TEST(test_reset_clears_state)
     ik_scroll_result_t r = ik_scroll_detector_check_timeout(det, 1050);
     ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
 }
-END_TEST
 
+END_TEST
 // Test 11: Mouse wheel burst - emits ONE scroll, absorbs remaining arrows
 START_TEST(test_mouse_wheel_burst_absorbs)
 {
@@ -203,8 +201,8 @@ START_TEST(test_mouse_wheel_burst_absorbs)
     ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
     ck_assert_int_eq(det->state, IK_SCROLL_STATE_IDLE);
 }
-END_TEST
 
+END_TEST
 // Test 12: Kitty sends 10 arrows - still emits ONE scroll
 START_TEST(test_kitty_10_arrows_one_scroll)
 {
@@ -229,8 +227,8 @@ START_TEST(test_kitty_10_arrows_one_scroll)
     r = ik_scroll_detector_check_timeout(det, 1050);
     ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
 }
-END_TEST
 
+END_TEST
 // Test 13: Key repeat (30ms intervals) - each emits ARROW
 START_TEST(test_key_repeat)
 {
@@ -254,8 +252,8 @@ START_TEST(test_key_repeat)
     r = ik_scroll_detector_check_timeout(det, 1090);
     ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
 }
-END_TEST
 
+END_TEST
 // Test 14: Exactly at threshold (10ms) is still a burst
 START_TEST(test_at_threshold)
 {
@@ -267,8 +265,8 @@ START_TEST(test_at_threshold)
     // Spec says "<= threshold" is burst
     ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_UP);
 }
-END_TEST
 
+END_TEST
 // Test 15: Just above threshold is keyboard
 START_TEST(test_above_threshold)
 {
@@ -279,8 +277,8 @@ START_TEST(test_above_threshold)
         det, IK_INPUT_ARROW_UP, 1000 + IK_SCROLL_BURST_THRESHOLD_MS + 1);  // Above threshold
     ck_assert_int_eq(r, IK_SCROLL_RESULT_ARROW_UP);
 }
-END_TEST
 
+END_TEST
 // Test 16: flush() from ABSORBING returns NONE (scroll already emitted)
 START_TEST(test_flush_from_absorbing_returns_none)
 {
@@ -296,8 +294,8 @@ START_TEST(test_flush_from_absorbing_returns_none)
     ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
     ck_assert_int_eq(det->state, IK_SCROLL_STATE_IDLE);
 }
-END_TEST
 
+END_TEST
 // Test 17: New burst after absorb timeout
 START_TEST(test_new_burst_after_absorb)
 {
@@ -317,8 +315,8 @@ START_TEST(test_new_burst_after_absorb)
     r = ik_scroll_detector_process_arrow(det, IK_INPUT_ARROW_DOWN, 1101);
     ck_assert_int_eq(r, IK_SCROLL_RESULT_SCROLL_DOWN);
 }
-END_TEST
 
+END_TEST
 // Test 18: Arrow after absorb timeout (no intermediate input) starts new WAITING
 START_TEST(test_arrow_after_absorb_timeout_starts_waiting)
 {
@@ -335,8 +333,8 @@ START_TEST(test_arrow_after_absorb_timeout_starts_waiting)
     ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
     ck_assert_int_eq(det->state, IK_SCROLL_STATE_WAITING);
 }
-END_TEST
 
+END_TEST
 // Test 19: Timeout from IDLE returns NONE
 START_TEST(test_timeout_from_idle_returns_none)
 {
@@ -346,8 +344,8 @@ START_TEST(test_timeout_from_idle_returns_none)
     ik_scroll_result_t r = ik_scroll_detector_check_timeout(det, 1000);
     ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
 }
-END_TEST
 
+END_TEST
 // Test 20: Timeout from ABSORBING returns NONE and transitions to IDLE
 START_TEST(test_timeout_from_absorbing)
 {
@@ -363,8 +361,8 @@ START_TEST(test_timeout_from_absorbing)
     ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
     ck_assert_int_eq(det->state, IK_SCROLL_STATE_IDLE);
 }
-END_TEST
 
+END_TEST
 // Test 21: get_timeout_ms works in ABSORBING state
 START_TEST(test_get_timeout_ms_absorbing)
 {
@@ -378,6 +376,7 @@ START_TEST(test_get_timeout_ms_absorbing)
     int64_t t = ik_scroll_detector_get_timeout_ms(det, 1005);
     ck_assert_int_eq(t, IK_SCROLL_BURST_THRESHOLD_MS - 4);  // 1005 - 1001 = 4ms elapsed
 }
+
 END_TEST
 
 // Suite definition

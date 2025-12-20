@@ -17,8 +17,7 @@
 #include "completion_test_mocks.h"
 
 /* Test: Debug argument completion */
-START_TEST(test_completion_debug_args)
-{
+START_TEST(test_completion_debug_args) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
@@ -50,7 +49,6 @@ START_TEST(test_completion_debug_args)
     cleanup_test_dir();
 }
 END_TEST
-
 /* Test: Partial argument matching */
 START_TEST(test_completion_partial_arg)
 {
@@ -85,6 +83,7 @@ START_TEST(test_completion_partial_arg)
     talloc_free(ctx);
     cleanup_test_dir();
 }
+
 END_TEST
 
 static Suite *completion_args_suite(void)

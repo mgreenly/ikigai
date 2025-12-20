@@ -208,8 +208,7 @@ static ik_repl_ctx_t *create_test_repl(const char *agent0_uuid)
 // ========== Integration Test Cases ==========
 
 // Test: Multiple agents survive restart with hierarchy preserved
-START_TEST(test_multi_agent_restart_preserves_hierarchy)
-{
+START_TEST(test_multi_agent_restart_preserves_hierarchy) {
     SKIP_IF_NO_DB();
 
     insert_agent("parent-hier-test", NULL, 1000, 0);
@@ -230,7 +229,6 @@ START_TEST(test_multi_agent_restart_preserves_hierarchy)
     ck_assert_uint_ge(child->conversation->message_count, 3);
 }
 END_TEST
-
 // Test: Forked agent survives restart with correct history
 START_TEST(test_forked_agent_survives_restart)
 {
@@ -262,8 +260,8 @@ START_TEST(test_forked_agent_survives_restart)
     verify_msg(child, 2, "X");
     verify_msg(child, 3, "Y");
 }
-END_TEST
 
+END_TEST
 // Test: Killed agents not restored (status != 'running')
 START_TEST(test_killed_agent_not_restored)
 {
@@ -292,8 +290,8 @@ START_TEST(test_killed_agent_not_restored)
     }
     ck_assert(!found_dead);
 }
-END_TEST
 
+END_TEST
 // Test: Fork points respected on restore
 START_TEST(test_fork_points_respected_on_restore)
 {
@@ -328,8 +326,8 @@ START_TEST(test_fork_points_respected_on_restore)
         ck_assert_str_ne(child->conversation->messages[i]->content, "msg5");
     }
 }
-END_TEST
 
+END_TEST
 // Test: Clear events respected
 START_TEST(test_clear_events_respected_on_restore)
 {
@@ -350,8 +348,8 @@ START_TEST(test_clear_events_respected_on_restore)
     verify_msg(repl->current, 0, "msg3");
     verify_msg(repl->current, 1, "msg4");
 }
-END_TEST
 
+END_TEST
 // Test: Deep ancestry
 START_TEST(test_deep_ancestry_on_restore)
 {
@@ -387,8 +385,8 @@ START_TEST(test_deep_ancestry_on_restore)
     verify_msg(child, 2, "p_msg1");
     verify_msg(child, 3, "c_msg1");
 }
-END_TEST
 
+END_TEST
 // Test: Dependency ordering
 START_TEST(test_dependency_ordering_on_restore)
 {
@@ -403,8 +401,8 @@ START_TEST(test_dependency_ordering_on_restore)
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(repl->agent_count, 2);
 }
-END_TEST
 
+END_TEST
 // Test: Metadata events filtered
 START_TEST(test_metadata_events_filtered_on_restore)
 {
@@ -435,6 +433,7 @@ START_TEST(test_metadata_events_filtered_on_restore)
         ck_assert_str_ne(repl->current->conversation->messages[i]->kind, "clear");
     }
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

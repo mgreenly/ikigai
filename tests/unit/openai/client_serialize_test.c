@@ -180,7 +180,6 @@ START_TEST(test_serialize_call_and_result_sequence)
 }
 
 END_TEST
-
 /*
  * Metadata filtering tests
  */

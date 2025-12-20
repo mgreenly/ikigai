@@ -107,8 +107,7 @@ static void test_teardown(void)
 // ========== Tests ==========
 
 // Test: Creates Agent 0 on empty registry
-START_TEST(test_ensure_agent_zero_creates_on_empty)
-{
+START_TEST(test_ensure_agent_zero_creates_on_empty) {
     SKIP_IF_NO_DB();
 
     char *uuid = NULL;
@@ -121,7 +120,6 @@ START_TEST(test_ensure_agent_zero_creates_on_empty)
     ck_assert_int_eq((int)strlen(uuid), 22);  // base64url UUID is 22 chars
 }
 END_TEST
-
 // Test: Returns existing Agent 0 UUID if present
 START_TEST(test_ensure_agent_zero_returns_existing)
 {
@@ -140,8 +138,8 @@ START_TEST(test_ensure_agent_zero_returns_existing)
     ck_assert(uuid2 != NULL);
     ck_assert_str_eq(uuid1, uuid2);
 }
-END_TEST
 
+END_TEST
 // Test: Agent 0 has parent_uuid = NULL
 START_TEST(test_agent_zero_has_null_parent)
 {
@@ -162,8 +160,8 @@ START_TEST(test_agent_zero_has_null_parent)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // Test: Agent 0 has status = 'running'
 START_TEST(test_agent_zero_status_running)
 {
@@ -186,8 +184,8 @@ START_TEST(test_agent_zero_status_running)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // Test: Upgrade scenario - adopts orphan messages
 START_TEST(test_ensure_agent_zero_adopts_orphans)
 {
@@ -215,13 +213,13 @@ START_TEST(test_ensure_agent_zero_adopts_orphans)
     // Insert orphan messages (messages with no agent_uuid)
     char insert_orphan[512];
     snprintf(insert_orphan, sizeof(insert_orphan),
-        "INSERT INTO messages (session_id, kind, content, created_at, agent_uuid) "
-        "VALUES (%lld, 'user', 'orphan message 1', NOW(), NULL), "
-        "       (%lld, 'assistant', 'orphan message 2', NOW(), NULL)",
-        (long long)session_id, (long long)session_id);
+             "INSERT INTO messages (session_id, kind, content, created_at, agent_uuid) "
+             "VALUES (%lld, 'user', 'orphan message 1', NOW(), NULL), "
+             "       (%lld, 'assistant', 'orphan message 2', NOW(), NULL)",
+             (long long)session_id, (long long)session_id);
 
     PGresult *orphan_res = PQexecParams(db->conn, insert_orphan, 0, NULL,
-                                         NULL, NULL, NULL, 0);
+                                        NULL, NULL, NULL, 0);
     ck_assert_int_eq(PQresultStatus(orphan_res), PGRES_COMMAND_OK);
     PQclear(orphan_res);
 
@@ -244,15 +242,15 @@ START_TEST(test_ensure_agent_zero_adopts_orphans)
     const char *check_agent = "SELECT COUNT(*) FROM messages WHERE agent_uuid = $1";
     const char *agent_params[1] = {uuid};
     PGresult *agent_res = PQexecParams(db->conn, check_agent, 1, NULL,
-                                        agent_params, NULL, NULL, 0);
+                                       agent_params, NULL, NULL, 0);
     ck_assert_int_eq(PQresultStatus(agent_res), PGRES_TUPLES_OK);
 
     const char *agent_count = PQgetvalue(agent_res, 0, 0);
     ck_assert_str_eq(agent_count, "2");  // Agent 0 owns both messages
     PQclear(agent_res);
 }
-END_TEST
 
+END_TEST
 // Test: Idempotent - multiple calls return same UUID
 START_TEST(test_ensure_agent_zero_idempotent)
 {
@@ -284,6 +282,7 @@ START_TEST(test_ensure_agent_zero_idempotent)
     ck_assert_str_eq(count, "1");  // Only one root agent
     PQclear(result);
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

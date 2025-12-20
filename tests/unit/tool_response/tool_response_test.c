@@ -33,9 +33,8 @@ START_TEST(test_tool_response_error_basic) {
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
-END_TEST
-
-START_TEST(test_tool_response_error_special_chars) {
+END_TEST START_TEST(test_tool_response_error_special_chars)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 
@@ -55,9 +54,9 @@ START_TEST(test_tool_response_error_special_chars) {
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_tool_response_success_basic) {
+END_TEST START_TEST(test_tool_response_success_basic)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 
@@ -84,9 +83,9 @@ START_TEST(test_tool_response_success_basic) {
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_tool_response_success_empty_output) {
+END_TEST START_TEST(test_tool_response_success_empty_output)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 
@@ -106,10 +105,12 @@ START_TEST(test_tool_response_success_empty_output) {
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
+
 END_TEST
 
 // Callback to add custom fields
-static void add_custom_fields(yyjson_mut_doc *doc, yyjson_mut_val *root, void *user_ctx) {
+static void add_custom_fields(yyjson_mut_doc *doc, yyjson_mut_val *root, void *user_ctx)
+{
     (void)user_ctx; // unused
     yyjson_mut_obj_add_int(doc, root, "exit_code", 42);
     yyjson_mut_obj_add_str(doc, root, "custom", "value");
@@ -120,7 +121,8 @@ typedef struct {
     size_t count;
 } test_data_t;
 
-static void add_test_data(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx) {
+static void add_test_data(yyjson_mut_doc *doc, yyjson_mut_val *data, void *user_ctx)
+{
     test_data_t *d = user_ctx;
     yyjson_mut_obj_add_str(doc, data, "output", d->output);
     yyjson_mut_obj_add_uint(doc, data, "count", d->count);
@@ -156,9 +158,8 @@ START_TEST(test_tool_response_success_ex_with_fields) {
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
-END_TEST
-
-START_TEST(test_tool_response_success_ex_without_fields) {
+END_TEST START_TEST(test_tool_response_success_ex_without_fields)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 
@@ -186,9 +187,9 @@ START_TEST(test_tool_response_success_ex_without_fields) {
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_tool_response_success_with_data) {
+END_TEST START_TEST(test_tool_response_success_with_data)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 
@@ -218,18 +219,20 @@ START_TEST(test_tool_response_success_with_data) {
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
+
 END_TEST
 
 #ifndef SKIP_SIGNAL_TESTS
-START_TEST(test_tool_response_null_ctx) {
+START_TEST(test_tool_response_null_ctx)
+{
     char *result = NULL;
 
     // Should assert when ctx is NULL
     ik_tool_response_error(NULL, "error", &result);
 }
-END_TEST
 
-START_TEST(test_tool_response_null_message) {
+END_TEST START_TEST(test_tool_response_null_message)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 
@@ -238,10 +241,12 @@ START_TEST(test_tool_response_null_message) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 #endif
 
-static Suite *tool_response_suite(void) {
+static Suite *tool_response_suite(void)
+{
     Suite *s = suite_create("Tool Response");
 
     TCase *tc_error = tcase_create("Error Response");
@@ -267,7 +272,8 @@ static Suite *tool_response_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     int number_failed;
     Suite *s = tool_response_suite();
     SRunner *sr = srunner_create(s);

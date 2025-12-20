@@ -355,7 +355,6 @@ START_TEST(test_file_read_exec_generic_fopen_error)
 }
 
 END_TEST
-
 // Test: file too large error (generic error path)
 START_TEST(test_file_read_exec_file_too_large)
 {

@@ -146,8 +146,7 @@ static void suite_teardown(void)
 }
 
 // Test: /kill <uuid> terminates specific agent
-START_TEST(test_kill_target_terminates_specific_agent)
-{
+START_TEST(test_kill_target_terminates_specific_agent) {
     ik_agent_ctx_t *parent = repl->current;
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -177,7 +176,6 @@ START_TEST(test_kill_target_terminates_specific_agent)
     ck_assert(!found);
 }
 END_TEST
-
 // Test: partial UUID matching works
 START_TEST(test_kill_target_partial_uuid_match)
 {
@@ -202,8 +200,8 @@ START_TEST(test_kill_target_partial_uuid_match)
     ik_agent_ctx_t *found = ik_repl_find_agent(repl, child_uuid);
     ck_assert_ptr_null(found);
 }
-END_TEST
 
+END_TEST
 // Test: ambiguous UUID shows error
 START_TEST(test_kill_target_ambiguous_uuid_error)
 {
@@ -231,8 +229,8 @@ START_TEST(test_kill_target_ambiguous_uuid_error)
 
     (void)child1;
 }
-END_TEST
 
+END_TEST
 // Test: non-existent UUID shows error
 START_TEST(test_kill_target_nonexistent_uuid_error)
 {
@@ -256,8 +254,8 @@ START_TEST(test_kill_target_nonexistent_uuid_error)
     }
     ck_assert(found_error);
 }
-END_TEST
 
+END_TEST
 // Test: killing current agent via UUID switches to parent
 START_TEST(test_kill_target_current_switches_to_parent)
 {
@@ -274,8 +272,8 @@ START_TEST(test_kill_target_current_switches_to_parent)
 
     ck_assert_ptr_eq(repl->current, parent);
 }
-END_TEST
 
+END_TEST
 // Test: killing root via UUID shows error
 START_TEST(test_kill_target_root_shows_error)
 {
@@ -304,8 +302,8 @@ START_TEST(test_kill_target_root_shows_error)
     }
     ck_assert(found_error);
 }
-END_TEST
 
+END_TEST
 // Test: user stays on current agent after targeted kill
 START_TEST(test_kill_target_user_stays_on_current)
 {
@@ -324,8 +322,8 @@ START_TEST(test_kill_target_user_stays_on_current)
 
     ck_assert_ptr_eq(repl->current, parent);
 }
-END_TEST
 
+END_TEST
 // Test: registry ended_at is set for targeted kill
 START_TEST(test_kill_target_sets_ended_at)
 {
@@ -355,8 +353,8 @@ START_TEST(test_kill_target_sets_ended_at)
     ck_assert_int_ge(row->ended_at, before_kill);
     ck_assert_int_le(row->ended_at, after_kill + 1);
 }
-END_TEST
 
+END_TEST
 // Test: agent_killed event recorded in current agent's history for targeted kill
 START_TEST(test_kill_target_records_event_in_current_history)
 {
@@ -387,8 +385,8 @@ START_TEST(test_kill_target_records_event_in_current_history)
 
     PQclear(pg_res);
 }
-END_TEST
 
+END_TEST
 // Test: agent_killed event has correct target UUID in metadata
 START_TEST(test_kill_target_event_has_target_uuid)
 {
@@ -421,6 +419,7 @@ START_TEST(test_kill_target_event_has_target_uuid)
 
     PQclear(pg_res);
 }
+
 END_TEST
 
 static Suite *cmd_kill_target_suite(void)

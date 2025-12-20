@@ -9,8 +9,7 @@
 #include <time.h>
 
 // Test ik_agent_create() succeeds
-START_TEST(test_agent_create_success)
-{
+START_TEST(test_agent_create_success) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -27,7 +26,6 @@ START_TEST(test_agent_create_success)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test agent->name is NULL initially
 START_TEST(test_agent_name_null_initially)
 {
@@ -46,8 +44,8 @@ START_TEST(test_agent_name_null_initially)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->shared matches input
 START_TEST(test_agent_shared_matches_input)
 {
@@ -66,8 +64,8 @@ START_TEST(test_agent_shared_matches_input)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->scrollback is initialized
 START_TEST(test_agent_scrollback_initialized)
 {
@@ -86,8 +84,8 @@ START_TEST(test_agent_scrollback_initialized)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->layer_cake is initialized
 START_TEST(test_agent_layer_cake_initialized)
 {
@@ -106,8 +104,8 @@ START_TEST(test_agent_layer_cake_initialized)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test all layer pointers are non-NULL
 START_TEST(test_agent_all_layers_initialized)
 {
@@ -130,8 +128,8 @@ START_TEST(test_agent_all_layers_initialized)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->viewport_offset is 0 initially
 START_TEST(test_agent_viewport_offset_zero)
 {
@@ -150,8 +148,8 @@ START_TEST(test_agent_viewport_offset_zero)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->input_buffer is initialized
 START_TEST(test_agent_input_buffer_initialized)
 {
@@ -170,8 +168,8 @@ START_TEST(test_agent_input_buffer_initialized)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->separator_visible is true initially
 START_TEST(test_agent_separator_visible_true)
 {
@@ -190,8 +188,8 @@ START_TEST(test_agent_separator_visible_true)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->input_buffer_visible is true initially
 START_TEST(test_agent_input_buffer_visible_true)
 {
@@ -210,8 +208,8 @@ START_TEST(test_agent_input_buffer_visible_true)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->conversation is initialized
 START_TEST(test_agent_conversation_initialized)
 {
@@ -230,8 +228,8 @@ START_TEST(test_agent_conversation_initialized)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->marks is NULL and mark_count is 0 initially
 START_TEST(test_agent_marks_and_count_initially)
 {
@@ -247,8 +245,8 @@ START_TEST(test_agent_marks_and_count_initially)
     ck_assert_uint_eq(agent->mark_count, 0);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->state is IK_AGENT_STATE_IDLE initially
 START_TEST(test_agent_state_idle_initially)
 {
@@ -267,8 +265,8 @@ START_TEST(test_agent_state_idle_initially)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->multi is created initially
 START_TEST(test_agent_multi_created_initially)
 {
@@ -287,8 +285,8 @@ START_TEST(test_agent_multi_created_initially)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->curl_still_running is 0 initially
 START_TEST(test_agent_curl_still_running_zero_initially)
 {
@@ -307,8 +305,8 @@ START_TEST(test_agent_curl_still_running_zero_initially)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent response-related fields are NULL initially
 START_TEST(test_agent_response_fields_null_initially)
 {
@@ -327,8 +325,8 @@ START_TEST(test_agent_response_fields_null_initially)
     ck_assert_ptr_null(agent->response_finish_reason);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->response_completion_tokens is 0 initially
 START_TEST(test_agent_response_completion_tokens_zero_initially)
 {
@@ -347,8 +345,8 @@ START_TEST(test_agent_response_completion_tokens_zero_initially)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent tool thread fields initialized correctly
 START_TEST(test_agent_tool_fields_initialized)
 {
@@ -366,8 +364,8 @@ START_TEST(test_agent_tool_fields_initialized)
     ck_assert_int_eq(agent->tool_iteration_count, 0);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->spinner_state is properly initialized
 START_TEST(test_agent_spinner_state_initialized)
 {
@@ -387,8 +385,8 @@ START_TEST(test_agent_spinner_state_initialized)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->completion is NULL initially
 START_TEST(test_agent_completion_null_initially)
 {
@@ -407,8 +405,8 @@ START_TEST(test_agent_completion_null_initially)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test mutex is initialized and can be locked/unlocked
 START_TEST(test_agent_tool_thread_mutex_initialized)
 {
@@ -433,8 +431,8 @@ START_TEST(test_agent_tool_thread_mutex_initialized)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->created_at is set to current time
 START_TEST(test_agent_create_sets_created_at)
 {
@@ -458,8 +456,8 @@ START_TEST(test_agent_create_sets_created_at)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test agent->repl backpointer is NULL initially (no repl context yet)
 START_TEST(test_agent_repl_backpointer_null_initially)
 {
@@ -478,6 +476,7 @@ START_TEST(test_agent_repl_backpointer_null_initially)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *agent_suite(void)

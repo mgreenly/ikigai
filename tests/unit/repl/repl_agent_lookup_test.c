@@ -57,8 +57,7 @@ static ik_agent_ctx_t *create_agent_with_uuid(const char *uuid)
 }
 
 // Test: Exact match returns correct agent
-START_TEST(test_exact_match)
-{
+START_TEST(test_exact_match) {
     // Create agents with different UUIDs
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123def456ghi789jklm");
     ik_agent_ctx_t *agent2 = create_agent_with_uuid("xyz789uvw456rst123opqn");
@@ -79,7 +78,6 @@ START_TEST(test_exact_match)
     ck_assert_ptr_eq(found, agent2);
 }
 END_TEST
-
 // Test: Prefix match (6 chars) returns correct agent
 START_TEST(test_prefix_match)
 {
@@ -99,8 +97,8 @@ START_TEST(test_prefix_match)
     found = ik_repl_find_agent(repl, "xyz789");
     ck_assert_ptr_eq(found, agent2);
 }
-END_TEST
 
+END_TEST
 // Test: Ambiguous prefix returns NULL
 START_TEST(test_ambiguous_prefix)
 {
@@ -124,8 +122,8 @@ START_TEST(test_ambiguous_prefix)
     found = ik_repl_find_agent(repl, "abc456");
     ck_assert_ptr_eq(found, agent2);
 }
-END_TEST
 
+END_TEST
 // Test: uuid_ambiguous returns true for ambiguous prefix
 START_TEST(test_uuid_ambiguous)
 {
@@ -153,8 +151,8 @@ START_TEST(test_uuid_ambiguous)
     ambiguous = ik_repl_uuid_ambiguous(repl, "abc");
     ck_assert(!ambiguous);
 }
-END_TEST
 
+END_TEST
 // Test: Minimum 4 char prefix enforced
 START_TEST(test_minimum_prefix_length)
 {
@@ -178,8 +176,8 @@ START_TEST(test_minimum_prefix_length)
     found = ik_repl_find_agent(repl, "abc1");
     ck_assert_ptr_eq(found, agent1);
 }
-END_TEST
 
+END_TEST
 // Test: No match returns NULL
 START_TEST(test_no_match)
 {
@@ -193,8 +191,8 @@ START_TEST(test_no_match)
     ik_agent_ctx_t *found = ik_repl_find_agent(repl, "xyz789");
     ck_assert_ptr_null(found);
 }
-END_TEST
 
+END_TEST
 // Test: Empty agent array returns NULL
 START_TEST(test_empty_array)
 {
@@ -205,8 +203,8 @@ START_TEST(test_empty_array)
     bool ambiguous = ik_repl_uuid_ambiguous(repl, "abc123");
     ck_assert(!ambiguous);
 }
-END_TEST
 
+END_TEST
 // Test: Exact match takes priority over prefix
 START_TEST(test_exact_match_priority)
 {
@@ -223,6 +221,7 @@ START_TEST(test_exact_match_priority)
     ik_agent_ctx_t *found = ik_repl_find_agent(repl, "abc123");
     ck_assert_ptr_eq(found, agent1);
 }
+
 END_TEST
 
 // Create test suite

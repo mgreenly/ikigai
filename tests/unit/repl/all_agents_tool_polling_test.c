@@ -28,7 +28,8 @@ void ik_repl_handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
 
 /* Mock for db message insert */
 res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
-                            const char *kind, const char *content, const char *data_json) {
+                            const char *kind, const char *content, const char *data_json)
+{
     (void)db; (void)session_id; (void)agent_uuid;
     (void)kind; (void)content; (void)data_json;
     return OK(NULL);
@@ -91,9 +92,9 @@ static void setup(void)
 
     /* Create pending tool call for agent A */
     agent_a->pending_tool_call = ik_tool_call_create(agent_a,
-                                                      "call_a123",
-                                                      "glob",
-                                                      "{\"pattern\": \"*.c\"}");
+                                                     "call_a123",
+                                                     "glob",
+                                                     "{\"pattern\": \"*.c\"}");
 
     /* Create agent B */
     agent_b = talloc_zero(repl, ik_agent_ctx_t);
@@ -137,8 +138,7 @@ static void teardown(void)
  * 4. Verify Agent A's tool was harvested and messages added
  * 5. Verify Agent B is unaffected
  */
-START_TEST(test_handle_agent_tool_completion_uses_agent_param)
-{
+START_TEST(test_handle_agent_tool_completion_uses_agent_param) {
     /* Wait for thread to complete */
     int32_t max_wait = 200;
     bool complete = false;
@@ -177,7 +177,6 @@ START_TEST(test_handle_agent_tool_completion_uses_agent_param)
     ck_assert_int_eq(agent_b->state, IK_AGENT_STATE_IDLE);
 }
 END_TEST
-
 /**
  * Test: Event loop polls all agents for tool completion
  *
@@ -222,6 +221,7 @@ START_TEST(test_event_loop_polls_all_agents)
     ck_assert_uint_eq(agent_b->conversation->message_count, 0);
     ck_assert_int_eq(agent_b->state, IK_AGENT_STATE_IDLE);
 }
+
 END_TEST
 
 /**

@@ -141,8 +141,7 @@ static void reset_mocks(void)
 }
 
 // Test basic shared context initialization and memory management
-START_TEST(test_shared_ctx_init_and_memory)
-{
+START_TEST(test_shared_ctx_init_and_memory) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -170,7 +169,6 @@ START_TEST(test_shared_ctx_init_and_memory)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test that shared context stores and provides access to config
 START_TEST(test_shared_ctx_config)
 {
@@ -197,8 +195,8 @@ START_TEST(test_shared_ctx_config)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test terminal and render initialization
 START_TEST(test_shared_ctx_terminal_and_render)
 {
@@ -226,8 +224,8 @@ START_TEST(test_shared_ctx_terminal_and_render)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test database context when not configured
 START_TEST(test_shared_ctx_database_unconfigured)
 {
@@ -252,8 +250,8 @@ START_TEST(test_shared_ctx_database_unconfigured)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test history initialization
 START_TEST(test_shared_ctx_history)
 {
@@ -278,8 +276,8 @@ START_TEST(test_shared_ctx_history)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test debug manager and pipes initialization
 START_TEST(test_shared_ctx_debug)
 {
@@ -306,8 +304,8 @@ START_TEST(test_shared_ctx_debug)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test that history load failure is gracefully handled
 START_TEST(test_shared_ctx_history_load_failure_graceful)
 {
@@ -351,6 +349,7 @@ START_TEST(test_shared_ctx_history_load_failure_graceful)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *shared_suite(void)

@@ -70,8 +70,10 @@ START_TEST(test_rewind_to_same_mark_twice) {
     ik_msg_t *msg2 = talloc_zero(repl->current->conversation, ik_msg_t);
     msg2->kind = talloc_strdup(msg2, "assistant");
     msg2->content = talloc_strdup(msg2, "Response 1");
-    repl->current->conversation->messages = talloc_realloc(repl->current->conversation, repl->current->conversation->messages, ik_msg_t *,
-                                                  2);
+    repl->current->conversation->messages = talloc_realloc(repl->current->conversation,
+                                                           repl->current->conversation->messages,
+                                                           ik_msg_t *,
+                                                           2);
     repl->current->conversation->messages[1] = msg2;
     repl->current->conversation->message_count = 2;
 
@@ -90,8 +92,10 @@ START_TEST(test_rewind_to_same_mark_twice) {
     ik_msg_t *msg3 = talloc_zero(repl->current->conversation, ik_msg_t);
     msg3->kind = talloc_strdup(msg3, "assistant");
     msg3->content = talloc_strdup(msg3, "Response 2");
-    repl->current->conversation->messages = talloc_realloc(repl->current->conversation, repl->current->conversation->messages, ik_msg_t *,
-                                                  2);
+    repl->current->conversation->messages = talloc_realloc(repl->current->conversation,
+                                                           repl->current->conversation->messages,
+                                                           ik_msg_t *,
+                                                           2);
     repl->current->conversation->messages[1] = msg3;
     repl->current->conversation->message_count = 2;
 
@@ -159,8 +163,10 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     ik_msg_t *msg2 = talloc_zero(repl->current->conversation, ik_msg_t);
     msg2->kind = talloc_strdup(msg2, "assistant");
     msg2->content = talloc_strdup(msg2, "Response 1");
-    repl->current->conversation->messages = talloc_realloc(repl->current->conversation, repl->current->conversation->messages, ik_msg_t *,
-                                                  2);
+    repl->current->conversation->messages = talloc_realloc(repl->current->conversation,
+                                                           repl->current->conversation->messages,
+                                                           ik_msg_t *,
+                                                           2);
     repl->current->conversation->messages[1] = msg2;
     repl->current->conversation->message_count = 2;
 
@@ -173,8 +179,10 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     ik_msg_t *msg3 = talloc_zero(repl->current->conversation, ik_msg_t);
     msg3->kind = talloc_strdup(msg3, "assistant");
     msg3->content = talloc_strdup(msg3, "Response 2");
-    repl->current->conversation->messages = talloc_realloc(repl->current->conversation, repl->current->conversation->messages, ik_msg_t *,
-                                                  2);
+    repl->current->conversation->messages = talloc_realloc(repl->current->conversation,
+                                                           repl->current->conversation->messages,
+                                                           ik_msg_t *,
+                                                           2);
     repl->current->conversation->messages[1] = msg3;
     repl->current->conversation->message_count = 2;
 

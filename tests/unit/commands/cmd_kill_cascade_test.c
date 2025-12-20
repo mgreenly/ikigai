@@ -138,8 +138,7 @@ static void suite_teardown(void)
     ik_test_db_destroy(DB_NAME);
 }
 
-START_TEST(test_kill_cascade_kills_target_and_children)
-{
+START_TEST(test_kill_cascade_kills_target_and_children) {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ik_agent_ctx_t *parent = repl->current;
@@ -172,9 +171,7 @@ START_TEST(test_kill_cascade_kills_target_and_children)
         ck_assert_str_ne(repl->agents[i]->uuid, child2_uuid);
     }
 }
-END_TEST
-
-START_TEST(test_kill_cascade_includes_grandchildren)
+END_TEST START_TEST(test_kill_cascade_includes_grandchildren)
 {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -206,9 +203,8 @@ START_TEST(test_kill_cascade_includes_grandchildren)
         ck_assert_str_ne(repl->agents[i]->uuid, grandchild_uuid);
     }
 }
-END_TEST
 
-START_TEST(test_kill_cascade_reports_count)
+END_TEST START_TEST(test_kill_cascade_reports_count)
 {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -245,9 +241,8 @@ START_TEST(test_kill_cascade_reports_count)
     }
     ck_assert(found_message);
 }
-END_TEST
 
-START_TEST(test_kill_without_cascade_only_kills_target)
+END_TEST START_TEST(test_kill_without_cascade_only_kills_target)
 {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -296,9 +291,8 @@ START_TEST(test_kill_without_cascade_only_kills_target)
     ck_assert(found_child1);
     ck_assert(found_child2);
 }
-END_TEST
 
-START_TEST(test_kill_cascade_all_have_ended_at)
+END_TEST START_TEST(test_kill_cascade_all_have_ended_at)
 {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -342,9 +336,8 @@ START_TEST(test_kill_cascade_all_have_ended_at)
         ck_assert_str_eq(row->status, "dead");
     }
 }
-END_TEST
 
-START_TEST(test_kill_cascade_event_has_cascade_metadata)
+END_TEST START_TEST(test_kill_cascade_event_has_cascade_metadata)
 {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -377,9 +370,8 @@ START_TEST(test_kill_cascade_event_has_cascade_metadata)
 
     PQclear(pg_res);
 }
-END_TEST
 
-START_TEST(test_kill_cascade_event_count_matches)
+END_TEST START_TEST(test_kill_cascade_event_count_matches)
 {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -418,6 +410,7 @@ START_TEST(test_kill_cascade_event_count_matches)
 
     PQclear(pg_res);
 }
+
 END_TEST
 
 static Suite *cmd_kill_suite(void)

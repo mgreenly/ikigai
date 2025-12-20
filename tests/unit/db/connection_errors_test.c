@@ -65,7 +65,6 @@ START_TEST(test_db_begin_query_failure) {
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: ik_db_commit handles query failure
 START_TEST(test_db_commit_query_failure)
 {
@@ -83,7 +82,6 @@ START_TEST(test_db_commit_query_failure)
 }
 
 END_TEST
-
 // Test: ik_db_rollback handles query failure
 START_TEST(test_db_rollback_query_failure)
 {

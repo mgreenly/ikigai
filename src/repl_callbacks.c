@@ -78,8 +78,8 @@ res_t ik_repl_streaming_callback(const char *chunk, void *ctx)
             agent->streaming_line_buffer = talloc_strndup(agent, chunk + start, remaining_len);
         } else {
             agent->streaming_line_buffer = talloc_strndup_append_buffer(agent->streaming_line_buffer,
-                                                                       chunk + start,
-                                                                       remaining_len);
+                                                                        chunk + start,
+                                                                        remaining_len);
         }
         if (agent->streaming_line_buffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
@@ -187,9 +187,9 @@ res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, v
         if (completion->tool_call != NULL) {
             // Deep copy the tool_call struct
             agent->pending_tool_call = ik_tool_call_create(agent,
-                                                          completion->tool_call->id,
-                                                          completion->tool_call->name,
-                                                          completion->tool_call->arguments);
+                                                           completion->tool_call->id,
+                                                           completion->tool_call->name,
+                                                           completion->tool_call->arguments);
             if (agent->pending_tool_call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         }
     }

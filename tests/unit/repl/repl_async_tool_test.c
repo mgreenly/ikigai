@@ -27,11 +27,12 @@ static char *last_insert_data_json = NULL;
 
 /* Mock implementation of ik_db_message_insert_ */
 res_t ik_db_message_insert_(void *db,
-                             int64_t session_id,
-                             const char *agent_uuid,
-                             const char *kind,
-                             const char *content,
-                             const char *data_json) {
+                            int64_t session_id,
+                            const char *agent_uuid,
+                            const char *kind,
+                            const char *content,
+                            const char *data_json)
+{
     (void)db;
     (void)session_id;
     (void)agent_uuid;
@@ -106,9 +107,9 @@ static void setup(void)
 
     /* Create pending_tool_call with a simple glob call */
     repl->current->pending_tool_call = ik_tool_call_create(repl,
-                                                  "call_test123",
-                                                  "glob",
-                                                  "{\"pattern\": \"*.c\"}");
+                                                           "call_test123",
+                                                           "glob",
+                                                           "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 }
 
@@ -230,9 +231,9 @@ START_TEST(test_async_tool_file_read)
     /* Change to file_read tool */
     talloc_free(repl->current->pending_tool_call);
     repl->current->pending_tool_call = ik_tool_call_create(repl,
-                                                  "call_read123",
-                                                  "file_read",
-                                                  "{\"path\": \"/etc/hostname\"}");
+                                                           "call_read123",
+                                                           "file_read",
+                                                           "{\"path\": \"/etc/hostname\"}");
 
     /* Start and wait */
     ik_repl_start_tool_execution(repl);
@@ -293,7 +294,6 @@ START_TEST(test_async_tool_with_debug_pipe)
 }
 
 END_TEST
-
 /*
  * Test async execution with database persistence
  */
@@ -330,7 +330,6 @@ START_TEST(test_async_tool_db_persistence)
 }
 
 END_TEST
-
 /*
  * Test async execution without database context
  */
@@ -367,7 +366,6 @@ START_TEST(test_async_tool_no_db_ctx)
 }
 
 END_TEST
-
 /*
  * Test async execution without session ID
  */

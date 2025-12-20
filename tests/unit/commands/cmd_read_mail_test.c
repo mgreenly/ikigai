@@ -161,8 +161,7 @@ static void suite_teardown(void)
 }
 
 // Test: displays full message
-START_TEST(test_read_mail_displays_full_message)
-{
+START_TEST(test_read_mail_displays_full_message) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -178,8 +177,8 @@ START_TEST(test_read_mail_displays_full_message)
 
     // Create message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid,
-                                             "This is the full message body");
+                                            repl->current->uuid,
+                                            "This is the full message body");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -192,7 +191,6 @@ START_TEST(test_read_mail_displays_full_message)
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
-
 // Test: marks message as read
 START_TEST(test_read_mail_marks_as_read)
 {
@@ -211,8 +209,8 @@ START_TEST(test_read_mail_marks_as_read)
 
     // Create unread message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid,
-                                             "Message to be marked as read");
+                                            repl->current->uuid,
+                                            "Message to be marked as read");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -237,8 +235,8 @@ START_TEST(test_read_mail_marks_as_read)
     ck_assert_uint_eq(count, 1);
     ck_assert(inbox[0]->read);
 }
-END_TEST
 
+END_TEST
 // Test: non-existent ID shows error
 START_TEST(test_read_mail_nonexistent_id)
 {
@@ -249,8 +247,8 @@ START_TEST(test_read_mail_nonexistent_id)
     // Verify error message in scrollback
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: ID from different agent shows error
 START_TEST(test_read_mail_different_agent)
 {
@@ -281,8 +279,8 @@ START_TEST(test_read_mail_different_agent)
 
     // Send message to other agent
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             other->uuid,
-                                             "Message for other agent");
+                                            other->uuid,
+                                            "Message for other agent");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -294,6 +292,7 @@ START_TEST(test_read_mail_different_agent)
     // Verify error message in scrollback
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
+
 END_TEST
 
 static Suite *read_mail_suite(void)

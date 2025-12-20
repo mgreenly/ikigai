@@ -27,15 +27,15 @@ void ik_mail_format_timestamp(int64_t diff, char *buf, size_t buf_size)
         snprintf(buf, buf_size, "%" PRId64 " min ago", diff / 60);
     } else if (diff < 86400) {     // LCOV_EXCL_BR_LINE
         snprintf(buf, buf_size, "%" PRId64 " hour%s ago",
-                diff / 3600, (diff / 3600) == 1 ? "" : "s");
+                 diff / 3600, (diff / 3600) == 1 ? "" : "s");
     } else {     // LCOV_EXCL_BR_LINE
         snprintf(buf, buf_size, "%" PRId64 " day%s ago",
-                diff / 86400, (diff / 86400) == 1 ? "" : "s");
+                 diff / 86400, (diff / 86400) == 1 ? "" : "s");
     }
 }
 
 res_t ik_mail_render_list(void *ctx, ik_scrollback_t *scrollback,
-                           ik_mail_msg_t **inbox, size_t count)
+                          ik_mail_msg_t **inbox, size_t count)
 {
     assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(scrollback != NULL);   // LCOV_EXCL_BR_LINE

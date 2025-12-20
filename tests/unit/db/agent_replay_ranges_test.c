@@ -113,10 +113,10 @@ static void test_teardown(void)
 
 // Skip macro for tests when DB not available
 #define SKIP_IF_NO_DB() do { \
-    if (!db_available) { \
-        return; \
-    } \
-} while(0)
+            if (!db_available) { \
+                return; \
+            } \
+} while (0)
 
 // Helper: Insert an agent into the registry
 static void insert_agent(const char *uuid, const char *parent_uuid,
@@ -144,8 +144,7 @@ static void insert_message(const char *agent_uuid, const char *kind,
 // ========== build_replay_ranges Tests ==========
 
 // Test: range building for root agent (single range with end_id=0)
-START_TEST(test_build_ranges_root_agent)
-{
+START_TEST(test_build_ranges_root_agent) {
     SKIP_IF_NO_DB();
 
     // Insert root agent with no parent
@@ -169,7 +168,6 @@ START_TEST(test_build_ranges_root_agent)
     ck_assert_int_eq(ranges[0].end_id, 0);
 }
 END_TEST
-
 // Test: range building for child (two ranges)
 START_TEST(test_build_ranges_child)
 {
@@ -212,8 +210,8 @@ START_TEST(test_build_ranges_child)
     ck_assert_int_eq(ranges[1].start_id, 0);
     ck_assert_int_eq(ranges[1].end_id, 0);
 }
-END_TEST
 
+END_TEST
 // Test: range building for grandchild (three ranges)
 START_TEST(test_build_ranges_grandchild)
 {
@@ -251,8 +249,8 @@ START_TEST(test_build_ranges_grandchild)
     ck_assert_str_eq(ranges[1].agent_uuid, "parent-mid");
     ck_assert_str_eq(ranges[2].agent_uuid, "grandchild");
 }
-END_TEST
 
+END_TEST
 // Test: range building stops at clear event
 START_TEST(test_build_ranges_stops_at_clear)
 {
@@ -275,6 +273,7 @@ START_TEST(test_build_ranges_stops_at_clear)
     ck_assert(ranges[0].start_id > 0);
     ck_assert_int_eq(ranges[0].end_id, 0);
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

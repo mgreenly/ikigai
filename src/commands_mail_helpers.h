@@ -30,8 +30,7 @@ void ik_mail_format_timestamp(int64_t diff, char *buf, size_t buf_size);
  * @param count Number of messages
  * @return Result
  */
-res_t ik_mail_render_list(void *ctx, ik_scrollback_t *scrollback,
-                           ik_mail_msg_t **inbox, size_t count);
+res_t ik_mail_render_list(void *ctx, ik_scrollback_t *scrollback, ik_mail_msg_t **inbox, size_t count);
 
 /**
  * @brief Parse UUID from argument string

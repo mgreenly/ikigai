@@ -71,8 +71,7 @@ static ik_agent_ctx_t *create_test_agent(ik_repl_ctx_t *parent, const char *uuid
 /*
  * Test: ik_repl_setup_fd_sets includes FDs from ALL agents
  */
-START_TEST(test_setup_fd_sets_all_agents)
-{
+START_TEST(test_setup_fd_sets_all_agents) {
     /* Create two agents */
     ik_agent_ctx_t *agent_a = create_test_agent(repl, "agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent(repl, "agent-b-uuid");
@@ -101,7 +100,6 @@ START_TEST(test_setup_fd_sets_all_agents)
      * completes successfully and iterates over all agents. */
 }
 END_TEST
-
 /*
  * Test: ik_repl_calculate_select_timeout_ms considers tool state from ALL agents
  */
@@ -128,8 +126,8 @@ START_TEST(test_timeout_tool_poll_multiple_agents)
     /* Should return 50ms because agent A is executing a tool */
     ck_assert_int_eq(timeout, 50);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: ik_repl_calculate_select_timeout_ms when current agent is executing but others are idle
  */
@@ -156,8 +154,8 @@ START_TEST(test_timeout_tool_poll_current_only)
     /* Should return 50ms because agent B is executing a tool */
     ck_assert_int_eq(timeout, 50);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: ik_repl_calculate_select_timeout_ms when no agents are executing tools
  */
@@ -184,6 +182,7 @@ START_TEST(test_timeout_no_tools_executing)
     /* Should return default 1000ms */
     ck_assert_int_eq(timeout, 1000);
 }
+
 END_TEST
 
 /*

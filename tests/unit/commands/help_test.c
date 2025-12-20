@@ -36,7 +36,6 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
     ck_assert_ptr_nonnull(conv);
 
-
     // Create minimal config
     ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
@@ -49,12 +48,11 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    
+
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
-
 
     agent->conversation = conv;
     r->current = agent;

@@ -39,8 +39,7 @@ static void *thread_worker_func(void *arg)
 }
 
 // Test: concurrent logging from multiple threads doesn't corrupt output
-START_TEST(test_concurrent_logging_no_corruption)
-{
+START_TEST(test_concurrent_logging_no_corruption) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_thread_test_%d", getpid());
 

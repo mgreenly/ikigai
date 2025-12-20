@@ -145,8 +145,7 @@ static void teardown(void)
 }
 
 // Test: /read-mail propagates ik_db_mail_inbox error (line 286)
-START_TEST(test_read_mail_db_inbox_error)
-{
+START_TEST(test_read_mail_db_inbox_error) {
     res_t res = ik_cmd_read_mail(test_ctx, repl, "1");
 
     // Should propagate the error

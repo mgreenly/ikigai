@@ -124,8 +124,7 @@ typedef struct ik_agent_ctx {
 // shared: shared infrastructure
 // parent_uuid: parent agent's UUID (NULL for root agent)
 // out: receives allocated agent context
-res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
-                      const char *parent_uuid, ik_agent_ctx_t **out);
+res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared, const char *parent_uuid, ik_agent_ctx_t **out);
 
 /**
  * Restore agent context from database row
@@ -148,8 +147,7 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
  * @param out Receives allocated agent context
  * @return OK on success, ERR on failure
  */
-res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
-                       const void *row, ik_agent_ctx_t **out);
+res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared, const void *row, ik_agent_ctx_t **out);
 
 /**
  * Copy conversation from one agent to another

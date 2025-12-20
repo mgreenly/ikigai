@@ -9,8 +9,7 @@
 #include <string.h>
 
 // Test agent->parent_uuid is NULL for root agent
-START_TEST(test_agent_parent_uuid_null_for_root)
-{
+START_TEST(test_agent_parent_uuid_null_for_root) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -27,7 +26,6 @@ START_TEST(test_agent_parent_uuid_null_for_root)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test agent->parent_uuid matches input when provided
 START_TEST(test_agent_parent_uuid_matches_input)
 {
@@ -48,8 +46,8 @@ START_TEST(test_agent_parent_uuid_matches_input)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_agent_copy_conversation succeeds with messages
 START_TEST(test_agent_copy_conversation)
 {
@@ -97,6 +95,7 @@ START_TEST(test_agent_copy_conversation)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *agent_relationship_suite(void)

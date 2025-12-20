@@ -57,7 +57,8 @@ static res_t parse_history_line(TALLOC_CTX *ctx, const char *line, ik_logger_t *
         yyjson_mut_doc *log_doc = ik_log_create();
         yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
         if (root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Skipping malformed history line: not valid json")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, root, "message",
+                                    "Skipping malformed history line: not valid json")) PANIC("Out of memory");                            // LCOV_EXCL_BR_LINE
         ik_logger_warn_json(logger, log_doc);
         return OK(NULL);  // Skip this line
     }
@@ -68,7 +69,8 @@ static res_t parse_history_line(TALLOC_CTX *ctx, const char *line, ik_logger_t *
         yyjson_mut_doc *log_doc = ik_log_create();
         yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
         if (log_root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping non-object history line")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, log_root, "message",
+                                    "Skipping non-object history line")) PANIC("Out of memory");                                // LCOV_EXCL_BR_LINE
         ik_logger_warn_json(logger, log_doc);
         yyjson_doc_free(doc);
         return OK(NULL);  // Skip this line
@@ -81,7 +83,8 @@ static res_t parse_history_line(TALLOC_CTX *ctx, const char *line, ik_logger_t *
         yyjson_mut_doc *log_doc = ik_log_create();
         yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
         if (log_root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        if (!yyjson_mut_obj_add_str(log_doc, log_root, "message", "Skipping history line with missing/invalid cmd field")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, log_root, "message",
+                                    "Skipping history line with missing/invalid cmd field")) PANIC("Out of memory");                                // LCOV_EXCL_BR_LINE
         ik_logger_warn_json(logger, log_doc);
         yyjson_doc_free(doc);
         return OK(NULL);  // Skip this line
@@ -254,7 +257,8 @@ res_t ik_history_save(const ik_history_t *hist)
 
     FILE *f = fopen_(tmp_path, "w");
     if (f == NULL) {  // LCOV_EXCL_BR_LINE
-        err_t *error = _make_error(tmp_ctx, ERR_IO, __FILE__, __LINE__, "Failed to create %s: %s", tmp_path, strerror(errno));
+        err_t *error = _make_error(tmp_ctx, ERR_IO, __FILE__, __LINE__, "Failed to create %s: %s", tmp_path,
+                                   strerror(errno));
         talloc_steal(error, tmp_ctx);
         return err(error);
     }
@@ -273,7 +277,13 @@ res_t ik_history_save(const ik_history_t *hist)
             free(json_str);
             fclose_(f);
             unlink(tmp_path);
-            err_t *error = _make_error(tmp_ctx, ERR_IO, __FILE__, __LINE__, "Failed to write to %s: %s", tmp_path, strerror(errno));
+            err_t *error = _make_error(tmp_ctx,
+                                       ERR_IO,
+                                       __FILE__,
+                                       __LINE__,
+                                       "Failed to write to %s: %s",
+                                       tmp_path,
+                                       strerror(errno));
             talloc_steal(error, tmp_ctx);
             return err(error);
         }  // LCOV_EXCL_STOP
@@ -285,7 +295,14 @@ res_t ik_history_save(const ik_history_t *hist)
 
     if (posix_rename_(tmp_path, path) != 0) {  // LCOV_EXCL_BR_LINE
         unlink(tmp_path);
-        err_t *error = _make_error(tmp_ctx, ERR_IO, __FILE__, __LINE__, "Failed to rename %s to %s: %s", tmp_path, path, strerror(errno));
+        err_t *error = _make_error(tmp_ctx,
+                                   ERR_IO,
+                                   __FILE__,
+                                   __LINE__,
+                                   "Failed to rename %s to %s: %s",
+                                   tmp_path,
+                                   path,
+                                   strerror(errno));
         talloc_steal(error, tmp_ctx);
         return err(error);
     }
@@ -327,7 +344,8 @@ res_t ik_history_append_entry(const char *entry)
     if (fprintf(f, "%s\n", json_str) < 0) {  // LCOV_EXCL_START - fprintf rarely fails, hard to mock
         free(json_str);
         fclose_(f);
-        err_t *error = _make_error(tmp_ctx, ERR_IO, __FILE__, __LINE__, "Failed to write to %s: %s", path, strerror(errno));
+        err_t *error = _make_error(tmp_ctx, ERR_IO, __FILE__, __LINE__, "Failed to write to %s: %s", path,
+                                   strerror(errno));
         talloc_steal(error, tmp_ctx);
         return err(error);
     }  // LCOV_EXCL_STOP

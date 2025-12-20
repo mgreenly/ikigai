@@ -29,8 +29,7 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-START_TEST(test_history_dedup_consecutive_identical)
-{
+START_TEST(test_history_dedup_consecutive_identical) {
     hist = ik_history_create(ctx, 10);
     res_t res = ik_history_add(hist, "mycommand");
     ck_assert(is_ok(&res));
@@ -45,9 +44,7 @@ START_TEST(test_history_dedup_consecutive_identical)
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(hist->count, 2);
 }
-END_TEST
-
-START_TEST(test_history_dedup_reuse_moves_to_end)
+END_TEST START_TEST(test_history_dedup_reuse_moves_to_end)
 {
     hist = ik_history_create(ctx, 10);
     ik_history_add(hist, "cmd1");
@@ -61,9 +58,8 @@ START_TEST(test_history_dedup_reuse_moves_to_end)
     ck_assert_str_eq(hist->entries[1], "cmd3");
     ck_assert_str_eq(hist->entries[2], "cmd1");
 }
-END_TEST
 
-START_TEST(test_history_dedup_reuse_middle_entry)
+END_TEST START_TEST(test_history_dedup_reuse_middle_entry)
 {
     hist = ik_history_create(ctx, 10);
     ik_history_add(hist, "cmd1");
@@ -79,9 +75,8 @@ START_TEST(test_history_dedup_reuse_middle_entry)
     ck_assert_str_eq(hist->entries[2], "cmd4");
     ck_assert_str_eq(hist->entries[3], "cmd2");
 }
-END_TEST
 
-START_TEST(test_history_dedup_case_sensitive)
+END_TEST START_TEST(test_history_dedup_case_sensitive)
 {
     hist = ik_history_create(ctx, 10);
     res_t res = ik_history_add(hist, "mycommand");
@@ -94,9 +89,8 @@ START_TEST(test_history_dedup_case_sensitive)
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(hist->count, 2);
 }
-END_TEST
 
-START_TEST(test_history_dedup_whitespace_significant)
+END_TEST START_TEST(test_history_dedup_whitespace_significant)
 {
     hist = ik_history_create(ctx, 10);
     res_t res = ik_history_add(hist, "my command");
@@ -109,9 +103,8 @@ START_TEST(test_history_dedup_whitespace_significant)
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(hist->count, 2);
 }
-END_TEST
 
-START_TEST(test_history_dedup_respects_capacity)
+END_TEST START_TEST(test_history_dedup_respects_capacity)
 {
     hist = ik_history_create(ctx, 3);
     ik_history_add(hist, "cmd1");
@@ -125,9 +118,8 @@ START_TEST(test_history_dedup_respects_capacity)
     ck_assert_str_eq(hist->entries[1], "cmd3");
     ck_assert_str_eq(hist->entries[2], "cmd1");
 }
-END_TEST
 
-START_TEST(test_history_dedup_identical_with_pending)
+END_TEST START_TEST(test_history_dedup_identical_with_pending)
 {
     hist = ik_history_create(ctx, 10);
     ik_history_add(hist, "cmd1");
@@ -147,6 +139,7 @@ START_TEST(test_history_dedup_identical_with_pending)
     ck_assert(!ik_history_is_browsing(hist));  // No longer browsing
     ck_assert_uint_eq(hist->index, hist->count);  // Index should equal count
 }
+
 END_TEST
 
 // Suite setup

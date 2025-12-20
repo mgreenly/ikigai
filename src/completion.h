@@ -51,8 +51,7 @@ typedef struct {
  * - prefix != NULL
  * - prefix[0] == '/'
  */
-ik_completion_t *ik_completion_create_for_commands(TALLOC_CTX *ctx,
-                                                    const char *prefix);
+ik_completion_t *ik_completion_create_for_commands(TALLOC_CTX *ctx, const char *prefix);
 
 /**
  * Get currently selected candidate.
@@ -105,8 +104,7 @@ void ik_completion_prev(ik_completion_t *comp);
  * - comp != NULL
  * - current_input != NULL
  */
-bool ik_completion_matches_prefix(const ik_completion_t *comp,
-                                   const char *current_input);
+bool ik_completion_matches_prefix(const ik_completion_t *comp, const char *current_input);
 
 // Forward declarations for argument completion
 typedef struct ik_repl_ctx_t ik_repl_ctx_t;
@@ -137,9 +135,7 @@ typedef struct ik_repl_ctx_t ik_repl_ctx_t;
  * - input != NULL
  * - input contains command and space (e.g., "/cmd " or "/cmd arg")
  */
-ik_completion_t *ik_completion_create_for_arguments(TALLOC_CTX *ctx,
-                                                     ik_repl_ctx_t *repl,
-                                                     const char *input);
+ik_completion_t *ik_completion_create_for_arguments(TALLOC_CTX *ctx, ik_repl_ctx_t *repl, const char *input);
 
 /**
  * Clear completion context state.

@@ -142,8 +142,7 @@ static void suite_teardown(void)
 }
 
 // Test: Creates new agent
-START_TEST(test_fork_creates_agent)
-{
+START_TEST(test_fork_creates_agent) {
     size_t initial_count = repl->agent_count;
 
     // Debug: verify database connection before fork
@@ -172,7 +171,6 @@ START_TEST(test_fork_creates_agent)
     ck_assert_uint_eq(repl->agent_count, initial_count + 1);
 }
 END_TEST
-
 // Test: Child has parent_uuid set
 START_TEST(test_fork_sets_parent)
 {
@@ -187,8 +185,8 @@ START_TEST(test_fork_sets_parent)
     ck_assert_ptr_nonnull(child->parent_uuid);
     ck_assert_str_eq(child->parent_uuid, parent_uuid);
 }
-END_TEST
 
+END_TEST
 // Test: Child added to agents array
 START_TEST(test_fork_adds_to_array)
 {
@@ -200,8 +198,8 @@ START_TEST(test_fork_adds_to_array)
     ck_assert_uint_eq(repl->agent_count, initial_count + 1);
     ck_assert_ptr_nonnull(repl->agents[initial_count]);
 }
-END_TEST
 
+END_TEST
 // Test: Switches to child
 START_TEST(test_fork_switches_to_child)
 {
@@ -213,8 +211,8 @@ START_TEST(test_fork_switches_to_child)
     ck_assert_ptr_ne(repl->current, parent);
     ck_assert_str_eq(repl->current->parent_uuid, parent->uuid);
 }
-END_TEST
 
+END_TEST
 // Test: Child in registry with status='running'
 START_TEST(test_fork_registry_entry)
 {
@@ -228,8 +226,8 @@ START_TEST(test_fork_registry_entry)
     ck_assert_ptr_nonnull(row);
     ck_assert_str_eq(row->status, "running");
 }
-END_TEST
 
+END_TEST
 // Test: Confirmation message displayed
 START_TEST(test_fork_confirmation_message)
 {
@@ -240,8 +238,8 @@ START_TEST(test_fork_confirmation_message)
     size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_gt(line_count, 0);
 }
-END_TEST
 
+END_TEST
 // Test: fork_pending flag set during fork
 START_TEST(test_fork_pending_flag_set)
 {
@@ -251,8 +249,8 @@ START_TEST(test_fork_pending_flag_set)
     ck_assert(is_ok(&res));
     ck_assert(!atomic_load(&repl->shared->fork_pending));
 }
-END_TEST
 
+END_TEST
 // Test: fork_pending flag cleared after fork
 START_TEST(test_fork_pending_flag_cleared)
 {
@@ -260,8 +258,8 @@ START_TEST(test_fork_pending_flag_cleared)
     ck_assert(is_ok(&res));
     ck_assert(!atomic_load(&repl->shared->fork_pending));
 }
-END_TEST
 
+END_TEST
 // Test: Concurrent fork rejected
 START_TEST(test_fork_concurrent_rejected)
 {
@@ -284,8 +282,8 @@ START_TEST(test_fork_concurrent_rejected)
     }
     ck_assert(found_error);
 }
-END_TEST
 
+END_TEST
 // Note: Rollback and error handling tests removed.
 // These tests attempted to violate preconditions (setting db_ctx->conn = NULL)
 // which triggers assertions in ik_db_begin, making them untestable without mocking.
@@ -316,8 +314,8 @@ START_TEST(test_fork_with_quoted_prompt)
     }
     ck_assert(found_prompt);
 }
-END_TEST
 
+END_TEST
 // Test: Prompt added as user message
 START_TEST(test_fork_prompt_appended_as_user_message)
 {
@@ -337,8 +335,8 @@ START_TEST(test_fork_prompt_appended_as_user_message)
     }
     ck_assert(has_user_message);
 }
-END_TEST
 
+END_TEST
 // Test: LLM call triggered when prompt provided
 START_TEST(test_fork_llm_call_triggered)
 {
@@ -363,8 +361,8 @@ START_TEST(test_fork_llm_call_triggered)
     }
     ck_assert(found_user_message);
 }
-END_TEST
 
+END_TEST
 // Test: Empty prompt treated as no prompt
 START_TEST(test_fork_empty_prompt)
 {
@@ -375,8 +373,8 @@ START_TEST(test_fork_empty_prompt)
     ik_agent_ctx_t *child = repl->current;
     ck_assert_int_eq(child->state, IK_AGENT_STATE_IDLE);
 }
-END_TEST
 
+END_TEST
 // Test: Unquoted text rejected
 START_TEST(test_fork_unquoted_text_rejected)
 {
@@ -398,8 +396,8 @@ START_TEST(test_fork_unquoted_text_rejected)
     }
     ck_assert(found_error);
 }
-END_TEST
 
+END_TEST
 
 static Suite *cmd_fork_suite(void)
 {
@@ -426,6 +424,7 @@ static Suite *cmd_fork_suite(void)
     suite_add_tcase(s, tc);
     return s;
 }
+
 int main(void)
 {
     if (!suite_setup()) {

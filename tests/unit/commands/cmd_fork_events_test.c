@@ -138,8 +138,7 @@ static void suite_teardown(void)
 }
 
 // Test: Fork persists parent-side fork event
-START_TEST(test_fork_persists_parent_side_event)
-{
+START_TEST(test_fork_persists_parent_side_event) {
     // Create a session
     int64_t session_id = 0;
     res_t session_res = ik_db_session_create(db, &session_id);
@@ -156,7 +155,8 @@ START_TEST(test_fork_persists_parent_side_event)
     const char *child_uuid = child->uuid;
 
     // Query messages table directly for parent's fork event
-    const char *query = "SELECT kind, content, data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id";
+    const char *query =
+        "SELECT kind, content, data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id";
     char session_id_str[32];
     snprintf(session_id_str, sizeof(session_id_str), "%" PRId64, session_id);
     const char *params[2] = {session_id_str, parent_uuid};
@@ -178,12 +178,11 @@ START_TEST(test_fork_persists_parent_side_event)
     ck_assert(strstr(data, "\"child_uuid\"") != NULL);
     ck_assert(strstr(data, child_uuid) != NULL);
     ck_assert(strstr(data, "\"role\":\"parent\"") != NULL ||
-             strstr(data, "\"role\": \"parent\"") != NULL);
+              strstr(data, "\"role\": \"parent\"") != NULL);
 
     PQclear(pg_res);
 }
 END_TEST
-
 // Test: Fork persists child-side fork event
 START_TEST(test_fork_persists_child_side_event)
 {
@@ -203,7 +202,8 @@ START_TEST(test_fork_persists_child_side_event)
     const char *child_uuid = child->uuid;
 
     // Query messages table directly for child's fork event
-    const char *query = "SELECT kind, content, data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id";
+    const char *query =
+        "SELECT kind, content, data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id";
     char session_id_str[32];
     snprintf(session_id_str, sizeof(session_id_str), "%" PRId64, session_id);
     const char *params[2] = {session_id_str, child_uuid};
@@ -225,12 +225,12 @@ START_TEST(test_fork_persists_child_side_event)
     ck_assert(strstr(data, "\"parent_uuid\"") != NULL);
     ck_assert(strstr(data, parent_uuid) != NULL);
     ck_assert(strstr(data, "\"role\":\"child\"") != NULL ||
-             strstr(data, "\"role\": \"child\"") != NULL);
+              strstr(data, "\"role\": \"child\"") != NULL);
 
     PQclear(pg_res);
 }
-END_TEST
 
+END_TEST
 // Test: Fork events link via fork_message_id
 START_TEST(test_fork_events_linked_by_fork_message_id)
 {
@@ -250,7 +250,8 @@ START_TEST(test_fork_events_linked_by_fork_message_id)
     const char *child_uuid = child->uuid;
 
     // Query parent's fork event
-    const char *query1 = "SELECT data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id LIMIT 1";
+    const char *query1 =
+        "SELECT data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id LIMIT 1";
     char session_id_str1[32];
     snprintf(session_id_str1, sizeof(session_id_str1), "%" PRId64, session_id);
     const char *params1[2] = {session_id_str1, parent_uuid};
@@ -269,7 +270,8 @@ START_TEST(test_fork_events_linked_by_fork_message_id)
     PQclear(parent_res);
 
     // Query child's fork event
-    const char *query2 = "SELECT data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id LIMIT 1";
+    const char *query2 =
+        "SELECT data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id LIMIT 1";
     char session_id_str2[32];
     snprintf(session_id_str2, sizeof(session_id_str2), "%" PRId64, session_id);
     const char *params2[2] = {session_id_str2, child_uuid};
@@ -290,8 +292,8 @@ START_TEST(test_fork_events_linked_by_fork_message_id)
     // They should match
     ck_assert_int_eq(parent_fork_msg_id, child_fork_msg_id);
 }
-END_TEST
 
+END_TEST
 
 static Suite *cmd_fork_suite(void)
 {
@@ -307,6 +309,7 @@ static Suite *cmd_fork_suite(void)
     suite_add_tcase(s, tc);
     return s;
 }
+
 int main(void)
 {
     if (!suite_setup()) {

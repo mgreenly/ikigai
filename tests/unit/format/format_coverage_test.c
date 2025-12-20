@@ -35,160 +35,160 @@ START_TEST(test_format_tool_call_null_arguments) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "→ tool_name");
 }
-END_TEST
-
-START_TEST(test_format_tool_call_json_array) {
+END_TEST START_TEST(test_format_tool_call_json_array)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_array", "tool", "[1, 2, 3]");
     ck_assert_ptr_nonnull(call);
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "→ tool: [1, 2, 3]");
 }
-END_TEST
 
-START_TEST(test_format_tool_call_bool_false) {
+END_TEST START_TEST(test_format_tool_call_bool_false)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_bool", "tool", "{\"enabled\": false}");
     ck_assert_ptr_nonnull(call);
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "→ tool: enabled=false");
 }
-END_TEST
 
-START_TEST(test_format_tool_call_array_value) {
+END_TEST START_TEST(test_format_tool_call_array_value)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_arr", "tool", "{\"items\": [\"a\", \"b\", \"c\"]}");
     ck_assert_ptr_nonnull(call);
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "→ tool:") != NULL && strstr(formatted, "items=") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_call_object_value) {
+END_TEST START_TEST(test_format_tool_call_object_value)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_obj", "tool", "{\"config\": {\"key\": \"value\"}}");
     ck_assert_ptr_nonnull(call);
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "→ tool:") != NULL && strstr(formatted, "config=") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_result_zero_length_content) {
+END_TEST START_TEST(test_format_tool_result_zero_length_content)
+{
     const char *formatted = ik_format_tool_result(ctx, "tool", "[\"\"]");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strlen(formatted) > 0);
 }
-END_TEST
 
-START_TEST(test_format_tool_result_array_with_numbers) {
+END_TEST START_TEST(test_format_tool_result_array_with_numbers)
+{
     const char *formatted = ik_format_tool_result(ctx, "tool", "[1, 2, 3]");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL);
     ck_assert(strstr(formatted, "1") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_result_array_mixed_types) {
+END_TEST START_TEST(test_format_tool_result_array_mixed_types)
+{
     const char *formatted = ik_format_tool_result(ctx, "tool", "[\"str\", 42, true, null]");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "str") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_result_null_content_path) {
+END_TEST START_TEST(test_format_tool_result_null_content_path)
+{
     const char *formatted = ik_format_tool_result(ctx, "tool", "{}");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_call_first_vs_subsequent) {
+END_TEST START_TEST(test_format_tool_call_first_vs_subsequent)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call", "tool", "{\"a\": 1, \"b\": 2}");
     ck_assert_ptr_nonnull(call);
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "a=") != NULL && strstr(formatted, "b=") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_call_json_number) {
+END_TEST START_TEST(test_format_tool_call_json_number)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_num", "tool", "42");
     ck_assert_ptr_nonnull(call);
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "→ tool: 42");
 }
-END_TEST
 
-START_TEST(test_format_tool_result_number) {
+END_TEST START_TEST(test_format_tool_result_number)
+{
     const char *formatted = ik_format_tool_result(ctx, "tool", "42");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "42") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_result_boolean) {
+END_TEST START_TEST(test_format_tool_result_boolean)
+{
     const char *formatted = ik_format_tool_result(ctx, "tool", "true");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "true") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_result_null_value) {
+END_TEST START_TEST(test_format_tool_result_null_value)
+{
     const char *formatted = ik_format_tool_result(ctx, "tool", "null");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "null") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_call_real_value) {
+END_TEST START_TEST(test_format_tool_call_real_value)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_real", "tool", "{\"price\": 3.14159}");
     ck_assert_ptr_nonnull(call);
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "price=") != NULL && strstr(formatted, "3.14") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_call_null_value) {
+END_TEST START_TEST(test_format_tool_call_null_value)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_null_val", "tool", "{\"value\": null}");
     ck_assert_ptr_nonnull(call);
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "value=null") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_result_empty_string) {
+END_TEST START_TEST(test_format_tool_result_empty_string)
+{
     const char *formatted = ik_format_tool_result(ctx, "tool", "\"\"");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "(no output)") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_call_empty_object) {
+END_TEST START_TEST(test_format_tool_call_empty_object)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_empty", "tool", "{}");
     ck_assert_ptr_nonnull(call);
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "→ tool");
 }
-END_TEST
 
-START_TEST(test_format_tool_call_nested_object) {
+END_TEST START_TEST(test_format_tool_call_nested_object)
+{
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_nested", "tool", "{\"nested\": {\"deep\": {\"value\": 42}}}");
     ck_assert_ptr_nonnull(call);
     const char *formatted = ik_format_tool_call(ctx, call);
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "nested=") != NULL);
 }
-END_TEST
 
-START_TEST(test_format_tool_result_simple_object) {
+END_TEST START_TEST(test_format_tool_result_simple_object)
+{
     const char *formatted = ik_format_tool_result(ctx, "tool", "{\"key\": \"value\"}");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL);
 }
+
 END_TEST
 
 // Mock control for ik_format_yyjson_val_write_wrapper
@@ -217,60 +217,60 @@ START_TEST(test_format_tool_call_array_value_oom) {
     ck_assert(strstr(formatted, "→ tool") != NULL);
     g_mock_yyjson_val_write_return_null = false;
 }
-END_TEST
-
-START_TEST(test_format_tool_result_array_numbers_oom) {
+END_TEST START_TEST(test_format_tool_result_array_numbers_oom)
+{
     g_mock_yyjson_val_write_return_null = true;
     const char *formatted = ik_format_tool_result(ctx, "tool", "[1, 2, 3]");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL);
     g_mock_yyjson_val_write_return_null = false;
 }
-END_TEST
 
-START_TEST(test_format_tool_result_object_oom) {
+END_TEST START_TEST(test_format_tool_result_object_oom)
+{
     g_mock_yyjson_val_write_return_null = true;
     const char *formatted = ik_format_tool_result(ctx, "tool", "{\"key\": \"value\"}");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "(no output)") != NULL);
     g_mock_yyjson_val_write_return_null = false;
 }
-END_TEST
 
-START_TEST(test_format_tool_result_null_root) {
+END_TEST START_TEST(test_format_tool_result_null_root)
+{
     g_mock_yyjson_doc_get_root_return_null = true;
     const char *formatted = ik_format_tool_result(ctx, "tool", "\"test\"");
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "(no output)") != NULL);
     g_mock_yyjson_doc_get_root_return_null = false;
 }
-END_TEST
 
-START_TEST(test_yyjson_obj_iter_init_wrapper_null_obj) {
+END_TEST START_TEST(test_yyjson_obj_iter_init_wrapper_null_obj)
+{
     yyjson_obj_iter iter;
     ik_format_yyjson_obj_iter_init_wrapper(NULL, &iter);
 }
-END_TEST
 
-START_TEST(test_yyjson_obj_iter_next_wrapper_null_iter) {
+END_TEST START_TEST(test_yyjson_obj_iter_next_wrapper_null_iter)
+{
     // Call with NULL iter - defensive branch
     yyjson_val *result = ik_format_yyjson_obj_iter_next_wrapper(NULL);
     ck_assert_ptr_null(result);
 }
-END_TEST
 
-START_TEST(test_yyjson_obj_iter_get_val_wrapper_null_key) {
+END_TEST START_TEST(test_yyjson_obj_iter_get_val_wrapper_null_key)
+{
     // Call with NULL key - defensive branch
     yyjson_val *result = ik_format_yyjson_obj_iter_get_val_wrapper(NULL);
     ck_assert_ptr_null(result);
 }
-END_TEST
 
-START_TEST(test_yyjson_val_write_wrapper_null_val) {
+END_TEST START_TEST(test_yyjson_val_write_wrapper_null_val)
+{
     // Call with NULL val - defensive branch
     char *result = ik_format_yyjson_val_write_wrapper(NULL);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 
 static Suite *format_coverage_suite(void)

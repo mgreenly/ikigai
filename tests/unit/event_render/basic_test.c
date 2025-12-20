@@ -185,7 +185,6 @@ START_TEST(test_render_mark_event_no_label)
 }
 
 END_TEST
-
 // Test: Render mark event with NULL data_json
 START_TEST(test_render_mark_event_null_json)
 {
@@ -210,7 +209,6 @@ START_TEST(test_render_mark_event_null_json)
 }
 
 END_TEST
-
 // Test: Render mark event with empty label in data_json
 START_TEST(test_render_mark_event_empty_label)
 {
@@ -352,7 +350,6 @@ START_TEST(test_render_mark_invalid_json)
 }
 
 END_TEST
-
 // Test: Render mark event with label not a string
 START_TEST(test_render_mark_label_not_string)
 {

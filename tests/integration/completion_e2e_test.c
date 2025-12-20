@@ -17,8 +17,7 @@
 #include "completion_test_mocks.h"
 
 /* Test: No matches produces no layer */
-START_TEST(test_completion_no_matches)
-{
+START_TEST(test_completion_no_matches) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
@@ -44,7 +43,6 @@ START_TEST(test_completion_no_matches)
     cleanup_test_dir();
 }
 END_TEST
-
 /* Test: Completion and history don't conflict */
 START_TEST(test_completion_history_no_conflict)
 {
@@ -81,8 +79,8 @@ START_TEST(test_completion_history_no_conflict)
     talloc_free(ctx);
     cleanup_test_dir();
 }
-END_TEST
 
+END_TEST
 /* Test: Layer visibility */
 START_TEST(test_completion_layer_visibility)
 {
@@ -112,8 +110,8 @@ START_TEST(test_completion_layer_visibility)
     talloc_free(ctx);
     cleanup_test_dir();
 }
-END_TEST
 
+END_TEST
 /* Test: Dynamic typing updates completions */
 START_TEST(test_completion_dynamic_update)
 {
@@ -149,6 +147,7 @@ START_TEST(test_completion_dynamic_update)
     talloc_free(ctx);
     cleanup_test_dir();
 }
+
 END_TEST
 
 static Suite *completion_e2e_suite(void)

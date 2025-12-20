@@ -17,8 +17,7 @@
 #include "completion_test_mocks.h"
 
 /* Test: Full command completion workflow */
-START_TEST(test_completion_full_workflow)
-{
+START_TEST(test_completion_full_workflow) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
@@ -52,7 +51,6 @@ START_TEST(test_completion_full_workflow)
     cleanup_test_dir();
 }
 END_TEST
-
 /* Test: Argument completion workflow */
 START_TEST(test_completion_argument_workflow)
 {
@@ -86,8 +84,8 @@ START_TEST(test_completion_argument_workflow)
     talloc_free(ctx);
     cleanup_test_dir();
 }
-END_TEST
 
+END_TEST
 /* Test: Escape dismisses completion */
 START_TEST(test_completion_escape_dismisses)
 {
@@ -125,6 +123,7 @@ START_TEST(test_completion_escape_dismisses)
     talloc_free(ctx);
     cleanup_test_dir();
 }
+
 END_TEST
 
 static Suite *completion_workflow_suite(void)

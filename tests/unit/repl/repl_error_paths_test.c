@@ -43,8 +43,7 @@ static ik_agent_ctx_t *create_test_agent(TALLOC_CTX *parent, const char *uuid)
 }
 
 /* Test: ik_repl_remove_agent returns error when agent not found */
-START_TEST(test_repl_remove_agent_not_found)
-{
+START_TEST(test_repl_remove_agent_not_found) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -73,7 +72,6 @@ START_TEST(test_repl_remove_agent_not_found)
     talloc_free(result.err);
 }
 END_TEST
-
 /* Test: ik_repl_remove_agent sets current to NULL when removing current agent */
 START_TEST(test_repl_remove_agent_current)
 {
@@ -109,8 +107,8 @@ START_TEST(test_repl_remove_agent_current)
     ck_assert_uint_eq(repl->agent_count, 1);
     ck_assert_ptr_eq(repl->agents[0], agent2);
 }
-END_TEST
 
+END_TEST
 /* Test: Process NAV_PREV_SIBLING action */
 START_TEST(test_repl_process_action_nav_prev_sibling)
 {
@@ -150,8 +148,8 @@ START_TEST(test_repl_process_action_nav_prev_sibling)
     // Verify current switched to agent1
     ck_assert_ptr_eq(repl->current, agent1);
 }
-END_TEST
 
+END_TEST
 /* Test: Process NAV_NEXT_SIBLING action */
 START_TEST(test_repl_process_action_nav_next_sibling)
 {
@@ -191,8 +189,8 @@ START_TEST(test_repl_process_action_nav_next_sibling)
     // Verify current switched to agent2
     ck_assert_ptr_eq(repl->current, agent2);
 }
-END_TEST
 
+END_TEST
 /* Test: Process NAV_PARENT action */
 START_TEST(test_repl_process_action_nav_parent)
 {
@@ -233,8 +231,8 @@ START_TEST(test_repl_process_action_nav_parent)
     // Verify current switched to parent
     ck_assert_ptr_eq(repl->current, parent);
 }
-END_TEST
 
+END_TEST
 /* Test: Process NAV_CHILD action */
 START_TEST(test_repl_process_action_nav_child)
 {
@@ -276,8 +274,8 @@ START_TEST(test_repl_process_action_nav_child)
     // Verify current switched to child
     ck_assert_ptr_eq(repl->current, child);
 }
-END_TEST
 
+END_TEST
 /* Test: ik_repl_add_agent grows capacity when array is full */
 START_TEST(test_repl_add_agent_grows_capacity)
 {
@@ -321,6 +319,7 @@ START_TEST(test_repl_add_agent_grows_capacity)
     ck_assert_uint_eq(repl->agent_count, 5);
     ck_assert_uint_eq(repl->agent_capacity, 8);
 }
+
 END_TEST
 
 // Create test suite

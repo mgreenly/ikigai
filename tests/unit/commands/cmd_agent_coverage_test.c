@@ -150,8 +150,7 @@ static void suite_teardown(void)
 }
 
 // Test: Fork with unterminated quoted string shows error
-START_TEST(test_fork_unterminated_quote_error)
-{
+START_TEST(test_fork_unterminated_quote_error) {
     res_t res = ik_cmd_fork(test_ctx, repl, "\"unterminated string");
     ck_assert(is_ok(&res));  // Returns OK but shows error
 
@@ -170,7 +169,6 @@ START_TEST(test_fork_unterminated_quote_error)
     ck_assert(found_error);
 }
 END_TEST
-
 // Test: Kill with parent not found (corrupt state)
 START_TEST(test_kill_parent_not_found_error)
 {
@@ -207,8 +205,8 @@ START_TEST(test_kill_parent_not_found_error)
     (void)child;
     (void)parent_uuid;
 }
-END_TEST
 
+END_TEST
 // Test: Kill with UUID shows error when not found
 START_TEST(test_kill_uuid_not_found_shows_error)
 {
@@ -234,6 +232,7 @@ START_TEST(test_kill_uuid_not_found_shows_error)
     }
     ck_assert(found_error);
 }
+
 END_TEST
 
 static Suite *cmd_agent_coverage_suite(void)

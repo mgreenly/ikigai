@@ -8,8 +8,7 @@
 #include <string.h>
 
 // Test: completion layer visibility when NULL
-START_TEST(test_completion_layer_visibility_null)
-{
+START_TEST(test_completion_layer_visibility_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = NULL;
@@ -21,7 +20,6 @@ START_TEST(test_completion_layer_visibility_null)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: completion layer visibility when not NULL
 START_TEST(test_completion_layer_visibility_not_null)
 {
@@ -36,8 +34,8 @@ START_TEST(test_completion_layer_visibility_not_null)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer height when NULL
 START_TEST(test_completion_layer_height_null)
 {
@@ -51,8 +49,8 @@ START_TEST(test_completion_layer_height_null)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer height equals number of candidates
 START_TEST(test_completion_layer_height_matches_count)
 {
@@ -67,8 +65,8 @@ START_TEST(test_completion_layer_height_matches_count)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer render with no completion
 START_TEST(test_completion_layer_render_null)
 {
@@ -83,8 +81,8 @@ START_TEST(test_completion_layer_render_null)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer render with single candidate
 START_TEST(test_completion_layer_render_single)
 {
@@ -115,8 +113,8 @@ START_TEST(test_completion_layer_render_single)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer render with multiple candidates
 START_TEST(test_completion_layer_render_multiple)
 {
@@ -145,8 +143,8 @@ START_TEST(test_completion_layer_render_multiple)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer selection highlight with ANSI reverse video and bold
 START_TEST(test_completion_layer_selection_highlight)
 {
@@ -170,8 +168,8 @@ START_TEST(test_completion_layer_selection_highlight)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer selection highlight moves with current selection
 START_TEST(test_completion_layer_selection_highlight_moves)
 {
@@ -200,8 +198,8 @@ START_TEST(test_completion_layer_selection_highlight_moves)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: highlight follows Tab cycling through all candidates
 START_TEST(test_highlight_follows_current)
 {
@@ -242,8 +240,8 @@ START_TEST(test_highlight_follows_current)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: highlight cycles correctly through all candidates and wraps
 START_TEST(test_highlight_cycles_correctly)
 {
@@ -292,8 +290,8 @@ START_TEST(test_highlight_cycles_correctly)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer render formatting (padding and alignment)
 START_TEST(test_completion_layer_render_formatting)
 {
@@ -313,6 +311,7 @@ START_TEST(test_completion_layer_render_formatting)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *completion_layer_suite(void)

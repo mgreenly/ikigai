@@ -62,7 +62,10 @@ PGresult *pq_exec_params_(PGconn *conn,
     (void)resultFormat;
 
     // Check if this is an agent_get query
-    if (command != NULL && strstr(command, "SELECT uuid, name, parent_uuid, fork_message_id, status") != NULL && strstr(command, "FROM agents WHERE uuid") != NULL) {
+    if (command != NULL && strstr(command,
+                                  "SELECT uuid, name, parent_uuid, fork_message_id, status") != NULL && strstr(command,
+                                                                                                               "FROM agents WHERE uuid")
+        != NULL) {
         if (mock_agent_get_fail) {
             return mock_failed_result;
         }
@@ -230,8 +233,7 @@ static void teardown(void)
 }
 
 // Test: /send propagates ik_db_agent_get error (line 110)
-START_TEST(test_send_db_agent_get_error)
-{
+START_TEST(test_send_db_agent_get_error) {
     // Enable agent_get failure
     mock_agent_get_fail = true;
 
@@ -244,7 +246,6 @@ START_TEST(test_send_db_agent_get_error)
     talloc_free(res.err);
 }
 END_TEST
-
 // Test: /send propagates ik_db_mail_insert error (line 136)
 START_TEST(test_send_db_mail_insert_error)
 {
@@ -259,6 +260,7 @@ START_TEST(test_send_db_mail_insert_error)
 
     talloc_free(res.err);
 }
+
 END_TEST
 
 static Suite *send_db_errors_suite(void)

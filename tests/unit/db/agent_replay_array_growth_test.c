@@ -115,10 +115,10 @@ static void test_teardown(void)
 
 // Skip macro for tests when DB not available
 #define SKIP_IF_NO_DB() do { \
-    if (!db_available) { \
-        return; \
-    } \
-} while(0)
+            if (!db_available) { \
+                return; \
+            } \
+} while (0)
 
 // Helper: Insert an agent into the registry
 static void insert_agent(const char *uuid, const char *parent_uuid,
@@ -147,8 +147,7 @@ static void insert_message(const char *agent_uuid, const char *kind,
 
 // Test: Array growth in ik_agent_build_replay_ranges (line 112-117)
 // Create a hierarchy deep enough to trigger reallocation (initial capacity = 8)
-START_TEST(test_build_ranges_array_growth)
-{
+START_TEST(test_build_ranges_array_growth) {
     SKIP_IF_NO_DB();
 
     // Create a 10-level hierarchy to exceed initial capacity of 8
@@ -165,22 +164,21 @@ START_TEST(test_build_ranges_array_growth)
     // Insert chain of children
     for (size_t i = 1; i < num_agents; i++) {
         int64_t fork_id = 0;
-        res_t res = ik_db_agent_get_last_message_id(db, agents[i-1], &fork_id);
+        res_t res = ik_db_agent_get_last_message_id(db, agents[i - 1], &fork_id);
         ck_assert(is_ok(&res));
 
-        insert_agent(agents[i], agents[i-1], 1000 + (int64_t)i * 100, fork_id);
+        insert_agent(agents[i], agents[i - 1], 1000 + (int64_t)i * 100, fork_id);
         insert_message(agents[i], "user", "Message", "{}");
     }
 
     // Build ranges for leaf - should trigger array growth
     ik_replay_range_t *ranges = NULL;
     size_t count = 0;
-    res_t res = ik_agent_build_replay_ranges(db, test_ctx, agents[num_agents-1], &ranges, &count);
+    res_t res = ik_agent_build_replay_ranges(db, test_ctx, agents[num_agents - 1], &ranges, &count);
     ck_assert(is_ok(&res));
     ck_assert_int_eq((int)count, (int)num_agents);
 }
 END_TEST
-
 // Test: Array growth in ik_agent_replay_history (line 326)
 // Create enough messages to trigger reallocation (initial capacity = 16)
 START_TEST(test_replay_history_array_growth)
@@ -204,8 +202,8 @@ START_TEST(test_replay_history_array_growth)
     ck_assert(ctx != NULL);
     ck_assert_int_eq((int)ctx->count, 20);
 }
-END_TEST
 
+END_TEST
 // ========== NULL Field Tests ==========
 
 // Test: ik_agent_replay_history with NULL content (line 348)
@@ -231,8 +229,8 @@ START_TEST(test_replay_history_null_content)
     ck_assert_ptr_null(ctx->messages[0]->content);
     ck_assert_str_eq(ctx->messages[1]->content, "After mark");
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_replay_history with NULL data_json (line 355)
 START_TEST(test_replay_history_null_data)
 {
@@ -256,8 +254,8 @@ START_TEST(test_replay_history_null_data)
     ck_assert_ptr_null(ctx->messages[0]->data_json);
     ck_assert_str_eq(ctx->messages[1]->data_json, "{}");
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_replay_history with both NULL content and data_json
 START_TEST(test_replay_history_both_null)
 {
@@ -281,6 +279,7 @@ START_TEST(test_replay_history_both_null)
     ck_assert_ptr_null(ctx->messages[0]->content);
     ck_assert_ptr_null(ctx->messages[0]->data_json);
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

@@ -38,7 +38,8 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     return (ssize_t)count;
 }
 
-static void reset_mock(void) {
+static void reset_mock(void)
+{
     mock_output_len = 0;
     memset(mock_output, 0, sizeof(mock_output));
 }
@@ -134,7 +135,6 @@ START_TEST(test_separator_scrolls_offscreen) {
     talloc_free(ctx);
 }
 END_TEST
-
 /**
  * Test: When scrolled up, input buffer should NOT appear in output
  *
@@ -204,7 +204,6 @@ START_TEST(test_input_buffer_scrolls_offscreen)
 }
 
 END_TEST
-
 /**
  * Test: When scrolled to bottom, last scrollback line appears directly above separator
  *

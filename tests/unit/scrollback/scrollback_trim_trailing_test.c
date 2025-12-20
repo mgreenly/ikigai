@@ -10,15 +10,13 @@
 #include "../../test_utils.h"
 
 /* Test: NULL input returns empty string */
-START_TEST(test_trim_trailing_null_returns_empty)
-{
+START_TEST(test_trim_trailing_null_returns_empty) {
     void *ctx = talloc_new(NULL);
     char *result = ik_scrollback_trim_trailing(ctx, NULL, 0);
     ck_assert_str_eq(result, "");
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Empty string returns empty string */
 START_TEST(test_trim_trailing_empty_returns_empty)
 {
@@ -27,8 +25,8 @@ START_TEST(test_trim_trailing_empty_returns_empty)
     ck_assert_str_eq(result, "");
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: String with no trailing whitespace */
 START_TEST(test_trim_trailing_no_whitespace)
 {
@@ -37,8 +35,8 @@ START_TEST(test_trim_trailing_no_whitespace)
     ck_assert_str_eq(result, "hello");
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: String with single trailing newline */
 START_TEST(test_trim_trailing_single_newline)
 {
@@ -47,8 +45,8 @@ START_TEST(test_trim_trailing_single_newline)
     ck_assert_str_eq(result, "hello");
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: String with multiple trailing newlines */
 START_TEST(test_trim_trailing_multiple_newlines)
 {
@@ -57,8 +55,8 @@ START_TEST(test_trim_trailing_multiple_newlines)
     ck_assert_str_eq(result, "hello");
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: String with mixed trailing whitespace */
 START_TEST(test_trim_trailing_mixed_whitespace)
 {
@@ -67,8 +65,8 @@ START_TEST(test_trim_trailing_mixed_whitespace)
     ck_assert_str_eq(result, "hello");
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: String with internal whitespace is preserved */
 START_TEST(test_trim_trailing_preserves_internal_whitespace)
 {
@@ -77,8 +75,8 @@ START_TEST(test_trim_trailing_preserves_internal_whitespace)
     ck_assert_str_eq(result, "hello\nworld");
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: String with only whitespace returns empty */
 START_TEST(test_trim_trailing_all_whitespace)
 {
@@ -87,6 +85,7 @@ START_TEST(test_trim_trailing_all_whitespace)
     ck_assert_str_eq(result, "");
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *scrollback_trim_trailing_suite(void)

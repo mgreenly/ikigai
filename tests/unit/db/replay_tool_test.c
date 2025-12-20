@@ -236,7 +236,8 @@ START_TEST(test_replay_tool_message_preserves_data_json)
     // Insert tool_call with complex data_json
     const char *complex_data =
         "{\"id\":\"call_xyz\",\"type\":\"function\",\"function\":{\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"TODO\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
-    res = ik_db_message_insert(db, session_id, NULL, "tool_call", "grep(pattern=\"TODO\", path=\"src/\")", complex_data);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", "grep(pattern=\"TODO\", path=\"src/\")",
+                               complex_data);
     ck_assert(is_ok(&res));
 
     // Load and replay

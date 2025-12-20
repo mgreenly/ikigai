@@ -65,42 +65,51 @@ START_TEST(test_add_limit_metadata_basic) {
 }
 END_TEST
 // Test: Handle NULL input
-START_TEST(test_add_limit_metadata_null_input) {
+START_TEST(test_add_limit_metadata_null_input)
+{
     int32_t max_tool_turns = 3;
 
     char *result = ik_tool_result_add_limit_metadata(ctx, NULL, max_tool_turns);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 // Test: Handle malformed JSON input
-START_TEST(test_add_limit_metadata_malformed_json) {
+START_TEST(test_add_limit_metadata_malformed_json)
+{
     const char *bad_json = "{invalid json}";
     int32_t max_tool_turns = 3;
 
     char *result = ik_tool_result_add_limit_metadata(ctx, bad_json, max_tool_turns);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 // Test: Handle empty JSON string
-START_TEST(test_add_limit_metadata_empty_json) {
+START_TEST(test_add_limit_metadata_empty_json)
+{
     const char *empty_json = "";
     int32_t max_tool_turns = 3;
 
     char *result = ik_tool_result_add_limit_metadata(ctx, empty_json, max_tool_turns);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 // Test: Handle JSON array (not object)
-START_TEST(test_add_limit_metadata_json_array) {
+START_TEST(test_add_limit_metadata_json_array)
+{
     const char *array_json = "[1, 2, 3]";
     int32_t max_tool_turns = 3;
 
     char *result = ik_tool_result_add_limit_metadata(ctx, array_json, max_tool_turns);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 // Test: Different max_tool_turns value
-START_TEST(test_add_limit_metadata_different_limit) {
+START_TEST(test_add_limit_metadata_different_limit)
+{
     const char *result_json = "{\"output\": \"test\"}";
     int32_t max_tool_turns = 5;
 
@@ -117,9 +126,11 @@ START_TEST(test_add_limit_metadata_different_limit) {
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 // Test: Complex JSON with nested structures
-START_TEST(test_add_limit_metadata_complex_json) {
+START_TEST(test_add_limit_metadata_complex_json)
+{
     const char *result_json = "{\"output\": \"file1.c\\nfile2.c\", \"count\": 2, \"nested\": {\"key\": \"value\"}}";
     int32_t max_tool_turns = 3;
 
@@ -155,6 +166,7 @@ START_TEST(test_add_limit_metadata_complex_json) {
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 /*

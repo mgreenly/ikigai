@@ -53,7 +53,8 @@ START_TEST(test_error_handling_no_partial_response) {
     // Get the last line
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, lines_after - 1, &last_line, &last_line_len);
+    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, lines_after - 1, &last_line,
+                                                 &last_line_len);
     ck_assert(is_ok(&line_res));
     ck_assert_ptr_nonnull(last_line);
     ck_assert_ptr_nonnull(strstr(last_line, "Error:"));
@@ -113,7 +114,8 @@ START_TEST(test_error_handling_with_partial_response)
     // Verify the error message is in scrollback
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, lines_after - 1, &last_line, &last_line_len);
+    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, lines_after - 1, &last_line,
+                                                 &last_line_len);
     ck_assert(is_ok(&line_res));
     ck_assert_ptr_nonnull(strstr(last_line, "Error:"));
     ck_assert_ptr_nonnull(strstr(last_line, "Stream interrupted"));
@@ -170,7 +172,10 @@ START_TEST(test_various_error_messages)
 
         const char *last_line = NULL;
         size_t last_line_len = 0;
-        res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
+        res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback,
+                                                     line_count - 1,
+                                                     &last_line,
+                                                     &last_line_len);
         ck_assert(is_ok(&line_res));
         ck_assert_ptr_nonnull(strstr(last_line, "Error:"));
         ck_assert_ptr_nonnull(strstr(last_line, test_errors[i]));

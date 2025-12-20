@@ -33,7 +33,8 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     return (ssize_t)count;
 }
 
-static void reset_mock(void) {
+static void reset_mock(void)
+{
     mock_output_len = 0;
     memset(mock_output, 0, sizeof(mock_output));
 }

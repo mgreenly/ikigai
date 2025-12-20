@@ -290,7 +290,6 @@ START_TEST(test_db_init_migration_failure)
 }
 
 END_TEST
-
 // ========== Transaction Tests ==========
 
 START_TEST(test_db_transaction_success)

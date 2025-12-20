@@ -138,8 +138,7 @@ static void *tool_completion_thread_func(void *arg)
  * Test: ik_repl_poll_tool_completions in multi-agent mode (line 431)
  * This covers the branch where we call ik_repl_handle_agent_tool_completion for a completed agent
  */
-START_TEST(test_poll_tool_completions_multi_agent_mode)
-{
+START_TEST(test_poll_tool_completions_multi_agent_mode) {
     /* Create two agents */
     ik_agent_ctx_t *agent_a = create_test_agent(repl, "agent-a");
     ik_agent_ctx_t *agent_b = create_test_agent(repl, "agent-b");
@@ -158,9 +157,9 @@ START_TEST(test_poll_tool_completions_multi_agent_mode)
 
     /* Create pending tool call for agent A */
     agent_a->pending_tool_call = ik_tool_call_create(agent_a,
-                                                      "call_a123",
-                                                      "glob",
-                                                      "{\"pattern\": \"*.c\"}");
+                                                     "call_a123",
+                                                     "glob",
+                                                     "{\"pattern\": \"*.c\"}");
 
     /* Spawn thread that will complete */
     pthread_create_(&agent_a->tool_thread, NULL, tool_completion_thread_func, agent_a);
@@ -189,7 +188,6 @@ START_TEST(test_poll_tool_completions_multi_agent_mode)
     ck_assert_uint_eq(agent_a->conversation->message_count, 2);
 }
 END_TEST
-
 /*
  * Test: ik_repl_poll_tool_completions in single-agent mode (line 434)
  * This covers the branch where agent_count == 0 and we check current
@@ -211,9 +209,9 @@ START_TEST(test_poll_tool_completions_single_agent_mode)
 
     /* Create pending tool call */
     current->pending_tool_call = ik_tool_call_create(current,
-                                                      "call_c123",
-                                                      "glob",
-                                                      "{\"pattern\": \"*.h\"}");
+                                                     "call_c123",
+                                                     "glob",
+                                                     "{\"pattern\": \"*.h\"}");
 
     /* Spawn thread that will complete */
     pthread_create_(&current->tool_thread, NULL, tool_completion_thread_func, current);
@@ -241,8 +239,8 @@ START_TEST(test_poll_tool_completions_single_agent_mode)
     ck_assert_ptr_null(current->pending_tool_call);
     ck_assert_uint_eq(current->conversation->message_count, 2);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: ik_repl_poll_tool_completions with agent NOT executing tool (line 430 false branch)
  * This covers the case where we don't call ik_repl_handle_agent_tool_completion
@@ -272,8 +270,8 @@ START_TEST(test_poll_tool_completions_agent_not_executing)
     ck_assert_int_eq(agent_a->state, IK_AGENT_STATE_IDLE);
     ck_assert_int_eq(agent_b->state, IK_AGENT_STATE_IDLE);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: ik_repl_poll_tool_completions with agent EXECUTING but not complete (line 430 branch 3)
  * This covers the case where state is EXECUTING_TOOL but complete is false
@@ -300,8 +298,8 @@ START_TEST(test_poll_tool_completions_executing_not_complete)
     /* Verify state unchanged (tool still executing, not complete) */
     ck_assert_int_eq(agent_a->state, IK_AGENT_STATE_EXECUTING_TOOL);
 }
-END_TEST
 
+END_TEST
 /*
  * Test: ik_repl_poll_tool_completions with current NULL (line 434 false branch)
  * This covers the case where repl->current is NULL in single-agent mode
@@ -320,6 +318,7 @@ START_TEST(test_poll_tool_completions_current_null)
     /* Should succeed */
     ck_assert(!is_err(&result));
 }
+
 END_TEST
 
 /*

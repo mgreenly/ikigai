@@ -40,8 +40,7 @@ static ik_agent_ctx_t *create_test_agent(TALLOC_CTX *parent, const char *uuid)
 }
 
 /* Test: Navigation edge case - no siblings */
-START_TEST(test_nav_prev_sibling_no_siblings)
-{
+START_TEST(test_nav_prev_sibling_no_siblings) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     repl->agents = NULL;
@@ -64,7 +63,6 @@ START_TEST(test_nav_prev_sibling_no_siblings)
     ck_assert_ptr_eq(repl->current, agent1);
 }
 END_TEST
-
 /* Test: Navigation edge case - parent not found */
 START_TEST(test_nav_parent_not_found)
 {
@@ -89,8 +87,8 @@ START_TEST(test_nav_parent_not_found)
     // Current should remain unchanged
     ck_assert_ptr_eq(repl->current, child);
 }
-END_TEST
 
+END_TEST
 /* Test: Navigation edge case - no children */
 START_TEST(test_nav_child_no_children)
 {
@@ -115,8 +113,8 @@ START_TEST(test_nav_child_no_children)
     // Current should remain unchanged
     ck_assert_ptr_eq(repl->current, parent);
 }
-END_TEST
 
+END_TEST
 /* Test: Navigation with siblings - wraps around */
 START_TEST(test_nav_sibling_wrap_around)
 {
@@ -156,8 +154,8 @@ START_TEST(test_nav_sibling_wrap_around)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, agent1);
 }
-END_TEST
 
+END_TEST
 /* Test: Nav child with multiple children - selects newest */
 START_TEST(test_nav_child_selects_newest)
 {
@@ -195,6 +193,7 @@ START_TEST(test_nav_child_selects_newest)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child2);
 }
+
 END_TEST
 
 // Create test suite

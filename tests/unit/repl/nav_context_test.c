@@ -57,8 +57,7 @@ static ik_agent_ctx_t *create_agent_with_separator(const char *uuid, const char 
     return agent;
 }
 
-START_TEST(test_nav_context_called_with_simple_hierarchy)
-{
+START_TEST(test_nav_context_called_with_simple_hierarchy) {
     // Create parent and child
     (void)create_agent_with_separator("parent-uuid", NULL);
     ik_agent_ctx_t *child = create_agent_with_separator("child-uuid", "parent-uuid");
@@ -72,9 +71,7 @@ START_TEST(test_nav_context_called_with_simple_hierarchy)
     // Basic assertion: function was called and didn't crash
     ck_assert_ptr_nonnull(child->separator_layer);
 }
-END_TEST
-
-START_TEST(test_nav_context_called_with_siblings)
+END_TEST START_TEST(test_nav_context_called_with_siblings)
 {
     // Create parent with 3 children
     (void)create_agent_with_separator("parent-uuid", NULL);
@@ -91,9 +88,8 @@ START_TEST(test_nav_context_called_with_siblings)
     // Basic assertion: function was called and didn't crash
     ck_assert_ptr_nonnull(child2->separator_layer);
 }
-END_TEST
 
-START_TEST(test_nav_context_called_with_children)
+END_TEST START_TEST(test_nav_context_called_with_children)
 {
     // Create parent with 2 children
     ik_agent_ctx_t *parent = create_agent_with_separator("parent-uuid", NULL);
@@ -109,9 +105,8 @@ START_TEST(test_nav_context_called_with_children)
     // Basic assertion: function was called and didn't crash
     ck_assert_ptr_nonnull(parent->separator_layer);
 }
-END_TEST
 
-START_TEST(test_nav_context_null_separator)
+END_TEST START_TEST(test_nav_context_null_separator)
 {
     // Create agent without separator layer
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
@@ -127,9 +122,8 @@ START_TEST(test_nav_context_null_separator)
     // If we reach here, the function handled NULL correctly
     ck_assert_ptr_null(agent->separator_layer);
 }
-END_TEST
 
-START_TEST(test_nav_context_null_current)
+END_TEST START_TEST(test_nav_context_null_current)
 {
     // Create some agents
     create_agent_with_separator("agent-uuid", NULL);
@@ -143,6 +137,7 @@ START_TEST(test_nav_context_null_current)
     // If we reach here, the function handled NULL correctly
     ck_assert_ptr_null(repl->current);
 }
+
 END_TEST
 
 static Suite *nav_context_suite(void)

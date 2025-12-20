@@ -16,10 +16,8 @@
 #include "../../test_utils.h"
 
 /* Test: Typing dismisses completion on no match */
-START_TEST(test_typing_dismisses_on_no_match)
-{
+START_TEST(test_typing_dismisses_on_no_match) {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -60,12 +58,10 @@ START_TEST(test_typing_dismisses_on_no_match)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Left/Right arrow dismisses completion */
 START_TEST(test_left_right_arrow_dismisses)
 {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -120,13 +116,12 @@ START_TEST(test_left_right_arrow_dismisses)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: TAB on empty input does nothing */
 START_TEST(test_tab_on_empty_input_no_op)
 {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -158,13 +153,12 @@ START_TEST(test_tab_on_empty_input_no_op)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: TAB on non-slash input does nothing */
 START_TEST(test_tab_on_non_slash_no_op)
 {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -202,13 +196,12 @@ START_TEST(test_tab_on_non_slash_no_op)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Cursor is at end of completed text after TAB acceptance */
 START_TEST(test_cursor_at_end_after_tab_completion)
 {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -261,6 +254,7 @@ START_TEST(test_cursor_at_end_after_tab_completion)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *completion_navigation_suite(void)

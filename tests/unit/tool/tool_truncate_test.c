@@ -18,15 +18,12 @@ static void teardown(void)
     ctx = NULL;
 }
 
-START_TEST(test_tool_truncate_output_null)
-{
+START_TEST(test_tool_truncate_output_null) {
     ck_assert_ptr_null(ik_tool_truncate_output(ctx, NULL, 1024));
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
-
-START_TEST(test_tool_truncate_output_empty)
+END_TEST START_TEST(test_tool_truncate_output_empty)
 {
     char *result = ik_tool_truncate_output(ctx, "", 1024);
     ck_assert_ptr_nonnull(result);
@@ -34,9 +31,8 @@ START_TEST(test_tool_truncate_output_empty)
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
-START_TEST(test_tool_truncate_output_under_limit)
+END_TEST START_TEST(test_tool_truncate_output_under_limit)
 {
     char *result = ik_tool_truncate_output(ctx, "Hello, World!", 100);
     ck_assert_ptr_nonnull(result);
@@ -44,9 +40,8 @@ START_TEST(test_tool_truncate_output_under_limit)
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
-START_TEST(test_tool_truncate_output_at_limit)
+END_TEST START_TEST(test_tool_truncate_output_at_limit)
 {
     char *result = ik_tool_truncate_output(ctx, "12345", 5);
     ck_assert_ptr_nonnull(result);
@@ -54,9 +49,8 @@ START_TEST(test_tool_truncate_output_at_limit)
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
-START_TEST(test_tool_truncate_output_over_limit)
+END_TEST START_TEST(test_tool_truncate_output_over_limit)
 {
     const char *output = "This is a very long string that exceeds the limit";
     char *result = ik_tool_truncate_output(ctx, output, 10);
@@ -67,9 +61,8 @@ START_TEST(test_tool_truncate_output_over_limit)
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST
 
-START_TEST(test_tool_truncate_output_zero_limit)
+END_TEST START_TEST(test_tool_truncate_output_zero_limit)
 {
     char *result = ik_tool_truncate_output(ctx, "test", 0);
     ck_assert_ptr_nonnull(result);
@@ -77,6 +70,7 @@ START_TEST(test_tool_truncate_output_zero_limit)
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
+
 END_TEST
 
 // Test suite

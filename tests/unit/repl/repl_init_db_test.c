@@ -33,9 +33,12 @@ ssize_t posix_write_(int fd, const void *buf, size_t count);
 ssize_t posix_read_(int fd, void *buf, size_t count);
 int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
 res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx);
-res_t ik_db_message_insert(ik_db_ctx_t *db_ctx, int64_t session_id,
-                           const char *agent_uuid, const char *kind,
-                           const char *content, const char *data_json);
+res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
+                           int64_t session_id,
+                           const char *agent_uuid,
+                           const char *kind,
+                           const char *content,
+                           const char *data_json);
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger);
@@ -106,7 +109,7 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik
 
 // Mock ik_db_agent_get_last_message_id (needed because ik_cmd_fork calls it)
 res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid,
-                                       int64_t *out_message_id)
+                                      int64_t *out_message_id)
 {
     (void)db_ctx;
     (void)agent_uuid;
@@ -124,7 +127,7 @@ res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
 
 // Mock ik_db_agent_list_running (needed because ik_cmd_agents calls it)
 res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
-                                ik_db_agent_row_t ***out, size_t *count)
+                               ik_db_agent_row_t ***out, size_t *count)
 {
     (void)db_ctx;
     *out = talloc_zero_array(mem_ctx, ik_db_agent_row_t *, 0);
@@ -284,7 +287,6 @@ START_TEST(test_repl_init_db_init_failure) {
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Agent zero ensure failure */
 START_TEST(test_repl_init_ensure_agent_zero_failure)
 {
@@ -318,7 +320,6 @@ START_TEST(test_repl_init_ensure_agent_zero_failure)
 }
 
 END_TEST
-
 /* Test: Successful database initialization and session restore */
 START_TEST(test_repl_init_db_success)
 {
@@ -348,7 +349,6 @@ START_TEST(test_repl_init_db_success)
 }
 
 END_TEST
-
 /* Test: Signal handler init failure with db_ctx allocated (line 80-81 cleanup) */
 START_TEST(test_repl_init_signal_handler_failure_with_db)
 {
@@ -380,6 +380,7 @@ START_TEST(test_repl_init_signal_handler_failure_with_db)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *repl_init_db_suite(void)

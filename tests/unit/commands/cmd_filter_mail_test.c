@@ -161,8 +161,7 @@ static void suite_teardown(void)
 }
 
 // Test: filters by sender UUID
-START_TEST(test_filter_mail_by_sender)
-{
+START_TEST(test_filter_mail_by_sender) {
     // Create two senders
     ik_agent_ctx_t *sender1 = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender1);
@@ -190,13 +189,13 @@ START_TEST(test_filter_mail_by_sender)
 
     // Create messages from both senders
     ik_mail_msg_t *msg1 = ik_mail_msg_create(test_ctx, sender1->uuid,
-                                              repl->current->uuid, "Message from sender1");
+                                             repl->current->uuid, "Message from sender1");
     ck_assert_ptr_nonnull(msg1);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg1);
     ck_assert(is_ok(&res));
 
     ik_mail_msg_t *msg2 = ik_mail_msg_create(test_ctx, sender2->uuid,
-                                              repl->current->uuid, "Message from sender2");
+                                             repl->current->uuid, "Message from sender2");
     ck_assert_ptr_nonnull(msg2);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg2);
     ck_assert(is_ok(&res));
@@ -211,7 +210,6 @@ START_TEST(test_filter_mail_by_sender)
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
-
 // Test: partial UUID matching works
 START_TEST(test_filter_mail_partial_uuid)
 {
@@ -230,7 +228,7 @@ START_TEST(test_filter_mail_partial_uuid)
 
     // Create message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Test message");
+                                            repl->current->uuid, "Test message");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -242,8 +240,8 @@ START_TEST(test_filter_mail_partial_uuid)
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: shows "(filtered by ...)" in header
 START_TEST(test_filter_mail_shows_header)
 {
@@ -262,7 +260,7 @@ START_TEST(test_filter_mail_shows_header)
 
     // Create message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Test message");
+                                            repl->current->uuid, "Test message");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -276,8 +274,8 @@ START_TEST(test_filter_mail_shows_header)
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: no matches shows empty result
 START_TEST(test_filter_mail_no_matches)
 {
@@ -303,6 +301,7 @@ START_TEST(test_filter_mail_no_matches)
     // Verify output exists (should show empty result)
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
+
 END_TEST
 
 static Suite *filter_mail_suite(void)

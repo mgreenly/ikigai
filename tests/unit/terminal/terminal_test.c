@@ -38,7 +38,6 @@ START_TEST(test_term_init_success) {
     ck_assert_int_eq(mock_close_count, 1);
 }
 END_TEST
-
 // Test: alternate screen sequences are written during init and cleanup
 START_TEST(test_term_alt_screen_sequences)
 {
@@ -63,6 +62,7 @@ START_TEST(test_term_alt_screen_sequences)
 
     talloc_free(ctx);
 }
+
 END_TEST
 // Test: open fails
 START_TEST(test_term_init_open_fails)
@@ -154,7 +154,6 @@ START_TEST(test_term_init_write_fails)
 }
 
 END_TEST
-
 // Test: ioctl fails (get terminal size)
 START_TEST(test_term_init_ioctl_fails)
 {

@@ -376,7 +376,6 @@ START_TEST(test_input_parse_page_down)
 }
 
 END_TEST
-
 // Test: double ESC sequence (ESC ESC) - first ESC should be treated as escape action
 START_TEST(test_input_parse_double_escape)
 {

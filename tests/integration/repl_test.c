@@ -294,15 +294,12 @@ START_TEST(test_repl_init) {
     ik_repl_cleanup(repl);
     talloc_free(ctx);
 }
-END_TEST
-
-START_TEST(test_repl_cleanup_null)
+END_TEST START_TEST(test_repl_cleanup_null)
 {
     ik_repl_cleanup(NULL);
 }
-END_TEST
 
-START_TEST(test_repl_cleanup_null_term)
+END_TEST START_TEST(test_repl_cleanup_null_term)
 {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -314,9 +311,8 @@ START_TEST(test_repl_cleanup_null_term)
     ik_repl_cleanup(repl);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_repl_run)
+END_TEST START_TEST(test_repl_run)
 {
     reset_mocks();
     void *ctx = talloc_new(NULL);
@@ -334,9 +330,8 @@ START_TEST(test_repl_run)
     ik_repl_cleanup(repl);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_thread_infrastructure_init)
+END_TEST START_TEST(test_thread_infrastructure_init)
 {
     reset_mocks();
     void *ctx = talloc_new(NULL);
@@ -356,9 +351,8 @@ START_TEST(test_thread_infrastructure_init)
     ik_repl_cleanup(repl);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_mutex_init_failure)
+END_TEST START_TEST(test_mutex_init_failure)
 {
     reset_mocks();
     void *ctx = talloc_new(NULL);
@@ -375,9 +369,8 @@ START_TEST(test_mutex_init_failure)
     talloc_free(result.err);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_transition_to_executing_tool)
+END_TEST START_TEST(test_transition_to_executing_tool)
 {
     reset_mocks();
     void *ctx = talloc_new(NULL);
@@ -400,9 +393,8 @@ START_TEST(test_transition_to_executing_tool)
     ik_repl_cleanup(repl);
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_transition_from_executing_tool)
+END_TEST START_TEST(test_transition_from_executing_tool)
 {
     reset_mocks();
     void *ctx = talloc_new(NULL);
@@ -422,6 +414,7 @@ START_TEST(test_transition_from_executing_tool)
     ik_repl_cleanup(repl);
     talloc_free(ctx);
 }
+
 END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
@@ -430,9 +423,8 @@ START_TEST(test_repl_init_null_parent)
     ik_repl_ctx_t *repl = NULL;
     (void)ik_repl_init(NULL, NULL, &repl);
 }
-END_TEST
 
-START_TEST(test_repl_init_null_out)
+END_TEST START_TEST(test_repl_init_null_out)
 {
     void *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = ik_test_create_config(ctx);
@@ -443,6 +435,7 @@ START_TEST(test_repl_init_null_out)
     (void)ik_repl_init(ctx, shared, NULL);
     talloc_free(ctx);
 }
+
 END_TEST
 #endif
 

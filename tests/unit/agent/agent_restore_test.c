@@ -18,8 +18,7 @@
 // ========== ik_agent_restore() Tests ==========
 
 // Test: ik_agent_restore() creates agent from DB row successfully
-START_TEST(test_agent_restore_creates_from_db_row)
-{
+START_TEST(test_agent_restore_creates_from_db_row) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -46,7 +45,6 @@ START_TEST(test_agent_restore_creates_from_db_row)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: ik_agent_restore() uses row UUID, not generated
 START_TEST(test_agent_restore_uses_row_uuid_not_generated)
 {
@@ -72,8 +70,8 @@ START_TEST(test_agent_restore_uses_row_uuid_not_generated)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_restore() sets fork_message_id from row
 START_TEST(test_agent_restore_sets_fork_message_id)
 {
@@ -99,8 +97,8 @@ START_TEST(test_agent_restore_sets_fork_message_id)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_restore() sets parent_uuid from row
 START_TEST(test_agent_restore_sets_parent_uuid)
 {
@@ -126,8 +124,8 @@ START_TEST(test_agent_restore_sets_parent_uuid)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_restore() sets created_at from row
 START_TEST(test_agent_restore_sets_created_at)
 {
@@ -153,8 +151,8 @@ START_TEST(test_agent_restore_sets_created_at)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_restore() sets name from row if present
 START_TEST(test_agent_restore_sets_name_if_present)
 {
@@ -180,8 +178,8 @@ START_TEST(test_agent_restore_sets_name_if_present)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_restore() sets name to NULL if not present in row
 START_TEST(test_agent_restore_null_name_if_not_present)
 {
@@ -207,6 +205,7 @@ START_TEST(test_agent_restore_null_name_if_not_present)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *agent_restore_suite(void)
