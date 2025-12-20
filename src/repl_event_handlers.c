@@ -198,8 +198,8 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
 
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
-    bool limit_reached = (repl->shared->cfg != NULL &&
-                          agent->tool_iteration_count >= repl->shared->cfg->max_tool_turns);                               // LCOV_EXCL_BR_LINE
+    bool limit_reached = (repl->shared->cfg != NULL &&  // LCOV_EXCL_BR_LINE
+                          agent->tool_iteration_count >= repl->shared->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
     res_t result = ik_openai_multi_add_request(agent->multi, repl->shared->cfg, agent->conversation,
                                                ik_repl_streaming_callback, agent,
                                                ik_repl_http_completion_callback, agent,

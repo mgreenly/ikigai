@@ -58,8 +58,8 @@ static res_t parse_history_line(TALLOC_CTX *ctx, const char *line, ik_logger_t *
         yyjson_mut_doc *log_doc = ik_log_create();
         yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
         if (root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        if (!yyjson_mut_obj_add_str(log_doc, root, "message",
-                                    "Skipping malformed history line: not valid json")) PANIC("Out of memory");                            // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, root, "message",  // LCOV_EXCL_BR_LINE
+                                    "Skipping malformed history line: not valid json")) PANIC("Out of memory");  // LCOV_EXCL_LINE
         ik_logger_warn_json(logger, log_doc);
         return OK(NULL);  // Skip this line
     }
@@ -70,8 +70,8 @@ static res_t parse_history_line(TALLOC_CTX *ctx, const char *line, ik_logger_t *
         yyjson_mut_doc *log_doc = ik_log_create();
         yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
         if (log_root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        if (!yyjson_mut_obj_add_str(log_doc, log_root, "message",
-                                    "Skipping non-object history line")) PANIC("Out of memory");                                // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, log_root, "message",  // LCOV_EXCL_BR_LINE
+                                    "Skipping non-object history line")) PANIC("Out of memory");  // LCOV_EXCL_LINE
         ik_logger_warn_json(logger, log_doc);
         yyjson_doc_free(doc);
         return OK(NULL);  // Skip this line
@@ -84,8 +84,8 @@ static res_t parse_history_line(TALLOC_CTX *ctx, const char *line, ik_logger_t *
         yyjson_mut_doc *log_doc = ik_log_create();
         yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
         if (log_root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        if (!yyjson_mut_obj_add_str(log_doc, log_root, "message",
-                                    "Skipping history line with missing/invalid cmd field")) PANIC("Out of memory");                                // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, log_root, "message",  // LCOV_EXCL_BR_LINE
+                                    "Skipping history line with missing/invalid cmd field")) PANIC("Out of memory");  // LCOV_EXCL_LINE
         ik_logger_warn_json(logger, log_doc);
         yyjson_doc_free(doc);
         return OK(NULL);  // Skip this line

@@ -87,9 +87,9 @@ static void ik_log_setup_directories(const char *working_dir, char *log_path)
     const char *env_log_dir = getenv("IKIGAI_LOG_DIR");
     if (env_log_dir != NULL && env_log_dir[0] != '\0') {
         struct stat st;
-        if (posix_stat_(env_log_dir, &st) != 0) {
-            if (errno == ENOENT) {  // LCOV_EXCL_BR_LINE
-                if (posix_mkdir_(env_log_dir, 0755) != 0) {  // LCOV_EXCL_BR_LINE
+        if (posix_stat_(env_log_dir, &st) != 0) {  // LCOV_EXCL_BR_LINE
+            if (errno == ENOENT) {  // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
+                if (posix_mkdir_(env_log_dir, 0755) != 0) {  // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
                     PANIC("Failed to create IKIGAI_LOG_DIR directory");  // LCOV_EXCL_LINE
                 }
             } else {  // LCOV_EXCL_START

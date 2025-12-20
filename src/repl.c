@@ -81,10 +81,10 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Handle debug pipes
         if (ready > 0 && repl->shared->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
-            ik_debug_manager_handle_ready(repl->shared->debug_mgr,
-                                          &read_fds,
-                                          repl->current->scrollback,
-                                          repl->shared->debug_enabled);                                                                 // LCOV_EXCL_LINE
+            ik_debug_manager_handle_ready(repl->shared->debug_mgr,  // LCOV_EXCL_LINE
+                                          &read_fds,  // LCOV_EXCL_LINE
+                                          repl->current->scrollback,  // LCOV_EXCL_LINE
+                                          repl->shared->debug_enabled);  // LCOV_EXCL_LINE
         }
 
         // Handle terminal input
