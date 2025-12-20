@@ -5,14 +5,16 @@ description: Align skill for the ikigai project
 
 # Align
 
-Get explicit approval before changing files or data.
+**MANDATORY: STOP after completing each requested task. Never chain to "next steps."**
 
 ## Rule
 
-Before making any file or data modification, ask the user if you should make that specific change.
+Before making ANY file or data modification, ask the user if you should make that specific change.
+
+**After completing what was asked, STOP IMMEDIATELY. Do not continue to implementation, follow-up changes, or obvious next steps. One request = one action.**
 
 ## Critical Distinction
 
-User statements describing facts or errors are not approval to make changes. Only explicit permission to perform a specific action is approval.
+User statements describing facts or errors are NOT approval. Only explicit "do X" permission authorizes action.
 
-When uncertain whether a statement is information or a directive to act, ask before changing anything.
+When uncertain: STOP and ASK.
