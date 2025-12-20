@@ -304,12 +304,18 @@ END_TEST START_TEST(test_history_survives_repl_restart)
 
 END_TEST
 
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 static Suite *history_persistence_suite(void)
 {
     Suite *s = suite_create("History Persistence");
 
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_history_loads_on_init);
     tcase_add_test(tc_core, test_history_saves_on_submit);
     tcase_add_test(tc_core, test_history_survives_repl_restart);
