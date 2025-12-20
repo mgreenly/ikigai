@@ -91,6 +91,12 @@ int posix_rename_(const char *oldpath, const char *newpath)
     return 0;  // Success
 }
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 /**
  * Create a REPL context with scrollback and conversation for clear testing.
  */
@@ -432,6 +438,7 @@ static Suite *commands_clear_db_suite(void)
     Suite *s = suite_create("Commands/Clear DB");
     TCase *tc = tcase_create("Database Errors");
 
+    tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_add_checked_fixture(tc, setup, teardown);
 
     tcase_add_test(tc, test_clear_db_error_clear_event);
