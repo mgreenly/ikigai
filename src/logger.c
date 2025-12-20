@@ -27,66 +27,42 @@ static pthread_mutex_t ik_log_mutex = PTHREAD_MUTEX_INITIALIZER;
 // Global log file handle (legacy compatibility)
 static FILE *ik_log_file = NULL;
 
-// Format timestamp as ISO 8601 with milliseconds and local timezone offset
-// Format: YYYY-MM-DDTHH:MM:SS.mmm±HH:MM
-// Buffer must be at least 64 bytes to satisfy release build static analysis
+// Common timestamp formatter (buf_len must be >= 64 bytes)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+static void ik_log_format_timestamp_impl(char *buf, size_t buf_len, const char *fmt)
+{
+    assert(buf != NULL);        // LCOV_EXCL_BR_LINE
+    assert(buf_len >= 64);      // LCOV_EXCL_BR_LINE
+
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    struct tm tm;
+    localtime_r(&tv.tv_sec, &tm);
+
+    int milliseconds = (int)(tv.tv_usec / 1000);
+    long offset_seconds = tm.tm_gmtoff;
+    int offset_hours = (int)(offset_seconds / 3600);
+    int offset_minutes = (int)((offset_seconds % 3600) / 60);
+
+    snprintf(buf, buf_len, fmt,
+             tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+             tm.tm_hour, tm.tm_min, tm.tm_sec,
+             milliseconds, offset_hours, abs(offset_minutes));
+}
+#pragma GCC diagnostic pop
+
+// Format timestamp as ISO 8601 (YYYY-MM-DDTHH:MM:SS.mmm±HH:MM)
 static void ik_log_format_timestamp(char *buf, size_t buf_len)
 {
-    assert(buf != NULL);        // LCOV_EXCL_BR_LINE
-    assert(buf_len >= 64);      // LCOV_EXCL_BR_LINE
-
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-
-    struct tm tm;
-    localtime_r(&tv.tv_sec, &tm);
-
-    // Calculate milliseconds from microseconds
-    int milliseconds = (int)(tv.tv_usec / 1000);
-
-    // Calculate timezone offset in minutes
-    long offset_seconds = tm.tm_gmtoff;
-    int offset_hours = (int)(offset_seconds / 3600);
-    int offset_minutes = (int)((offset_seconds % 3600) / 60);
-
-    // Format: YYYY-MM-DDTHH:MM:SS.mmm±HH:MM
-    snprintf(buf, buf_len, "%04d-%02d-%02dT%02d:%02d:%02d.%03d%+03d:%02d",
-             tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-             tm.tm_hour, tm.tm_min, tm.tm_sec,
-             milliseconds,
-             offset_hours, abs(offset_minutes));
+    ik_log_format_timestamp_impl(buf, buf_len, "%04d-%02d-%02dT%02d:%02d:%02d.%03d%+03d:%02d");
 }
 
-// Logger initialization and shutdown
-
-// Format timestamp for archive filename (filesystem-safe: colons replaced with hyphens)
-// Format: YYYY-MM-DDTHH-MM-SS.sss±HH-MM
-// Buffer must be at least 64 bytes to satisfy release build static analysis
+// Format timestamp for archive (filesystem-safe, hyphens only)
 static void ik_log_format_archive_timestamp(char *buf, size_t buf_len)
 {
-    assert(buf != NULL);        // LCOV_EXCL_BR_LINE
-    assert(buf_len >= 64);      // LCOV_EXCL_BR_LINE
-
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-
-    struct tm tm;
-    localtime_r(&tv.tv_sec, &tm);
-
-    // Calculate milliseconds from microseconds
-    int milliseconds = (int)(tv.tv_usec / 1000);
-
-    // Calculate timezone offset in minutes
-    long offset_seconds = tm.tm_gmtoff;
-    int offset_hours = (int)(offset_seconds / 3600);
-    int offset_minutes = (int)((offset_seconds % 3600) / 60);
-
-    // Format: YYYY-MM-DDTHH-MM-SS.sss±HH-MM (with hyphens instead of colons)
-    snprintf(buf, buf_len, "%04d-%02d-%02dT%02d-%02d-%02d.%03d%+03d-%02d",
-             tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-             tm.tm_hour, tm.tm_min, tm.tm_sec,
-             milliseconds,
-             offset_hours, abs(offset_minutes));
+    ik_log_format_timestamp_impl(buf, buf_len, "%04d-%02d-%02dT%02d-%02d-%02d.%03d%+03d-%02d");
 }
 
 // Rotate existing current.log to timestamped archive if it exists
@@ -123,9 +99,7 @@ static void ik_log_rotate_if_exists(const char *log_path)
     }
 }
 
-// Set up log directories for a working directory
-// Returns path to log file via log_path parameter (must be at least 512 bytes)
-// Must NOT be called with mutex locked
+// Set up log directories and return path (log_path >= 512 bytes)
 static void ik_log_setup_directories(const char *working_dir, char *log_path)
 {
     assert(working_dir != NULL); // LCOV_EXCL_BR_LINE
@@ -257,15 +231,9 @@ yyjson_mut_doc *ik_log_create(void)
     return doc;
 }
 
-// Internal function to write JSONL with a specific level
-static void ik_log_write(const char *level, yyjson_mut_doc *doc)
+// Internal helper to create JSONL wrapper with level and timestamp
+static char *ik_log_create_jsonl(const char *level, yyjson_mut_doc *doc)
 {
-    // If logger not initialized, free doc and return silently
-    if (ik_log_file == NULL) {
-        yyjson_mut_doc_free(doc);
-        return;
-    }
-
     assert(level != NULL); // LCOV_EXCL_BR_LINE
 
     // Get original root object from doc
@@ -299,6 +267,24 @@ static void ik_log_write(const char *level, yyjson_mut_doc *doc)
     char *json_str = yyjson_mut_write(wrapper_doc, 0, NULL);
     if (json_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
+    // Free wrapper doc
+    yyjson_mut_doc_free(wrapper_doc);
+
+    return json_str;
+}
+
+// Internal function to write JSONL with a specific level
+static void ik_log_write(const char *level, yyjson_mut_doc *doc)
+{
+    // If logger not initialized, free doc and return silently
+    if (ik_log_file == NULL) {
+        yyjson_mut_doc_free(doc);
+        return;
+    }
+
+    // Create JSONL string
+    char *json_str = ik_log_create_jsonl(level, doc);
+
     // Write to log file with newline
     pthread_mutex_lock(&ik_log_mutex);
     if (fprintf(ik_log_file, "%s\n", json_str) < 0) {  // LCOV_EXCL_BR_LINE
@@ -309,13 +295,8 @@ static void ik_log_write(const char *level, yyjson_mut_doc *doc)
     }
     pthread_mutex_unlock(&ik_log_mutex);
 
-    // Free JSON string
+    // Free JSON string and original doc
     free(json_str);
-
-    // Free wrapper doc
-    yyjson_mut_doc_free(wrapper_doc);
-
-    // Free original doc
     yyjson_mut_doc_free(doc);
 }
 
@@ -345,11 +326,9 @@ void ik_log_fatal_json(yyjson_mut_doc *doc)
     exit(1);
 }
 
-// ============================================================================
 // DI-based Logger API (new pattern with explicit context)
-// ============================================================================
 
-// Destructor for logger context - closes file and cleans up
+// Destructor for logger context
 static int logger_destructor(ik_logger_t *logger)
 {
     pthread_mutex_lock(&logger->mutex);
@@ -449,38 +428,9 @@ static void ik_logger_write(ik_logger_t *logger, const char *level, yyjson_mut_d
         yyjson_mut_doc_free(doc);
         return;
     }  // LCOV_EXCL_STOP
-    assert(level != NULL);  // LCOV_EXCL_BR_LINE
 
-    // Get original root object from doc
-    yyjson_mut_val *original_root = yyjson_mut_doc_get_root(doc);
-
-    // Create new wrapper doc
-    yyjson_mut_doc *wrapper_doc = yyjson_mut_doc_new(NULL);
-    if (wrapper_doc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *wrapper_root = yyjson_mut_obj(wrapper_doc);
-    if (wrapper_root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_doc_set_root(wrapper_doc, wrapper_root);
-
-    // Add "level" field with the provided level string
-    yyjson_mut_obj_add_str(wrapper_doc, wrapper_root, "level", level);
-
-    // Format and add "timestamp" field with ISO 8601 format
-    char timestamp_buf[64];
-    ik_log_format_timestamp(timestamp_buf, sizeof(timestamp_buf));
-    yyjson_mut_obj_add_str(wrapper_doc, wrapper_root, "timestamp", timestamp_buf);
-
-    // Add "logline" field with original root object
-    // Copy the original root to the wrapper doc
-    yyjson_mut_val *logline_copy = yyjson_mut_val_mut_copy(wrapper_doc, original_root);
-    if (logline_copy == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_obj_add_val(wrapper_doc, wrapper_root, "logline", logline_copy);
-
-    // Serialize to JSON string (single line)
-    char *json_str = yyjson_mut_write(wrapper_doc, 0, NULL);
-    if (json_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    // Create JSONL string
+    char *json_str = ik_log_create_jsonl(level, doc);
 
     // Write to log file with newline
     pthread_mutex_lock(&logger->mutex);
@@ -492,13 +442,8 @@ static void ik_logger_write(ik_logger_t *logger, const char *level, yyjson_mut_d
     }
     pthread_mutex_unlock(&logger->mutex);
 
-    // Free JSON string
+    // Free JSON string and original doc
     free(json_str);
-
-    // Free wrapper doc
-    yyjson_mut_doc_free(wrapper_doc);
-
-    // Free original doc
     yyjson_mut_doc_free(doc);
 }
 
