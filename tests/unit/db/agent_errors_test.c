@@ -1,5 +1,6 @@
 // Error path tests for db/agent.c using mocks
 #include "../../../src/db/agent.h"
+#include "../../../src/db/agent_zero.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/error.h"
 #include "../../../src/wrapper.h"

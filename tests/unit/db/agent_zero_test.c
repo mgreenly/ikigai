@@ -7,6 +7,7 @@
  */
 
 #include "../../../src/db/agent.h"
+#include "../../../src/db/agent_zero.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
