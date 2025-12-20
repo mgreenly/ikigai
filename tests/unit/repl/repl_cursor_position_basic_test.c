@@ -79,6 +79,81 @@ static void init_layer_cake(ik_repl_ctx_t *repl, int32_t rows)
     ck_assert(is_ok(&res));
 }
 
+// Test fixture structure
+typedef struct {
+    void *ctx;
+    ik_repl_ctx_t *repl;
+    ik_agent_ctx_t *agent;
+    ik_term_ctx_t *term;
+} test_fixture_t;
+
+// Helper to create test fixture with configurable input text and scrollback lines
+static test_fixture_t *create_test_fixture(const char *input_text, int32_t scrollback_lines)
+{
+    void *ctx = talloc_new(NULL);
+    test_fixture_t *fixture = talloc_zero(ctx, test_fixture_t);
+    fixture->ctx = ctx;
+
+    // Terminal: 20 rows x 80 cols
+    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    term->screen_rows = 20;
+    term->screen_cols = 80;
+    term->tty_fd = 1;
+    fixture->term = term;
+
+    res_t res;
+
+    // Create input buffer with specified text
+    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
+    for (size_t i = 0; i < strlen(input_text); i++) {
+        res = ik_input_buffer_insert_codepoint(input_buf, (uint32_t)input_text[i]);
+        ck_assert(is_ok(&res));
+    }
+    ik_input_buffer_ensure_layout(input_buf, 80);
+
+    // Create scrollback with specified number of lines
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+    for (int32_t i = 0; i < scrollback_lines; i++) {
+        char buf[64];
+        snprintf(buf, sizeof(buf), "line %" PRId32, i);
+        res = ik_scrollback_append_line(scrollback, buf, strlen(buf));
+        ck_assert(is_ok(&res));
+    }
+    ik_scrollback_ensure_layout(scrollback, 80);
+
+    // Create render context
+    ik_render_ctx_t *render = NULL;
+    res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
+    ck_assert(is_ok(&res));
+
+    // Create REPL context with layers
+    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    repl->current = talloc_zero(repl, ik_agent_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    shared->render = render;
+    fixture->repl = repl;
+
+    // Create agent context
+    ik_agent_ctx_t *agent = NULL;
+    res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    repl->current = agent;
+    fixture->agent = agent;
+
+    // Override agent's input buffer and scrollback with test fixtures
+    talloc_free(agent->input_buffer);
+    agent->input_buffer = input_buf;
+    talloc_free(agent->scrollback);
+    agent->scrollback = scrollback;
+    agent->viewport_offset = 0;
+
+    init_layer_cake(repl, term->screen_rows);
+
+    return fixture;
+}
+
 // Helper to check if position at buffer[i] is a cursor position escape
 static bool is_cursor_escape(const char *buffer, size_t len, size_t i)
 {
@@ -141,74 +216,9 @@ static bool extract_cursor_position(const char *buffer, size_t len, int32_t *row
  * - Cursor should be on input line (after "r"), not on separator line
  */
 START_TEST(test_cursor_position_with_one_blank_line) {
-    void *ctx = talloc_new(NULL);
-
-    // Terminal: 20 rows x 80 cols
-    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
-    term->screen_rows = 20;
-    term->screen_cols = 80;
-    term->tty_fd = 1;
-
+    // Create test fixture: 16 scrollback lines + separator + input + lower_sep = 19 rows (1 blank)
+    test_fixture_t *fixture = create_test_fixture("/clear", 16);
     res_t res;
-
-    // Create input buffer with "/clear" text
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
-    const char *input_text = "/clear";
-    for (size_t i = 0; i < strlen(input_text); i++) {
-        res = ik_input_buffer_insert_codepoint(input_buf, (uint32_t)input_text[i]);
-        ck_assert(is_ok(&res));
-    }
-    ik_input_buffer_ensure_layout(input_buf, 80);
-
-    // Create scrollback
-    // Document model: scrollback + separator + input + lower_separator
-    // To have exactly 1 blank line: scrollback + blank + separator + input + lower_sep = terminal rows
-    // Terminal has 20 rows (0-19)
-    // If scrollback has 16 lines:
-    //   - Rows 0-15: scrollback (16 lines)
-    //   - Row 16: blank line (not rendered, just empty)
-    //   - Row 17: separator
-    //   - Row 18: input line (cursor should be here)
-    //   - Row 19: lower separator
-    // Total: 16 + 1 (blank) + 1 (sep) + 1 (input) + 1 (lower sep) = 20 rows
-
-    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    for (int32_t i = 0; i < 16; i++) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "scrollback line %" PRId32, i);
-        res = ik_scrollback_append_line(scrollback, buf, strlen(buf));
-        ck_assert(is_ok(&res));
-    }
-    ik_scrollback_ensure_layout(scrollback, 80);
-
-    // Create render context
-    ik_render_ctx_t *render = NULL;
-    res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
-    ck_assert(is_ok(&res));
-
-    // Create REPL context with layer cake (to test layer-based rendering)
-    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->current = talloc_zero(repl, ik_agent_ctx_t);
-    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
-    repl->shared = shared;
-    shared->term = term;
-    shared->render = render;
-
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = NULL;
-    res = ik_test_create_agent(ctx, &agent);
-    ck_assert(is_ok(&res));
-    repl->current = agent;
-
-    // Override agent's input buffer with our test fixture
-    talloc_free(agent->input_buffer);
-    agent->input_buffer = input_buf;
-    // Override agent's scrollback with our test fixture
-    talloc_free(agent->scrollback);
-    agent->scrollback = scrollback;
-    agent->viewport_offset = 0;
-
-    init_layer_cake(repl, term->screen_rows);
 
     // Reset mock state
     mock_write_calls = 0;
@@ -216,56 +226,23 @@ START_TEST(test_cursor_position_with_one_blank_line) {
     mock_write_should_fail = false;
 
     // Render the frame
-    res = ik_repl_render_frame(repl);
+    res = ik_repl_render_frame(fixture->repl);
     ck_assert(is_ok(&res));
-
-    // Verify write was called
     ck_assert_int_gt(mock_write_calls, 0);
-    ck_assert(mock_write_buffer_len > 0);
 
-    // Extract cursor position from the rendered output
+    // Extract cursor position
     int32_t cursor_row = 0, cursor_col = 0;
     bool found = extract_cursor_position(mock_write_buffer, mock_write_buffer_len,
                                          &cursor_row, &cursor_col);
     ck_assert_msg(found, "Could not find cursor position in rendered output");
 
-    // Debug output
-    printf("\n=== Cursor Position Test ===\n");
-    printf("Terminal: %d rows x %d cols\n", term->screen_rows, term->screen_cols);
-    printf("Scrollback lines: %zu\n", ik_scrollback_get_line_count(scrollback));
-    printf("Input text: \"%s\"\n", input_text);
-    printf("Cursor position (1-indexed): row %d, col %d\n", cursor_row, cursor_col);
-
-    // Calculate expected cursor position with layer-based rendering
-    // Document model (0-indexed):
-    //   - Rows 0-15: scrollback (16 lines)
-    //   - Row 16: separator
-    //   - Row 17: input
-    //   - Row 18: lower separator
-    // Total document height: 19 rows
-    // Terminal: 20 rows (0-19)
-    // Document starts at row 0 (fits entirely):
-    //   - Terminal rows 0-15: scrollback (16 lines)
-    //   - Terminal row 16: separator
-    //   - Terminal row 17: input "/clear" with cursor
-    //   - Terminal row 18: lower separator
-    // Cursor should be at terminal row 17 (0-indexed) = row 18 (1-indexed)
-
-    int32_t expected_cursor_row = 18;  // Input line (1-indexed)
-    int32_t expected_cursor_col = 7;   // After "/clear" (6 chars + 1 for 1-indexed)
-
-    printf("Expected cursor: row %d, col %d\n", expected_cursor_row, expected_cursor_col);
-    printf("\n");
-
-    // Key assertion: cursor should NOT be on separator line (row 17) or lower separator (row 19)
+    // Cursor should be on input line (row 18, 1-indexed), not separator (17) or lower sep (19)
     ck_assert_int_ne(cursor_row, 17);
     ck_assert_int_ne(cursor_row, 19);
+    ck_assert_int_eq(cursor_row, 18);  // Input line
+    ck_assert_int_eq(cursor_col, 7);   // After "/clear"
 
-    // Cursor should be on input line
-    ck_assert_int_eq(cursor_row, expected_cursor_row);
-    ck_assert_int_eq(cursor_col, expected_cursor_col);
-
-    talloc_free(ctx);
+    talloc_free(fixture->ctx);
 }
 END_TEST
 
@@ -275,71 +252,13 @@ END_TEST
  * Verify cursor is still correct when viewport is completely full.
  */
 START_TEST(test_cursor_position_viewport_full) {
-    void *ctx = talloc_new(NULL);
-
-    // Terminal: 20 rows x 80 cols
-    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
-    term->screen_rows = 20;
-    term->screen_cols = 80;
-    term->tty_fd = 1;
-
+    test_fixture_t *fixture = create_test_fixture("test", 100);
     res_t res;
-
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
-    res = ik_input_buffer_insert_codepoint(input_buf, 't');
-    ck_assert(is_ok(&res));
-    res = ik_input_buffer_insert_codepoint(input_buf, 'e');
-    ck_assert(is_ok(&res));
-    res = ik_input_buffer_insert_codepoint(input_buf, 's');
-    ck_assert(is_ok(&res));
-    res = ik_input_buffer_insert_codepoint(input_buf, 't');
-    ck_assert(is_ok(&res));
-    ik_input_buffer_ensure_layout(input_buf, 80);
-
-    // Create scrollback with many lines (more than screen)
-    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    for (int32_t i = 0; i < 100; i++) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "line %" PRId32, i);
-        res = ik_scrollback_append_line(scrollback, buf, strlen(buf));
-        ck_assert(is_ok(&res));
-    }
-    ik_scrollback_ensure_layout(scrollback, 80);
-
-    // Create render context
-    ik_render_ctx_t *render = NULL;
-    res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
-    ck_assert(is_ok(&res));
-
-    // Create REPL context with layers
-    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->current = talloc_zero(repl, ik_agent_ctx_t);
-    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
-    repl->shared = shared;
-    shared->term = term;
-    shared->render = render;
-
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = NULL;
-    res = ik_test_create_agent(ctx, &agent);
-    ck_assert(is_ok(&res));
-    repl->current = agent;
-
-    // Override agent's input buffer with our test fixture
-    talloc_free(agent->input_buffer);
-    agent->input_buffer = input_buf;
-    // Override agent's scrollback with our test fixture
-    talloc_free(agent->scrollback);
-    agent->scrollback = scrollback;
-    agent->viewport_offset = 0;
-
-    init_layer_cake(repl, term->screen_rows);
 
     // Reset mock and render
     mock_write_calls = 0;
     mock_write_buffer_len = 0;
-    res = ik_repl_render_frame(repl);
+    res = ik_repl_render_frame(fixture->repl);
     ck_assert(is_ok(&res));
 
     // Extract cursor position
@@ -348,16 +267,13 @@ START_TEST(test_cursor_position_viewport_full) {
                                          &cursor_row, &cursor_col);
     ck_assert(found);
 
-    // Document: 100 scrollback + 1 separator + 1 input + 1 lower separator = 103 rows
-    // Terminal: 20 rows, showing document rows 83-102 (last 20)
-    // Input is at document row 101, first visible is 83
-    // Screen row = 101 - 83 = 18 (0-indexed) = row 19 (1-indexed)
-    // Lower separator is at row 20, cursor should NOT be there
+    // Document: 100 scrollback + separator + input + lower sep = 103 rows
+    // Terminal shows last 20 rows; cursor should be on input line (row 19), not lower sep (20)
     ck_assert_int_ne(cursor_row, 20);  // Not on lower separator
-    ck_assert_int_eq(cursor_row, 19);  // On input line (1-indexed)
-    ck_assert_int_eq(cursor_col, 5);   // After "test" (4 chars + 1)
+    ck_assert_int_eq(cursor_row, 19);  // On input line
+    ck_assert_int_eq(cursor_col, 5);   // After "test"
 
-    talloc_free(ctx);
+    talloc_free(fixture->ctx);
 }
 END_TEST
 
@@ -365,67 +281,13 @@ END_TEST
  * Test: Cursor position when viewport is half full
  */
 START_TEST(test_cursor_position_viewport_half_full) {
-    void *ctx = talloc_new(NULL);
-
-    // Terminal: 20 rows x 80 cols
-    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
-    term->screen_rows = 20;
-    term->screen_cols = 80;
-    term->tty_fd = 1;
-
+    test_fixture_t *fixture = create_test_fixture("hi", 5);
     res_t res;
-
-    // Create input buffer
-    ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);
-    res = ik_input_buffer_insert_codepoint(input_buf, 'h');
-    ck_assert(is_ok(&res));
-    res = ik_input_buffer_insert_codepoint(input_buf, 'i');
-    ck_assert(is_ok(&res));
-    ik_input_buffer_ensure_layout(input_buf, 80);
-
-    // Create small scrollback (only 5 lines)
-    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
-    for (int32_t i = 0; i < 5; i++) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "line %" PRId32, i);
-        res = ik_scrollback_append_line(scrollback, buf, strlen(buf));
-        ck_assert(is_ok(&res));
-    }
-    ik_scrollback_ensure_layout(scrollback, 80);
-
-    // Create render context
-    ik_render_ctx_t *render = NULL;
-    res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
-    ck_assert(is_ok(&res));
-
-    // Create REPL context with layers
-    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->current = talloc_zero(repl, ik_agent_ctx_t);
-    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
-    repl->shared = shared;
-    shared->term = term;
-    shared->render = render;
-
-    // Create agent context for display state
-    ik_agent_ctx_t *agent = NULL;
-    res = ik_test_create_agent(ctx, &agent);
-    ck_assert(is_ok(&res));
-    repl->current = agent;
-
-    // Override agent's input buffer with our test fixture
-    talloc_free(agent->input_buffer);
-    agent->input_buffer = input_buf;
-    // Override agent's scrollback with our test fixture
-    talloc_free(agent->scrollback);
-    agent->scrollback = scrollback;
-    agent->viewport_offset = 0;
-
-    init_layer_cake(repl, term->screen_rows);
 
     // Reset mock and render
     mock_write_calls = 0;
     mock_write_buffer_len = 0;
-    res = ik_repl_render_frame(repl);
+    res = ik_repl_render_frame(fixture->repl);
     ck_assert(is_ok(&res));
 
     // Extract cursor position
@@ -434,17 +296,12 @@ START_TEST(test_cursor_position_viewport_half_full) {
                                          &cursor_row, &cursor_col);
     ck_assert(found);
 
-    // Document: 5 scrollback + 1 separator + 1 input + 1 lower separator = 8 rows
-    // Terminal: 20 rows, document fits entirely starting at row 0
-    // - Rows 0-4: scrollback (5 lines)
-    // - Row 5: separator
-    // - Row 6: input "hi" (cursor should be here)
-    // - Row 7: lower separator
-    // Screen row 6 (0-indexed) = row 7 (1-indexed)
-    ck_assert_int_eq(cursor_row, 7);  // Input line (1-indexed)
+    // Document: 5 scrollback + separator + input + lower sep = 8 rows (fits in terminal)
+    // Cursor should be on input line (row 7, 1-indexed)
+    ck_assert_int_eq(cursor_row, 7);  // Input line
     ck_assert_int_eq(cursor_col, 3);  // After "hi"
 
-    talloc_free(ctx);
+    talloc_free(fixture->ctx);
 }
 END_TEST
 
