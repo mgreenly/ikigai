@@ -244,11 +244,13 @@ res_t ik_test_db_create(const char *db_name)
 
 res_t ik_test_db_migrate(TALLOC_CTX *ctx, const char *db_name)
 {
-    if (db_name == NULL) {
-        return ERR(ctx, INVALID_ARG, "db_name cannot be NULL");
-    }
-
     TALLOC_CTX *tmp_ctx = ctx ? ctx : talloc_new(NULL);
+
+    if (db_name == NULL) {
+        res_t res = ERR(tmp_ctx, INVALID_ARG, "db_name cannot be NULL");
+        if (ctx == NULL) talloc_free(tmp_ctx);
+        return res;
+    }
 
     // Connect to the test database
     ik_db_ctx_t *db = NULL;
