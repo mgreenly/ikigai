@@ -2,11 +2,11 @@
 
 ## Project Context
 
-* **ikigai** - Multi-model coding agent with native terminal UI
-* **Tech stack**: C, Linux, Makefile, PostgreSQL (libpq)
+* **ikigai** - Linux coding agent with terminal UI
+* **Tech stack**: C, Linux, Makefile, PostgreSQL
 * **Source**: `src/` (headers co-located with .c files)
 * **Tests**: `tests/unit/`, `tests/integration/`, `tests/performance/`
-* **Docs**: `project/` (start with `project/README.md`)
+* **Docs**: located in the `project/` directory (start with `project/README.md`)
 * **ADRs**: `project/decisions/`
 
 ## Critical Rules
@@ -25,3 +25,4 @@ Load these skills when you need deeper context:
 * `/load source-code` - Map of all src/*.c files by functional area
 * `/load makefile` - Build targets, test commands, coverage requirements
 * `/load git` - Commit policy and permitted git operations
+* `/load task` - SQLite-backed task orchestration with escalation ladder

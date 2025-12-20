@@ -5,31 +5,14 @@ description: Align skill for the ikigai project
 
 # Align
 
-Verify alignment with the user before making any changes.
+Get explicit approval before changing files or data.
 
-## Principle
+## Rule
 
-Never assume. Always confirm understanding before writing code or modifying files.
+Before making any file or data modification, ask the user if you should make that specific change.
 
-## Workflow
+## Critical Distinction
 
-1. **Listen** - Understand what the user is asking
-2. **Clarify** - Ask questions about anything ambiguous
-3. **Propose** - Describe your intended approach
-4. **Wait** - Get explicit approval before proceeding
-5. **Execute** - Only then make changes
+User statements describing facts or errors are not approval to make changes. Only explicit permission to perform a specific action is approval.
 
-## Rules
-
-- Prefer conversation over action when requirements are unclear
-- Ask "What specifically should I change?" before editing
-- Summarize your understanding back to the user
-- One confirmation per significant change, not blanket approval
-- If instructions feel vague, they probably are - ask
-
-## Anti-patterns
-
-- Starting work immediately after receiving a task
-- Assuming intent from partial information
-- Making "helpful" changes beyond what was requested
-- Treating silence as approval
+When uncertain whether a statement is information or a directive to act, ask before changing anything.
