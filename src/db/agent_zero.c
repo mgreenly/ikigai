@@ -4,6 +4,7 @@
 
 #include "../error.h"
 #include "../panic.h"
+#include "../tmp_ctx.h"
 #include "../uuid.h"
 #include "../wrapper.h"
 
@@ -20,8 +21,7 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
     assert(out_uuid != NULL);   // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query results
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Check for existing root agent (parent_uuid IS NULL)
     const char *query_root = "SELECT uuid FROM agents WHERE parent_uuid IS NULL";
