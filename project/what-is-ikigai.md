@@ -1,16 +1,16 @@
 # What is Ikigai
 
-**Amplification through Agents, Compounding over Time**
+**An Agent Platform for Building Systems that Compound**
 
 ---
 
 ## The Short Version
 
-Ikigai helps you build intelligent agents that amplify what a small team can do.
+Ikigai is an agent platform - an operating environment where you build, deploy, and coordinate living agents.
 
-Instead of building your product directly, you build a system of agents that learns your codebase, your infrastructure, and your workflows. These agents don't just autocomplete code; they become durable capabilities that understand your project and improve it over time.
+Instead of using one AI assistant, you build agent systems: trees of coordinating agents that fork like processes, communicate through mailboxes, learn continuously through structured memory, and run autonomously. These aren't chatbots waiting for prompts - they're living processes that understand your project, coordinate with each other, and evolve over time.
 
-You invest in teaching and refining this system. At first, it might feel like a 2x multiplier but as the agents accumulate context and experience, that leverage grows: 5x, then 10x, then more. Your efforts compound because you're not just building features; you're building the capability to build and manage features.
+You invest in building and refining these agent systems. The terminal (ikigai) is where you design agents interactively. The runtime (iki-genba) is where they run autonomously. Through structured memory, agents learn from every conversation. Through forking, they spawn children to delegate work. Through mailboxes, they coordinate without you. Your efforts compound because you're not just building features - you're building agent capabilities that improve themselves.
 
 ---
 
@@ -30,41 +30,45 @@ What if your project came with its own "operational brain"? Not a passive assist
 
 ## How It Works
 
-Ikigai is a platform for building and running these agent systems. It requires a shift in how you think about software development and the operation of software systems.
+Ikigai is a platform for building agent systems. It requires a shift in thinking: you're not using an assistant, you're building a team of coordinating agents.
 
-**1. The "Meta-Project"**
+**1. The Agent Platform**
 
-You use the Ikigai terminal to create a new project. Let's say you're building "Videos.com." The project you create in Ikigai isn't Videos.com itself. It's the *control plane* for Videos.com: the collection of agents that will help you build and operate the actual target service.
+You work in the ikigai terminal - an interactive environment for designing agents. Let's say you're building "Videos.com." You create agents that understand the codebase, deployment, infrastructure, and operations. This is your agent system - the collection of coordinating agents that help you build and operate Videos.com.
 
-**2. Dual Building**
+**2. Process Model**
 
-You build the target product and its agents simultaneously. This is the core concept.
+Agents are processes. They fork children (`/fork`), send messages via mailboxes (`/send`), receive signals (`/kill`), and share state through memory documents. Like Unix processes, but for AI agents. Like Erlang actors, but with structured memory.
 
-Working in the Ikigai terminal, you teach your control plane where the Videos.com source code lives, how it's deployed, and how to check if it's healthy. You aren't just writing the code for the video player; you are writing the agent that knows *how* to deploy the video player.
+A parent agent delegates work by forking children with specific prompts. Children inherit the parent's conversation history and memory blocks. They work autonomously, coordinate through messages, and report back.
 
-As you build out the actual site, the agents build up their understanding of it. Over time, you add agents for content moderation, customer support triage, or scaling infrastructure. You are building the factory alongside the product.
+**3. Structured Memory**
 
-**3. Deploying the Control Plane**
+Agents don't just have conversation history - they have structured memory:
+- **Pinned blocks** (100k tokens): Always-visible curated knowledge
+- **Auto-summary** (10k): Index to archival memory
+- **Sliding window** (90k): Recent conversation, auto-evicts oldest
+- **Archival** (unlimited): Everything forever, searchable
 
-Like any software, this control plane needs somewhere to run. It can run locally on your laptop during development, or be pushed to a server to run continuously.
+Agents learn through `/remember` (extract knowledge), `/compact` (compress blocks), and `/recall` (search archival). Knowledge compounds over time.
 
-For some internal tools or research projects, the control plane *is* the final interface for users.
+**4. Dual Runtime**
 
-For projects like Videos.com, the control plane manages something external: a scaled web platform, a robo-taxi fleet, or manufacturing hardware. Where the agents run and what they manage are independent choices.
+The terminal (ikigai) is where you design agents interactively - human-driven. The runtime (iki-genba) is where agents run autonomously - code-driven. Both share the same database, the same process model, the same memory system. Human agents and autonomous agents coordinate seamlessly.
 
-**4. Collaborative Development**
+Deploy agents to iki-genba to run continuously: monitoring logs, processing queues, responding to webhooks, coordinating with other agents. They run whether you're at the terminal or not.
 
-Development happens at the project level, not just the code level. You define specifications and direction. Agents act as developers to implement them.
+**5. Unified Interface**
 
-Crucially, you review together. You and your agents validate code and run tests. When something is wrong, you don't just fix the output; you refine the agent's instructions so it understands better next time. They propose, you approve.
+The same tools work everywhere. `ikigai:///blocks/decisions.md` is a memory block in the database. `src/auth.c` is a file on disk. Same read/write/edit tools for both. Agents don't care about storage backends - paths are paths.
 
-**5. You Guide, They Compound**
+Commands work on both too: `/compact` compresses memory blocks or filesystem files. `/remember` extracts knowledge to blocks or docs. `/forget` removes content from either. Same operations, different storage.
 
-Your daily work shifts to interacting with the control plane. As you refine how the agents work, they get smarter about your specific domain. Tasks that once needed your direct involvement start happening automatically based on rules you've established. The ratio of what you put in to what you get out keeps improving.
+**6. Continuous Evolution**
 
-**6. Continuous Operation**
+There's no single "launch day" for your agent system. You build it incrementally. You start with one agent in the terminal, fork children for specific tasks, pin knowledge they discover, deploy some to iki-genba for continuous operation.
 
-There's no single "launch day." You build up the service piece by piece. When parts are ready, you expose them to users. Regular releases, maintenance, and operational overhead are handled through your agents, guided by you. The system runs continuously and improves continuously.
+As the system grows, agents accumulate knowledge in memory blocks. Parent agents delegate more to children. Autonomous agents handle routine work. You guide the system, refine agent prompts, curate memory blocks. The agent capabilities compound.
 
 ---
 
@@ -83,25 +87,36 @@ The common thread: you have something ambitious to build, limited people to buil
 
 ## What Makes This Different
 
-You might be familiar with AI coding assistants, tools that help you write code faster. Ikigai is different. Those tools help *you* code. Ikigai helps you build *agents* that code, operate, and make decisions alongside you.
+**vs AI Coding Assistants** (Cursor, Copilot, Claude Code):
+Those are single-agent assistants that help *you* code. Ikigai is a platform where you build *agent systems* - trees of coordinating agents that work together.
 
-You might have heard of platforms that run automated workflows or container orchestration systems that manage infrastructure. Ikigai is different from those too. Those systems run what you've already built. Ikigai runs intelligent agents that participate in building and operating your project.
+**vs Agent Frameworks** (LangChain, CrewAI, AutoGPT):
+Those are libraries for building agents. Ikigai is a complete platform: builder (terminal), runtime (iki-genba), memory system (structured memory), and process model (fork, mailbox, signals).
 
-The key distinction: Ikigai agents are work partners. They consult with you. They bring you decisions that need human judgment and act on your guidance. They aren't just executing predefined steps. They understand context, make judgments within boundaries you set, and handle situations they weren't explicitly programmed for. And they improve as your project matures.
+**vs Memory Systems** (Letta/MemGPT):
+Letta pioneered memory blocks. Ikigai extends this with: larger blocks (100k budget vs 2k chars), sliding window eviction, active compression (`/compact`), unified file interface (`ikigai://`), and agent process model.
+
+**vs Workflow Orchestration** (Temporal, Airflow):
+Those run predefined workflows. Ikigai runs intelligent agents that adapt, learn, coordinate, and evolve. Agents fork children, send messages, share memory - they're living processes, not static DAGs.
+
+**The Key Distinction**:
+Most tools give you one agent. Ikigai gives you an operating environment for building agent systems. Like Erlang/OTP gave you a platform for building concurrent systems, ikigai gives you a platform for building multi-agent systems that learn, coordinate, and run autonomously.
 
 ---
 
 ## The Deeper Idea
 
-When you build an Ikigai project, you're not just building software. You're building a system that grows with you.
+When you build with ikigai, you're not just building software. You're building an agent system that grows with you.
 
-Traditional software development is linear: you put in effort, you get output, repeat. Ikigai development is compounding: you put in effort to build agents, those agents produce output, you improve the agents, they produce more output with less input from you.
+Traditional development is linear: you put in effort, you get output, repeat. Agent platform development is compounding: you build agents, those agents produce output, you refine their memory and capabilities, they fork children for specialized work, they accumulate knowledge, they coordinate autonomously. Your efforts multiply through the agent tree.
 
-Over time, your project develops its own operational capability. The agents become a kind of institutional knowledge. They understand how things work, why decisions were made, what to watch for. New challenges get handled by agents that have learned from past experience.
+Over time, your agent system develops institutional knowledge through structured memory. Pinned blocks contain patterns and decisions. Auto-summary indexes what fell off the sliding window. Archival stores everything forever. Agents `/remember` important learnings, `/compact` knowledge as it accumulates, `/recall` old discussions when relevant.
 
-You stay in control. Agents recommend, you confirm. Agents act within boundaries you set. But the mundane work, the repetitive decisions, the operational overhead: that's handled. You focus on direction and judgment. The agents handle execution.
+Parent agents delegate to children through forking. Children coordinate through mailboxes. Some agents run in the terminal with you. Others run autonomously in iki-genba, processing queues or monitoring systems. The agent tree evolves to match your project's needs.
 
-Ikigai amplifies expertise. The more you know about what you're building, the more effective your agents become. An expert in video systems will build better Videos.com agents than a novice. The agents extend what you already know how to do; they don't replace the need to know it.
+You stay in control. You design agents in the terminal. You curate what gets pinned in memory. You decide what runs autonomously. But the coordination, the delegation, the knowledge management, the continuous operation - that's handled by the agent system.
+
+Ikigai amplifies expertise. An expert builds better agent systems than a novice. The platform extends what you already know how to do - it doesn't replace the need to know it. Your domain knowledge becomes the agent system's domain knowledge, compounding over time.
 
 ---
 

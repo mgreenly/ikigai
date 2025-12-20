@@ -2,7 +2,6 @@ build/
 build-*/
 /bin/
 dist/
-/rel-07/
 /demo.md
 /banner.md
 coverage/

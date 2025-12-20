@@ -1,3 +1,11 @@
 # Ikigai Elevator Pitch
 
-Ikigai is a platform for building truly autonomous AI agents that work continuously, not chatbots that wait for prompts. Developers use a terminal interface to write TypeScript agents that pull tasks from PostgreSQL queues, execute work independently, and communicate through mailboxes, no message brokers or API complexity required, because everything coordinates through the database, you can add web dashboards, mobile apps, or enterprise integrations later without changing your agents. We're turning the database into an agent platform, starting with the developer tools that make building autonomous agents feel native instead of bolted-on.
+Ikigai is an agent platform - an operating environment for living agents.
+
+Build agent systems interactively through the terminal (ikigai), deploy them to run autonomously (iki-genba), and coordinate them through process primitives: agents fork like Unix processes, communicate via Erlang-style mailboxes, and learn continuously through structured memory. Memory blocks evolve through `/remember` and `/compact`, the sliding window auto-evicts old exchanges, and everything persists in PostgreSQL archival.
+
+The same tools work on filesystem and database (`ikigai://` URIs), agents spawn children to delegate work (`/fork`), send messages between processes (`/send`), and share knowledge through pinned memory blocks. Human-driven agents in the terminal coordinate seamlessly with autonomous agents running in iki-genba.
+
+Most tools give you one agent. Ikigai gives you a platform to build agent systems - process trees that fork, coordinate, learn, and run autonomously.
+
+Like Erlang/OTP for AI agents: the process model, memory system, and runtime where living agents operate.
