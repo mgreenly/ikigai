@@ -11,6 +11,7 @@
 #include <talloc.h>
 #include "../../../src/logger.h"
 #include "../../../src/wrapper.h"
+#include "../../test_utils.h"
 
 // Helper: setup temp directory
 static char test_dir[256];
@@ -21,7 +22,14 @@ static void setup_test(void)
 {
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_logger_di_test_%d", getpid());
     mkdir(test_dir, 0755);
-    snprintf(log_file_path, sizeof(log_file_path), "%s/.ikigai/logs/current.log", test_dir);
+
+    // When IKIGAI_LOG_DIR is set by suite_setup, use that path
+    const char *log_dir = getenv("IKIGAI_LOG_DIR");
+    if (log_dir != NULL) {
+        snprintf(log_file_path, sizeof(log_file_path), "%s/current.log", log_dir);
+    } else {
+        snprintf(log_file_path, sizeof(log_file_path), "%s/.ikigai/logs/current.log", test_dir);
+    }
     test_ctx = talloc_new(NULL);
 }
 
@@ -32,12 +40,17 @@ static void teardown_test(void)
         test_ctx = NULL;
     }
     unlink(log_file_path);
-    char logs_dir[512];
-    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
-    rmdir(logs_dir);
-    char ikigai_dir[512];
-    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
-    rmdir(ikigai_dir);
+
+    // Only clean up test_dir if IKIGAI_LOG_DIR is not set
+    const char *log_dir = getenv("IKIGAI_LOG_DIR");
+    if (log_dir == NULL) {
+        char logs_dir[512];
+        snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
+        rmdir(logs_dir);
+        char ikigai_dir[512];
+        snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
+        rmdir(ikigai_dir);
+    }
     rmdir(test_dir);
 }
 
@@ -212,6 +225,14 @@ END_TEST
 // Test: ik_logger_reinit changes log file location
 START_TEST(test_logger_reinit_changes_location)
 {
+    // Save and temporarily unset IKIGAI_LOG_DIR to test working_dir parameter
+    const char *saved_log_dir = getenv("IKIGAI_LOG_DIR");
+    char saved_buf[512] = {0};
+    if (saved_log_dir != NULL) {
+        snprintf(saved_buf, sizeof(saved_buf), "%s", saved_log_dir);
+        unsetenv("IKIGAI_LOG_DIR");
+    }
+
     setup_test();
 
     ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);
@@ -268,6 +289,11 @@ START_TEST(test_logger_reinit_changes_location)
     rmdir(new_dir);
 
     teardown_test();
+
+    // Restore IKIGAI_LOG_DIR
+    if (saved_buf[0] != '\0') {
+        setenv("IKIGAI_LOG_DIR", saved_buf, 1);
+    }
 }
 
 END_TEST
@@ -355,6 +381,12 @@ START_TEST(test_logger_fatal_exits)
 END_TEST
 #endif
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 static Suite *logger_di_suite(void)
 {
     Suite *s;
@@ -362,6 +394,7 @@ static Suite *logger_di_suite(void)
 
     s = suite_create("Logger DI");
     tc_core = tcase_create("Core");
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
 
     tcase_add_test(tc_core, test_logger_create_returns_logger);
     tcase_add_test(tc_core, test_logger_debug_writes_jsonl);
