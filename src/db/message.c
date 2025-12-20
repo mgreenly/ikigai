@@ -4,6 +4,7 @@
 #include "pg_result.h"
 
 #include "../error.h"
+#include "../tmp_ctx.h"
 #include "../wrapper.h"
 
 #include <assert.h>
@@ -57,8 +58,7 @@ res_t ik_db_message_insert(ik_db_ctx_t *db,
     assert(ik_db_message_is_valid_kind(kind));  // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query parameters
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Build parameterized query
     const char *query =
