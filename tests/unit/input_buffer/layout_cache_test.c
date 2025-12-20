@@ -465,16 +465,7 @@ int main(void)
     Suite *s = input_buffer_layout_cache_suite();
     SRunner *sr = srunner_create(s);
 
-    /*
-     * Disable forking when running with AddressSanitizer or when SKIP_SIGNAL_TESTS is defined.
-     * AddressSanitizer doesn't work well with check's fork-based test isolation because:
-     * 1. Each forked child process triggers leak detection on exit
-     * 2. The check library's internal allocations (emalloc) appear as leaks in each child
-     * 3. This causes tests to exit with status 1, which check interprets as "Early exit"
-     *
-     * When SKIP_SIGNAL_TESTS is set (used by sanitizer builds), we don't have signal tests
-     * anyway, so it's safe to disable forking for better compatibility.
-     */
+    /* Disable forking with ASAN/SKIP_SIGNAL_TESTS for compatibility */
 #if defined(SKIP_SIGNAL_TESTS)
     srunner_set_fork_status(sr, CK_NOFORK);
 #endif
