@@ -11,21 +11,29 @@
 #include <pthread.h>
 #include <string.h>
 #include "agent.h"
+#include "logger.h"
+#include "openai/client.h"
+#include "openai/client_multi.h"
 #include "repl.h"
 #include "repl_event_handlers.h"
-#include "openai/client_multi.h"
-#include "openai/client.h"
+#include "scrollback.h"
 #include "shared.h"
 #include "terminal.h"
-#include "scrollback.h"
-#include "logger.h"
 #include "wrapper.h"
+
+#include "../../test_utils.h"
 
 // Per-test state
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
 static ik_agent_ctx_t *agent_a;
 static ik_agent_ctx_t *agent_b;
+
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
 
 // Create test agent helper
 static ik_agent_ctx_t *create_test_agent(ik_repl_ctx_t *parent, const char *uuid)
@@ -258,6 +266,7 @@ static Suite *all_agents_http_handling_suite(void)
     Suite *s = suite_create("All Agents HTTP Handling");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_background_agent_http_completion);
     tcase_add_test(tc_core, test_multiple_background_agents_completion);
