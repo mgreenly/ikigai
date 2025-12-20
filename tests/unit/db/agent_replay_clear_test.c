@@ -1,9 +1,8 @@
 /**
- * @file agent_replay_test.c
- * @brief Tests for agent startup replay functionality
+ * @file agent_replay_clear_test.c
+ * @brief Tests for agent replay clear mark detection
  *
- * Tests the "walk backwards, play forwards" algorithm for reconstructing
- * agent history from the database.
+ * Tests the find_clear function that locates clear marks in agent history.
  */
 
 #include "../../../src/db/agent.h"
@@ -140,109 +139,88 @@ static void insert_message(const char *agent_uuid, const char *kind,
     ck_assert(is_ok(&res));
 }
 
-// ========== Full Replay Tests ==========
+// ========== find_clear Tests ==========
 
-// Test: full replay produces correct chronological order
-START_TEST(test_replay_chronological_order)
+// Test: find_clear returns 0 when no clear exists
+START_TEST(test_find_clear_no_clear)
 {
     SKIP_IF_NO_DB();
 
-    // Insert root agent with messages
-    insert_agent("replay-root", NULL, 1000, 0);
-    insert_message("replay-root", "user", "Root-1");
-    insert_message("replay-root", "assistant", "Root-2");
+    // Insert agent
+    insert_agent("agent-no-clear", NULL, time(NULL), 0);
 
-    int64_t fork_id = 0;
-    res_t res = ik_db_agent_get_last_message_id(db, "replay-root", &fork_id);
+    // Insert some messages but no clear
+    insert_message("agent-no-clear", "user", "Hello");
+    insert_message("agent-no-clear", "assistant", "Hi");
+
+    // Find clear - should return 0
+    int64_t clear_id = -1;
+    res_t res = ik_agent_find_clear(db, test_ctx, "agent-no-clear", 0, &clear_id);
     ck_assert(is_ok(&res));
-
-    // Insert child
-    insert_agent("replay-child", "replay-root", 2000, fork_id);
-    insert_message("replay-child", "user", "Child-1");
-    insert_message("replay-child", "assistant", "Child-2");
-
-    // Replay child's history
-    ik_replay_context_t *ctx = NULL;
-    res = ik_agent_replay_history(db, test_ctx, "replay-child", &ctx);
-    ck_assert(is_ok(&res));
-    ck_assert(ctx != NULL);
-
-    // Should have 4 messages in chronological order
-    ck_assert_int_eq((int)ctx->count, 4);
-    ck_assert_str_eq(ctx->messages[0]->content, "Root-1");
-    ck_assert_str_eq(ctx->messages[1]->content, "Root-2");
-    ck_assert_str_eq(ctx->messages[2]->content, "Child-1");
-    ck_assert_str_eq(ctx->messages[3]->content, "Child-2");
+    ck_assert_int_eq(clear_id, 0);
 }
 END_TEST
 
-// Test: replay handles agent with no history
-START_TEST(test_replay_empty_history)
+// Test: find_clear returns correct message ID
+START_TEST(test_find_clear_returns_id)
 {
     SKIP_IF_NO_DB();
 
-    // Insert agent with no messages
-    insert_agent("empty-agent", NULL, time(NULL), 0);
+    // Insert agent
+    insert_agent("agent-with-clear", NULL, time(NULL), 0);
 
-    // Replay should succeed with empty context
-    ik_replay_context_t *ctx = NULL;
-    res_t res = ik_agent_replay_history(db, test_ctx, "empty-agent", &ctx);
+    // Insert messages with a clear
+    insert_message("agent-with-clear", "user", "Before clear");
+    insert_message("agent-with-clear", "clear", NULL);
+    insert_message("agent-with-clear", "user", "After clear");
+
+    // Find clear - should return the clear's ID
+    int64_t clear_id = 0;
+    res_t res = ik_agent_find_clear(db, test_ctx, "agent-with-clear", 0, &clear_id);
     ck_assert(is_ok(&res));
-    ck_assert(ctx != NULL);
-    ck_assert_int_eq((int)ctx->count, 0);
+    ck_assert(clear_id > 0);
 }
 END_TEST
 
-// Test: replay handles deep ancestry (4+ levels)
-START_TEST(test_replay_deep_ancestry)
+// Test: find_clear respects max_id limit
+START_TEST(test_find_clear_respects_max_id)
 {
     SKIP_IF_NO_DB();
 
-    // Build 4-level hierarchy: great-grandparent -> grandparent -> parent -> child
-    insert_agent("ggp", NULL, 1000, 0);
-    insert_message("ggp", "user", "GGP");
+    // Insert agent
+    insert_agent("agent-clear-limit", NULL, time(NULL), 0);
 
-    int64_t fork1 = 0;
-    res_t res = ik_db_agent_get_last_message_id(db, "ggp", &fork1);
-    ck_assert(is_ok(&res));
+    // Insert messages: user, clear, user, clear, user
+    insert_message("agent-clear-limit", "user", "First");
+    insert_message("agent-clear-limit", "clear", NULL);  // This is the earlier clear
+    insert_message("agent-clear-limit", "user", "Second");
+    insert_message("agent-clear-limit", "clear", NULL);  // This is the later clear
+    insert_message("agent-clear-limit", "user", "Third");
 
-    insert_agent("gp-deep", "ggp", 2000, fork1);
-    insert_message("gp-deep", "user", "GP");
+    // Find clear with no limit - should return later clear
+    int64_t clear_id_all = 0;
+    res_t res1 = ik_agent_find_clear(db, test_ctx, "agent-clear-limit", 0, &clear_id_all);
+    ck_assert(is_ok(&res1));
+    ck_assert(clear_id_all > 0);
 
-    int64_t fork2 = 0;
-    res = ik_db_agent_get_last_message_id(db, "gp-deep", &fork2);
-    ck_assert(is_ok(&res));
+    // Find clear with max_id = earlier clear id + 1
+    // First get the earlier clear id by querying with a limit between them
+    int64_t earlier_clear_id = 0;
+    res_t res2 = ik_agent_find_clear(db, test_ctx, "agent-clear-limit", clear_id_all - 1, &earlier_clear_id);
+    ck_assert(is_ok(&res2));
 
-    insert_agent("p-deep", "gp-deep", 3000, fork2);
-    insert_message("p-deep", "user", "P");
-
-    int64_t fork3 = 0;
-    res = ik_db_agent_get_last_message_id(db, "p-deep", &fork3);
-    ck_assert(is_ok(&res));
-
-    insert_agent("c-deep", "p-deep", 4000, fork3);
-    insert_message("c-deep", "user", "C");
-
-    // Replay child's history
-    ik_replay_context_t *ctx = NULL;
-    res = ik_agent_replay_history(db, test_ctx, "c-deep", &ctx);
-    ck_assert(is_ok(&res));
-    ck_assert(ctx != NULL);
-
-    // Should have 4 messages from all 4 levels
-    ck_assert_int_eq((int)ctx->count, 4);
-    ck_assert_str_eq(ctx->messages[0]->content, "GGP");
-    ck_assert_str_eq(ctx->messages[1]->content, "GP");
-    ck_assert_str_eq(ctx->messages[2]->content, "P");
-    ck_assert_str_eq(ctx->messages[3]->content, "C");
+    // If earlier clear exists, it should be less than the later clear
+    if (earlier_clear_id > 0) {
+        ck_assert(earlier_clear_id < clear_id_all);
+    }
 }
 END_TEST
 
 // ========== Suite Configuration ==========
 
-static Suite *agent_replay_suite(void)
+static Suite *agent_replay_clear_suite(void)
 {
-    Suite *s = suite_create("Agent Replay");
+    Suite *s = suite_create("Agent Replay Clear");
 
     TCase *tc_core = tcase_create("Core");
 
@@ -252,10 +230,10 @@ static Suite *agent_replay_suite(void)
     // Use checked fixture for per-test setup/teardown
     tcase_add_checked_fixture(tc_core, test_setup, test_teardown);
 
-    // Full replay tests
-    tcase_add_test(tc_core, test_replay_chronological_order);
-    tcase_add_test(tc_core, test_replay_empty_history);
-    tcase_add_test(tc_core, test_replay_deep_ancestry);
+    // find_clear tests
+    tcase_add_test(tc_core, test_find_clear_no_clear);
+    tcase_add_test(tc_core, test_find_clear_returns_id);
+    tcase_add_test(tc_core, test_find_clear_respects_max_id);
 
     suite_add_tcase(s, tc_core);
     return s;
@@ -263,7 +241,7 @@ static Suite *agent_replay_suite(void)
 
 int main(void)
 {
-    Suite *s = agent_replay_suite();
+    Suite *s = agent_replay_clear_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);

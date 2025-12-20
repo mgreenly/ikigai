@@ -1,16 +1,17 @@
 /**
- * @file agent_replay_test.c
- * @brief Tests for agent startup replay functionality
+ * @file agent_replay_query_test.c
+ * @brief Tests for agent replay message querying
  *
- * Tests the "walk backwards, play forwards" algorithm for reconstructing
- * agent history from the database.
+ * Tests the query_range function that retrieves messages for a given range.
  */
 
 #include "../../../src/db/agent.h"
 #include "../../../src/db/agent_replay.h"
 #include "../../../src/db/message.h"
+#include "../../../src/db/replay.h"
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
+#include "../../../src/msg.h"
 #include "../../test_utils.h"
 #include <check.h>
 #include <string.h>
@@ -140,109 +141,117 @@ static void insert_message(const char *agent_uuid, const char *kind,
     ck_assert(is_ok(&res));
 }
 
-// ========== Full Replay Tests ==========
+// ========== query_range Tests ==========
 
-// Test: full replay produces correct chronological order
-START_TEST(test_replay_chronological_order)
+// Test: query_range returns correct message subset
+START_TEST(test_query_range_subset)
 {
     SKIP_IF_NO_DB();
 
-    // Insert root agent with messages
-    insert_agent("replay-root", NULL, 1000, 0);
-    insert_message("replay-root", "user", "Root-1");
-    insert_message("replay-root", "assistant", "Root-2");
+    // Insert agent with multiple messages
+    insert_agent("query-test-agent", NULL, time(NULL), 0);
+    insert_message("query-test-agent", "user", "Msg 1");
+    insert_message("query-test-agent", "assistant", "Msg 2");
+    insert_message("query-test-agent", "user", "Msg 3");
+    insert_message("query-test-agent", "assistant", "Msg 4");
 
-    int64_t fork_id = 0;
-    res_t res = ik_db_agent_get_last_message_id(db, "replay-root", &fork_id);
+    // Get message IDs
+    int64_t last_id = 0;
+    res_t res = ik_db_agent_get_last_message_id(db, "query-test-agent", &last_id);
     ck_assert(is_ok(&res));
 
-    // Insert child
-    insert_agent("replay-child", "replay-root", 2000, fork_id);
-    insert_message("replay-child", "user", "Child-1");
-    insert_message("replay-child", "assistant", "Child-2");
+    // Query all messages (start_id=0, end_id=0)
+    ik_replay_range_t range = {
+        .agent_uuid = talloc_strdup(test_ctx, "query-test-agent"),
+        .start_id = 0,
+        .end_id = 0
+    };
 
-    // Replay child's history
-    ik_replay_context_t *ctx = NULL;
-    res = ik_agent_replay_history(db, test_ctx, "replay-child", &ctx);
+    ik_msg_t **messages = NULL;
+    size_t msg_count = 0;
+    res = ik_agent_query_range(db, test_ctx, &range, &messages, &msg_count);
     ck_assert(is_ok(&res));
-    ck_assert(ctx != NULL);
-
-    // Should have 4 messages in chronological order
-    ck_assert_int_eq((int)ctx->count, 4);
-    ck_assert_str_eq(ctx->messages[0]->content, "Root-1");
-    ck_assert_str_eq(ctx->messages[1]->content, "Root-2");
-    ck_assert_str_eq(ctx->messages[2]->content, "Child-1");
-    ck_assert_str_eq(ctx->messages[3]->content, "Child-2");
+    ck_assert_int_eq((int)msg_count, 4);
 }
 END_TEST
 
-// Test: replay handles agent with no history
-START_TEST(test_replay_empty_history)
+// Test: query_range with start_id=0 returns from beginning
+START_TEST(test_query_range_from_beginning)
 {
     SKIP_IF_NO_DB();
 
-    // Insert agent with no messages
-    insert_agent("empty-agent", NULL, time(NULL), 0);
+    // Insert agent
+    insert_agent("query-begin-agent", NULL, time(NULL), 0);
+    insert_message("query-begin-agent", "user", "First");
+    insert_message("query-begin-agent", "assistant", "Second");
 
-    // Replay should succeed with empty context
-    ik_replay_context_t *ctx = NULL;
-    res_t res = ik_agent_replay_history(db, test_ctx, "empty-agent", &ctx);
+    // Query from beginning (start_id=0)
+    ik_replay_range_t range = {
+        .agent_uuid = talloc_strdup(test_ctx, "query-begin-agent"),
+        .start_id = 0,
+        .end_id = 0
+    };
+
+    ik_msg_t **messages = NULL;
+    size_t msg_count = 0;
+    res_t res = ik_agent_query_range(db, test_ctx, &range, &messages, &msg_count);
     ck_assert(is_ok(&res));
-    ck_assert(ctx != NULL);
-    ck_assert_int_eq((int)ctx->count, 0);
+    ck_assert_int_eq((int)msg_count, 2);
+
+    // Verify first message
+    ck_assert_str_eq(messages[0]->content, "First");
 }
 END_TEST
 
-// Test: replay handles deep ancestry (4+ levels)
-START_TEST(test_replay_deep_ancestry)
+// Test: query_range with end_id=0 returns to end
+START_TEST(test_query_range_to_end)
 {
     SKIP_IF_NO_DB();
 
-    // Build 4-level hierarchy: great-grandparent -> grandparent -> parent -> child
-    insert_agent("ggp", NULL, 1000, 0);
-    insert_message("ggp", "user", "GGP");
+    // Insert agent
+    insert_agent("query-end-agent", NULL, time(NULL), 0);
+    insert_message("query-end-agent", "user", "One");
+    insert_message("query-end-agent", "assistant", "Two");
+    insert_message("query-end-agent", "user", "Three");
 
-    int64_t fork1 = 0;
-    res_t res = ik_db_agent_get_last_message_id(db, "ggp", &fork1);
+    // Get first message ID
+    ik_replay_range_t range_all = {
+        .agent_uuid = talloc_strdup(test_ctx, "query-end-agent"),
+        .start_id = 0,
+        .end_id = 0
+    };
+
+    ik_msg_t **all_msgs = NULL;
+    size_t all_count = 0;
+    res_t res = ik_agent_query_range(db, test_ctx, &range_all, &all_msgs, &all_count);
     ck_assert(is_ok(&res));
+    ck_assert(all_count >= 3);
 
-    insert_agent("gp-deep", "ggp", 2000, fork1);
-    insert_message("gp-deep", "user", "GP");
+    // Query starting after first message with end_id=0 (to end)
+    int64_t first_id = all_msgs[0]->id;
+    ik_replay_range_t range = {
+        .agent_uuid = talloc_strdup(test_ctx, "query-end-agent"),
+        .start_id = first_id,
+        .end_id = 0
+    };
 
-    int64_t fork2 = 0;
-    res = ik_db_agent_get_last_message_id(db, "gp-deep", &fork2);
+    ik_msg_t **messages = NULL;
+    size_t msg_count = 0;
+    res = ik_agent_query_range(db, test_ctx, &range, &messages, &msg_count);
     ck_assert(is_ok(&res));
+    ck_assert_int_eq((int)msg_count, 2);  // Two and Three
 
-    insert_agent("p-deep", "gp-deep", 3000, fork2);
-    insert_message("p-deep", "user", "P");
-
-    int64_t fork3 = 0;
-    res = ik_db_agent_get_last_message_id(db, "p-deep", &fork3);
-    ck_assert(is_ok(&res));
-
-    insert_agent("c-deep", "p-deep", 4000, fork3);
-    insert_message("c-deep", "user", "C");
-
-    // Replay child's history
-    ik_replay_context_t *ctx = NULL;
-    res = ik_agent_replay_history(db, test_ctx, "c-deep", &ctx);
-    ck_assert(is_ok(&res));
-    ck_assert(ctx != NULL);
-
-    // Should have 4 messages from all 4 levels
-    ck_assert_int_eq((int)ctx->count, 4);
-    ck_assert_str_eq(ctx->messages[0]->content, "GGP");
-    ck_assert_str_eq(ctx->messages[1]->content, "GP");
-    ck_assert_str_eq(ctx->messages[2]->content, "P");
-    ck_assert_str_eq(ctx->messages[3]->content, "C");
+    // Verify messages
+    ck_assert_str_eq(messages[0]->content, "Two");
+    ck_assert_str_eq(messages[1]->content, "Three");
 }
 END_TEST
 
 // ========== Suite Configuration ==========
 
-static Suite *agent_replay_suite(void)
+static Suite *agent_replay_query_suite(void)
 {
-    Suite *s = suite_create("Agent Replay");
+    Suite *s = suite_create("Agent Replay Query");
 
     TCase *tc_core = tcase_create("Core");
 
@@ -252,10 +261,10 @@ static Suite *agent_replay_suite(void)
     // Use checked fixture for per-test setup/teardown
     tcase_add_checked_fixture(tc_core, test_setup, test_teardown);
 
-    // Full replay tests
-    tcase_add_test(tc_core, test_replay_chronological_order);
-    tcase_add_test(tc_core, test_replay_empty_history);
-    tcase_add_test(tc_core, test_replay_deep_ancestry);
+    // query_range tests
+    tcase_add_test(tc_core, test_query_range_subset);
+    tcase_add_test(tc_core, test_query_range_from_beginning);
+    tcase_add_test(tc_core, test_query_range_to_end);
 
     suite_add_tcase(s, tc_core);
     return s;
@@ -263,7 +272,7 @@ static Suite *agent_replay_suite(void)
 
 int main(void)
 {
-    Suite *s = agent_replay_suite();
+    Suite *s = agent_replay_query_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);
