@@ -332,11 +332,17 @@ START_TEST(test_completion_help_no_args)
 
 END_TEST
 
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 static Suite *completion_edge_cases_suite(void)
 {
     Suite *s = suite_create("Completion Edge Cases");
 
     TCase *tc = tcase_create("Edge Cases");
+    tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_set_timeout(tc, 30);
     tcase_add_test(tc, test_completion_space_commits);
     tcase_add_test(tc, test_completion_tab_wraparound);
