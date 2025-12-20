@@ -86,11 +86,17 @@ START_TEST(test_completion_partial_arg)
 
 END_TEST
 
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 static Suite *completion_args_suite(void)
 {
     Suite *s = suite_create("Completion Arguments");
 
     TCase *tc = tcase_create("Core");
+    tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_set_timeout(tc, 30);
     tcase_add_test(tc, test_completion_debug_args);
     tcase_add_test(tc, test_completion_partial_arg);
