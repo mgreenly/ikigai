@@ -5,6 +5,7 @@
 
 #include "../error.h"
 #include "../panic.h"
+#include "../tmp_ctx.h"
 #include "../uuid.h"
 #include "../wrapper.h"
 
@@ -24,8 +25,7 @@ res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
     assert(agent->uuid != NULL);   // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query result
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Insert agent into registry with status='running'
     const char *query =
@@ -67,8 +67,7 @@ res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
     assert(uuid != NULL);    // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query result
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Update agent status to 'dead' and set ended_at timestamp
     // Only update if status is 'running' to make it idempotent
@@ -109,8 +108,7 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     assert(out != NULL);     // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Query for agent by UUID
     const char *query =
@@ -159,8 +157,7 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     assert(count != NULL);   // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Query for all running agents
     const char *query =
@@ -219,8 +216,7 @@ res_t ik_db_agent_get_children(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     assert(count != NULL);       // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Query for children of parent_uuid
     const char *query =
@@ -280,8 +276,7 @@ res_t ik_db_agent_get_parent(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     assert(out != NULL);     // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Query for parent via JOIN
     const char *query =
@@ -333,8 +328,7 @@ res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uui
     assert(out_message_id != NULL);  // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query result
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Query for maximum message ID for this agent
     const char *query = "SELECT COALESCE(MAX(id), 0) FROM messages WHERE agent_uuid = $1";
