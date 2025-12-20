@@ -20,6 +20,12 @@
 // Forward declaration for suite function
 static Suite *repl_resize_suite(void);
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 // Mock state for terminal operations
 static int mock_screen_rows = 24;
 static int mock_screen_cols = 80;
@@ -261,6 +267,7 @@ static Suite *repl_resize_suite(void)
 
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_resize_updates_terminal_dimensions);
     tcase_add_test(tc_core, test_resize_invalidates_scrollback_layout);
     tcase_add_test(tc_core, test_resize_handles_ioctl_failure);
