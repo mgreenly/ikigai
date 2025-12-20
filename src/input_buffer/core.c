@@ -14,10 +14,10 @@
 ik_input_buffer_t *ik_input_buffer_create(void *parent)
 {
     ik_input_buffer_t *input_buffer = talloc_zero_(parent, sizeof(ik_input_buffer_t));
-    if (input_buffer == NULL)PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (input_buffer == NULL)PANIC("OOM");  // LCOV_EXCL_BR_LINE
 
     res_t res = ik_byte_array_create(input_buffer, 64);
-    if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
+    if (is_err(&res))PANIC("alloc fail");  // LCOV_EXCL_BR_LINE
     input_buffer->text = res.ok;
 
     input_buffer->cursor = ik_input_buffer_cursor_create(input_buffer);
@@ -26,7 +26,7 @@ ik_input_buffer_t *ik_input_buffer_create(void *parent)
     input_buffer->target_column = 0;
     input_buffer->physical_lines = 0;
     input_buffer->cached_width = 0;
-    input_buffer->layout_dirty = 1;  /* Layout needs initial calculation */
+    input_buffer->layout_dirty = 1;
     return input_buffer;
 }
 
@@ -41,7 +41,7 @@ void ik_input_buffer_clear(ik_input_buffer_t *input_buffer)
     ik_byte_array_clear(input_buffer->text);
     input_buffer->cursor_byte_offset = 0;
     input_buffer->target_column = 0;
-    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
+    ik_input_buffer_invalidate_layout(input_buffer);
 
     /* Reset cursor to position 0 */
     input_buffer->cursor->byte_offset = 0;
@@ -67,8 +67,6 @@ res_t ik_input_buffer_set_text(ik_input_buffer_t *input_buffer, const char *text
     input_buffer->target_column = 0;
     input_buffer->cursor->byte_offset = 0;
     input_buffer->cursor->grapheme_offset = 0;
-
-    /* Invalidate layout cache */
     ik_input_buffer_invalidate_layout(input_buffer);
 
     return OK(NULL);
@@ -125,7 +123,7 @@ res_t ik_input_buffer_insert_codepoint(ik_input_buffer_t *input_buffer, uint32_t
     /* Insert bytes at cursor position */
     for (size_t i = 0; i < num_bytes; i++) {
         res_t res = ik_byte_array_insert(input_buffer->text, input_buffer->cursor_byte_offset + i, utf8_bytes[i]);
-        if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
+        if (is_err(&res))PANIC("alloc fail");  // LCOV_EXCL_BR_LINE
     }
 
     /* Advance cursor by number of bytes inserted */
@@ -133,7 +131,7 @@ res_t ik_input_buffer_insert_codepoint(ik_input_buffer_t *input_buffer, uint32_t
 
     /* Reset target column on text modification */
     input_buffer->target_column = 0;
-    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
+    ik_input_buffer_invalidate_layout(input_buffer);
 
     /* Update cursor position */
     size_t text_len;
@@ -149,14 +147,14 @@ res_t ik_input_buffer_insert_newline(ik_input_buffer_t *input_buffer)
 
     /* Insert newline byte at cursor position */
     res_t res = ik_byte_array_insert(input_buffer->text, input_buffer->cursor_byte_offset, '\n');
-    if (is_err(&res))PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
+    if (is_err(&res))PANIC("alloc fail");  // LCOV_EXCL_BR_LINE
 
     /* Advance cursor by 1 byte */
     input_buffer->cursor_byte_offset += 1;
 
     /* Reset target column on text modification */
     input_buffer->target_column = 0;
-    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
+    ik_input_buffer_invalidate_layout(input_buffer);
 
     /* Update cursor position */
     size_t text_len;
@@ -213,7 +211,7 @@ res_t ik_input_buffer_backspace(ik_input_buffer_t *input_buffer)
 
     /* Reset target column on text modification */
     input_buffer->target_column = 0;
-    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
+    ik_input_buffer_invalidate_layout(input_buffer);
 
     /* Update cursor position */
     size_t text_len;
@@ -286,7 +284,7 @@ res_t ik_input_buffer_delete(ik_input_buffer_t *input_buffer)
 
     /* Reset target column on text modification */
     input_buffer->target_column = 0;
-    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
+    ik_input_buffer_invalidate_layout(input_buffer);
 
     /* Update cursor position */
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
@@ -475,7 +473,7 @@ delete_range:
 
     /* Reset target column on text modification */
     input_buffer->target_column = 0;
-    ik_input_buffer_invalidate_layout(input_buffer);  /* Invalidate layout cache */
+    ik_input_buffer_invalidate_layout(input_buffer);
 
     return OK(NULL);
 }
