@@ -57,6 +57,11 @@ res_t ik_db_message_insert_(void *db,
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
 
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
@@ -152,6 +157,7 @@ static Suite *handle_request_success_db_error_suite(void)
     Suite *s = suite_create("handle_request_success DB Error");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_db_error_no_debug_pipe);
     tcase_add_test(tc_core, test_db_error_with_logger);
