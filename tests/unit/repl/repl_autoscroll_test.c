@@ -79,6 +79,12 @@ ssize_t posix_read_(int fd, void *b, size_t c)
     (void)fd; (void)b; (void)c; return 0;
 }
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 // Helper: Create REPL with scrollback and set viewport offset
 static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offset)
 {
@@ -236,6 +242,7 @@ static Suite *repl_autoscroll_suite(void)
 {
     Suite *s = suite_create("repl_autoscroll");
     TCase *tc = tcase_create("autoscroll");
+    tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_set_timeout(tc, 30);
     tcase_add_test(tc, test_autoscroll_on_char_insert);
     tcase_add_test(tc, test_autoscroll_on_insert_newline);
