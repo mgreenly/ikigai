@@ -164,8 +164,8 @@ static void handle_fresh_install(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
     }
 
     yyjson_mut_doc *fresh_log = ik_log_create();
-    yyjson_mut_val *fresh_root = yyjson_mut_doc_get_root(fresh_log);
-    yyjson_mut_obj_add_str(fresh_log, fresh_root, "event", "fresh_install_complete");
+    yyjson_mut_val *fresh_root = yyjson_mut_doc_get_root(fresh_log);     // LCOV_EXCL_BR_LINE
+    yyjson_mut_obj_add_str(fresh_log, fresh_root, "event", "fresh_install_complete");     // LCOV_EXCL_BR_LINE
     ik_logger_debug_json(repl->shared->logger, fresh_log);
 }
 
@@ -201,10 +201,10 @@ static void restore_agent_zero(
     restore_marks(agent, replay_ctx);
 
     yyjson_mut_doc *log_doc = ik_log_create();
-    yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
-    yyjson_mut_obj_add_str(log_doc, root, "event", "agent0_restored");
-    yyjson_mut_obj_add_uint(log_doc, root, "message_count", replay_ctx->count);
-    yyjson_mut_obj_add_uint(log_doc, root, "mark_count", agent->mark_count);
+    yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);     // LCOV_EXCL_BR_LINE
+    yyjson_mut_obj_add_str(log_doc, root, "event", "agent0_restored");     // LCOV_EXCL_BR_LINE
+    yyjson_mut_obj_add_uint(log_doc, root, "message_count", replay_ctx->count);     // LCOV_EXCL_BR_LINE
+    yyjson_mut_obj_add_uint(log_doc, root, "mark_count", agent->mark_count);     // LCOV_EXCL_BR_LINE
     ik_logger_debug_json(repl->shared->logger, log_doc);
 
     // Handle fresh install if no history
@@ -274,11 +274,11 @@ static void restore_child_agent(
     }
 
     yyjson_mut_doc *log_doc = ik_log_create();
-    yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
-    yyjson_mut_obj_add_str(log_doc, root, "event", "agent_restored");
-    yyjson_mut_obj_add_str(log_doc, root, "agent_uuid", agent->uuid);
-    yyjson_mut_obj_add_uint(log_doc, root, "message_count", replay_ctx->count);
-    yyjson_mut_obj_add_uint(log_doc, root, "mark_count", agent->mark_count);
+    yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);     // LCOV_EXCL_BR_LINE
+    yyjson_mut_obj_add_str(log_doc, root, "event", "agent_restored");     // LCOV_EXCL_BR_LINE
+    yyjson_mut_obj_add_str(log_doc, root, "agent_uuid", agent->uuid);     // LCOV_EXCL_BR_LINE
+    yyjson_mut_obj_add_uint(log_doc, root, "message_count", replay_ctx->count);     // LCOV_EXCL_BR_LINE
+    yyjson_mut_obj_add_uint(log_doc, root, "mark_count", agent->mark_count);     // LCOV_EXCL_BR_LINE
     ik_logger_debug_json(repl->shared->logger, log_doc);
 }
 

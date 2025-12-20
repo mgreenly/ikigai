@@ -186,6 +186,15 @@ START_TEST(test_send_only_whitespace)
 }
 END_TEST
 
+// Test: leading whitespace before UUID (coverage for line 49)
+START_TEST(test_send_leading_whitespace)
+{
+    res_t res = ik_cmd_send(test_ctx, repl, "  some-uuid");
+    ck_assert(is_ok(&res));
+    ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
+}
+END_TEST
+
 // Test: missing message part shows error
 START_TEST(test_send_missing_message)
 {
@@ -252,6 +261,7 @@ static Suite *send_errors_suite(void)
     tcase_add_test(tc, test_send_missing_args);
     tcase_add_test(tc, test_send_empty_args);
     tcase_add_test(tc, test_send_only_whitespace);
+    tcase_add_test(tc, test_send_leading_whitespace);
     tcase_add_test(tc, test_send_missing_message);
     tcase_add_test(tc, test_send_uuid_too_long);
     tcase_add_test(tc, test_send_missing_opening_quote);
