@@ -87,7 +87,9 @@ CLIENT_STATIC_LIBS ?=
 COMPLEXITY_THRESHOLD = 15
 NESTING_DEPTH_THRESHOLD = 5
 LINE_LENGTH = 120
-MAX_FILE_BYTES = 24000
+# CRITICAL: 16KB limit for all non-vendor files - DO NOT MODIFY THIS VALUE
+# Files exceeding 16KB must be refactored into smaller modules
+MAX_FILE_BYTES = 16000
 
 # Coverage settings
 # LCOV 2.0-1 supports exclusion markers (LCOV_EXCL_BR_LINE, LCOV_EXCL_START/STOP)

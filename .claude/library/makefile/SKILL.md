@@ -7,13 +7,14 @@ description: Makefile skill for the ikigai project
 
 ## Description
 
-Build system for ikigai REPL client with comprehensive testing, quality assurance, and distribution support.
+Build system for ikigai multi-model coding agent with comprehensive testing, quality assurance, and distribution support.
 
 ## Build
 
 - `make all` - Build the ikigai client binary with default debug configuration.
 - `make release` - Clean and build the client in release mode with optimizations.
-- `make clean` - Remove all build artifacts, coverage data, and generated files.
+- `make clean` - Remove all build artifacts, coverage data, generated files, and distribution packages.
+- `make build-tests` - Build all test binaries without running them.
 
 ## Installation
 
@@ -62,6 +63,7 @@ Build system for ikigai REPL client with comprehensive testing, quality assuranc
 ## Utility
 
 - `make help` - Display detailed help for all available targets and build modes.
+- `make clean-test-runs` - Remove test run sentinel files used for parallel execution.
 
 ## Build Modes
 
@@ -88,23 +90,34 @@ make check-dynamic                   # Run all sanitizers and Valgrind
 
 # Release workflow
 make release                         # Build optimized release binary
-make ci                             # Run full CI pipeline
+make ci                              # Run full CI pipeline
 
 # Distribution workflow
-make dist                           # Create source tarball
-make distro-images                  # Build Docker images
-make distro-package                 # Build deb/rpm packages
+make dist                            # Create source tarball
+make distro-images                   # Build Docker images
+make distro-package                  # Build deb/rpm packages
 
 # Custom builds
-make all BUILD=release              # Build in release mode
-make check BUILD=sanitize           # Run tests with sanitizers
-make coverage COVERAGE_THRESHOLD=95 # Require 95% coverage
+make all BUILD=release               # Build in release mode
+make check BUILD=sanitize            # Run tests with sanitizers
+make coverage COVERAGE_THRESHOLD=95  # Require 95% coverage
 
 # Distribution testing
-make distro-check DISTROS="debian"  # Test only on Debian
+make distro-check DISTROS="debian"   # Test only on Debian
 make distro-package DISTROS="fedora ubuntu"  # Build packages for specific distros
 
 # Parallel execution
-make -j8 check                      # Run tests with 8 parallel jobs
-make check-dynamic PARALLEL=1       # Run sanitizers in parallel
+make -j8 check                       # Run tests with 8 parallel jobs
+make check-dynamic PARALLEL=1        # Run sanitizers in parallel
 ```
+
+## Important Notes
+
+- Never run parallel make with different targets - different BUILD modes use incompatible flags.
+- Always stay in project root - use relative paths instead of changing directories.
+- Default BUILD mode is debug; specify BUILD=release for optimized builds.
+- Coverage requires 100% line, function, and branch coverage by default.
+- Maximum file size is 24000 bytes for all source and documentation files.
+- Cyclomatic complexity threshold is 15, nesting depth threshold is 5.
+- Vendor files (yyjson, fzy) compile with relaxed warnings.
+- Test binaries support parallel execution using .run sentinel files.

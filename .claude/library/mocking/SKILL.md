@@ -111,6 +111,9 @@ void test_write_error_handling(void) {
 | `yyjson_obj_get_()` | `yyjson_obj_get()` |
 | `yyjson_get_sint_()` | `yyjson_get_sint()` |
 | `yyjson_get_str_()` | `yyjson_get_str()` |
+| `yyjson_mut_obj_add_str_()` | `yyjson_mut_obj_add_str()` |
+| `yyjson_mut_obj_add_int_()` | `yyjson_mut_obj_add_int()` |
+| `yyjson_mut_obj_add_uint_()` | `yyjson_mut_obj_add_uint()` |
 
 ### libcurl (Easy API)
 | Wrapper | Wraps |
@@ -159,9 +162,7 @@ void test_write_error_handling(void) {
 |---------|-------|
 | `ik_db_init_()` | `ik_db_init()` |
 | `ik_db_message_insert_()` | `ik_db_message_insert()` |
-| `ik_repl_restore_session_()` | `ik_repl_restore_session()` |
 | `ik_scrollback_append_line_()` | `ik_scrollback_append_line()` |
-| `ik_msg_from_db_()` | `ik_msg_from_db()` |
 | `ik_openai_conversation_add_msg_()` | `ik_openai_conversation_add_msg()` |
 
 ## Adding New Wrappers

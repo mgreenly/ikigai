@@ -57,6 +57,7 @@ typedef struct err {
 | `ERR_DB_CONNECT` | 5 | Database connection failures |
 | `ERR_DB_MIGRATE` | 6 | Database migration failures |
 | `ERR_OUT_OF_MEMORY` | 7 | Memory allocation failures |
+| `ERR_AGENT_NOT_FOUND` | 8 | Agent not found in array |
 
 ## Macros
 
