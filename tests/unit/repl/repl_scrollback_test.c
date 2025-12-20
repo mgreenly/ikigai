@@ -1,7 +1,4 @@
-/**
- * @file repl_scrollback_test.c
- * @brief Unit tests for REPL scrollback integration (Phase 4 Task 4.1)
- */
+// Unit tests for REPL scrollback integration
 
 #include <check.h>
 #include "../../../src/agent.h"
@@ -15,7 +12,6 @@
 #include "../../../src/logger.h"
 #include "../terminal/terminal_test_mocks.h"
 
-// Suite-level setup: Set log directory
 static void suite_setup(void)
 {
     ik_test_set_log_dir(__FILE__);
