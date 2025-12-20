@@ -263,6 +263,11 @@ int pthread_join_(pthread_t thread, void **retval)
     return pthread_join(thread, retval);
 }
 
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 static void reset_mocks(void)
 {
     mock_open_fail = 0;
@@ -445,6 +450,7 @@ static Suite *repl_suite(void)
 
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_repl_init);
     tcase_add_test(tc_core, test_repl_cleanup_null);
     tcase_add_test(tc_core, test_repl_cleanup_null_term);
