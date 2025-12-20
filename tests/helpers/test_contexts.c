@@ -1,3 +1,6 @@
+// NOTE: Calling test files must call ik_test_set_log_dir(__FILE__)
+// before using these helpers to ensure proper log isolation.
+
 #include "test_contexts.h"
 
 #include "logger.h"
