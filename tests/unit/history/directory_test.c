@@ -4,6 +4,7 @@
  */
 
 #include "../../../src/history.h"
+#include "../../../src/history_io.h"
 #include "../../../src/error.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"

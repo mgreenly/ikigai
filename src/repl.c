@@ -2,6 +2,7 @@
 #include "agent.h"
 
 #include "event_render.h"
+#include "history_io.h"
 #include "input_buffer/core.h"
 #include "layer_wrappers.h"
 #include "logger.h"

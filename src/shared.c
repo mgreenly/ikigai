@@ -3,6 +3,7 @@
 #include "db/connection.h"
 #include "debug_pipe.h"
 #include "history.h"
+#include "history_io.h"
 #include "logger.h"
 #include "panic.h"
 #include "render.h"
