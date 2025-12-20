@@ -4,13 +4,14 @@ This documentation is primarily for AI agents and secondarily for humans.
 
 ## Project Overview
 
-**Ikigai** is an experiment to build a Linux focused, terminal based coding agent with hierarchical sub-agents, RAG accessible permanent memory, progressive tool discovery and a dynamic sliding context window.
+**Ikigai** is an agent platform - an operating environment where you build, deploy, and coordinate living agents. Design agents interactively through the terminal (ikigai), deploy them to the runtime (iki-genba), and let them coordinate through process primitives (fork, mailbox, signals) and structured memory.
 
-A desktop terminal application that combines:
-- Direct LLM API integration (OpenAI, Anthropic, Google, X.AI)
-- Local tool execution (file operations, shell commands, code analysis)
-- PostgreSQL-backed conversation history with full-text search
-- Terminal UI with direct rendering and scrollback
+An agent platform combining:
+- **ikigai** (terminal): Interactive agent builder with direct LLM integration
+- **iki-genba** (runtime): Autonomous agent deployment environment
+- **Structured Memory**: 4-layer context system (pinned blocks, auto-summary, sliding window, archival)
+- **Agent Process Model**: Fork, signals, mailbox communication, process tree
+- **Unified Interface**: `ikigai://` URIs, same tools for files and memory blocks
 
 ## Quick Start
 
