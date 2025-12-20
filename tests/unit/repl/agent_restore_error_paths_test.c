@@ -36,6 +36,7 @@ static int64_t session_id;
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
 {
+    ik_test_set_log_dir(__FILE__);
     const char *skip_live = getenv("SKIP_LIVE_DB_TESTS");
     if (skip_live && strcmp(skip_live, "1") == 0) {
         db_available = false;
