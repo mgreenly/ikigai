@@ -152,7 +152,7 @@ ssize_t posix_read_(int fd, void *buf, size_t count)
 }
 
 // Reset mock state before each test
-static void reset_mocks(void)
+__attribute__((unused)) static void reset_mocks(void)
 {
     mock_open_fail = 0;
     mock_tcgetattr_fail = 0;

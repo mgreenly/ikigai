@@ -1,5 +1,3 @@
-#include "agent.h"
-#include "../../../src/logger.h"
 /**
  * @file repl_scrollback_test.c
  * @brief Unit tests for REPL scrollback integration (Phase 4 Task 4.1)
@@ -9,87 +7,13 @@
 #include "../../../src/agent.h"
 #include <talloc.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <termios.h>
-#include <unistd.h>
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../test_utils.h"
 #include "../../../src/logger.h"
-
-// Forward declarations for wrapper functions
-int posix_open_(const char *pathname, int flags);
-int posix_ioctl_(int fd, unsigned long request, void *argp);
-int posix_close_(int fd);
-int posix_tcgetattr_(int fd, struct termios *termios_p);
-int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p);
-int posix_tcflush_(int fd, int queue_selector);
-ssize_t posix_write_(int fd, const void *buf, size_t count);
-ssize_t posix_read_(int fd, void *buf, size_t count);
-
-// Mock wrapper functions for terminal operations (required for ik_repl_init)
-int posix_open_(const char *pathname, int flags)
-{
-    (void)pathname;
-    (void)flags;
-    return 99;  // Dummy fd
-}
-
-int posix_ioctl_(int fd, unsigned long request, void *argp)
-{
-    (void)fd;
-    (void)request;
-    struct winsize *ws = (struct winsize *)argp;
-    ws->ws_row = 24;  // Standard terminal size
-    ws->ws_col = 80;
-    return 0;
-}
-
-int posix_close_(int fd)
-{
-    (void)fd;
-    return 0;
-}
-
-int posix_tcgetattr_(int fd, struct termios *termios_p)
-{
-    (void)fd;
-    (void)termios_p;
-    return 0;
-}
-
-int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p)
-{
-    (void)fd;
-    (void)optional_actions;
-    (void)termios_p;
-    return 0;
-}
-
-int posix_tcflush_(int fd, int queue_selector)
-{
-    (void)fd;
-    (void)queue_selector;
-    return 0;
-}
-
-ssize_t posix_write_(int fd, const void *buf, size_t count)
-{
-    (void)fd;
-    (void)buf;
-    return (ssize_t)count;
-}
-
-ssize_t posix_read_(int fd, void *buf, size_t count)
-{
-    (void)fd;
-    (void)buf;
-    (void)count;
-    return 0;
-}
+#include "../terminal/terminal_test_mocks.h"
 
 /* Test: REPL context can hold scrollback buffer */
 START_TEST(test_repl_context_with_scrollback) {
