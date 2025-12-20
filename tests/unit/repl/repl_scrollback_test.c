@@ -15,6 +15,12 @@
 #include "../../../src/logger.h"
 #include "../terminal/terminal_test_mocks.h"
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 /* Test: REPL context can hold scrollback buffer */
 START_TEST(test_repl_context_with_scrollback) {
     void *ctx = talloc_new(NULL);
@@ -454,12 +460,14 @@ static Suite *repl_scrollback_suite(void)
     Suite *s = suite_create("REPL Scrollback Integration");
 
     TCase *tc_init = tcase_create("Initialization");
+    tcase_add_unchecked_fixture(tc_init, suite_setup, NULL);
     tcase_set_timeout(tc_init, 30);
     tcase_add_test(tc_init, test_repl_context_with_scrollback);
     tcase_add_test(tc_init, test_repl_scrollback_terminal_width);
     suite_add_tcase(s, tc_init);
 
     TCase *tc_scroll = tcase_create("Scrolling");
+    tcase_add_unchecked_fixture(tc_scroll, suite_setup, NULL);
     tcase_set_timeout(tc_scroll, 30);
     tcase_add_test(tc_scroll, test_page_down_scrolling);
     tcase_add_test(tc_scroll, test_page_down_at_bottom);
@@ -470,6 +478,7 @@ static Suite *repl_scrollback_suite(void)
     suite_add_tcase(s, tc_scroll);
 
     TCase *tc_submit = tcase_create("Submit Line");
+    tcase_add_unchecked_fixture(tc_submit, suite_setup, NULL);
     tcase_set_timeout(tc_submit, 30);
     tcase_add_test(tc_submit, test_submit_line_to_scrollback);
     tcase_add_test(tc_submit, test_submit_line_auto_scroll);
