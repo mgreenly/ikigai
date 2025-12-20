@@ -128,6 +128,12 @@ int posix_stat_(const char *pathname, struct stat *statbuf)
     return stat(pathname, statbuf);
 }
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 static void reset_mocks(void)
 {
     mock_open_fail = 0;
@@ -357,6 +363,7 @@ static Suite *shared_suite(void)
     Suite *s = suite_create("Shared Context");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_shared_ctx_init_and_memory);
     tcase_add_test(tc_core, test_shared_ctx_config);
     tcase_add_test(tc_core, test_shared_ctx_terminal_and_render);
