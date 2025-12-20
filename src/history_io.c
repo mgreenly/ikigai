@@ -4,6 +4,7 @@
 #include "json_allocator.h"
 #include "logger.h"
 #include "panic.h"
+#include "tmp_ctx.h"
 #include "vendor/yyjson/yyjson.h"
 #include "wrapper.h"
 
@@ -243,8 +244,7 @@ res_t ik_history_save(const ik_history_t *hist)
 {
     assert(hist != NULL);  // LCOV_EXCL_BR_LINE
 
-    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp_ctx = tmp_ctx_create();
 
     res_t dir_res = ik_history_ensure_directory(tmp_ctx);
     if (dir_res.is_err) {
@@ -315,8 +315,7 @@ res_t ik_history_append_entry(const char *entry)
 {
     assert(entry != NULL);  // LCOV_EXCL_BR_LINE
 
-    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp_ctx = tmp_ctx_create();
 
     res_t dir_res = ik_history_ensure_directory(tmp_ctx);
     if (dir_res.is_err) {
