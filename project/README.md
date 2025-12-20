@@ -229,6 +229,19 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 
 **Rationale**: Currently token counts only appear after API response. Local estimation enables real-time feedback while typing and warnings before hitting context limits. See [project/tokens/](tokens/) for research.
 
+### Future: Tool Sets
+
+**Objective**: Named collections of tools for task-specific and model-optimized configurations
+
+**Features**:
+- Full tool index with all available tools registered
+- Named tool collections (sets) with include/exclude lists
+- Active set switching at runtime
+- Per-model defaults (match tools to model training data)
+- Per-task profiles (coding, research, file-heavy workflows)
+
+**Rationale**: Builds on Minimal Tool Architecture. Different models perform better with different tool presentations. Task context varies widely - a coding task needs different tools than research. Named sets allow tuning for model training alignment and controlling context usage.
+
 ### Future: User Experience
 
 **Objective**: Polish configuration, discoverability, and customization workflows
