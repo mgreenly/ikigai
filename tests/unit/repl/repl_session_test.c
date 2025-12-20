@@ -52,6 +52,18 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx);
 // Forward declaration for suite function
 static Suite *repl_session_suite(void);
 
+// Suite-level setup
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
+// Suite-level teardown
+static void suite_teardown(void)
+{
+    // No cleanup needed
+}
+
 // Mock ik_db_init_ - always succeeds in session tests
 res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
 {
@@ -391,6 +403,7 @@ static Suite *repl_session_suite(void)
 
     TCase *tc_session = tcase_create("Session Operations");
     tcase_set_timeout(tc_session, 30);
+    tcase_add_unchecked_fixture(tc_session, suite_setup, suite_teardown);
     tcase_add_test(tc_session, test_repl_init_session_get_active_failure);
     tcase_add_test(tc_session, test_repl_init_session_create_failure);
     tcase_add_test(tc_session, test_repl_init_restore_agents_failure);
