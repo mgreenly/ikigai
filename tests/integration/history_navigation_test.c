@@ -203,6 +203,11 @@ static void cleanup_test_dir(void)
     rmdir(".ikigai");
 }
 
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 START_TEST(test_history_respects_config_capacity) {
     setup_test_env();
     cleanup_test_dir();
@@ -301,6 +306,7 @@ static Suite *history_navigation_suite(void)
 
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_history_respects_config_capacity);
     tcase_add_test(tc_core, test_history_multiline_preserved);
     tcase_add_test(tc_core, test_history_submit_stops_browsing);
