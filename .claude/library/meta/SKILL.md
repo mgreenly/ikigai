@@ -13,17 +13,19 @@ Expert on the `.claude/` directory structure and RPI pipeline. Use this persona 
 
 ```
 scratch/
-├── README.md      # Release goals (researcher)
-├── spec/          # Technical details, API docs (researcher)
-├── plan.md        # High-level technical plan (architect)
+├── README.md      # Release goals (evolves over lifecycle)
+├── research/      # Technical details, API docs (researcher)
+│   └── README.md  # Overview of research contents
+├── plan/          # High-level technical plan (architect)
+│   └── README.md  # Overview of plan contents
 ├── tasks/         # Executable task files (architect → developer)
 │   └── order.json # Task execution order
 └── tmp/           # Temp files during execution
 ```
 
 **Stages:**
-1. **Research** - Researcher persona builds README.md (goals) and spec/ (API details)
-2. **Plan** - Architect persona develops plan.md from README goals
+1. **Research** - Researcher persona builds README.md (goals) and research/ (API details)
+2. **Plan** - Architect persona develops plan/ from README goals
 3. **Implement** - Architect breaks plan into tasks/, then orchestrate executes them
 
 **Execution loop:** `/orchestrate` → `/quality` → `/refactor` → `/quality`
@@ -59,7 +61,7 @@ JSON arrays listing skills to load together.
 
 **Current personas:**
 - `researcher` - Research phase (goals, specs)
-- `architect` - Plan phase (plan.md, task breakdown)
+- `architect` - Plan phase (plan/, task breakdown)
 - `developer` - Implementation (TDD, quality)
 - `orchestrator` - Task execution
 - `refactor` - Behavior-preserving refactoring

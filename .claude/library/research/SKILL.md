@@ -84,6 +84,25 @@ Be explicit about confidence levels:
 
 Mark assumptions in task files so developers know what to verify.
 
+## Output Location
+
+Research findings go in `scratch/research/`:
+
+```
+scratch/
+├── README.md           # Release goals (high-level)
+└── research/
+    ├── README.md       # Overview of research contents
+    ├── anthropic.md    # Per-topic technical specs
+    ├── openai.md
+    └── ...
+```
+
+- `scratch/research/README.md` - Table of contents with brief descriptions
+- Individual files per topic - detailed technical specifications with sources
+
+Update the README.md as you add research files to keep the overview current.
+
 ## Research to Task Translation
 
 1. **Gather** - Search and fetch until you understand the problem space

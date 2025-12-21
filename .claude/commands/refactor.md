@@ -8,7 +8,7 @@ Analyzes `src/`, identifies the SINGLE most impactful refactoring target, genera
 
 1. **Behavior-preserving only** - No test changes. `make check` must pass.
 2. **Sequential execution** - One task at a time.
-3. **Uses scratch/** - Plan in scratch/plan.md, tasks in scratch/tasks/, logs in scratch/details.log.
+3. **Uses scratch/** - Plan in scratch/plan/, tasks in scratch/tasks/, logs in scratch/details.log.
 
 ---
 
@@ -26,7 +26,7 @@ Run in order. If ANY fails, report and **STOP**:
 ## PHASE 1: SETUP
 
 ```bash
-mkdir -p scratch/tasks scratch/tmp
+mkdir -p scratch/plan scratch/tasks scratch/tmp
 echo "[$(date -Iseconds)] REFACTOR START: commit=$(git rev-parse HEAD)" > scratch/details.log
 .claude/library/task/init.ts
 ```
@@ -47,7 +47,7 @@ CONSTRAINTS:
 - No public API changes
 - Focus on: naming, style, memory patterns, code smells
 
-Select ONE target only. Write scratch/plan.md with:
+Select ONE target only. Write scratch/plan/README.md with:
 - **Target**: One-line description
 - **What**: Exactly what changes (files, patterns)
 - **How**: Transformation approach
@@ -65,7 +65,7 @@ Spawn ONE sub-agent (opus):
 ```
 Load skills: /load task-authoring, /load refactoring/techniques
 
-Read scratch/plan.md. Generate ONE TASK PER FILE in scratch/tasks/.
+Read scratch/plan/README.md. Generate ONE TASK PER FILE in scratch/tasks/.
 Create scratch/tasks/order.json with model=sonnet, thinking=none.
 
 Return {"ok": true} when complete.
