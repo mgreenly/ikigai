@@ -4,29 +4,27 @@
 
 Provider adapters map provider-specific HTTP errors to ikigai's unified error categories. Errors include both category (for programmatic handling) and provider details (for debugging).
 
-## Error Structure
+## Error Categories
 
-```c
-typedef enum {
-    ERR_AUTH,           // Invalid credentials
-    ERR_RATE_LIMIT,     // Rate limit exceeded
-    ERR_INVALID_ARG,    // Bad request / validation error
-    ERR_NOT_FOUND,      // Model not found
-    ERR_SERVER,         // Server error (500, 502, 503)
-    ERR_TIMEOUT,        // Request timeout
-    ERR_CONTENT_FILTER, // Content policy violation
-    ERR_NETWORK,        // Network/connection error
-    ERR_UNKNOWN         // Other/unmapped errors
-} ik_error_category_t;
+- **ERR_AUTH** - Invalid credentials
+- **ERR_RATE_LIMIT** - Rate limit exceeded
+- **ERR_INVALID_ARG** - Bad request / validation error
+- **ERR_NOT_FOUND** - Model not found
+- **ERR_SERVER** - Server error (500, 502, 503)
+- **ERR_TIMEOUT** - Request timeout
+- **ERR_CONTENT_FILTER** - Content policy violation
+- **ERR_NETWORK** - Network/connection error
+- **ERR_UNKNOWN** - Other/unmapped errors
 
-typedef struct {
-    ik_error_category_t category;
-    int http_status;             // HTTP status code (0 if not HTTP)
-    char *message;               // Human-readable message
-    char *provider_code;         // Provider's error type
-    int retry_after_ms;          // Retry delay (-1 if not applicable)
-} ik_error_t;
-```
+## Error Structure Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `category` | enum | Error category (see above) |
+| `http_status` | int | HTTP status code (0 if not HTTP) |
+| `message` | string | Human-readable message |
+| `provider_code` | string | Provider's error type |
+| `retry_after_ms` | int | Retry delay (-1 if not applicable) |
 
 ## Provider Error Mapping
 
@@ -53,41 +51,16 @@ typedef struct {
 }
 ```
 
-**Adapter implementation:**
-```c
-res_t ik_anthropic_handle_error(TALLOC_CTX *ctx, int status, const char *response)
-{
-    // Parse error JSON
-    yyjson_doc *doc = yyjson_read(response, strlen(response), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *error_obj = yyjson_obj_get(root, "error");
-    const char *type = yyjson_get_str(yyjson_obj_get(error_obj, "type"));
-    const char *message = yyjson_get_str(yyjson_obj_get(error_obj, "message"));
-
-    ik_error_category_t category = ERR_UNKNOWN;
-    int retry_after_ms = -1;
-
-    if (status == 401) {
-        category = ERR_AUTH;
-        message = talloc_asprintf(ctx,
-            "Invalid Anthropic API key. Get key at: https://console.anthropic.com/settings/keys");
-    }
-    else if (status == 429) {
-        category = ERR_RATE_LIMIT;
-        retry_after_ms = parse_retry_after_header(response_headers) * 1000;
-    }
-    else if (status == 400) {
-        category = ERR_INVALID_ARG;
-    }
-    else if (status >= 500) {
-        category = ERR_SERVER;
-    }
-
-    yyjson_doc_free(doc);
-
-    return ERR_DETAILED(ctx, category, status, type, retry_after_ms, "%s", message);
-}
-```
+**Adapter responsibilities:**
+- Parse error JSON response body
+- Extract provider error type and message
+- Map HTTP status to ikigai error category
+- Extract retry-after header for rate limits (in seconds)
+- Build user-friendly message with provider-specific help URLs
+- For auth errors: Include credential configuration instructions
+- For rate limits: Parse retry-after header and convert to milliseconds
+- For server errors: Mark as retryable
+- Return unified error structure with all fields populated
 
 ### OpenAI
 
@@ -113,44 +86,16 @@ res_t ik_anthropic_handle_error(TALLOC_CTX *ctx, int status, const char *respons
 }
 ```
 
-**Adapter implementation:**
-```c
-res_t ik_openai_handle_error(TALLOC_CTX *ctx, int status, const char *response)
-{
-    yyjson_doc *doc = yyjson_read(response, strlen(response), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *error_obj = yyjson_obj_get(root, "error");
-    const char *code = yyjson_get_str(yyjson_obj_get(error_obj, "code"));
-    const char *message = yyjson_get_str(yyjson_obj_get(error_obj, "message"));
-
-    ik_error_category_t category = ERR_UNKNOWN;
-    int retry_after_ms = -1;
-
-    if (status == 401) {
-        category = ERR_AUTH;
-        message = talloc_asprintf(ctx,
-            "Invalid OpenAI API key. Get key at: https://platform.openai.com/api-keys");
-    }
-    else if (status == 429) {
-        category = ERR_RATE_LIMIT;
-        // OpenAI uses x-ratelimit-reset-* headers
-        retry_after_ms = parse_openai_reset_header(response_headers);
-    }
-    else if (status == 400) {
-        category = ERR_INVALID_ARG;
-    }
-    else if (status == 404) {
-        category = ERR_NOT_FOUND;
-    }
-    else if (status >= 500) {
-        category = ERR_SERVER;
-    }
-
-    yyjson_doc_free(doc);
-
-    return ERR_DETAILED(ctx, category, status, code, retry_after_ms, "%s", message);
-}
-```
+**Adapter responsibilities:**
+- Parse error JSON response body
+- Extract provider error code and message
+- Map HTTP status to ikigai error category
+- Parse OpenAI rate limit reset headers (format: "6m0s")
+- Build user-friendly message with provider-specific help URLs
+- For auth errors: Include credential configuration instructions
+- For rate limits: Calculate retry delay from x-ratelimit-reset-* headers
+- For server errors: Mark as retryable
+- Return unified error structure with all fields populated
 
 ### Google
 
@@ -175,47 +120,17 @@ res_t ik_openai_handle_error(TALLOC_CTX *ctx, int status, const char *response)
 }
 ```
 
-**Adapter implementation:**
-```c
-res_t ik_google_handle_error(TALLOC_CTX *ctx, int status, const char *response)
-{
-    yyjson_doc *doc = yyjson_read(response, strlen(response), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *error_obj = yyjson_obj_get(root, "error");
-    const char *code_str = yyjson_get_str(yyjson_obj_get(error_obj, "status"));
-    const char *message = yyjson_get_str(yyjson_obj_get(error_obj, "message"));
-
-    ik_error_category_t category = ERR_UNKNOWN;
-    int retry_after_ms = -1;
-
-    if (status == 403) {
-        category = ERR_AUTH;
-        message = talloc_asprintf(ctx,
-            "Invalid Google API key. Get key at: https://aistudio.google.com");
-    }
-    else if (status == 429) {
-        category = ERR_RATE_LIMIT;
-        // Google includes retryDelay in error response
-        retry_after_ms = yyjson_get_int(yyjson_obj_get(error_obj, "retryDelay")) * 1000;
-    }
-    else if (status == 400) {
-        category = ERR_INVALID_ARG;
-    }
-    else if (status == 404) {
-        category = ERR_NOT_FOUND;
-    }
-    else if (status == 504) {
-        category = ERR_TIMEOUT;
-    }
-    else if (status >= 500) {
-        category = ERR_SERVER;
-    }
-
-    yyjson_doc_free(doc);
-
-    return ERR_DETAILED(ctx, category, status, code_str, retry_after_ms, "%s", message);
-}
-```
+**Adapter responsibilities:**
+- Parse error JSON response body
+- Extract provider status code and message
+- Map HTTP status to ikigai error category
+- Extract retryDelay from response body (format: "60s")
+- Build user-friendly message with provider-specific help URLs
+- For auth errors: Include credential configuration instructions
+- For rate limits: Parse retryDelay from error body and convert to milliseconds
+- For server errors: Mark as retryable
+- For timeouts: Map DEADLINE_EXCEEDED to ERR_TIMEOUT
+- Return unified error structure with all fields populated
 
 ## Rate Limit Headers
 
@@ -257,60 +172,51 @@ No standard headers. Rate limit info in error response body:
 
 ## Retry Strategy
 
-### Exponential Backoff
+### Retryable Error Categories
 
-For retryable errors (server errors, rate limits):
+The following error categories should be retried with exponential backoff:
+- **ERR_RATE_LIMIT** - Rate limit exceeded, retry after delay
+- **ERR_SERVER** - Server errors (500, 502, 503, 529)
+- **ERR_TIMEOUT** - Request timeout
 
-```c
-int retry_count = 0;
-int max_retries = 3;
-int base_delay_ms = 1000;
+### Non-Retryable Error Categories
 
-while (retry_count < max_retries) {
-    res_t result = provider->vt->send(provider->impl_ctx, req, &resp);
+These errors fail immediately without retry:
+- **ERR_AUTH** - Credentials are invalid, retry won't help
+- **ERR_INVALID_ARG** - Request is malformed
+- **ERR_NOT_FOUND** - Model doesn't exist
+- **ERR_CONTENT_FILTER** - Content violates policy
+- **ERR_NETWORK** - Network/connection error
+- **ERR_UNKNOWN** - Unmapped errors
 
-    if (is_ok(&result)) {
-        return result;  // Success
-    }
+### Exponential Backoff Algorithm
 
-    ik_error_t *error = &result.err;
+For retryable errors:
 
-    // Check if retryable
-    bool retryable = (error->category == ERR_RATE_LIMIT ||
-                     error->category == ERR_SERVER ||
-                     error->category == ERR_TIMEOUT);
+1. **Maximum retries**: 3 attempts
+2. **Base delay**: 1000ms
+3. **Backoff calculation**:
+   - If error includes `retry_after_ms > 0`: Use provider's suggested delay
+   - Otherwise: Use exponential backoff with jitter
+     - Attempt 1: 1s + random(0-1s)
+     - Attempt 2: 2s + random(0-1s)
+     - Attempt 3: 4s + random(0-1s)
+4. **Jitter**: Add 0-1000ms random delay to prevent thundering herd
+5. **Sleep**: Use usleep() to wait before retry
+6. **Failure**: If all retries exhausted, return last error
 
-    if (!retryable) {
-        return result;  // Don't retry
-    }
+### Retry Flow
 
-    // Calculate delay
-    int delay_ms;
-    if (error->retry_after_ms > 0) {
-        // Use provider's suggestion
-        delay_ms = error->retry_after_ms;
-    } else {
-        // Exponential backoff with jitter
-        int backoff = base_delay_ms * (1 << retry_count);  // 1s, 2s, 4s
-        int jitter = rand() % 1000;  // 0-1000ms
-        delay_ms = backoff + jitter;
-    }
-
-    // Sleep
-    usleep(delay_ms * 1000);
-    retry_count++;
-}
-
-return result;  // Max retries exceeded
-```
-
-### Non-Retryable Errors
-
-These errors fail immediately:
-- `ERR_AUTH` - Credentials are invalid, retry won't help
-- `ERR_INVALID_ARG` - Request is malformed
-- `ERR_NOT_FOUND` - Model doesn't exist
-- `ERR_CONTENT_FILTER` - Content violates policy
+1. Send request via provider's send() function
+2. If success: Return result immediately
+3. If error: Check error category for retryability
+4. If non-retryable: Return error immediately
+5. If retryable and retries remaining:
+   - Calculate delay (provider suggestion or exponential backoff)
+   - Sleep for delay period
+   - Increment retry counter
+   - Loop back to step 1
+6. If max retries exceeded: Return last error
 
 ## User-Facing Error Messages
 
@@ -367,84 +273,24 @@ This request cannot be retried. Please modify your message.
 
 ## Logging
 
-Provider errors should be logged with full details:
+Provider errors should be logged with full details for debugging:
 
-```c
-if (is_err(&result)) {
-    ik_error_t *err = &result.err;
+**Log fields to include:**
+- Provider name
+- Error category (as string)
+- HTTP status code
+- Provider-specific error code
+- Error message
+- Retry delay (if applicable)
 
-    ik_log(LOG_ERROR,
-           "Provider request failed: provider=%s, category=%s, http_status=%d, "
-           "provider_code=%s, message=%s, retry_after_ms=%d",
-           provider->name,
-           ik_error_category_name(err->category),
-           err->http_status,
-           err->provider_code ? err->provider_code : "N/A",
-           err->message,
-           err->retry_after_ms);
-}
-```
+**Log level**: ERROR for all provider failures
 
-## Testing
+**Format**: Structured key-value pairs for easy parsing and filtering
 
-### Mock Error Responses
+## Utility Functions
 
-```c
-START_TEST(test_anthropic_auth_error) {
-    const char *error_response =
-        "{\"type\":\"error\",\"error\":{\"type\":\"authentication_error\","
-        "\"message\":\"Invalid API key\"}}";
+The error handling system provides these utility functions:
 
-    mock_http_response(401, error_response);
-
-    ik_provider_t *provider = create_anthropic_provider("bad-key");
-    ik_request_t *req = create_test_request();
-    ik_response_t *resp = NULL;
-
-    res_t result = provider->vt->send(provider->impl_ctx, req, &resp);
-
-    ck_assert(is_err(&result));
-    ck_assert_int_eq(result.err.category, ERR_AUTH);
-    ck_assert_int_eq(result.err.http_status, 401);
-    ck_assert_str_contains(result.err.message, "API key");
-}
-END_TEST
-```
-
-### Retry Logic Testing
-
-```c
-START_TEST(test_retry_on_rate_limit) {
-    // First call: 429 rate limit
-    mock_http_response(429, "{\"error\":{\"type\":\"rate_limit_error\"}}");
-
-    // Second call: success
-    mock_http_response_sequence({
-        {429, rate_limit_json},
-        {200, success_json}
-    });
-
-    int retry_count = 0;
-    auto count_retries = lambda(void, (void) { retry_count++; });
-    mock_sleep_callback(count_retries);
-
-    res_t result = send_with_retry(provider, req);
-
-    ck_assert(is_ok(&result));
-    ck_assert_int_eq(retry_count, 1);  // Retried once
-}
-END_TEST
-```
-
-## Error Category Utilities
-
-```c
-// Convert category enum to string
-const char *ik_error_category_name(ik_error_category_t category);
-
-// Check if error is retryable
-bool ik_error_is_retryable(ik_error_t *error);
-
-// Get user-facing error message
-char *ik_error_user_message(TALLOC_CTX *ctx, ik_error_t *error, const char *provider);
-```
+- **ik_error_category_name()** - Convert category enum to string for logging
+- **ik_error_is_retryable()** - Check if error category should be retried
+- **ik_error_user_message()** - Generate user-facing error message with provider context

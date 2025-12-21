@@ -14,6 +14,30 @@ Guidance for creating task files from requirements (user stories, bugs, gaps).
 3. **Break down** - Split into smallest achievable, testable units
 4. **Create order.json** - Define execution order and metadata
 
+## Abstraction Levels
+
+### scratch/plan/ - Module Level
+
+Plan documents describe **what modules exist and how they interact**:
+- Module names and responsibilities
+- Major structs (names and purpose, not full definitions)
+- Key function signatures (declaration only)
+- Data flow between modules
+
+**DO NOT include:** Full struct definitions, implementation code, detailed algorithms.
+
+### scratch/tasks/ - Interface Level
+
+Task files specify **what to build**, not **how to build it**:
+- Function signatures with purpose documentation
+- Struct names with member descriptions (not C code)
+- Expected behaviors and contracts
+- Test scenarios (descriptions, not test code)
+
+**DO NOT include:** Implementation code, complete struct definitions, working test code.
+
+The sub-agent writes the actual code based on these specifications.
+
 ## File Naming
 
 **DO NOT use numeric prefixes.** Order is defined in `order.json`, not filenames.
@@ -99,3 +123,61 @@ Include in task instructions:
 - Suggest sub-agent use where appropriate (research, parallel work)
 - Encourage persistence - overcome obstacles to complete the goal
 - Task success is the measure, not partial progress
+
+## Task Template
+
+```markdown
+# Task: [Descriptive Name]
+
+**Layer:** N
+**Model:** sonnet/thinking
+**Depends on:** task-name.md (if any)
+
+## Pre-Read
+
+**Skills:**
+- `/load skill-name` - Why needed
+
+**Source:**
+- `path/to/file.h` - What to learn from it
+
+**Plan:**
+- `scratch/plan/relevant.md` - Sections to reference
+
+## Objective
+
+One paragraph: what this task accomplishes and why.
+
+## Interface
+
+Functions to implement (signatures and contracts, not code):
+
+| Function | Purpose |
+|----------|---------|
+| `res_t foo_create(...)` | Creates X, returns OK/ERR |
+| `void foo_destroy(...)` | Cleanup, NULL-safe |
+
+Structs to define (members and purpose, not C code):
+
+| Struct | Members | Purpose |
+|--------|---------|---------|
+| `foo_t` | name, count, items | Represents X |
+
+## Behaviors
+
+- When X happens, do Y
+- Error handling: return ERR with category Z
+- Memory: talloc ownership rules
+
+## Test Scenarios
+
+- Create/destroy lifecycle
+- Error case: invalid input returns ERR_INVALID_ARG
+- Edge case: empty list handled
+
+## Postconditions
+
+- [ ] Compiles without warnings
+- [ ] All tests pass
+- [ ] `make check` passes
+```

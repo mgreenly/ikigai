@@ -2,7 +2,7 @@
 
 ## Overview
 
-The multi-provider architecture uses a **vtable pattern** to abstract AI provider APIs behind a unified interface. Each provider implements the same vtable, enabling polymorphic behavior without tight coupling.
+The multi-provider architecture uses a vtable pattern to abstract AI provider APIs behind a unified interface. Each provider implements the same vtable, enabling polymorphic behavior without tight coupling.
 
 ## Directory Structure
 
@@ -36,321 +36,192 @@ src/
       google.h
 ```
 
-## Vtable Pattern
+## Modules and Responsibilities
 
-### Core Types
+### provider.h - Vtable Interface
 
-```c
-// src/providers/provider.h
+**Purpose:** Defines the common interface all providers must implement.
 
-typedef struct ik_provider_vtable {
-    // Send non-streaming request
-    res_t (*send)(void *impl_ctx,
-                  ik_request_t *req,
-                  ik_response_t **out_resp);
+**Key types:**
+- `ik_provider_vtable_t` - Function pointer table with send, stream, cleanup operations
+- `ik_provider_t` - Provider handle containing name, vtable pointer, and implementation context
 
-    // Send streaming request
-    res_t (*stream)(void *impl_ctx,
-                    ik_request_t *req,
-                    ik_stream_callback_t cb,
-                    void *cb_ctx);
+**Responsibilities:**
+- Define unified interface for sending requests (streaming and non-streaming)
+- Establish contract for provider initialization and cleanup
+- Enable polymorphic dispatch to provider-specific implementations
 
-    // Cleanup provider-specific resources
-    void (*cleanup)(void *impl_ctx);
-} ik_provider_vtable_t;
+### common/http_client - Shared HTTP Layer
 
-typedef struct ik_provider {
-    const char *name;              // "anthropic", "openai", "google"
-    ik_provider_vtable_t *vt;      // Function pointers
-    void *impl_ctx;                // Provider-specific context
-} ik_provider_t;
-```
+**Purpose:** Provides reusable HTTP functionality for all providers.
 
-### Provider Context
+**Key types:**
+- `ik_http_client_t` - HTTP client handle with base URL and connection pooling
 
-Each provider maintains its own context structure:
+**Key functions:**
+- `ik_http_client_create` - Initialize HTTP client with base URL
+- `ik_http_post` - Synchronous POST request returning full response
+- `ik_http_post_stream` - Streaming POST request with SSE callback support
 
-```c
-// src/providers/anthropic/anthropic.h
+**Responsibilities:**
+- Manage libcurl sessions and connection pooling
+- Handle request headers and body construction
+- Process HTTP status codes and network errors
+- Support both synchronous and streaming response modes
 
-typedef struct ik_anthropic_ctx {
-    char *api_key;                 // Loaded from env or credentials.json
-    ik_http_client_t *http;        // Shared HTTP client
-    // Provider-specific state
-} ik_anthropic_ctx_t;
-```
+### common/sse_parser - SSE Stream Parser
 
-## Provider Lifecycle
+**Purpose:** Parse Server-Sent Events streams from provider APIs.
 
-### Lazy Initialization
+**Key types:**
+- `ik_sse_parser_t` - Parser state machine
+- `ik_sse_callback_t` - Callback function type for parsed events
 
-Providers are created on first use:
+**Key functions:**
+- `ik_sse_parse_chunk` - Process incoming data chunk, emit events
 
-```c
-// Agent sets provider/model
-agent->provider = "anthropic";
-agent->model = "claude-sonnet-4-5";
-agent->thinking_level = IK_THINKING_MED;
+**Responsibilities:**
+- Parse SSE protocol (event:, data:, id: fields)
+- Handle partial chunks and buffering
+- Invoke callbacks for complete events
+- Maintain parser state across multiple chunks
 
-// First message send triggers provider creation
-res_t result = ik_provider_get_or_create(agent->provider, &provider);
-if (is_err(&result)) {
-    // "No credentials for anthropic. Set ANTHROPIC_API_KEY..."
-}
-```
+### anthropic/ - Anthropic Provider
 
-### Creation Flow
+**Modules:**
+- `adapter.c` - Implements vtable interface for Anthropic API
+- `client.c` - Request construction and response parsing
+- `streaming.c` - SSE event handler for Anthropic streaming format
 
-```c
-res_t ik_provider_create(TALLOC_CTX *ctx,
-                         const char *name,
-                         ik_provider_t **out_provider)
-{
-    // 1. Load credentials (env var or credentials.json)
-    char *api_key = NULL;
-    res_t cred_result = ik_credentials_load(ctx, name, &api_key);
-    if (is_err(&cred_result)) {
-        return ERR(ctx, ERR_AUTH,
-                   "No credentials for %s. Set %s_API_KEY or add to credentials.json",
-                   name, ik_provider_env_var(name));
-    }
+**Key types:**
+- `ik_anthropic_ctx_t` - Provider-specific context holding API key and HTTP client
 
-    // 2. Dispatch to provider-specific factory
-    if (strcmp(name, "anthropic") == 0) {
-        return ik_anthropic_create(ctx, api_key, out_provider);
-    } else if (strcmp(name, "openai") == 0) {
-        return ik_openai_create(ctx, api_key, out_provider);
-    } else if (strcmp(name, "google") == 0) {
-        return ik_google_create(ctx, api_key, out_provider);
-    }
+**Responsibilities:**
+- Translate `ik_request_t` to Anthropic Messages API format
+- Parse Anthropic responses into `ik_response_t`
+- Handle Anthropic-specific streaming events (content_block_delta, etc.)
+- Manage extended thinking feature integration
 
-    return ERR(ctx, ERR_INVALID_ARG, "Unknown provider: %s", name);
-}
-```
+### openai/ - OpenAI Provider
 
-### Provider Factory
+**Modules:**
+- `adapter.c` - Implements vtable interface for OpenAI API
+- `client.c` - Request construction and response parsing
+- `streaming.c` - SSE event handler for OpenAI streaming format
 
-Each provider implements a factory function:
+**Key types:**
+- `ik_openai_ctx_t` - Provider-specific context holding API key and HTTP client
 
-```c
-// src/providers/anthropic/adapter.c
+**Responsibilities:**
+- Translate `ik_request_t` to OpenAI Chat Completions API format
+- Parse OpenAI responses into `ik_response_t`
+- Handle OpenAI-specific streaming events (chat.completion.chunk)
+- Support o1 reasoning tokens through extended thinking abstraction
 
-res_t ik_anthropic_create(TALLOC_CTX *ctx,
-                          const char *api_key,
-                          ik_provider_t **out_provider)
-{
-    // Create provider-specific context
-    ik_anthropic_ctx_t *impl = talloc_zero_(ctx, sizeof(*impl));
-    if (impl == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+### google/ - Google Provider
 
-    impl->api_key = talloc_strdup(impl, api_key);
+**Modules:**
+- `adapter.c` - Implements vtable interface for Google Gemini API
+- `client.c` - Request construction and response parsing
+- `streaming.c` - SSE event handler for Google streaming format
 
-    // Create shared HTTP client
-    ik_http_client_t *http = NULL;
-    TRY(ik_http_client_create(impl, "https://api.anthropic.com", &http));
-    impl->http = http;
+**Key types:**
+- `ik_google_ctx_t` - Provider-specific context holding API key and HTTP client
 
-    // Create provider wrapper
-    ik_provider_t *provider = talloc_zero_(ctx, sizeof(*provider));
-    if (provider == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+**Responsibilities:**
+- Translate `ik_request_t` to Google Gemini API format
+- Parse Google responses into `ik_response_t`
+- Handle Google-specific streaming events
+- Map thinking levels to Gemini model variants
 
-    talloc_steal(provider, impl);
+## Data Flow
 
-    provider->name = "anthropic";
-    provider->vt = &ik_anthropic_vtable;  // Static vtable
-    provider->impl_ctx = impl;
+### Provider Initialization
 
-    *out_provider = provider;
-    return OK(NULL);
-}
+1. Agent sets provider name (e.g., "anthropic")
+2. First message send triggers lazy initialization via `ik_provider_get_or_create`
+3. Credentials loaded from environment variable or credentials.json
+4. Provider-specific factory function creates implementation context
+5. HTTP client initialized with provider's base URL
+6. Vtable populated with provider-specific function pointers
+7. Provider handle cached in agent context
 
-// Static vtable (defined once)
-static ik_provider_vtable_t ik_anthropic_vtable = {
-    .send = ik_anthropic_send,
-    .stream = ik_anthropic_stream,
-    .cleanup = ik_anthropic_cleanup
-};
-```
+### Non-Streaming Request Flow
 
-## Shared Utilities
+1. Caller creates `ik_request_t` with messages and configuration
+2. Call `provider->vt->send(provider->impl_ctx, req, &resp)`
+3. Provider translates request to native API format (JSON)
+4. HTTP client sends POST request to provider endpoint
+5. Provider parses response JSON into `ik_response_t`
+6. Response returned with normalized content blocks and usage data
 
-### HTTP Client
+### Streaming Request Flow
 
-Common HTTP functionality shared across providers:
+1. Caller creates `ik_request_t` and provides stream callback
+2. Call `provider->vt->stream(provider->impl_ctx, req, callback, ctx)`
+3. Provider translates request to native API format with stream flag
+4. HTTP client initiates streaming POST request
+5. SSE parser receives chunks, emits parsed events
+6. Provider-specific streaming handler translates events to `ik_stream_event_t`
+7. Caller's callback invoked with normalized stream events
+8. Stream events include text deltas, thinking deltas, and completion
 
-```c
-// src/providers/common/http_client.h
+### Cleanup Flow
 
-typedef struct ik_http_client ik_http_client_t;
-
-// Create HTTP client for a base URL
-res_t ik_http_client_create(TALLOC_CTX *ctx,
-                             const char *base_url,
-                             ik_http_client_t **out_client);
-
-// POST request (non-streaming)
-res_t ik_http_post(ik_http_client_t *client,
-                   const char *path,
-                   const char **headers,  // NULL-terminated array
-                   const char *body,
-                   char **out_response,
-                   int *out_status);
-
-// POST request (streaming SSE)
-res_t ik_http_post_stream(ik_http_client_t *client,
-                          const char *path,
-                          const char **headers,
-                          const char *body,
-                          ik_sse_callback_t sse_cb,
-                          void *cb_ctx);
-```
-
-### SSE Parser
-
-Shared Server-Sent Events parser:
-
-```c
-// src/providers/common/sse_parser.h
-
-typedef void (*ik_sse_callback_t)(const char *event,
-                                   const char *data,
-                                   void *user_ctx);
-
-// Parse SSE stream
-res_t ik_sse_parse_chunk(ik_sse_parser_t *parser,
-                         const char *chunk,
-                         size_t len);
-```
-
-## Provider Interface Usage
-
-### Non-Streaming Request
-
-```c
-// Caller (e.g., repl)
-ik_provider_t *provider = agent->provider;  // Lazy-initialized
-
-ik_request_t *req = ik_request_create(ctx);
-ik_request_add_message(req, IK_ROLE_USER, "Hello!");
-ik_request_set_thinking(req, IK_THINKING_MED);
-
-ik_response_t *resp = NULL;
-res_t result = provider->vt->send(provider->impl_ctx, req, &resp);
-if (is_err(&result)) {
-    // Handle error
-}
-
-// Process response
-for (size_t i = 0; i < resp->content_count; i++) {
-    if (resp->content[i].type == IK_CONTENT_TEXT) {
-        display_text(resp->content[i].text);
-    }
-}
-```
-
-### Streaming Request
-
-```c
-// Stream callback receives normalized events
-void on_stream_event(ik_stream_event_t *event, void *user_ctx) {
-    switch (event->type) {
-        case IK_STREAM_TEXT_DELTA:
-            append_to_scrollback(event->data.text_delta.text);
-            break;
-        case IK_STREAM_THINKING_DELTA:
-            append_thinking(event->data.thinking_delta.text);
-            break;
-        case IK_STREAM_DONE:
-            finalize_message(event->data.done.usage);
-            break;
-    }
-}
-
-// Make streaming request
-res_t result = provider->vt->stream(provider->impl_ctx,
-                                    req,
-                                    on_stream_event,
-                                    user_ctx);
-```
-
-## Provider Cleanup
-
-Cleanup happens when provider is freed (via talloc):
-
-```c
-void ik_anthropic_cleanup(void *impl_ctx)
-{
-    ik_anthropic_ctx_t *ctx = impl_ctx;
-
-    // Cleanup any persistent connections, etc.
-    // HTTP client cleaned up via talloc hierarchy
-
-    (void)ctx;  // May not need explicit cleanup if using talloc properly
-}
-```
-
-Talloc hierarchy ensures everything is cleaned up:
-
-```
-provider (talloc parent)
-  └─> impl_ctx (provider-specific)
-       └─> http_client
-       └─> api_key (strdup)
-       └─> other resources
-```
-
-## Provider Registry
-
-Optional: Cache providers per agent to avoid recreating:
-
-```c
-// In ik_agent_ctx_t
-typedef struct {
-    // ...
-    char *provider_name;           // "anthropic"
-    char *model;                   // "claude-sonnet-4-5"
-    ik_thinking_level_t thinking;  // IK_THINKING_MED
-
-    ik_provider_t *provider;       // Cached, NULL until first use
-} ik_agent_ctx_t;
-```
+1. Provider freed via talloc hierarchy
+2. Talloc destructor invokes vtable cleanup function
+3. Provider-specific cleanup releases resources
+4. HTTP client closed and connections released
+5. API keys and buffers freed via talloc parent-child relationships
 
 ## Integration Points
 
-### REPL Changes
+### REPL Integration
 
-The REPL layer becomes provider-agnostic:
+The REPL layer becomes provider-agnostic by routing through the vtable interface instead of directly calling OpenAI functions. The agent context holds the active provider handle, and message sending operations dispatch through `provider->vt->send` or `provider->vt->stream`.
 
-```c
-// Before (rel-06): Hard-coded OpenAI
-res_t result = ik_openai_stream(repl->llm, messages, ...);
+### Agent Context Extension
 
-// After (rel-07): Provider abstraction
-ik_provider_t *provider = NULL;
-TRY(ik_agent_get_provider(agent, &provider));
-res_t result = provider->vt->stream(provider->impl_ctx, req, ...);
-```
+Agent structure extended with:
+- `provider_name` - String identifying provider (e.g., "anthropic")
+- `model` - Model name within provider's namespace
+- `thinking_level` - Normalized thinking level (LOW/MED/HIGH/MAX)
+- `provider` - Cached provider handle (NULL until first use)
+
+### Database Schema Changes
+
+The agents table requires new columns:
+- `provider` (TEXT) - Provider name, defaults to "openai"
+- `model` (TEXT) - Model identifier
+- `thinking_level` (INTEGER) - Enum value for thinking level
+
+Migration adds these columns with appropriate defaults for existing rows.
 
 ### Command Updates
 
-`/model` command now supports provider inference:
+The `/model` command updated to:
+- Parse model strings with optional provider prefix (e.g., "claude-sonnet-4-5")
+- Infer provider from model name when not explicitly specified
+- Extract thinking level suffix (e.g., "/med")
+- Update agent's provider, model, and thinking_level fields
+- Trigger provider re-initialization on next message send
 
-```c
-// Parse: /model claude-sonnet-4-5/med
-// Infer: provider = "anthropic" (from "claude-" prefix)
-// Set:   agent->provider = "anthropic"
-//        agent->model = "claude-sonnet-4-5"
-//        agent->thinking = IK_THINKING_MED
-```
+### Configuration System
+
+New credentials loading:
+- Check environment variable `{PROVIDER}_API_KEY` (e.g., `ANTHROPIC_API_KEY`)
+- Fall back to `credentials.json` file in config directory
+- Format: `{"anthropic": "sk-ant-...", "openai": "sk-..."}`
+- Return auth error with setup instructions if credentials missing
 
 ## Migration from Existing OpenAI Code
 
 ### Current State (rel-06)
 
 ```
-src/openai/                    ← Hardcoded, directly called
-  client.c                     → REPL calls directly
-  client_multi.c
+src/openai/                    # Hardcoded implementation
+  client.c                     # Direct calls from REPL
+  client_multi.c               # Streaming support
   client_multi_callbacks.c
   client_multi_request.c
   client_msg.c
@@ -359,148 +230,93 @@ src/openai/                    ← Hardcoded, directly called
   sse_parser.c
   tool_choice.c
 
-src/client.c                   ← HTTP client, must integrate with new providers
+src/client.c                   # HTTP client
 ```
 
-**Call sites using hardcoded OpenAI:**
-
-| File | Current Usage | Migration |
-|------|---------------|-----------|
-| `src/commands_basic.c` | `ik_cmd_model` with hardcoded model list (line 161) | Use provider registry |
-| `src/completion.c` | `provide_model_args` for autocomplete (line 29) | List models from all providers |
-| `src/repl_actions_llm.c` | Dispatches to OpenAI client | Route through provider vtable |
-| `src/client.c` | HTTP client for OpenAI | Adapt for provider abstraction |
-| `src/agent.c` | No provider field | Add provider/model/thinking_level |
-| `src/db/agent.c` | No provider column | Update for agents table changes |
-| `src/config.c` | No credentials loading | Add credentials.json support |
+**Call sites with hardcoded OpenAI dependencies:**
+- `src/commands_basic.c` - Hardcoded model list in `/model` command
+- `src/completion.c` - Model autocomplete using fixed OpenAI models
+- `src/repl_actions_llm.c` - Direct dispatch to OpenAI client
+- `src/client.c` - HTTP layer coupled to OpenAI
+- `src/agent.c` - No provider field
+- `src/db/agent.c` - No provider column
+- `src/config.c` - No credentials loading
 
 ### Target State (rel-07)
 
 ```
 src/providers/
   common/
-    http_client.c       ← Refactored from http_handler.c
-    sse_parser.c        ← Moved from openai/sse_parser.c
-  provider.h            ← Vtable interface
+    http_client.c       # Refactored HTTP layer
+    sse_parser.c        # Extracted SSE parser
+  provider.h            # Vtable interface
   openai/
-    adapter.c           ← Vtable implementation
-    client.c            ← Refactored from openai/client.c
-    streaming.c         ← Refactored from openai/client_multi*.c
+    adapter.c           # Vtable implementation
+    client.c            # Refactored OpenAI client
+    streaming.c         # Refactored streaming support
     openai.h
 
-src/client.c            ← Updated to work with provider abstraction
-src/openai/             ← DELETED (no longer exists)
+src/client.c            # Removed or integrated into http_client.c
+src/openai/             # DELETED
 ```
 
 ### Migration Strategy: Adapter-First
 
-**Rationale:** Keep OpenAI working throughout migration. Validate interface design with real code before adding new providers.
+**Approach:** Maintain OpenAI functionality throughout migration by creating adapter shim, then refactor incrementally.
 
-### Migration Phases
+**Phases:**
 
-| Phase | Description | Deliverable | Verification |
-|-------|-------------|-------------|--------------|
-| **1** | Create `src/providers/` with vtable interface | `provider.h` compiles | Unit tests for types |
-| **2** | Add adapter shim wrapping existing `src/openai/` | OpenAI works via adapter | Existing tests pass |
-| **3** | Update call sites to use provider interface | All traffic through abstraction | `src/client.c`, REPL, agent use vtable |
-| **4** | Add Anthropic provider | Two providers working | Anthropic unit + integration tests |
-| **5** | Add Google provider | Three providers working | Google unit + integration tests |
-| **6** | Refactor `src/openai/` → `src/providers/openai/` | Native vtable implementation | OpenAI tests pass with new structure |
-| **7** | **Delete adapter shim and old `src/openai/`** | Clean codebase | No `#include "openai/"` outside providers |
+1. **Vtable Foundation** - Create `src/providers/provider.h` with interface definitions
+2. **Adapter Shim** - Wrap existing `src/openai/` with vtable adapter to validate interface
+3. **Call Site Updates** - Route all traffic through provider abstraction
+4. **Anthropic Provider** - Add second provider to prove multi-provider design
+5. **Google Provider** - Add third provider for additional validation
+6. **OpenAI Refactor** - Move OpenAI to native vtable implementation in `src/providers/openai/`
+7. **Cleanup** - Delete adapter shim and old `src/openai/` directory
 
-### Phase 7 Cleanup Checklist
+### Critical Cleanup Requirements
 
-**CRITICAL:** This phase ensures no dead code remains.
+After migration completes:
+- Old `src/openai/` directory must be completely deleted
+- Adapter shim code removed
+- No `#include` statements referencing old paths outside `src/providers/`
+- No direct function calls to provider implementations outside vtable dispatch
+- Makefile updated to remove references to deleted files
+- Full test suite passing with new structure
 
-- [ ] Delete `src/openai/` directory entirely
-- [ ] Delete adapter shim code (temporary wrapper)
-- [ ] Grep codebase: no `#include.*openai/` outside `src/providers/`
-- [ ] Grep codebase: no `ik_openai_` function calls outside `src/providers/`
-- [ ] Verify Makefile no longer references `src/openai/`
-- [ ] Run full test suite to confirm nothing broken
-- [ ] Update any documentation referencing old paths
+### src/client.c Integration
 
-### `src/client.c` Integration
-
-**Do not forget:** `src/client.c` is the HTTP client layer that currently serves `src/openai/`.
-
-**Migration path:**
-1. Phase 2: `src/client.c` continues serving `src/openai/` via adapter
-2. Phase 3: Refactor `src/client.c` to work with `src/providers/common/http_client.c`
-3. Phase 6: `src/client.c` either:
-   - Becomes `src/providers/common/http_client.c`, OR
-   - Is deleted if functionality fully absorbed into common/
-
-**Verification:** After Phase 7, `src/client.c` should either not exist or should be clearly integrated with the provider abstraction.
+The existing `src/client.c` HTTP client will be refactored into `src/providers/common/http_client.c` to support all providers. Migration occurs during Phase 3 when call sites are updated to use provider abstraction.
 
 ## Error Handling
 
-Providers return errors through standard `res_t` mechanism:
+Providers return errors through standard `res_t` mechanism with appropriate error codes:
 
-```c
-res_t ik_anthropic_send(...) {
-    // HTTP request
-    int status = 0;
-    char *response = NULL;
-    res_t http_result = ik_http_post(ctx, "/v1/messages", headers, body,
-                                      &response, &status);
-    if (is_err(&http_result)) {
-        return http_result;  // Network error
-    }
+- `ERR_AUTH` - Invalid or missing API key (401 status)
+- `ERR_RATE_LIMIT` - Rate limit exceeded (429 status)
+- `ERR_NETWORK` - Connection failures, timeouts
+- `ERR_INVALID_ARG` - Malformed requests
+- `ERR_PROVIDER` - Provider-specific API errors (4xx, 5xx)
 
-    // Check HTTP status
-    if (status == 401) {
-        return ERR(ctx, ERR_AUTH,
-                   "Invalid Anthropic API key. Get key at: https://console.anthropic.com/settings/keys");
-    }
+Error messages include actionable guidance such as credential setup URLs and retry timing.
 
-    if (status == 429) {
-        // Parse retry-after header
-        return ERR(ctx, ERR_RATE_LIMIT,
-                   "Rate limit exceeded. Retry after %d seconds", retry_after);
-    }
+## Testing Strategy
 
-    // Parse response...
-}
-```
+Each provider has dedicated test suites:
 
-See [error-handling.md](error-handling.md) for full error mapping strategy.
+**Unit tests:**
+- `tests/unit/providers/test_anthropic_adapter.c` - Vtable implementation
+- `tests/unit/providers/test_anthropic_client.c` - Request/response handling
+- `tests/unit/providers/test_openai_adapter.c`
+- `tests/unit/providers/test_google_adapter.c`
+- `tests/unit/common/test_http_client.c` - Shared HTTP layer
+- `tests/unit/common/test_sse_parser.c` - SSE parsing
 
-## Testing
+**Integration tests:**
+- Test actual provider APIs with real credentials (optional)
+- Mock HTTP responses for deterministic testing
+- Validate error handling for various failure modes
+- Verify streaming event sequences
+- Test provider switching within single agent session
 
-Each provider has its own test suite:
-
-```
-tests/unit/
-  providers/
-    test_anthropic_adapter.c   # Vtable implementation
-    test_anthropic_client.c    # Request building
-    test_openai_adapter.c
-    test_google_adapter.c
-
-  common/
-    test_http_client.c         # Shared utilities
-    test_sse_parser.c
-```
-
-Mock HTTP responses using existing `MOCKABLE` pattern:
-
-```c
-START_TEST(test_anthropic_send_basic) {
-    mock_http_response(200, ANTHROPIC_RESPONSE_FIXTURE);
-
-    ik_provider_t *provider = NULL;
-    TRY(ik_anthropic_create(ctx, "sk-ant-test", &provider));
-
-    ik_request_t *req = create_test_request();
-    ik_response_t *resp = NULL;
-
-    res_t result = provider->vt->send(provider->impl_ctx, req, &resp);
-
-    ck_assert(is_ok(&result));
-    ck_assert_str_eq(resp->content[0].text, "Hello!");
-}
-END_TEST
-```
-
-See [testing-strategy.md](testing-strategy.md) for full testing approach.
+Mock responses use existing `MOCKABLE` pattern to simulate provider responses without network calls.

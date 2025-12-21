@@ -1,59 +1,157 @@
 # Task: Add Provider Fields to Agent Context
 
 **Layer:** 2
-**Depends on:** provider-types.md, database-migration.md
+**Model:** sonnet/thinking
+**Depends on:** provider-types.md, database-migration.md, configuration.md
 
 ## Pre-Read
 
 **Skills:**
-- `/load memory`
-- `/load ddd`
+- `/load memory` - talloc ownership patterns
+- `/load ddd` - Domain modeling patterns
+- `/load errors` - Result type patterns
 
-**Source Files:**
-- `src/agent.c`
-- `src/agent.h`
-- `src/db/agent.c`
+**Source:**
+- `src/agent.c` - Agent context management
+- `src/agent.h` - Agent context struct
+- `src/db/agent.c` - Database CRUD operations
+- `src/config.h` - Configuration defaults
 
-**Plan Docs:**
-- `scratch/plan/architecture.md` (Agent context section)
-- `scratch/README.md` (Model Assignment)
-
-## Objective
-
-Update `ik_agent_ctx_t` to store provider/model/thinking configuration.
-
-## Deliverables
-
-1. Update `src/agent.h` / `src/agent.c`:
-   - Add `char *provider` field
-   - Add `char *model` field
-   - Add `ik_thinking_level_t thinking_level` field
-   - Add `ik_provider_t *provider_instance` (cached, lazy-loaded)
-
-2. Implement lazy provider loading:
-   - `ik_agent_get_provider()` - Get or create provider instance
-   - Cache provider on first use
-   - Error if no credentials
-
-3. Add provider inference from model name:
-   - `ik_infer_provider()` - Map model prefix to provider
-   - `claude-*` → anthropic
-   - `gpt-*`, `o1-*`, `o3-*` → openai
-   - `gemini-*` → google
-
-## Reference
-
+**Plan:**
 - `scratch/plan/architecture.md` - Agent context section
 - `scratch/README.md` - Model Assignment section
 
-## Verification
+## Objective
 
-- Agent stores provider/model/thinking
-- Provider lazy-loads on first use
-- Inference works for all model prefixes
+Update `ik_agent_ctx_t` to store provider/model/thinking configuration, including initialization from config defaults and restoration from database. This enables agents to remember their provider settings across sessions and supports lazy-loading of provider instances.
+
+## Interface
+
+Functions to implement:
+
+| Function | Purpose |
+|----------|---------|
+| `res_t ik_agent_apply_defaults(ik_agent_ctx_t *agent, ik_config_t *config)` | Apply config defaults to new agent (root or forked) |
+| `res_t ik_agent_restore_from_row(ik_agent_ctx_t *agent, ik_db_agent_row_t *row)` | Populate agent from database row |
+| `res_t ik_agent_get_provider(ik_agent_ctx_t *agent, ik_provider_t **out)` | Get or create provider instance (lazy-loaded, cached) |
+| `res_t ik_infer_provider(const char *model, char **provider_name)` | Map model prefix to provider name |
+
+Structs to update:
+
+| Struct | Members | Purpose |
+|--------|---------|---------|
+| `ik_agent_ctx_t` | provider (char*), model (char*), thinking_level (ik_thinking_level_t), provider_instance (ik_provider_t*) | Add provider configuration and cached instance |
+
+Enums to define:
+
+| Enum | Values | Purpose |
+|------|--------|---------|
+| `ik_thinking_level_t` | NONE, LOW, MED, HIGH | Thinking/reasoning level setting |
+
+Files to update:
+
+- `src/agent.h` - Add new fields to `ik_agent_ctx_t`
+- `src/agent.c` - Implement new functions
+
+## Behaviors
+
+### Apply Defaults to New Agent
+- For new root agents: use `ik_config_get_default_provider(config)`
+- For forked agents: inherit from parent unless explicitly overridden
+- Set `agent->provider`, `agent->model`, `agent->thinking_level`
+- Allocate strings on agent's talloc context
+- Return ERR_INVALID_ARG if config is NULL
+- Return OK after setting defaults
+
+### Restore from Database
+- Load `provider`, `model`, `thinking_level` from `ik_db_agent_row_t`
+- If DB fields are NULL (old agents pre-migration): apply current config defaults
+- Allocate strings on agent's talloc context
+- Do not load provider_instance (lazy-loaded on first use)
+- Return ERR_INVALID_ARG if row is NULL
+- Return OK after restoration
+
+### Lazy Provider Loading
+- Check if `agent->provider_instance` already cached
+- If cached: return existing instance
+- If not cached: call `ik_provider_create(agent->provider, &instance)`
+- Cache instance in `agent->provider_instance`
+- Return ERR_MISSING_CREDENTIALS if provider creation fails
+- Return OK with provider instance
+
+### Provider Inference from Model
+- Map model prefix to provider name:
+  - `claude-*` → "anthropic"
+  - `gpt-*`, `o1-*`, `o3-*` → "openai"
+  - `gemini-*` → "google"
+- Return ERR_INVALID_ARG if model is NULL or empty
+- Return ERR_INVALID_ARG if model prefix doesn't match any provider
+- Allocate provider_name string on provided context
+- Return OK with provider_name
+
+### Memory Management
+- All strings (provider, model) allocated on agent context
+- Provider instance allocated on agent context (cached)
+- Provider instance destroyed when agent context destroyed
+- NULL-safe cleanup
+
+### Inheritance Rules
+- Root agent: uses config defaults
+- Forked agent: copies parent's provider/model/thinking
+- Explicit override: use provided values instead of parent/config
+
+## Initial Agent Flow
+
+### New Root Agent
+1. Create agent: `ik_agent_create(ctx)`
+2. Apply defaults: `ik_agent_apply_defaults(agent, config)`
+3. Persist: `ik_db_agent_insert(db, agent)`
+
+### Forked Agent
+1. Create agent: `ik_agent_fork(parent, ctx)`
+2. Apply defaults (inherits from parent): `ik_agent_apply_defaults(agent, config)`
+3. Persist: `ik_db_agent_insert(db, agent)`
+
+### Restored Agent
+1. Load row: `ik_db_agent_get(db, ctx, uuid, &row)`
+2. Create agent: `ik_agent_create(ctx)`
+3. Restore: `ik_agent_restore_from_row(agent, row)`
+
+## Test Scenarios
+
+### Apply Defaults
+- Root agent: gets default provider from config
+- Forked agent: inherits parent's provider/model/thinking
+- NULL config: returns ERR_INVALID_ARG
+- Config with provider "anthropic": agent gets anthropic defaults
+
+### Restore from Database
+- Row with provider values: loads successfully
+- Row with NULL provider (old agent): falls back to config defaults
+- NULL row: returns ERR_INVALID_ARG
+- Restored agent has correct provider/model/thinking
+
+### Lazy Provider Loading
+- First call: creates and caches provider instance
+- Second call: returns cached instance
+- Missing credentials: returns ERR_MISSING_CREDENTIALS
+- NULL agent: returns ERR_INVALID_ARG
+
+### Provider Inference
+- "claude-sonnet-4-5" → "anthropic"
+- "gpt-4o" → "openai"
+- "o1-preview" → "openai"
+- "gemini-2.5-flash" → "google"
+- "unknown-model" → ERR_INVALID_ARG
+- NULL model → ERR_INVALID_ARG
 
 ## Postconditions
 
-- [ ] Agent stores provider/model/thinking
-- [ ] Provider lazy-loads
-- [ ] Inference works for all prefixes
+- [ ] `ik_agent_ctx_t` has provider, model, thinking_level, provider_instance fields
+- [ ] `ik_agent_apply_defaults()` sets initial provider/model/thinking from config
+- [ ] `ik_agent_restore_from_row()` loads provider/model/thinking from DB
+- [ ] `ik_agent_get_provider()` lazy-loads and caches provider instance
+- [ ] `ik_infer_provider()` correctly maps all model prefixes
+- [ ] Forked agents inherit parent's provider/model/thinking by default
+- [ ] All agent tests pass
+- [ ] `make check` passes

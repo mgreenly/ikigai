@@ -10,194 +10,159 @@ ikigai uses a **superset internal format** that can represent all features from 
 
 ### Core Structure
 
-```c
-typedef struct ik_request {
-    // System prompt (separate from messages)
-    ik_content_block_t *system_prompt;    // Array of content blocks
-    size_t system_prompt_count;
+**ik_request_t** - Main request structure containing all parameters for an LLM API call
 
-    // Messages
-    ik_message_t *messages;
-    size_t message_count;
+| Field | Type | Description |
+|-------|------|-------------|
+| system_prompt | Array of content blocks | System prompt (separate from messages) |
+| system_prompt_count | size_t | Number of system prompt blocks |
+| messages | Array of ik_message_t | Conversation messages |
+| message_count | size_t | Number of messages |
+| model | string | Provider-specific model ID |
+| thinking | ik_thinking_config_t | Thinking/reasoning configuration |
+| tools | Array of ik_tool_def_t | Tool definitions |
+| tool_count | size_t | Number of tools |
+| tool_choice | ik_tool_choice_t | Tool selection strategy (AUTO, NONE, REQUIRED, SPECIFIC) |
+| max_output_tokens | int32_t | Maximum output tokens (-1 = use provider default) |
+| provider_data | yyjson_mut_val | Provider-specific metadata (opaque) |
 
-    // Model configuration
-    char *model;                          // Provider-specific model ID
-    ik_thinking_config_t thinking;        // Thinking/reasoning config
-
-    // Tool definitions
-    ik_tool_def_t *tools;
-    size_t tool_count;
-    ik_tool_choice_t tool_choice;         // AUTO, NONE, REQUIRED, SPECIFIC
-
-    // Generation parameters
-    int32_t max_output_tokens;            // -1 = use provider default
-    // temperature, top_p, etc. deferred to future release
-
-    // Provider-specific metadata (opaque)
-    yyjson_mut_val *provider_data;        // Optional extras
-} ik_request_t;
-```
+**Note:** temperature, top_p, and other generation parameters are deferred to future release.
 
 ### Content Blocks
 
-Messages and system prompts are composed of content blocks:
+Messages and system prompts are composed of content blocks.
 
-```c
-typedef enum {
-    IK_CONTENT_TEXT,           // Plain text
-    IK_CONTENT_IMAGE,          // Image (future: base64 + media_type)
-    IK_CONTENT_TOOL_CALL,      // Tool call request
-    IK_CONTENT_TOOL_RESULT,    // Tool call result
-    IK_CONTENT_THINKING        // Thinking/reasoning (in history)
-} ik_content_type_t;
+**ik_content_type_t** - Content block type enumeration:
+- IK_CONTENT_TEXT - Plain text
+- IK_CONTENT_IMAGE - Image (future: base64 + media_type)
+- IK_CONTENT_TOOL_CALL - Tool call request
+- IK_CONTENT_TOOL_RESULT - Tool call result
+- IK_CONTENT_THINKING - Thinking/reasoning (in history)
 
-typedef struct {
-    ik_content_type_t type;
+**ik_content_block_t** - Content block with type-specific data
 
-    union {
-        struct {
-            char *text;
-        } text;
+| Field | Type | Description |
+|-------|------|-------------|
+| type | ik_content_type_t | Content block type |
+| data | union | Type-specific content (see below) |
 
-        struct {
-            char *id;          // Tool call ID (provider-generated or UUID for Google)
-            char *name;        // Function name
-            yyjson_val *arguments;  // Parsed JSON object (not string)
-        } tool_call;
+**Content block data variants:**
 
-        struct {
-            char *tool_call_id;  // Matches id from tool_call
-            char *content;       // Result as string (JSON or plain text)
-            bool is_error;       // Whether this is an error result
-        } tool_result;
+**Text content:**
+- text: string - Plain text content
 
-        struct {
-            char *text;        // Thinking/reasoning text summary
-        } thinking;
+**Tool call content:**
+- id: string - Tool call ID (provider-generated or UUID for Google)
+- name: string - Function name
+- arguments: yyjson_val - Parsed JSON object (not string)
 
-        // Image support deferred to rel-08
-    } data;
-} ik_content_block_t;
-```
+**Tool result content:**
+- tool_call_id: string - Matches id from tool_call
+- content: string - Result as string (JSON or plain text)
+- is_error: bool - Whether this is an error result
+
+**Thinking content:**
+- text: string - Thinking/reasoning text summary
+
+**Note:** Image support deferred to rel-08.
 
 ### Messages
 
-```c
-typedef enum {
-    IK_ROLE_USER,
-    IK_ROLE_ASSISTANT,
-    IK_ROLE_TOOL        // For tool results (some providers)
-} ik_role_t;
+**ik_role_t** - Message role enumeration:
+- IK_ROLE_USER - User message
+- IK_ROLE_ASSISTANT - Assistant message
+- IK_ROLE_TOOL - Tool results (for some providers)
 
-typedef struct {
-    ik_role_t role;
-    ik_content_block_t *content;  // Array of content blocks
-    size_t content_count;
+**ik_message_t** - Conversation message with role and content
 
-    // Metadata (for messages loaded from database)
-    char *provider;               // Which provider generated this
-    char *model;                  // Which model was used
-    ik_thinking_level_t thinking; // Thinking level used
-    yyjson_val *provider_data;    // Opaque provider-specific data
-} ik_message_t;
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| role | ik_role_t | Message role |
+| content | Array of ik_content_block_t | Content blocks |
+| content_count | size_t | Number of content blocks |
+| provider | string | Which provider generated this (metadata for DB) |
+| model | string | Which model was used (metadata for DB) |
+| thinking | ik_thinking_level_t | Thinking level used (metadata for DB) |
+| provider_data | yyjson_val | Opaque provider-specific data (metadata for DB) |
 
 ### Thinking Configuration
 
-```c
-typedef enum {
-    IK_THINKING_NONE,   // Disabled or minimum
-    IK_THINKING_LOW,    // ~1/3 of max budget
-    IK_THINKING_MED,    // ~2/3 of max budget
-    IK_THINKING_HIGH    // Maximum budget
-} ik_thinking_level_t;
+**ik_thinking_level_t** - Thinking effort level enumeration:
+- IK_THINKING_NONE - Disabled or minimum
+- IK_THINKING_LOW - ~1/3 of max budget
+- IK_THINKING_MED - ~2/3 of max budget
+- IK_THINKING_HIGH - Maximum budget
 
-typedef struct {
-    ik_thinking_level_t level;
-    bool include_summary;      // Request thinking summary in response
-} ik_thinking_config_t;
-```
+**ik_thinking_config_t** - Thinking configuration
+
+| Field | Type | Description |
+|-------|------|-------------|
+| level | ik_thinking_level_t | Thinking effort level |
+| include_summary | bool | Request thinking summary in response |
 
 ### Tool Definitions
 
-```c
-typedef struct {
-    char *name;
-    char *description;
-    yyjson_val *parameters;    // JSON Schema
-    bool strict;               // OpenAI strict mode (default: true)
-} ik_tool_def_t;
+**ik_tool_def_t** - Tool/function definition
 
-typedef enum {
-    IK_TOOL_CHOICE_AUTO,       // Model decides
-    IK_TOOL_CHOICE_NONE,       // No tools allowed
-    IK_TOOL_CHOICE_REQUIRED,   // Must use at least one tool (deferred)
-    IK_TOOL_CHOICE_SPECIFIC    // Must use named tool (deferred)
-} ik_tool_choice_t;
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| name | string | Tool name |
+| description | string | Tool description |
+| parameters | yyjson_val | JSON Schema for parameters |
+| strict | bool | OpenAI strict mode (default: true) |
+
+**ik_tool_choice_t** - Tool selection strategy enumeration:
+- IK_TOOL_CHOICE_AUTO - Model decides whether to use tools
+- IK_TOOL_CHOICE_NONE - No tools allowed
+- IK_TOOL_CHOICE_REQUIRED - Must use at least one tool (deferred)
+- IK_TOOL_CHOICE_SPECIFIC - Must use named tool (deferred)
 
 ## Response Format
 
 ### Core Structure
 
-```c
-typedef struct ik_response {
-    // Content blocks in response
-    ik_content_block_t *content;
-    size_t content_count;
+**ik_response_t** - Response from LLM API call
 
-    // Finish reason
-    ik_finish_reason_t finish_reason;
-
-    // Token usage
-    ik_usage_t usage;
-
-    // Model identification
-    char *model;               // Actual model used (may differ from request)
-
-    // Provider-specific metadata
-    yyjson_val *provider_data; // Opaque extras (e.g., thought signatures)
-} ik_response_t;
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| content | Array of ik_content_block_t | Content blocks in response |
+| content_count | size_t | Number of content blocks |
+| finish_reason | ik_finish_reason_t | Why generation stopped |
+| usage | ik_usage_t | Token usage statistics |
+| model | string | Actual model used (may differ from request) |
+| provider_data | yyjson_val | Opaque provider-specific metadata |
 
 ### Finish Reasons
 
-```c
-typedef enum {
-    IK_FINISH_STOP,            // Natural completion
-    IK_FINISH_LENGTH,          // Hit max_output_tokens
-    IK_FINISH_TOOL_USE,        // Stopped to call tools
-    IK_FINISH_CONTENT_FILTER,  // Content policy violation
-    IK_FINISH_ERROR,           // Error occurred
-    IK_FINISH_UNKNOWN          // Unmapped finish reason
-} ik_finish_reason_t;
-```
+**ik_finish_reason_t** - Completion reason enumeration:
+- IK_FINISH_STOP - Natural completion
+- IK_FINISH_LENGTH - Hit max_output_tokens
+- IK_FINISH_TOOL_USE - Stopped to call tools
+- IK_FINISH_CONTENT_FILTER - Content policy violation
+- IK_FINISH_ERROR - Error occurred
+- IK_FINISH_UNKNOWN - Unmapped finish reason
 
 ### Token Usage
 
-```c
-typedef struct {
-    int32_t input_tokens;      // Prompt tokens
-    int32_t output_tokens;     // Generated tokens (excluding thinking)
-    int32_t thinking_tokens;   // Reasoning/thinking tokens (if separate)
-    int32_t cached_tokens;     // Cached input tokens (if reported)
-    int32_t total_tokens;      // Sum of above
-} ik_usage_t;
-```
+**ik_usage_t** - Token usage breakdown
+
+| Field | Type | Description |
+|-------|------|-------------|
+| input_tokens | int32_t | Prompt tokens |
+| output_tokens | int32_t | Generated tokens (excluding thinking) |
+| thinking_tokens | int32_t | Reasoning/thinking tokens (if separate) |
+| cached_tokens | int32_t | Cached input tokens (if reported) |
+| total_tokens | int32_t | Sum of above |
 
 ## Provider Mapping Examples
 
 ### Anthropic Request
 
-**Internal:**
-```c
-ik_request_t req = {
-    .system_prompt = [{"type": TEXT, "text": "You are helpful"}],
-    .messages = [{"role": USER, "content": [{"type": TEXT, "text": "Hello"}]}],
-    .thinking = {.level = IK_THINKING_MED, .include_summary = true},
-    .max_output_tokens = 4096
-};
-```
+**Internal representation:**
+- System prompt: Array of content blocks with text "You are helpful"
+- Messages: Single user message with text "Hello"
+- Thinking: IK_THINKING_MED level with include_summary=true
+- max_output_tokens: 4096
 
 **Anthropic Wire Format:**
 ```json
@@ -222,7 +187,7 @@ ik_request_t req = {
 
 ### OpenAI Request
 
-**Internal:** (same as above)
+**Internal representation:** (same as above)
 
 **OpenAI Wire Format (Responses API):**
 ```json
@@ -245,7 +210,7 @@ ik_request_t req = {
 
 ### Google Request
 
-**Internal:** (same as above)
+**Internal representation:** (same as above)
 
 **Google Wire Format:**
 ```json
@@ -276,27 +241,17 @@ ik_request_t req = {
 
 ### Internal Format (same for all providers)
 
-```c
-ik_content_block_t tool_call = {
-    .type = IK_CONTENT_TOOL_CALL,
-    .data.tool_call = {
-        .id = "toolu_01A09...",      // Or UUID for Google
-        .name = "read_file",
-        .arguments = {               // Parsed JSON object
-            "path": "/etc/hosts"
-        }
-    }
-};
+**Tool call content block:**
+- type: IK_CONTENT_TOOL_CALL
+- id: "toolu_01A09..." (or UUID for Google)
+- name: "read_file"
+- arguments: Parsed JSON object `{"path": "/etc/hosts"}`
 
-ik_content_block_t tool_result = {
-    .type = IK_CONTENT_TOOL_RESULT,
-    .data.tool_result = {
-        .tool_call_id = "toolu_01A09...",
-        .content = "127.0.0.1 localhost\n...",
-        .is_error = false
-    }
-};
-```
+**Tool result content block:**
+- type: IK_CONTENT_TOOL_RESULT
+- tool_call_id: "toolu_01A09..." (matches tool call id)
+- content: "127.0.0.1 localhost\n..."
+- is_error: false
 
 ### Provider Wire Formats
 
@@ -373,14 +328,9 @@ ik_content_block_t tool_result = {
 
 ### Internal Format
 
-```c
-ik_content_block_t thinking = {
-    .type = IK_CONTENT_THINKING,
-    .data.thinking = {
-        .text = "Let me analyze this step by step..."
-    }
-};
-```
+**Thinking content block:**
+- type: IK_CONTENT_THINKING
+- text: "Let me analyze this step by step..."
 
 **Notes:**
 - Thinking content is only present if provider exposes it
@@ -431,35 +381,29 @@ This opaque data is preserved and passed back in subsequent requests for provide
 
 ## Builder Pattern
 
-Convenience builders for common operations:
+Convenience builders for common operations provide a friendlier API for constructing requests:
 
-```c
-// Create request
-ik_request_t *req = ik_request_create(ctx);
+**Request Creation:**
+- ik_request_create(ctx) - Create new request with talloc context
 
-// Set system prompt
-ik_request_set_system(req, "You are helpful");
+**System Prompt:**
+- ik_request_set_system(req, text) - Set system prompt from string
 
-// Add user message
-ik_request_add_message(req, IK_ROLE_USER, "Hello");
+**Message Management:**
+- ik_request_add_message(req, role, text) - Add simple text message
+- ik_request_add_message_blocks(req, role, blocks[], count) - Add message with multiple content blocks
 
-// Add assistant message with thinking
-ik_content_block_t blocks[] = {
-    {.type = IK_CONTENT_THINKING, .data.thinking.text = "Let me think..."},
-    {.type = IK_CONTENT_TEXT, .data.text.text = "Hello!"}
-};
-ik_request_add_message_blocks(req, IK_ROLE_ASSISTANT, blocks, 2);
+**Thinking Configuration:**
+- ik_request_set_thinking(req, level, include_summary) - Configure thinking parameters
 
-// Configure thinking
-ik_request_set_thinking(req, IK_THINKING_HIGH, true);  // include_summary
+**Tool Management:**
+- ik_request_add_tool(req, tool_def) - Add tool definition
 
-// Add tools
-ik_tool_def_t tool = {
-    .name = "read_file",
-    .description = "Read file contents",
-    .parameters = parameters_json
-};
-ik_request_add_tool(req, &tool);
-```
+**Example usage pattern:**
+1. Create request with ik_request_create()
+2. Set system prompt with ik_request_set_system()
+3. Add messages with ik_request_add_message() or ik_request_add_message_blocks()
+4. Configure thinking with ik_request_set_thinking()
+5. Add tools with ik_request_add_tool()
 
 See [transformation.md](transformation.md) for adapter-specific serialization details.

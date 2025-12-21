@@ -206,44 +206,30 @@ ALTER TABLE agents ADD CONSTRAINT agents_provider_check
 
 ### Validation in Code
 
-```c
-res_t ik_db_update_agent(ik_db_t *db, ik_agent_t *agent)
-{
-    // Validate before storing
-    const char *valid_levels[] = {"none", "low", "med", "high", NULL};
-    if (agent->thinking_level != NULL &&
-        !is_in_list(agent->thinking_level, valid_levels)) {
-        return ERR(db, ERR_INVALID_ARG,
-                  "Invalid thinking_level: %s", agent->thinking_level);
-    }
+Application-level validation should enforce:
+- `thinking_level` is one of: "none", "low", "med", "high"
+- `provider` is one of: "anthropic", "openai", "google", "xai", "meta"
 
-    // Store in database
-    const char *sql =
-        "UPDATE agents SET provider = $1, model = $2, thinking_level = $3 "
-        "WHERE id = $4";
-
-    // Execute...
-}
+Example update query:
+```sql
+UPDATE agents SET provider = $1, model = $2, thinking_level = $3
+WHERE id = $4;
 ```
 
 ## Migration Testing
 
-```c
-START_TEST(test_migration_adds_columns) {
-    // Run migration
-    TRY(ik_db_migrate(db, "005-multi-provider.sql"));
+Verify migration success by checking that new columns exist:
 
-    // Verify columns exist
-    const char *sql = "SELECT provider, model, thinking_level FROM agents LIMIT 1";
-    PGresult *res = PQexec(db->conn, sql);
-
-    // Should not error (columns exist)
-    ck_assert_int_eq(PQresultStatus(res), PGRES_TUPLES_OK);
-
-    PQclear(res);
-}
-END_TEST
+```sql
+-- Test query: should succeed after migration
+SELECT provider, model, thinking_level FROM agents LIMIT 1;
 ```
+
+Integration tests should verify:
+- Migration runs without errors
+- New columns are queryable
+- NULL values are handled correctly
+- Truncate cascade works as expected
 
 ## Rollback Plan
 

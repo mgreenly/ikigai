@@ -13,3 +13,6 @@ capabilities of each provider and then use the interfaces to translate to
 the over-the-wire format. We'll polyfil some behaviors for the providers that don't
 support all the ones we need but we'll also store the raw responses for features
 we don't support and are not using, primarily for debugging if we need it.
+
+  * https://github.com/mgreenly/ikigai
+  * https://www.youtube.com/@IkigaiDevlog

@@ -6,69 +6,56 @@ All providers emit normalized streaming events through a unified `ik_stream_even
 
 ## Stream Event Types
 
-```c
-typedef enum {
-    IK_STREAM_START,           // Stream started
-    IK_STREAM_TEXT_DELTA,      // Text content delta
-    IK_STREAM_THINKING_DELTA,  // Thinking/reasoning delta
-    IK_STREAM_TOOL_CALL_START, // Tool call started
-    IK_STREAM_TOOL_CALL_DELTA, // Tool call arguments delta
-    IK_STREAM_TOOL_CALL_DONE,  // Tool call completed
-    IK_STREAM_DONE,            // Stream completed successfully
-    IK_STREAM_ERROR            // Error occurred
-} ik_stream_event_type_t;
-```
+The system defines the following stream event types:
+
+- `IK_STREAM_START` - Stream started
+- `IK_STREAM_TEXT_DELTA` - Text content delta
+- `IK_STREAM_THINKING_DELTA` - Thinking/reasoning delta
+- `IK_STREAM_TOOL_CALL_START` - Tool call started
+- `IK_STREAM_TOOL_CALL_DELTA` - Tool call arguments delta
+- `IK_STREAM_TOOL_CALL_DONE` - Tool call completed
+- `IK_STREAM_DONE` - Stream completed successfully
+- `IK_STREAM_ERROR` - Error occurred
 
 ## Stream Event Structure
 
-```c
-typedef struct ik_stream_event {
-    ik_stream_event_type_t type;
+The `ik_stream_event_t` structure contains:
 
-    union {
-        struct {
-            char *model;           // Model being used
-        } start;
+- **type**: The event type (from the enum above)
+- **data**: A union containing event-specific data based on type:
 
-        struct {
-            char *text;            // Text fragment
-            int index;             // Content block index
-        } text_delta;
+### Event Data Fields by Type
 
-        struct {
-            char *text;            // Thinking fragment
-            int index;             // Thinking block index
-        } thinking_delta;
+**start**:
+- `model` - Model being used
 
-        struct {
-            char *id;              // Tool call ID
-            char *name;            // Function name
-            int index;             // Tool call index
-        } tool_call_start;
+**text_delta**:
+- `text` - Text fragment
+- `index` - Content block index
 
-        struct {
-            int index;             // Tool call index
-            char *arguments;       // JSON fragment
-        } tool_call_delta;
+**thinking_delta**:
+- `text` - Thinking fragment
+- `index` - Thinking block index
 
-        struct {
-            int index;             // Tool call index
-        } tool_call_done;
+**tool_call_start**:
+- `id` - Tool call ID
+- `name` - Function name
+- `index` - Tool call index
 
-        struct {
-            ik_finish_reason_t finish_reason;
-            ik_usage_t usage;
-            yyjson_val *provider_data;  // Opaque metadata
-        } done;
+**tool_call_delta**:
+- `index` - Tool call index
+- `arguments` - JSON fragment
 
-        struct {
-            ik_error_t error;
-        } error;
+**tool_call_done**:
+- `index` - Tool call index
 
-    } data;
+**done**:
+- `finish_reason` - Reason stream completed
+- `usage` - Token usage information
+- `provider_data` - Opaque metadata from provider
 
-} ik_stream_event_t;
-```
+**error**:
+- `error` - Error details (ik_error_t)
 
 ## Provider Event Mapping
 
@@ -144,278 +131,85 @@ typedef struct ik_stream_event {
 | Last chunk (finishReason) | `IK_STREAM_DONE` | Extract usageMetadata |
 | Error chunk | `IK_STREAM_ERROR` | Map error |
 
-## Adapter Implementation Pattern
+## Data Flow
 
-### Anthropic Streaming Adapter
+### Provider Adapter Flow
 
-```c
-static void anthropic_sse_callback(const char *event,
-                                   const char *data,
-                                   void *user_ctx)
-{
-    ik_anthropic_stream_ctx_t *ctx = user_ctx;
+1. **Receive SSE Event**: Provider-specific SSE callback receives raw event and data
+2. **Parse Event**: Parse JSON payload using yyjson
+3. **Map to Normalized Event**: Create `ik_stream_event_t` with appropriate type and data
+4. **Emit Event**: Call user callback with normalized event
+5. **State Tracking**: Maintain internal state for multi-event sequences (e.g., accumulating usage)
 
-    if (strcmp(event, "message_start") == 0) {
-        // Parse JSON
-        yyjson_doc *doc = yyjson_read(data, strlen(data), 0);
-        yyjson_val *root = yyjson_doc_get_root(doc);
-        yyjson_val *message = yyjson_obj_get(root, "message");
-        const char *model = yyjson_get_str(yyjson_obj_get(message, "model"));
+### REPL Consumption Flow
 
-        // Emit normalized event
-        ik_stream_event_t norm_event = {
-            .type = IK_STREAM_START,
-            .data.start.model = model
-        };
-        ctx->user_cb(&norm_event, ctx->user_ctx);
+The REPL receives normalized events through its stream callback and processes them based on type:
 
-        yyjson_doc_free(doc);
-    }
-    else if (strcmp(event, "content_block_delta") == 0) {
-        yyjson_doc *doc = yyjson_read(data, strlen(data), 0);
-        yyjson_val *root = yyjson_doc_get_root(doc);
-        yyjson_val *delta = yyjson_obj_get(root, "delta");
-        const char *type = yyjson_get_str(yyjson_obj_get(delta, "type"));
+- **IK_STREAM_START**: Initialize streaming response object
+- **IK_STREAM_TEXT_DELTA**: Append text to scrollback buffer, trigger UI render
+- **IK_STREAM_THINKING_DELTA**: Append to thinking area (if visible), trigger UI render
+- **IK_STREAM_TOOL_CALL_START**: Initialize tool call accumulator with id and name
+- **IK_STREAM_TOOL_CALL_DELTA**: Append JSON fragments to arguments buffer
+- **IK_STREAM_TOOL_CALL_DONE**: Finalize accumulated JSON, parse, and execute tool
+- **IK_STREAM_DONE**: Save complete response to database, update token counts in UI
+- **IK_STREAM_ERROR**: Display error message in scrollback
 
-        if (strcmp(type, "text_delta") == 0) {
-            const char *text = yyjson_get_str(yyjson_obj_get(delta, "text"));
-            int index = yyjson_get_int(yyjson_obj_get(root, "index"));
-
-            ik_stream_event_t norm_event = {
-                .type = IK_STREAM_TEXT_DELTA,
-                .data.text_delta = {
-                    .text = text,
-                    .index = index
-                }
-            };
-            ctx->user_cb(&norm_event, ctx->user_ctx);
-        }
-        else if (strcmp(type, "thinking_delta") == 0) {
-            const char *text = yyjson_get_str(yyjson_obj_get(delta, "text"));
-            int index = yyjson_get_int(yyjson_obj_get(root, "index"));
-
-            ik_stream_event_t norm_event = {
-                .type = IK_STREAM_THINKING_DELTA,
-                .data.thinking_delta = {
-                    .text = text,
-                    .index = index
-                }
-            };
-            ctx->user_cb(&norm_event, ctx->user_ctx);
-        }
-
-        yyjson_doc_free(doc);
-    }
-    else if (strcmp(event, "message_stop") == 0) {
-        // Emit final event
-        ik_stream_event_t norm_event = {
-            .type = IK_STREAM_DONE,
-            .data.done = {
-                .finish_reason = ctx->finish_reason,
-                .usage = ctx->usage,
-                .provider_data = NULL
-            }
-        };
-        ctx->user_cb(&norm_event, ctx->user_ctx);
-    }
-}
-```
-
-## REPL Stream Callback
-
-REPL receives normalized events:
-
-```c
-// src/repl_streaming.c
-
-void ik_repl_stream_callback(ik_stream_event_t *event, void *user_ctx)
-{
-    ik_repl_ctx_t *repl = user_ctx;
-
-    switch (event->type) {
-        case IK_STREAM_START:
-            // Initialize response
-            repl->streaming_response = create_response();
-            break;
-
-        case IK_STREAM_TEXT_DELTA:
-            // Append to scrollback
-            ik_scrollback_append_text(repl->scrollback,
-                                     event->data.text_delta.text);
-            ik_ui_render(repl->ui);  // Update UI
-            break;
-
-        case IK_STREAM_THINKING_DELTA:
-            // Append to thinking area (if visible)
-            ik_scrollback_append_thinking(repl->scrollback,
-                                         event->data.thinking_delta.text);
-            ik_ui_render(repl->ui);
-            break;
-
-        case IK_STREAM_TOOL_CALL_START:
-            // Start accumulating tool call
-            start_tool_call(repl, event->data.tool_call_start.id,
-                           event->data.tool_call_start.name);
-            break;
-
-        case IK_STREAM_TOOL_CALL_DELTA:
-            // Accumulate arguments JSON
-            append_tool_call_args(repl, event->data.tool_call_delta.index,
-                                 event->data.tool_call_delta.arguments);
-            break;
-
-        case IK_STREAM_TOOL_CALL_DONE:
-            // Finalize tool call, execute it
-            finalize_and_execute_tool_call(repl, event->data.tool_call_done.index);
-            break;
-
-        case IK_STREAM_DONE:
-            // Save to database
-            save_assistant_message(repl->agent,
-                                  repl->streaming_response,
-                                  event->data.done.usage);
-
-            // Update token display
-            update_token_counts(repl->ui, event->data.done.usage);
-            break;
-
-        case IK_STREAM_ERROR:
-            // Display error
-            display_error(repl->scrollback, event->data.error.error.message);
-            break;
-    }
-}
-```
-
-## Error Handling During Streaming
+## Error Handling
 
 ### Mid-Stream Errors
 
-```c
-// Provider detects error during streaming
-if (http_error) {
-    ik_stream_event_t error_event = {
-        .type = IK_STREAM_ERROR,
-        .data.error.error = {
-            .category = ERR_NETWORK,
-            .message = "Connection lost during streaming"
-        }
-    };
-    user_cb(&error_event, user_ctx);
-    return;  // Stop streaming
-}
-```
+When a provider adapter detects an error during streaming (network failure, invalid data, etc.):
+1. Create `IK_STREAM_ERROR` event with appropriate error details
+2. Emit error event to user callback
+3. Stop processing further events
+4. REPL displays error and marks response as failed
 
 ### Incomplete Streams
 
-If stream ends without `IK_STREAM_DONE`:
-
-```c
-// REPL detects incomplete stream
-if (!received_done_event) {
-    // Treat as error
-    display_warning("Stream ended unexpectedly. Response may be incomplete.");
-
-    // Save partial response with warning
-    save_partial_response(agent, partial_text, "incomplete");
-}
-```
+If a stream ends without receiving `IK_STREAM_DONE`:
+- REPL detects missing completion event
+- Displays warning about incomplete response
+- Saves partial response with "incomplete" status
+- Allows user to retry or continue conversation
 
 ## Content Block Indexing
 
-Multiple content blocks may stream in parallel (rare but possible):
+Multiple content blocks may stream in parallel (rare but possible with some providers). The index field in delta events allows tracking which block each fragment belongs to:
 
-```c
-// Text block 0
-{.type = IK_STREAM_TEXT_DELTA, .data.text_delta.index = 0, .text = "Hello"}
-{.type = IK_STREAM_TEXT_DELTA, .data.text_delta.index = 0, .text = " world"}
+**Example sequence:**
+1. Text block 0: "Hello" -> " world"
+2. Tool call block 1: START(id="call_1", name="bash") -> DELTA(args) -> DONE
+3. Text block 0: "!" (continues after tool call)
 
-// Tool call block 1
-{.type = IK_STREAM_TOOL_CALL_START, .data.tool_call_start.index = 1, .id = "call_1", .name = "bash"}
-{.type = IK_STREAM_TOOL_CALL_DELTA, .data.tool_call_delta.index = 1, .arguments = "{\"com"}
-{.type = IK_STREAM_TOOL_CALL_DELTA, .data.tool_call_delta.index = 1, .arguments = "mand\":\"ls\"}"}
-{.type = IK_STREAM_TOOL_CALL_DONE, .data.tool_call_done.index = 1}
-
-// Text block 0 continues
-{.type = IK_STREAM_TEXT_DELTA, .data.text_delta.index = 0, .text = "!"}
-```
-
-REPL maintains array of active blocks:
-
-```c
-typedef struct {
-    ik_content_type_t type;
-    talloc_string_builder_t *text_builder;  // For text/thinking
-    char *tool_call_id;                     // For tool calls
-    char *tool_name;
-    talloc_string_builder_t *args_builder;
-} ik_active_content_block_t;
-
-ik_active_content_block_t blocks[10];  // Max 10 concurrent blocks
-```
+**REPL handling:**
+- Maintains array of active content blocks
+- Each block tracks its type (text, thinking, tool_call)
+- Text/thinking blocks use string builders for efficient accumulation
+- Tool call blocks accumulate id, name, and argument fragments
+- Index field routes deltas to correct accumulator
 
 ## Performance Considerations
 
-### Buffering
+### Buffering Strategy
 
-REPL may buffer deltas before rendering:
+The REPL buffers text deltas before rendering to avoid excessive UI updates:
+- Collects deltas for 16ms intervals
+- Renders UI once per interval
+- Balances responsiveness with CPU efficiency
 
-```c
-// Buffer text deltas for 16ms, then render once
-#define RENDER_INTERVAL_MS 16
+### String Accumulation
 
-if (time_since_last_render() >= RENDER_INTERVAL_MS) {
-    ik_ui_render(repl->ui);
-    last_render_time = now();
-}
-```
+Efficient string building uses `talloc_string_builder_t`:
+- Avoids repeated reallocations
+- Tracks capacity and length separately
+- Amortized O(1) append operations
+- Single finalization to immutable string
 
-### String Building
+## Testing Approach
 
-Use `talloc_string_builder_t` for efficient string accumulation:
-
-```c
-talloc_string_builder_t *builder = talloc_string_builder_create(ctx);
-
-// Append deltas
-for each delta:
-    talloc_string_builder_append(builder, delta_text);
-
-// Finalize
-char *complete_text = talloc_string_builder_finalize(builder);
-```
-
-## Testing
-
-### Mock Streaming
-
-```c
-START_TEST(test_anthropic_streaming) {
-    // Mock SSE stream
-    const char *sse_events[] = {
-        "event: message_start\ndata: {\"message\":{\"model\":\"claude-sonnet-4-5\"}}\n\n",
-        "event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}\n\n",
-        "event: message_stop\ndata: {}\n\n",
-        NULL
-    };
-
-    mock_sse_stream(sse_events);
-
-    // Verify normalized events received
-    ik_stream_event_t events[3];
-    int event_count = 0;
-
-    auto callback = lambda(void, (ik_stream_event_t *e, void *ctx) {
-        events[event_count++] = *e;
-    });
-
-    ik_anthropic_stream(provider, req, callback, NULL);
-
-    ck_assert_int_eq(event_count, 3);
-    ck_assert_int_eq(events[0].type, IK_STREAM_START);
-    ck_assert_int_eq(events[1].type, IK_STREAM_TEXT_DELTA);
-    ck_assert_str_eq(events[1].data.text_delta.text, "Hello");
-    ck_assert_int_eq(events[2].type, IK_STREAM_DONE);
-}
-END_TEST
-```
+Mock streaming tests:
+1. Create array of SSE event strings (event + data pairs)
+2. Feed to provider adapter
+3. Capture normalized events emitted to callback
+4. Verify correct types, data extraction, and sequencing
+5. Test error conditions (malformed JSON, missing fields, connection drops)

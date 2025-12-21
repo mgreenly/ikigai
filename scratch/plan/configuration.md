@@ -58,69 +58,26 @@ Both are stored in `~/.config/ikigai/` (or `$XDG_CONFIG_HOME/ikigai/`).
 ### Defaults
 
 If config.json doesn't exist or is incomplete, use these defaults:
+- `default_provider`: `"openai"` (most common)
+- Anthropic: `"claude-sonnet-4-5"` with thinking level `"med"`
+- OpenAI: `"gpt-4o"` with thinking level `"none"`
+- Google: `"gemini-2.5-flash"` with thinking level `"med"`
+- UI: Dark theme with thinking visible
+
+### Loading Functions
 
 ```c
-static const ik_config_defaults_t DEFAULTS = {
-    .default_provider = "openai",  // Most common
-    .providers = {
-        {"anthropic", "claude-sonnet-4-5", "med"},
-        {"openai", "gpt-4o", "none"},
-        {"google", "gemini-2.5-flash", "med"}
-    },
-    .ui = {
-        .theme = "dark",
-        .show_thinking = true
-    }
-};
+// Load configuration from XDG_CONFIG_HOME or ~/.config/ikigai/config.json
+// Falls back to defaults if file doesn't exist
+res_t ik_config_load(TALLOC_CTX *ctx, ik_config_t **out_config);
 ```
 
-### Loading
-
-```c
-res_t ik_config_load(TALLOC_CTX *ctx, ik_config_t **out_config)
-{
-    // Try XDG_CONFIG_HOME first, fall back to ~/.config
-    const char *config_dir = getenv("XDG_CONFIG_HOME");
-    if (config_dir == NULL) {
-        config_dir = talloc_asprintf(ctx, "%s/.config", getenv("HOME"));
-    }
-
-    char *config_path = talloc_asprintf(ctx, "%s/ikigai/config.json",
-                                       config_dir);
-
-    // Read file
-    FILE *f = fopen(config_path, "r");
-    if (f == NULL) {
-        // File doesn't exist - use defaults
-        *out_config = create_default_config(ctx);
-        return OK(NULL);
-    }
-
-    // Parse JSON
-    fseek(f, 0, SEEK_END);
-    size_t len = ftell(f);
-    fseek(f, 0, SEEK_SET);
-
-    char *json = talloc_array(ctx, char, len + 1);
-    fread(json, 1, len, f);
-    json[len] = '\0';
-    fclose(f);
-
-    yyjson_doc *doc = yyjson_read(json, len, 0);
-    if (doc == NULL) {
-        return ERR(ctx, ERR_INVALID_ARG,
-                  "Failed to parse config.json: invalid JSON");
-    }
-
-    // Parse config
-    ik_config_t *config = talloc_zero_(ctx, sizeof(*config));
-    TRY(parse_config(config, doc));
-
-    yyjson_doc_free(doc);
-    *out_config = config;
-    return OK(NULL);
-}
-```
+**Loading flow:**
+1. Try `$XDG_CONFIG_HOME/ikigai/config.json`
+2. Fall back to `~/.config/ikigai/config.json`
+3. If file doesn't exist, use built-in defaults
+4. Parse JSON and populate config structure
+5. Return config object
 
 ## credentials.json
 
@@ -155,62 +112,40 @@ Per-provider:
 
 **Required:** Mode 600 (owner read/write only)
 
+Function to check permissions:
 ```c
-res_t ik_credentials_load(TALLOC_CTX *ctx, ik_credentials_t **out_creds)
-{
-    char *creds_path = talloc_asprintf(ctx, "%s/ikigai/credentials.json",
-                                      config_dir);
-
-    // Check permissions
-    struct stat st;
-    if (stat(creds_path, &st) == 0) {
-        if ((st.st_mode & 0077) != 0) {
-            fprintf(stderr, "⚠️  Warning: credentials.json has insecure permissions\n");
-            fprintf(stderr, "   Run: chmod 600 %s\n", creds_path);
-        }
-    }
-
-    // Load file...
-}
+bool ik_credentials_insecure_permissions(const char *path);
 ```
 
-### Environment Variable Precedence
+Returns true if file has permissions beyond owner read/write (mode & 0077 != 0).
 
-Credentials are loaded in this order:
-1. **Environment variable** (e.g., `ANTHROPIC_API_KEY`)
-2. **credentials.json** file
-3. **Error** (no credentials found)
+### Credentials API
+
+**Two-function design** separates loading from lookup:
 
 ```c
-res_t ik_credentials_get_api_key(TALLOC_CTX *ctx,
-                                 const char *provider,
-                                 char **out_key)
-{
-    // Try environment variable first
-    const char *env_var = ik_provider_env_var(provider);  // "ANTHROPIC_API_KEY"
-    const char *env_value = getenv(env_var);
+// Load credentials from file and environment
+// Precedence: environment variable > credentials.json file
+res_t ik_credentials_load(TALLOC_CTX *ctx, const char *path,
+                          ik_credentials_t **out_creds);
 
-    if (env_value != NULL && strlen(env_value) > 0) {
-        *out_key = talloc_strdup(ctx, env_value);
-        return OK(NULL);
-    }
-
-    // Try credentials.json
-    ik_credentials_t *creds = NULL;
-    TRY(ik_credentials_load(ctx, &creds));
-
-    const char *key = ik_credentials_get(creds, provider);
-    if (key != NULL) {
-        *out_key = talloc_strdup(ctx, key);
-        return OK(NULL);
-    }
-
-    // Not found
-    return ERR(ctx, ERR_AUTH,
-              "No credentials for %s. Set %s or add to credentials.json",
-              provider, env_var);
-}
+// Simple lookup in loaded credentials (returns NULL if not found)
+const char *ik_credentials_get(const ik_credentials_t *creds,
+                               const char *provider);
 ```
+
+**Loading precedence:**
+1. Environment variables (highest priority)
+2. credentials.json file
+3. NULL if neither exists
+
+**Loading flow:**
+1. Load from environment variables first
+2. Determine credentials path (use provided path or default)
+3. Check if file exists (skip if not)
+4. Warn if file has insecure permissions
+5. Parse JSON and load file values (only if env var not set)
+6. Return credentials object
 
 ### Environment Variables
 
@@ -278,34 +213,17 @@ Check your config file:
 
 ## Configuration Validation
 
-### Startup Validation (Optional)
+### Startup Validation
 
+Function signature:
 ```c
-res_t ik_config_validate(ik_config_t *config)
-{
-    // Check default_provider exists
-    bool provider_exists = false;
-    const char *providers[] = {"anthropic", "openai", "google", "xai", "meta"};
-    for (size_t i = 0; i < sizeof(providers) / sizeof(providers[0]); i++) {
-        if (strcmp(config->default_provider, providers[i]) == 0) {
-            provider_exists = true;
-            break;
-        }
-    }
-
-    if (!provider_exists) {
-        fprintf(stderr, "⚠️  Warning: unknown default_provider '%s' in config.json\n",
-               config->default_provider);
-        fprintf(stderr, "   Valid providers: anthropic, openai, google, xai, meta\n");
-    }
-
-    // Check thinking levels
-    const char *valid_levels[] = {"none", "low", "med", "high"};
-    // ... validate each provider's default_thinking ...
-
-    return OK(NULL);
-}
+res_t ik_config_validate(ik_config_t *config);
 ```
+
+**Validation checks:**
+- `default_provider` is one of: anthropic, openai, google, xai, meta
+- `default_thinking` values are: none, low, med, high
+- Warnings are printed to stderr, not errors
 
 ### Runtime Validation
 
@@ -315,16 +233,10 @@ No validation at startup. Errors surface when features are used.
 
 ### Programmatic Updates
 
-```c
-// User runs: /model claude-sonnet-4-5/med
-// Update agent state (not config.json)
-agent->provider = "anthropic";
-agent->model = "claude-sonnet-4-5";
-agent->thinking_level = IK_THINKING_MED;
-
-// Save to database
-ik_db_update_agent(db, agent);
-```
+Agent settings are updated in database, not config.json:
+- User runs `/model claude-sonnet-4-5/med`
+- Update agent state in memory
+- Save to database via `ik_db_update_agent()`
 
 **config.json is not auto-updated.** It only provides initial defaults.
 
@@ -342,39 +254,17 @@ Changes take effect on next startup (config is loaded once).
 
 ### Mock Configuration
 
-```c
-START_TEST(test_config_default_provider) {
-    const char *config_json =
-        "{\"default_provider\":\"anthropic\","
-        "\"providers\":{\"anthropic\":{\"default_model\":\"claude-sonnet-4-5\"}}}";
-
-    ik_config_t *config = NULL;
-    TRY(parse_config_string(ctx, config_json, &config));
-
-    ck_assert_str_eq(config->default_provider, "anthropic");
-    ck_assert_str_eq(config->providers[0].default_model, "claude-sonnet-4-5");
-}
-END_TEST
-```
+Tests use in-memory JSON strings to create mock configurations:
+- Parse JSON strings directly
+- No file I/O required
+- Validate field values match expected defaults
 
 ### Mock Credentials
 
-```c
-START_TEST(test_credentials_env_precedence) {
-    // Set environment variable
-    setenv("ANTHROPIC_API_KEY", "env-key", 1);
-
-    // Create credentials.json with different key
-    write_credentials_file("{\"anthropic\":{\"api_key\":\"file-key\"}}");
-
-    // Should prefer environment variable
-    char *key = NULL;
-    TRY(ik_credentials_get_api_key(ctx, "anthropic", &key));
-
-    ck_assert_str_eq(key, "env-key");
-}
-END_TEST
-```
+Tests validate environment variable precedence:
+- Set environment variable
+- Create credentials.json with different value
+- Verify environment variable takes priority
 
 ## Migration
 
@@ -387,7 +277,7 @@ Old format (if it existed):
 }
 ```
 
-New format:
+New config.json format:
 ```json
 {
   "default_provider": "openai",
@@ -400,7 +290,7 @@ New format:
 }
 ```
 
-Credentials:
+New credentials.json format:
 ```json
 {
   "openai": {
@@ -413,21 +303,13 @@ Credentials:
 
 ## Security Considerations
 
-1. **Never log API keys** - Redact in logs/errors
+1. **Never log API keys** - Redact in logs/errors (log first 8 chars + "..." or "[redacted]")
 2. **Warn on insecure permissions** - credentials.json should be mode 600
 3. **No keys in config.json** - Only in credentials.json
 4. **Environment variables cleared** - Don't leave in shell history
 5. **No version control** - Add credentials.json to .gitignore
 
-Example redaction:
-
+Function for safe logging:
 ```c
-void ik_log_api_key(const char *key) {
-    // Log first 8 chars + "..." for debugging
-    if (strlen(key) > 8) {
-        ik_log(LOG_DEBUG, "API key: %.8s...", key);
-    } else {
-        ik_log(LOG_DEBUG, "API key: [redacted]");
-    }
-}
+void ik_log_api_key(const char *key);
 ```

@@ -1,9 +1,19 @@
 {
   "todo": [
+    {"task": "credentials-core.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
+    {"task": "credentials-config.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
+    {"task": "credentials-production.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
+    {"task": "credentials-tests-helpers.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
+    {"task": "credentials-tests-config.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
+    {"task": "credentials-tests-openai.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
+    {"task": "credentials-tests-repl.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
+    {"task": "credentials-tests-integration.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
     {"task": "provider-types.md", "group": "Foundation", "model": "sonnet", "thinking": "none", "layer": 0},
     {"task": "database-migration.md", "group": "Database", "model": "sonnet", "thinking": "none", "layer": 0},
 
-    {"task": "shared-utilities.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking", "layer": 1},
+    {"task": "http-client.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking", "layer": 1},
+    {"task": "sse-parser.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking", "layer": 1},
+    {"task": "provider-factory.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking", "layer": 1},
     {"task": "request-builders.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking", "layer": 1},
     {"task": "error-handling.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking", "layer": 1},
 
@@ -14,11 +24,24 @@
 
     {"task": "model-command.md", "group": "Commands", "model": "sonnet", "thinking": "thinking", "layer": 3},
     {"task": "repl-provider-abstraction.md", "group": "REPL Integration", "model": "sonnet", "thinking": "extended", "layer": 3},
-    {"task": "anthropic-provider.md", "group": "Anthropic", "model": "sonnet", "thinking": "extended", "layer": 3},
-    {"task": "google-provider.md", "group": "Google", "model": "sonnet", "thinking": "extended", "layer": 3},
+    {"task": "anthropic-core.md", "group": "Anthropic", "model": "sonnet", "thinking": "thinking", "layer": 3},
+    {"task": "anthropic-request.md", "group": "Anthropic", "model": "sonnet", "thinking": "thinking", "layer": 3},
+    {"task": "anthropic-response.md", "group": "Anthropic", "model": "sonnet", "thinking": "thinking", "layer": 3},
+    {"task": "anthropic-streaming.md", "group": "Anthropic", "model": "sonnet", "thinking": "thinking", "layer": 3},
+    {"task": "google-core.md", "group": "Google", "model": "sonnet", "thinking": "thinking", "layer": 3},
+    {"task": "google-request.md", "group": "Google", "model": "sonnet", "thinking": "thinking", "layer": 3},
+    {"task": "google-response.md", "group": "Google", "model": "sonnet", "thinking": "thinking", "layer": 3},
+    {"task": "google-streaming.md", "group": "Google", "model": "sonnet", "thinking": "thinking", "layer": 3},
 
     {"task": "fork-model-override.md", "group": "Commands", "model": "sonnet", "thinking": "thinking", "layer": 4},
-    {"task": "openai-native.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "extended", "layer": 4},
+    {"task": "openai-core.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "thinking", "layer": 4},
+    {"task": "openai-request-chat.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "thinking", "layer": 4},
+    {"task": "openai-request-responses.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "thinking", "layer": 4},
+    {"task": "openai-response-chat.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "thinking", "layer": 4},
+    {"task": "openai-response-responses.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "thinking", "layer": 4},
+    {"task": "openai-send-impl.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "thinking", "layer": 4},
+    {"task": "openai-streaming-chat.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "thinking", "layer": 4},
+    {"task": "openai-streaming-responses.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "thinking", "layer": 4},
     {"task": "tests-anthropic.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 4},
     {"task": "tests-google.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 4},
 

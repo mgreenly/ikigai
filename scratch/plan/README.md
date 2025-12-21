@@ -34,6 +34,10 @@ This design implements multi-provider AI API support for ikigai, enabling seamle
 - **[transformation.md](transformation.md)** - Request/response transformation pipeline per provider
 - **[thinking-abstraction.md](thinking-abstraction.md)** - Unified thinking level mapping to provider-specific parameters
 
+### Commands
+
+- **[commands.md](commands.md)** - `/model` and `/fork` command behavior, provider inference, argument parsing
+
 ### Configuration & Storage
 
 - **[configuration.md](configuration.md)** - config.json and credentials.json format, precedence rules
