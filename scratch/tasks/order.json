@@ -15,15 +15,18 @@
     {"task": "sse-parser.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking", "layer": 1},
     {"task": "provider-factory.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking", "layer": 1},
     {"task": "request-builders.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking", "layer": 1},
-    {"task": "error-handling.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking", "layer": 1},
+    {"task": "error-core.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking", "layer": 1},
 
+    {"task": "tests-mock-infrastructure.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 2},
+    {"task": "tests-common-utilities.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 2},
+    {"task": "tests-provider-core.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 2},
     {"task": "openai-adapter-shim.md", "group": "OpenAI Migration", "model": "sonnet", "thinking": "extended", "layer": 2},
     {"task": "configuration.md", "group": "Configuration", "model": "sonnet", "thinking": "thinking", "layer": 2},
     {"task": "agent-provider-fields.md", "group": "Agent Updates", "model": "sonnet", "thinking": "thinking", "layer": 2},
-    {"task": "tests-provider-common.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 2},
 
     {"task": "model-command.md", "group": "Commands", "model": "sonnet", "thinking": "thinking", "layer": 3},
-    {"task": "repl-provider-abstraction.md", "group": "REPL Integration", "model": "sonnet", "thinking": "extended", "layer": 3},
+    {"task": "repl-provider-routing.md", "group": "REPL Integration", "model": "sonnet", "thinking": "thinking", "layer": 3},
+    {"task": "repl-streaming-updates.md", "group": "REPL Integration", "model": "sonnet", "thinking": "thinking", "layer": 3},
     {"task": "anthropic-core.md", "group": "Anthropic", "model": "sonnet", "thinking": "thinking", "layer": 3},
     {"task": "anthropic-request.md", "group": "Anthropic", "model": "sonnet", "thinking": "thinking", "layer": 3},
     {"task": "anthropic-response.md", "group": "Anthropic", "model": "sonnet", "thinking": "thinking", "layer": 3},
@@ -42,12 +45,19 @@
     {"task": "openai-send-impl.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "thinking", "layer": 4},
     {"task": "openai-streaming-chat.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "thinking", "layer": 4},
     {"task": "openai-streaming-responses.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "thinking", "layer": 4},
-    {"task": "tests-anthropic.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 4},
-    {"task": "tests-google.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 4},
+    {"task": "tests-anthropic-basic.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 4},
+    {"task": "tests-anthropic-streaming.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 4},
+    {"task": "tests-google-basic.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 4},
+    {"task": "tests-google-streaming.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 4},
 
-    {"task": "cleanup-old-openai.md", "group": "Cleanup", "model": "sonnet", "thinking": "thinking", "layer": 5},
-    {"task": "tests-openai.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 5},
+    {"task": "cleanup-openai-source.md", "group": "Cleanup", "model": "sonnet", "thinking": "none", "layer": 5},
+    {"task": "tests-openai-basic.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 5},
+    {"task": "tests-openai-streaming.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 5},
 
-    {"task": "tests-integration.md", "group": "Testing", "model": "opus", "thinking": "extended", "layer": 6}
+    {"task": "cleanup-openai-adapter.md", "group": "Cleanup", "model": "sonnet", "thinking": "none", "layer": 6},
+    {"task": "cleanup-openai-tests.md", "group": "Cleanup", "model": "sonnet", "thinking": "none", "layer": 6},
+    {"task": "cleanup-openai-docs.md", "group": "Cleanup", "model": "sonnet", "thinking": "none", "layer": 6},
+    {"task": "tests-integration-switching.md", "group": "Testing", "model": "sonnet", "thinking": "extended", "layer": 7},
+    {"task": "tests-integration-flows.md", "group": "Testing", "model": "sonnet", "thinking": "extended", "layer": 7}
   ]
 }

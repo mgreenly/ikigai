@@ -2,7 +2,7 @@
 
 **Layer:** 4
 **Model:** sonnet/thinking
-**Depends on:** openai-adapter-shim.md, provider-types.md, credentials-core.md
+**Depends on:** openai-adapter-shim.md, provider-types.md, credentials-core.md, error-core.md
 
 ## Pre-Read
 
@@ -12,6 +12,7 @@
 
 **Source:**
 - `src/providers/provider.h` - Vtable and type definitions
+- `src/providers/common/error.h` - Shared error utilities
 - `src/providers/openai/adapter_shim.c` - Existing shim to replace
 - `src/credentials.h` - Credentials API
 
@@ -43,6 +44,8 @@ Create native OpenAI provider to replace the adapter shim. This establishes dire
 | `ik_openai_reasoning_effort(level)` | Map internal thinking level to "low", "medium", "high", or NULL |
 | `ik_openai_supports_temperature(model)` | Check if model supports temperature (reasoning models do NOT) |
 | `ik_openai_prefer_responses_api(model)` | Determine if model should use Responses API (reasoning models perform 3% better) |
+| `ik_openai_handle_error(ctx, status, body, out_category)` | Parse error response, map to category, extract details |
+| `ik_openai_get_retry_after(headers)` | Extract retry delay from x-ratelimit-reset-* headers, returns seconds or -1 |
 
 ### Structs to Define
 
@@ -92,6 +95,42 @@ Create native OpenAI provider to replace the adapter shim. This establishes dire
 - Provider name should be "openai"
 - Vtable functions `send` and `stream` are forward-declared (implemented in later tasks)
 
+### Error Handling
+
+**Error Response Format:**
+```json
+{
+  "error": {
+    "message": "Incorrect API key provided",
+    "type": "invalid_request_error",
+    "code": "invalid_api_key"
+  }
+}
+```
+
+**HTTP Status to Category Mapping:**
+
+| HTTP Status | Provider Code | Category |
+|-------------|---------------|----------|
+| 401 | `invalid_api_key` | `IK_ERR_CAT_AUTH` |
+| 401 | `invalid_org` | `IK_ERR_CAT_AUTH` |
+| 429 | `rate_limit_exceeded` | `IK_ERR_CAT_RATE_LIMIT` |
+| 429 | `quota_exceeded` | `IK_ERR_CAT_RATE_LIMIT` |
+| 400 | `invalid_request_error` | `IK_ERR_CAT_INVALID_ARG` |
+| 404 | `model_not_found` | `IK_ERR_CAT_NOT_FOUND` |
+| 500 | `server_error` | `IK_ERR_CAT_SERVER` |
+| 503 | `service_unavailable` | `IK_ERR_CAT_SERVER` |
+
+**Content Filter Detection:**
+- Check for `content_filter` in error.code or error.type
+- Map to `IK_ERR_CAT_CONTENT_FILTER`
+
+**`ik_openai_get_retry_after()` Behavior:**
+- Scan headers for `x-ratelimit-reset-requests` or `x-ratelimit-reset-tokens`
+- Parse duration format: "6m0s" → 360 seconds, "30s" → 30 seconds
+- Return minimum of both reset times (prefer requests over tokens)
+- Return -1 if neither header present
+
 ### Directory Structure
 
 ```
@@ -100,6 +139,8 @@ src/providers/openai/
 ├── openai.c         - Factory and vtable
 ├── reasoning.h      - Reasoning effort mapping
 ├── reasoning.c      - Reasoning implementation
+├── error.h          - Error handling API
+├── error.c          - Error handling implementation
 ├── adapter_shim.c   - (KEEP for now, deleted by cleanup task)
 ```
 
@@ -143,11 +184,30 @@ src/providers/openai/
 - `ik_provider_create(ctx, "openai", api_key, &provider)` uses native implementation
 - Shim remains in codebase but is no longer referenced
 
+### Error Handling Tests
+
+- 401 status with `invalid_api_key` maps to IK_ERR_CAT_AUTH
+- 429 status maps to IK_ERR_CAT_RATE_LIMIT
+- 500 status maps to IK_ERR_CAT_SERVER
+- Content filter code maps to IK_ERR_CAT_CONTENT_FILTER
+- Parse error body: extract error.type, error.code, error.message
+- Invalid JSON body returns ERR
+
+### Retry-After Tests
+
+- Header "x-ratelimit-reset-requests: 6m0s" returns 360
+- Header "x-ratelimit-reset-tokens: 30s" returns 30
+- Both headers present returns minimum value
+- Missing headers returns -1
+- Malformed duration returns -1
+
 ## Postconditions
 
 - [ ] `src/providers/openai/openai.h` exists with factory declarations
 - [ ] `src/providers/openai/openai.c` implements factory functions
 - [ ] `src/providers/openai/reasoning.h` and `.c` exist
+- [ ] `src/providers/openai/error.h` declares `ik_openai_handle_error()` and `ik_openai_get_retry_after()`
+- [ ] `src/providers/openai/error.c` implements error handling with correct status mappings
 - [ ] Reasoning model detection works for o1/o3 prefixes
 - [ ] Reasoning effort mapping returns correct strings
 - [ ] Temperature support check works correctly
@@ -156,5 +216,6 @@ src/providers/openai/
 - [ ] `adapter_shim.c` still exists but is unused
 - [ ] Makefile updated with new sources
 - [ ] All reasoning tests pass
+- [ ] All error handling tests pass
 - [ ] Compiles without warnings
 - [ ] `make check` passes

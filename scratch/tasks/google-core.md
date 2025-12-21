@@ -2,7 +2,7 @@
 
 **Layer:** 3
 **Model:** sonnet/thinking
-**Depends on:** provider-types.md, credentials-core.md
+**Depends on:** provider-types.md, credentials-core.md, error-core.md
 
 ## Pre-Read
 
@@ -11,6 +11,7 @@
 
 **Source:**
 - `src/providers/provider.h` - Vtable and type definitions
+- `src/providers/common/error.h` - Shared error utilities
 - `src/credentials.h` - Credentials API
 
 **Plan:**
@@ -41,6 +42,8 @@ Functions to implement:
 | `const char *ik_google_thinking_level_str(ik_thinking_level_t level)` | Get thinking level string ("LOW"/"HIGH") for Gemini 3 models, NULL if NONE |
 | `bool ik_google_supports_thinking(const char *model)` | Check if model supports thinking mode |
 | `bool ik_google_can_disable_thinking(const char *model)` | Check if thinking can be disabled for model |
+| `res_t ik_google_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body, ik_error_category_t *out_category)` | Parse error response, map to category, extract details |
+| `int32_t ik_google_get_retry_after(const char *body)` | Extract retryDelay from response body JSON, returns seconds or -1 |
 
 Structs to define:
 
@@ -76,9 +79,48 @@ Structs to define:
 - Register "google" provider in ik_provider_create() dispatch
 - Call ik_google_create() when provider name is "google"
 
+**Error Handling:**
+
+Error response format:
+```json
+{
+  "error": {
+    "code": 403,
+    "message": "Your API key was reported as leaked...",
+    "status": "PERMISSION_DENIED"
+  }
+}
+```
+
+Rate limit response includes retryDelay:
+```json
+{
+  "error": {
+    "code": 429,
+    "status": "RESOURCE_EXHAUSTED",
+    "message": "Quota exceeded for requests per minute"
+  },
+  "retryDelay": "60s"
+}
+```
+
+HTTP Status to Category Mapping:
+
+| HTTP Status | Provider Status | Category |
+|-------------|-----------------|----------|
+| 403 | `PERMISSION_DENIED` | `IK_ERR_CAT_AUTH` |
+| 429 | `RESOURCE_EXHAUSTED` | `IK_ERR_CAT_RATE_LIMIT` |
+| 400 | `INVALID_ARGUMENT` | `IK_ERR_CAT_INVALID_ARG` |
+| 404 | `NOT_FOUND` | `IK_ERR_CAT_NOT_FOUND` |
+| 500 | `INTERNAL` | `IK_ERR_CAT_SERVER` |
+| 503 | `UNAVAILABLE` | `IK_ERR_CAT_SERVER` |
+| 504 | `DEADLINE_EXCEEDED` | `IK_ERR_CAT_TIMEOUT` |
+
+`ik_google_get_retry_after()` parses retryDelay string ("60s" format), extracts integer seconds.
+
 **Directory Structure:**
 - Create src/providers/google/ directory
-- Files: google.h (public), google.c (factory+vtable), thinking.h (internal), thinking.c (implementation)
+- Files: google.h (public), google.c (factory+vtable), thinking.h (internal), thinking.c (implementation), error.h (internal), error.c (implementation)
 
 **Vtable:**
 - send function forwards to ik_google_send_impl (implemented in google-request.md)
@@ -134,11 +176,26 @@ Structs to define:
 **Factory Registration:**
 - ik_provider_create(ctx, "google", "key", &provider) dispatches to ik_google_create()
 
+**Error Handling:**
+- 403 status maps to IK_ERR_CAT_AUTH
+- 429 status maps to IK_ERR_CAT_RATE_LIMIT
+- 504 status maps to IK_ERR_CAT_TIMEOUT
+- Parse error body: extract error.status and error.message
+- Invalid JSON body returns ERR
+
+**Retry-After:**
+- Body with retryDelay "60s" returns 60
+- Body with retryDelay "30s" returns 30
+- Body without retryDelay returns -1
+- Invalid JSON returns -1
+
 ## Postconditions
 
 - [ ] `src/providers/google/` directory exists
 - [ ] `google.h` declares `ik_google_create()`
 - [ ] `thinking.h` and `thinking.c` implement budget/level calculation
+- [ ] `error.h` declares `ik_google_handle_error()` and `ik_google_get_retry_after()`
+- [ ] `error.c` implements error handling with correct status mappings
 - [ ] `ik_google_model_series()` correctly identifies 2.5 vs 3 models
 - [ ] `ik_google_thinking_budget()` returns correct values for 2.5 models
 - [ ] `ik_google_thinking_level_str()` returns LOW/HIGH for 3 models
@@ -147,3 +204,4 @@ Structs to define:
 - [ ] Makefile updated with new sources
 - [ ] `make build/tests/unit/providers/google/thinking_test` succeeds
 - [ ] All thinking tests pass
+- [ ] All error handling tests pass
