@@ -134,7 +134,7 @@ TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -348,25 +348,90 @@ check-integration: $(INTEGRATION_TEST_RUNS) $(DB_INTEGRATION_TEST_RUNS)
 	@echo "Integration tests passed!"
 
 # Verify mock fixtures against real OpenAI API
-# Reads OPENAI_API_KEY from ~/.config/ikigai/config.json if not set in environment
+# Reads OPENAI_API_KEY from ~/.config/ikigai/credentials.json if not set in environment
 # Only runs the verification test, which checks if fixtures match real API responses
 verify-mocks: $(BUILDDIR)/tests/integration/openai_mock_verification_test
 	@API_KEY="$$OPENAI_API_KEY"; \
 	if [ -z "$$API_KEY" ]; then \
-		CONFIG_FILE="$$HOME/.config/ikigai/config.json"; \
+		CONFIG_FILE="$$HOME/.config/ikigai/credentials.json"; \
 		if [ -f "$$CONFIG_FILE" ]; then \
-			API_KEY=$$(jq -r '.openai_api_key // empty' "$$CONFIG_FILE"); \
+			API_KEY=$$(jq -r '.openai.api_key // empty' "$$CONFIG_FILE"); \
 		fi; \
 	fi; \
 	if [ -z "$$API_KEY" ]; then \
 		echo "Error: OPENAI_API_KEY not found"; \
-		echo "Set OPENAI_API_KEY env var or add openai_api_key to ~/.config/ikigai/config.json"; \
+		echo "Set OPENAI_API_KEY env var or add openai.api_key to ~/.config/ikigai/credentials.json"; \
 		exit 1; \
 	fi; \
 	echo "Running mock verification tests against real OpenAI API..."; \
 	echo "Note: This will make real API calls and incur costs."; \
 	VERIFY_MOCKS=1 OPENAI_API_KEY="$$API_KEY" $(BUILDDIR)/tests/integration/openai_mock_verification_test; \
 	echo "Mock verification passed!"
+
+# Validate API credentials in ~/.config/ikigai/credentials.json
+# Tests each provider's API key without exposing the key values
+verify-credentials:
+	@CREDS="$$HOME/.config/ikigai/credentials.json"; \
+	if [ ! -f "$$CREDS" ]; then \
+		echo "Error: $$CREDS not found"; \
+		exit 1; \
+	fi; \
+	FAILED=0; \
+	echo "Validating API credentials..."; \
+	echo ""; \
+	echo -n "  OpenAI:    "; \
+	KEY=$$(jq -r '.openai.api_key // empty' "$$CREDS"); \
+	if [ -z "$$KEY" ]; then \
+		echo "SKIP (no key)"; \
+	else \
+		HTTP_CODE=$$(curl -s -o /dev/null -w "%{http_code}" \
+			-H "Authorization: Bearer $$KEY" \
+			https://api.openai.com/v1/models); \
+		if [ "$$HTTP_CODE" = "200" ]; then \
+			echo "OK"; \
+		else \
+			echo "FAILED (HTTP $$HTTP_CODE)"; \
+			FAILED=1; \
+		fi; \
+	fi; \
+	echo -n "  Anthropic: "; \
+	KEY=$$(jq -r '.anthropic.api_key // empty' "$$CREDS"); \
+	if [ -z "$$KEY" ]; then \
+		echo "SKIP (no key)"; \
+	else \
+		HTTP_CODE=$$(curl -s -o /dev/null -w "%{http_code}" \
+			-H "x-api-key: $$KEY" \
+			-H "anthropic-version: 2023-06-01" \
+			-H "content-type: application/json" \
+			-d '{"model":"claude-3-haiku-20240307","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}' \
+			https://api.anthropic.com/v1/messages); \
+		if [ "$$HTTP_CODE" = "200" ]; then \
+			echo "OK"; \
+		else \
+			echo "FAILED (HTTP $$HTTP_CODE)"; \
+			FAILED=1; \
+		fi; \
+	fi; \
+	echo -n "  Google:    "; \
+	KEY=$$(jq -r '.google.api_key // empty' "$$CREDS"); \
+	if [ -z "$$KEY" ]; then \
+		echo "SKIP (no key)"; \
+	else \
+		HTTP_CODE=$$(curl -s -o /dev/null -w "%{http_code}" \
+			"https://generativelanguage.googleapis.com/v1beta/models?key=$$KEY"); \
+		if [ "$$HTTP_CODE" = "200" ]; then \
+			echo "OK"; \
+		else \
+			echo "FAILED (HTTP $$HTTP_CODE)"; \
+			FAILED=1; \
+		fi; \
+	fi; \
+	echo ""; \
+	if [ "$$FAILED" = "1" ]; then \
+		echo "Some credentials failed validation."; \
+		exit 1; \
+	fi; \
+	echo "All credentials valid."
 
 # Clean up .run sentinel files
 clean: clean-test-runs
@@ -714,7 +779,8 @@ help:
 	@echo "  check           - Build and run all tests (unit + integration)"
 	@echo "  check-unit      - Build and run only unit tests"
 	@echo "  check-integration - Build and run only integration tests"
-	@echo "  verify-mocks    - Verify OpenAI mock fixtures (uses config.json or OPENAI_API_KEY)"
+	@echo "  verify-mocks    - Verify OpenAI mock fixtures (uses credentials.json or OPENAI_API_KEY)"
+	@echo "  verify-credentials - Validate API keys in ~/.config/ikigai/credentials.json"
 	@echo "  check-sanitize  - Run all tests with AddressSanitizer + UBSanitizer"
 	@echo "  check-valgrind  - Run all tests under Valgrind Memcheck"
 	@echo "  check-helgrind  - Run all tests under Valgrind Helgrind (thread errors)"
