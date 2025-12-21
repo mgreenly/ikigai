@@ -84,14 +84,26 @@ A utility function loads fixture files from the tests/fixtures/ directory using 
 
 Live API tests are wrapped in ENABLE_LIVE_API_TESTS preprocessor guards. They check for provider API keys in environment variables and skip if not present. When run with real credentials, they make actual API calls to verify that mock responses accurately represent live API behavior. An UPDATE_FIXTURES environment variable allows tests to save live responses back to fixture files for maintaining test data accuracy.
 
+### Credentials Source
+
+**The credentials file `~/.config/ikigai/credentials.json` already exists with valid API keys for all three providers.** The Makefile's `verify-mocks` target reads from this file and sets environment variables:
+
+```makefile
+CREDS_FILE="$$HOME/.config/ikigai/credentials.json"
+OPENAI_KEY=$$(jq -r '.openai.api_key // empty' "$$CREDS_FILE")
+ANTHROPIC_KEY=$$(jq -r '.anthropic.api_key // empty' "$$CREDS_FILE")
+GOOGLE_KEY=$$(jq -r '.google.api_key // empty' "$$CREDS_FILE")
+```
+
 ### Running Live Tests
 
 Standard test execution uses mocks and requires no API keys. Live validation tests require setting ENABLE_LIVE_API_TESTS=1 plus provider API keys. The UPDATE_FIXTURES=1 flag enables saving live responses to fixture files.
 
 Command examples:
 - Normal tests: `make test`
-- Live validation: `ENABLE_LIVE_API_TESTS=1 ANTHROPIC_API_KEY=sk-ant-... make test`
-- Update fixtures: `ENABLE_LIVE_API_TESTS=1 UPDATE_FIXTURES=1 ANTHROPIC_API_KEY=sk-ant-... make test`
+- Verify all fixtures: `make verify-mocks-all` (reads from credentials.json)
+- Verify single provider: `make verify-mocks-anthropic`
+- Update fixtures: `UPDATE_FIXTURES=1 make verify-mocks-all`
 
 ## Test Fixtures
 
@@ -240,11 +252,13 @@ make valgrind
 ### Run Live Tests
 
 ```bash
-ENABLE_LIVE_API_TESTS=1 \
-ANTHROPIC_API_KEY=$ANTHROPIC_KEY \
-OPENAI_API_KEY=$OPENAI_KEY \
-GOOGLE_API_KEY=$GOOGLE_KEY \
-make test-live
+# Credentials are read automatically from ~/.config/ikigai/credentials.json
+make verify-mocks-all
+
+# Or run specific provider validation
+make verify-mocks-openai
+make verify-mocks-anthropic
+make verify-mocks-google
 ```
 
 ## Continuous Integration

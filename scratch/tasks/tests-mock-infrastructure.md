@@ -151,6 +151,35 @@ START_TEST(test_mock_http_returns_configured_response)
 END_TEST
 ```
 
+## Live Validation (Makefile Updates)
+
+The existing `make verify-mocks` target validates fixtures against real APIs. Update it to use the new credentials location:
+
+**Current** (reads from old config.json):
+```makefile
+CONFIG_FILE="$$HOME/.config/ikigai/config.json"
+API_KEY=$$(jq -r '.openai_api_key' "$$CONFIG_FILE")
+```
+
+**Updated** (reads from credentials.json):
+```makefile
+CREDS_FILE="$$HOME/.config/ikigai/credentials.json"
+# Extract per-provider keys
+OPENAI_KEY=$$(jq -r '.openai.api_key // empty' "$$CREDS_FILE")
+ANTHROPIC_KEY=$$(jq -r '.anthropic.api_key // empty' "$$CREDS_FILE")
+GOOGLE_KEY=$$(jq -r '.google.api_key // empty' "$$CREDS_FILE")
+```
+
+**IMPORTANT:** The credentials file `~/.config/ikigai/credentials.json` already exists with valid API keys for all three providers. The Makefile should READ from this file to set environment variables for live tests.
+
+Add new targets for each provider:
+```makefile
+verify-mocks-openai:    # Verify OpenAI fixtures
+verify-mocks-anthropic: # Verify Anthropic fixtures
+verify-mocks-google:    # Verify Google fixtures
+verify-mocks-all:       # Verify all provider fixtures
+```
+
 ## Postconditions
 
 - [ ] `src/providers/common/http_wrapper.h` exists with MOCKABLE declarations
@@ -160,4 +189,5 @@ END_TEST
 - [ ] `tests/fixtures/responses/` directory created
 - [ ] `tests/fixtures/errors/` directory created
 - [ ] Validation test compiles and passes
+- [ ] Makefile `verify-mocks` updated to read from `~/.config/ikigai/credentials.json`
 - [ ] `make check` passes
