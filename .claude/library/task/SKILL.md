@@ -66,11 +66,12 @@ Tasks are created directly in `scratch/tasks/` with an `order.json`:
 ```json
 {
   "todo": [
-    {"task": "01-foo.md", "group": "Core", "model": "sonnet", "thinking": "none"}
-  ],
-  "done": []
+    {"task": "foo.md", "group": "Core", "model": "sonnet", "thinking": "none"}
+  ]
 }
 ```
+
+Array position determines execution order. The database tracks completion state.
 
 Temp files during execution go in `scratch/tmp/`.
 

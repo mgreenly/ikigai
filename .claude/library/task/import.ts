@@ -6,8 +6,8 @@
  * Usage: deno run ... import.ts [tasks-directory]
  *
  * Defaults to scratch/tasks if no directory specified.
- * Reads order.json from the directory and imports all tasks (both todo and done)
- * along with their markdown content from the same directory.
+ * Reads order.json from the directory and imports all tasks from the todo array.
+ * Task completion state is tracked in the database, not in order.json.
  */
 
 import { getDb, initSchema, closeDb } from "./db.ts";
@@ -23,7 +23,6 @@ interface TaskEntry {
 
 interface OrderFile {
   todo: TaskEntry[];
-  done: TaskEntry[];
 }
 
 async function main() {
@@ -54,8 +53,8 @@ async function main() {
     return;
   }
 
-  if (!Array.isArray(order.todo) || !Array.isArray(order.done)) {
-    output(error("order.json must have 'todo' and 'done' arrays", "INVALID_FORMAT"));
+  if (!Array.isArray(order.todo)) {
+    output(error("order.json must have a 'todo' array", "INVALID_FORMAT"));
     return;
   }
 
@@ -77,28 +76,6 @@ async function main() {
           VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)
         `).run(branch, entry.task, content, entry.group || null, entry.model, entry.thinking, now, now);
         imported.push({ name: entry.task, status: "pending" });
-      } catch (e) {
-        if (e instanceof Error && e.message.includes("UNIQUE constraint")) {
-          errors.push({ name: entry.task, error: "Already exists" });
-        } else {
-          errors.push({
-            name: entry.task,
-            error: e instanceof Error ? e.message : String(e),
-          });
-        }
-      }
-    }
-
-    // Import done tasks
-    for (const entry of order.done) {
-      const taskPath = join(tasksDir, entry.task);
-      try {
-        const content = await Deno.readTextFile(taskPath);
-        db.prepare(`
-          INSERT INTO tasks (branch, name, content, task_group, model, thinking, status, created_at, updated_at, completed_at)
-          VALUES (?, ?, ?, ?, ?, ?, 'done', ?, ?, ?)
-        `).run(branch, entry.task, content, entry.group || null, entry.model, entry.thinking, now, now, now);
-        imported.push({ name: entry.task, status: "done" });
       } catch (e) {
         if (e instanceof Error && e.message.includes("UNIQUE constraint")) {
           errors.push({ name: entry.task, error: "Already exists" });

@@ -1,125 +1,24 @@
 {
   "todo": [
-    {
-      "task": "01-provider-types.md",
-      "group": "Foundation",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "02-shared-utilities.md",
-      "group": "Foundation",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "03-request-builders.md",
-      "group": "Foundation",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "04-openai-adapter-shim.md",
-      "group": "OpenAI Migration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "05-configuration.md",
-      "group": "Configuration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "06-database-migration.md",
-      "group": "Database",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "07-agent-provider-fields.md",
-      "group": "Agent Updates",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "08-model-command.md",
-      "group": "Commands",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "09-repl-provider-abstraction.md",
-      "group": "REPL Integration",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
-      "task": "10-anthropic-provider.md",
-      "group": "Anthropic",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
-      "task": "11-google-provider.md",
-      "group": "Google",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
-      "task": "12-openai-native.md",
-      "group": "OpenAI Native",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
-      "task": "13-error-handling.md",
-      "group": "Cross-cutting",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "14-fork-model-override.md",
-      "group": "Commands",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "15-cleanup-old-openai.md",
-      "group": "Cleanup",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "16-tests-provider-common.md",
-      "group": "Testing",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "17-tests-anthropic.md",
-      "group": "Testing",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "18-tests-openai.md",
-      "group": "Testing",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "19-tests-google.md",
-      "group": "Testing",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "20-tests-integration.md",
-      "group": "Testing",
-      "model": "sonnet",
-      "thinking": "extended"
-    }
-  ],
-  "done": []
+    {"task": "provider-types.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking"},
+    {"task": "shared-utilities.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking"},
+    {"task": "request-builders.md", "group": "Foundation", "model": "sonnet", "thinking": "thinking"},
+    {"task": "openai-adapter-shim.md", "group": "OpenAI Migration", "model": "sonnet", "thinking": "thinking"},
+    {"task": "configuration.md", "group": "Configuration", "model": "sonnet", "thinking": "thinking"},
+    {"task": "database-migration.md", "group": "Database", "model": "sonnet", "thinking": "thinking"},
+    {"task": "agent-provider-fields.md", "group": "Agent Updates", "model": "sonnet", "thinking": "thinking"},
+    {"task": "model-command.md", "group": "Commands", "model": "sonnet", "thinking": "thinking"},
+    {"task": "repl-provider-abstraction.md", "group": "REPL Integration", "model": "sonnet", "thinking": "extended"},
+    {"task": "anthropic-provider.md", "group": "Anthropic", "model": "sonnet", "thinking": "extended"},
+    {"task": "google-provider.md", "group": "Google", "model": "sonnet", "thinking": "extended"},
+    {"task": "openai-native.md", "group": "OpenAI Native", "model": "sonnet", "thinking": "extended"},
+    {"task": "error-handling.md", "group": "Cross-cutting", "model": "sonnet", "thinking": "thinking"},
+    {"task": "fork-model-override.md", "group": "Commands", "model": "sonnet", "thinking": "thinking"},
+    {"task": "cleanup-old-openai.md", "group": "Cleanup", "model": "sonnet", "thinking": "thinking"},
+    {"task": "tests-provider-common.md", "group": "Testing", "model": "sonnet", "thinking": "thinking"},
+    {"task": "tests-anthropic.md", "group": "Testing", "model": "sonnet", "thinking": "thinking"},
+    {"task": "tests-openai.md", "group": "Testing", "model": "sonnet", "thinking": "thinking"},
+    {"task": "tests-google.md", "group": "Testing", "model": "sonnet", "thinking": "thinking"},
+    {"task": "tests-integration.md", "group": "Testing", "model": "sonnet", "thinking": "extended"}
+  ]
 }

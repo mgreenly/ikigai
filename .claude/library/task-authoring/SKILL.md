@@ -12,6 +12,42 @@ Guidance for creating task files from requirements (user stories, bugs, gaps).
 1. **Review source material** - Read and understand the requirements thoroughly
 2. **Think deeply** - Consider edge cases, dependencies, and implementation approaches
 3. **Break down** - Split into smallest achievable, testable units
+4. **Create order.json** - Define execution order and metadata
+
+## File Naming
+
+**DO NOT use numeric prefixes.** Order is defined in `order.json`, not filenames.
+
+| Good | Bad |
+|------|-----|
+| `provider-types.md` | `01-provider-types.md` |
+| `openai-adapter.md` | `02-openai-adapter.md` |
+| `tests-integration.md` | `20-tests-integration.md` |
+
+Use descriptive kebab-case names that reflect the task's purpose.
+
+## order.json Structure
+
+The `order.json` file is the **single source of truth** for task execution:
+
+```json
+{
+  "todo": [
+    {"task": "provider-types.md", "group": "Foundation", "model": "sonnet", "thinking": "none"},
+    {"task": "openai-adapter.md", "group": "Migration", "model": "sonnet", "thinking": "thinking"},
+    {"task": "tests-integration.md", "group": "Testing", "model": "sonnet", "thinking": "extended"}
+  ]
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `task` | Yes | Filename (must exist in same directory) |
+| `group` | Yes | Logical grouping for reporting |
+| `model` | Yes | `sonnet` or `opus` |
+| `thinking` | Yes | `none`, `thinking`, or `extended` |
+
+Array position determines execution order. The database tracks completion state.
 
 ## Task File Requirements
 
