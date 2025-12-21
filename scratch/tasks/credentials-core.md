@@ -58,6 +58,8 @@ Structs to define (members and purpose):
 
 ### Credentials File Format
 
+**IMPORTANT:** The credentials file `~/.config/ikigai/credentials.json` already exists with valid API keys for all three providers (OpenAI, Anthropic, Google). This task creates code to READ from this file - never create or overwrite it.
+
 ```json
 {
   "openai": {
@@ -72,7 +74,7 @@ Structs to define (members and purpose):
 }
 ```
 
-Location: `~/.config/ikigai/credentials.json`
+Location: `~/.config/ikigai/credentials.json` (pre-exists, do not create)
 Permissions: Should be mode 600 (warning if not)
 
 ### Error Handling
@@ -93,6 +95,8 @@ Permissions: Should be mode 600 (warning if not)
 - Caller owns returned credentials struct
 
 ## Test Scenarios
+
+**NOTE:** Tests must use temporary files - never read/write the real `~/.config/ikigai/credentials.json`.
 
 - **Empty credentials**: No file, no env - returns empty credentials with all fields NULL
 - **Load from environment**: Set env vars, verify they populate credentials

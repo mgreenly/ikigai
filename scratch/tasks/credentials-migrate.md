@@ -55,6 +55,8 @@ No new interfaces - updates existing code to call:
 - Remove `openai_api_key` from `etc/ikigai/config.json`
 - Create `etc/ikigai/credentials.example.json` as a reference template
 
+**IMPORTANT:** The real credentials file `~/.config/ikigai/credentials.json` already exists with valid API keys for all three providers. Do NOT create or modify this file. Only create the EXAMPLE file at `etc/ikigai/credentials.example.json`.
+
 ### Example Credentials File Format
 
 ```json
