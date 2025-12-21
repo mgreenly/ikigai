@@ -3,12 +3,11 @@
 /**
  * Import tasks from existing order.json + task files
  *
- * Usage: deno run ... import.ts <tasks-directory>
+ * Usage: deno run ... import.ts [tasks-directory]
  *
+ * Defaults to scratch/tasks if no directory specified.
  * Reads order.json from the directory and imports all tasks (both todo and done)
  * along with their markdown content from the same directory.
- *
- * Example: deno run ... import.ts docs/rel-07/tasks
  */
 
 import { getDb, initSchema, closeDb } from "./db.ts";
@@ -28,11 +27,7 @@ interface OrderFile {
 }
 
 async function main() {
-  const tasksDir = Deno.args[0];
-  if (!tasksDir) {
-    output(error("Usage: import.ts <tasks-directory>", "INVALID_ARGS"));
-    return;
-  }
+  const tasksDir = Deno.args[0] || "scratch/tasks";
 
   let branch: string;
   try {
