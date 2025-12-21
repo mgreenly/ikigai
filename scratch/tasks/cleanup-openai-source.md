@@ -2,7 +2,7 @@
 
 **Layer:** 5
 **Model:** sonnet/none
-**Depends on:** openai-core.md, openai-send-impl.md
+**Depends on:** openai-equivalence-validation.md
 
 ## Context
 

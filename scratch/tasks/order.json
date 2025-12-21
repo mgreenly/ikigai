@@ -54,6 +54,7 @@
     {"task": "tests-google-basic.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 4},
     {"task": "tests-google-streaming.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 4},
 
+    {"task": "openai-equivalence-validation.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 5},
     {"task": "cleanup-openai-source.md", "group": "Cleanup", "model": "sonnet", "thinking": "none", "layer": 5},
     {"task": "tests-openai-basic.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 5},
     {"task": "tests-openai-streaming.md", "group": "Testing", "model": "sonnet", "thinking": "thinking", "layer": 5},
