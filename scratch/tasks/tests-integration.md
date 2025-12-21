@@ -1,11 +1,21 @@
 # Task: Create Integration Tests
 
-**Phase:** Testing
-**Depends on:** 09-repl-provider-abstraction, 17-tests-anthropic, 18-tests-openai, 19-tests-google
+**Layer:** 6 - Testing
+**Model:** opus/extended (cross-cutting system understanding)
+**Depends on:** repl-provider-abstraction.md, fork-model-override.md, tests-anthropic.md, tests-openai.md, tests-google.md
+
+## Pre-Read
+
+**Skills:**
+- `/load tdd`
+- `/load ddd`
+
+**Plan:**
+- `scratch/plan/testing-strategy.md` (Integration Tests section)
 
 ## Objective
 
-Create end-to-end integration tests for multi-provider flows.
+Create end-to-end integration tests for multi-provider flows. These are **mocked** tests that run as part of `make check`.
 
 ## Deliverables
 
@@ -14,24 +24,24 @@ Create end-to-end integration tests for multi-provider flows.
    - `test_thinking_levels_e2e.c` - Thinking across providers
    - `test_tool_calls_e2e.c` - Tool calling across providers
 
-2. Test scenarios:
+2. Test scenarios (all mocked, no real API calls):
    - Start with one provider, switch to another
    - Fork with different model
    - Tool call flows across providers
    - Error handling and recovery
    - Session restoration with provider info
 
-3. Optional live validation:
-   - Opt-in via `ENABLE_LIVE_API_TESTS=1`
-   - Verify mocks against real APIs
-   - Update fixtures capability
-
 ## Reference
 
 - `scratch/plan/testing-strategy.md` - Integration Tests section
 
-## Verification
+## Postconditions
 
-- All providers work through REPL
-- Provider switching works correctly
-- Fork inherits/overrides correctly
+- [ ] All providers work through REPL (mocked)
+- [ ] Provider switching works correctly
+- [ ] Fork inherits/overrides correctly
+- [ ] Tests run in `make check`
+
+## Note
+
+Live API validation is handled separately by `contract-validations.md` task.

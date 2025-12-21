@@ -1,7 +1,19 @@
 # Task: Implement Multi-Provider Configuration
 
-**Phase:** 3 - Configuration
-**Depends on:** 02-shared-utilities
+**Layer:** 2
+**Depends on:** shared-utilities.md
+
+## Pre-Read
+
+**Skills:**
+- `/load errors`
+
+**Source Files:**
+- `src/config.c`
+- `src/config.h`
+
+**Plan Docs:**
+- `scratch/plan/configuration.md`
 
 ## Objective
 
@@ -44,3 +56,9 @@ Implement config.json and credentials.json loading for multi-provider support.
 - Config loads with new format
 - Credentials load from env and file
 - Permissions warning works
+
+## Postconditions
+
+- [ ] Config loads new format
+- [ ] Credentials load from env and file
+- [ ] Permissions warning works

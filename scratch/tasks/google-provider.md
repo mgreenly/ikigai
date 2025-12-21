@@ -1,7 +1,23 @@
 # Task: Implement Google Provider
 
-**Phase:** 5 - Google
-**Depends on:** 01-provider-types, 02-shared-utilities, 03-request-builders
+**Layer:** 3
+**Model:** sonnet/extended
+**Depends on:** provider-types.md, shared-utilities.md, request-builders.md
+
+## Pre-Read
+
+**Skills:**
+- `/load errors`
+- `/load patterns/vtable`
+
+**Research Documents:**
+- `scratch/research/google.md`
+
+**Plan Documents:**
+- `scratch/plan/transformation.md`
+- `scratch/plan/thinking-abstraction.md`
+
+**Note:** Two thinking APIs (budget for 2.5, level for 3.x)
 
 ## Objective
 
@@ -56,3 +72,11 @@ Create native Google (Gemini) provider implementing the vtable interface.
 - Can stream responses
 - Tool calls work with generated UUIDs
 - Both Gemini 2.5 and 3 thinking work
+
+## Postconditions
+
+- [ ] Non-streaming requests work correctly
+- [ ] Streaming responses work
+- [ ] Tool calls work with generated UUIDs
+- [ ] Gemini 2.5 thinking works with thinkingBudget (token count)
+- [ ] Gemini 3.x thinking works with thinkingLevel (LOW/HIGH)

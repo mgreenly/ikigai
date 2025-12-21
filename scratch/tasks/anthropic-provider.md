@@ -1,7 +1,21 @@
 # Task: Implement Anthropic Provider
 
-**Phase:** 4 - Anthropic
-**Depends on:** 01-provider-types, 02-shared-utilities, 03-request-builders
+**Layer:** 3
+**Model:** sonnet/extended
+**Depends on:** provider-types.md, shared-utilities.md, request-builders.md
+
+## Pre-Read
+
+**Skills:**
+- `/load errors`
+- `/load patterns/vtable`
+
+**Research Documents:**
+- `scratch/research/anthropic.md`
+
+**Plan Documents:**
+- `scratch/plan/transformation.md`
+- `scratch/plan/thinking-abstraction.md`
 
 ## Objective
 
@@ -52,3 +66,10 @@ Create native Anthropic provider implementing the vtable interface.
 - Can stream responses
 - Tool calls work
 - Thinking levels map correctly
+
+## Postconditions
+
+- [ ] Non-streaming requests work correctly
+- [ ] Streaming responses work with SSE
+- [ ] Tool calls are properly transformed and parsed
+- [ ] Thinking levels map correctly to budget_tokens

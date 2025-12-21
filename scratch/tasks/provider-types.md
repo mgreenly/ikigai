@@ -1,7 +1,25 @@
 # Task: Define Provider Core Types
 
-**Phase:** 1 - Foundation
+**Layer:** 0
+**Model:** sonnet/none (simple type definitions)
 **Depends on:** None
+
+## Pre-Read
+
+**Skills:**
+- `/load errors` - Result types with OK()/ERR() patterns
+- `/load patterns/vtable` - Vtable implementation patterns
+
+**Source:**
+- `src/openai/client.h` - Existing provider structure
+- `src/msg.h` - Message types
+- `src/tool.h` - Tool types
+
+**Plan:**
+- `scratch/plan/provider-interface.md` - Vtable specification
+- `scratch/plan/request-response-format.md` - Data structures
+- `scratch/plan/streaming.md` - Stream event types
+- `scratch/plan/error-handling.md` - Error categories
 
 ## Objective
 
@@ -21,14 +39,10 @@ Create `src/providers/provider.h` with vtable definition and core types that all
 10. Define `ik_usage_t` for token counts
 11. Define `ik_error_category_t` enum
 
-## Reference
+## Postconditions
 
-- `scratch/plan/provider-interface.md` - Vtable specification
-- `scratch/plan/request-response-format.md` - Data structures
-- `scratch/plan/streaming.md` - Stream event types
-- `scratch/plan/error-handling.md` - Error categories
-
-## Verification
-
-- Header compiles without errors
-- Types can be used in test stubs
+- [ ] Header compiles without errors
+- [ ] All enums have defined values (no missing initializers)
+- [ ] All structs use talloc-compatible patterns (TALLOC_CTX *ctx fields)
+- [ ] No provider-specific dependencies (OpenAI, Anthropic, etc.)
+- [ ] Types can be used in test stubs

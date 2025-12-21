@@ -1,7 +1,20 @@
 # Task: Update /model Command
 
-**Phase:** 3 - Commands
-**Depends on:** 07-agent-provider-fields
+**Layer:** 3
+**Depends on:** agent-provider-fields.md, configuration.md
+
+## Pre-Read
+
+**Skills:**
+- `/load source-code`
+
+**Source Files:**
+- `src/commands_basic.c`
+- `src/completion.c`
+
+**Plan Documents:**
+- `scratch/README.md` (Q6 Extended Thinking)
+- `scratch/plan/thinking-abstraction.md`
 
 ## Objective
 
@@ -48,3 +61,10 @@ Update `/model` command to support `MODEL/THINKING` syntax and provider inferenc
 - Provider inferred correctly
 - Agent state updated
 - Completion shows all models
+
+## Postconditions
+
+- [ ] `/model` parses MODEL/THINKING syntax correctly
+- [ ] Provider is inferred from model prefix
+- [ ] Agent state is updated with provider/model/thinking_level
+- [ ] Completion shows all models from all providers

@@ -1,7 +1,13 @@
 # Task: Create Shared Provider Utilities
 
-**Phase:** 1 - Foundation
-**Depends on:** 01-provider-types
+**Layer:** 1
+**Depends on:** provider-types.md
+
+## Pre-Read
+
+- **Skills:** `/load memory`, `/load errors`
+- **Source:** `src/openai/http_handler.c`, `src/openai/sse_parser.c` (refactor from these)
+- **Plan:** `scratch/plan/architecture.md`, `scratch/plan/configuration.md`
 
 ## Objective
 
@@ -35,3 +41,9 @@ Create shared HTTP client and SSE parser in `src/providers/common/` that all pro
 - HTTP client can make POST requests
 - SSE parser emits events correctly
 - Credentials load from env var and file
+
+## Postconditions
+
+- [ ] HTTP client makes POST requests
+- [ ] SSE parser emits events
+- [ ] Credentials load from env and file

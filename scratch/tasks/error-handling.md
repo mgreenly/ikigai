@@ -1,7 +1,14 @@
 # Task: Implement Provider Error Handling
 
-**Phase:** Cross-cutting
-**Depends on:** 01-provider-types
+**Layer:** 1
+**Depends on:** provider-types.md
+
+## Pre-Read
+
+- **Skills:** `/load errors`
+- **Source:** `src/error.c`, `src/error.h`
+- **Plan:** `scratch/plan/error-handling.md`
+- **Research:** `scratch/research/anthropic.md`, `scratch/research/openai.md`, `scratch/research/google.md` (error sections)
 
 ## Objective
 
@@ -48,3 +55,9 @@ Implement error mapping and retry logic for all providers.
 - All HTTP status codes mapped correctly
 - Retry-after extracted from each provider
 - User messages are helpful
+
+## Postconditions
+
+- [ ] All categories mapped
+- [ ] Retry logic works
+- [ ] User messages are helpful

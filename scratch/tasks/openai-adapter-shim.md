@@ -1,7 +1,28 @@
 # Task: Create OpenAI Adapter Shim
 
-**Phase:** 2 - Adapter Shim
-**Depends on:** 01-provider-types, 02-shared-utilities
+**Layer:** 2
+**Model:** sonnet/extended (complex refactoring)
+**Depends on:** provider-types.md, shared-utilities.md
+
+## Pre-Read
+
+**Skills:**
+- `/load patterns/adapter`
+- `/load source-code`
+
+**Source Files:**
+- `src/openai/client.c`
+- `src/openai/client_multi.c`
+- `src/openai/client_multi_callbacks.c`
+- `src/openai/client_multi_request.c`
+- `src/openai/client_msg.c`
+- `src/openai/client_serialize.c`
+- `src/openai/http_handler.c`
+- `src/openai/sse_parser.c`
+- `src/openai/tool_choice.c`
+
+**Plan Docs:**
+- `scratch/plan/architecture.md` (Migration Strategy section)
 
 ## Objective
 
@@ -33,3 +54,9 @@ The shim is temporary. It allows existing tests to pass while we build the abstr
 
 - All existing OpenAI tests pass through shim
 - Can create OpenAI provider via `ik_provider_create()`
+
+## Postconditions
+
+- [ ] Existing OpenAI tests pass
+- [ ] `ik_provider_create("openai", &p)` works
+- [ ] No changes to src/openai/ files

@@ -1,7 +1,15 @@
 # Task: Create OpenAI Provider Tests
 
-**Phase:** Testing
-**Depends on:** 12-openai-native, 16-tests-provider-common
+**Layer:** 5 - Testing
+**Depends on:** openai-native.md, tests-provider-common.md
+
+## Pre-Read
+
+**Skills:**
+- `/load tdd`
+
+**Plan:**
+- `scratch/plan/testing-strategy.md`
 
 ## Objective
 
@@ -35,7 +43,7 @@ Create comprehensive test suite for OpenAI provider.
 
 - `scratch/plan/testing-strategy.md` - Test organization
 
-## Verification
+## Postconditions
 
-- 100% coverage on OpenAI adapter
-- Both API formats tested
+- [ ] 100% coverage on OpenAI adapter
+- [ ] Both API formats tested

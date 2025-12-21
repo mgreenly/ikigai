@@ -1,7 +1,22 @@
 # Task: Add Provider Fields to Agent Context
 
-**Phase:** 3 - Agent Updates
-**Depends on:** 01-provider-types, 06-database-migration
+**Layer:** 2
+**Depends on:** provider-types.md, database-migration.md
+
+## Pre-Read
+
+**Skills:**
+- `/load memory`
+- `/load ddd`
+
+**Source Files:**
+- `src/agent.c`
+- `src/agent.h`
+- `src/db/agent.c`
+
+**Plan Docs:**
+- `scratch/plan/architecture.md` (Agent context section)
+- `scratch/README.md` (Model Assignment)
 
 ## Objective
 
@@ -36,3 +51,9 @@ Update `ik_agent_ctx_t` to store provider/model/thinking configuration.
 - Agent stores provider/model/thinking
 - Provider lazy-loads on first use
 - Inference works for all model prefixes
+
+## Postconditions
+
+- [ ] Agent stores provider/model/thinking
+- [ ] Provider lazy-loads
+- [ ] Inference works for all prefixes

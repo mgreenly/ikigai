@@ -1,7 +1,21 @@
 # Task: Refactor OpenAI to Native Provider
 
-**Phase:** 6 - OpenAI Native
-**Depends on:** 04-openai-adapter-shim, 10-anthropic-provider
+**Layer:** 4 - Providers
+**Model:** sonnet/extended
+**Depends on:** openai-adapter-shim.md, anthropic-provider.md (use as reference)
+
+## Pre-Read
+
+**Skills:**
+- `/load errors`
+- `/load patterns/vtable`
+
+**Research:**
+- `scratch/research/openai.md`
+
+**Plan:**
+- `scratch/plan/transformation.md`
+- `scratch/plan/thinking-abstraction.md`
 
 ## Objective
 
@@ -41,9 +55,9 @@ Replace the adapter shim with a native vtable implementation, moving code from `
 - `scratch/plan/thinking-abstraction.md` - OpenAI section
 - `scratch/research/openai.md` - API details
 
-## Verification
+## Postconditions
 
-- All existing OpenAI tests pass
-- Can use both Chat Completions and Responses API
-- Tool calls work
-- Reasoning effort maps correctly
+- [ ] All existing OpenAI tests pass
+- [ ] Both API formats work (Chat Completions and Responses API)
+- [ ] Tool calls work
+- [ ] Reasoning effort maps correctly

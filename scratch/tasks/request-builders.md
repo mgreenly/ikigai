@@ -1,7 +1,13 @@
 # Task: Create Request/Response Builders
 
-**Phase:** 1 - Foundation
-**Depends on:** 01-provider-types
+**Layer:** 1
+**Depends on:** provider-types.md
+
+## Pre-Read
+
+- **Skills:** `/load memory`, `/load errors`
+- **Source:** `src/openai/client_msg.c`, `src/tool.h`
+- **Plan:** `scratch/plan/request-response-format.md`
 
 ## Objective
 
@@ -30,3 +36,8 @@ Create builder functions for constructing `ik_request_t` and working with `ik_re
 
 - Can construct requests with all content types
 - Round-trip: request → serialize → parse → response
+
+## Postconditions
+
+- [ ] Can construct requests with all content types
+- [ ] Builders use talloc correctly

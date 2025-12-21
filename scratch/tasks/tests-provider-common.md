@@ -1,7 +1,18 @@
 # Task: Create Common Provider Tests
 
-**Phase:** Testing
-**Depends on:** 01-provider-types, 02-shared-utilities, 03-request-builders
+**Layer:** 2
+**Depends on:** provider-types.md, shared-utilities.md, request-builders.md
+
+## Pre-Read
+
+**Skills:**
+- `/load tdd`
+
+**Source Files:**
+- Existing test files in `tests/unit/`
+
+**Plan Docs:**
+- `scratch/plan/testing-strategy.md`
 
 ## Objective
 
@@ -34,3 +45,9 @@ Create test suite for shared provider infrastructure.
 - All common utilities have tests
 - Mock pattern established for reuse
 - Fixtures organized per provider
+
+## Postconditions
+
+- [ ] Common utilities have tests
+- [ ] Mock pattern established
+- [ ] Fixtures organized

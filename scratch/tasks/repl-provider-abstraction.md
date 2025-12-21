@@ -1,7 +1,24 @@
 # Task: Update REPL to Use Provider Abstraction
 
-**Phase:** 3 - REPL Integration
-**Depends on:** 04-openai-adapter-shim, 07-agent-provider-fields
+**Layer:** 3
+**Model:** sonnet/extended
+**Depends on:** openai-adapter-shim.md, agent-provider-fields.md, error-handling.md
+
+## Pre-Read
+
+**Skills:**
+- `/load source-code`
+- `/load ddd`
+- `/load errors`
+
+**Source Files:**
+- `src/repl_actions_llm.c`
+- `src/repl_callbacks.c`
+- `src/repl_event_handlers.c`
+
+**Plan Documents:**
+- `scratch/plan/architecture.md` (Integration Points)
+- `scratch/plan/streaming.md` (REPL callback)
 
 ## Objective
 
@@ -48,3 +65,9 @@ provider->vt->stream(provider->impl_ctx, req, callback, ctx);
 - All OpenAI traffic goes through vtable
 - Streaming works correctly
 - Messages saved with provider info
+
+## Postconditions
+
+- [ ] All LLM traffic routed through provider vtable
+- [ ] Streaming works correctly with normalized events
+- [ ] Messages are saved with provider/model/thinking information

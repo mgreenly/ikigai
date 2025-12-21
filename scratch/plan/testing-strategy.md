@@ -42,6 +42,11 @@ tests/
     test_multi_provider_e2e.c      # End-to-end multi-provider flows
     test_thinking_levels_e2e.c     # Thinking abstraction across providers
 
+  contract_validations/            # SEPARATE from normal tests
+    openai_contract_test.c         # OpenAI API contract validation
+    anthropic_contract_test.c      # Anthropic API contract validation
+    google_contract_test.c         # Google API contract validation
+
   fixtures/
     anthropic/
       response_basic.json

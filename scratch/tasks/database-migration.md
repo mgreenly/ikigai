@@ -1,7 +1,21 @@
 # Task: Database Schema Migration
 
-**Phase:** 3 - Database
+**Layer:** 0
+**Model:** sonnet/none (simple SQL)
 **Depends on:** None (can run in parallel with others)
+
+## Pre-Read
+
+**Source:**
+- `migrations/001-*.sql` - Initial schema
+- `migrations/002-*.sql` - Existing migrations
+- `migrations/003-*.sql` - Existing migrations
+- `migrations/004-*.sql` - Existing migrations
+- `src/db/agent.c` - Agent CRUD operations
+- `src/db/message.c` - Message CRUD operations
+
+**Plan:**
+- `scratch/plan/database-schema.md` - Full specification
 
 ## Objective
 
@@ -26,12 +40,9 @@ Add provider/model/thinking_level columns to agents table and update message dat
    - Add `thinking_tokens` field
    - Add `provider_data` for opaque metadata
 
-## Reference
+## Postconditions
 
-- `scratch/plan/database-schema.md` - Full specification
-
-## Verification
-
-- Migration applies successfully
-- Agent CRUD includes new columns
-- Message data stores provider info
+- [ ] Migration applies successfully
+- [ ] Columns exist in agents table (provider, model, thinking_level)
+- [ ] Agent CRUD operations work with new columns
+- [ ] Message data JSONB stores provider info (provider, model, thinking_level, thinking, thinking_tokens, provider_data)

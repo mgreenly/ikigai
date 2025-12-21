@@ -1,7 +1,15 @@
 # Task: Delete Old OpenAI Code
 
-**Phase:** 7 - Cleanup
-**Depends on:** 12-openai-native, 09-repl-provider-abstraction
+**Layer:** 5 - Cleanup
+**Depends on:** openai-native.md, repl-provider-abstraction.md
+
+## Pre-Read
+
+**Skills:**
+- `/load source-code`
+
+**Plan:**
+- `scratch/plan/architecture.md` (Phase 7 Cleanup Checklist)
 
 ## Objective
 
@@ -38,10 +46,11 @@ Remove all legacy `src/openai/` code and adapter shim after migration is complet
 
 - `scratch/plan/architecture.md` - Phase 7 Cleanup Checklist
 
-## Verification Checklist
+## Postconditions
 
 - [ ] `src/openai/` deleted
 - [ ] Adapter shim deleted
 - [ ] Makefile updated
 - [ ] No external openai references
 - [ ] Full test suite passes
+- [ ] Grep confirms no stray includes

@@ -1,7 +1,18 @@
 # Task: Update /fork Command for Model Override
 
-**Phase:** 4 - Commands
-**Depends on:** 07-agent-provider-fields, 08-model-command
+**Layer:** 4 - Commands
+**Depends on:** agent-provider-fields.md, model-command.md
+
+## Pre-Read
+
+**Skills:**
+- `/load source-code`
+
+**Source:**
+- `src/commands_fork.c`
+
+**Plan:**
+- `scratch/README.md` (Fork Command Integration)
 
 ## Objective
 
@@ -41,8 +52,8 @@ Update `/fork` command to support `--model MODEL/THINKING` override for child ag
 # Child uses: o3-mini/high
 ```
 
-## Verification
+## Postconditions
 
-- Inheritance works correctly
-- Override applies to child
-- Database stores correct values
+- [ ] Inheritance works correctly
+- [ ] Override applies to child
+- [ ] Database stores correct values

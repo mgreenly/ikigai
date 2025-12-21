@@ -1,7 +1,15 @@
 # Task: Create Anthropic Provider Tests
 
-**Phase:** Testing
-**Depends on:** 10-anthropic-provider, 16-tests-provider-common
+**Layer:** 4 - Testing
+**Depends on:** anthropic-provider.md, tests-provider-common.md
+
+## Pre-Read
+
+**Skills:**
+- `/load tdd`
+
+**Plan:**
+- `scratch/plan/testing-strategy.md`
 
 ## Objective
 
@@ -35,7 +43,7 @@ Create comprehensive test suite for Anthropic provider.
 
 - `scratch/plan/testing-strategy.md` - Test organization
 
-## Verification
+## Postconditions
 
-- 100% coverage on Anthropic adapter
-- All fixtures validate against real API
+- [ ] 100% coverage on Anthropic adapter
+- [ ] All fixtures validate against real API
