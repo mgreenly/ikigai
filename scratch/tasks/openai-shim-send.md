@@ -1,6 +1,5 @@
 # Task: OpenAI Shim Send Implementation
 
-**Layer:** 2
 **Model:** sonnet/thinking
 **Depends on:** openai-shim-request.md, openai-shim-response.md
 

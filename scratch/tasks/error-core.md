@@ -1,6 +1,5 @@
 # Task: Common Error Utilities
 
-**Layer:** 1
 **Model:** sonnet/thinking
 **Depends on:** provider-types.md
 

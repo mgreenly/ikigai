@@ -1,6 +1,5 @@
 # Task: Update Integration Tests and Docs for Credentials API
 
-**Layer:** 0
 **Model:** sonnet/none
 **Depends on:** credentials-tests-helpers.md, credentials-tests-config.md, credentials-tests-openai.md, credentials-tests-repl.md
 

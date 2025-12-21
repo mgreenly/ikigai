@@ -1,6 +1,5 @@
 # Task: OpenAI Send Implementation
 
-**Layer:** 4
 **Model:** sonnet/thinking
 **Depends on:** openai-request-chat.md, openai-request-responses.md, openai-response-chat.md, openai-response-responses.md, http-client.md
 

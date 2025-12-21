@@ -1,6 +1,5 @@
 # Task: Google Streaming Implementation
 
-**Layer:** 3
 **Model:** sonnet/thinking
 **Depends on:** google-response.md, sse-parser.md
 

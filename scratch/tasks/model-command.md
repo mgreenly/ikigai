@@ -1,6 +1,5 @@
 # Task: Update /model Command
 
-**Layer:** 3
 **Model:** sonnet/thinking
 **Depends on:** agent-provider-fields.md, configuration.md
 

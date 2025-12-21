@@ -1,6 +1,5 @@
 # Task: Create Credentials Module
 
-**Layer:** 0
 **Model:** sonnet/none
 **Depends on:** None
 

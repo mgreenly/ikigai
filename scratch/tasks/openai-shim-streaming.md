@@ -1,6 +1,5 @@
 # Task: OpenAI Shim Streaming Implementation
 
-**Layer:** 4
 **Model:** sonnet/extended
 **Depends on:** openai-shim-send.md, anthropic-streaming.md, google-streaming.md
 

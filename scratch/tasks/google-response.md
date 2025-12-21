@@ -1,6 +1,5 @@
 # Task: Google Response Parsing
 
-**Layer:** 3
 **Model:** sonnet/thinking
 **Depends on:** google-core.md, google-request.md
 

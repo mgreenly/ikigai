@@ -1,6 +1,5 @@
 # Task: Create OpenAI Provider Basic Tests
 
-**Layer:** 5
 **Model:** sonnet/thinking
 **Depends on:** openai-core.md, openai-request-chat.md, openai-response-chat.md, tests-mock-infrastructure.md
 

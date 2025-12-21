@@ -1,6 +1,5 @@
 # Task: Implement Multi-Provider Configuration
 
-**Layer:** 2
 **Model:** sonnet/none
 **Depends on:** credentials-core.md
 

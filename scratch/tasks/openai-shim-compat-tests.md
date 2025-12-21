@@ -1,6 +1,5 @@
 # Task: OpenAI Shim Compatibility Tests
 
-**Layer:** 2
 **Model:** sonnet/thinking
 **Depends on:** openai-shim-send.md
 

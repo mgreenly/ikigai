@@ -1,6 +1,5 @@
 # Task: Create Provider Factory
 
-**Layer:** 1
 **Model:** sonnet/thinking
 **Depends on:** http-client.md, sse-parser.md, credentials-core.md
 

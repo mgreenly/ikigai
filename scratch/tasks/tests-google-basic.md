@@ -1,6 +1,5 @@
 # Task: Create Google Provider Basic Tests
 
-**Layer:** 4
 **Model:** sonnet/thinking
 **Depends on:** google-core.md, google-request.md, google-response.md, tests-mock-infrastructure.md
 

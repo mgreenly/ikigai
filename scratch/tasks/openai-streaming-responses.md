@@ -1,6 +1,5 @@
 # Task: OpenAI Responses API Streaming
 
-**Layer:** 4
 **Model:** sonnet/thinking
 **Depends on:** openai-response-responses.md, openai-streaming-chat.md
 

@@ -1,6 +1,5 @@
 # Task: Add Provider Fields to Agent Context
 
-**Layer:** 2
 **Model:** sonnet/thinking
 **Depends on:** provider-types.md, database-migration.md, configuration.md
 

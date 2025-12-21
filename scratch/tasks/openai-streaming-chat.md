@@ -1,6 +1,5 @@
 # Task: OpenAI Chat Completions Streaming
 
-**Layer:** 4
 **Model:** sonnet/thinking
 **Depends on:** openai-response-chat.md, sse-parser.md
 

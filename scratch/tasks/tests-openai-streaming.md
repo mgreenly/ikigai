@@ -1,6 +1,5 @@
 # Task: Create OpenAI Provider Streaming Tests
 
-**Layer:** 5
 **Model:** sonnet/thinking
 **Depends on:** openai-streaming-chat.md, tests-openai-basic.md
 

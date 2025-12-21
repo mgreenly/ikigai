@@ -1,6 +1,5 @@
 # Task: Anthropic Streaming Implementation
 
-**Layer:** 3
 **Model:** sonnet/thinking
 **Depends on:** anthropic-response.md, sse-parser.md
 

@@ -1,6 +1,5 @@
 # Task: Update Documentation for OpenAI Migration
 
-**Layer:** 6
 **Model:** sonnet/none
 **Depends on:** cleanup-openai-source.md, cleanup-openai-tests.md
 

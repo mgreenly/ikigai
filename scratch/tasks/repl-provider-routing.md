@@ -1,6 +1,5 @@
 # Task: Update REPL to Route via Provider Vtable
 
-**Layer:** 3
 **Model:** sonnet/thinking
 **Depends on:** openai-shim-send.md, agent-provider-fields.md, configuration.md
 

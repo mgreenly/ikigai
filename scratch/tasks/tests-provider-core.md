@@ -1,6 +1,5 @@
 # Task: Create Provider Core Tests
 
-**Layer:** 2
 **Model:** sonnet/thinking
 **Depends on:** provider-factory.md, error-core.md, credentials-core.md, tests-mock-infrastructure.md
 

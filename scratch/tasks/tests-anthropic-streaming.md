@@ -1,6 +1,5 @@
 # Task: Create Anthropic Provider Streaming Tests
 
-**Layer:** 4
 **Model:** sonnet/thinking
 **Depends on:** anthropic-streaming.md, tests-anthropic-basic.md
 

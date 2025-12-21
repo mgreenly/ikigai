@@ -1,6 +1,5 @@
 # Task: Create Shared HTTP Client
 
-**Layer:** 1
 **Model:** sonnet/thinking
 **Depends on:** provider-types.md
 

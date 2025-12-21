@@ -1,6 +1,5 @@
 # Task: Google Request Serialization
 
-**Layer:** 3
 **Model:** sonnet/thinking
 **Depends on:** google-core.md
 

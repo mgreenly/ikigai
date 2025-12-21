@@ -1,6 +1,5 @@
 # Task: Update /fork Command for Model Override
 
-**Layer:** 4
 **Model:** sonnet/none
 **Depends on:** agent-provider-fields.md, model-command.md
 

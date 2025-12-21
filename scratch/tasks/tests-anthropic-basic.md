@@ -1,6 +1,5 @@
 # Task: Create Anthropic Provider Basic Tests
 
-**Layer:** 4
 **Model:** sonnet/thinking
 **Depends on:** anthropic-core.md, anthropic-request.md, anthropic-response.md, tests-mock-infrastructure.md
 

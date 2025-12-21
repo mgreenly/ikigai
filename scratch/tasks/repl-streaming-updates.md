@@ -1,6 +1,5 @@
 # Task: Update REPL Streaming Callbacks for Provider Abstraction
 
-**Layer:** 3
 **Model:** sonnet/thinking
 **Depends on:** repl-provider-routing.md
 

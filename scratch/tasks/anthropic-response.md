@@ -1,6 +1,5 @@
 # Task: Anthropic Response Parsing
 
-**Layer:** 3
 **Model:** sonnet/thinking
 **Depends on:** anthropic-core.md, anthropic-request.md
 

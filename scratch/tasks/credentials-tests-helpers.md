@@ -1,6 +1,5 @@
 # Task: Update Test Helpers for Credentials API
 
-**Layer:** 0
 **Model:** sonnet/none
 **Depends on:** credentials-core.md
 

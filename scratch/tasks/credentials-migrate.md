@@ -1,6 +1,5 @@
 # Task: Migrate from Config API Key to Credentials Module
 
-**Layer:** 0
 **Model:** sonnet/none
 **Depends on:** credentials-core.md
 

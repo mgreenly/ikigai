@@ -1,6 +1,5 @@
 # Task: OpenAI Chat Completions Request Serialization
 
-**Layer:** 4
 **Model:** sonnet/thinking
 **Depends on:** openai-core.md
 

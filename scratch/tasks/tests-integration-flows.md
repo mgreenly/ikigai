@@ -1,6 +1,5 @@
 # Task: Create Integration Flow Tests
 
-**Layer:** 7
 **Model:** sonnet/extended
 **Depends on:** tests-integration-switching.md
 

@@ -71,7 +71,13 @@ The `order.json` file is the **single source of truth** for task execution:
 | `model` | Yes | `sonnet` or `opus` |
 | `thinking` | Yes | `none`, `thinking`, or `extended` |
 
-Array position determines execution order. The database tracks completion state.
+### Serial Execution
+
+**Tasks execute serially in array order.** Position 0 runs first, then 1, then 2, etc.
+
+When adding a task, place it in the array such that all its dependencies come before it. The `Depends on:` field in task files is documentation only - the array position is what matters.
+
+The database tracks completion state, not the JSON file.
 
 ## Task File Requirements
 
@@ -137,9 +143,8 @@ Include in task instructions:
 ```markdown
 # Task: [Descriptive Name]
 
-**Layer:** N
 **Model:** sonnet/thinking
-**Depends on:** task-name.md (if any)
+**Depends on:** task-name.md (or "None")
 
 ## Context
 

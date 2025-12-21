@@ -1,6 +1,5 @@
 # Task: OpenAI Shim Response Transformation
 
-**Layer:** 2
 **Model:** sonnet/thinking
 **Depends on:** openai-shim-types.md, openai-shim-request.md
 

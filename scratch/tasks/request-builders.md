@@ -1,6 +1,5 @@
 # Task: Create Request/Response Builders
 
-**Layer:** 1
 **Model:** sonnet/thinking
 **Depends on:** provider-types.md
 

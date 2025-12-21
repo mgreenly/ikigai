@@ -1,6 +1,5 @@
 # Task: OpenAI Responses API Response Parsing
 
-**Layer:** 4
 **Model:** sonnet/thinking
 **Depends on:** openai-core.md, openai-response-chat.md
 

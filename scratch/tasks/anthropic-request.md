@@ -1,6 +1,5 @@
 # Task: Anthropic Request Serialization
 
-**Layer:** 3
 **Model:** sonnet/thinking
 **Depends on:** anthropic-core.md
 

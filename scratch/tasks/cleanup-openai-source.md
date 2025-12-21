@@ -1,6 +1,5 @@
 # Task: Delete Legacy OpenAI Source Files
 
-**Layer:** 5
 **Model:** sonnet/none
 **Depends on:** openai-equivalence-validation.md
 

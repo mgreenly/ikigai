@@ -1,6 +1,5 @@
 # Task: Create Provider Switching Integration Tests
 
-**Layer:** 7
 **Model:** sonnet/extended
 **Depends on:** repl-provider-routing.md, fork-model-override.md, tests-openai-basic.md
 

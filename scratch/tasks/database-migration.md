@@ -1,6 +1,5 @@
 # Task: Database Schema Migration
 
-**Layer:** 0
 **Model:** sonnet/none (simple SQL)
 **Depends on:** None (can run in parallel with provider-types.md)
 

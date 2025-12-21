@@ -1,6 +1,5 @@
 # Task: Create Google Provider Streaming Tests
 
-**Layer:** 4
 **Model:** sonnet/thinking
 **Depends on:** google-streaming.md, tests-google-basic.md
 

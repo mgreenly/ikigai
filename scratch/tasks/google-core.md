@@ -1,6 +1,5 @@
 # Task: Google Provider Core Structure
 
-**Layer:** 3
 **Model:** sonnet/thinking
 **Depends on:** provider-types.md, credentials-core.md, error-core.md
 

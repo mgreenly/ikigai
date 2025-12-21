@@ -1,6 +1,5 @@
 # Task: Delete OpenAI Adapter Shim
 
-**Layer:** 6
 **Model:** sonnet/none
 **Depends on:** cleanup-openai-source.md, tests-openai-basic.md, tests-openai-streaming.md
 

@@ -1,6 +1,5 @@
 # Task: Validate OpenAI Native vs Shim Equivalence
 
-**Layer:** 5
 **Model:** sonnet/thinking
 **Depends on:** openai-send-impl.md, openai-streaming-chat.md, openai-streaming-responses.md, openai-shim-streaming.md
 

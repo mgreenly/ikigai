@@ -1,6 +1,5 @@
 # Task: Define OpenAI Shim Types
 
-**Layer:** 2
 **Model:** sonnet/none
 **Depends on:** provider-types.md, credentials-core.md
 

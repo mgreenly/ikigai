@@ -1,6 +1,5 @@
 # Task: Define Provider Core Types
 
-**Layer:** 0
 **Model:** sonnet/none
 **Depends on:** None
 
@@ -128,7 +127,7 @@ Add the following error codes to `err_code_t` enum in `src/error.h`:
 | `ERR_MISSING_CREDENTIALS` | 10 | "Missing credentials" | No API key configured for provider |
 | `ERR_NOT_IMPLEMENTED` | 11 | "Not implemented" | Stub functions not yet implemented |
 
-Add corresponding cases to `error_code_str()` for each code.
+Add corresponding cases to `error_code_str()` for each new code. Also verify all existing `err_code_t` values have cases — `ERR_AGENT_NOT_FOUND` is currently missing and must be added with string "Agent not found".
 
 ## Test Scenarios
 

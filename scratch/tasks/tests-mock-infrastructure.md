@@ -1,6 +1,5 @@
 # Task: Create Test Mock Infrastructure
 
-**Layer:** 2
 **Model:** sonnet/thinking
 **Depends on:** provider-types.md, http-client.md
 

@@ -1,6 +1,5 @@
 # Task: Create HTTP Client and SSE Parser Tests
 
-**Layer:** 2
 **Model:** sonnet/thinking
 **Depends on:** http-client.md, sse-parser.md, tests-mock-infrastructure.md
 
