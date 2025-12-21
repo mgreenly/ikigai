@@ -88,6 +88,14 @@ Choose minimum capability needed for each task:
 
 Default to `sonnet/none` and escalate only when complexity demands it.
 
+### Working Directory Context
+
+**CRITICAL:** Every task file MUST include a Context section stating:
+- Working directory is project root (where `Makefile` lives)
+- All paths are relative to project root, not to the task file
+
+This prevents sub-agents from misinterpreting paths like `scratch/plan/` as relative to `scratch/tasks/`.
+
 ### Skill Loading
 
 - Load all skills the sub-agent will need (err on the side of more)
@@ -132,6 +140,11 @@ Include in task instructions:
 **Layer:** N
 **Model:** sonnet/thinking
 **Depends on:** task-name.md (if any)
+
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
 
 ## Pre-Read
 

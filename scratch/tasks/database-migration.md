@@ -4,6 +4,11 @@
 **Model:** sonnet/none (simple SQL)
 **Depends on:** None (can run in parallel with provider-types.md)
 
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
+
 ## Pre-Read
 
 **Skills:**

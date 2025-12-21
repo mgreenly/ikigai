@@ -4,6 +4,11 @@
 **Model:** sonnet/extended
 **Depends on:** tests-integration-switching.md
 
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
+
 ## Pre-Read
 
 **Skills:**

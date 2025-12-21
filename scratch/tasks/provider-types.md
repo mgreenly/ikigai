@@ -4,6 +4,11 @@
 **Model:** sonnet/none
 **Depends on:** None
 
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
+
 ## Pre-Read
 
 **Skills:**
@@ -113,9 +118,17 @@ src/providers/
 ├── provider_types.h    # Forward declarations only
 ```
 
-## Error Code Addition
+## Error Code Additions
 
-Add `ERR_PROVIDER` to `err_code_t` enum in `src/error.h` with value 9. Add corresponding case to `error_code_str()` returning "Provider error".
+Add the following error codes to `err_code_t` enum in `src/error.h`:
+
+| Code | Value | String | Purpose |
+|------|-------|--------|---------|
+| `ERR_PROVIDER` | 9 | "Provider error" | Provider API errors (auth, rate limit, etc.) |
+| `ERR_MISSING_CREDENTIALS` | 10 | "Missing credentials" | No API key configured for provider |
+| `ERR_NOT_IMPLEMENTED` | 11 | "Not implemented" | Stub functions not yet implemented |
+
+Add corresponding cases to `error_code_str()` for each code.
 
 ## Test Scenarios
 
@@ -125,6 +138,7 @@ Create `tests/unit/providers/provider_types_test.c`:
 - Struct size validation: Verify no unexpected padding issues
 - Talloc allocation: Can allocate and free request/response structures with talloc
 - Type safety: Compile-time type checking works for all structs
+- Error codes: `ERR_PROVIDER`, `ERR_MISSING_CREDENTIALS`, `ERR_NOT_IMPLEMENTED` have correct values and strings
 
 ## Postconditions
 
@@ -133,7 +147,7 @@ Create `tests/unit/providers/provider_types_test.c`:
 - [ ] All enums have explicit integer values (no gaps)
 - [ ] All structs use talloc-compatible patterns
 - [ ] No provider-specific dependencies (no OpenAI/Anthropic includes)
-- [ ] `ERR_PROVIDER` added to `src/error.h`
+- [ ] `ERR_PROVIDER`, `ERR_MISSING_CREDENTIALS`, `ERR_NOT_IMPLEMENTED` added to `src/error.h`
 - [ ] Unit tests pass
 - [ ] `make check` passes
 - [ ] Header compiles in isolation (no missing includes)

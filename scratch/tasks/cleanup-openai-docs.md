@@ -4,6 +4,11 @@
 **Model:** sonnet/none
 **Depends on:** cleanup-openai-source.md, cleanup-openai-tests.md
 
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
+
 ## Pre-Read
 
 **Skills:**

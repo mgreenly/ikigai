@@ -1,8 +1,7 @@
 {
   "todo": [
     {"task": "credentials-core.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
-    {"task": "credentials-config.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
-    {"task": "credentials-production.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
+    {"task": "credentials-migrate.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
     {"task": "credentials-tests-helpers.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
     {"task": "credentials-tests-config.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
     {"task": "credentials-tests-openai.md", "group": "Configuration", "model": "sonnet", "thinking": "none", "layer": 0},
@@ -25,9 +24,9 @@
     {"task": "openai-shim-response.md", "group": "OpenAI Migration", "model": "sonnet", "thinking": "thinking", "layer": 2},
     {"task": "openai-shim-send.md", "group": "OpenAI Migration", "model": "sonnet", "thinking": "thinking", "layer": 2},
     {"task": "openai-shim-compat-tests.md", "group": "OpenAI Migration", "model": "sonnet", "thinking": "thinking", "layer": 2},
-    {"task": "configuration.md", "group": "Configuration", "model": "sonnet", "thinking": "thinking", "layer": 2},
     {"task": "agent-provider-fields.md", "group": "Agent Updates", "model": "sonnet", "thinking": "thinking", "layer": 2},
 
+    {"task": "configuration.md", "group": "Configuration", "model": "sonnet", "thinking": "thinking", "layer": 3},
     {"task": "model-command.md", "group": "Commands", "model": "sonnet", "thinking": "thinking", "layer": 3},
     {"task": "repl-provider-routing.md", "group": "REPL Integration", "model": "sonnet", "thinking": "thinking", "layer": 3},
     {"task": "repl-streaming-updates.md", "group": "REPL Integration", "model": "sonnet", "thinking": "thinking", "layer": 3},

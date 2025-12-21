@@ -4,6 +4,11 @@
 **Model:** sonnet/thinking
 **Depends on:** openai-core.md, openai-request-chat.md, openai-response-chat.md, tests-mock-infrastructure.md
 
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
+
 ## Pre-Read
 
 **Skills:**

@@ -4,6 +4,11 @@
 **Model:** sonnet/none
 **Depends on:** credentials-tests-helpers.md, credentials-tests-config.md, credentials-tests-openai.md, credentials-tests-repl.md
 
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
+
 ## Pre-Read
 
 **Skills:**

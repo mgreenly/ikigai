@@ -2,7 +2,12 @@
 
 **Layer:** 4
 **Model:** sonnet/thinking
-**Depends on:** openai-adapter-shim.md, provider-types.md, credentials-core.md, error-core.md
+**Depends on:** openai-shim-send.md, provider-types.md, credentials-core.md, error-core.md
+
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
 
 ## Pre-Read
 
@@ -21,7 +26,7 @@
 
 ## Objective
 
-Create native OpenAI provider to replace the adapter shim. This establishes directory structure, headers, factory registration, and reasoning effort mapping. The shim remains functional until all 4 tasks complete; `cleanup-old-openai.md` deletes it.
+Create native OpenAI provider to replace the adapter shim. This establishes directory structure, headers, factory registration, and reasoning effort mapping. The shim remains functional until all 4 tasks complete; `cleanup-openai-adapter.md` deletes it.
 
 ## Key Differences from Anthropic/Google
 

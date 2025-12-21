@@ -4,6 +4,11 @@
 **Model:** sonnet/thinking
 **Depends on:** http-client.md, sse-parser.md, credentials-core.md
 
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
+
 ## Pre-Read
 
 **Skills:**

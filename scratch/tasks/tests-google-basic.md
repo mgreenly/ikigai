@@ -4,6 +4,11 @@
 **Model:** sonnet/thinking
 **Depends on:** google-core.md, google-request.md, google-response.md, tests-mock-infrastructure.md
 
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
+
 ## Pre-Read
 
 **Skills:**

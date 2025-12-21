@@ -2,7 +2,12 @@
 
 **Layer:** 3
 **Model:** sonnet/thinking
-**Depends on:** openai-adapter-shim.md, agent-provider-fields.md, configuration.md
+**Depends on:** openai-shim-send.md, agent-provider-fields.md, configuration.md
+
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
 
 ## Pre-Read
 

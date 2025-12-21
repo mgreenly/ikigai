@@ -2,7 +2,12 @@
 
 **Layer:** 6
 **Model:** sonnet/none
-**Depends on:** cleanup-openai-source.md, tests-openai.md
+**Depends on:** cleanup-openai-source.md, tests-openai-basic.md, tests-openai-streaming.md
+
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
 
 ## Pre-Read
 
