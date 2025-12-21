@@ -1,0 +1,50 @@
+# Task: Implement Provider Error Handling
+
+**Phase:** Cross-cutting
+**Depends on:** 01-provider-types
+
+## Objective
+
+Implement error mapping and retry logic for all providers.
+
+## Deliverables
+
+1. Create `src/providers/error.c`:
+   - `ik_error_category_name()` - Category to string
+   - `ik_error_is_retryable()` - Check if error can be retried
+   - `ik_error_user_message()` - Generate user-facing message
+
+2. Implement per-provider error handling:
+   - `ik_anthropic_handle_error()` - Map Anthropic HTTP errors
+   - `ik_openai_handle_error()` - Map OpenAI HTTP errors
+   - `ik_google_handle_error()` - Map Google HTTP errors
+
+3. Extract retry-after from headers:
+   - Anthropic: `retry-after` header
+   - OpenAI: `x-ratelimit-reset-*` headers
+   - Google: `retryDelay` in response body
+
+4. User-facing error messages:
+   - Authentication errors with fix instructions
+   - Rate limit with retry countdown
+   - Server errors with retry status
+
+## Reference
+
+- `scratch/plan/error-handling.md` - Full specification
+
+## Error Categories
+
+- ERR_AUTH - Invalid credentials (no retry)
+- ERR_RATE_LIMIT - Rate limited (retry with delay)
+- ERR_INVALID_ARG - Bad request (no retry)
+- ERR_NOT_FOUND - Model not found (no retry)
+- ERR_SERVER - Server error (retry with backoff)
+- ERR_TIMEOUT - Timeout (retry immediately)
+- ERR_CONTENT_FILTER - Content blocked (no retry)
+
+## Verification
+
+- All HTTP status codes mapped correctly
+- Retry-after extracted from each provider
+- User messages are helpful

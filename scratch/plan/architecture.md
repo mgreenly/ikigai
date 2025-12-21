@@ -345,37 +345,93 @@ res_t result = provider->vt->stream(provider->impl_ctx, req, ...);
 
 ## Migration from Existing OpenAI Code
 
-### Current Structure (rel-06)
+### Current State (rel-06)
 
 ```
-src/openai/
-  client.c              → REPL calls directly
+src/openai/                    ← Hardcoded, directly called
+  client.c                     → REPL calls directly
   client_multi.c
+  client_multi_callbacks.c
+  client_multi_request.c
+  client_msg.c
+  client_serialize.c
   http_handler.c
   sse_parser.c
+  tool_choice.c
+
+src/client.c                   ← HTTP client, must integrate with new providers
 ```
 
-### New Structure (rel-07)
+**Call sites using hardcoded OpenAI:**
+
+| File | Current Usage | Migration |
+|------|---------------|-----------|
+| `src/commands_basic.c` | `ik_cmd_model` with hardcoded model list (line 161) | Use provider registry |
+| `src/completion.c` | `provide_model_args` for autocomplete (line 29) | List models from all providers |
+| `src/repl_actions_llm.c` | Dispatches to OpenAI client | Route through provider vtable |
+| `src/client.c` | HTTP client for OpenAI | Adapt for provider abstraction |
+| `src/agent.c` | No provider field | Add provider/model/thinking_level |
+| `src/db/agent.c` | No provider column | Update for agents table changes |
+| `src/config.c` | No credentials loading | Add credentials.json support |
+
+### Target State (rel-07)
 
 ```
 src/providers/
   common/
     http_client.c       ← Refactored from http_handler.c
     sse_parser.c        ← Moved from openai/sse_parser.c
+  provider.h            ← Vtable interface
   openai/
-    adapter.c           ← NEW: vtable implementation
+    adapter.c           ← Vtable implementation
     client.c            ← Refactored from openai/client.c
     streaming.c         ← Refactored from openai/client_multi*.c
     openai.h
+
+src/client.c            ← Updated to work with provider abstraction
+src/openai/             ← DELETED (no longer exists)
 ```
 
-### Refactoring Strategy
+### Migration Strategy: Adapter-First
 
-1. **Extract shared HTTP logic** → `common/http_client.c`
-2. **Move SSE parser** → `common/sse_parser.c` (rename from `ik_openai_*` to `ik_sse_*`)
-3. **Create adapter** → `openai/adapter.c` implements vtable
-4. **Refactor client** → OpenAI-specific request building in `openai/client.c`
-5. **Remove old directory** → Delete `src/openai/` after migration
+**Rationale:** Keep OpenAI working throughout migration. Validate interface design with real code before adding new providers.
+
+### Migration Phases
+
+| Phase | Description | Deliverable | Verification |
+|-------|-------------|-------------|--------------|
+| **1** | Create `src/providers/` with vtable interface | `provider.h` compiles | Unit tests for types |
+| **2** | Add adapter shim wrapping existing `src/openai/` | OpenAI works via adapter | Existing tests pass |
+| **3** | Update call sites to use provider interface | All traffic through abstraction | `src/client.c`, REPL, agent use vtable |
+| **4** | Add Anthropic provider | Two providers working | Anthropic unit + integration tests |
+| **5** | Add Google provider | Three providers working | Google unit + integration tests |
+| **6** | Refactor `src/openai/` → `src/providers/openai/` | Native vtable implementation | OpenAI tests pass with new structure |
+| **7** | **Delete adapter shim and old `src/openai/`** | Clean codebase | No `#include "openai/"` outside providers |
+
+### Phase 7 Cleanup Checklist
+
+**CRITICAL:** This phase ensures no dead code remains.
+
+- [ ] Delete `src/openai/` directory entirely
+- [ ] Delete adapter shim code (temporary wrapper)
+- [ ] Grep codebase: no `#include.*openai/` outside `src/providers/`
+- [ ] Grep codebase: no `ik_openai_` function calls outside `src/providers/`
+- [ ] Verify Makefile no longer references `src/openai/`
+- [ ] Run full test suite to confirm nothing broken
+- [ ] Update any documentation referencing old paths
+
+### `src/client.c` Integration
+
+**Do not forget:** `src/client.c` is the HTTP client layer that currently serves `src/openai/`.
+
+**Migration path:**
+1. Phase 2: `src/client.c` continues serving `src/openai/` via adapter
+2. Phase 3: Refactor `src/client.c` to work with `src/providers/common/http_client.c`
+3. Phase 6: `src/client.c` either:
+   - Becomes `src/providers/common/http_client.c`, OR
+   - Is deleted if functionality fully absorbed into common/
+
+**Verification:** After Phase 7, `src/client.c` should either not exist or should be clearly integrated with the provider abstraction.
 
 ## Error Handling
 

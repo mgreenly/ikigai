@@ -6,10 +6,14 @@ Multi-provider support requires storing provider, model, and thinking level with
 
 ## Migration Strategy
 
+**Migration file:** `migrations/005-multi-provider.sql`
+
+Follows existing convention: `NNN-kebab-case-description.sql` (see 001-004 in `migrations/`).
+
 **For rel-07:** Truncate all tables (clean slate for developer).
 
 ```sql
--- Migration: rel-07-multi-provider.sql
+-- Migration: 005-multi-provider.sql
 
 -- Add new columns to agents table
 ALTER TABLE agents ADD COLUMN provider TEXT;
@@ -227,7 +231,7 @@ res_t ik_db_update_agent(ik_db_t *db, ik_agent_t *agent)
 ```c
 START_TEST(test_migration_adds_columns) {
     // Run migration
-    TRY(ik_db_migrate(db, "rel-07-multi-provider.sql"));
+    TRY(ik_db_migrate(db, "005-multi-provider.sql"));
 
     // Verify columns exist
     const char *sql = "SELECT provider, model, thinking_level FROM agents LIMIT 1";
