@@ -1,31 +1,117 @@
-# Task: Create Anthropic Provider Streaming Tests
+# Task: Create Anthropic Provider Streaming Tests (Async)
+
+**UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** anthropic-streaming.md, tests-anthropic-basic.md
+**Depends on:** anthropic-streaming.md, tests-anthropic-basic.md, tests-mock-infrastructure.md
 
 ## Context
 
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+All needed context is provided in this file. Do not research, explore, or spawn sub-agents.
+
+**CRITICAL ARCHITECTURE CONSTRAINT:** The application uses a select()-based event loop. ALL HTTP operations MUST be non-blocking. Tests must verify async behavior through the fdset/perform/info_read pattern, NOT blocking calls.
 
 ## Preconditions
 
 - [ ] Clean worktree (verify: `git status --porcelain` is empty)
+- [ ] Anthropic streaming implementation exists (`src/providers/anthropic/streaming.c`)
+- [ ] Mock curl_multi infrastructure exists (`tests/helpers/mock_curl_multi.h`)
 
 ## Pre-Read
 
 **Skills:**
 - `/load tdd` - Test-driven development patterns
+- `/load makefile` - Build system patterns
 
 **Source:**
-- `src/providers/anthropic/streaming.c` - Streaming implementation
+- `src/providers/anthropic/streaming.c` - Streaming implementation to test
+- `src/providers/anthropic/adapter.c` - Vtable implementation with fdset/perform/info_read
+- `src/providers/common/http_multi.h` - Async HTTP interface
+- `src/providers/common/sse_parser.h` - SSE parsing interface
+- `src/openai/client_multi.c` - Reference implementation (existing async pattern)
 - `tests/unit/providers/anthropic/` - Basic tests for patterns
-- `tests/helpers/mock_http.h` - Mock infrastructure
+- `tests/helpers/mock_curl_multi.h` - Mock curl_multi infrastructure
+
+**Plan:**
+- `scratch/plan/README.md` - Critical constraint: select()-based event loop
+- `scratch/plan/testing-strategy.md` - SSE streaming mock pattern, async test flow
+- `scratch/plan/streaming.md` - Normalized stream event types and async data flow
+- `scratch/plan/architecture.md` - Event loop integration details
 
 ## Objective
 
-Create tests for Anthropic streaming event handling. Verifies SSE parsing, event normalization, delta accumulation, and thinking token calculation.
+Create tests for Anthropic async streaming using mock curl_multi. Tests verify:
+1. The async fdset/perform/info_read pattern works correctly
+2. SSE events are parsed and normalized during perform() calls
+3. Stream callbacks are invoked incrementally as data arrives
+4. Completion callback is invoked when transfer finishes
+
+**This is NOT unit testing of SSE parsing in isolation.** This tests the full async streaming flow through the provider vtable interface with mocked network I/O.
+
+## Async Test Pattern
+
+**CRITICAL:** Tests must exercise the async event loop pattern, not call blocking functions.
+
+```c
+// Test captures events via stream callback
+static ik_stream_event_t captured_events[32];
+static size_t captured_count = 0;
+
+static void test_stream_cb(const ik_stream_event_t *event, void *ctx) {
+    captured_events[captured_count++] = *event;
+}
+
+static res_t captured_result;
+static void test_completion_cb(void *ctx, res_t result, ik_response_t *resp) {
+    captured_result = result;
+}
+
+START_TEST(test_basic_streaming)
+{
+    captured_count = 0;
+
+    // Setup: Load SSE fixture and configure mock
+    const char *sse_data = load_fixture("anthropic/stream_basic.txt");
+    mock_curl_multi_set_streaming_response(200, sse_data);
+
+    // Create provider
+    res_t r = ik_anthropic_create(ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    // Start async stream (returns immediately)
+    r = provider->vt->start_stream(provider->ctx, req,
+                                   test_stream_cb, NULL,
+                                   test_completion_cb, NULL);
+    ck_assert(is_ok(&r));
+
+    // Drive event loop until complete
+    int running = 1;
+    while (running > 0) {
+        fd_set read_fds, write_fds, exc_fds;
+        int max_fd = 0;
+
+        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
+        // Note: In test, mock makes select() return immediately
+
+        provider->vt->perform(provider->ctx, &running);
+        // ↑ Mock curl_multi_perform delivers SSE chunks
+        // ↑ SSE parser invokes stream_cb during this call
+    }
+
+    provider->vt->info_read(provider->ctx, logger);
+    // ↑ Invokes completion_cb when transfer marked complete
+
+    // Assert on captured events
+    ck_assert(is_ok(&captured_result));
+    ck_assert(captured_count > 0);
+    ck_assert_int_eq(captured_events[0].type, IK_STREAM_START);
+    ck_assert_int_eq(captured_events[captured_count-1].type, IK_STREAM_DONE);
+}
+END_TEST
+```
 
 ## Interface
 
@@ -33,7 +119,7 @@ Create tests for Anthropic streaming event handling. Verifies SSE parsing, event
 
 | File | Purpose |
 |------|---------|
-| `tests/unit/providers/anthropic/test_anthropic_streaming.c` | SSE event handling and normalization |
+| `tests/unit/providers/anthropic/test_anthropic_streaming.c` | Async streaming through provider vtable |
 
 **Fixture files to create:**
 
@@ -41,25 +127,39 @@ Create tests for Anthropic streaming event handling. Verifies SSE parsing, event
 |------|---------|
 | `tests/fixtures/anthropic/stream_basic.txt` | SSE stream for basic completion |
 | `tests/fixtures/anthropic/stream_thinking.txt` | SSE stream with thinking deltas |
+| `tests/fixtures/anthropic/stream_tool_call.txt` | SSE stream with tool use |
+
+## Mock curl_multi Requirements
+
+The mock infrastructure must simulate curl_multi behavior:
+
+| Mock Function | Behavior |
+|---------------|----------|
+| `curl_multi_fdset_()` | Returns mock FDs (can return -1 for no-wait) |
+| `curl_multi_perform_()` | Delivers SSE chunks to write callback, updates running count |
+| `curl_multi_info_read_()` | Returns CURLMSG_DONE when fixture exhausted |
+| `curl_multi_timeout_()` | Returns 0 (immediate timeout for tests) |
+
+**Chunk delivery pattern:** Mock perform() delivers fixture data in chunks to simulate incremental arrival. Each perform() call delivers one SSE event (event: + data: pair) to exercise the streaming callback path.
 
 ## Behaviors
 
 **Event Types to Test:**
 
-| Anthropic Event | Normalized Event | Handler |
-|-----------------|------------------|---------|
-| `message_start` | - | Initialize message state |
-| `content_block_start` | `IK_STREAM_CONTENT_START` | Start content block |
-| `content_block_delta` | `IK_STREAM_CONTENT_DELTA` | Append text delta |
-| `content_block_delta` (thinking) | `IK_STREAM_THINKING_DELTA` | Append thinking delta |
-| `content_block_stop` | - | Finalize content block |
-| `message_delta` | - | Extract usage metadata |
-| `message_stop` | `IK_STREAM_DONE` | Finalize message |
+| Anthropic Event | Normalized Event | Callback |
+|-----------------|------------------|----------|
+| `message_start` | `IK_STREAM_START` | stream_cb |
+| `content_block_delta` (text_delta) | `IK_STREAM_TEXT_DELTA` | stream_cb |
+| `content_block_delta` (thinking_delta) | `IK_STREAM_THINKING_DELTA` | stream_cb |
+| `content_block_start` (tool_use) | `IK_STREAM_TOOL_CALL_START` | stream_cb |
+| `content_block_delta` (input_json_delta) | `IK_STREAM_TOOL_CALL_DELTA` | stream_cb |
+| `content_block_stop` (tool_use) | `IK_STREAM_TOOL_CALL_DONE` | stream_cb |
+| `message_stop` | `IK_STREAM_DONE` | stream_cb, then completion_cb |
 
-**SSE Format:**
+**SSE Format (stream_basic.txt):**
 ```
 event: message_start
-data: {"type":"message_start","message":{"id":"msg_...",...}}
+data: {"type":"message_start","message":{"id":"msg_123","model":"claude-sonnet-4-5-20250929"}}
 
 event: content_block_start
 data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
@@ -67,11 +167,14 @@ data: {"type":"content_block_start","index":0,"content_block":{"type":"text","te
 event: content_block_delta
 data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}
 
+event: content_block_delta
+data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}}
+
 event: content_block_stop
 data: {"type":"content_block_stop","index":0}
 
 event: message_delta
-data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":15}}
+data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":2}}
 
 event: message_stop
 data: {"type":"message_stop"}
@@ -79,43 +182,56 @@ data: {"type":"message_stop"}
 
 ## Test Scenarios
 
+**Async Event Loop (3 tests):**
+- `test_start_stream_returns_immediately` - start_stream() does not block
+- `test_fdset_returns_mock_fds` - fdset() populates FD sets correctly
+- `test_perform_delivers_events_incrementally` - Each perform() delivers events to stream_cb
+
 **Basic Streaming (4 tests):**
-- Parse message_start event
-- Parse content_block_start event
-- Parse content_block_delta with text
-- Parse message_stop event
+- `test_stream_start_event` - First event is IK_STREAM_START with model
+- `test_text_delta_events` - IK_STREAM_TEXT_DELTA events contain text fragments
+- `test_stream_done_event` - Final event is IK_STREAM_DONE with usage
+- `test_completion_callback_invoked` - completion_cb called after info_read()
 
 **Content Accumulation (3 tests):**
-- Accumulate multiple text deltas
-- Handle multiple content blocks in sequence
-- Preserve content block order
+- `test_multiple_text_deltas` - Multiple deltas delivered in sequence
+- `test_delta_content_preserved` - Delta text matches fixture data
+- `test_event_order_preserved` - Events arrive in SSE order
 
 **Thinking Content (3 tests):**
-- Parse thinking content_block_start
-- Parse thinking content_block_delta
-- Calculate thinking tokens from usage
+- `test_thinking_delta_event_type` - Thinking deltas map to IK_STREAM_THINKING_DELTA
+- `test_thinking_delta_content` - Thinking text extracted correctly
+- `test_usage_includes_thinking_tokens` - Done event includes thinking token count
 
-**Tool Call Streaming (3 tests):**
-- Parse tool_use content_block_start
-- Parse tool_use content_block_delta with partial JSON
-- Accumulate tool call arguments
+**Tool Call Streaming (4 tests):**
+- `test_tool_call_start_event` - IK_STREAM_TOOL_CALL_START with id and name
+- `test_tool_call_delta_events` - IK_STREAM_TOOL_CALL_DELTA with JSON fragments
+- `test_tool_call_done_event` - IK_STREAM_TOOL_CALL_DONE after content_block_stop
+- `test_tool_call_arguments_accumulated` - JSON fragments form valid object
 
-**Event Normalization (3 tests):**
-- Normalize text delta to IK_STREAM_CONTENT_DELTA
-- Normalize thinking delta to IK_STREAM_THINKING_DELTA
-- Normalize message_stop to IK_STREAM_DONE
+**Error Handling (3 tests):**
+- `test_http_error_calls_completion_cb` - HTTP 500 invokes completion_cb with error
+- `test_malformed_sse_handled` - Invalid SSE data produces IK_STREAM_ERROR
+- `test_incomplete_stream_detected` - Missing message_stop produces error
 
-**Error Handling (2 tests):**
-- Handle malformed SSE gracefully
-- Handle stream interruption
+## Implementation Notes
+
+1. **Use existing Check framework** - Follow `tests/unit/providers/anthropic/` patterns
+2. **Mock setup in suite_setup** - Configure mock_curl_multi before tests
+3. **Fixture loading** - Use `tests/fixtures/` loading pattern from existing tests
+4. **Memory management** - Use talloc, free in teardown
+5. **Event capture array** - Static array to capture stream events for assertions
+6. **Running handle tracking** - Mock updates running count during perform()
 
 ## Postconditions
 
-- [ ] 1 test file with 18+ tests
-- [ ] 2 fixture files with valid SSE format
-- [ ] All event types tested
-- [ ] Thinking budget calculation verified
-- [ ] Event normalization verified
+- [ ] 1 test file with 20+ tests
+- [ ] 3 fixture files with valid SSE format (basic, thinking, tool_call)
+- [ ] All async patterns tested (fdset, perform, info_read)
+- [ ] All stream event types tested
+- [ ] Event sequence verified (START -> deltas -> DONE)
+- [ ] Completion callback verification
+- [ ] Error handling paths tested
 - [ ] Compiles without warnings
 - [ ] All tests pass
 - [ ] `make check` passes
@@ -123,8 +239,6 @@ data: {"type":"message_stop"}
   - If `make check` passed: success message
   - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
 - [ ] Clean worktree (verify: `git status --porcelain` is empty)
-
-
 
 ## Success Criteria
 

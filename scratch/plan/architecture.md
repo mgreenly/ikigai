@@ -172,9 +172,10 @@ The REPL main loop integrates with providers via select():
 ```c
 // Simplified event loop (see src/repl.c for full implementation)
 while (!quit) {
-    fd_set read_fds, write_fds;
+    fd_set read_fds, write_fds, exc_fds;
     FD_ZERO(&read_fds);
     FD_ZERO(&write_fds);
+    FD_ZERO(&exc_fds);
     int max_fd = 0;
 
     // Add terminal input FD
@@ -185,7 +186,7 @@ while (!quit) {
     for (each agent) {
         if (agent->provider) {
             agent->provider->vt->fdset(agent->provider->ctx,
-                                       &read_fds, &write_fds, &max_fd);
+                                       &read_fds, &write_fds, &exc_fds, &max_fd);
         }
     }
 
@@ -202,7 +203,7 @@ while (!quit) {
     }
 
     // Wait for activity
-    select(max_fd + 1, &read_fds, &write_fds, NULL, &timeout);
+    select(max_fd + 1, &read_fds, &write_fds, &exc_fds, &timeout);
 
     // Process provider I/O (non-blocking)
     for (each agent) {

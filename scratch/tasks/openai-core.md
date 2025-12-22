@@ -102,7 +102,10 @@ Create native OpenAI provider to replace the adapter shim. This establishes dire
 - Copy api_key and base_url to provider-owned memory
 - Set vtable to `&OPENAI_VTABLE` (defined in openai.c)
 - Provider name should be "openai"
-- Vtable functions `send` and `stream` are forward-declared (implemented in later tasks)
+- Vtable implements async methods for select()-based event loop integration:
+  - `fdset()`, `perform()`, `timeout()`, `info_read()` - Event loop integration (forward-declared, implemented in later tasks)
+  - `start_request()` - Non-blocking request initiation (forward-declared, implemented in later tasks)
+  - `start_stream()` - Non-blocking streaming request (forward-declared, implemented in later tasks)
 
 ### Error Handling
 
@@ -185,7 +188,7 @@ src/providers/openai/
 - `ik_openai_create()` returns valid provider with default (Chat Completions)
 - `ik_openai_create_with_options()` respects use_responses_api flag
 - Provider name is "openai"
-- Vtable has non-null send and stream function pointers
+- Vtable has non-null async function pointers: `fdset`, `perform`, `timeout`, `info_read`, `start_request`, `start_stream`
 - API key and base URL copied to provider context
 
 ### Factory Integration

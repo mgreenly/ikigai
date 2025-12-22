@@ -45,13 +45,14 @@ struct ik_provider_vtable_t {
      * @param ctx       Provider context (opaque)
      * @param read_fds  Read fd_set to populate (will be modified)
      * @param write_fds Write fd_set to populate (will be modified)
+     * @param exc_fds   Exception fd_set to populate (will be modified)
      * @param max_fd    Output: highest FD number (will be updated)
      * @return          OK(NULL) on success, ERR(...) on failure
      *
      * Called before select() to get file descriptors the provider
      * needs to monitor. Provider adds its curl_multi FDs to the sets.
      */
-    res_t (*fdset)(void *ctx, fd_set *read_fds, fd_set *write_fds, int *max_fd);
+    res_t (*fdset)(void *ctx, fd_set *read_fds, fd_set *write_fds, fd_set *exc_fds, int *max_fd);
 
     /**
      * perform - Process pending I/O operations

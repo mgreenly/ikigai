@@ -1,5 +1,7 @@
 # Task: Create Google Provider Basic Tests
 
+**UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
+
 **Model:** sonnet/thinking
 **Depends on:** google-core.md, google-request.md, google-response.md, tests-mock-infrastructure.md
 
@@ -8,6 +10,9 @@
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+All needed context is provided in this file. Do not research, explore, or spawn sub-agents.
+
+**Critical Architecture Constraint:** The application uses a select()-based event loop. ALL HTTP operations are non-blocking via curl_multi. Tests MUST simulate the async fdset/perform/info_read cycle, not blocking calls.
 
 ## Preconditions
 
@@ -18,10 +23,14 @@
 **Skills:**
 - `/load tdd` - Test-driven development patterns
 
+**Plan:**
+- `scratch/plan/testing-strategy.md` - Mock HTTP pattern, async test flow
+- `scratch/plan/provider-interface.md` - Async vtable specification
+
 **Source:**
 - `tests/unit/providers/` - Common provider test patterns
 - `src/providers/google/` - Google/Gemini provider implementation
-- `tests/helpers/mock_http.h` - Mock infrastructure
+- `tests/helpers/mock_http.h` - Mock infrastructure (curl_multi mocks)
 
 ## Objective
 
@@ -52,9 +61,9 @@ Create tests for Google Gemini provider adapter, request serialization, response
 **Adapter Tests (5 tests):**
 - Create adapter with valid credentials
 - Destroy adapter cleans up resources
-- Send request returns OK with valid response
-- Send request returns ERR on HTTP failure
-- Vtable functions are non-NULL
+- Start request + drive event loop returns response via callback
+- Start request returns ERR on HTTP failure (via callback)
+- Vtable functions are non-NULL (fdset, perform, timeout, info_read, start_request, start_stream)
 
 **Request Serialization Tests (7 tests):**
 - Build request with system and user messages
@@ -79,6 +88,57 @@ Create tests for Google Gemini provider adapter, request serialization, response
 - Parse quota exceeded error
 - Parse validation error (400)
 - Map errors to correct categories
+
+## Async Test Pattern
+
+Tests MUST simulate the async event loop. Use this pattern (from `scratch/plan/testing-strategy.md`):
+
+```c
+// Test captures response via callback
+static ik_response_t *captured_response;
+static res_t captured_result;
+
+static void test_completion_cb(void *ctx, res_t result, ik_response_t *resp) {
+    captured_result = result;
+    captured_response = resp;
+}
+
+START_TEST(test_non_streaming_request)
+{
+    captured_response = NULL;
+
+    // Setup: Load fixture data
+    const char *response_json = load_fixture("google/response_basic.json");
+    mock_set_response(200, response_json);
+
+    // Create provider
+    res_t r = ik_google_create(ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    // Start request with callback (returns immediately)
+    r = provider->vt->start_request(provider->ctx, req, test_completion_cb, NULL);
+    ck_assert(is_ok(&r));
+
+    // Drive event loop until complete
+    while (captured_response == NULL) {
+        fd_set read_fds, write_fds, exc_fds;
+        int max_fd = 0;
+        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
+        select(max_fd + 1, &read_fds, &write_fds, &exc_fds, NULL);
+        provider->vt->perform(provider->ctx, NULL);
+    }
+
+    // Assert on captured response
+    ck_assert(is_ok(&captured_result));
+    ck_assert_str_eq(captured_response->content, "expected");
+}
+END_TEST
+```
+
+**Mock curl_multi functions (from mock_http.h):**
+- `curl_multi_fdset_()` - Returns mock FDs
+- `curl_multi_perform_()` - Simulates progress, delivers data to callbacks
+- `curl_multi_info_read_()` - Returns completion messages
 
 ## Postconditions
 

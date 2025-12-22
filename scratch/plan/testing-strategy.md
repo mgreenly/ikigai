@@ -118,10 +118,10 @@ START_TEST(test_non_streaming_request)
 
     // Drive event loop until complete
     while (captured_response == NULL) {
-        fd_set read_fds, write_fds;
+        fd_set read_fds, write_fds, exc_fds;
         int max_fd = 0;
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &max_fd);
-        select(max_fd + 1, &read_fds, &write_fds, NULL, NULL);
+        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
+        select(max_fd + 1, &read_fds, &write_fds, &exc_fds, NULL);
         provider->vt->perform(provider->ctx, NULL);
     }
 

@@ -158,20 +158,20 @@ Streaming integrates with the select()-based event loop:
    └── Returns immediately (non-blocking)
 
 2. REPL event loop runs:
-   ┌─────────────────────────────────────────────────────────────┐
-   │ while (!done) {                                             │
-   │     provider->vt->fdset(ctx, &read_fds, &write_fds, &max); │
-   │     select(max+1, &read_fds, &write_fds, NULL, &timeout);  │
-   │                                                             │
-   │     provider->vt->perform(ctx, &running);                   │
-   │     // ↑ This triggers curl write callbacks as data arrives │
-   │     // ↑ Write callbacks invoke SSE parser                  │
-   │     // ↑ SSE parser invokes stream_cb with normalized events│
-   │                                                             │
-   │     provider->vt->info_read(ctx, logger);                   │
-   │     // ↑ When transfer completes, invokes completion_cb     │
-   │ }                                                           │
-   └─────────────────────────────────────────────────────────────┘
+   ┌──────────────────────────────────────────────────────────────────────┐
+   │ while (!done) {                                                      │
+   │     provider->vt->fdset(ctx, &read_fds, &write_fds, &exc_fds, &max);│
+   │     select(max+1, &read_fds, &write_fds, &exc_fds, &timeout);       │
+   │                                                                      │
+   │     provider->vt->perform(ctx, &running);                            │
+   │     // ↑ This triggers curl write callbacks as data arrives          │
+   │     // ↑ Write callbacks invoke SSE parser                           │
+   │     // ↑ SSE parser invokes stream_cb with normalized events         │
+   │                                                                      │
+   │     provider->vt->info_read(ctx, logger);                            │
+   │     // ↑ When transfer completes, invokes completion_cb              │
+   │ }                                                                    │
+   └──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Provider Adapter Flow (Inside perform())

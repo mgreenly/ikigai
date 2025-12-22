@@ -8,6 +8,13 @@
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+**UNATTENDED EXECUTION:** This task executes automatically without human oversight. All needed context is provided in this file. Do not research, explore, or spawn sub-agents.
+
+**Critical Architecture Constraint:** The application uses a select()-based event loop. ALL provider operations MUST be non-blocking:
+- Use curl_multi (NOT curl_easy)
+- Expose fdset() for select() integration
+- Expose perform() for incremental processing
+- NEVER block the main thread
 
 ## Preconditions
 
@@ -25,6 +32,8 @@
 
 **Plan:**
 - `scratch/plan/thinking-abstraction.md` - Thinking budget calculation
+- `scratch/plan/provider-interface.md` - Async vtable specification (fdset/perform/timeout/info_read/start_request/start_stream)
+- `scratch/plan/architecture.md` - Event loop integration pattern
 
 ## Objective
 
@@ -131,10 +140,16 @@ HTTP Status to Category Mapping:
 - Create src/providers/google/ directory
 - Files: google.h (public), google.c (factory+vtable), thinking.h (internal), thinking.c (implementation), error.h (internal), error.c (implementation)
 
-**Vtable:**
-- send function forwards to ik_google_send_impl (implemented in google-request.md)
-- stream function forwards to ik_google_stream_impl (implemented in google-streaming.md)
-- cleanup is NULL (talloc handles cleanup)
+**Vtable (Async Methods):**
+- `fdset()` - Populate fd_sets for select() by calling curl_multi_fdset on provider's multi handle
+- `perform()` - Process pending I/O by calling curl_multi_perform (non-blocking)
+- `timeout()` - Get recommended timeout for select() from curl_multi_timeout
+- `info_read()` - Check for completed transfers and invoke completion callbacks
+- `start_request()` - Initiate non-streaming request (returns immediately, completion via callback)
+- `start_stream()` - Initiate streaming request (returns immediately, events via callbacks)
+- `cleanup` - NULL (talloc handles cleanup)
+
+**Note:** Request implementations (`start_request` forwarding to ik_google_request_impl, `start_stream` forwarding to ik_google_stream_impl) are defined in google-request.md and google-streaming.md respectively.
 
 **API Base URL:**
 - Use https://generativelanguage.googleapis.com/v1beta
@@ -179,7 +194,7 @@ HTTP Status to Category Mapping:
 **Provider Creation:**
 - Create with valid API key returns OK
 - Provider name is "google"
-- Vtable has send and stream functions
+- Vtable has async methods: fdset, perform, timeout, info_read, start_request, start_stream
 - Implementation context contains copied api_key and base_url
 
 **Factory Registration:**

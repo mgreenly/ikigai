@@ -1,6 +1,8 @@
 # Task: Define Provider Core Types
 
-**Model:** sonnet/none
+**UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
+
+**Model:** sonnet/thinking
 **Depends on:** None
 
 ## Context
@@ -8,6 +10,18 @@
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+All needed context is provided in this file. Do not research, explore, or spawn sub-agents.
+
+## Critical Architecture Constraint
+
+The application uses a select()-based event loop. ALL HTTP operations MUST be non-blocking:
+
+- Use curl_multi (NOT curl_easy)
+- Expose fdset() for select() integration
+- Expose perform() for incremental processing
+- NEVER block the main thread
+
+Reference: `src/openai/client_multi.c` (existing async implementation)
 
 ## Preconditions
 
@@ -21,18 +35,25 @@
 **Source:**
 - `src/error.h` - Existing `err_code_t` enum and `res_t` type
 - `src/openai/client.h` - Existing provider structure
+- `src/openai/client_multi.h` - Existing async HTTP pattern (fdset/perform/timeout/info_read)
 - `src/msg.h` - Message types
 - `src/tool.h` - Tool types
 
 **Plan:**
-- `scratch/plan/provider-interface.md` - Vtable specification
-- `scratch/plan/request-response-format.md` - Data structures
-- `scratch/plan/streaming.md` - Stream event types
+- `scratch/plan/README.md` - Critical constraint: select()-based event loop, curl_multi required
+- `scratch/plan/architecture.md` - Event loop integration details, vtable interface overview
+- `scratch/plan/provider-interface.md` - Complete vtable specification with callback signatures
+- `scratch/plan/streaming.md` - Stream event types and async data flow
 - `scratch/plan/error-handling.md` - Error categories
 
 ## Objective
 
-Create `src/providers/provider.h` with vtable definition and core types that all providers will implement. This is a **header-only task** defining the provider abstraction interface through enums, structs, and function pointer types. No implementation files are created.
+Create `src/providers/provider.h` with vtable definition and core types that all providers will implement. This is a **header-only task** defining the provider abstraction interface through enums, structs, callback types, and function pointer types. No implementation files are created.
+
+**Key design point:** The vtable uses an async/non-blocking pattern with:
+- Event loop integration methods: `fdset()`, `perform()`, `timeout()`, `info_read()`
+- Non-blocking request initiation: `start_request()`, `start_stream()` (return immediately)
+- Callbacks for response delivery: `ik_completion_cb_t`, `ik_stream_cb_t`
 
 ## Interface
 
@@ -60,28 +81,62 @@ Create `src/providers/provider.h` with vtable definition and core types that all
 | `ik_request_t` | system_prompt, messages, model, thinking config, tools, max_output_tokens | Request to provider |
 | `ik_response_t` | content blocks, finish_reason, usage, model, provider_data | Response from provider |
 | `ik_stream_event_t` | type, union of event-specific data | Streaming event with variant payload |
-| `ik_provider_vtable_t` | send(), stream(), cleanup() function pointers | Provider vtable interface |
+| `ik_http_completion_t` | success (bool), http_status, response (ik_response_t*), error_category, error_message | Completion callback payload |
+| `ik_provider_vtable_t` | fdset(), perform(), timeout(), info_read(), start_request(), start_stream(), cleanup() | Provider vtable interface (async) |
 | `ik_provider_t` | name, vtable pointer, impl_ctx (opaque) | Provider wrapper |
 
 ### Forward Declarations File
 
 Create `src/providers/provider_types.h` with forward declarations for all provider types (ik_provider_t, ik_request_t, ik_response_t, etc.).
 
-### Stream Callback Type
+### Callback Type Definitions
 
 | Type | Signature | Purpose |
 |------|-----------|---------|
-| `ik_stream_callback_t` | `void (*)(ik_stream_event_t *event, void *user_ctx)` | Callback for streaming events |
+| `ik_stream_cb_t` | `res_t (*)(const ik_stream_event_t *event, void *ctx)` | Callback for streaming events during perform() |
+| `ik_completion_cb_t` | `res_t (*)(const ik_http_completion_t *completion, void *ctx)` | Callback invoked when request completes from info_read() |
 
-### Vtable Interface
+### Vtable Interface (Async/Non-blocking)
+
+All vtable methods are non-blocking. Request initiation returns immediately; progress is made through the event loop integration methods.
+
+**Event Loop Integration (REQUIRED):**
 
 | Function Pointer | Signature | Purpose |
 |------------------|-----------|---------|
-| `send` | `res_t (*)(void *impl_ctx, ik_request_t *req, ik_response_t **out_resp)` | Send non-streaming request |
-| `stream` | `res_t (*)(void *impl_ctx, ik_request_t *req, ik_stream_callback_t cb, void *cb_ctx)` | Send streaming request |
-| `cleanup` | `void (*)(void *impl_ctx)` | Cleanup provider resources (may be NULL) |
+| `fdset` | `res_t (*)(void *ctx, fd_set *r, fd_set *w, fd_set *e, int *max_fd)` | Populate fd_sets for select() - adds provider's curl_multi FDs |
+| `perform` | `res_t (*)(void *ctx, int *running_handles)` | Process pending I/O (non-blocking) - drives curl_multi_perform() |
+| `timeout` | `res_t (*)(void *ctx, long *timeout_ms)` | Get recommended timeout for select() from curl |
+| `info_read` | `void (*)(void *ctx, ik_logger_t *logger)` | Process completed transfers, invoke completion callbacks |
+
+**Request Initiation (Non-blocking):**
+
+| Function Pointer | Signature | Purpose |
+|------------------|-----------|---------|
+| `start_request` | `res_t (*)(void *ctx, const ik_request_t *req, ik_completion_cb_t cb, void *cb_ctx)` | Start non-streaming request, returns immediately |
+| `start_stream` | `res_t (*)(void *ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_completion_cb_t completion_cb, void *completion_ctx)` | Start streaming request, returns immediately |
+
+**Cleanup:**
+
+| Function Pointer | Signature | Purpose |
+|------------------|-----------|---------|
+| `cleanup` | `void (*)(void *ctx)` | Cleanup provider resources (may be NULL if talloc handles everything) |
 
 ## Behaviors
+
+### Async Operation Model
+
+The vtable follows the async curl_multi pattern used by the existing OpenAI implementation:
+
+1. **Request initiation:** `start_request()` / `start_stream()` configure curl easy handle and add to multi handle, then return immediately (non-blocking)
+2. **Event loop integration:** REPL calls `fdset()` before select(), `perform()` after select() returns, and `info_read()` to check for completions
+3. **Callback delivery:** Stream events delivered via `stream_cb` during `perform()` as data arrives. Completion delivered via `completion_cb` from `info_read()` when transfer finishes
+
+This matches the pattern in `src/openai/client_multi.c`:
+- `ik_openai_multi_fdset()` -> `fdset()`
+- `ik_openai_multi_perform()` -> `perform()`
+- `ik_openai_multi_timeout()` -> `timeout()`
+- `ik_openai_multi_info_read()` -> `info_read()`
 
 ### Error Type Coexistence
 
@@ -90,6 +145,8 @@ Two separate error systems:
 - `ik_error_category_t` in provider types - Provider API errors (auth, rate limit)
 
 Provider vtable functions return `res_t` (uses `err_code_t`). On provider errors, return `ERR(ctx, ERR_PROVIDER, "message")` where ERR_PROVIDER is a new error code added to `err_code_t`.
+
+Provider-specific errors (auth failures, rate limits, etc.) are delivered via the `ik_http_completion_t` struct passed to completion callbacks, not through the return value of `start_request()`/`start_stream()`.
 
 ### Content Block Variants
 
@@ -110,6 +167,16 @@ Provider vtable functions return `res_t` (uses `err_code_t`). On provider errors
 - DONE: finish_reason, usage, provider_data
 - ERROR: category, message
 
+### HTTP Completion Structure
+
+`ik_http_completion_t` contains all information about a completed request:
+- `success` (bool): true if request succeeded
+- `http_status` (int): HTTP status code
+- `response` (ik_response_t*): Parsed response (NULL on error)
+- `error_category` (ik_error_category_t): Error category if failed
+- `error_message` (char*): Human-readable error message if failed
+- `retry_after_ms` (int32_t): Suggested retry delay (-1 if not applicable)
+
 ### Memory Management
 
 All structs use talloc patterns. No direct malloc/free. Provider implementations store opaque context in `impl_ctx`.
@@ -118,8 +185,8 @@ All structs use talloc patterns. No direct malloc/free. Provider implementations
 
 ```
 src/providers/
-├── provider.h          # Core types (this task)
-├── provider_types.h    # Forward declarations only
+  provider.h          # Core types (this task)
+  provider_types.h    # Forward declarations only
 ```
 
 ## Error Code Additions
@@ -132,7 +199,7 @@ Add the following error codes to `err_code_t` enum in `src/error.h`:
 | `ERR_MISSING_CREDENTIALS` | 10 | "Missing credentials" | No API key configured for provider |
 | `ERR_NOT_IMPLEMENTED` | 11 | "Not implemented" | Stub functions not yet implemented |
 
-Add corresponding cases to `error_code_str()` for each new code. Also verify all existing `err_code_t` values have cases — `ERR_AGENT_NOT_FOUND` is currently missing and must be added with string "Agent not found".
+Add corresponding cases to `error_code_str()` for each new code. Also verify all existing `err_code_t` values have cases - `ERR_AGENT_NOT_FOUND` is currently missing and must be added with string "Agent not found".
 
 ## Test Scenarios
 
@@ -143,6 +210,7 @@ Create `tests/unit/providers/provider_types_test.c`:
 - Talloc allocation: Can allocate and free request/response structures with talloc
 - Type safety: Compile-time type checking works for all structs
 - Error codes: `ERR_PROVIDER`, `ERR_MISSING_CREDENTIALS`, `ERR_NOT_IMPLEMENTED` have correct values and strings
+- Callback type compatibility: Function pointer assignments compile correctly
 
 ## Postconditions
 
@@ -151,6 +219,10 @@ Create `tests/unit/providers/provider_types_test.c`:
 - [ ] All enums have explicit integer values (no gaps)
 - [ ] All structs use talloc-compatible patterns
 - [ ] No provider-specific dependencies (no OpenAI/Anthropic includes)
+- [ ] Vtable defines async methods: `fdset`, `perform`, `timeout`, `info_read`, `start_request`, `start_stream`
+- [ ] Vtable does NOT have blocking `send` or `stream` methods
+- [ ] Callback types `ik_stream_cb_t` and `ik_completion_cb_t` defined
+- [ ] `ik_http_completion_t` struct defined for completion callback payload
 - [ ] `ERR_PROVIDER`, `ERR_MISSING_CREDENTIALS`, `ERR_NOT_IMPLEMENTED` added to `src/error.h`
 - [ ] Unit tests pass
 - [ ] `make check` passes
@@ -160,8 +232,6 @@ Create `tests/unit/providers/provider_types_test.c`:
   - If `make check` passed: success message
   - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
 - [ ] Clean worktree (verify: `git status --porcelain` is empty)
-
-
 
 ## Success Criteria
 

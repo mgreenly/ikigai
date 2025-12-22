@@ -8,6 +8,8 @@
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+**Critical Architecture Constraint:** The application uses a select()-based event loop. All providers created by this factory MUST be async/non-blocking. Each provider initializes with a curl_multi handle for event loop integration.
+
 
 ## Preconditions
 
@@ -21,14 +23,15 @@
 
 **Source:**
 - `src/credentials.h` - Credentials loading API
-- `src/providers/provider.h` - Provider types (from provider-types.md)
+- `src/providers/provider.h` - Provider types and async vtable (from provider-types.md)
 
 **Plan:**
-- `scratch/plan/architecture.md` - Factory pattern reference
+- `scratch/plan/architecture.md` - Factory pattern and async provider initialization
+- `scratch/plan/provider-interface.md` - Async vtable interface (fdset, perform, start_stream, etc.)
 
 ## Objective
 
-Create `src/providers/provider_common.c` - the provider factory that dispatches to provider-specific factories based on provider name. Handles credential loading from environment variables or credentials.json, validates provider names, and creates appropriate provider instances.
+Create `src/providers/provider_common.c` - the provider factory that dispatches to provider-specific factories based on provider name. Handles credential loading from environment variables or credentials.json, validates provider names, and creates appropriate provider instances with curl_multi handles for async operation.
 
 ## Interface
 
@@ -87,11 +90,25 @@ External functions (implemented in later tasks):
 
 | Function | Task | Purpose |
 |----------|------|---------|
-| `ik_openai_create` | openai-core.md | Create OpenAI provider |
-| `ik_anthropic_create` | anthropic-core.md | Create Anthropic provider |
-| `ik_google_create` | google-core.md | Create Google provider |
+| `ik_openai_create` | openai-core.md | Create OpenAI provider with curl_multi |
+| `ik_anthropic_create` | anthropic-core.md | Create Anthropic provider with curl_multi |
+| `ik_google_create` | google-core.md | Create Google provider with curl_multi |
 
 These are declared as `extern` for forward reference. Linking succeeds only when provider implementations exist.
+
+### Provider Requirements
+
+Each provider-specific factory MUST:
+1. Initialize a curl_multi handle for async HTTP operations
+2. Populate the async vtable with these methods:
+   - `fdset()` - Populate fd_sets for select() integration
+   - `perform()` - Non-blocking I/O processing
+   - `timeout()` - Get recommended select() timeout
+   - `info_read()` - Process completed transfers, invoke callbacks
+   - `start_request()` - Initiate non-streaming request (returns immediately)
+   - `start_stream()` - Initiate streaming request (returns immediately)
+   - `cleanup()` - Release resources (optional if talloc handles all cleanup)
+3. Store the API key in provider context for request authorization
 
 ## Directory Structure
 

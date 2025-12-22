@@ -1,17 +1,16 @@
-# Task: Anthropic Streaming Implementation
+# Task: Anthropic Async Streaming Implementation
+
+**UNATTENDED EXECUTION:** This task executes automatically without human oversight. All needed context is provided in this file.
 
 **Model:** sonnet/thinking
-**Depends on:** anthropic-response.md, sse-parser.md
+**Depends on:** anthropic-response.md, sse-parser.md, http-client.md
 
 ## Context
 
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
-
-## Preconditions
-
-- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+**Critical Architecture Constraint:** The application uses a select()-based event loop. ALL HTTP operations MUST be non-blocking. Use curl_multi (NOT curl_easy), expose fdset() for select() integration, expose perform() for incremental processing, and NEVER block the main thread.
 
 ## Pre-Read
 
@@ -20,16 +19,63 @@
 - `/load memory` - Talloc-based memory management
 
 **Source:**
-- `src/providers/anthropic/response.h` - Response parsing
-- `src/providers/common/sse_parser.h` - SSE parser
-- `src/providers/provider.h` - Stream callback types
+- `src/providers/anthropic/response.h` - Response parsing functions
+- `src/providers/common/sse_parser.h` - SSE parser interface
+- `src/providers/common/http_multi.h` - Async HTTP multi-handle interface
+- `src/providers/provider.h` - Provider vtable and callback types
 
 **Plan:**
-- `scratch/plan/configuration.md` - Event normalization and streaming patterns
+- `scratch/plan/streaming.md` - Async streaming architecture, callback flow, event types
+- `scratch/plan/provider-interface.md` - start_stream() specification, callback signatures
+- `scratch/plan/architecture.md` - Provider adapter flow during perform()
 
 ## Objective
 
-Implement streaming for Anthropic API. Parse Anthropic SSE events and emit normalized `ik_stream_event_t` events through the callback. Handle all Anthropic event types: message_start, content_block_start/delta/stop, message_delta, message_stop, ping, and error.
+Implement async streaming for Anthropic API that integrates with the select()-based event loop. Parse Anthropic SSE events and emit normalized `ik_stream_event_t` events through callbacks. The implementation must be non-blocking: `start_stream()` returns immediately after adding the request to curl_multi, SSE parsing happens in curl write callbacks during `perform()`, stream events are delivered to the user callback during `perform()`, and completion is signaled via `info_read()`.
+
+## Async Architecture
+
+### Data Flow During Streaming
+
+```
+1. REPL calls provider->vt->start_stream(ctx, req, stream_cb, stream_ctx, completion_cb, completion_ctx)
+   |
+   v
+2. Anthropic adapter:
+   - Creates streaming context with user callbacks
+   - Serializes request to JSON with stream:true
+   - Configures curl easy handle with write callback
+   - Adds easy handle to curl_multi
+   - Returns immediately (NON-BLOCKING)
+   |
+   v
+3. REPL event loop calls provider->vt->perform()
+   |
+   v
+4. curl_multi_perform() triggers curl write callback as data arrives
+   |
+   v
+5. Write callback feeds data to SSE parser: ik_sse_parse_chunk(parser, data, len)
+   |
+   v
+6. SSE parser calls ik_anthropic_stream_process_event() for each complete event
+   |
+   v
+7. ik_anthropic_stream_process_event() parses JSON, creates ik_stream_event_t,
+   and invokes user's stream_cb(event, stream_ctx)
+   |
+   v
+8. When transfer completes, info_read() detects completion and invokes
+   completion_cb(completion, completion_ctx)
+```
+
+### Key Async Principle
+
+**NO BLOCKING CALLS.** The functions `ik_http_post_stream()` or any blocking HTTP operation MUST NOT be used. Instead:
+- `start_stream()` configures curl and returns immediately
+- Actual I/O happens when REPL calls `perform()`
+- Events delivered via callbacks invoked from within `perform()`
+- Completion signaled via callback from `info_read()`
 
 ## Interface
 
@@ -37,17 +83,17 @@ Functions to implement:
 
 | Function | Purpose |
 |----------|---------|
-| `res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_callback_t cb, void *cb_ctx, ik_anthropic_stream_ctx_t **out_stream_ctx)` | Creates streaming context to track state and emit normalized events |
-| `void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx, const char *event, const char *data)` | Processes single SSE event, emits normalized events via callback |
+| `res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb, void *stream_ctx, ik_completion_cb_t completion_cb, void *completion_ctx, ik_anthropic_stream_ctx_t **out)` | Creates streaming context with both callbacks |
+| `void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx, const char *event, const char *data)` | Processes single SSE event, emits normalized events via stream callback |
 | `ik_usage_t ik_anthropic_stream_get_usage(ik_anthropic_stream_ctx_t *stream_ctx)` | Returns accumulated usage statistics from stream |
 | `ik_finish_reason_t ik_anthropic_stream_get_finish_reason(ik_anthropic_stream_ctx_t *stream_ctx)` | Returns finish reason from stream |
-| `res_t ik_anthropic_stream_impl(void *impl_ctx, ik_request_t *req, ik_stream_callback_t cb, void *cb_ctx)` | Vtable stream implementation: serialize request, POST stream, process events |
+| `res_t ik_anthropic_start_stream(void *impl_ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_completion_cb_t completion_cb, void *completion_ctx)` | Vtable start_stream implementation: serialize request, configure curl, add to multi handle, return immediately |
 
 Structs to define:
 
 | Struct | Members | Purpose |
 |--------|---------|---------|
-| `ik_anthropic_stream_ctx_t` | ctx, user_cb, user_ctx, model, finish_reason, usage, current_block_index, current_block_type, current_tool_id, current_tool_name | Streaming context tracks state and accumulated metadata |
+| `ik_anthropic_stream_ctx_t` | ctx, stream_cb, stream_ctx, completion_cb, completion_ctx, sse_parser, model, finish_reason, usage, current_block_index, current_block_type, current_tool_id, current_tool_name | Streaming context tracks state, callbacks, and accumulated metadata |
 
 ## Behaviors
 
@@ -64,17 +110,48 @@ Structs to define:
 | `ping` | Ignore (keep-alive) |
 | `error` | Parse error type and message, emit IK_STREAM_ERROR |
 
+### Curl Write Callback Integration
+
+The curl write callback (set via `CURLOPT_WRITEFUNCTION`) must:
+1. Receive data chunk from network
+2. Feed chunk to SSE parser: `ik_sse_parse_chunk(stream_ctx->sse_parser, data, len)`
+3. SSE parser invokes `ik_anthropic_stream_process_event()` for each complete event
+4. Return `len` to indicate all bytes consumed (or less to abort)
+
 ### Streaming Context Creation
 - Allocate context with talloc
-- Store user callback and context
+- Store user stream callback and context
+- Store user completion callback and context
+- Create SSE parser with event callback bound to `ik_anthropic_stream_process_event`
 - Initialize current_block_index to -1
 - Initialize finish_reason to IK_FINISH_UNKNOWN
 - Zero usage statistics
 
+### start_stream() Implementation (NON-BLOCKING)
+
+```
+1. Create streaming context with ik_anthropic_stream_ctx_create()
+2. Serialize request with ik_anthropic_serialize_request() (stream: true)
+3. Build headers with ik_anthropic_build_headers()
+4. Construct URL: base_url + "/v1/messages"
+5. Configure curl easy handle:
+   - CURLOPT_URL = constructed URL
+   - CURLOPT_POST = 1
+   - CURLOPT_POSTFIELDS = serialized JSON
+   - CURLOPT_HTTPHEADER = headers
+   - CURLOPT_WRITEFUNCTION = anthropic_write_callback
+   - CURLOPT_WRITEDATA = stream_ctx
+   - Store completion_cb in stream_ctx for later invocation
+6. Add easy handle to curl_multi via ik_http_multi_add_handle()
+7. Return OK(NULL) immediately
+```
+
+**Critical:** This function MUST return immediately. No blocking I/O. The curl handle is added to multi and actual I/O happens during subsequent perform() calls.
+
 ### Message Start Processing
 - Extract model name from message object, store in context
 - Extract initial input_tokens from usage object
-- Emit IK_STREAM_START event with model name
+- Emit IK_STREAM_START event with model name via stream_cb
 
 ### Content Block Start Processing
 - Extract index and content_block.type from event
@@ -103,86 +180,89 @@ Structs to define:
 - No event emission
 
 ### Message Stop Processing
-- Emit IK_STREAM_DONE with finish_reason and accumulated usage
+- Emit IK_STREAM_DONE with finish_reason and accumulated usage via stream_cb
 
 ### Error Event Processing
 - Parse error.type and error.message from JSON
 - Map error.type to category:
-  - "authentication_error" → IK_ERR_CAT_AUTH
-  - "rate_limit_error" → IK_ERR_CAT_RATE_LIMIT
-  - "overloaded_error" → IK_ERR_CAT_SERVER
-  - "invalid_request_error" → IK_ERR_CAT_INVALID_ARG
-  - Unknown → IK_ERR_CAT_UNKNOWN
-- Emit IK_STREAM_ERROR with category and message
+  - "authentication_error" -> IK_ERR_CAT_AUTH
+  - "rate_limit_error" -> IK_ERR_CAT_RATE_LIMIT
+  - "overloaded_error" -> IK_ERR_CAT_SERVER
+  - "invalid_request_error" -> IK_ERR_CAT_INVALID_ARG
+  - Unknown -> IK_ERR_CAT_UNKNOWN
+- Emit IK_STREAM_ERROR with category and message via stream_cb
 
-### Stream Implementation
-- Create streaming context with `ik_anthropic_stream_ctx_create()`
-- Serialize request with `ik_anthropic_serialize_request()` (with stream: true flag)
-- Build headers with `ik_anthropic_build_headers()`
-- Construct URL: base_url + "/v1/messages"
-- Create SSE callback bridge that calls `ik_anthropic_stream_process_event()`
-- POST stream using `ik_http_post_stream()` with SSE callback
-- Return result
+### Transfer Completion Handling
+
+When curl_multi signals transfer complete (detected in `info_read()`):
+1. Retrieve stream_ctx from completed easy handle
+2. Build ik_http_completion_t with HTTP status, usage, and any error info
+3. Invoke completion_cb(completion, completion_ctx)
+4. Clean up curl easy handle (remove from multi, curl_easy_cleanup)
 
 ## Test Scenarios
 
-### Simple Text Stream
-- message_start emits IK_STREAM_START with model
-- content_block_start (type=text) does not emit event
-- content_block_delta (text_delta) emits IK_STREAM_TEXT_DELTA for each chunk
-- content_block_stop does not emit event (text block)
-- message_delta updates usage
-- message_stop emits IK_STREAM_DONE with finish_reason and usage
-- Verify events: START, TEXT_DELTA (multiple), DONE
+### Simple Text Stream (Async Pattern)
+- Call start_stream() - verify returns immediately
+- Mock curl_multi to deliver SSE chunks via write callback
+- Verify stream_cb receives: IK_STREAM_START, IK_STREAM_TEXT_DELTA (multiple), IK_STREAM_DONE
+- Verify completion_cb invoked after final event
 
-### Tool Call Stream
-- message_start emits START
-- content_block_start (type=tool_use) emits IK_STREAM_TOOL_CALL_START with id and name
-- content_block_delta (input_json_delta) emits IK_STREAM_TOOL_CALL_DELTA for each chunk
-- content_block_stop emits IK_STREAM_TOOL_CALL_DONE
-- message_stop emits DONE
-- Verify events: START, TOOL_CALL_START, TOOL_CALL_DELTA (multiple), TOOL_CALL_DONE, DONE
+### Tool Call Stream (Async Pattern)
+- start_stream() returns immediately
+- Mock delivers: message_start, content_block_start (tool_use), deltas, stop, message_stop
+- Verify stream_cb receives: START, TOOL_CALL_START, TOOL_CALL_DELTA (multiple), TOOL_CALL_DONE, DONE
+- Verify completion_cb invoked
 
-### Thinking Stream
-- content_block_start (type=thinking) does not emit event
-- content_block_delta (thinking_delta) emits IK_STREAM_THINKING_DELTA
+### Thinking Stream (Async Pattern)
+- Mock delivers content_block_start (type=thinking) and thinking_delta events
+- Verify stream_cb receives IK_STREAM_THINKING_DELTA
 - Verify thinking text extracted correctly
 
-### Error Stream
-- error event emits IK_STREAM_ERROR
-- Error category mapped correctly (e.g., rate_limit_error → IK_ERR_CAT_RATE_LIMIT)
-- Error message extracted
+### Error Stream (Async Pattern)
+- Mock delivers error event via write callback
+- Verify stream_cb receives IK_STREAM_ERROR with correct category
+- Verify completion_cb invoked with error status
 
 ### Ping Events
-- ping events ignored (no events emitted)
+- Mock delivers ping events
+- Verify NO events emitted to stream_cb (ping is ignored)
 
 ### Usage Accumulation
 - input_tokens from message_start
 - output_tokens from message_delta
 - thinking_tokens from message_delta
-- total_tokens calculated correctly
+- Verify total_tokens calculated correctly in final DONE event
+
+### Non-Blocking Verification
+- Call start_stream()
+- Verify function returns before any HTTP I/O occurs
+- Verify curl easy handle added to multi handle
+- Verify no callbacks invoked until perform() is called
 
 ## Postconditions
 
-- [ ] `src/providers/anthropic/streaming.h` exists
-- [ ] `src/providers/anthropic/streaming.c` implements event processing
-- [ ] `ik_anthropic_stream_ctx_create()` initializes context correctly
+- [ ] `src/providers/anthropic/streaming.h` exists with async interface
+- [ ] `src/providers/anthropic/streaming.c` implements async event processing
+- [ ] `ik_anthropic_stream_ctx_create()` stores both stream and completion callbacks
+- [ ] `ik_anthropic_start_stream()` is NON-BLOCKING (adds to curl_multi, returns immediately)
+- [ ] Curl write callback feeds SSE parser, which invokes stream_process_event
 - [ ] `ik_anthropic_stream_process_event()` handles all SSE event types
-- [ ] Text deltas emit IK_STREAM_TEXT_DELTA
-- [ ] Thinking deltas emit IK_STREAM_THINKING_DELTA
-- [ ] Tool calls emit START, DELTA, DONE events
-- [ ] Errors emit IK_STREAM_ERROR with correct category
+- [ ] Text deltas emit IK_STREAM_TEXT_DELTA via stream_cb
+- [ ] Thinking deltas emit IK_STREAM_THINKING_DELTA via stream_cb
+- [ ] Tool calls emit START, DELTA, DONE events via stream_cb
+- [ ] Errors emit IK_STREAM_ERROR with correct category via stream_cb
 - [ ] Ping events ignored
 - [ ] Usage accumulated correctly from message_start and message_delta
-- [ ] `ik_anthropic_stream_impl()` wired to vtable in anthropic.c
+- [ ] Completion callback invoked from info_read() when transfer completes
+- [ ] `ik_anthropic_start_stream()` wired to vtable start_stream in anthropic adapter
 - [ ] Compiles without warnings
-- [ ] All streaming tests pass
+- [ ] All streaming tests pass (using async mock pattern)
+- [ ] `make check` passes
 - [ ] Changes committed to git with message: `task: anthropic-streaming.md - <summary>`
   - If `make check` passed: success message
   - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
 - [ ] Clean worktree (verify: `git status --porcelain` is empty)
-
-
 
 ## Success Criteria
 

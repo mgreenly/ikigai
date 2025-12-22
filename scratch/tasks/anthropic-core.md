@@ -25,6 +25,9 @@
 - `src/credentials.h` - Credentials API
 
 **Plan:**
+- `scratch/plan/README.md` - Critical constraint: select()-based event loop, ALL HTTP must be non-blocking
+- `scratch/plan/provider-interface.md` - Complete async vtable specification with fdset/perform/timeout/info_read pattern
+- `scratch/plan/architecture.md` - Anthropic provider responsibilities and event loop integration
 - `scratch/plan/configuration.md` - Provider architecture and factory pattern
 
 ## Objective
@@ -56,7 +59,13 @@ Structs to define:
 - When `ik_anthropic_create()` is called, allocate provider and implementation context
 - Set base_url to "https://api.anthropic.com"
 - Copy API key into implementation context
-- Initialize vtable with function pointers (send, stream implementations)
+- Initialize vtable with function pointers for async event loop integration:
+  - `fdset()` - populate fd_sets for select()
+  - `perform()` - process pending I/O (non-blocking)
+  - `timeout()` - get recommended select() timeout
+  - `info_read()` - check for completed transfers
+  - `start_request()` - initiate non-streaming request (returns immediately)
+  - `start_stream()` - initiate streaming request (returns immediately)
 - Return OK with fully configured provider
 
 ### Thinking Budget Calculation
@@ -120,7 +129,10 @@ Create the following files:
 - `src/providers/anthropic/error.c` - Error handling implementation
 
 ### Vtable
-- The vtable functions (`send`, `stream`) are forward-declared but not implemented
+- The async vtable functions are forward-declared but not fully implemented:
+  - `fdset()`, `perform()`, `timeout()`, `info_read()` - event loop integration
+  - `start_request()` - non-blocking request initiation (replaces blocking `send()`)
+  - `start_stream()` - non-blocking stream initiation (replaces blocking `stream()`)
 - They will be implemented in subsequent tasks (anthropic-request.md, anthropic-streaming.md)
 
 ## Test Scenarios
@@ -143,7 +155,7 @@ Create the following files:
 ### Provider Creation Tests
 - Create provider with valid API key returns OK
 - Provider has name "anthropic"
-- Provider has non-NULL vtable with send and stream functions
+- Provider has non-NULL vtable with async methods (fdset, perform, timeout, info_read, start_request, start_stream)
 - Provider has non-NULL impl_ctx
 - Talloc cleanup frees all resources
 
