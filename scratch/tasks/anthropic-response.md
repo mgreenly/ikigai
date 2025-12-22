@@ -91,14 +91,17 @@ Structs to define: None (uses existing provider types)
 - Extract error.message and error.type from JSON if present
 - Format message as "type: message" or "HTTP status" if JSON unavailable
 
-### Send Implementation
+### Send Implementation (Async Pattern)
 - Serialize request to JSON using `ik_anthropic_serialize_request()`
 - Build headers using `ik_anthropic_build_headers()`
 - Construct URL: base_url + "/v1/messages"
-- POST request using `ik_http_post()`
-- Check HTTP status, if >= 400 parse error and return ERR(PROVIDER)
-- Parse successful response using `ik_anthropic_parse_response()`
-- Return OK with response
+- Build `ik_http_request_t` with method="POST", url, headers, body
+- Call `ik_http_multi_add_request()` with write callback and completion callback
+- Write callback accumulates response body into buffer
+- Completion callback:
+  - Check HTTP status, if >= 400 parse error using `ik_anthropic_handle_error()`
+  - Parse successful response using `ik_anthropic_parse_response()`
+  - Invoke `ik_provider_completion_cb_t` with result
 
 ## Test Scenarios
 

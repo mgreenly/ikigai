@@ -97,14 +97,17 @@ Functions to implement:
 - Extract error.message from JSON if present
 - Format message as "status: message" or "HTTP {code}" if no JSON
 
-**Send Implementation:**
+**Send Implementation (Async Pattern):**
 - Serialize request using ik_google_serialize_request()
 - Build URL using ik_google_build_url() with streaming=false
 - Build headers using ik_google_build_headers() with streaming=false
-- Make HTTP POST using ik_http_post()
-- Check HTTP status, parse error if >= 400
-- Parse response body using ik_google_parse_response()
-- Return response or error
+- Build `ik_http_request_t` with method="POST", url, headers, body
+- Call `ik_http_multi_add_request()` with write callback and completion callback
+- Write callback accumulates response body into buffer
+- Completion callback:
+  - Check HTTP status, parse error if >= 400 using ik_google_handle_error()
+  - Parse response body using ik_google_parse_response()
+  - Invoke `ik_provider_completion_cb_t` with result
 
 ## Test Scenarios
 
