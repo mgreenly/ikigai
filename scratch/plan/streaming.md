@@ -1,8 +1,22 @@
 # Streaming Event Normalization
 
+## Critical Architecture Constraint
+
+The application uses a select()-based event loop. ALL HTTP operations
+MUST be non-blocking:
+
+- Use curl_multi (NOT curl_easy)
+- Expose fdset() for select() integration
+- Expose perform() for incremental processing
+- NEVER block the main thread
+
+Reference: `src/openai/client_multi.c`
+
 ## Overview
 
 All providers emit normalized streaming events through a unified `ik_stream_event_t` type. Provider adapters are responsible for transforming provider-specific SSE events into this normalized format.
+
+**Key principle:** Streaming is inherently async. Events are delivered via callbacks as data arrives during `perform()` calls in the event loop.
 
 ## Stream Event Types
 
@@ -133,13 +147,43 @@ The `ik_stream_event_t` structure contains:
 
 ## Data Flow
 
-### Provider Adapter Flow
+### Async Streaming Architecture
 
-1. **Receive SSE Event**: Provider-specific SSE callback receives raw event and data
-2. **Parse Event**: Parse JSON payload using yyjson
-3. **Map to Normalized Event**: Create `ik_stream_event_t` with appropriate type and data
-4. **Emit Event**: Call user callback with normalized event
-5. **State Tracking**: Maintain internal state for multi-event sequences (e.g., accumulating usage)
+Streaming integrates with the select()-based event loop:
+
+```
+1. REPL calls provider->vt->start_stream(ctx, req, stream_cb, stream_ctx, ...)
+   └── Provider configures curl easy handle with write callback
+   └── Adds easy handle to curl_multi
+   └── Returns immediately (non-blocking)
+
+2. REPL event loop runs:
+   ┌─────────────────────────────────────────────────────────────┐
+   │ while (!done) {                                             │
+   │     provider->vt->fdset(ctx, &read_fds, &write_fds, &max); │
+   │     select(max+1, &read_fds, &write_fds, NULL, &timeout);  │
+   │                                                             │
+   │     provider->vt->perform(ctx, &running);                   │
+   │     // ↑ This triggers curl write callbacks as data arrives │
+   │     // ↑ Write callbacks invoke SSE parser                  │
+   │     // ↑ SSE parser invokes stream_cb with normalized events│
+   │                                                             │
+   │     provider->vt->info_read(ctx, logger);                   │
+   │     // ↑ When transfer completes, invokes completion_cb     │
+   │ }                                                           │
+   └─────────────────────────────────────────────────────────────┘
+```
+
+### Provider Adapter Flow (Inside perform())
+
+1. **curl write callback triggered**: Data arrives from network
+2. **Feed to SSE parser**: `ik_sse_parse_chunk(parser, data, len)`
+3. **SSE parser emits events**: For each complete "event:" + "data:" pair
+4. **Provider handler invoked**: Receives raw event type and JSON data
+5. **Parse JSON**: Using yyjson
+6. **Map to normalized event**: Create `ik_stream_event_t` with appropriate type
+7. **Invoke user callback**: `stream_cb(event, stream_ctx)`
+8. **State tracking**: Maintain internal state for multi-event sequences
 
 ### REPL Consumption Flow
 
@@ -153,6 +197,8 @@ The REPL receives normalized events through its stream callback and processes th
 - **IK_STREAM_TOOL_CALL_DONE**: Finalize accumulated JSON, parse, and execute tool
 - **IK_STREAM_DONE**: Save complete response to database, update token counts in UI
 - **IK_STREAM_ERROR**: Display error message in scrollback
+
+**Important:** Stream callbacks are invoked from within `perform()`, which is called from the REPL event loop. The UI can be updated incrementally because control returns to the event loop between network activity.
 
 ## Error Handling
 

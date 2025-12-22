@@ -1,5 +1,17 @@
 # Provider Interface Specification
 
+## Critical Architecture Constraint
+
+The application uses a select()-based event loop. ALL HTTP operations
+MUST be non-blocking:
+
+- Use curl_multi (NOT curl_easy)
+- Expose fdset() for select() integration
+- Expose perform() for incremental processing
+- NEVER block the main thread
+
+Reference: `src/openai/client_multi.c`
+
 ## Overview
 
 This document specifies the vtable interface that all provider adapters must implement, along with lifecycle management and common utilities.
@@ -9,26 +21,174 @@ This document specifies the vtable interface that all provider adapters must imp
 ### Purpose
 The provider vtable defines a uniform interface for interacting with different LLM providers (Anthropic, OpenAI, Google).
 
-### Function Pointers
+### Function Pointers (Async Model)
 
-**send** - Send non-streaming request to provider
-- Parameters: provider context, internal request, output response pointer
-- Returns: result type (OK/ERR)
-- Responsibility: synchronous request/response communication
+All vtable methods are non-blocking. Request initiation returns immediately;
+progress is made through the event loop integration methods.
 
-**stream** - Send streaming request to provider
-- Parameters: provider context, internal request, stream callback, callback context
-- Returns: result type (OK/ERR)
-- Responsibility: asynchronous streaming with callbacks
+```c
+/**
+ * Provider vtable for async/non-blocking HTTP operations
+ *
+ * All providers MUST implement these methods to integrate with the
+ * select()-based event loop. Blocking implementations are NOT acceptable.
+ */
+struct ik_provider_vtable_t {
+    /* ============================================================
+     * Event Loop Integration (REQUIRED)
+     * These methods integrate the provider with select()
+     * ============================================================ */
 
-**cleanup** - Cleanup provider-specific resources
-- Parameters: provider context
-- Returns: void
-- Optional if talloc hierarchy handles all cleanup
+    /**
+     * fdset - Populate fd_sets for select()
+     *
+     * @param ctx       Provider context (opaque)
+     * @param read_fds  Read fd_set to populate (will be modified)
+     * @param write_fds Write fd_set to populate (will be modified)
+     * @param max_fd    Output: highest FD number (will be updated)
+     * @return          OK(NULL) on success, ERR(...) on failure
+     *
+     * Called before select() to get file descriptors the provider
+     * needs to monitor. Provider adds its curl_multi FDs to the sets.
+     */
+    res_t (*fdset)(void *ctx, fd_set *read_fds, fd_set *write_fds, int *max_fd);
 
-### Stream Callback Signature
+    /**
+     * perform - Process pending I/O operations
+     *
+     * @param ctx             Provider context (opaque)
+     * @param running_handles Output: number of active transfers
+     * @return                OK(NULL) on success, ERR(...) on failure
+     *
+     * Called after select() returns to process ready file descriptors.
+     * This drives curl_multi_perform() internally. Non-blocking.
+     */
+    res_t (*perform)(void *ctx, int *running_handles);
 
-Function pointer type that receives stream events and user context. See [streaming.md](streaming.md) for event structure details.
+    /**
+     * timeout - Get recommended timeout for select()
+     *
+     * @param ctx        Provider context (opaque)
+     * @param timeout_ms Output: recommended timeout in milliseconds
+     * @return           OK(NULL) on success, ERR(...) on failure
+     *
+     * Returns curl's recommended timeout. Caller should use minimum
+     * of this and any other timeout requirements.
+     */
+    res_t (*timeout)(void *ctx, long *timeout_ms);
+
+    /**
+     * info_read - Process completed transfers
+     *
+     * @param ctx    Provider context (opaque)
+     * @param logger Logger for debug output
+     *
+     * Called after perform() to check for completed transfers.
+     * Invokes completion callbacks for finished requests.
+     */
+    void (*info_read)(void *ctx, ik_logger_t *logger);
+
+    /* ============================================================
+     * Request Initiation (Non-blocking)
+     * These methods start requests but return immediately
+     * ============================================================ */
+
+    /**
+     * start_request - Initiate non-streaming request
+     *
+     * @param ctx           Provider context
+     * @param req           Request to send
+     * @param completion_cb Callback invoked when request completes
+     * @param completion_ctx User context for callback
+     * @return              OK(NULL) on success, ERR(...) on failure
+     *
+     * Returns immediately. Request progresses through perform().
+     * completion_cb is invoked from info_read() when transfer completes.
+     */
+    res_t (*start_request)(void *ctx, const ik_request_t *req,
+                           ik_completion_cb_t completion_cb, void *completion_ctx);
+
+    /**
+     * start_stream - Initiate streaming request
+     *
+     * @param ctx           Provider context
+     * @param req           Request to send
+     * @param stream_cb     Callback for streaming events
+     * @param stream_ctx    User context for stream callback
+     * @param completion_cb Callback invoked when stream completes
+     * @param completion_ctx User context for completion callback
+     * @return              OK(NULL) on success, ERR(...) on failure
+     *
+     * Returns immediately. Stream events delivered via stream_cb
+     * as data arrives during perform(). completion_cb invoked when done.
+     */
+    res_t (*start_stream)(void *ctx, const ik_request_t *req,
+                          ik_stream_cb_t stream_cb, void *stream_ctx,
+                          ik_completion_cb_t completion_cb, void *completion_ctx);
+
+    /* ============================================================
+     * Cleanup
+     * ============================================================ */
+
+    /**
+     * cleanup - Release provider resources
+     *
+     * @param ctx Provider context
+     *
+     * Optional if talloc hierarchy handles all cleanup.
+     * Called before provider is freed.
+     */
+    void (*cleanup)(void *ctx);
+};
+```
+
+### Callback Signatures
+
+```c
+/**
+ * Stream callback - receives streaming events as data arrives
+ *
+ * @param event Stream event (text delta, tool call, etc.)
+ * @param ctx   User-provided context
+ * @return      OK(NULL) to continue, ERR(...) to abort stream
+ */
+typedef res_t (*ik_stream_cb_t)(const ik_stream_event_t *event, void *ctx);
+
+/**
+ * Completion callback - invoked when request finishes
+ *
+ * @param completion Completion info (success/error, usage, etc.)
+ * @param ctx        User-provided context
+ * @return           OK(NULL) on success, ERR(...) on failure
+ */
+typedef res_t (*ik_completion_cb_t)(const ik_http_completion_t *completion, void *ctx);
+```
+
+See [streaming.md](streaming.md) for stream event structure details.
+
+## Response Handling
+
+Responses are delivered exclusively via callbacks passed to `start_request`/`start_stream`:
+
+```c
+res_t (*start_request)(void *ctx, const ik_request_t *req,
+                       ik_completion_cb_t on_complete, void *user_data);
+res_t (*start_stream)(void *ctx, const ik_request_t *req,
+                      ik_stream_cb_t on_chunk, void *stream_ctx,
+                      ik_completion_cb_t on_complete, void *user_data);
+```
+
+**Callback invocation:**
+- Stream callbacks (`on_chunk`) are invoked during `perform()` as data arrives
+- Completion callbacks (`on_complete`) are invoked from `info_read()` when the transfer finishes
+
+**Usage pattern:**
+1. Register callbacks when starting a request
+2. Drive the event loop (fdset/select/perform/info_read cycle)
+3. Callbacks fire automatically as data arrives and when complete
+
+This callback-only design keeps the interface simple and matches the
+select()-based event loop architecture.
 
 ## Provider Context
 
@@ -58,23 +218,46 @@ Providers supported:
 
 ## Implementation Requirements
 
-### send() Requirements
-- Transform internal request to provider wire format (JSON)
-- Make HTTP POST request to provider API
-- Handle HTTP errors (401, 429, 500, etc.)
-- Parse response JSON to internal response format
-- Map provider finish reasons to normalized enum
-- Extract token usage
-- Return errors with appropriate category
+### Event Loop Methods (REQUIRED)
 
-### stream() Requirements
-- Transform internal request to provider wire format
-- Make HTTP POST request with SSE streaming
-- Parse SSE events from provider
-- Convert provider events to normalized stream events
-- Call user callback with normalized events
-- Handle mid-stream errors
-- Accumulate partial response state
+**fdset() Requirements:**
+- Call `curl_multi_fdset()` on provider's multi handle
+- Add provider's FDs to the provided fd_sets
+- Update max_fd if provider has higher FDs
+- Must be non-blocking (no I/O operations)
+
+**perform() Requirements:**
+- Call `curl_multi_perform()` on provider's multi handle
+- Return number of still-running handles via output parameter
+- Must be non-blocking - returns immediately
+- Stream callbacks invoked during this call as data arrives
+
+**timeout() Requirements:**
+- Call `curl_multi_timeout()` on provider's multi handle
+- Return recommended timeout in milliseconds
+- Caller uses minimum of all provider timeouts
+
+**info_read() Requirements:**
+- Call `curl_multi_info_read()` to check for completed transfers
+- Invoke completion callbacks for finished requests
+- Parse final response and populate ik_response_t
+- Clean up completed transfer resources
+
+### start_request() Requirements
+- Transform internal request to provider wire format (JSON)
+- Configure curl easy handle with POST request
+- Add easy handle to provider's multi handle
+- Register completion callback
+- Return immediately (non-blocking)
+- Actual I/O happens during perform() calls
+
+### start_stream() Requirements
+- Transform internal request to provider wire format with stream flag
+- Configure curl easy handle with streaming write callback
+- Write callback invokes SSE parser as data arrives
+- SSE parser invokes user's stream callback with normalized events
+- Add easy handle to provider's multi handle
+- Return immediately (non-blocking)
 
 ### cleanup() Requirements
 - Optional implementation
@@ -126,17 +309,37 @@ Supported mappings:
 - xai → XAI_API_KEY
 - meta → LLAMA_API_KEY
 
-### HTTP Client Creation
-**ik_http_client_create()** - Create HTTP client for provider
-- Parameters: talloc context, base URL, output client pointer
+### HTTP Multi-Handle Creation
+**ik_http_multi_create()** - Create curl_multi handle for provider
+- Parameters: talloc context, output multi pointer
 - Returns: result type
-- Client handles connection pooling and request management
+- **MUST use curl_multi, NOT curl_easy**
+- Multi handle manages all async transfers for the provider
+- Integrates with select() via fdset/perform pattern
+
+```c
+/**
+ * Create HTTP multi-handle for async operations
+ *
+ * @param ctx    Talloc context
+ * @param out    Output: multi-handle manager
+ * @return       OK(multi) or ERR(...)
+ *
+ * The returned handle wraps curl_multi and provides:
+ * - fdset() for select() integration
+ * - perform() for non-blocking I/O
+ * - timeout() for select() timeout calculation
+ * - info_read() for completion handling
+ */
+res_t ik_http_multi_create(TALLOC_CTX *ctx, ik_http_multi_t **out);
+```
 
 ### SSE Parser Creation
 **ik_sse_parser_create()** - Create SSE parser
 - Parameters: talloc context, event callback, user context, output parser pointer
 - Returns: result type
 - Parser handles SSE protocol and event extraction
+- Invoked from curl write callback during perform()
 
 ## Provider Registration
 

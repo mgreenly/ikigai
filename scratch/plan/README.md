@@ -2,7 +2,19 @@
 
 **Release:** rel-07
 **Status:** Design Phase
-**Last Updated:** 2025-12-19
+**Last Updated:** 2025-12-22
+
+## Critical Architecture Constraint
+
+The application uses a select()-based event loop. ALL HTTP operations
+MUST be non-blocking:
+
+- Use curl_multi (NOT curl_easy)
+- Expose fdset() for select() integration
+- Expose perform() for incremental processing
+- NEVER block the main thread
+
+Reference: `src/openai/client_multi.c`
 
 ## Overview
 
@@ -10,11 +22,12 @@ This design implements multi-provider AI API support for ikigai, enabling seamle
 
 ## Core Principles
 
-1. **Lazy Everything** - No provider initialization or credential validation until first use
-2. **Zero Pre-Configuration** - App starts with no credentials; errors surface when features are used
-3. **Unified Abstraction** - All providers implement identical vtable interface
-4. **No Remnants** - Existing OpenAI code refactored into new abstraction; no dual code paths
-5. **Provider Parity** - OpenAI is just another provider, no special treatment
+1. **Async Everything** - All HTTP operations are non-blocking via curl_multi
+2. **Lazy Everything** - No provider initialization or credential validation until first use
+3. **Zero Pre-Configuration** - App starts with no credentials; errors surface when features are used
+4. **Unified Abstraction** - All providers implement identical async vtable interface
+5. **No Remnants** - Existing OpenAI code refactored into new abstraction; no dual code paths
+6. **Provider Parity** - OpenAI is just another provider, no special treatment
 
 ## Design Documents
 
@@ -59,20 +72,21 @@ Based on README.md decisions:
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Abstraction pattern | Vtable | Consistent with existing layer system, clean separation |
+| HTTP layer | curl_multi (async) | Required for select()-based event loop |
+| Abstraction pattern | Async Vtable | fdset/perform/info_read pattern for event loop integration |
 | Directory structure | `src/providers/{name}/` | Separate modules per provider |
 | OpenAI refactor | Unified abstraction | No dual code paths, OpenAI uses same abstraction as others |
-| Shared utilities | HTTP + SSE | Mechanical protocol-level code shared, semantic code per-provider |
+| Shared utilities | http_multi + SSE | curl_multi wrapper shared, semantic code per-provider |
 | Initialization | Lazy on first use | Don't require credentials for unused providers |
 | Credential validation | On API call | Provider API is source of truth |
 | Default provider | Initial agent only | Session state takes over after first use |
 | Database migration | Truncate + new columns | Clean slate, developer dogfoods onboarding |
 | Thinking storage | Normalized + provider_data | Common field for summaries, opaque field for signatures |
 | Transformation | Single-step in adapter | Adapter owns internal → wire format conversion |
-| Streaming normalization | In adapter | Provider adapters emit normalized events |
+| Streaming normalization | In adapter (during perform) | Provider adapters emit normalized events via callbacks |
 | Tool call IDs | Preserve provider IDs | Generate UUIDs only for Google (22-char base64url) |
 | Error preservation | Enriched errors | Store category + provider details for debugging |
-| Testing | Mock HTTP layer | Consistent with existing pattern, validate with live tests |
+| Testing | Mock curl_multi layer | Test async behavior, validate with live tests |
 
 ## Migration Impact
 

@@ -1,8 +1,22 @@
 # Error Handling Strategy
 
+## Critical Architecture Constraint
+
+The application uses a select()-based event loop. ALL HTTP operations
+MUST be non-blocking:
+
+- Use curl_multi (NOT curl_easy)
+- Expose fdset() for select() integration
+- Expose perform() for incremental processing
+- NEVER block the main thread
+
+Reference: `src/openai/client_multi.c`
+
 ## Overview
 
 Provider adapters map provider-specific HTTP errors to ikigai's unified error categories. Errors include both category (for programmatic handling) and provider details (for debugging).
+
+**Error delivery:** Errors are delivered via completion callbacks, not return values from start_request/start_stream. The async nature means errors may be detected during perform() or info_read().
 
 ## Error Categories
 
@@ -189,34 +203,54 @@ These errors fail immediately without retry:
 - **ERR_NETWORK** - Network/connection error
 - **ERR_UNKNOWN** - Unmapped errors
 
-### Exponential Backoff Algorithm
+### Retry Flow (Async)
 
-For retryable errors:
+Retries are handled asynchronously to avoid blocking the event loop:
+
+1. Start request via provider's `start_request()` or `start_stream()` (returns immediately)
+2. Event loop processes I/O via `perform()` / `info_read()`
+3. When transfer completes, completion callback receives result
+4. If success: Callback processes response
+5. If error: Callback checks error category for retryability
+6. If non-retryable: Callback reports error to user
+7. If retryable and retries remaining:
+   - Calculate delay (provider suggestion or exponential backoff)
+   - Schedule retry using timer in event loop (NOT blocking sleep)
+   - When timer fires, call `start_request()` again
+8. If max retries exceeded: Report last error to user
+
+**Important:** Never use blocking `sleep()` or `usleep()` - this would freeze the REPL. Instead, the retry delay is implemented as a timeout in the select() call, allowing the UI to remain responsive.
+
+### Retry Timer Integration with Event Loop
+
+The provider's `timeout()` method integrates retries with the select()-based event loop:
+
+1. Request fails -> provider records "retry needed at time X"
+2. REPL calls `provider->timeout()` -> returns ms until retry (or -1 if none)
+3. `select()` uses minimum timeout across all sources
+4. `select()` wakes on timeout -> REPL calls `provider->perform()`
+5. `perform()` checks if retry time reached -> initiates retry request
+6. Cycle repeats until success or max retries exhausted
+
+The provider tracks retry state internally. The REPL only needs to:
+- Include provider FDs in `select()`
+- Call `perform()` when `select()` returns
+- Honor the `timeout()` value
+
+### Backoff Calculation
+
+For retryable errors, delays are calculated as follows:
 
 1. **Maximum retries**: 3 attempts
 2. **Base delay**: 1000ms
-3. **Backoff calculation**:
+3. **Delay source**:
    - If error includes `retry_after_ms > 0`: Use provider's suggested delay
    - Otherwise: Use exponential backoff with jitter
      - Attempt 1: 1s + random(0-1s)
      - Attempt 2: 2s + random(0-1s)
      - Attempt 3: 4s + random(0-1s)
 4. **Jitter**: Add 0-1000ms random delay to prevent thundering herd
-5. **Sleep**: Use usleep() to wait before retry
-6. **Failure**: If all retries exhausted, return last error
-
-### Retry Flow
-
-1. Send request via provider's send() function
-2. If success: Return result immediately
-3. If error: Check error category for retryability
-4. If non-retryable: Return error immediately
-5. If retryable and retries remaining:
-   - Calculate delay (provider suggestion or exponential backoff)
-   - Sleep for delay period
-   - Increment retry counter
-   - Loop back to step 1
-6. If max retries exceeded: Return last error
+5. **Failure**: If all retries exhausted, return last error
 
 ## User-Facing Error Messages
 

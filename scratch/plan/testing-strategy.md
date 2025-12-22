@@ -1,5 +1,17 @@
 # Testing Strategy
 
+## Critical Architecture Constraint
+
+The application uses a select()-based event loop. ALL HTTP operations
+MUST be non-blocking:
+
+- Use curl_multi (NOT curl_easy)
+- Expose fdset() for select() integration
+- Expose perform() for incremental processing
+- NEVER block the main thread
+
+Reference: `src/openai/client_multi.c`
+
 ## Overview
 
 The multi-provider abstraction testing follows ikigai's existing patterns:
@@ -7,6 +19,8 @@ The multi-provider abstraction testing follows ikigai's existing patterns:
 - **Live validation tests** (opt-in) to verify mocks against real APIs
 - **Unit tests** for each provider adapter
 - **Integration tests** for end-to-end flows
+
+**Key testing principle:** Tests must verify the async behavior, not blocking behavior. Mock implementations must exercise the fdset/perform/info_read pattern.
 
 ## Test Organization
 
@@ -66,13 +80,85 @@ tests/
 
 ## Mock HTTP Pattern
 
-### Basic Pattern (from existing OpenAI tests)
+### Basic Pattern (Async via curl_multi)
 
-Tests use the MOCKABLE() macro to intercept curl_easy_perform_ calls. Mock implementations set static variables for HTTP status and response body, then invoke the registered write callback with fixture data. Each test sets up mock response data by loading JSON fixtures, creates a provider instance with a test API key, constructs a test request, and invokes the provider's send method. Assertions verify that results are successful and response content matches expected values.
+Tests use the MOCKABLE() macro to intercept curl_multi_* calls. The mock pattern must simulate the async fdset/perform/info_read cycle, not blocking calls.
+
+**Mock curl_multi functions:**
+- `curl_multi_fdset_` - Returns mock FDs (can return -1 for no FDs)
+- `curl_multi_perform_` - Simulates progress, updates running handles
+- `curl_multi_info_read_` - Returns completion messages with mock responses
+
+**Test flow for non-streaming:**
+```c
+// Test captures response via callback
+static ik_response_t *captured_response;
+static res_t captured_result;
+
+static void test_completion_cb(void *ctx, res_t result, ik_response_t *resp) {
+    captured_result = result;
+    captured_response = resp;
+}
+
+START_TEST(test_non_streaming_request)
+{
+    captured_response = NULL;
+
+    // Setup: Load fixture data
+    const char *response_json = load_fixture("anthropic/response_basic.json");
+    mock_set_response(200, response_json);
+
+    // Create provider
+    res_t r = ik_anthropic_create(ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    // Start request with callback
+    r = provider->vt->start_request(provider->ctx, req, test_completion_cb, NULL);
+    ck_assert(is_ok(&r));
+
+    // Drive event loop until complete
+    while (captured_response == NULL) {
+        fd_set read_fds, write_fds;
+        int max_fd = 0;
+        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &max_fd);
+        select(max_fd + 1, &read_fds, &write_fds, NULL, NULL);
+        provider->vt->perform(provider->ctx, NULL);
+    }
+
+    // Assert on captured response
+    ck_assert(is_ok(&captured_result));
+    ck_assert_str_eq(captured_response->content, "expected");
+}
+END_TEST
+```
 
 ### SSE Streaming Mock
 
-For streaming tests, mock implementations maintain an array of SSE event strings (with proper "event:" and "data:" formatting). The mock curl perform function iterates through these events, invoking the write callback for each chunk to simulate incremental data arrival. Tests load SSE fixtures, capture stream events via lambda callbacks, and verify event types, counts, and ordering.
+For streaming tests, mock implementations maintain an array of SSE event strings. The mock curl_multi_perform function feeds chunks to the write callback incrementally.
+
+**Mock streaming flow:**
+```c
+// Setup: Load SSE fixture
+const char *sse_data = load_fixture("anthropic/stream_basic.txt");
+mock_set_streaming_response(200, sse_data);
+
+// Start async stream (returns immediately)
+r = provider->vt->start_stream(provider->ctx, req, stream_cb, &events, ...);
+assert(is_ok(&r));
+
+// Simulate event loop - each perform() delivers some SSE events
+int running = 1;
+while (running > 0) {
+    provider->vt->perform(provider->ctx, &running);
+    // stream_cb is invoked during perform() as data arrives
+}
+provider->vt->info_read(provider->ctx, logger);
+
+// Verify stream events were captured
+assert(events.count == expected_event_count);
+assert(events.items[0].type == IK_STREAM_START);
+assert(events.items[events.count-1].type == IK_STREAM_DONE);
+```
 
 ### Fixture Loading
 

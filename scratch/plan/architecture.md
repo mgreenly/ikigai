@@ -1,8 +1,22 @@
 # Provider Abstraction Architecture
 
+## Critical Architecture Constraint
+
+The application uses a select()-based event loop. ALL HTTP operations
+MUST be non-blocking:
+
+- Use curl_multi (NOT curl_easy)
+- Expose fdset() for select() integration
+- Expose perform() for incremental processing
+- NEVER block the main thread
+
+Reference: `src/openai/client_multi.c`
+
 ## Overview
 
 The multi-provider architecture uses a vtable pattern to abstract AI provider APIs behind a unified interface. Each provider implements the same vtable, enabling polymorphic behavior without tight coupling.
+
+**Key architectural principle:** All provider operations are async/non-blocking to integrate with the REPL's select()-based event loop.
 
 ## Directory Structure
 
@@ -10,29 +24,29 @@ The multi-provider architecture uses a vtable pattern to abstract AI provider AP
 src/
   providers/
     common/
-      http_client.c        # Shared libcurl wrapper
-      http_client.h
+      http_multi.c         # curl_multi wrapper (async HTTP)
+      http_multi.h
       sse_parser.c         # Shared SSE streaming parser
       sse_parser.h
     provider.h             # Vtable definition, shared types
     provider_common.c      # Utility functions
 
     anthropic/
-      adapter.c            # Vtable implementation
-      client.c             # API client
+      adapter.c            # Vtable implementation (async)
+      client.c             # Request serialization
       streaming.c          # SSE event handlers
       anthropic.h          # Public interface
 
     openai/
-      adapter.c            # Refactored from src/openai/*
-      client.c
-      streaming.c
+      adapter.c            # Vtable implementation (async)
+      client.c             # Request serialization
+      streaming.c          # SSE event handlers
       openai.h
 
     google/
-      adapter.c
-      client.c
-      streaming.c
+      adapter.c            # Vtable implementation (async)
+      client.c             # Request serialization
+      streaming.c          # SSE event handlers
       google.h
 ```
 
@@ -40,34 +54,39 @@ src/
 
 ### provider.h - Vtable Interface
 
-**Purpose:** Defines the common interface all providers must implement.
+**Purpose:** Defines the common async interface all providers must implement.
 
 **Key types:**
-- `ik_provider_vtable_t` - Function pointer table with send, stream, cleanup operations
+- `ik_provider_vtable_t` - Function pointer table with async operations (fdset, perform, start_request, start_stream)
 - `ik_provider_t` - Provider handle containing name, vtable pointer, and implementation context
 
 **Responsibilities:**
-- Define unified interface for sending requests (streaming and non-streaming)
-- Establish contract for provider initialization and cleanup
+- Define unified async interface for sending requests (streaming and non-streaming)
+- Establish contract for event loop integration (fdset, perform, timeout)
 - Enable polymorphic dispatch to provider-specific implementations
+- **All operations are non-blocking**
 
-### common/http_client - Shared HTTP Layer
+### common/http_multi - Async HTTP Layer
 
-**Purpose:** Provides reusable HTTP functionality for all providers.
+**Purpose:** Provides reusable async HTTP functionality using curl_multi for all providers.
 
 **Key types:**
-- `ik_http_client_t` - HTTP client handle with base URL and connection pooling
+- `ik_http_multi_t` - curl_multi wrapper with active request tracking
 
 **Key functions:**
-- `ik_http_client_create` - Initialize HTTP client with base URL
-- `ik_http_post` - Synchronous POST request returning full response
-- `ik_http_post_stream` - Streaming POST request with SSE callback support
+- `ik_http_multi_create` - Initialize curl_multi handle
+- `ik_http_multi_fdset` - Get file descriptors for select()
+- `ik_http_multi_perform` - Process pending I/O (non-blocking)
+- `ik_http_multi_timeout` - Get recommended select() timeout
+- `ik_http_multi_info_read` - Check for completed transfers
+- `ik_http_multi_add_request` - Add async request to multi handle
 
 **Responsibilities:**
-- Manage libcurl sessions and connection pooling
+- Manage curl_multi handle and active transfers
+- Provide fdset/perform pattern for select() integration
 - Handle request headers and body construction
-- Process HTTP status codes and network errors
-- Support both synchronous and streaming response modes
+- Process HTTP status codes and network errors via callbacks
+- **NEVER block - all I/O is non-blocking**
 
 ### common/sse_parser - SSE Stream Parser
 
@@ -142,43 +161,112 @@ src/
 2. First message send triggers lazy initialization via `ik_provider_get_or_create`
 3. Credentials loaded from environment variable or credentials.json
 4. Provider-specific factory function creates implementation context
-5. HTTP client initialized with provider's base URL
+5. **curl_multi handle initialized** for async HTTP
 6. Vtable populated with provider-specific function pointers
 7. Provider handle cached in agent context
 
-### Non-Streaming Request Flow
+### Event Loop Integration (CRITICAL)
+
+The REPL main loop integrates with providers via select():
+
+```c
+// Simplified event loop (see src/repl.c for full implementation)
+while (!quit) {
+    fd_set read_fds, write_fds;
+    FD_ZERO(&read_fds);
+    FD_ZERO(&write_fds);
+    int max_fd = 0;
+
+    // Add terminal input FD
+    FD_SET(tty_fd, &read_fds);
+    max_fd = tty_fd;
+
+    // Add provider FDs for all active agents
+    for (each agent) {
+        if (agent->provider) {
+            agent->provider->vt->fdset(agent->provider->ctx,
+                                       &read_fds, &write_fds, &max_fd);
+        }
+    }
+
+    // Calculate timeout (minimum of all providers)
+    long timeout_ms = DEFAULT_TIMEOUT;
+    for (each agent) {
+        if (agent->provider) {
+            long provider_timeout;
+            agent->provider->vt->timeout(agent->provider->ctx, &provider_timeout);
+            if (provider_timeout >= 0 && provider_timeout < timeout_ms) {
+                timeout_ms = provider_timeout;
+            }
+        }
+    }
+
+    // Wait for activity
+    select(max_fd + 1, &read_fds, &write_fds, NULL, &timeout);
+
+    // Process provider I/O (non-blocking)
+    for (each agent) {
+        if (agent->provider) {
+            int running;
+            agent->provider->vt->perform(agent->provider->ctx, &running);
+            agent->provider->vt->info_read(agent->provider->ctx, logger);
+        }
+    }
+
+    // Handle terminal input
+    if (FD_ISSET(tty_fd, &read_fds)) {
+        handle_keyboard_input();
+    }
+}
+```
+
+### Non-Streaming Request Flow (Async)
 
 1. Caller creates `ik_request_t` with messages and configuration
-2. Call `provider->vt->send(provider->impl_ctx, req, &resp)`
+2. Call `provider->vt->start_request(ctx, req, completion_cb, user_ctx)`
 3. Provider translates request to native API format (JSON)
-4. HTTP client sends POST request to provider endpoint
-5. Provider parses response JSON into `ik_response_t`
-6. Response returned with normalized content blocks and usage data
+4. Provider configures curl easy handle and adds to multi handle
+5. **Function returns immediately (non-blocking)**
+6. Event loop calls `perform()` when select() indicates activity
+7. When transfer completes, `info_read()` invokes completion_cb
+8. Completion callback receives `ik_http_completion_t` with response data
 
-### Streaming Request Flow
+### Streaming Request Flow (Async)
 
-1. Caller creates `ik_request_t` and provides stream callback
-2. Call `provider->vt->stream(provider->impl_ctx, req, callback, ctx)`
+1. Caller creates `ik_request_t` and provides stream + completion callbacks
+2. Call `provider->vt->start_stream(ctx, req, stream_cb, stream_ctx, completion_cb, completion_ctx)`
 3. Provider translates request to native API format with stream flag
-4. HTTP client initiates streaming POST request
-5. SSE parser receives chunks, emits parsed events
-6. Provider-specific streaming handler translates events to `ik_stream_event_t`
-7. Caller's callback invoked with normalized stream events
-8. Stream events include text deltas, thinking deltas, and completion
+4. Provider configures curl easy handle with write callback
+5. **Function returns immediately (non-blocking)**
+6. Event loop calls `perform()` when select() indicates activity
+7. As data arrives, curl write callback invokes SSE parser
+8. SSE parser invokes provider's event handler
+9. Provider translates events to `ik_stream_event_t` and calls stream_cb
+10. stream_cb updates UI (scrollback, spinner, etc.)
+11. When transfer completes, `info_read()` invokes completion_cb
 
 ### Cleanup Flow
 
 1. Provider freed via talloc hierarchy
 2. Talloc destructor invokes vtable cleanup function
-3. Provider-specific cleanup releases resources
-4. HTTP client closed and connections released
+3. Active transfers removed from curl_multi
+4. curl_multi handle cleaned up
 5. API keys and buffers freed via talloc parent-child relationships
 
 ## Integration Points
 
 ### REPL Integration
 
-The REPL layer becomes provider-agnostic by routing through the vtable interface instead of directly calling OpenAI functions. The agent context holds the active provider handle, and message sending operations dispatch through `provider->vt->send` or `provider->vt->stream`.
+The REPL layer becomes provider-agnostic by routing through the vtable interface instead of directly calling OpenAI functions. The agent context holds the active provider handle, and message sending operations dispatch through `provider->vt->start_stream`.
+
+**Key REPL changes for async providers:**
+
+1. **Setup FD sets**: Before calling select(), REPL calls `provider->vt->fdset()` for each active agent
+2. **Calculate timeout**: REPL calls `provider->vt->timeout()` and uses minimum across all agents
+3. **Process I/O**: After select(), REPL calls `provider->vt->perform()` and `info_read()` for each agent
+4. **Handle callbacks**: Stream callbacks update scrollback; completion callbacks finalize response
+
+The existing pattern in `src/repl.c` (calling `ik_openai_multi_*` functions) becomes the generic pattern for all providers.
 
 ### Agent Context Extension
 
@@ -219,25 +307,31 @@ New credentials loading:
 ### Current State (rel-06)
 
 ```
-src/openai/                    # Hardcoded implementation
+src/openai/                    # Hardcoded implementation (ALREADY ASYNC)
   client.c                     # Direct calls from REPL
-  client_multi.c               # Streaming support
-  client_multi_callbacks.c
-  client_multi_request.c
+  client_multi.c               # curl_multi async HTTP (REFERENCE)
+  client_multi_callbacks.c     # Completion callbacks
+  client_multi_request.c       # Request building
   client_msg.c
   client_serialize.c
   http_handler.c
-  sse_parser.c
+  sse_parser.c                 # SSE parsing (reusable)
   tool_choice.c
 
-src/client.c                   # HTTP client
+src/client.c                   # HTTP client (blocking - not used for OpenAI)
 ```
+
+**Key insight:** The existing `src/openai/client_multi.c` already implements the correct async pattern. New providers must follow this pattern:
+- `ik_openai_multi_fdset()` - exposes FDs for select()
+- `ik_openai_multi_perform()` - non-blocking I/O
+- `ik_openai_multi_timeout()` - timeout for select()
+- `ik_openai_multi_info_read()` - completion handling
+- `ik_openai_multi_add_request()` - non-blocking request start
 
 **Call sites with hardcoded OpenAI dependencies:**
 - `src/commands_basic.c` - Hardcoded model list in `/model` command
 - `src/completion.c` - Model autocomplete using fixed OpenAI models
 - `src/repl_actions_llm.c` - Direct dispatch to OpenAI client
-- `src/client.c` - HTTP layer coupled to OpenAI
 - `src/agent.c` - No provider field
 - `src/db/agent.c` - No provider column
 - `src/config.c` - No credentials loading
@@ -247,17 +341,19 @@ src/client.c                   # HTTP client
 ```
 src/providers/
   common/
-    http_client.c       # Refactored HTTP layer
+    http_multi.c        # Refactored curl_multi layer (from client_multi.c)
+    http_multi.h
     sse_parser.c        # Extracted SSE parser
-  provider.h            # Vtable interface
+    sse_parser.h
+  provider.h            # Vtable interface (async methods)
   openai/
-    adapter.c           # Vtable implementation
-    client.c            # Refactored OpenAI client
-    streaming.c         # Refactored streaming support
+    adapter.c           # Vtable implementation (delegates to http_multi)
+    client.c            # Request serialization
+    streaming.c         # SSE event handling
     openai.h
 
-src/client.c            # Removed or integrated into http_client.c
-src/openai/             # DELETED
+src/client.c            # Removed (blocking HTTP not used)
+src/openai/             # DELETED (moved to src/providers/openai/)
 ```
 
 ### Migration Strategy: Adapter-First
@@ -266,13 +362,22 @@ src/openai/             # DELETED
 
 **Phases:**
 
-1. **Vtable Foundation** - Create `src/providers/provider.h` with interface definitions
-2. **Adapter Shim** - Wrap existing `src/openai/` with vtable adapter to validate interface
-3. **Call Site Updates** - Route all traffic through provider abstraction
-4. **Anthropic Provider** - Add second provider to prove multi-provider design
-5. **Google Provider** - Add third provider for additional validation
-6. **OpenAI Refactor** - Move OpenAI to native vtable implementation in `src/providers/openai/`
-7. **Cleanup** - Delete adapter shim and old `src/openai/` directory
+1. **Vtable Foundation** - Create `src/providers/provider.h` with async interface definitions
+   - Include fdset(), perform(), timeout(), info_read() methods
+   - Include start_request(), start_stream() for non-blocking request initiation
+2. **Common HTTP Layer** - Extract `src/openai/client_multi.c` to `src/providers/common/http_multi.c`
+   - Generalize for any provider (remove OpenAI-specific code)
+   - Keep fdset/perform/timeout/info_read pattern
+3. **Adapter Shim** - Wrap existing `src/openai/` with vtable adapter to validate interface
+   - Adapter delegates to existing client_multi functions
+4. **Call Site Updates** - Route all traffic through provider abstraction
+   - REPL calls provider->vt->fdset/perform instead of ik_openai_multi_*
+5. **Anthropic Provider** - Add second provider using same async pattern
+   - Uses common http_multi layer
+   - Implements provider-specific serialization and SSE handling
+6. **Google Provider** - Add third provider for additional validation
+7. **OpenAI Refactor** - Move OpenAI to native vtable implementation in `src/providers/openai/`
+8. **Cleanup** - Delete adapter shim and old `src/openai/` directory
 
 ### Critical Cleanup Requirements
 
