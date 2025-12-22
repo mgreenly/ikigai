@@ -205,8 +205,8 @@ Tests MUST use the async mock pattern, NOT blocking mocks. Here is the required 
 static ik_response_t *captured_response;
 static res_t captured_result;
 
-static res_t test_completion_cb(const ik_http_completion_t *completion, void *ctx) {
-    captured_result = completion->result;
+static res_t test_completion_cb(const ik_provider_completion_t *completion, void *ctx) {
+    captured_result = completion->success ? OK(NULL) : ERR(completion->error_message);
     captured_response = completion->response;
     return OK(NULL);
 }
@@ -219,8 +219,8 @@ START_TEST(test_async_request)
     const char *response_json = load_fixture("provider/response.json");
     mock_curl_multi_set_response(200, response_json);
 
-    // Create provider (uses async vtable)
-    res_t r = ik_provider_create(ctx, "anthropic", "test-key", &provider);
+    // Create provider (uses async vtable, credentials loaded internally)
+    res_t r = ik_provider_create(ctx, "anthropic", &provider);
     ck_assert(is_ok(&r));
 
     // Start request (returns immediately - non-blocking)

@@ -3,7 +3,7 @@
 **VERIFICATION TASK:** This task does not create code. It verifies previous tasks completed correctly.
 
 **Model:** sonnet/thinking
-**Depends on:** provider-types.md, credentials-core.md, credentials-migrate.md, database-migration.md, configuration.md, http-client.md, sse-parser.md, provider-factory.md, request-builders.md, error-core.md
+**Depends on:** provider-types.md, credentials-core.md, credentials-migrate.md, database-migration.md, configuration.md, http-client.md, sse-parser.md, provider-factory.md, request-builders.md, error-core.md, credentials-tests-helpers.md, credentials-tests-config.md, credentials-tests-openai.md, credentials-tests-repl.md, credentials-tests-integration.md
 
 ## Context
 
@@ -46,8 +46,8 @@ Verify all expected files were created:
 - [ ] `src/providers/common/sse_parser.c` exists
 
 **Error utilities:**
-- [ ] `src/providers/error.h` exists
-- [ ] `src/providers/error.c` exists
+- [ ] `src/providers/common/error.h` exists
+- [ ] `src/providers/common/error.c` exists
 
 **Request builders:**
 - [ ] `src/providers/request.h` exists
@@ -114,7 +114,7 @@ Read `src/providers/provider.h` and verify these symbols exist:
 
 **Callback types (2 required):**
 - [ ] `ik_stream_cb_t` - signature: `res_t (*)(const ik_stream_event_t *, void *)`
-- [ ] `ik_completion_cb_t` - signature: `res_t (*)(const ik_http_completion_t *, void *)`
+- [ ] `ik_provider_completion_cb_t` - signature: `res_t (*)(const ik_provider_completion_t *, void *)`
 
 ### Step 4: Async Architecture Compliance
 
@@ -129,8 +129,8 @@ Verify `ik_provider_vtable_t` has EXACTLY these methods:
 - [ ] `info_read` - signature: `void (*)(void *ctx, ik_logger_t *logger)`
 
 **Request initiation (2 required):**
-- [ ] `start_request` - signature: `res_t (*)(void *ctx, const ik_request_t *req, ik_completion_cb_t cb, void *cb_ctx)`
-- [ ] `start_stream` - signature: `res_t (*)(void *ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_completion_cb_t completion_cb, void *completion_ctx)`
+- [ ] `start_request` - signature: `res_t (*)(void *ctx, const ik_request_t *req, ik_provider_completion_cb_t cb, void *cb_ctx)`
+- [ ] `start_stream` - signature: `res_t (*)(void *ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_provider_completion_cb_t completion_cb, void *completion_ctx)`
 
 **Cleanup (1 required):**
 - [ ] `cleanup` - signature: `void (*)(void *ctx)`
@@ -201,8 +201,8 @@ Read `src/providers/common/sse_parser.h` and verify:
 Read `src/providers/factory.h` and verify:
 
 - [ ] `ik_provider_create()` function declared
-- [ ] Signature: `res_t ik_provider_create(TALLOC_CTX *ctx, const char *provider_name, const char *api_key, ik_provider_t **out)`
-- [ ] Or similar signature that accepts provider name and returns provider instance
+- [ ] Signature: `res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out)`
+- [ ] Credentials loaded internally via `ik_credentials_get()`
 
 ### Step 10: Request Builder API Verification
 
@@ -277,14 +277,14 @@ static res_t my_stream_cb(const ik_stream_event_t *event, void *ctx) {
     return OK(NULL);
 }
 
-static res_t my_completion_cb(const ik_http_completion_t *completion, void *ctx) {
+static res_t my_completion_cb(const ik_provider_completion_t *completion, void *ctx) {
     (void)completion; (void)ctx;
     return OK(NULL);
 }
 
 static void check_callbacks(void) {
     ik_stream_cb_t scb = my_stream_cb;
-    ik_completion_cb_t ccb = my_completion_cb;
+    ik_provider_completion_cb_t ccb = my_completion_cb;
     (void)scb; (void)ccb;
 }
 

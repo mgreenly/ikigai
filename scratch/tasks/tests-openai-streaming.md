@@ -198,18 +198,20 @@ typedef struct {
 } event_array_t;
 
 // Stream callback captures events
-static void stream_cb(ik_stream_event_t *event, void *ctx) {
+static res_t stream_cb(const ik_stream_event_t *event, void *ctx) {
     event_array_t *events = ctx;
     // Copy event to array for later verification
+    return OK(NULL);
 }
 
 // Completion callback signals done
 static bool g_stream_complete;
 static res_t g_stream_result;
 
-static void completion_cb(void *ctx, res_t result) {
+static res_t completion_cb(const ik_provider_completion_t *completion, void *ctx) {
     g_stream_complete = true;
-    g_stream_result = result;
+    g_stream_result = completion->result;
+    return OK(NULL);
 }
 ```
 

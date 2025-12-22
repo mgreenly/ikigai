@@ -68,7 +68,7 @@ The shim implements these async vtable methods by delegating to `ik_openai_multi
 | Function | Purpose |
 |----------|---------|
 | `shim_stream_wrapper(chunk, ctx)` | Wraps `ik_openai_stream_cb_t` to emit normalized events to `ik_stream_cb_t` |
-| `shim_completion_wrapper(completion, ctx)` | Wraps `ik_http_completion_cb_t` to emit DONE event and call user's completion_cb |
+| `shim_completion_wrapper(completion, ctx)` | Wraps `ik_provider_completion_cb_t` to emit DONE event and call user's completion_cb |
 
 ### Structs to Define
 
@@ -148,7 +148,7 @@ shim_stream_wrapper(chunk, ctx):
 
 ### Completion Callback Wrapper
 
-The existing `ik_http_completion_cb_t` receives `ik_http_completion_t` with:
+The existing `ik_provider_completion_cb_t` receives `ik_provider_completion_t` with:
 - finish_reason
 - model
 - completion_tokens

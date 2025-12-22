@@ -82,7 +82,7 @@ else → use Chat Completions API
  * Caller must drive event loop with fdset/perform/info_read.
  */
 res_t ik_openai_start_request_impl(void *ctx, const ik_request_t *req,
-                                    ik_completion_cb_t completion_cb,
+                                    ik_provider_completion_cb_t completion_cb,
                                     void *completion_ctx);
 ```
 
@@ -96,7 +96,7 @@ res_t ik_openai_start_request_impl(void *ctx, const ik_request_t *req,
  * @param ctx        User-provided context
  * @return           OK(NULL) on success, ERR(...) on failure
  */
-typedef res_t (*ik_completion_cb_t)(const ik_http_completion_t *completion, void *ctx);
+typedef res_t (*ik_provider_completion_cb_t)(const ik_provider_completion_t *completion, void *ctx);
 ```
 
 ## Behaviors
@@ -189,14 +189,14 @@ When the HTTP transfer completes (detected in `info_read()`):
 ```c
 // Internal structure for tracking in-flight requests
 typedef struct {
-    ik_openai_ctx_t *provider;    // Provider context
-    bool use_responses_api;        // Which API was selected
-    ik_completion_cb_t cb;         // User's completion callback
-    void *cb_ctx;                  // User's callback context
-    char *response_buf;            // Accumulated response data
-    size_t response_len;           // Length of accumulated data
-    size_t response_cap;           // Capacity of buffer
-    long http_status;              // HTTP status code
+    ik_openai_ctx_t *provider;           // Provider context
+    bool use_responses_api;               // Which API was selected
+    ik_provider_completion_cb_t cb;       // User's completion callback
+    void *cb_ctx;                         // User's callback context
+    char *response_buf;                   // Accumulated response data
+    size_t response_len;                  // Length of accumulated data
+    size_t response_cap;                  // Capacity of buffer
+    long http_status;                     // HTTP status code
 } ik_openai_request_ctx_t;
 ```
 

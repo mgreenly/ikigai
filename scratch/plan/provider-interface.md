@@ -107,7 +107,7 @@ struct ik_provider_vtable_t {
      * completion_cb is invoked from info_read() when transfer completes.
      */
     res_t (*start_request)(void *ctx, const ik_request_t *req,
-                           ik_completion_cb_t completion_cb, void *completion_ctx);
+                           ik_provider_completion_cb_t completion_cb, void *completion_ctx);
 
     /**
      * start_stream - Initiate streaming request
@@ -125,7 +125,7 @@ struct ik_provider_vtable_t {
      */
     res_t (*start_stream)(void *ctx, const ik_request_t *req,
                           ik_stream_cb_t stream_cb, void *stream_ctx,
-                          ik_completion_cb_t completion_cb, void *completion_ctx);
+                          ik_provider_completion_cb_t completion_cb, void *completion_ctx);
 
     /* ============================================================
      * Cleanup
@@ -162,7 +162,7 @@ typedef res_t (*ik_stream_cb_t)(const ik_stream_event_t *event, void *ctx);
  * @param ctx        User-provided context
  * @return           OK(NULL) on success, ERR(...) on failure
  */
-typedef res_t (*ik_completion_cb_t)(const ik_http_completion_t *completion, void *ctx);
+typedef res_t (*ik_provider_completion_cb_t)(const ik_provider_completion_t *completion, void *ctx);
 ```
 
 See [streaming.md](streaming.md) for stream event structure details.
@@ -173,10 +173,10 @@ Responses are delivered exclusively via callbacks passed to `start_request`/`sta
 
 ```c
 res_t (*start_request)(void *ctx, const ik_request_t *req,
-                       ik_completion_cb_t on_complete, void *user_data);
+                       ik_provider_completion_cb_t on_complete, void *user_data);
 res_t (*start_stream)(void *ctx, const ik_request_t *req,
                       ik_stream_cb_t on_chunk, void *stream_ctx,
-                      ik_completion_cb_t on_complete, void *user_data);
+                      ik_provider_completion_cb_t on_complete, void *user_data);
 ```
 
 **Callback invocation:**

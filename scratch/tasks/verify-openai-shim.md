@@ -241,7 +241,7 @@ Test should:
 Verify shim meets expectations of downstream tasks:
 
 **From `agent-provider-fields.md`:**
-- Expects `ik_provider_create(ctx, "openai", api_key, &provider)` to work
+- Expects `ik_provider_create(ctx, "openai", &provider)` to work (credentials loaded internally)
 - Verify: Factory creates working shim for "openai"
 
 **From `repl-provider-routing.md`:**

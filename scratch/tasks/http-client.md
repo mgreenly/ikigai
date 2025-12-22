@@ -70,7 +70,7 @@ The key difference from the OpenAI implementation:
 | Type | Signature | Purpose |
 |------|-----------|---------|
 | `ik_http_write_cb_t` | `size_t (*)(const char *data, size_t len, void *ctx)` | Callback for streaming data as it arrives (during perform) |
-| `ik_http_completion_cb_t` | `res_t (*)(const ik_http_completion_t *completion, void *ctx)` | Callback when request completes (from info_read) |
+| `ik_http_completion_cb_t` | `void (*)(const ik_http_completion_t *completion, void *ctx)` | Callback when request completes (from info_read) |
 
 ### Functions to Implement
 

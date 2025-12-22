@@ -98,9 +98,10 @@ Tests MUST simulate the async event loop. Use this pattern (from `scratch/plan/t
 static ik_response_t *captured_response;
 static res_t captured_result;
 
-static void test_completion_cb(void *ctx, res_t result, ik_response_t *resp) {
-    captured_result = result;
-    captured_response = resp;
+static res_t test_completion_cb(const ik_provider_completion_t *completion, void *ctx) {
+    captured_result = completion->result;
+    captured_response = completion->response;
+    return OK(NULL);
 }
 
 START_TEST(test_non_streaming_request)

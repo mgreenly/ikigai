@@ -62,23 +62,23 @@ Return static string literals (no allocation needed):
 
 | Category | String |
 |----------|--------|
-| `IK_ERR_CAT_AUTH` | "authentication" |
-| `IK_ERR_CAT_RATE_LIMIT` | "rate_limit" |
-| `IK_ERR_CAT_INVALID_ARG` | "invalid_argument" |
-| `IK_ERR_CAT_NOT_FOUND` | "not_found" |
-| `IK_ERR_CAT_SERVER` | "server_error" |
-| `IK_ERR_CAT_TIMEOUT` | "timeout" |
-| `IK_ERR_CAT_CONTENT_FILTER` | "content_filter" |
-| `IK_ERR_CAT_NETWORK` | "network_error" |
-| `IK_ERR_CAT_UNKNOWN` | "unknown" |
+| `IK_ERR_AUTH` | "authentication" |
+| `IK_ERR_RATE_LIMIT` | "rate_limit" |
+| `IK_ERR_INVALID_ARG` | "invalid_argument" |
+| `IK_ERR_NOT_FOUND` | "not_found" |
+| `IK_ERR_SERVER` | "server_error" |
+| `IK_ERR_TIMEOUT` | "timeout" |
+| `IK_ERR_CONTENT_FILTER` | "content_filter" |
+| `IK_ERR_NETWORK` | "network_error" |
+| `IK_ERR_UNKNOWN` | "unknown" |
 
 ### Retryable Categories
 
 Return `true` for categories that benefit from retry:
-- `IK_ERR_CAT_RATE_LIMIT` - retry with delay (use provider's suggested delay via `timeout()`)
-- `IK_ERR_CAT_SERVER` - retry with exponential backoff (delay returned via `timeout()`)
-- `IK_ERR_CAT_TIMEOUT` - retry immediately (minimal delay via `timeout()`)
-- `IK_ERR_CAT_NETWORK` - retry with exponential backoff (delay returned via `timeout()`)
+- `IK_ERR_RATE_LIMIT` - retry with delay (use provider's suggested delay via `timeout()`)
+- `IK_ERR_SERVER` - retry with exponential backoff (delay returned via `timeout()`)
+- `IK_ERR_TIMEOUT` - retry immediately (minimal delay via `timeout()`)
+- `IK_ERR_NETWORK` - retry with exponential backoff (delay returned via `timeout()`)
 
 Return `false` for all other categories (AUTH, INVALID_ARG, NOT_FOUND, CONTENT_FILTER, UNKNOWN).
 

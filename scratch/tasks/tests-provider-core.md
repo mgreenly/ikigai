@@ -70,10 +70,10 @@ void  (*info_read)(void *ctx, ik_logger_t *logger);
 
 // Non-blocking request initiation
 res_t (*start_request)(void *ctx, const ik_request_t *req,
-                       ik_completion_cb_t cb, void *cb_ctx);
+                       ik_provider_completion_cb_t cb, void *cb_ctx);
 res_t (*start_stream)(void *ctx, const ik_request_t *req,
                       ik_stream_cb_t stream_cb, void *stream_ctx,
-                      ik_completion_cb_t completion_cb, void *completion_ctx);
+                      ik_provider_completion_cb_t completion_cb, void *completion_ctx);
 ```
 
 **Test flow for async requests:**
@@ -86,10 +86,10 @@ res_t (*start_stream)(void *ctx, const ik_request_t *req,
 
 ```c
 // Capture callback results
-static ik_http_completion_t *captured_completion;
+static ik_provider_completion_t *captured_completion;
 static bool callback_invoked;
 
-static res_t test_completion_cb(const ik_http_completion_t *completion, void *ctx)
+static res_t test_completion_cb(const ik_provider_completion_t *completion, void *ctx)
 {
     captured_completion = talloc_steal(ctx, completion);
     callback_invoked = true;

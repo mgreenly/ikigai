@@ -99,7 +99,7 @@ The streaming interface follows the vtable async pattern:
 // Start streaming request (non-blocking, returns immediately)
 res_t (*start_stream)(void *ctx, const ik_request_t *req,
                       ik_stream_cb_t stream_cb, void *stream_ctx,
-                      ik_completion_cb_t completion_cb, void *completion_ctx);
+                      ik_provider_completion_cb_t completion_cb, void *completion_ctx);
 
 // Event loop integration (called by REPL main loop)
 res_t (*fdset)(void *ctx, fd_set *r, fd_set *w, fd_set *e, int *max_fd);

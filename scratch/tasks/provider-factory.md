@@ -31,7 +31,7 @@
 
 ## Objective
 
-Create `src/providers/provider_common.c` - the provider factory that dispatches to provider-specific factories based on provider name. Handles credential loading from environment variables or credentials.json, validates provider names, and creates appropriate provider instances with curl_multi handles for async operation.
+Create `src/providers/factory.c` - the provider factory that dispatches to provider-specific factories based on provider name. Handles credential loading from environment variables or credentials.json, validates provider names, and creates appropriate provider instances with curl_multi handles for async operation.
 
 ## Interface
 
@@ -114,16 +114,16 @@ Each provider-specific factory MUST:
 
 ```
 src/providers/
-├── provider_common.h
-└── provider_common.c
+├── factory.h
+└── factory.c
 
 tests/unit/providers/
-└── provider_common_test.c
+└── factory_test.c
 ```
 
 ## Test Scenarios
 
-Create `tests/unit/providers/provider_common_test.c`:
+Create `tests/unit/providers/factory_test.c`:
 
 - Environment variable mapping: Each provider maps to correct env var name
 - Unknown provider env var: Returns NULL for unknown providers
@@ -137,8 +137,8 @@ Note: Testing successful provider creation requires linking against provider-spe
 
 ## Postconditions
 
-- [ ] `src/providers/provider_common.h` exists with API
-- [ ] `src/providers/provider_common.c` implements factory
+- [ ] `src/providers/factory.h` exists with API
+- [ ] `src/providers/factory.c` implements factory
 - [ ] Makefile updated with new source/header
 - [ ] `ik_provider_env_var()` returns correct env var names
 - [ ] `ik_provider_is_valid()` validates provider names

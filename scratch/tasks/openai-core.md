@@ -193,7 +193,7 @@ src/providers/openai/
 
 ### Factory Integration
 
-- `ik_provider_create(ctx, "openai", api_key, &provider)` uses native implementation
+- `ik_provider_create(ctx, "openai", &provider)` uses native implementation (credentials loaded internally)
 - Shim remains in codebase but is no longer referenced
 
 ### Error Handling Tests

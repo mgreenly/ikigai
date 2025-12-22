@@ -53,7 +53,7 @@ Implement the async `start_request()` vtable function for the OpenAI shim. This 
 
 | Function | Purpose |
 |----------|---------|
-| `res_t ik_openai_shim_start_request(void *impl_ctx, const ik_request_t *req, ik_completion_cb_t cb, void *cb_ctx)` | Async vtable start_request implementation |
+| `res_t ik_openai_shim_start_request(void *impl_ctx, const ik_request_t *req, ik_provider_completion_cb_t cb, void *cb_ctx)` | Async vtable start_request implementation |
 
 ### Internal Helpers
 
@@ -65,7 +65,7 @@ Implement the async `start_request()` vtable function for the OpenAI shim. This 
 
 | Function | Purpose |
 |----------|---------|
-| `static res_t shim_completion_wrapper(const ik_http_completion_t *completion, void *ctx)` | Wraps internal callback to transform response before invoking user callback |
+| `static res_t shim_completion_wrapper(const ik_provider_completion_t *completion, void *ctx)` | Wraps internal callback to transform response before invoking user callback |
 
 ### Files to Update
 

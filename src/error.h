@@ -156,6 +156,8 @@ static inline const char *error_code_str(err_code_t code)
             return "Database migration error";
         case ERR_OUT_OF_MEMORY:
             return "Out of memory";
+        case ERR_AGENT_NOT_FOUND:
+            return "Agent not found";
         default: // LCOV_EXCL_LINE
             PANIC("Invalid error code"); // LCOV_EXCL_LINE
     }

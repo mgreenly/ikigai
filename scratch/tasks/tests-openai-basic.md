@@ -82,7 +82,7 @@ These tests use the async fdset/perform/info_read pattern. Completion is deliver
 // Pattern: start_request + event loop until callback fires
 static ik_response_t *captured_response;
 
-static res_t test_completion_cb(const ik_http_completion_t *completion, void *ctx) {
+static res_t test_completion_cb(const ik_provider_completion_t *completion, void *ctx) {
     captured_response = completion->response;
     return OK(NULL);
 }

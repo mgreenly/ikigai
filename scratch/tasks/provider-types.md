@@ -53,7 +53,7 @@ Create `src/providers/provider.h` with vtable definition and core types that all
 **Key design point:** The vtable uses an async/non-blocking pattern with:
 - Event loop integration methods: `fdset()`, `perform()`, `timeout()`, `info_read()`
 - Non-blocking request initiation: `start_request()`, `start_stream()` (return immediately)
-- Callbacks for response delivery: `ik_completion_cb_t`, `ik_stream_cb_t`
+- Callbacks for response delivery: `ik_provider_completion_cb_t`, `ik_stream_cb_t`
 
 ## Interface
 
@@ -81,7 +81,7 @@ Create `src/providers/provider.h` with vtable definition and core types that all
 | `ik_request_t` | system_prompt, messages, model, thinking config, tools, max_output_tokens | Request to provider |
 | `ik_response_t` | content blocks, finish_reason, usage, model, provider_data | Response from provider |
 | `ik_stream_event_t` | type, union of event-specific data | Streaming event with variant payload |
-| `ik_http_completion_t` | success (bool), http_status, response (ik_response_t*), error_category, error_message | Completion callback payload |
+| `ik_provider_completion_t` | success (bool), http_status, response (ik_response_t*), error_category, error_message | Completion callback payload |
 | `ik_provider_vtable_t` | fdset(), perform(), timeout(), info_read(), start_request(), start_stream(), cleanup() | Provider vtable interface (async) |
 | `ik_provider_t` | name, vtable pointer, impl_ctx (opaque) | Provider wrapper |
 
@@ -94,7 +94,7 @@ Create `src/providers/provider_types.h` with forward declarations for all provid
 | Type | Signature | Purpose |
 |------|-----------|---------|
 | `ik_stream_cb_t` | `res_t (*)(const ik_stream_event_t *event, void *ctx)` | Callback for streaming events during perform() |
-| `ik_completion_cb_t` | `res_t (*)(const ik_http_completion_t *completion, void *ctx)` | Callback invoked when request completes from info_read() |
+| `ik_provider_completion_cb_t` | `res_t (*)(const ik_provider_completion_t *completion, void *ctx)` | Callback invoked when request completes from info_read() |
 
 ### Vtable Interface (Async/Non-blocking)
 
@@ -113,8 +113,8 @@ All vtable methods are non-blocking. Request initiation returns immediately; pro
 
 | Function Pointer | Signature | Purpose |
 |------------------|-----------|---------|
-| `start_request` | `res_t (*)(void *ctx, const ik_request_t *req, ik_completion_cb_t cb, void *cb_ctx)` | Start non-streaming request, returns immediately |
-| `start_stream` | `res_t (*)(void *ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_completion_cb_t completion_cb, void *completion_ctx)` | Start streaming request, returns immediately |
+| `start_request` | `res_t (*)(void *ctx, const ik_request_t *req, ik_provider_completion_cb_t cb, void *cb_ctx)` | Start non-streaming request, returns immediately |
+| `start_stream` | `res_t (*)(void *ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_provider_completion_cb_t completion_cb, void *completion_ctx)` | Start streaming request, returns immediately |
 
 **Cleanup:**
 
@@ -146,7 +146,7 @@ Two separate error systems:
 
 Provider vtable functions return `res_t` (uses `err_code_t`). On provider errors, return `ERR(ctx, ERR_PROVIDER, "message")` where ERR_PROVIDER is a new error code added to `err_code_t`.
 
-Provider-specific errors (auth failures, rate limits, etc.) are delivered via the `ik_http_completion_t` struct passed to completion callbacks, not through the return value of `start_request()`/`start_stream()`.
+Provider-specific errors (auth failures, rate limits, etc.) are delivered via the `ik_provider_completion_t` struct passed to completion callbacks, not through the return value of `start_request()`/`start_stream()`.
 
 ### Content Block Variants
 
@@ -169,7 +169,7 @@ Provider-specific errors (auth failures, rate limits, etc.) are delivered via th
 
 ### HTTP Completion Structure
 
-`ik_http_completion_t` contains all information about a completed request:
+`ik_provider_completion_t` contains all information about a completed request:
 - `success` (bool): true if request succeeded
 - `http_status` (int): HTTP status code
 - `response` (ik_response_t*): Parsed response (NULL on error)
@@ -221,8 +221,8 @@ Create `tests/unit/providers/provider_types_test.c`:
 - [ ] No provider-specific dependencies (no OpenAI/Anthropic includes)
 - [ ] Vtable defines async methods: `fdset`, `perform`, `timeout`, `info_read`, `start_request`, `start_stream`
 - [ ] Vtable does NOT have blocking `send` or `stream` methods
-- [ ] Callback types `ik_stream_cb_t` and `ik_completion_cb_t` defined
-- [ ] `ik_http_completion_t` struct defined for completion callback payload
+- [ ] Callback types `ik_stream_cb_t` and `ik_provider_completion_cb_t` defined
+- [ ] `ik_provider_completion_t` struct defined for completion callback payload
 - [ ] `ERR_PROVIDER`, `ERR_MISSING_CREDENTIALS`, `ERR_NOT_IMPLEMENTED` added to `src/error.h`
 - [ ] Unit tests pass
 - [ ] `make check` passes

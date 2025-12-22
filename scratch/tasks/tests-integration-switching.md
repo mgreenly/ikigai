@@ -191,8 +191,8 @@ Create integration tests for provider switching and fork inheritance using the a
 static ik_response_t *captured_response;
 static res_t captured_result;
 
-static res_t test_completion_cb(const ik_http_completion_t *completion, void *ctx) {
-    captured_result = completion->result;
+static res_t test_completion_cb(const ik_provider_completion_t *completion, void *ctx) {
+    captured_result = completion->success ? OK(NULL) : ERR(completion->error_message);
     captured_response = completion->response;
     return OK(NULL);
 }

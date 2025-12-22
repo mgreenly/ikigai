@@ -152,7 +152,7 @@ static res_t test_stream_cb(const ik_stream_event_t *event, void *ctx) {
     return OK(NULL);
 }
 
-static res_t test_completion_cb(const ik_http_completion_t *completion, void *ctx) {
+static res_t test_completion_cb(const ik_provider_completion_t *completion, void *ctx) {
     completed = true;
     return OK(NULL);
 }

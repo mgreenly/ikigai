@@ -83,17 +83,17 @@ Functions to implement:
 
 | Function | Purpose |
 |----------|---------|
-| `res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb, void *stream_ctx, ik_completion_cb_t completion_cb, void *completion_ctx, ik_anthropic_stream_ctx_t **out)` | Creates streaming context with both callbacks |
+| `res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb, void *stream_ctx, ik_provider_completion_cb_t completion_cb, void *completion_ctx, ik_anthropic_stream_ctx_t **out)` | Creates streaming context with both callbacks |
 | `void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx, const char *event, const char *data)` | Processes single SSE event, emits normalized events via stream callback |
 | `ik_usage_t ik_anthropic_stream_get_usage(ik_anthropic_stream_ctx_t *stream_ctx)` | Returns accumulated usage statistics from stream |
 | `ik_finish_reason_t ik_anthropic_stream_get_finish_reason(ik_anthropic_stream_ctx_t *stream_ctx)` | Returns finish reason from stream |
-| `res_t ik_anthropic_start_stream(void *impl_ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_completion_cb_t completion_cb, void *completion_ctx)` | Vtable start_stream implementation: serialize request, configure curl, add to multi handle, return immediately |
+| `res_t ik_anthropic_start_stream(void *impl_ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_provider_completion_cb_t completion_cb, void *completion_ctx)` | Vtable start_stream implementation: serialize request, configure curl, add to multi handle, return immediately |
 
 Structs to define:
 
 | Struct | Members | Purpose |
 |--------|---------|---------|
-| `ik_anthropic_stream_ctx_t` | ctx, stream_cb, stream_ctx, completion_cb, completion_ctx, sse_parser, model, finish_reason, usage, current_block_index, current_block_type, current_tool_id, current_tool_name | Streaming context tracks state, callbacks, and accumulated metadata |
+| `ik_anthropic_stream_ctx_t` | ctx, stream_cb (ik_stream_cb_t), stream_ctx, completion_cb (ik_provider_completion_cb_t), completion_ctx, sse_parser, model, finish_reason, usage, current_block_index, current_block_type, current_tool_id, current_tool_name | Streaming context tracks state, callbacks, and accumulated metadata |
 
 ## Behaviors
 

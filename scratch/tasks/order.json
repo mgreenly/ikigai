@@ -296,12 +296,6 @@
       "thinking": "extended"
     },
     {
-      "task": "verify-providers.md",
-      "group": "Verification",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
       "task": "tests-anthropic-basic.md",
       "group": "Testing",
       "model": "sonnet",
@@ -346,6 +340,12 @@
     {
       "task": "tests-openai-streaming.md",
       "group": "Testing",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "verify-providers.md",
+      "group": "Verification",
       "model": "sonnet",
       "thinking": "thinking"
     },

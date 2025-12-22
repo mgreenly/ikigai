@@ -51,10 +51,10 @@ Tests must simulate the async fdset/perform/info_read cycle. The mock pattern:
 
 ```c
 // Test captures response via completion callback
-static ik_http_completion_t *captured_completion;
+static ik_provider_completion_t *captured_completion;
 static res_t captured_result;
 
-static res_t test_completion_cb(const ik_http_completion_t *completion, void *ctx) {
+static res_t test_completion_cb(const ik_provider_completion_t *completion, void *ctx) {
     captured_completion = completion;
     return OK(NULL);
 }

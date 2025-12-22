@@ -60,13 +60,15 @@ Create tests for Anthropic async streaming using mock curl_multi. Tests verify:
 static ik_stream_event_t captured_events[32];
 static size_t captured_count = 0;
 
-static void test_stream_cb(const ik_stream_event_t *event, void *ctx) {
+static res_t test_stream_cb(const ik_stream_event_t *event, void *ctx) {
     captured_events[captured_count++] = *event;
+    return OK(NULL);
 }
 
 static res_t captured_result;
-static void test_completion_cb(void *ctx, res_t result, ik_response_t *resp) {
-    captured_result = result;
+static res_t test_completion_cb(const ik_provider_completion_t *completion, void *ctx) {
+    captured_result = completion->result;
+    return OK(NULL);
 }
 
 START_TEST(test_basic_streaming)

@@ -67,9 +67,10 @@ static ik_http_multi_t *multi;
 static ik_response_t *captured_response;
 static res_t captured_result;
 
-static void test_completion_cb(const ik_http_completion_t *completion, void *ctx) {
+static res_t test_completion_cb(const ik_http_completion_t *completion, void *ctx) {
     captured_result = completion->result;
     captured_response = completion->response;
+    return OK(NULL);
 }
 
 static void setup(void) {

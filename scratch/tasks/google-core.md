@@ -198,7 +198,7 @@ HTTP Status to Category Mapping:
 - Implementation context contains copied api_key and base_url
 
 **Factory Registration:**
-- ik_provider_create(ctx, "google", "key", &provider) dispatches to ik_google_create()
+- `ik_provider_create(ctx, "google", &provider)` dispatches to `ik_google_create()` (credentials loaded internally)
 
 **Error Handling:**
 - 403 status maps to IK_ERR_CAT_AUTH
