@@ -7,6 +7,34 @@ description: Task Authoring skill for the ikigai project
 
 Guidance for creating task files from requirements (user stories, bugs, gaps).
 
+## Critical Context
+
+**Task execution is UNATTENDED. No human in the loop.**
+
+When `/orchestrate` runs, it executes all tasks automatically. If a sub-agent needs context you didn't provide, it will:
+- Fail and escalate (wasting attempts)
+- Succeed partially (creating technical debt)
+- Spawn research agents (ballooning token usage)
+
+**There is no one to ask for help. The task file IS the help.**
+
+## Efficiency Principle
+
+**Spend generously during task authoring to save massively during execution.**
+
+Task authoring happens ONCE. Task execution happens N times (once per task in the orchestration loop). Therefore:
+
+- **During authoring:** Use research agents, explore codebase, read extensively, think deeply
+- **During execution:** Sub-agent has everything, executes immediately, no exploration needed
+
+**Token math:**
+- Poor task authoring: 10K tokens → Each of 20 tasks researches → 200K+ execution tokens
+- Good task authoring: 50K tokens → 20 tasks execute directly → 40K execution tokens
+
+**Completeness requirement:**
+- Poor task: "Implement feature X" → Sub-agent fails or researches (unattended failure)
+- Good task: Lists skills, files, interface specs, patterns, edge cases → Sub-agent executes to completion
+
 ## Process
 
 1. **Review source material** - Read and understand the requirements thoroughly
@@ -104,15 +132,23 @@ This prevents sub-agents from misinterpreting paths like `scratch/plan/` as rela
 
 ### Skill Loading
 
-- Load all skills the sub-agent will need (err on the side of more)
-- Include relevant developer skills for implementation tasks
+**CRITICAL: Provide EXACTLY what the sub-agent needs - no more, no less.**
+
+- List the specific skills needed for THIS task only
+- Don't load large reference skills (database, source-code) unless task directly requires them
+- Don't assume sub-agent will research or explore - give them what they need upfront
 - **Never load `align`** - sub-agents execute, they don't negotiate
+
+**Goal:** Sub-agent executes immediately with provided context. No exploration, no research sub-agents.
 
 ### Source Code Links
 
-- Provide specific file paths the agent will need
-- Include both implementation files and test patterns
-- Link to related existing code as examples
+**Provide ALL file paths the sub-agent needs - be complete.**
+
+- List specific implementation files to read/modify
+- List specific test files to follow as patterns
+- List related existing code as examples
+- Be exhaustive - sub-agent should NOT need to search or explore
 
 ### Pre/Post Conditions
 
@@ -122,26 +158,43 @@ This prevents sub-agents from misinterpreting paths like `scratch/plan/` as rela
 
 ### Context (What/How/Why)
 
-Every task must provide:
+**Every task must provide complete context so sub-agent can execute immediately.**
 
-- **What** - The specific goal
-- **How** - Approach and patterns to follow
-- **Why** - Business/technical rationale
+- **What** - The specific goal with full details
+- **How** - Exact approach, patterns, and implementation guidance
+- **Why** - Business/technical rationale for decision-making
 
-This context enables agents to handle unforeseen issues intelligently.
+**Goal:** Sub-agent has everything needed to execute. No need to research background, explore alternatives, or understand broader context.
 
-### Sub-agent Guidance
+### Execution Expectations
 
-Include in task instructions:
+**UNATTENDED EXECUTION: Provide everything needed for autonomous completion.**
 
-- Suggest sub-agent use where appropriate (research, parallel work)
-- Encourage persistence - overcome obstacles to complete the goal
+Tasks execute without human oversight. The sub-agent cannot ask questions or request clarification. Everything it needs must be in the task file.
+
+Checklist for complete task authoring:
+- [ ] All required skills listed explicitly
+- [ ] All file paths to read/modify listed
+- [ ] All test patterns and examples referenced
+- [ ] Edge cases and error conditions documented
+- [ ] Success criteria clearly defined
+- [ ] Rollback/failure handling specified
+
+If unsure whether to include something: **INCLUDE IT**. Over-specification is safe. Under-specification causes unattended failures.
+
+Task instructions should emphasize:
+- Persistence to complete the goal despite obstacles
 - Task success is the measure, not partial progress
+- All needed context is provided in this task file
+
+**Why this matters:** Complete task authoring prevents unattended failures and prevents sub-agents from spawning research/explore agents, which would balloon token usage across the orchestration loop.
 
 ## Task Template
 
 ```markdown
 # Task: [Descriptive Name]
+
+**UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
 **Depends on:** task-name.md (or "None")
@@ -150,6 +203,8 @@ Include in task instructions:
 
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
+
+All needed context is provided in this file. Do not research, explore, or spawn sub-agents.
 
 ## Pre-Read
 

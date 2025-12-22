@@ -5,7 +5,7 @@
  *
  * Usage: deno run ... next.ts
  *
- * Returns the first pending task with full content, or null if none remain.
+ * Returns the first pending task metadata (without content), or null if none remain.
  */
 
 import { getDb, initSchema, closeDb } from "./db.ts";
@@ -65,7 +65,6 @@ async function main() {
       task: {
         id: task.id,
         name: task.name,
-        content: task.content,
         task_group: task.task_group,
         model: task.model,
         thinking: task.thinking,

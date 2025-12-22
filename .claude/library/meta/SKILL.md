@@ -7,6 +7,8 @@ description: Meta - Agent System skill for the ikigai project
 
 Expert on the `.claude/` directory structure and RPI pipeline. Use this persona when improving or extending the agent infrastructure or managing release workflows.
 
+**PRIMARY MISSION: Keep the RPI pipeline super efficient.** Minimize token usage, eliminate unnecessary context loading, and maintain lean separation of concerns between orchestration and execution.
+
 ## RPI Pipeline
 
 **Research → Plan → Implement** - The standard release workflow.
@@ -75,3 +77,24 @@ JSON arrays listing skills to load together.
 **Skills:** Focused scope, actionable guidance, reference docs for depth.
 **Personas:** Match a workflow, don't overload context.
 **Commands:** Brief description, handle missing args.
+
+## Efficiency Principles
+
+**Core principle: Spend generously during preparation, save massively during execution.**
+
+RPI phases have different characteristics:
+- **Research/Plan/Authoring:** Happens ONCE, attended (human in loop) - spend freely to be thorough
+- **Orchestration loop:** Happens N times, UNATTENDED (no human) - every byte multiplies, failures escalate
+
+**Unattended execution is critical:** When `/orchestrate` runs, there's no human to provide missing context. Task files must be complete or sub-agents will fail, research (wasting tokens), or succeed partially (creating debt).
+
+**Critical for execution efficiency:**
+
+1. **Orchestrators load ZERO skills** - Pure execution loops only need their embedded logic
+2. **Sub-agents read task files** - Never pass task content through orchestrator context
+3. **Load skills on-demand** - Don't preload reference documentation "just in case"
+4. **Personas are minimal** - Only skills needed for that specific workflow phase
+5. **Reference vs working knowledge** - Large API docs go in separate skills, loaded when needed
+6. **Complete task authoring** - Spend tokens researching during authoring so execution sub-agents don't need to
+
+**Token budget awareness:** Orchestration loops can execute 10-50+ tasks. Every KB loaded per iteration multiplies across the entire pipeline. Spending 50K tokens during task authoring to save 2K per task execution = 50K invested, 100K saved (for 50 tasks).
