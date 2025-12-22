@@ -91,6 +91,12 @@
       "thinking": "thinking"
     },
     {
+      "task": "verify-foundation.md",
+      "group": "Verification",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
       "task": "tests-mock-infrastructure.md",
       "group": "Testing",
       "model": "sonnet",
@@ -105,6 +111,12 @@
     {
       "task": "tests-provider-core.md",
       "group": "Testing",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "verify-infrastructure.md",
+      "group": "Verification",
       "model": "sonnet",
       "thinking": "thinking"
     },
@@ -135,6 +147,12 @@
     {
       "task": "openai-shim-compat-tests.md",
       "group": "OpenAI Migration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "verify-openai-shim.md",
+      "group": "Verification",
       "model": "sonnet",
       "thinking": "thinking"
     },
@@ -271,6 +289,12 @@
       "thinking": "extended"
     },
     {
+      "task": "verify-providers.md",
+      "group": "Verification",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
       "task": "tests-anthropic-basic.md",
       "group": "Testing",
       "model": "sonnet",
@@ -335,6 +359,12 @@
       "group": "Cleanup",
       "model": "sonnet",
       "thinking": "none"
+    },
+    {
+      "task": "verify-cleanup.md",
+      "group": "Verification",
+      "model": "sonnet",
+      "thinking": "thinking"
     },
     {
       "task": "tests-integration-switching.md",
