@@ -8,6 +8,11 @@
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+
+## Preconditions
+
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Pre-Read
 
 **Skills:**
@@ -117,6 +122,11 @@ Not applicable - this task modifies production code. Tests are updated in creden
 - [ ] `make src/openai/client.o` succeeds
 - [ ] `make src/openai/client_multi_request.o` succeeds
 
+- [ ] Changes committed to git with message: `task: credentials-migrate.md - <summary>`
+  - If `make check` passed: success message
+  - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Verification
 
 ```bash
@@ -141,3 +151,9 @@ cat etc/ikigai/credentials.example.json
 ## Note
 
 After this task, tests will still fail because they reference `cfg->openai_api_key`. The credential test tasks fix the test files.
+
+
+## Success Criteria
+
+Return `{"ok": true}` only if all postconditions are met.
+Return `{"ok": false, "reason": "..."}` if validation fails (still commit the WIP).

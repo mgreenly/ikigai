@@ -8,6 +8,11 @@
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+
+## Preconditions
+
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Pre-Read
 
 **Skills:**
@@ -129,3 +134,14 @@ Note: Full usage extraction deferred to native OpenAI provider (Layer 4).
 - [ ] Unit tests pass
 - [ ] `make check` passes
 - [ ] No changes to `src/openai/` files
+- [ ] Changes committed to git with message: `task: openai-shim-response.md - <summary>`
+  - If `make check` passed: success message
+  - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
+
+
+## Success Criteria
+
+Return `{"ok": true}` only if all postconditions are met.
+Return `{"ok": false, "reason": "..."}` if validation fails (still commit the WIP).

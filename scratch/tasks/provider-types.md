@@ -8,6 +8,11 @@
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+
+## Preconditions
+
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Pre-Read
 
 **Skills:**
@@ -151,3 +156,14 @@ Create `tests/unit/providers/provider_types_test.c`:
 - [ ] `make check` passes
 - [ ] Header compiles in isolation (no missing includes)
 - [ ] No provider-specific strings in header files
+- [ ] Changes committed to git with message: `task: provider-types.md - <summary>`
+  - If `make check` passed: success message
+  - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
+
+
+## Success Criteria
+
+Return `{"ok": true}` only if all postconditions are met.
+Return `{"ok": false, "reason": "..."}` if validation fails (still commit the WIP).

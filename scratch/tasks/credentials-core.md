@@ -8,6 +8,11 @@
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+
+## Preconditions
+
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Pre-Read
 
 **Skills:**
@@ -121,6 +126,11 @@ Permissions: Should be mode 600 (warning if not)
 - [ ] Missing file is OK (returns empty credentials)
 - [ ] Invalid JSON returns ERR with descriptive message
 
+- [ ] Changes committed to git with message: `task: credentials-core.md - <summary>`
+  - If `make check` passed: success message
+  - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Verification
 
 ```bash
@@ -134,3 +144,9 @@ make build/tests/unit/credentials_test
 make 2>&1 | grep -i warning | grep credentials
 # Should return nothing
 ```
+
+
+## Success Criteria
+
+Return `{"ok": true}` only if all postconditions are met.
+Return `{"ok": false, "reason": "..."}` if validation fails (still commit the WIP).

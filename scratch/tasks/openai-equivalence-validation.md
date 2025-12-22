@@ -8,6 +8,11 @@
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+
+## Preconditions
+
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Pre-Read
 
 **Skills:**
@@ -183,6 +188,11 @@ tests/unit/providers/openai/
 - [ ] `make check` passes
 - [ ] Skip escape hatch documented and logs warning
 
+- [ ] Changes committed to git with message: `task: openai-equivalence-validation.md - <summary>`
+  - If `make check` passed: success message
+  - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Verification
 
 ```bash
@@ -207,3 +217,9 @@ This task MUST complete successfully before:
 - `cleanup-openai-adapter.md` - Deletes shim adapter
 
 If equivalence validation fails, investigate the difference and fix the native provider before proceeding with cleanup.
+
+
+## Success Criteria
+
+Return `{"ok": true}` only if all postconditions are met.
+Return `{"ok": false, "reason": "..."}` if validation fails (still commit the WIP).

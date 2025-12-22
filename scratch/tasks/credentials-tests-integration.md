@@ -8,6 +8,11 @@
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+
+## Preconditions
+
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Pre-Read
 
 **Skills:**
@@ -98,6 +103,11 @@ All existing integration tests should pass after updating to use environment var
 - [ ] No compiler warnings about `openai_api_key`
 - [ ] Documentation accurately reflects credentials module
 
+- [ ] Changes committed to git with message: `task: credentials-tests-integration.md - <summary>`
+  - If `make check` passed: success message
+  - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Verification
 
 ```bash
@@ -121,3 +131,9 @@ This is the final task in the credentials migration. After completion:
 - All tests use environment variables for credentials
 - Documentation reflects the new credential management approach
 - The codebase is ready for multi-provider support (Anthropic, Google)
+
+
+## Success Criteria
+
+Return `{"ok": true}` only if all postconditions are met.
+Return `{"ok": false, "reason": "..."}` if validation fails (still commit the WIP).

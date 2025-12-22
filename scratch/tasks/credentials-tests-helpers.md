@@ -8,6 +8,11 @@
 **Working directory:** Project root (where `Makefile` lives)
 **All paths are relative to project root**, not to this task file.
 
+
+## Preconditions
+
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Pre-Read
 
 **Skills:**
@@ -59,6 +64,11 @@ No new interfaces - this task removes obsolete code from existing helpers.
 - [ ] `make build/tests/unit/helpers/test_contexts_test` succeeds
 - [ ] `./build/tests/unit/helpers/test_contexts_test` passes
 
+- [ ] Changes committed to git with message: `task: credentials-tests-helpers.md - <summary>`
+  - If `make check` passed: success message
+  - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
 ## Verification
 
 ```bash
@@ -70,3 +80,9 @@ grep -r "openai_api_key" tests/test_utils.c tests/helpers/ tests/unit/helpers/
 make build/tests/unit/helpers/test_contexts_test && ./build/tests/unit/helpers/test_contexts_test
 # Should pass
 ```
+
+
+## Success Criteria
+
+Return `{"ok": true}` only if all postconditions are met.
+Return `{"ok": false, "reason": "..."}` if validation fails (still commit the WIP).
