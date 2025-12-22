@@ -1,9 +1,9 @@
-# Task: Create Test Mock Infrastructure for Async curl_multi
+# Task: Create Test Mock Infrastructure for Async curl_multi (VCR Replay)
 
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** provider-types.md, http-client.md
+**Depends on:** provider-types.md, http-client.md, verify-mocks-providers.md
 
 ## Context
 
@@ -12,11 +12,17 @@
 
 **Critical Architecture Constraint:** The application uses a select()-based event loop. ALL HTTP operations MUST be non-blocking via curl_multi (NOT curl_easy). See `scratch/plan/README.md`.
 
+**VCR-Style Mocking:** This task creates the replay mechanism for VCR-style mocks. The cassettes (fixtures) have already been recorded and verified by `verify-mocks-providers.md`. This task just needs to replay them through the async curl_multi interface.
+
 All needed context is provided in this file. Do not research, explore, or spawn sub-agents.
 
 ## Preconditions
 
 - [ ] Clean worktree (verify: `git status --porcelain` is empty)
+- [ ] VCR cassettes exist (from verify-mocks-providers.md):
+  - [ ] `tests/fixtures/anthropic/stream_text_basic.txt` exists
+  - [ ] `tests/fixtures/google/stream_text_basic.txt` exists
+  - [ ] `tests/fixtures/openai/stream_hello_world.txt` exists (already present)
 
 ## Pre-Read
 
@@ -104,6 +110,10 @@ void mock_curl_multi_set_error(CURLcode error);
 // Control mock FD behavior
 void mock_curl_multi_set_fd(int fd);  // FD to return from fdset (-1 = no FDs)
 
+// VCR-style: Load cassette from fixture file
+void mock_curl_multi_load_cassette(TALLOC_CTX *ctx, const char *provider,
+                                    const char *cassette_name);
+
 // Query mock state
 bool mock_curl_multi_transfer_complete(void);
 size_t mock_curl_multi_bytes_delivered(void);
@@ -162,6 +172,25 @@ void mock_curl_multi_set_error(CURLcode error)
 void mock_curl_multi_set_fd(int fd)
 {
     g_mock_fd = fd;
+}
+
+// VCR-style: Load cassette from fixture file
+void mock_curl_multi_load_cassette(TALLOC_CTX *ctx, const char *provider,
+                                    const char *cassette_name)
+{
+    char path[256];
+    snprintf(path, sizeof(path), "tests/fixtures/%s/%s", provider, cassette_name);
+
+    char *content = load_file_to_string(ctx, path);
+    if (content == NULL) {
+        PANIC("Cassette not found: %s", path);  // LCOV_EXCL_LINE
+    }
+
+    size_t len = strlen(content);
+    // SSE cassettes use small chunks to simulate streaming
+    size_t chunk_size = (strstr(cassette_name, "stream") != NULL) ? 64 : len;
+
+    mock_curl_multi_set_streaming_response(200, content, len, chunk_size);
 }
 
 // Override MOCKABLE wrappers
@@ -330,15 +359,10 @@ END_TEST
 
 START_TEST(test_mock_streaming_delivers_chunks)
 {
-    const char *sse_data =
-        "event: message_start\n"
-        "data: {\"type\":\"message_start\"}\n\n"
-        "event: content_block_delta\n"
-        "data: {\"type\":\"text_delta\",\"text\":\"Hello\"}\n\n";
-    size_t chunk_size = 32;  // Deliver in small chunks
-
+    // VCR-style: Load recorded cassette instead of hardcoded data
+    TALLOC_CTX *ctx = talloc_new(NULL);
     mock_curl_multi_reset();
-    mock_curl_multi_set_streaming_response(200, sse_data, strlen(sse_data), chunk_size);
+    mock_curl_multi_load_cassette(ctx, "openai", "stream_hello_world.txt");
 
     int running = 1;
     int perform_calls = 0;
@@ -347,9 +371,28 @@ START_TEST(test_mock_streaming_delivers_chunks)
         perform_calls++;
     }
 
-    // Should have taken multiple perform() calls
+    // Should have taken multiple perform() calls (cassette delivered in chunks)
     ck_assert_int_gt(perform_calls, 1);
     ck_assert(mock_curl_multi_transfer_complete());
+
+    talloc_free(ctx);
+}
+END_TEST
+
+START_TEST(test_vcr_anthropic_streaming)
+{
+    // VCR-style: Load Anthropic cassette
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    mock_curl_multi_reset();
+    mock_curl_multi_load_cassette(ctx, "anthropic", "stream_text_basic.txt");
+
+    int running = 1;
+    while (running > 0) {
+        curl_multi_perform_(NULL, &running);
+    }
+
+    ck_assert(mock_curl_multi_transfer_complete());
+    talloc_free(ctx);
 }
 END_TEST
 

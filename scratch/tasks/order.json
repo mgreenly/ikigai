@@ -97,6 +97,13 @@
       "thinking": "thinking"
     },
     {
+      "task": "verify-mocks-providers.md",
+      "group": "Testing",
+      "model": "sonnet",
+      "thinking": "none",
+      "note": "VCR-style: Records cassettes from real APIs before mock infrastructure"
+    },
+    {
       "task": "tests-mock-infrastructure.md",
       "group": "Testing",
       "model": "sonnet",
