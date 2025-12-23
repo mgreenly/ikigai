@@ -1,5 +1,6 @@
 #include <check.h>
 #include <talloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <curl/curl.h>
@@ -45,6 +46,7 @@ static int g_callback_invocations = 0;
 static void setup(void)
 {
     ctx = talloc_new(NULL);
+    setenv("OPENAI_API_KEY", "test-api-key", 1);
 
     /* Reset mock state */
     mock_init_should_fail = false;
@@ -65,6 +67,7 @@ static void setup(void)
 
 static void teardown(void)
 {
+    unsetenv("OPENAI_API_KEY");
     talloc_free(ctx);
     ctx = NULL;
 }
@@ -173,7 +176,6 @@ START_TEST(test_http_callback_with_finish_reason) {
     /* Create configuration */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-12345");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 100;
@@ -217,7 +219,6 @@ START_TEST(test_http_callback_without_finish_reason)
     /* Create configuration */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-12345");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 100;
@@ -259,7 +260,6 @@ START_TEST(test_http_callback_malformed_finish_reason)
     /* Create configuration */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-12345");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 100;
@@ -305,7 +305,6 @@ START_TEST(test_http_callback_finish_reason_edge_cases)
     /* Create configuration */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-12345");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 100;

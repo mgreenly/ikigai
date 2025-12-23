@@ -1,5 +1,6 @@
 #include <check.h>
 #include <talloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
 #include "openai/client.h"
@@ -40,6 +41,7 @@ static size_t mock_response_len = 0;
 static void setup(void)
 {
     ctx = talloc_new(NULL);
+    setenv("OPENAI_API_KEY", "test-api-key", 1);
 
     /* Reset callback capture state */
     g_write_callback = NULL;
@@ -52,6 +54,7 @@ static void setup(void)
 
 static void teardown(void)
 {
+    unsetenv("OPENAI_API_KEY");
     talloc_free(ctx);
     ctx = NULL;
 }
@@ -141,7 +144,6 @@ CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
 START_TEST(test_tool_call_single_chunk) {
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
@@ -209,7 +211,6 @@ START_TEST(test_tool_call_streaming_multiple_chunks)
 {
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
@@ -282,7 +283,6 @@ START_TEST(test_tool_call_no_content)
 {
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
@@ -352,7 +352,6 @@ START_TEST(test_parse_tool_calls_ok_null)
 {
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
@@ -399,7 +398,6 @@ START_TEST(test_parse_tool_calls_error)
 {
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);

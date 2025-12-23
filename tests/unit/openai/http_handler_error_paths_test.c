@@ -1,5 +1,6 @@
 #include <check.h>
 #include <talloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <curl/curl.h>
@@ -45,6 +46,7 @@ static size_t mock_response_len = 0;
 static void setup(void)
 {
     ctx = talloc_new(NULL);
+    setenv("OPENAI_API_KEY", "test-api-key", 1);
     callback_ctx = ctx;
 
     /* Reset mock state */
@@ -62,6 +64,7 @@ static void setup(void)
 
 static void teardown(void)
 {
+    unsetenv("OPENAI_API_KEY");
     talloc_free(ctx);
     ctx = NULL;
     callback_ctx = NULL;
@@ -171,14 +174,17 @@ CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
  * So API key must be >= 234 bytes to trigger overflow
  */
 START_TEST(test_api_key_too_long) {
+    /* Create API key that will overflow the 256-byte buffer */
+    char long_key[250];
+    memset(long_key, 'x', 249);
+    long_key[249] = '\0';
+
+    /* Set very long API key in environment */
+    setenv("OPENAI_API_KEY", long_key, 1);
+
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
 
-    /* Create API key that will overflow the 256-byte buffer */
-    char *long_key = talloc_array(cfg, char, 250);
-    memset(long_key, 'x', 249);
-    long_key[249] = '\0';
-    cfg->openai_api_key = long_key;
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
@@ -213,7 +219,6 @@ static res_t failing_stream_callback(const char *content, void *user_ctx)
 START_TEST(test_callback_error_propagation_defensive) {
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
@@ -247,7 +252,6 @@ START_TEST(test_callback_error_normal_path)
 {
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);

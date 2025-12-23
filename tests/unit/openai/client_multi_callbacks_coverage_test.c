@@ -20,7 +20,6 @@ START_TEST(test_http_write_callback_tool_call_first_chunk) {
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -60,7 +59,6 @@ END_TEST START_TEST(test_http_write_callback_tool_call_streaming_chunks)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -106,7 +104,6 @@ END_TEST START_TEST(test_http_write_callback_parse_tool_calls_returns_error)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;

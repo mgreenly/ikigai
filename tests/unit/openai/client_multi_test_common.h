@@ -10,6 +10,7 @@
 #include "wrapper.h"
 #include <check.h>
 #include <talloc.h>
+#include <stdlib.h>
 #include <curl/curl.h>
 #include <sys/select.h>
 #include <stdarg.h>
@@ -41,6 +42,7 @@ static CURL *g_last_easy_handle = NULL;  /* Track last created easy handle */
 static void setup(void)
 {
     ctx = talloc_new(NULL);
+    setenv("OPENAI_API_KEY", "test-api-key", 1);
     fail_curl_multi_init = false;
     fail_curl_easy_init = false;
     fail_curl_multi_add_handle = false;
@@ -60,6 +62,7 @@ static void setup(void)
 
 static void teardown(void)
 {
+    unsetenv("OPENAI_API_KEY");
     talloc_free(ctx);
 }
 

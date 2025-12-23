@@ -19,7 +19,6 @@ START_TEST(test_multi_add_request_with_debug_output_file) {
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test123");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -43,7 +42,6 @@ END_TEST START_TEST(test_multi_add_request_no_debug_output)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test123");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;

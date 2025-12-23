@@ -9,7 +9,6 @@
 static inline ik_cfg_t *create_test_config(void)
 {
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;

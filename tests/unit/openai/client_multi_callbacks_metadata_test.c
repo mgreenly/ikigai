@@ -20,7 +20,6 @@ START_TEST(test_http_write_callback_done_marker_model) {
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -59,7 +58,6 @@ END_TEST START_TEST(test_http_write_callback_missing_model)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -99,7 +97,6 @@ END_TEST START_TEST(test_http_write_callback_model_not_string)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -139,7 +136,6 @@ END_TEST START_TEST(test_http_write_callback_missing_completion_tokens)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -180,7 +176,6 @@ END_TEST START_TEST(test_http_write_callback_completion_tokens_valid_int)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -221,7 +216,6 @@ END_TEST START_TEST(test_http_write_callback_completion_tokens_not_int)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;

@@ -1,5 +1,6 @@
 #include <check.h>
 #include <talloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include "openai/client.h"
 #include "config.h"
@@ -16,10 +17,12 @@ static TALLOC_CTX *ctx = NULL;
 static void setup(void)
 {
     ctx = talloc_new(NULL);
+    setenv("OPENAI_API_KEY", "test-api-key", 1);
 }
 
 static void teardown(void)
 {
+    unsetenv("OPENAI_API_KEY");
     talloc_free(ctx);
     ctx = NULL;
 }
@@ -33,7 +36,6 @@ START_TEST(test_chat_create_empty_conversation) {
     /* Create configuration */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-12345");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     /* Create empty conversation */
@@ -51,10 +53,12 @@ END_TEST
  */
 START_TEST(test_chat_create_missing_api_key)
 {
+    /* Unset API key for this test */
+    unsetenv("OPENAI_API_KEY");
+
     /* Create configuration without API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = NULL;
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     /* Create conversation with one message */
@@ -78,10 +82,12 @@ END_TEST
  */
 START_TEST(test_chat_create_empty_api_key)
 {
+    /* Override with empty API key */
+    setenv("OPENAI_API_KEY", "", 1);
+
     /* Create configuration with empty API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
     /* Create conversation with one message */
@@ -109,7 +115,6 @@ START_TEST(test_chat_create_valid_inputs)
     /* Create configuration with valid API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test-key-valid");
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 100;

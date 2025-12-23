@@ -16,7 +16,6 @@ START_TEST(test_multi_add_request_empty_conversation) {
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -33,6 +32,9 @@ END_TEST START_TEST(test_multi_add_request_no_api_key)
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
+    /* Unset API key for this test */
+    unsetenv("OPENAI_API_KEY");
+
     /* Create conversation with one message */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
@@ -42,7 +44,6 @@ END_TEST START_TEST(test_multi_add_request_no_api_key)
 
     /* Create config without API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = NULL;
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -55,6 +56,9 @@ END_TEST START_TEST(test_multi_add_request_no_api_key)
 
 END_TEST START_TEST(test_multi_add_request_empty_api_key)
 {
+    /* Set empty API key for this test */
+    setenv("OPENAI_API_KEY", "", 1);
+
     res_t multi_res = ik_openai_multi_create(ctx);
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
@@ -68,7 +72,6 @@ END_TEST START_TEST(test_multi_add_request_empty_api_key)
 
     /* Create config with empty API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "");  /* Empty string */
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -94,7 +97,6 @@ END_TEST START_TEST(test_multi_add_request_curl_easy_init_failure)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -123,11 +125,14 @@ END_TEST START_TEST(test_multi_add_request_api_key_too_long)
     ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config with very long API key (> 512 - "Authorization: Bearer " length) */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    char *long_key = talloc_array(cfg, char, 500);
+    char long_key[500];
     memset(long_key, 'A', 499);
     long_key[499] = '\0';
-    cfg->openai_api_key = long_key;
+
+    /* Set very long API key in environment */
+    setenv("OPENAI_API_KEY", long_key, 1);
+
+    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -152,7 +157,6 @@ END_TEST START_TEST(test_multi_add_request_snprintf_error)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -182,7 +186,6 @@ END_TEST START_TEST(test_multi_add_request_success)
 
     /* Create config with normal API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test123");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -207,7 +210,6 @@ END_TEST START_TEST(test_multi_add_request_curl_multi_add_handle_failure)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -237,7 +239,6 @@ END_TEST START_TEST(test_multi_destructor_with_active_requests)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -265,7 +266,6 @@ END_TEST START_TEST(test_multi_add_request_limit_reached)
 
     /* Create config with normal API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test123");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;

@@ -21,7 +21,6 @@ START_TEST(test_multi_info_read_callback_error_with_model) {
     ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -58,7 +57,6 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_finish_reason)
     ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -95,7 +93,6 @@ END_TEST START_TEST(test_multi_info_read_callback_error_with_both_metadata)
     ik_openai_conversation_add_msg(conv, msg_tmp);
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -128,7 +125,6 @@ END_TEST START_TEST(test_multi_info_read_callback_error_multiple_requests_shift)
     ik_openai_multi_t *multi = multi_res.ok;
 
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "sk-test");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
