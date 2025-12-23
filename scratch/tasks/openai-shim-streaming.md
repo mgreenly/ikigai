@@ -161,7 +161,9 @@ shim_completion_wrapper(completion, ctx):
     wrapper = cast ctx to ik_openai_shim_stream_ctx_t
 
     // If tool call present, emit TOOL_CALL_START + TOOL_CALL_DONE
-    // (Tool calls arrive complete in OpenAI streaming, not chunked)
+    // The legacy ik_openai_multi implementation accumulates tool call deltas internally
+    // and delivers complete tool calls via the completion callback.
+    // The shim does NOT emit IK_STREAM_TOOL_CALL_DELTA - that's for native providers.
     if (completion->tool_call != NULL):
         start_event.type = IK_STREAM_TOOL_CALL_START
         start_event.data.tool_call_start.id = completion->tool_call->id
@@ -182,6 +184,17 @@ shim_completion_wrapper(completion, ctx):
     // Call user's completion callback
     return wrapper->user_completion_cb(completion, wrapper->user_completion_ctx)
 ```
+
+### Tool Call Handling (Shim-Specific)
+
+The shim differs from native providers in tool call handling:
+
+| Provider Type | Tool Call Streaming |
+|---------------|---------------------|
+| Native providers | Emit TOOL_CALL_START → multiple TOOL_CALL_DELTA → TOOL_CALL_DONE |
+| Shim | Emit TOOL_CALL_START → TOOL_CALL_DONE (legacy code accumulates internally) |
+
+This is correct because the shim delegates to existing `ik_openai_multi_*` code which already handles delta accumulation. The shim receives complete tool calls in the completion callback.
 
 ### Error Handling
 
