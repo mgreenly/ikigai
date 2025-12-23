@@ -43,9 +43,9 @@ Delete the 19 legacy files in `src/openai/` after verifying the new provider imp
 | `src/openai/client_multi_request.c` | `src/providers/openai/request.c` |
 | `src/openai/client_multi_request.o` | Build artifact (remove) |
 | `src/openai/client_serialize.c` | `src/providers/openai/request.c` |
-| `src/openai/http_handler.c` | `src/providers/common/http_handler.c` |
-| `src/openai/http_handler.h` | `src/providers/common/http_handler.h` |
-| `src/openai/http_handler_internal.h` | `src/providers/common/http_handler_internal.h` |
+| `src/openai/http_handler.c` | `src/providers/common/http_multi.c` |
+| `src/openai/http_handler.h` | `src/providers/common/http_multi.h` |
+| `src/openai/http_handler_internal.h` | `src/providers/common/http_multi_internal.h` |
 | `src/openai/sse_parser.c` | `src/providers/common/sse_parser.c` |
 | `src/openai/sse_parser.h` | `src/providers/common/sse_parser.h` |
 | `src/openai/tool_choice.c` | `src/providers/common/tool_choice.c` |
