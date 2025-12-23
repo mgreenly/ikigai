@@ -7,9 +7,9 @@ Abstract support for multiple AI providers and models, enabling ikigai to work s
 ## Scope
 
 **Core 3 Providers (In-Scope):**
-- OpenAI (GPT-4o, o3-mini, o3)
-- Anthropic (Claude Sonnet 4.5, Opus 4.5, 3.7)
-- Google (Gemini 2.5 Pro, Flash, Gemini 3 Pro)
+- Anthropic (claude-haiku-4-5, claude-sonnet-4-5, claude-opus-4-5)
+- Google (gemini-2.5-flash-lite, gemini-3-flash, gemini-3-pro)
+- OpenAI (gpt-5-nano, gpt-5-mini, gpt-5)
 
 **Implementation Order:**
 1. **Abstraction + OpenAI** - Build provider interface, refactor existing `src/openai/` to implement it, prove nothing breaks
@@ -29,9 +29,8 @@ Switch models and thinking levels with a single command:
 
 ```
 /model claude-sonnet-4-5/med
-/model o3-mini/high
-/model gemini-2.5-pro/low
-/model gpt-4o/none
+/model gemini-3-flash/high
+/model gpt-5-mini/low
 ```
 
 **Thinking Levels:**
@@ -45,7 +44,7 @@ The system automatically translates these abstract levels to provider-specific p
 ```
 > /model claude-sonnet-4-5/med
 
-✓ Switched to Anthropic claude-sonnet-4-5
+Switched to Anthropic claude-sonnet-4-5
   Thinking: medium (43,008 tokens)
 ```
 
@@ -64,20 +63,20 @@ Create child agents with different providers/models:
 - **Cheap exploration, expensive execution:**
   ```
   # Parent uses fast/cheap model for discussion
-  > /fork --model o3/high "Now implement the solution with deep reasoning"
+  > /fork --model claude-opus-4-5/high "Now implement the solution with deep reasoning"
   ```
 
 - **Specialized models for subtasks:**
   ```
   # Parent doing general work with Claude
-  > /fork --model gemini-2.5-pro/high "Use Google for this research task"
+  > /fork --model gemini-3-pro/high "Use Google for this research task"
   ```
 
 - **Testing across providers:**
   ```
   > /fork --model claude-sonnet-4-5/high "Solve this problem"
-  > /fork --model o3-mini/high "Solve this problem"
-  > /fork --model gemini-3-pro/high "Solve this problem"
+  > /fork --model gpt-5-mini/high "Solve this problem"
+  > /fork --model gemini-3-flash/high "Solve this problem"
   ```
 
 ### Configuration
@@ -92,8 +91,8 @@ Create child agents with different providers/models:
   "default_provider": "anthropic",
   "providers": {
     "anthropic": { "default_model": "claude-sonnet-4-5", "default_thinking": "med" },
-    "openai": { "default_model": "gpt-4o", "default_thinking": "none" },
-    "google": { "default_model": "gemini-2.5-flash", "default_thinking": "med" }
+    "google": { "default_model": "gemini-3-flash", "default_thinking": "med" },
+    "openai": { "default_model": "gpt-5-mini", "default_thinking": "med" }
   }
 }
 ```
@@ -137,13 +136,13 @@ Switch providers freely mid-conversation. History is preserved and sent to new p
 
 ```
 > /model claude-sonnet-4-5/med
-✓ Switched to Anthropic claude-sonnet-4-5
+Switched to Anthropic claude-sonnet-4-5
 
 [Continue conversation with Claude...]
 
-> /model o3-mini/high
-✓ Switched to OpenAI o3-mini
-  Thinking: high effort
+> /model gpt-5-mini/high
+Switched to OpenAI gpt-5-mini
+  Thinking: high
 
 [Continue same conversation with OpenAI...]
 ```
