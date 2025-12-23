@@ -46,3 +46,8 @@ Fixed gaps - do not re-investigate.
 **Location:** `scratch/tasks/anthropic-streaming.md`
 **Problem:** Referenced `ik_http_multi_add_handle()` but HTTP client API defines `ik_http_multi_add_request()`.
 **Fix:** Changed `ik_http_multi_add_handle()` to `ik_http_multi_add_request()` to match http-client.md API.
+
+### 2024-12-22: Missing Header Include Order Documentation
+**Location:** `scratch/tasks/provider-types.md`
+**Problem:** Provider files reference `ik_thinking_level_t` but no documentation specified required include order. Could cause compilation failures.
+**Fix:** Added "Include Order" section specifying that `src/providers/provider.h` must be included first. Provider-specific headers must include provider.h. Application code should include provider.h before provider-specific headers.

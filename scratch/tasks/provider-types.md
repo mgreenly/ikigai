@@ -55,6 +55,29 @@ Create `src/providers/provider.h` with vtable definition and core types that all
 - Non-blocking request initiation: `start_request()`, `start_stream()` (return immediately)
 - Callbacks for response delivery: `ik_provider_completion_cb_t`, `ik_stream_cb_t`
 
+## Include Order
+
+**Critical:** All provider files reference types like `ik_thinking_level_t`, `ik_provider_t`, and `ik_provider_vtable_t`. The include order is strict to avoid compilation failures:
+
+1. **`src/providers/provider.h`** defines all core provider types:
+   - `ik_thinking_level_t`, `ik_finish_reason_t`, `ik_content_type_t`, etc. (enums)
+   - `ik_provider_t`, `ik_provider_vtable_t`, `ik_request_t`, `ik_response_t`, etc. (structs)
+   - `ik_stream_cb_t`, `ik_provider_completion_cb_t` (callback types)
+
+2. **Provider-specific headers** (e.g., `src/providers/anthropic/anthropic.h`, `src/providers/openai/openai.h`) MUST include `provider.h` first before declaring provider-specific functions.
+
+3. **Application code** should include `provider.h` before any provider-specific headers.
+
+**Example:**
+```c
+// In src/providers/anthropic/anthropic.h
+#include "src/providers/provider.h"  // REQUIRED first
+
+// In application code
+#include "src/providers/provider.h"
+#include "src/providers/anthropic/anthropic.h"
+```
+
 ## Interface
 
 ### Enums to Define
