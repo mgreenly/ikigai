@@ -150,10 +150,10 @@ Cassette naming convention: `test_contract_{scenario}.jsonl`
 
 **Thinking Configuration:**
 - `thinkingConfig` parameter in request maps to token budget
-- IK_THINKING_NONE → no thinkingConfig sent
-- IK_THINKING_LOW → thinkingConfig with ~5000 tokens
-- IK_THINKING_MED → thinkingConfig with ~10000 tokens
-- IK_THINKING_HIGH → thinkingConfig with ~20000 tokens
+- IK_THINKING_NONE → thinkingBudget 128 (minimum, cannot disable)
+- IK_THINKING_LOW → thinkingBudget 11,008 tokens
+- IK_THINKING_MED → thinkingBudget 21,888 tokens
+- IK_THINKING_HIGH → thinkingBudget 32,768 tokens
 
 **Tool Call ID Generation:**
 - Google API does NOT provide tool call IDs

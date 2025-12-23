@@ -28,3 +28,4 @@
 | Network errors retryable | `plan/02-data-formats/error-handling.md` | IK_ERR_CAT_NETWORK moved to retryable category |
 | provider_name cleanup | `plan/04-application/commands.md`, `plan/01-architecture/provider-interface.md` | 3 remaining `provider_name` → `provider` |
 | Error prefix cleanup | `plan/05-testing/*.md`, `plan/01-architecture/*.md` | All `ERR_*` → `IK_ERR_CAT_*` (20+ occurrences) |
+| Google thinking budgets | `plan/05-testing/contract-google.md` | ~5000/~10000/~20000 → 11,008/21,888/32,768 (exact values) |
