@@ -200,9 +200,11 @@ The curl write callback (set via `CURLOPT_WRITEFUNCTION`) must:
 
 When curl_multi signals transfer complete (detected in `info_read()`):
 1. Retrieve stream_ctx from completed easy handle
-2. Build ik_http_completion_t with HTTP status, usage, and any error info
-3. Invoke completion_cb(completion, completion_ctx)
-4. Clean up curl easy handle (remove from multi, curl_easy_cleanup)
+2. Receive `ik_http_completion_t` from shared HTTP layer with raw response
+3. Parse response_body, extract usage, map errors to `ik_error_category_t`
+4. Build `ik_provider_completion_t` with parsed response and metadata
+5. Invoke completion_cb(provider_completion, completion_ctx)
+6. Clean up curl easy handle (remove from multi, curl_easy_cleanup)
 
 ## Test Scenarios
 

@@ -85,7 +85,7 @@ Map to content block:
 
 ### Usage Statistics
 
-The existing code extracts tokens from SSE events into `ik_http_completion_t`:
+The existing code extracts tokens from SSE events into its internal completion structure:
 - completion_tokens available
 - prompt_tokens not currently extracted
 

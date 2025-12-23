@@ -144,12 +144,13 @@ while (!done) {
 ### Response Delivery (via info_read)
 
 When the HTTP transfer completes (detected in `info_read()`):
-1. Check HTTP status code
-2. If status >= 400: parse error response with `ik_openai_parse_error()`
-3. If success: parse response with appropriate parser
-4. Create `ik_http_completion_t` with response or error
-5. Invoke `completion_cb(completion, completion_ctx)`
-6. Clean up request context
+1. Receive `ik_http_completion_t` from shared HTTP layer with raw response
+2. Check HTTP status code from `http_completion->http_code`
+3. If status >= 400: parse error response with `ik_openai_parse_error()`
+4. If success: parse response_body with appropriate parser
+5. Build `ik_provider_completion_t` with parsed response or error
+6. Invoke `completion_cb(provider_completion, completion_ctx)`
+7. Clean up request context
 
 ### Request Serialization
 

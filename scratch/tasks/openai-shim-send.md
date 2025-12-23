@@ -104,10 +104,10 @@ These delegate directly to corresponding `ik_openai_multi_*` functions on the sh
 ### Completion Callback Flow
 
 When transfer completes (detected in `info_read()`):
-1. Internal completion callback receives raw OpenAI response
+1. Internal completion callback receives raw OpenAI response from old client
 2. Transform response: `ik_openai_shim_transform_response()`
-3. Create `ik_http_completion_t` with normalized response
-4. Invoke user's completion callback with transformed response
+3. Build `ik_provider_completion_t` with normalized response
+4. Invoke user's `ik_provider_completion_cb_t` with provider_completion
 5. User callback processes result (saves to DB, updates UI, etc.)
 
 ### Config Building
@@ -128,8 +128,8 @@ Create minimal config struct on temporary context.
 - Add request errors: return immediately
 
 **From completion callback:**
-- HTTP errors: wrap in `ik_http_completion_t` with error info
-- Transform errors: wrap in completion with error info
+- HTTP errors: build `ik_provider_completion_t` with error_category and error_message
+- Transform errors: build `ik_provider_completion_t` with error info
 - Invoke user callback with error completion (do NOT return error from callback)
 
 ### Memory Management

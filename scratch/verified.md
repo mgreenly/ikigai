@@ -51,3 +51,15 @@ Gaps identified during task review that have been fixed.
 **Issue:** tests-openai-basic.md said provider callbacks receive `ik_http_completion_t` but provider vtable callbacks deliver `ik_provider_completion_t`. tests-common-utilities.md example had wrong field names for `ik_http_completion_t`.
 
 **Fix:** Changed tests-openai-basic.md to use `ik_provider_completion_t`. Fixed tests-common-utilities.md callback example to match actual `ik_http_completion_t` fields.
+
+### Provider tasks incorrectly said "build ik_http_completion_t"
+
+**Files:** `anthropic-streaming.md`, `openai-send-impl.md`, `openai-streaming-chat.md`, `openai-shim-send.md`, `openai-shim-response.md`
+
+**Issue:** Provider implementation tasks said providers "build" or "create" `ik_http_completion_t`. But providers don't build it - the shared HTTP layer builds it. Providers RECEIVE `ik_http_completion_t` and convert to `ik_provider_completion_t`.
+
+**Fix:** Updated all provider tasks to show correct flow:
+- Shared HTTP layer delivers `ik_http_completion_t` to provider
+- Provider parses response_body, maps errors
+- Provider builds `ik_provider_completion_t`
+- Provider invokes user callback with `ik_provider_completion_t`

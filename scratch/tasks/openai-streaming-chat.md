@@ -320,8 +320,9 @@ Follow the existing pattern in `src/openai/client_multi.c`:
 
 3. **Completion** (in info_read):
    - `curl_multi_info_read()` returns completed transfers
-   - Build `ik_http_completion_t` with status and metadata
-   - Invoke completion_cb
+   - Receive `ik_http_completion_t` from shared HTTP layer
+   - Build `ik_provider_completion_t` with parsed response and metadata
+   - Invoke completion_cb with provider_completion
    - Clean up curl handles
 
 ### Memory Management
