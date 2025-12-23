@@ -39,6 +39,13 @@ This release REPLACES old OpenAI code, tests, and fixtures through a phased migr
 - Switch application to use new implementation
 - Verify new implementation works
 
+**Note on OpenAI Shim (Intentional Debt):**
+During Phase 1, the OpenAI provider uses a thin adapter shim that wraps existing `src/openai/` code behind the vtable interface. This is **intentional technical debt**:
+- Allows validating the abstraction design before rewriting OpenAI
+- Keeps OpenAI working while building Anthropic/Google providers
+- Shim is deleted in Phase 2 after native OpenAI implementation is complete
+- See `openai-shim-*.md` tasks for shim implementation details
+
 **Phase 2: Removal**
 - Delete old `src/openai/` directory and all implementation files
 - Delete old unit/integration tests for OpenAI client
