@@ -315,6 +315,58 @@ Provider errors should be logged with full details for debugging:
 
 The error handling system provides these utility functions:
 
-- **ik_error_category_name()** - Convert category enum to string for logging
-- **ik_error_is_retryable()** - Check if error category should be retried
-- **ik_error_user_message()** - Generate user-facing error message with provider context
+```c
+/**
+ * Get human-readable name for error category
+ *
+ * @param category Error category enum value
+ * @return         String name of category (e.g., "ERR_AUTH", "ERR_RATE_LIMIT")
+ *
+ * Returns a static string suitable for logging and debugging.
+ * Never returns NULL - unknown categories return "ERR_UNKNOWN".
+ */
+const char *ik_error_category_name(ik_error_category_t category);
+
+/**
+ * Check if error category is retryable
+ *
+ * @param category Error category enum value
+ * @return         true if category should be retried, false otherwise
+ *
+ * Retryable categories:
+ * - ERR_RATE_LIMIT (with delay)
+ * - ERR_SERVER (with exponential backoff)
+ * - ERR_TIMEOUT (with exponential backoff)
+ *
+ * Non-retryable categories:
+ * - ERR_AUTH (credentials invalid)
+ * - ERR_INVALID_ARG (request malformed)
+ * - ERR_NOT_FOUND (model doesn't exist)
+ * - ERR_CONTENT_FILTER (policy violation)
+ * - ERR_NETWORK (connection failure)
+ * - ERR_UNKNOWN (unmapped errors)
+ */
+bool ik_error_is_retryable(ik_error_category_t category);
+
+/**
+ * Build user-facing error message with help text
+ *
+ * @param ctx Talloc context for allocation
+ * @param err Provider error structure with category, status, message, etc.
+ * @return    Formatted error message with fix instructions (caller owns, talloc'd on ctx)
+ *
+ * Generates user-friendly error messages including:
+ * - Error category and provider name
+ * - Human-readable description
+ * - Fix instructions (for auth errors: credential setup steps)
+ * - Retry information (for rate limits: countdown and attempt number)
+ * - Help URLs for credential acquisition
+ *
+ * Example output for auth error:
+ *   "Authentication failed: anthropic
+ *    Invalid API key or missing credentials.
+ *    To fix: Set ANTHROPIC_API_KEY or add to credentials.json
+ *    Get your API key at: https://console.anthropic.com/settings/keys"
+ */
+char *ik_error_user_message(TALLOC_CTX *ctx, const ik_provider_error_t *err);
+```

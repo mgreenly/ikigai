@@ -85,7 +85,27 @@ src/
 - `ik_sse_callback_t` - Callback function type for parsed events
 
 **Key functions:**
-- `ik_sse_parse_chunk` - Process incoming data chunk, emit events
+
+```c
+/**
+ * Parse SSE chunk, invoke callback for each complete event
+ *
+ * @param parser Parser state machine
+ * @param data   Input data chunk (may contain partial events)
+ * @param len    Length of data in bytes
+ * @return       Number of events parsed, or -1 on error
+ *
+ * This function processes incoming SSE data incrementally:
+ * - Handles partial events across multiple chunks
+ * - Maintains internal buffer for incomplete events
+ * - Invokes parser's callback for each complete event found
+ * - Supports SSE protocol fields: event:, data:, id:, retry:
+ * - Handles empty lines as event delimiters
+ *
+ * Call this from curl write callback as data arrives during perform().
+ */
+int32_t ik_sse_parse_chunk(ik_sse_parser_t *parser, const char *data, size_t len);
+```
 
 **Responsibilities:**
 - Parse SSE protocol (event:, data:, id: fields)

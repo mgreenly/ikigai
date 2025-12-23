@@ -256,6 +256,27 @@ Providers supported:
 - OpenAI: `ik_openai_create()`
 - Google: `ik_google_create()`
 
+### Provider Lazy Initialization
+
+```c
+/**
+ * Get existing provider for agent, or create on first use
+ *
+ * @param ctx   Talloc context for allocation
+ * @param agent Agent context containing provider name and model
+ * @return      Provider instance, or NULL if no model configured (agent->model == NULL)
+ *
+ * This function implements lazy provider initialization:
+ * - If agent->provider is already set, returns it immediately
+ * - Otherwise, loads credentials and creates provider based on agent->provider_name
+ * - Caches the created provider in agent->provider for reuse
+ * - Returns NULL without error if agent has no model configured
+ *
+ * The returned provider is owned by the agent context and should not be freed directly.
+ */
+ik_provider_t *ik_provider_get_or_create(TALLOC_CTX *ctx, ik_agent_ctx_t *agent);
+```
+
 ## Implementation Requirements
 
 ### Event Loop Methods (REQUIRED)
