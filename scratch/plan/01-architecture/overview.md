@@ -280,7 +280,7 @@ The existing pattern in `src/repl.c` (calling `ik_openai_multi_*` functions) bec
 ### Agent Context Extension
 
 Agent structure extended with:
-- `provider_name` - String identifying provider (e.g., "anthropic")
+- `provider` - String identifying provider (e.g., "anthropic")
 - `model` - Model name within provider's namespace
 - `thinking_level` - Normalized thinking level (LOW/MED/HIGH/MAX)
 - `provider` - Cached provider handle (NULL until first use)
