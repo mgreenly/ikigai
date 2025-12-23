@@ -180,6 +180,10 @@ The callback signatures remain the same. Providers invoke them during perform/in
 
 ### Error Handling
 
+- Check if model is configured before sending request
+- Return `ERR_INVALID_ARG` if no model configured (agent->model is NULL or empty)
+- Display user-friendly error message: "No model configured"
+- Do not attempt to send request without valid model
 - Return `ERR_MISSING_CREDENTIALS` if provider creation fails
 - Return `ERR_INVALID_ARG` if agent is NULL
 - Pass through provider vtable errors
@@ -199,6 +203,7 @@ The callback signatures remain the same. Providers invoke them during perform/in
 - start_stream() returns immediately (non-blocking)
 - Stream events delivered via callback during perform()
 - Completion delivered via callback during info_read()
+- No model configured: returns `ERR_INVALID_ARG` with "No model configured" message
 - Missing credentials: returns `ERR_MISSING_CREDENTIALS`
 - NULL agent: returns `ERR_INVALID_ARG`
 
