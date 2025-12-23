@@ -144,7 +144,7 @@ int32_t ik_sse_parse_chunk(ik_sse_parser_t *parser, const char *data, size_t len
 - Translate `ik_request_t` to OpenAI Chat Completions API format
 - Parse OpenAI responses into `ik_response_t`
 - Handle OpenAI-specific streaming events (chat.completion.chunk)
-- Support o1 reasoning tokens through extended thinking abstraction
+- Support GPT-5 reasoning tokens through extended thinking abstraction
 
 ### google/ - Google Provider
 
@@ -415,7 +415,7 @@ The 8 implementation steps below map to the high-level phases in [README.md](../
    **4d: Wire Up /model Command**
    - Update `/model` to set agent->provider, agent->model, agent->thinking_level
    - Dispatch layer now routes to correct provider based on fields
-   - Test: `/model gpt-4o` then send message works
+   - Test: `/model gpt-5-mini` then send message works
    - Files: `src/commands.c` or `src/commands_basic.c`
 
    **4e: Update Tab Completion**

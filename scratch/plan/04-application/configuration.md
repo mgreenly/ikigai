@@ -22,13 +22,13 @@ Both are stored in `~/.config/ikigai/` (or `$XDG_CONFIG_HOME/ikigai/`).
       "base_url": "https://api.anthropic.com"
     },
     "openai": {
-      "default_model": "gpt-4o",
-      "default_thinking": "none",
+      "default_model": "gpt-5-mini",
+      "default_thinking": "med",
       "base_url": "https://api.openai.com",
       "use_responses_api": true
     },
     "google": {
-      "default_model": "gemini-2.5-flash",
+      "default_model": "gemini-3.0-flash",
       "default_thinking": "med",
       "base_url": "https://generativelanguage.googleapis.com/v1beta"
     }
@@ -58,10 +58,10 @@ Both are stored in `~/.config/ikigai/` (or `$XDG_CONFIG_HOME/ikigai/`).
 ### Defaults
 
 If config.json doesn't exist or is incomplete, use these defaults:
-- `default_provider`: `"openai"` (most common)
+- `default_provider`: `"anthropic"`
 - Anthropic: `"claude-sonnet-4-5"` with thinking level `"med"`
-- OpenAI: `"gpt-4o"` with thinking level `"none"`
-- Google: `"gemini-2.5-flash"` with thinking level `"med"`
+- OpenAI: `"gpt-5-mini"` with thinking level `"med"`
+- Google: `"gemini-3.0-flash"` with thinking level `"med"`
 - UI: Dark theme with thinking visible
 
 ### Loading Functions
@@ -332,11 +332,11 @@ Old format (if it existed):
 New config.json format:
 ```json
 {
-  "default_provider": "openai",
+  "default_provider": "anthropic",
   "providers": {
-    "openai": {
-      "default_model": "gpt-4o",
-      "default_thinking": "none"
+    "anthropic": {
+      "default_model": "claude-sonnet-4-5",
+      "default_thinking": "med"
     }
   }
 }

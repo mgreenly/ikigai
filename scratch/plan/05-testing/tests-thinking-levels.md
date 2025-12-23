@@ -95,20 +95,19 @@ The thinking abstraction is a critical feature that must work consistently acros
 - IK_THINKING_MED → 43,008 tokens (2/3 of range from min to max)
 - IK_THINKING_HIGH → 64,000 tokens
 
-**OpenAI o-series (o1, o3, o3-mini):**
+**OpenAI GPT-5 series (gpt-5-nano, gpt-5-mini, gpt-5):**
 - No token budget, uses effort enum
-- IK_THINKING_NONE → no reasoning parameter sent
+- IK_THINKING_NONE → "effort": "none"
 - IK_THINKING_LOW → "effort": "low"
 - IK_THINKING_MED → "effort": "medium"
 - IK_THINKING_HIGH → "effort": "high"
 
-**Google Gemini 2.5 Pro:**
-- Model max: 32,768 tokens (experimental feature)
-- Minimum: 128 tokens
-- IK_THINKING_NONE → 128 (minimum, cannot disable)
-- IK_THINKING_LOW → 11,008 (1/3 of range from min to max)
-- IK_THINKING_MED → 21,888 (2/3 of range from min to max)
-- IK_THINKING_HIGH → 32,768 (max)
+**Google Gemini 3.0 Flash/Pro:**
+- Uses thinkingLevel instead of thinkingBudget
+- IK_THINKING_NONE → "LOW" (cannot disable)
+- IK_THINKING_LOW → "LOW"
+- IK_THINKING_MED → "HIGH"
+- IK_THINKING_HIGH → "HIGH"
 
 ### Request Serialization Format
 
@@ -132,12 +131,12 @@ The thinking abstraction is a critical feature that must work consistently acros
 }
 ```
 
-**Google (Gemini API):**
+**Google (Gemini API - 3.0 series):**
 ```json
 {
   "generationConfig": {
     "thinkingConfig": {
-      "thinkingBudget": 21888,
+      "thinkingLevel": "HIGH",
       "includeThoughts": true
     }
   }
@@ -238,15 +237,15 @@ Tests must verify that changing thinking level mid-session works correctly:
 
 **Maximum Budget:**
 - IK_THINKING_HIGH uses provider's absolute maximum
-- Anthropic: 64,000 tokens
-- Google: 32,768 tokens
+- Anthropic: 64,000 tokens (Sonnet/Opus) or 32,000 tokens (Haiku)
+- Google: "HIGH" level (Gemini 3.0 series) or 24,576 tokens (Gemini 2.5 Flash Lite)
 - OpenAI: "high" effort (no token budget)
 
 **Unsupported Models:**
-- Models without thinking support skip thinking config
-- GPT-4o, GPT-4-turbo: no reasoning parameter
-- Claude Haiku: thinking not available
-- Gemini 1.5: thinking experimental/unavailable
+- All models in scope support thinking
+- GPT-5 series: full reasoning effort support
+- Claude series: full thinking budget support
+- Gemini 3.0/2.5: full thinking support
 
 **Invalid Configurations:**
 - Negative thinking level: returns IK_ERR_CAT_INVALID_ARG
@@ -300,12 +299,12 @@ tests/fixtures/vcr/
 4. For IK_THINKING_HIGH: verify effort = "high"
 5. Assert: effort string matches expected value exactly
 
-**Google Budget Calculation:**
-1. For IK_THINKING_NONE: verify thinkingBudget = 128
-2. For IK_THINKING_LOW: verify thinkingBudget = 11,008
-3. For IK_THINKING_MED: verify thinkingBudget = 21,888
-4. For IK_THINKING_HIGH: verify thinkingBudget = 32,768
-5. Assert: all budgets within valid range [128, 32768]
+**Google Level Mapping (Gemini 3.0):**
+1. For IK_THINKING_NONE: verify thinkingLevel = "LOW"
+2. For IK_THINKING_LOW: verify thinkingLevel = "LOW"
+3. For IK_THINKING_MED: verify thinkingLevel = "HIGH"
+4. For IK_THINKING_HIGH: verify thinkingLevel = "HIGH"
+5. Assert: level string matches expected value exactly
 
 ### Serialization Tests (3 tests)
 
@@ -318,7 +317,7 @@ tests/fixtures/vcr/
 6. Assert: JSON valid and parseable
 
 **OpenAI Request Serialization:**
-1. Create request with IK_THINKING_MED, model o3
+1. Create request with IK_THINKING_MED, model gpt-5-mini
 2. Serialize request to JSON
 3. Parse JSON, extract reasoning.effort
 4. Verify effort = "medium"
@@ -326,10 +325,10 @@ tests/fixtures/vcr/
 6. Assert: JSON valid and parseable
 
 **Google Request Serialization:**
-1. Create request with IK_THINKING_MED, model gemini-2.5-pro
+1. Create request with IK_THINKING_MED, model gemini-3.0-flash
 2. Serialize request to JSON
 3. Parse JSON, extract generationConfig.thinkingConfig
-4. Verify thinkingBudget = 21,888
+4. Verify thinkingLevel = "HIGH"
 5. Verify includeThoughts = true
 6. Assert: JSON valid and parseable
 
@@ -413,17 +412,16 @@ tests/fixtures/vcr/
 
 **HIGH Level Uses Maximum:**
 1. For each provider, create request with IK_THINKING_HIGH
-2. Verify Anthropic uses 64,000 tokens
+2. Verify Anthropic uses 64,000 tokens (Sonnet/Opus)
 3. Verify OpenAI uses "high" effort
-4. Verify Google uses 32,768 tokens
-5. Assert: maximum budgets correct
+4. Verify Google uses "HIGH" level
+5. Assert: maximum budgets/levels correct
 
-**Unsupported Model Skips Thinking:**
-1. Create request with IK_THINKING_HIGH, model gpt-4o (no reasoning)
-2. Serialize request
-3. Verify no reasoning parameter in JSON
-4. Send request, verify still succeeds
-5. Assert: unsupported model handled gracefully
+**All Models Support Thinking:**
+1. Verify gpt-5-nano, gpt-5-mini, gpt-5 all accept effort param
+2. Verify claude-haiku-4-5, claude-sonnet-4-5, claude-opus-4-5 all accept budget
+3. Verify gemini-2.5-flash-lite, gemini-3.0-flash, gemini-3.0-pro all accept thinking config
+4. Assert: all models in scope support thinking
 
 **Invalid Thinking Level:**
 1. Create request with invalid thinking level (-1)

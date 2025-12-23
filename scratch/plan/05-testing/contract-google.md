@@ -113,7 +113,7 @@ Create standard request fixtures for contract tests:
 ```c
 // Simple text request
 ik_request_t *fixture_google_simple_text(TALLOC_CTX *ctx);
-// Returns request with: "What is 2+2?" for gemini-2.5-pro
+// Returns request with: "What is 2+2?" for gemini-3.0-flash
 
 // Tool call request
 ik_request_t *fixture_google_tool_call(TALLOC_CTX *ctx);

@@ -192,7 +192,7 @@ Messages and system prompts are composed of content blocks.
 **OpenAI Wire Format (Responses API):**
 ```json
 {
-  "model": "o3",
+  "model": "gpt-5-mini",
   "instructions": "You are helpful",
   "input": "Hello",
   "reasoning": {
@@ -215,7 +215,7 @@ Messages and system prompts are composed of content blocks.
 **Google Wire Format:**
 ```json
 {
-  "model": "gemini-2.5-pro",
+  "model": "gemini-3.0-flash",
   "systemInstruction": {
     "parts": [{"text": "You are helpful"}]
   },

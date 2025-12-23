@@ -81,7 +81,7 @@ The `messages.data` JSONB column structure changes:
 {
   "input_tokens": 1234,
   "output_tokens": 5678,
-  "model": "gpt-4o"
+  "model": "gpt-5-mini"
 }
 ```
 
@@ -279,7 +279,7 @@ ALTER TABLE agents DROP COLUMN thinking_level;
 ```json
 {
   "provider": "openai",
-  "model": "o3",
+  "model": "gpt-5-mini",
   "thinking_level": "med",
   "thinking": null,  // Not exposed by default
   "thinking_tokens": 3456,

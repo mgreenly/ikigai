@@ -13,15 +13,15 @@ This document specifies the behavior of commands that interact with the multi-pr
 ```
 
 **Components:**
-- `MODEL` - Model identifier (e.g., `claude-sonnet-4-5`, `gpt-4o`, `gemini-2.5-pro`)
+- `MODEL` - Model identifier (e.g., `claude-sonnet-4-5`, `gpt-5-mini`, `gemini-3.0-flash`)
 - `THINKING` - Optional thinking level: `none`, `low`, `med`, `high`
 
 **Examples:**
 ```
 /model claude-sonnet-4-5        # Use default thinking for this model
 /model claude-sonnet-4-5/med    # Explicit medium thinking
-/model gpt-4o/none              # Disable thinking
-/model gemini-2.5-pro/high      # Maximum thinking budget
+/model gpt-5-mini/none          # Disable thinking
+/model gemini-3.0-flash/high    # Maximum thinking level
 ```
 
 ### Provider Inference
@@ -31,19 +31,15 @@ Provider is inferred from model prefix:
 | Prefix | Provider |
 |--------|----------|
 | `claude-` | anthropic |
-| `gpt-`, `o1`, `o3`, `o4` | openai |
+| `gpt-` | openai |
 | `gemini-` | google |
-| `grok-` | xai |
-| `llama-` | meta |
 
 **Inference Logic:**
 
 The provider inference function examines the model string prefix using string comparison. It checks for the following patterns in order:
 - Models starting with "claude-" map to anthropic provider
-- Models starting with "gpt-" or "o1", "o3", "o4" map to openai provider
+- Models starting with "gpt-" map to openai provider
 - Models starting with "gemini-" map to google provider
-- Models starting with "grok-" map to xai provider
-- Models starting with "llama-" map to meta provider
 - If no prefix matches, the model is unknown and should return an error
 
 ### Parsing Logic
@@ -97,30 +93,31 @@ See [03-provider-types.md](../03-provider-types.md#user-feedback) for feedback f
 Tab completion should provide the following model suggestions:
 
 **Anthropic models:**
-- claude-sonnet-4-5
+- claude-haiku-4-5
+- claude-sonnet-4-5 (default)
 - claude-sonnet-4-5/none
 - claude-sonnet-4-5/low
 - claude-sonnet-4-5/med
 - claude-sonnet-4-5/high
 - claude-opus-4-5
-- claude-haiku-4-5
 
 **OpenAI models:**
-- gpt-4o
-- gpt-4o/none
-- o3
-- o3/low
-- o3/med
-- o3/high
-- o3-mini
+- gpt-5-nano
+- gpt-5-mini (default)
+- gpt-5-mini/none
+- gpt-5-mini/low
+- gpt-5-mini/med
+- gpt-5-mini/high
+- gpt-5
 
 **Google models:**
-- gemini-2.5-pro
-- gemini-2.5-pro/none
-- gemini-2.5-pro/low
-- gemini-2.5-pro/med
-- gemini-2.5-pro/high
-- gemini-2.5-flash
+- gemini-2.5-flash-lite
+- gemini-3.0-flash (default)
+- gemini-3.0-flash/none
+- gemini-3.0-flash/low
+- gemini-3.0-flash/med
+- gemini-3.0-flash/high
+- gemini-3.0-pro
 
 ### Model Switch During Active Request
 
@@ -155,10 +152,10 @@ When `/model` is invoked while a streaming response is in progress:
 
 **Examples:**
 ```
-/fork                                      # Inherit parent's model
-/fork "Investigate the bug"                # Inherit + assign task
-/fork --model o3-mini/high                 # Override model
-/fork --model o3-mini/high "Solve this"    # Override + task
+/fork                                         # Inherit parent's model
+/fork "Investigate the bug"                   # Inherit + assign task
+/fork --model gpt-5/high                      # Override model
+/fork --model gpt-5/high "Solve this"         # Override + task
 ```
 
 ### Inheritance Rules
@@ -254,9 +251,9 @@ child_agent
 Unknown model: unknown-model
 
 Supported models:
-  Anthropic: claude-sonnet-4-5, claude-opus-4-5, claude-haiku-4-5
-  OpenAI:    gpt-4o, o3, o3-mini, o4-mini
-  Google:    gemini-2.5-pro, gemini-2.5-flash
+  Anthropic: claude-haiku-4-5, claude-sonnet-4-5, claude-opus-4-5
+  OpenAI:    gpt-5-nano, gpt-5-mini, gpt-5
+  Google:    gemini-2.5-flash-lite, gemini-3.0-flash, gemini-3.0-pro
 ```
 
 ### Invalid Thinking Level
@@ -291,8 +288,8 @@ No model configured. Use /model to select one.
 
 Examples:
   /model claude-sonnet-4-5      (Anthropic)
-  /model gpt-4o                 (OpenAI)
-  /model gemini-2.5-pro         (Google)
+  /model gpt-5-mini             (OpenAI)
+  /model gemini-3.0-flash       (Google)
 
 Run /model with Tab for available options.
 ```

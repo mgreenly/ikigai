@@ -90,7 +90,7 @@ Raw SSE chunks exactly as delivered by the API:
 Google uses newline-delimited JSON, not SSE:
 
 ```jsonl
-{"_request": {"method": "POST", "url": "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:streamGenerateContent", "headers": {"x-goog-api-key": "REDACTED"}, "body": "{...}"}}
+{"_request": {"method": "POST", "url": "https://generativelanguage.googleapis.com/v1/models/gemini-3.0-flash:streamGenerateContent", "headers": {"x-goog-api-key": "REDACTED"}, "body": "{...}"}}
 {"_response": {"status": 200, "headers": {"content-type": "application/x-ndjson"}}}
 {"_chunk": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}]}\n"}
 {"_chunk": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" world\"}]}}]}\n"}
@@ -99,7 +99,7 @@ Google uses newline-delimited JSON, not SSE:
 ### Streaming Example (OpenAI SSE)
 
 ```jsonl
-{"_request": {"method": "POST", "url": "https://api.openai.com/v1/responses", "headers": {"Authorization": "Bearer REDACTED"}, "body": "{\"model\":\"o3\",\"stream\":true,\"input\":\"Hello\"}"}}
+{"_request": {"method": "POST", "url": "https://api.openai.com/v1/responses", "headers": {"Authorization": "Bearer REDACTED"}, "body": "{\"model\":\"gpt-5-mini\",\"stream\":true,\"input\":\"Hello\"}"}}
 {"_response": {"status": 200, "headers": {"content-type": "text/event-stream"}}}
 {"_chunk": "event: response.created\ndata: {\"type\":\"response.created\",\"response\":{\"id\":\"resp_123\",\"status\":\"in_progress\"}}\n\n"}
 {"_chunk": "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"Hello\"}\n\n"}

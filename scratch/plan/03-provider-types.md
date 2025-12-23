@@ -102,7 +102,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
 **Wire (Anthropic JSON):**
 ```json
 {
-  "model": "claude-sonnet-4-5-20250514",
+  "model": "claude-sonnet-4-5-20250929",
   "system": "You are helpful",
   "messages": [
     {"role": "user", "content": "Hello"},
@@ -178,7 +178,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
 **Wire (OpenAI Responses API JSON):**
 ```json
 {
-  "model": "o3",
+  "model": "gpt-5-mini",
   "instructions": "You are helpful",
   "input": "Hello",
   "reasoning": {
@@ -240,7 +240,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
 **Wire (Google Gemini JSON):**
 ```json
 {
-  "model": "gemini-2.5-pro",
+  "model": "gemini-3.0-flash",
   "systemInstruction": {
     "parts": [
       {"text": "You are helpful"}
@@ -265,7 +265,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
   ],
   "generationConfig": {
     "thinkingConfig": {
-      "thinkingBudget": 21888,
+      "thinkingLevel": "HIGH",
       "includeThoughts": true
     },
     "maxOutputTokens": 4096
@@ -277,7 +277,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
 **Transformation rules:**
 - **System:** Internal system prompt → `systemInstruction.parts[]`
 - **Messages:** Internal messages → `contents[]` with `role: "user"` or `role: "model"`
-- **Thinking:** `IK_THINKING_MED` → `thinkingBudget: 21888` (model-specific calculation, 2/3 of 32,768 for Gemini 2.5 Pro)
+- **Thinking:** `IK_THINKING_MED` → `thinkingLevel: "HIGH"` for Gemini 3.0 models, `thinkingBudget` for Gemini 2.5 models
 - **Thinking blocks:** Mark with `thought: true` flag
 - **Roles:** `ASSISTANT` → `"model"`, `USER` → `"user"`
 
@@ -314,7 +314,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
   - `output_tokens = candidatesTokenCount - thoughtsTokenCount`
   - `thinking_tokens = thoughtsTokenCount`
   - `total_tokens = totalTokenCount` (Google includes thinking in total)
-- **Thought signatures:** Store in `provider_data` for Gemini 3
+- **Thought signatures:** Store in `provider_data` for Gemini 3.0
 
 ## Tool Call Transformation
 
@@ -432,10 +432,9 @@ Anthropic uses `thinking.budget_tokens` parameter.
 
 | Model | Min | Max | Notes |
 |-------|-----|-----|-------|
-| claude-sonnet-4-5 | 1,024 | 64,000 | Standard model |
-| claude-opus-4-5 | 1,024 | 64,000 | Most capable |
 | claude-haiku-4-5 | 1,024 | 32,000 | Fast/cheap |
-| claude-3-7-sonnet | 1,024 | 32,000 | Extended thinking |
+| claude-sonnet-4-5 | 1,024 | 64,000 | Default model |
+| claude-opus-4-5 | 1,024 | 64,000 | Most capable |
 
 **Mapping formula:**
 
@@ -473,10 +472,9 @@ high → 64,000  (maximum)
 
 | Model Pattern | Min Budget | Max Budget |
 |---------------|------------|------------|
+| claude-haiku-4-5 | 1024 | 32000 |
 | claude-sonnet-4-5 | 1024 | 64000 |
 | claude-opus-4-5 | 1024 | 64000 |
-| claude-haiku-4-5 | 1024 | 32000 |
-| claude-3-7-sonnet | 1024 | 32000 |
 
 **Implementation logic:**
 
@@ -495,30 +493,20 @@ Google uses **different parameters for different model series:**
 
 | Model | Min | Max | Type |
 |-------|-----|-----|------|
-| gemini-2.5-pro | 128 | 32,768 | Budget |
-| gemini-2.5-flash | 0 | 24,576 | Budget |
 | gemini-2.5-flash-lite | 512 | 24,576 | Budget |
-| gemini-3-pro | - | - | Level (LOW/HIGH) |
+| gemini-3.0-flash | - | - | Level (LOW/HIGH) |
+| gemini-3.0-pro | - | - | Level (LOW/HIGH) |
 
-**Mapping (Gemini 2.5 Pro):**
-
-```
-none → 128     (minimum, cannot disable)
-low  → 11,008  (128 + 1/3 * (32768 - 128))
-med  → 21,888  (128 + 2/3 * (32768 - 128))
-high → 32,768  (maximum)
-```
-
-**Mapping (Gemini 2.5 Flash):**
+**Mapping (Gemini 2.5 Flash Lite):**
 
 ```
-none → 0       (disabled)
-low  → 8,192   (1/3 of 24,576)
-med  → 16,384  (2/3 of 24,576)
+none → 512     (minimum, cannot disable)
+low  → 8,533   (512 + 1/3 * (24576 - 512))
+med  → 16,554  (512 + 2/3 * (24576 - 512))
 high → 24,576  (maximum)
 ```
 
-**Mapping (Gemini 3 Pro):**
+**Mapping (Gemini 3.0 Flash / 3.0 Pro):**
 
 ```
 none → "LOW"   (cannot disable)
@@ -557,10 +545,9 @@ high → "HIGH"
 
 | Model Pattern | Min Budget | Max Budget | Uses Level |
 |---------------|------------|------------|------------|
-| gemini-2.5-pro | 128 | 32768 | false |
 | gemini-2.5-flash-lite | 512 | 24576 | false |
-| gemini-2.5-flash | 0 | 24576 | false |
-| gemini-3-pro | 0 | 0 | true |
+| gemini-3.0-flash | 0 | 0 | true |
+| gemini-3.0-pro | 0 | 0 | true |
 
 **Implementation logic:**
 
@@ -579,13 +566,12 @@ high → "HIGH"
 OpenAI uses `reasoning.effort` parameter (Responses API) or `reasoning_effort` (Chat Completions API).
 
 **Supported values:**
-- o3, o4-mini, GPT-5 models: `"none"`, `"minimal"`, `"low"`, `"medium"`, `"high"`, `"xhigh"`
-- o1, o3-mini models: `"low"`, `"medium"`, `"high"` (no "none")
+- gpt-5, gpt-5-mini, gpt-5-nano: `"none"`, `"minimal"`, `"low"`, `"medium"`, `"high"`, `"xhigh"`
 
 **Mapping:**
 
 ```
-none → "none"    (o3/o4-mini only; fallback to "medium" for o1/o3-mini)
+none → "none"
 low  → "low"
 med  → "medium"
 high → "high"
@@ -614,17 +600,15 @@ high → "high"
 
 | Model Pattern | Supports None | Default Fallback |
 |---------------|---------------|------------------|
-| o3 | true | medium |
-| o4-mini | true | medium |
+| gpt-5-nano | true | medium |
+| gpt-5-mini | true | medium |
 | gpt-5 | true | medium |
-| o1 | false | medium |
-| o3-mini | false | medium |
 
 **Implementation logic:**
 
-1. Check if model supports "none" effort (o3, o4-mini, gpt-5)
+1. All GPT-5 models support "none" effort
 2. Map level to effort string:
-   - `none` → "none" if supported, else "medium"
+   - `none` → "none"
    - `low` → "low"
    - `med` → "medium"
    - `high` → "high"
@@ -647,16 +631,16 @@ When user sets thinking level, provide feedback about what it means:
 ### Google
 
 ```
-> /model gemini-2.5-pro/high
+> /model gemini-2.5-flash-lite/high
 
-✓ Switched to Google gemini-2.5-pro
-  Thinking: high (32,768 tokens)
+✓ Switched to Google gemini-2.5-flash-lite
+  Thinking: high (24,576 tokens)
 ```
 
 ```
-> /model gemini-3-pro/none
+> /model gemini-3.0-flash/none
 
-✓ Switched to Google gemini-3-pro
+✓ Switched to Google gemini-3.0-flash
   ⚠ This model does not support disabling thinking
   Thinking: LOW level (minimum)
 ```
@@ -664,19 +648,17 @@ When user sets thinking level, provide feedback about what it means:
 ### OpenAI
 
 ```
-> /model o3/med
+> /model gpt-5-mini/med
 
-✓ Switched to OpenAI o3 (Responses API)
-  Thinking: medium effort (~50% of output budget)
-  Recommended output buffer: 25,000 tokens
+✓ Switched to OpenAI gpt-5-mini (Responses API)
+  Thinking: medium effort
 ```
 
 ```
-> /model o3-mini/none
+> /model gpt-5/high
 
-✓ Switched to OpenAI o3-mini
-  ⚠ This model does not support disabling thinking
-  Thinking: medium effort (default)
+✓ Switched to OpenAI gpt-5
+  Thinking: high effort
 ```
 
 ## Thinking Summary Display
@@ -701,9 +683,9 @@ Providers may expose thinking content:
 3. May be collapsed by default, expanded on click
 4. Or shown in separate pane
 
-## Thought Signatures (Google Gemini 3)
+## Thought Signatures (Google Gemini 3.0)
 
-Gemini 3 requires thought signatures for function calling:
+Gemini 3.0 requires thought signatures for function calling:
 
 **Storage in provider_data:**
 
@@ -742,7 +724,7 @@ Gemini 3 requires thought signatures for function calling:
 | med | 43,008 | 1024 + 2/3 * 62976 |
 | high | 64,000 | maximum |
 
-**Test: Google Gemini 3 Pro uses level not budget**
+**Test: Google Gemini 3.0 Flash/Pro uses level not budget**
 
 - Should generate `"thinkingLevel":"HIGH"` for high setting
 - Should NOT generate `thinkingBudget` field
