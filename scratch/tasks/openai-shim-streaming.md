@@ -2,7 +2,7 @@
 
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
-**Model:** sonnet/extended
+**Model:** sonnet/high
 **Depends on:** openai-shim-send.md, provider-types.md
 
 ## Context

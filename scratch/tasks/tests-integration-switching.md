@@ -2,7 +2,7 @@
 
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
-**Model:** sonnet/extended
+**Model:** sonnet/high
 **Depends on:** repl-provider-routing.md, fork-model-override.md, tests-openai-basic.md, vcr-mock-integration.md
 
 ## Context

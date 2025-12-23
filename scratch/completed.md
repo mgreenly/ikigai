@@ -13,3 +13,4 @@
 - 3.3 Clarify: ik_content_block_t - verified union type fully defined in provider-types.md with TEXT, TOOL_CALL, TOOL_RESULT, THINKING variants (from todo-3-data-formats.md)
 - 4.1 Missing: Model Switch Rejection - added active request check to model-command.md (reject /model during streaming) (from todo-4-application.md)
 - 4.2 Missing: No Model Error - added "No model configured" error to repl-provider-routing.md (check before sending) (from todo-4-application.md)
+- 4.3 Inconsistency: Thinking Levels - aligned naming to 4 levels (none/low/med/high), removed "extended" references in 5 task files (from todo-4-application.md)

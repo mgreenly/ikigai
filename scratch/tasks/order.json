@@ -311,7 +311,7 @@
       "task": "openai-shim-streaming.md",
       "group": "OpenAI Migration",
       "model": "sonnet",
-      "thinking": "extended"
+      "thinking": "high"
     },
     {
       "task": "tests-anthropic-basic.md",
@@ -395,13 +395,13 @@
       "task": "tests-integration-switching.md",
       "group": "Testing",
       "model": "sonnet",
-      "thinking": "extended"
+      "thinking": "high"
     },
     {
       "task": "tests-integration-flows.md",
       "group": "Testing",
       "model": "sonnet",
-      "thinking": "extended"
+      "thinking": "high"
     },
     {
       "task": "vcr-makefile.md",

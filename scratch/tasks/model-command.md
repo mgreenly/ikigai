@@ -37,7 +37,7 @@ Functions to implement:
 | Function | Purpose |
 |----------|---------|
 | `res_t cmd_model_parse(const char *input, char **model, char **thinking)` | Parse MODEL/THINKING syntax, returns OK/ERR |
-| `res_t ik_model_supports_thinking(const char *model, bool *supports)` | Check if model supports extended thinking |
+| `res_t ik_model_supports_thinking(const char *model, bool *supports)` | Check if model supports thinking |
 | `res_t ik_model_get_thinking_budget(const char *model, int32_t *budget)` | Get max thinking tokens for model, 0 if unsupported |
 
 **Note:** This task uses `ik_infer_provider()` from `provider-types.md` for provider inference.
@@ -92,16 +92,15 @@ Data structures to create:
 - Display provider name and model
 - Display thinking level with concrete value:
   - none -> "disabled"
-  - low -> "low (14,336 tokens)" for Anthropic
+  - low -> "low (22,016 tokens)" for Anthropic
   - medium -> "medium (43,008 tokens)" for Anthropic
-  - high -> "high (86,016 tokens)" for Anthropic
-  - extended -> "extended (129,024 tokens)" for Anthropic
+  - high -> "high (64,000 tokens)" for Anthropic
 - Warn if model doesn't support thinking but user requested it
 - Adjust feedback based on provider capabilities
 
 **Completion Updates:**
 - List models from all providers in tab completion
-- Include thinking level suffixes (/none, /low, /med, /high, /extended)
+- Include thinking level suffixes (/none, /low, /med, /high)
 - Organize by provider
 
 ## Test Scenarios
@@ -161,7 +160,7 @@ Data structures to create:
   ```
   Switched to OpenAI gpt-4o
     Thinking: high
-    Warning: gpt-4o does not support extended thinking
+    Warning: gpt-4o does not support thinking
   ```
 
 **Completion:**
@@ -172,7 +171,7 @@ Data structures to create:
   ```
 - Tab completion after `/model claude-sonnet-4-5/` shows:
   ```
-  none    low    med    high    extended
+  none    low    med    high
   ```
 
 ## Postconditions
