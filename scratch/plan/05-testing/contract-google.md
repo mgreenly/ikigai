@@ -174,8 +174,8 @@ Cassette naming convention: `test_contract_{scenario}.jsonl`
 **Finish Reasons:**
 - `STOP` → IK_FINISH_STOP
 - `MAX_TOKENS` → IK_FINISH_LENGTH
-- `SAFETY` → IK_FINISH_SAFETY (Google-specific)
-- `RECITATION` → IK_FINISH_SAFETY (Google-specific)
+- `SAFETY` → IK_FINISH_CONTENT_FILTER (Google-specific)
+- `RECITATION` → IK_FINISH_CONTENT_FILTER (Google-specific)
 - `OTHER` → IK_FINISH_STOP
 
 **Token Counting:**

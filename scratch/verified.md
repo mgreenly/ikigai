@@ -71,3 +71,11 @@ Gaps identified during task review that have been fixed.
 **Issue:** contract-anthropic.md used `IK_FINISH_TOOL_CALLS` but the canonical enum in request-response.md defines `IK_FINISH_TOOL_USE`.
 
 **Fix:** Changed `IK_FINISH_TOOL_CALLS` to `IK_FINISH_TOOL_USE` on line 160.
+
+### Google finish reason IK_FINISH_SAFETY doesn't exist
+
+**Files:** `scratch/plan/05-testing/contract-google.md`
+
+**Issue:** contract-google.md referenced `IK_FINISH_SAFETY` for Google's SAFETY and RECITATION finish reasons, but this enum value doesn't exist in the canonical request-response.md. The existing `IK_FINISH_CONTENT_FILTER` has the same semantic meaning.
+
+**Fix:** Changed `IK_FINISH_SAFETY` to `IK_FINISH_CONTENT_FILTER` on lines 177-178.
