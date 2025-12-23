@@ -1,0 +1,19 @@
+---
+description: Work through a todo file, tracking completed work.
+---
+
+Process the first incomplete item in `$ARGUMENTS`.
+
+**Workflow:**
+1. Read the todo file at `$ARGUMENTS`
+2. Find first unchecked item (`- [ ]`)
+3. Complete the task
+4. Mark it done (`- [x]`) in the source file
+5. Append bullet to `$PWD/scratch/completed.md`: `- <task description> (from <filename>)`
+6. Commit all changed files
+7. Suggest the next incomplete item in the file
+
+**Validation:**
+- If `$ARGUMENTS` is empty: "Usage: /rpi:todo <filepath>"
+- If file doesn't exist: "Error: File not found: <filepath>"
+- If no incomplete items: "All items complete in <filepath>"
