@@ -82,6 +82,7 @@ Implement request serialization for OpenAI Chat Completions API. Transform inter
 - Each tool call has: id, type: "function", function: {name, arguments}
 - Arguments must be serialized as JSON string (not object)
 - Use `yyjson_val_write()` to convert arguments object to string
+- **Note:** OpenAI API specification requires tool call arguments as JSON strings (not objects). This is intentional and differs from Anthropic and Google APIs which accept arguments as JSON objects. See OpenAI Chat Completions API documentation.
 
 ### Tool Definition Format
 

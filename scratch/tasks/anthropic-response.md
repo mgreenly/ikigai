@@ -91,6 +91,7 @@ Structs to define: None (uses existing provider types)
   - Other → IK_ERR_CAT_UNKNOWN
 - Extract error.message and error.type from JSON if present
 - Format message as "type: message" or "HTTP status" if JSON unavailable
+- **Note:** HTTP status code handling is provider-specific by design. Anthropic handles 529 (Anthropic-specific overload) as IK_ERR_CAT_SERVER. Google handles 504 (gateway timeout) as IK_ERR_CAT_TIMEOUT. This reflects each provider's actual error responses.
 
 ### Async start_request() Implementation
 - Cast `impl_ctx` to Anthropic provider context

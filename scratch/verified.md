@@ -57,8 +57,8 @@
 ### Additional Issues Discovered
 | Task | Issue | Severity |
 |------|-------|----------|
-| All response tasks | Finish reason mapping inconsistent across providers (529, 504 handled differently) | MEDIUM |
-| All request tasks | Tool argument serialization differs (OpenAI stringifies, others use object) - not documented as intentional | MEDIUM |
+| ~~All response tasks~~ | ~~Finish reason mapping inconsistent across providers (529, 504 handled differently)~~ | ~~MEDIUM~~ NOT A BUG - intentional per-API design, added documentation notes |
+| ~~All request tasks~~ | ~~Tool argument serialization differs (OpenAI stringifies, others use object) - not documented as intentional~~ | ~~MEDIUM~~ NOT A BUG - OpenAI API requires stringified args, added documentation note |
 | ~~vcr-makefile.md~~ | ~~References test binaries that don't exist yet (tests/unit/providers/*)~~ | ~~HIGH (ordering)~~ FALSE ALARM |
 | ~~credentials-tests-helpers.md~~ | ~~client_multi_info_read_helpers.h has undefined `ctx` variable at line 11~~ | ~~HIGH~~ FALSE ALARM |
 | ~~verify-infrastructure.md~~ | ~~References deleted tests-mock-infrastructure.md in dependencies~~ | ~~HIGH~~ FIXED |

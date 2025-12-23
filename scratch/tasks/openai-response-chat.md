@@ -108,6 +108,7 @@ Implement response parsing for OpenAI Chat Completions API. Parse `choices[0].me
   - 429 → IK_ERR_CAT_RATE_LIMIT
   - 500, 502, 503 → IK_ERR_CAT_SERVER
   - Other → IK_ERR_CAT_UNKNOWN
+- **Note:** HTTP status code handling is provider-specific by design. OpenAI uses generic mappings (no special handling for 504 or 529). Google handles 504 (gateway timeout) as IK_ERR_CAT_TIMEOUT. Anthropic handles 529 (Anthropic-specific overload) as IK_ERR_CAT_SERVER. This reflects each provider's actual error responses.
 
 ### Error Message Format
 
