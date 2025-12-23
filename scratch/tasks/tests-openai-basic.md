@@ -155,6 +155,308 @@ END_TEST
 - Parse model not found error (404)
 - Map errors to correct categories
 
+## HTTP Status Code Error Matrix
+
+This matrix defines how each HTTP status code should be handled, mapped to internal errors, and presented to users. All errors are delivered asynchronously via completion callbacks.
+
+### 401 Unauthorized
+
+**Scenario:** Invalid or missing API key
+
+**Expected Behavior:**
+- Fail immediately (do not retry)
+- Error delivered via completion callback with `success = false`
+
+**Error Mapping:**
+- Internal code: `ERR_AUTH`
+- Category: Authentication failure
+
+**User-Facing Message Format:**
+```
+Authentication failed: Invalid or missing API key.
+Please verify your OPENAI_API_KEY is correct.
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/openai/error_auth.jsonl`
+- Response body must include OpenAI error JSON:
+  ```json
+  {
+    "error": {
+      "message": "Incorrect API key provided: sk-****. You can find your API key at https://platform.openai.com/account/api-keys.",
+      "type": "invalid_request_error",
+      "param": null,
+      "code": "invalid_api_key"
+    }
+  }
+  ```
+- Fixture must redact actual API key from both request headers and response body
+
+**Test Coverage:**
+- Parse error.type and error.message from response body
+- Map to ERR_AUTH
+- Verify callback receives error (not thrown exception)
+- Handle error.code = "invalid_api_key"
+
+### 403 Forbidden
+
+**Scenario:** Permission denied, organization-level restrictions, or geographic restrictions
+
+**Expected Behavior:**
+- Fail immediately (do not retry)
+- Distinguish between different 403 subtypes based on error.type
+
+**Error Mapping:**
+- Organization restriction: `ERR_AUTH` (insufficient permissions)
+- Geographic restriction: `ERR_AUTH` (region blocked)
+- Quota/billing: `ERR_QUOTA` (payment required)
+
+**OpenAI Error Types for 403:**
+- `invalid_request_error` - Typically permission/access issues
+- `billing_not_active` - Account has insufficient credits
+
+**User-Facing Message Format:**
+```
+Permission denied: [message from API]
+```
+or
+```
+Quota exceeded: Your OpenAI account has insufficient credits.
+Visit https://platform.openai.com/account/billing
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/openai/error_forbidden.jsonl`
+- Response body includes error.type to distinguish subtypes:
+  ```json
+  {
+    "error": {
+      "message": "You do not have access to this model.",
+      "type": "invalid_request_error",
+      "param": null,
+      "code": "model_not_found"
+    }
+  }
+  ```
+
+**Test Coverage:**
+- Parse error.type to distinguish permission vs quota
+- Map to correct ERR_* category based on type and code
+- Extract and format error message
+
+### 429 Too Many Requests
+
+**Scenario:** Rate limiting applied (requests per minute, tokens per minute, or daily quota)
+
+**Expected Behavior:**
+- Extract retry-after delay from headers or response body
+- Return error with retry guidance (caller decides whether to retry)
+- Do NOT automatically retry within provider
+
+**Error Mapping:**
+- Internal code: `ERR_RATE_LIMIT`
+- Include `retry_after_ms` in error context
+
+**OpenAI Rate Limit Headers:**
+```
+x-ratelimit-limit-requests: 10000
+x-ratelimit-remaining-requests: 0
+x-ratelimit-reset-requests: 8.64s
+x-ratelimit-limit-tokens: 200000
+x-ratelimit-remaining-tokens: 15000
+x-ratelimit-reset-tokens: 6.2s
+retry-after: 9
+```
+
+**OpenAI Rate Limit Response:**
+```json
+{
+  "error": {
+    "message": "Rate limit reached for requests",
+    "type": "requests",
+    "param": null,
+    "code": "rate_limit_exceeded"
+  }
+}
+```
+
+**User-Facing Message Format:**
+```
+Rate limit exceeded. Retry after 9 seconds.
+Requests: 0/10000 remaining (resets in 8.64s)
+Tokens: 15000/200000 remaining (resets in 6.2s)
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/openai/error_rate_limit.jsonl`
+- Must include rate limit headers (see above)
+- Response body includes error.type = "requests" or "tokens"
+
+**Test Coverage:**
+- Parse retry-after header (integer seconds)
+- Parse x-ratelimit-* headers (requests and tokens)
+- Extract reset durations (e.g., "8.64s")
+- Map to ERR_RATE_LIMIT with retry_after_ms
+- Format user message with quota details
+- Handle both "requests" and "tokens" limit types
+
+### 500 Internal Server Error
+
+**Scenario:** OpenAI server error (unexpected)
+
+**Expected Behavior:**
+- Fail immediately (do not retry within provider)
+- Log full error for debugging
+- Return generic server error to user
+
+**Error Mapping:**
+- Internal code: `ERR_PROVIDER` (provider-side failure)
+
+**User-Facing Message Format:**
+```
+OpenAI API error (500): Internal server error.
+This is a temporary issue on OpenAI's side. Please retry later.
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/openai/error_500.jsonl`
+- May have error JSON or plain text body
+- Status code 500 is primary signal
+
+**Test Coverage:**
+- Handle 500 status even if response body is empty or plain text
+- Map to ERR_PROVIDER
+- Verify error message includes status code
+
+### 503 Service Unavailable
+
+**Scenario:** OpenAI service temporarily unavailable (maintenance, overload, or model loading)
+
+**Expected Behavior:**
+- Fail immediately (caller may retry with backoff)
+- May include retry-after header
+- Common during high load or when models are being loaded
+
+**Error Mapping:**
+- Internal code: `ERR_OVERLOADED`
+
+**OpenAI 503 Response:**
+```json
+{
+  "error": {
+    "message": "The server is currently overloaded with other requests. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if the error persists.",
+    "type": "server_error",
+    "param": null,
+    "code": "service_unavailable"
+  }
+}
+```
+
+**User-Facing Message Format:**
+```
+OpenAI service unavailable (503): The server is currently overloaded.
+Retry after 30 seconds.
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/openai/error_503.jsonl`
+- May include retry-after header
+- Response body includes error.code = "service_unavailable"
+
+**Test Coverage:**
+- Parse retry-after header if present
+- Map to ERR_OVERLOADED
+- Handle missing retry-after gracefully (use default backoff)
+- Parse error.code field
+
+### 504 Gateway Timeout
+
+**Scenario:** Request timed out at OpenAI's gateway (long-running request)
+
+**Expected Behavior:**
+- Fail immediately
+- Distinguish from local timeout (curl timeout)
+- Common with o-series models or very large contexts
+
+**Error Mapping:**
+- Internal code: `ERR_TIMEOUT` (provider gateway timeout)
+
+**User-Facing Message Format:**
+```
+Request timed out (504): The API gateway did not receive a response in time.
+This may occur with o-series models or very large contexts. Consider simplifying the request.
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/openai/error_504.jsonl`
+- Status code 504 with minimal or no body
+- May include plain text: "Gateway timeout"
+
+**Test Coverage:**
+- Map 504 to ERR_TIMEOUT
+- Verify distinct from curl-level timeout (CURLE_OPERATION_TIMEDOUT)
+- Handle both JSON error and plain text body
+- Include timeout guidance in error message
+
+### Error Mapping Summary Table
+
+| HTTP Status | OpenAI Error Code | Internal Code | Retry? | Retry-After Header? |
+|-------------|-------------------|---------------|--------|---------------------|
+| 401 | invalid_api_key | ERR_AUTH | No | No |
+| 403 (permission) | model_not_found | ERR_AUTH | No | No |
+| 403 (billing) | billing_not_active | ERR_QUOTA | No | No |
+| 429 (requests) | rate_limit_exceeded | ERR_RATE_LIMIT | Caller decides | Yes (required) |
+| 429 (tokens) | rate_limit_exceeded | ERR_RATE_LIMIT | Caller decides | Yes (required) |
+| 500 | N/A | ERR_PROVIDER | No | No |
+| 503 | service_unavailable | ERR_OVERLOADED | Caller decides | Maybe |
+| 504 | N/A | ERR_TIMEOUT | No | No |
+
+### OpenAI-Specific Error Handling Notes
+
+1. **Authentication Header:** OpenAI uses `Authorization: Bearer <key>` header (not x-api-key). VCR fixtures must redact this.
+
+2. **Error Structure:** OpenAI uses a consistent error envelope:
+   ```json
+   {
+     "error": {
+       "message": "<human-readable message>",
+       "type": "<error category>",
+       "param": "<parameter that caused error, if applicable>",
+       "code": "<error code>"
+     }
+   }
+   ```
+
+3. **Error Types:** Common error.type values:
+   - `invalid_request_error` - Client-side errors (auth, validation, etc.)
+   - `invalid_api_key` - Authentication failure
+   - `rate_limit_error` - Deprecated, now uses "requests" or "tokens"
+   - `server_error` - OpenAI-side failures
+   - `insufficient_quota` - Billing/quota issues
+
+4. **Rate Limit Headers:** OpenAI provides detailed headers with both limits and reset times. Parse both requests and tokens limits.
+
+5. **Rate Limit Types:** OpenAI has multiple rate limit dimensions:
+   - Requests per minute (RPM)
+   - Tokens per minute (TPM)
+   - Tokens per day (TPD)
+   - Each has separate limits and reset times
+
+6. **Model-Specific Behavior:**
+   - o-series models are more likely to timeout (504) due to extended reasoning
+   - Different models have different rate limits (tracked via headers)
+
+7. **Async Delivery:** All errors are delivered via completion callback, consistent with async architecture.
+
+8. **VCR Recording:** When recording fixtures with VCR_RECORD=1:
+   - Redact API key from Authorization header (replace with "sk-****")
+   - Capture full rate limit headers
+   - Test different error.code values to ensure proper mapping
+
+9. **Mock Testing:** Mock curl_multi must simulate both HTTP status, headers, and OpenAI error JSON structure.
+
+10. **Context Length Errors:** 400 errors with code "context_length_exceeded" are common and should be mapped to `ERR_INVALID_REQUEST` with specific guidance about reducing context.
+
 ## Postconditions
 
 - [ ] 3 test files created with 27+ tests total

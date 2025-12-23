@@ -105,6 +105,284 @@ Before tests can run in playback mode, fixtures must be recorded from real API r
 - Parse validation error (400)
 - Map errors to correct categories
 
+## HTTP Status Code Error Matrix
+
+This matrix defines how each HTTP status code should be handled, mapped to internal errors, and presented to users. All errors are delivered asynchronously via completion callbacks.
+
+### 401 Unauthorized
+
+**Scenario:** Invalid or missing API key
+
+**Expected Behavior:**
+- Fail immediately (do not retry)
+- Error delivered via completion callback with `success = false`
+
+**Error Mapping:**
+- Internal code: `ERR_AUTH`
+- Category: Authentication failure
+
+**User-Facing Message Format:**
+```
+Authentication failed: Invalid or missing API key.
+Please verify your GOOGLE_API_KEY is correct.
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/google/error_auth.jsonl`
+- Response body must include Google error JSON:
+  ```json
+  {
+    "error": {
+      "code": 401,
+      "message": "API key not valid. Please pass a valid API key.",
+      "status": "UNAUTHENTICATED"
+    }
+  }
+  ```
+- Fixture must redact actual API key from request URL (key query parameter)
+
+**Test Coverage:**
+- Parse error.code and error.message from response body
+- Map to ERR_AUTH
+- Verify callback receives error (not thrown exception)
+
+### 403 Forbidden
+
+**Scenario:** Permission denied, API not enabled, or quota exhausted
+
+**Expected Behavior:**
+- Fail immediately (do not retry)
+- Distinguish between different 403 subtypes based on error.status
+
+**Error Mapping:**
+- API not enabled: `ERR_AUTH` (configuration error)
+- Permission denied: `ERR_AUTH` (insufficient permissions)
+- Quota exceeded: `ERR_QUOTA` (billing/quota issue)
+
+**Google Error Status Values:**
+- `PERMISSION_DENIED` - API not enabled or insufficient permissions
+- `RESOURCE_EXHAUSTED` - Quota exceeded
+
+**User-Facing Message Format:**
+```
+Permission denied: Gemini API is not enabled for this project.
+Visit https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com
+```
+or
+```
+Quota exceeded: [message from API]
+Visit https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/google/error_forbidden.jsonl`
+- Response body includes error.status to distinguish subtypes:
+  ```json
+  {
+    "error": {
+      "code": 403,
+      "message": "Gemini API has not been used in project...",
+      "status": "PERMISSION_DENIED"
+    }
+  }
+  ```
+
+**Test Coverage:**
+- Parse error.status field to distinguish permission vs quota
+- Map to correct ERR_* category based on status
+- Extract and format error message
+
+### 429 Too Many Requests
+
+**Scenario:** Rate limiting applied (requests per minute or tokens per minute)
+
+**Expected Behavior:**
+- Extract retry-after delay if present
+- Return error with retry guidance (caller decides whether to retry)
+- Do NOT automatically retry within provider
+
+**Error Mapping:**
+- Internal code: `ERR_RATE_LIMIT`
+- Include `retry_after_ms` in error context if available
+
+**Google Rate Limit Response:**
+```json
+{
+  "error": {
+    "code": 429,
+    "message": "Resource has been exhausted (e.g. check quota).",
+    "status": "RESOURCE_EXHAUSTED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "RATE_LIMIT_EXCEEDED",
+        "domain": "googleapis.com",
+        "metadata": {
+          "service": "generativelanguage.googleapis.com",
+          "quota_limit": "RequestsPerMinutePerProject"
+        }
+      }
+    ]
+  }
+}
+```
+
+**User-Facing Message Format:**
+```
+Rate limit exceeded: RequestsPerMinutePerProject quota exhausted.
+Retry after 60 seconds.
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/google/error_rate_limit.jsonl`
+- May include Retry-After header (integer seconds)
+- Response body includes error.details with quota information
+
+**Test Coverage:**
+- Parse Retry-After header if present
+- Parse error.details for quota_limit and reason
+- Map to ERR_RATE_LIMIT with retry_after_ms
+- Format user message with quota details
+
+**Note:** Google does not provide detailed rate limit headers like Anthropic. Quota information is in error.details.
+
+### 500 Internal Server Error
+
+**Scenario:** Google server error (unexpected)
+
+**Expected Behavior:**
+- Fail immediately (do not retry within provider)
+- Log full error for debugging
+- Return generic server error to user
+
+**Error Mapping:**
+- Internal code: `ERR_PROVIDER` (provider-side failure)
+
+**User-Facing Message Format:**
+```
+Google API error (500): Internal server error.
+This is a temporary issue on Google's side. Please retry later.
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/google/error_500.jsonl`
+- May have error JSON or empty body
+- Status code 500 is primary signal
+
+**Test Coverage:**
+- Handle 500 status even if response body is empty or malformed
+- Map to ERR_PROVIDER
+- Verify error message includes status code
+
+### 503 Service Unavailable
+
+**Scenario:** Google service temporarily unavailable (maintenance or overload)
+
+**Expected Behavior:**
+- Fail immediately (caller may retry with backoff)
+- May include Retry-After header
+
+**Error Mapping:**
+- Internal code: `ERR_OVERLOADED`
+
+**User-Facing Message Format:**
+```
+Google service unavailable (503): The service is temporarily unavailable.
+Retry after 30 seconds.
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/google/error_503.jsonl`
+- May include Retry-After header
+- Response body:
+  ```json
+  {
+    "error": {
+      "code": 503,
+      "message": "The service is currently unavailable.",
+      "status": "UNAVAILABLE"
+    }
+  }
+  ```
+
+**Test Coverage:**
+- Parse Retry-After header if present
+- Map to ERR_OVERLOADED
+- Handle missing Retry-After gracefully (use default backoff)
+
+### 504 Gateway Timeout
+
+**Scenario:** Request timed out at Google's gateway (long-running request)
+
+**Expected Behavior:**
+- Fail immediately
+- Distinguish from local timeout (curl timeout)
+
+**Error Mapping:**
+- Internal code: `ERR_TIMEOUT` (provider gateway timeout)
+
+**User-Facing Message Format:**
+```
+Request timed out (504): The API gateway did not receive a response in time.
+This may occur with very long or complex requests. Consider simplifying the request.
+```
+
+**VCR Fixture Requirements:**
+- File: `tests/fixtures/google/error_504.jsonl`
+- Status code 504 with minimal or no body
+
+**Test Coverage:**
+- Map 504 to ERR_TIMEOUT
+- Verify distinct from curl-level timeout (CURLE_OPERATION_TIMEDOUT)
+- Include timeout guidance in error message
+
+### Error Mapping Summary Table
+
+| HTTP Status | Google Status | Internal Code | Retry? | Retry-After Header? |
+|-------------|---------------|---------------|--------|---------------------|
+| 401 | UNAUTHENTICATED | ERR_AUTH | No | No |
+| 403 (API disabled) | PERMISSION_DENIED | ERR_AUTH | No | No |
+| 403 (quota) | RESOURCE_EXHAUSTED | ERR_QUOTA | No | No |
+| 429 | RESOURCE_EXHAUSTED | ERR_RATE_LIMIT | Caller decides | Maybe |
+| 500 | INTERNAL | ERR_PROVIDER | No | No |
+| 503 | UNAVAILABLE | ERR_OVERLOADED | Caller decides | Maybe |
+| 504 | DEADLINE_EXCEEDED | ERR_TIMEOUT | No | No |
+
+### Google-Specific Error Handling Notes
+
+1. **API Key in URL:** Google passes API key as query parameter (`?key=...`), not in headers. VCR fixtures must redact this.
+
+2. **Error Structure:** Google uses a consistent error envelope:
+   ```json
+   {
+     "error": {
+       "code": <HTTP status code>,
+       "message": "<human-readable message>",
+       "status": "<gRPC status code>",
+       "details": [...]  // Optional structured details
+     }
+   }
+   ```
+
+3. **Status Codes:** Google includes both HTTP status code (error.code) and gRPC status (error.status). The gRPC status provides more semantic information.
+
+4. **Rate Limit Details:** Unlike Anthropic, Google doesn't provide quota headers in responses. Rate limit details are only in error.details when limit is exceeded.
+
+5. **Quota Types:** Google has multiple quota dimensions:
+   - RequestsPerMinutePerProject
+   - RequestsPerMinutePerUser (if using OAuth)
+   - GenerateContentRequestsPerMinute
+   - TokensPerMinute
+
+6. **Async Delivery:** All errors are delivered via completion callback, consistent with async architecture.
+
+7. **VCR Recording:** When recording fixtures with VCR_RECORD=1:
+   - Redact API key from request URL query parameters
+   - Capture full error.details for quota information
+   - Test both error.status and HTTP status code handling
+
+8. **Mock Testing:** Mock curl_multi must simulate both HTTP status and Google error JSON structure.
+
 ## Async Test Pattern
 
 Tests MUST simulate the async event loop. Use this pattern (from `scratch/plan/testing-strategy.md`):
