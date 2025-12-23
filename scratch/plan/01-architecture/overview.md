@@ -238,7 +238,7 @@ while (!quit) {
 5. **Function returns immediately (non-blocking)**
 6. Event loop calls `perform()` when select() indicates activity
 7. When transfer completes, `info_read()` invokes completion_cb
-8. Completion callback receives `ik_http_completion_t` with response data
+8. Completion callback receives `ik_provider_completion_t` with response data
 
 ### Streaming Request Flow (Async)
 

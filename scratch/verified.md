@@ -27,3 +27,11 @@ Gaps identified during task review that have been fixed.
 **Issue:** Step 3 listed `ik_http_completion_t` as a struct to verify in `provider.h`, but that struct belongs in `http_multi.h`. The members listed were actually for `ik_provider_completion_t`.
 
 **Fix:** Changed `ik_http_completion_t` to `ik_provider_completion_t` in the struct verification list.
+
+### Plan internal inconsistency: overview.md vs provider-interface.md
+
+**Files:** `scratch/plan/01-architecture/overview.md`
+
+**Issue:** Overview line 241 said completion callback receives `ik_http_completion_t`, but provider-interface.md defines `ik_provider_completion_cb_t` as taking `ik_provider_completion_t`.
+
+**Fix:** Changed `ik_http_completion_t` to `ik_provider_completion_t` in overview.md.
