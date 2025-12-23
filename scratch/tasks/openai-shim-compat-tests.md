@@ -120,7 +120,7 @@ ck_assert(is_ok(&result));
 
 ### Fixture Files
 
-Create fixtures in `tests/fixtures/openai/`:
+Create fixtures in `tests/fixtures/vcr/openai/`:
 - `simple_response.json` - Basic text response
 - `tool_call_response.json` - Response with tool call
 - `error_response.json` - Error response format

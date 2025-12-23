@@ -189,8 +189,8 @@ Implementation note: When recording chunks via `vcr_record_chunk(data, len)`, VC
 
 ### Fixture Path Resolution (vcr_init)
 
-- Pattern: `tests/fixtures/{provider}/{test_name}.jsonl`
-- Example: `tests/fixtures/anthropic/test_anthropic_streaming_basic.jsonl`
+- Pattern: `tests/fixtures/vcr/{provider}/{test_name}.jsonl`
+- Example: `tests/fixtures/vcr/anthropic/test_anthropic_streaming_basic.jsonl`
 - In record mode: open for writing (`fopen(..., "w")`)
 - In playback mode: open for reading (`fopen(..., "r")`)
 - If file doesn't exist in playback mode: log error, allow test to continue
@@ -324,7 +324,7 @@ tests/helpers/
     vcr.h
     vcr.c
 
-tests/fixtures/
+tests/fixtures/vcr/
     anthropic/.gitkeep
     google/.gitkeep
     brave/.gitkeep
@@ -382,7 +382,7 @@ Create `tests/unit/helpers/vcr_test.c`:
 
 Create fixture directories with README:
 
-**tests/fixtures/README.md:**
+**tests/fixtures/vcr/README.md:**
 ```markdown
 # VCR Test Fixtures
 
@@ -407,9 +407,9 @@ VCR_RECORD=1 make check
 
 API keys are redacted automatically. Verify before committing:
 ```bash
-grep -rE "Bearer [^R]" tests/fixtures/   # Should return nothing
-grep -r "sk-" tests/fixtures/            # Should return nothing
-grep -r "sk-ant-" tests/fixtures/        # Should return nothing
+grep -rE "Bearer [^R]" tests/fixtures/vcr/   # Should return nothing
+grep -r "sk-" tests/fixtures/vcr/            # Should return nothing
+grep -r "sk-ant-" tests/fixtures/vcr/        # Should return nothing
 ```
 
 ## Provider Directories
@@ -432,10 +432,10 @@ Add to Makefile:
 - [ ] `tests/helpers/vcr.h` exists with all public functions and macros
 - [ ] `tests/helpers/vcr.c` implements all VCR functions
 - [ ] Directory `tests/helpers/` exists
-- [ ] Directory `tests/fixtures/anthropic/` exists with .gitkeep
-- [ ] Directory `tests/fixtures/google/` exists with .gitkeep
-- [ ] Directory `tests/fixtures/brave/` exists with .gitkeep
-- [ ] File `tests/fixtures/README.md` exists with format documentation
+- [ ] Directory `tests/fixtures/vcr/anthropic/` exists with .gitkeep
+- [ ] Directory `tests/fixtures/vcr/google/` exists with .gitkeep
+- [ ] Directory `tests/fixtures/vcr/brave/` exists with .gitkeep
+- [ ] File `tests/fixtures/vcr/README.md` exists with format documentation
 - [ ] Unit tests exist in `tests/unit/helpers/vcr_test.c`
 - [ ] All vcr_ck_assert_* macros defined
 - [ ] vcr_recording global declared extern in header

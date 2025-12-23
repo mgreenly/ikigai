@@ -125,8 +125,8 @@ Before tests can run in playback mode, fixtures must be recorded from real API r
    VCR_RECORD=1 make build/tests/unit/providers/anthropic/test_anthropic_streaming
    VCR_RECORD=1 ./build/tests/unit/providers/anthropic/test_anthropic_streaming
    ```
-3. **Verify fixtures created** - Check `tests/fixtures/anthropic/*.jsonl` files exist
-4. **Verify no credentials leaked** - `grep -r "sk-ant-" tests/fixtures/anthropic/` returns nothing
+3. **Verify fixtures created** - Check `tests/fixtures/vcr/anthropic/*.jsonl` files exist
+4. **Verify no credentials leaked** - `grep -r "sk-ant-" tests/fixtures/vcr/anthropic/` returns nothing
 5. **Commit fixtures** - Fixtures are committed to git for deterministic CI runs
 
 **Note:** Fixtures only need re-recording when API behavior changes. Normal test runs use playback mode (VCR_RECORD unset).
@@ -143,9 +143,9 @@ Before tests can run in playback mode, fixtures must be recorded from real API r
 
 | File | Purpose |
 |------|---------|
-| `tests/fixtures/anthropic/stream_basic.jsonl` | SSE stream for basic completion |
-| `tests/fixtures/anthropic/stream_thinking.jsonl` | SSE stream with thinking deltas |
-| `tests/fixtures/anthropic/stream_tool_call.jsonl` | SSE stream with tool use |
+| `tests/fixtures/vcr/anthropic/stream_basic.jsonl` | SSE stream for basic completion |
+| `tests/fixtures/vcr/anthropic/stream_thinking.jsonl` | SSE stream with thinking deltas |
+| `tests/fixtures/vcr/anthropic/stream_tool_call.jsonl` | SSE stream with tool use |
 
 ## Mock curl_multi Requirements
 
@@ -236,7 +236,7 @@ data: {"type":"message_stop"}
 
 1. **Use existing Check framework** - Follow `tests/unit/providers/anthropic/` patterns
 2. **Mock setup in suite_setup** - Configure mock_curl_multi before tests
-3. **Fixture loading** - Use `tests/fixtures/` loading pattern from existing tests
+3. **Fixture loading** - Use `tests/fixtures/vcr/` loading pattern from existing tests
 4. **Memory management** - Use talloc, free in teardown
 5. **Event capture array** - Static array to capture stream events for assertions
 6. **Running handle tracking** - Mock updates running count during perform()
@@ -245,7 +245,7 @@ data: {"type":"message_stop"}
 
 - [ ] 1 test file with 20+ tests
 - [ ] 3 fixture files recorded with VCR_RECORD=1 (JSONL format)
-- [ ] No API keys in fixtures (verify: `grep -r "sk-ant-" tests/fixtures/anthropic/` returns empty)
+- [ ] No API keys in fixtures (verify: `grep -r "sk-ant-" tests/fixtures/vcr/anthropic/` returns empty)
 - [ ] All async patterns tested (fdset, perform, info_read)
 - [ ] All stream event types tested
 - [ ] Event sequence verified (START -> deltas -> DONE)

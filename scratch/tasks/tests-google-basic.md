@@ -46,8 +46,8 @@ Before tests can run in playback mode, fixtures must be recorded from real API r
    VCR_RECORD=1 make build/tests/unit/providers/google/test_google_adapter
    VCR_RECORD=1 ./build/tests/unit/providers/google/test_google_adapter
    ```
-3. **Verify fixtures created** - Check `tests/fixtures/google/*.jsonl` files exist
-4. **Verify no credentials leaked** - `grep -r "AIza" tests/fixtures/google/` returns nothing
+3. **Verify fixtures created** - Check `tests/fixtures/vcr/google/*.jsonl` files exist
+4. **Verify no credentials leaked** - `grep -r "AIza" tests/fixtures/vcr/google/` returns nothing
 5. **Commit fixtures** - Fixtures are committed to git for deterministic CI runs
 
 **Note:** Fixtures only need re-recording when API behavior changes. Normal test runs use playback mode (VCR_RECORD unset).
@@ -66,11 +66,11 @@ Before tests can run in playback mode, fixtures must be recorded from real API r
 
 | File | Purpose |
 |------|---------|
-| `tests/fixtures/google/response_basic.jsonl` | Standard completion response |
-| `tests/fixtures/google/response_thinking.jsonl` | Response with thought=true parts |
-| `tests/fixtures/google/response_function_call.jsonl` | Response with functionCall |
-| `tests/fixtures/google/error_auth.jsonl` | 401/403 authentication error |
-| `tests/fixtures/google/error_rate_limit.jsonl` | 429 rate limit error (synthetic) |
+| `tests/fixtures/vcr/google/response_basic.jsonl` | Standard completion response |
+| `tests/fixtures/vcr/google/response_thinking.jsonl` | Response with thought=true parts |
+| `tests/fixtures/vcr/google/response_function_call.jsonl` | Response with functionCall |
+| `tests/fixtures/vcr/google/error_auth.jsonl` | 401/403 authentication error |
+| `tests/fixtures/vcr/google/error_rate_limit.jsonl` | 429 rate limit error (synthetic) |
 
 ## Test Scenarios
 
@@ -128,7 +128,7 @@ Please verify your GOOGLE_API_KEY is correct.
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/google/error_auth.jsonl`
+- File: `tests/fixtures/vcr/google/error_auth.jsonl`
 - Response body must include Google error JSON:
   ```json
   {
@@ -175,7 +175,7 @@ Visit https://console.cloud.google.com/apis/api/generativelanguage.googleapis.co
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/google/error_forbidden.jsonl`
+- File: `tests/fixtures/vcr/google/error_forbidden.jsonl`
 - Response body includes error.status to distinguish subtypes:
   ```json
   {
@@ -234,7 +234,7 @@ Retry after 60 seconds.
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/google/error_rate_limit.jsonl`
+- File: `tests/fixtures/vcr/google/error_rate_limit.jsonl`
 - May include Retry-After header (integer seconds)
 - Response body includes error.details with quota information
 
@@ -265,7 +265,7 @@ This is a temporary issue on Google's side. Please retry later.
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/google/error_500.jsonl`
+- File: `tests/fixtures/vcr/google/error_500.jsonl`
 - May have error JSON or empty body
 - Status code 500 is primary signal
 
@@ -292,7 +292,7 @@ Retry after 30 seconds.
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/google/error_503.jsonl`
+- File: `tests/fixtures/vcr/google/error_503.jsonl`
 - May include Retry-After header
 - Response body:
   ```json
@@ -328,7 +328,7 @@ This may occur with very long or complex requests. Consider simplifying the requ
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/google/error_504.jsonl`
+- File: `tests/fixtures/vcr/google/error_504.jsonl`
 - Status code 504 with minimal or no body
 
 **Test Coverage:**
@@ -439,7 +439,7 @@ END_TEST
 
 - [ ] 3 test files created with 23+ tests total
 - [ ] 5 fixture files recorded with VCR_RECORD=1 (JSONL format)
-- [ ] No API keys in fixtures (verify: `grep -r "AIza" tests/fixtures/google/` returns empty)
+- [ ] No API keys in fixtures (verify: `grep -r "AIza" tests/fixtures/vcr/google/` returns empty)
 - [ ] Both Gemini 2.5 and 3.0 thinking params tested
 - [ ] UUID generation for tool calls tested
 - [ ] Compiles without warnings

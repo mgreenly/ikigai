@@ -53,7 +53,7 @@ This eliminates the risk of mocks diverging from real API behavior.
 
 **Source:**
 - `tests/integration/openai_mock_verification_test.c` - Existing pattern to follow
-- `tests/fixtures/openai/` - Existing fixture structure
+- `tests/fixtures/vcr/openai/` - Existing fixture structure
 - `src/credentials.h` - Credential loading API
 
 **External Documentation (for reference only - do not fetch):**
@@ -81,8 +81,8 @@ Create verification test suites for Anthropic and Google APIs that:
 
 | Directory | Purpose |
 |-----------|---------|
-| `tests/fixtures/anthropic/` | Anthropic response fixtures |
-| `tests/fixtures/google/` | Google response fixtures |
+| `tests/fixtures/vcr/anthropic/` | Anthropic response fixtures |
+| `tests/fixtures/vcr/google/` | Google response fixtures |
 
 **Makefile targets to add:**
 
@@ -126,7 +126,7 @@ static void capture_fixture(const char *provider, const char *name,
     if (!should_capture_fixtures()) return;
 
     char path[256];
-    snprintf(path, sizeof(path), "tests/fixtures/%s/%s.jsonl", provider, name);
+    snprintf(path, sizeof(path), "tests/fixtures/vcr/%s/%s.jsonl", provider, name);
 
     FILE *f = fopen(path, "w");
     if (f) {
@@ -524,8 +524,8 @@ static size_t sse_write_callback(char *ptr, size_t size, size_t nmemb, void *use
 
 - [ ] `tests/integration/anthropic_mock_verification_test.c` exists
 - [ ] `tests/integration/google_mock_verification_test.c` exists
-- [ ] `tests/fixtures/anthropic/` directory exists with README.md
-- [ ] `tests/fixtures/google/` directory exists with README.md
+- [ ] `tests/fixtures/vcr/anthropic/` directory exists with README.md
+- [ ] `tests/fixtures/vcr/google/` directory exists with README.md
 - [ ] Makefile has `verify-mocks-anthropic` target
 - [ ] Makefile has `verify-mocks-google` target
 - [ ] Makefile has `verify-mocks-all` target
@@ -536,7 +536,7 @@ static size_t sse_write_callback(char *ptr, size_t size, size_t nmemb, void *use
   - [ ] Google tests pass with valid API key
 - [ ] When `CAPTURE_FIXTURES=1`:
   - [ ] Real responses captured to fixture files
-  - [ ] No API keys in fixtures (verify: `grep -rE '(sk-[a-zA-Z0-9]{20,}|AIza[a-zA-Z0-9]{30,})' tests/fixtures/` returns empty)
+  - [ ] No API keys in fixtures (verify: `grep -rE '(sk-[a-zA-Z0-9]{20,}|AIza[a-zA-Z0-9]{30,})' tests/fixtures/vcr/` returns empty)
 - [ ] If `make verify-credentials` fails:
   - [ ] Task exits with skip status (exit 77), not failure
   - [ ] No partial fixtures created
@@ -584,7 +584,7 @@ Cassettes capture API response bodies, not request headers. API keys should neve
 
 **Cassette naming convention:**
 ```
-tests/fixtures/{provider}/
+tests/fixtures/vcr/{provider}/
 ├── stream_text_basic.txt       # Basic streaming response (SSE format)
 ├── stream_text_thinking.txt    # Streaming with thinking enabled
 ├── stream_tool_call.txt        # Tool/function call response

@@ -110,8 +110,8 @@ Before tests can run in playback mode, fixtures must be recorded from real API r
    VCR_RECORD=1 make build/tests/unit/providers/anthropic/test_anthropic_adapter
    VCR_RECORD=1 ./build/tests/unit/providers/anthropic/test_anthropic_adapter
    ```
-3. **Verify fixtures created** - Check `tests/fixtures/anthropic/*.jsonl` files exist
-4. **Verify no credentials leaked** - `grep -r "sk-ant-" tests/fixtures/anthropic/` returns nothing
+3. **Verify fixtures created** - Check `tests/fixtures/vcr/anthropic/*.jsonl` files exist
+4. **Verify no credentials leaked** - `grep -r "sk-ant-" tests/fixtures/vcr/anthropic/` returns nothing
 5. **Commit fixtures** - Fixtures are committed to git for deterministic CI runs
 
 **Note:** Fixtures only need re-recording when API behavior changes. Normal test runs use playback mode (VCR_RECORD unset).
@@ -130,11 +130,11 @@ Before tests can run in playback mode, fixtures must be recorded from real API r
 
 | File | Purpose |
 |------|---------|
-| `tests/fixtures/anthropic/response_basic.jsonl` | Standard completion response |
-| `tests/fixtures/anthropic/response_thinking.jsonl` | Response with thinking content block |
-| `tests/fixtures/anthropic/response_tool_call.jsonl` | Response with tool use content block |
-| `tests/fixtures/anthropic/error_auth.jsonl` | 401 authentication error |
-| `tests/fixtures/anthropic/error_rate_limit.jsonl` | 429 rate limit error (synthetic) |
+| `tests/fixtures/vcr/anthropic/response_basic.jsonl` | Standard completion response |
+| `tests/fixtures/vcr/anthropic/response_thinking.jsonl` | Response with thinking content block |
+| `tests/fixtures/vcr/anthropic/response_tool_call.jsonl` | Response with tool use content block |
+| `tests/fixtures/vcr/anthropic/error_auth.jsonl` | 401 authentication error |
+| `tests/fixtures/vcr/anthropic/error_rate_limit.jsonl` | 429 rate limit error (synthetic) |
 
 ## Test Scenarios
 
@@ -191,7 +191,7 @@ Please verify your ANTHROPIC_API_KEY is correct.
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/anthropic/error_auth.jsonl`
+- File: `tests/fixtures/vcr/anthropic/error_auth.jsonl`
 - Response body must include Anthropic error JSON:
   ```json
   {
@@ -232,7 +232,7 @@ Visit https://console.anthropic.com to add credits.
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/anthropic/error_forbidden.jsonl`
+- File: `tests/fixtures/vcr/anthropic/error_forbidden.jsonl`
 - Response body includes error type to distinguish permission vs quota:
   ```json
   {
@@ -280,7 +280,7 @@ Tokens: 5000/100000 remaining
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/anthropic/error_rate_limit.jsonl`
+- File: `tests/fixtures/vcr/anthropic/error_rate_limit.jsonl`
 - Must include rate limit headers (see above)
 - Response body:
   ```json
@@ -319,7 +319,7 @@ This is a temporary issue on Anthropic's side. Please retry later.
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/anthropic/error_500.jsonl`
+- File: `tests/fixtures/vcr/anthropic/error_500.jsonl`
 - May have empty body or generic error JSON
 - Status code 500 is primary signal
 
@@ -346,7 +346,7 @@ The service may be temporarily overloaded. Retry after 30 seconds.
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/anthropic/error_503.jsonl`
+- File: `tests/fixtures/vcr/anthropic/error_503.jsonl`
 - May include retry-after header
 - Response body:
   ```json
@@ -382,7 +382,7 @@ This may occur with very long or complex requests. Consider simplifying the requ
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/anthropic/error_504.jsonl`
+- File: `tests/fixtures/vcr/anthropic/error_504.jsonl`
 - Status code 504 with minimal body
 
 **Test Coverage:**
@@ -441,7 +441,7 @@ The mock infrastructure maintains:
 
 - [ ] 3 test files created with 22+ tests total
 - [ ] 5 fixture files recorded with VCR_RECORD=1 (JSONL format)
-- [ ] No API keys in fixtures (verify: `grep -r "sk-ant-" tests/fixtures/anthropic/` returns empty)
+- [ ] No API keys in fixtures (verify: `grep -r "sk-ant-" tests/fixtures/vcr/anthropic/` returns empty)
 - [ ] All tests use mock curl_multi (no real network, no blocking calls)
 - [ ] Tests exercise fdset/perform/info_read cycle
 - [ ] Responses delivered via completion callbacks

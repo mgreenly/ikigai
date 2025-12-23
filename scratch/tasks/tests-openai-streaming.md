@@ -58,8 +58,8 @@ Before tests can run in playback mode, fixtures must be recorded from real API r
    VCR_RECORD=1 make build/tests/unit/providers/openai/test_openai_streaming
    VCR_RECORD=1 ./build/tests/unit/providers/openai/test_openai_streaming
    ```
-3. **Verify fixtures created** - Check `tests/fixtures/openai/*.jsonl` files exist
-4. **Verify no credentials leaked** - `grep -r "sk-" tests/fixtures/openai/` returns nothing
+3. **Verify fixtures created** - Check `tests/fixtures/vcr/openai/*.jsonl` files exist
+4. **Verify no credentials leaked** - `grep -r "sk-" tests/fixtures/vcr/openai/` returns nothing
 5. **Commit fixtures** - Fixtures are committed to git for deterministic CI runs
 
 **Note:** Fixtures only need re-recording when API behavior changes. Normal test runs use playback mode (VCR_RECORD unset).
@@ -109,9 +109,9 @@ assert(events.items[events.count-1].type == IK_STREAM_DONE);
 
 | File | Purpose |
 |------|---------|
-| `tests/fixtures/openai/stream_basic.jsonl` | SSE stream for basic completion |
-| `tests/fixtures/openai/stream_tool_call.jsonl` | SSE stream with tool call |
-| `tests/fixtures/openai/stream_reasoning.jsonl` | SSE stream from reasoning model |
+| `tests/fixtures/vcr/openai/stream_basic.jsonl` | SSE stream for basic completion |
+| `tests/fixtures/vcr/openai/stream_tool_call.jsonl` | SSE stream with tool call |
+| `tests/fixtures/vcr/openai/stream_reasoning.jsonl` | SSE stream from reasoning model |
 
 ## Normalized Event Types
 
@@ -235,7 +235,7 @@ static res_t completion_cb(const ik_provider_completion_t *completion, void *ctx
 
 - [ ] 1 test file with 21+ tests
 - [ ] 3 fixture files recorded with VCR_RECORD=1 (JSONL format)
-- [ ] No API keys in fixtures (verify: `grep -r "sk-" tests/fixtures/openai/` returns empty)
+- [ ] No API keys in fixtures (verify: `grep -r "sk-" tests/fixtures/vcr/openai/` returns empty)
 - [ ] All tests use async fdset/perform/info_read pattern
 - [ ] Tool call argument accumulation verified
 - [ ] Event normalization verified

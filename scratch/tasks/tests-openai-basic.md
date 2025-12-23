@@ -55,8 +55,8 @@ Before tests can run in playback mode, fixtures must be recorded from real API r
    VCR_RECORD=1 make build/tests/unit/providers/openai/test_openai_adapter
    VCR_RECORD=1 ./build/tests/unit/providers/openai/test_openai_adapter
    ```
-3. **Verify fixtures created** - Check `tests/fixtures/openai/*.jsonl` files exist
-4. **Verify no credentials leaked** - `grep -r "sk-" tests/fixtures/openai/` returns nothing
+3. **Verify fixtures created** - Check `tests/fixtures/vcr/openai/*.jsonl` files exist
+4. **Verify no credentials leaked** - `grep -r "sk-" tests/fixtures/vcr/openai/` returns nothing
 5. **Commit fixtures** - Fixtures are committed to git for deterministic CI runs
 
 **Note:** Fixtures only need re-recording when API behavior changes. Normal test runs use playback mode (VCR_RECORD unset).
@@ -75,11 +75,11 @@ Before tests can run in playback mode, fixtures must be recorded from real API r
 
 | File | Purpose |
 |------|---------|
-| `tests/fixtures/openai/response_basic.jsonl` | Standard chat completion response |
-| `tests/fixtures/openai/response_tool_call.jsonl` | Response with tool_calls array |
-| `tests/fixtures/openai/response_reasoning.jsonl` | Response from o-series model |
-| `tests/fixtures/openai/error_auth.jsonl` | 401 authentication error |
-| `tests/fixtures/openai/error_rate_limit.jsonl` | 429 rate limit error (synthetic) |
+| `tests/fixtures/vcr/openai/response_basic.jsonl` | Standard chat completion response |
+| `tests/fixtures/vcr/openai/response_tool_call.jsonl` | Response with tool_calls array |
+| `tests/fixtures/vcr/openai/response_reasoning.jsonl` | Response from o-series model |
+| `tests/fixtures/vcr/openai/error_auth.jsonl` | 401 authentication error |
+| `tests/fixtures/vcr/openai/error_rate_limit.jsonl` | 429 rate limit error (synthetic) |
 
 ## Test Scenarios
 
@@ -178,7 +178,7 @@ Please verify your OPENAI_API_KEY is correct.
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/openai/error_auth.jsonl`
+- File: `tests/fixtures/vcr/openai/error_auth.jsonl`
 - Response body must include OpenAI error JSON:
   ```json
   {
@@ -226,7 +226,7 @@ Visit https://platform.openai.com/account/billing
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/openai/error_forbidden.jsonl`
+- File: `tests/fixtures/vcr/openai/error_forbidden.jsonl`
 - Response body includes error.type to distinguish subtypes:
   ```json
   {
@@ -288,7 +288,7 @@ Tokens: 15000/200000 remaining (resets in 6.2s)
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/openai/error_rate_limit.jsonl`
+- File: `tests/fixtures/vcr/openai/error_rate_limit.jsonl`
 - Must include rate limit headers (see above)
 - Response body includes error.type = "requests" or "tokens"
 
@@ -319,7 +319,7 @@ This is a temporary issue on OpenAI's side. Please retry later.
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/openai/error_500.jsonl`
+- File: `tests/fixtures/vcr/openai/error_500.jsonl`
 - May have error JSON or plain text body
 - Status code 500 is primary signal
 
@@ -359,7 +359,7 @@ Retry after 30 seconds.
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/openai/error_503.jsonl`
+- File: `tests/fixtures/vcr/openai/error_503.jsonl`
 - May include retry-after header
 - Response body includes error.code = "service_unavailable"
 
@@ -388,7 +388,7 @@ This may occur with o-series models or very large contexts. Consider simplifying
 ```
 
 **VCR Fixture Requirements:**
-- File: `tests/fixtures/openai/error_504.jsonl`
+- File: `tests/fixtures/vcr/openai/error_504.jsonl`
 - Status code 504 with minimal or no body
 - May include plain text: "Gateway timeout"
 
@@ -461,7 +461,7 @@ This may occur with o-series models or very large contexts. Consider simplifying
 
 - [ ] 3 test files created with 27+ tests total
 - [ ] 5 fixture files recorded with VCR_RECORD=1 (JSONL format)
-- [ ] No API keys in fixtures (verify: `grep -r "sk-" tests/fixtures/openai/` returns empty)
+- [ ] No API keys in fixtures (verify: `grep -r "sk-" tests/fixtures/vcr/openai/` returns empty)
 - [ ] Async tests use fdset/perform/info_read pattern (not blocking send)
 - [ ] Mock curl_multi functions used (not curl_easy)
 - [ ] Callbacks receive responses via ik_provider_completion_t
