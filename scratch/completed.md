@@ -21,3 +21,4 @@
 - 5.5 Underspecified: Error Matrix - added HTTP status code matrix (401/403/429/500/503/504) to tests-anthropic-basic.md, tests-google-basic.md, tests-openai-basic.md (from todo-5-testing.md)
 - 5.6 Doc Sync: VCR Format - updated 05-testing/strategy.md to show JSONL format with line types (_request, _response, _body, _chunk) (from todo-5-testing.md)
 - 6.1 Missing: Old Fixtures - added tests/fixtures/openai/ deletion to cleanup-openai-tests.md (from todo-6-cleanup.md)
+- 6.2 Missing: Integration Tests - added tests/integration/openai/ deletion to cleanup-openai-tests.md (from todo-6-cleanup.md)

@@ -71,7 +71,12 @@ rm -rf tests/unit/openai/
 rm -rf tests/fixtures/openai/
 ```
 
-**Step 5: Update Makefile**
+**Step 5: Delete legacy integration tests**
+```bash
+rm -rf tests/integration/openai/
+```
+
+**Step 6: Update Makefile**
 
 Remove test targets for:
 ```
@@ -85,7 +90,7 @@ tests/unit/openai/client_serialize_test
 tests/unit/openai/tool_choice_test
 ```
 
-**Step 6: Verify full test suite**
+**Step 7: Verify full test suite**
 ```bash
 make check
 ```
@@ -96,6 +101,7 @@ make check
 - [ ] All new tests pass individually
 - [ ] `tests/unit/openai/` directory deleted
 - [ ] `tests/fixtures/openai/` directory deleted
+- [ ] `tests/integration/openai/` directory deleted
 - [ ] Makefile updated to remove old test targets
 - [ ] `make check` passes with no missing tests
 - [ ] Changes committed to git with message: `task: cleanup-openai-tests.md - <summary>`
