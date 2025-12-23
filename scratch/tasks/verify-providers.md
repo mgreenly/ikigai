@@ -195,12 +195,12 @@ grep -rn "IK_STREAM_START\|IK_STREAM_TEXT_DELTA\|IK_STREAM_TOOL_CALL\|IK_STREAM_
 Verify all providers map errors to normalized categories:
 
 ```bash
-grep -rn "IK_ERR_AUTH\|IK_ERR_RATE_LIMIT\|IK_ERR_SERVER" src/providers/
+grep -rn "IK_ERR_CAT_AUTH\|IK_ERR_CAT_RATE_LIMIT\|IK_ERR_CAT_SERVER" src/providers/
 ```
 
-- [ ] Anthropic maps HTTP errors to IK_ERR_* categories
-- [ ] Google maps HTTP errors to IK_ERR_* categories
-- [ ] OpenAI maps HTTP errors to IK_ERR_* categories
+- [ ] Anthropic maps HTTP errors to IK_ERR_CAT_* categories
+- [ ] Google maps HTTP errors to IK_ERR_CAT_* categories
+- [ ] OpenAI maps HTTP errors to IK_ERR_CAT_* categories
 
 ### Step 11: Thinking Level Support
 

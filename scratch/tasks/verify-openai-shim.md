@@ -129,9 +129,9 @@ Verify shim maps legacy errors to `ik_error_category_t`:
 grep -n "ik_error_category_t\|IK_ERR_\|error_category" src/providers/openai/*.c
 ```
 
-- [ ] HTTP 401 maps to IK_ERR_AUTH
-- [ ] HTTP 429 maps to IK_ERR_RATE_LIMIT
-- [ ] HTTP 500+ maps to IK_ERR_SERVER
+- [ ] HTTP 401 maps to IK_ERR_CAT_AUTH
+- [ ] HTTP 429 maps to IK_ERR_CAT_RATE_LIMIT
+- [ ] HTTP 500+ maps to IK_ERR_CAT_SERVER
 
 ### Step 9: Factory Registration
 

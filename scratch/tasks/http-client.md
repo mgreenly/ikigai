@@ -231,7 +231,7 @@ static void http_completion_handler(const ik_http_completion_t *http_comp, void 
             provider_comp.response = response;
         } else {
             provider_comp.success = false;
-            provider_comp.error_category = IK_ERR_SERVER;  // Parse failure
+            provider_comp.error_category = IK_ERR_CAT_SERVER;  // Parse failure
             provider_comp.error_message = "Failed to parse response";
         }
     } else {
