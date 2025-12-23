@@ -136,6 +136,24 @@ Provider adapters map provider-specific HTTP errors to ikigai's unified error ca
 - For timeouts: Map DEADLINE_EXCEEDED to ERR_TIMEOUT
 - Return unified error structure with all fields populated
 
+## Content Filter Error Mapping
+
+Each provider returns content policy violations differently. All must map to `IK_ERR_CAT_CONTENT_FILTER`:
+
+| Provider | HTTP Status | Error Type/Field | Detection | Maps To |
+|----------|-------------|------------------|-----------|---------|
+| Anthropic | 400 | `error.type == "invalid_request_error"` with message containing "content" | Check error message for policy keywords | IK_ERR_CAT_CONTENT_FILTER |
+| OpenAI | 400 | `error.code == "content_filter"` | Check error.code field | IK_ERR_CAT_CONTENT_FILTER |
+| Google | 200 | `candidates[0].finishReason == "SAFETY"` | Check finishReason in response | IK_ERR_CAT_CONTENT_FILTER |
+| Google | 200 | `promptFeedback.blockReason == "SAFETY"` | Check promptFeedback block | IK_ERR_CAT_CONTENT_FILTER |
+
+**Important:** Google returns HTTP 200 for content filter blocks - check response body, not status code.
+
+**User-facing message:** When content filter is triggered, display:
+```
+Content policy violation: Your request was blocked by the provider's safety filters.
+```
+
 ## Rate Limit Headers
 
 ### Anthropic
