@@ -78,7 +78,9 @@ Data structures to create:
 - Update agent->provider
 - Update agent->model
 - Update agent->thinking_level
+- **Invalidate cached provider instance** (call `ik_agent_invalidate_provider()` to free old provider)
 - Persist to database
+- Next message send will lazy-load new provider via `ik_agent_get_provider()`
 
 **User Feedback:**
 - Display provider name and model
@@ -123,6 +125,13 @@ Data structures to create:
 - Execute: `/model gpt-4o/high`
 - After: provider="openai", model="gpt-4o", thinking="high"
 - Database updated correctly
+
+**Provider Invalidation:**
+- Agent has cached Anthropic provider instance
+- Execute: `/model gpt-4o`
+- Cached provider instance freed (invalidated)
+- provider_instance set to NULL
+- Next `ik_agent_get_provider()` creates new OpenAI provider
 
 **User Feedback:**
 - `/model claude-sonnet-4-5/med` displays:

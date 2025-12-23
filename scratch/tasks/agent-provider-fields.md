@@ -43,6 +43,7 @@ Functions to implement:
 | `res_t ik_agent_apply_defaults(ik_agent_ctx_t *agent, ik_config_t *config)` | Apply config defaults to new agent (root or forked) |
 | `res_t ik_agent_restore_from_row(ik_agent_ctx_t *agent, ik_db_agent_row_t *row)` | Populate agent from database row |
 | `res_t ik_agent_get_provider(ik_agent_ctx_t *agent, ik_provider_t **out)` | Get or create provider instance (lazy-loaded, cached) |
+| `void ik_agent_invalidate_provider(ik_agent_ctx_t *agent)` | Free cached provider instance (call when model changes) |
 
 **Note:** This task uses `ik_infer_provider()` from `provider-types.md` to map model names to provider names.
 
@@ -88,6 +89,14 @@ Files to update:
 - Cache instance in `agent->provider_instance`
 - Return ERR_MISSING_CREDENTIALS if provider creation fails
 - Return OK with provider instance
+
+### Provider Invalidation
+- Called when `/model` command changes provider or model
+- Free cached `provider_instance` via `talloc_free()` if non-NULL
+- Set `agent->provider_instance` to NULL
+- Next `ik_agent_get_provider()` call creates new provider for updated model
+- Safe to call multiple times (idempotent)
+- Safe to call when provider_instance is NULL
 
 ### Memory Management
 - All strings (provider, model) allocated on agent context
@@ -137,12 +146,19 @@ Files to update:
 - Missing credentials: returns ERR_MISSING_CREDENTIALS
 - NULL agent: returns ERR_INVALID_ARG
 
+### Provider Invalidation
+- Invalidate with cached provider: frees instance, sets to NULL
+- Invalidate with NULL provider_instance: no-op, no crash
+- After invalidation: next get_provider() creates new instance
+- Model change flow: invalidate, update fields, get_provider returns new provider
+
 ## Postconditions
 
 - [ ] `ik_agent_ctx_t` has provider, model, thinking_level, provider_instance fields
 - [ ] `ik_agent_apply_defaults()` sets initial provider/model/thinking from config
 - [ ] `ik_agent_restore_from_row()` loads provider/model/thinking from DB
 - [ ] `ik_agent_get_provider()` lazy-loads and caches provider instance
+- [ ] `ik_agent_invalidate_provider()` frees cached provider and sets to NULL
 - [ ] Forked agents inherit parent's provider/model/thinking by default
 - [ ] All agent tests pass
 - [ ] `make check` passes
