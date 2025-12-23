@@ -290,7 +290,7 @@ Agent structure extended with:
 The agents table requires new columns:
 - `provider` (TEXT) - Provider name, defaults to "openai"
 - `model` (TEXT) - Model identifier
-- `thinking_level` (INTEGER) - Enum value for thinking level
+- `thinking_level` (TEXT) - Thinking level ("none", "low", "med", "high")
 
 Migration adds these columns with appropriate defaults for existing rows.
 
