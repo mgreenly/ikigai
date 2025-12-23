@@ -34,8 +34,8 @@
 | ~~google-response.md~~ | ~~Defines blocking `ik_google_send_impl()` but provider-types.md mandates async vtable~~ | ~~CRITICAL~~ FIXED |
 | ~~provider-factory.md~~ | ~~Circular dependency - needs provider-create functions from downstream tasks~~ | ~~HIGH~~ FALSE ALARM |
 | ~~openai-send-impl.md~~ | ~~Missing dependency on openai-core.md (uses `ik_openai_ctx_t` defined there)~~ | ~~HIGH~~ FIXED |
-| configuration.md | Missing dependency on credentials-migrate.md | MEDIUM |
-| configuration.md | Missing "update all call sites" for ik_cfg_load rename | MEDIUM |
+| ~~configuration.md~~ | ~~Missing dependency on credentials-migrate.md~~ | ~~MEDIUM~~ FALSE ALARM (tasks are independent, no data flow) |
+| configuration.md | Missing "update all call sites" for ik_cfg_load rename (72+ locations) | HIGH |
 | ~~tests-mock-infrastructure.md~~ | ~~DELETED - test tasks still reference it (replaced by VCR)~~ | ~~INFO~~ FIXED |
 
 ### Verified Groups (No Blocking Issues)
@@ -66,5 +66,8 @@
 | ~~tests-common-utilities.md~~ | ~~References deleted tests-mock-infrastructure.md in dependencies~~ | ~~HIGH~~ FIXED |
 | ~~tests-integration-switching.md~~ | ~~References deleted tests-mock-infrastructure.md in preconditions~~ | ~~HIGH~~ FIXED |
 | ~~openai-shim-streaming.md~~ | ~~References deleted tests-mock-infrastructure.md in mock pattern section~~ | ~~HIGH~~ FIXED |
-| repl-provider-routing.md | Missing dependency on provider-factory.md (uses ik_provider_create indirectly) | MEDIUM |
+| ~~repl-provider-routing.md~~ | ~~Missing dependency on provider-factory.md (uses ik_provider_create indirectly)~~ | ~~MEDIUM~~ FALSE ALARM (transitive via agent-provider-fields.md) |
+| ~~repl-provider-routing.md~~ | ~~Missing dependency on provider-types.md (uses ik_provider_t, ik_request_t)~~ | ~~HIGH~~ FIXED |
+| ~~cleanup-openai-source.md~~ | ~~Missing dependency on openai-equivalence-validation.md~~ | ~~CRITICAL~~ FALSE ALARM (already present) |
+| ~~openai-equivalence-validation.md~~ | ~~Missing dependency on openai-shim-streaming.md~~ | ~~CRITICAL~~ FALSE ALARM (already present) |
 
