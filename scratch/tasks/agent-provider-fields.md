@@ -1,7 +1,7 @@
 # Task: Add Provider Fields to Agent Context
 
 **Model:** sonnet/thinking
-**Depends on:** provider-types.md, database-migration.md, configuration.md
+**Depends on:** provider-types.md, database-migration.md, configuration.md, model-command.md
 
 ## Context
 
@@ -43,7 +43,8 @@ Functions to implement:
 | `res_t ik_agent_apply_defaults(ik_agent_ctx_t *agent, ik_config_t *config)` | Apply config defaults to new agent (root or forked) |
 | `res_t ik_agent_restore_from_row(ik_agent_ctx_t *agent, ik_db_agent_row_t *row)` | Populate agent from database row |
 | `res_t ik_agent_get_provider(ik_agent_ctx_t *agent, ik_provider_t **out)` | Get or create provider instance (lazy-loaded, cached) |
-| `res_t ik_infer_provider(const char *model, char **provider_name)` | Map model prefix to provider name |
+
+**Note:** This task uses `ik_infer_provider()` from `model-command.md` to map model names to provider names.
 
 Structs to update:
 
@@ -87,16 +88,6 @@ Files to update:
 - Cache instance in `agent->provider_instance`
 - Return ERR_MISSING_CREDENTIALS if provider creation fails
 - Return OK with provider instance
-
-### Provider Inference from Model
-- Map model prefix to provider name:
-  - `claude-*` → "anthropic"
-  - `gpt-*`, `o1-*`, `o3-*` → "openai"
-  - `gemini-*` → "google"
-- Return ERR_INVALID_ARG if model is NULL or empty
-- Return ERR_INVALID_ARG if model prefix doesn't match any provider
-- Allocate provider_name string on provided context
-- Return OK with provider_name
 
 ### Memory Management
 - All strings (provider, model) allocated on agent context
@@ -146,21 +137,12 @@ Files to update:
 - Missing credentials: returns ERR_MISSING_CREDENTIALS
 - NULL agent: returns ERR_INVALID_ARG
 
-### Provider Inference
-- "claude-sonnet-4-5" → "anthropic"
-- "gpt-4o" → "openai"
-- "o1-preview" → "openai"
-- "gemini-2.5-flash" → "google"
-- "unknown-model" → ERR_INVALID_ARG
-- NULL model → ERR_INVALID_ARG
-
 ## Postconditions
 
 - [ ] `ik_agent_ctx_t` has provider, model, thinking_level, provider_instance fields
 - [ ] `ik_agent_apply_defaults()` sets initial provider/model/thinking from config
 - [ ] `ik_agent_restore_from_row()` loads provider/model/thinking from DB
 - [ ] `ik_agent_get_provider()` lazy-loads and caches provider instance
-- [ ] `ik_infer_provider()` correctly maps all model prefixes
 - [ ] Forked agents inherit parent's provider/model/thinking by default
 - [ ] All agent tests pass
 - [ ] `make check` passes

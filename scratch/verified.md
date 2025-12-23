@@ -66,6 +66,7 @@
 | ~~tests-common-utilities.md~~ | ~~References deleted tests-mock-infrastructure.md in dependencies~~ | ~~HIGH~~ FIXED |
 | ~~tests-integration-switching.md~~ | ~~References deleted tests-mock-infrastructure.md in preconditions~~ | ~~HIGH~~ FIXED |
 | ~~openai-shim-streaming.md~~ | ~~References deleted tests-mock-infrastructure.md in mock pattern section~~ | ~~HIGH~~ FIXED |
+| ~~agent-provider-fields.md + model-command.md~~ | ~~Duplicate definition of ik_infer_provider() would cause linker error~~ | ~~HIGH~~ FIXED (model-command.md owns function, agent-provider-fields.md depends on it) |
 | ~~repl-provider-routing.md~~ | ~~Missing dependency on provider-factory.md (uses ik_provider_create indirectly)~~ | ~~MEDIUM~~ FALSE ALARM (transitive via agent-provider-fields.md) |
 | ~~repl-provider-routing.md~~ | ~~Missing dependency on provider-types.md (uses ik_provider_t, ik_request_t)~~ | ~~HIGH~~ FIXED |
 | ~~cleanup-openai-source.md~~ | ~~Missing dependency on openai-equivalence-validation.md~~ | ~~CRITICAL~~ FALSE ALARM (already present) |
