@@ -538,8 +538,8 @@ Providers return errors through standard `res_t` mechanism with appropriate erro
 - `ERR_AUTH` - Invalid or missing API key (401 status)
 - `ERR_RATE_LIMIT` - Rate limit exceeded (429 status)
 - `ERR_NETWORK` - Connection failures, timeouts
-- `ERR_INVALID_ARG` - Malformed requests
-- `ERR_PROVIDER` - Provider-specific API errors (4xx, 5xx)
+- `ERR_INVALID_ARG` - Bad request / validation error (400)
+- `ERR_SERVER` - Server error (500, 502, 503)
 
 Error messages include actionable guidance such as credential setup URLs and retry timing.
 

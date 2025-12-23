@@ -96,8 +96,8 @@ Contract validation ensures our implementation stays aligned with the real API a
 **Error Response Validation:**
 - HTTP 401: maps to ERR_AUTH with api key error message
 - HTTP 429: maps to ERR_RATE_LIMIT with retry_after extracted from headers
-- HTTP 400: maps to ERR_INVALID with validation error details
-- HTTP 500: maps to ERR_PROVIDER with server error details
+- HTTP 400: maps to ERR_INVALID_ARG with validation error details
+- HTTP 500: maps to ERR_SERVER with server error details
 - Error details: preserve provider error type and message
 
 ### Test Request Fixtures
@@ -256,7 +256,7 @@ tests/contract_validations/
 1. Load VCR cassette: `test_contract_error_invalid_request.jsonl` (400 response)
 2. Create request with invalid parameters
 3. Send through provider
-4. Verify: result is ERR_INVALID, validation error details preserved
+4. Verify: result is ERR_INVALID_ARG, validation error details preserved
 5. Assert: client errors mapped correctly
 
 ### Multi-Turn Contract

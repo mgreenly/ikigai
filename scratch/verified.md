@@ -79,3 +79,13 @@ Gaps identified during task review that have been fixed.
 **Issue:** contract-google.md referenced `IK_FINISH_SAFETY` for Google's SAFETY and RECITATION finish reasons, but this enum value doesn't exist in the canonical request-response.md. The existing `IK_FINISH_CONTENT_FILTER` has the same semantic meaning.
 
 **Fix:** Changed `IK_FINISH_SAFETY` to `IK_FINISH_CONTENT_FILTER` on lines 177-178.
+
+### Error category naming inconsistency
+
+**Files:** `scratch/plan/05-testing/contract-anthropic.md`, `scratch/plan/05-testing/contract-google.md`, `scratch/plan/01-architecture/overview.md`
+
+**Issue:** Contract test files used `ERR_INVALID` and `ERR_PROVIDER` but the canonical error-handling.md defines `ERR_INVALID_ARG` and `ERR_SERVER`.
+
+**Fix:** Replaced all occurrences:
+- `ERR_INVALID` → `ERR_INVALID_ARG`
+- `ERR_PROVIDER` → `ERR_SERVER`
