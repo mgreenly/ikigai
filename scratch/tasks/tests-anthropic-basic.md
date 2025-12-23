@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** anthropic-core.md, anthropic-request.md, anthropic-response.md, tests-mock-infrastructure.md
+**Depends on:** anthropic-core.md, anthropic-request.md, anthropic-response.md, vcr-core.md, vcr-mock-integration.md
 
 ## Context
 
@@ -100,6 +100,22 @@ START_TEST(test_non_streaming_request)
 END_TEST
 ```
 
+## Recording Fixtures
+
+Before tests can run in playback mode, fixtures must be recorded from real API responses:
+
+1. **Ensure valid credentials** - `ANTHROPIC_API_KEY` environment variable must be set
+2. **Run in record mode**:
+   ```bash
+   VCR_RECORD=1 make build/tests/unit/providers/anthropic/test_anthropic_adapter
+   VCR_RECORD=1 ./build/tests/unit/providers/anthropic/test_anthropic_adapter
+   ```
+3. **Verify fixtures created** - Check `tests/fixtures/anthropic/*.jsonl` files exist
+4. **Verify no credentials leaked** - `grep -r "sk-ant-" tests/fixtures/anthropic/` returns nothing
+5. **Commit fixtures** - Fixtures are committed to git for deterministic CI runs
+
+**Note:** Fixtures only need re-recording when API behavior changes. Normal test runs use playback mode (VCR_RECORD unset).
+
 ## Interface
 
 **Test files to create:**
@@ -110,15 +126,15 @@ END_TEST
 | `tests/unit/providers/anthropic/test_anthropic_client.c` | Request serialization to Messages API |
 | `tests/unit/providers/anthropic/test_anthropic_errors.c` | Error response parsing and mapping |
 
-**Fixture files to create:**
+**Fixture files (VCR JSONL format):**
 
 | File | Purpose |
 |------|---------|
-| `tests/fixtures/anthropic/response_basic.json` | Standard completion response |
-| `tests/fixtures/anthropic/response_thinking.json` | Response with thinking content block |
-| `tests/fixtures/anthropic/response_tool_call.json` | Response with tool use content block |
-| `tests/fixtures/anthropic/error_auth.json` | 401 authentication error |
-| `tests/fixtures/anthropic/error_rate_limit.json` | 429 rate limit error |
+| `tests/fixtures/anthropic/response_basic.jsonl` | Standard completion response |
+| `tests/fixtures/anthropic/response_thinking.jsonl` | Response with thinking content block |
+| `tests/fixtures/anthropic/response_tool_call.jsonl` | Response with tool use content block |
+| `tests/fixtures/anthropic/error_auth.jsonl` | 401 authentication error |
+| `tests/fixtures/anthropic/error_rate_limit.jsonl` | 429 rate limit error (synthetic) |
 
 ## Test Scenarios
 
@@ -171,7 +187,8 @@ The mock infrastructure maintains:
 ## Postconditions
 
 - [ ] 3 test files created with 22+ tests total
-- [ ] 5 fixture files created with valid JSON
+- [ ] 5 fixture files recorded with VCR_RECORD=1 (JSONL format)
+- [ ] No API keys in fixtures (verify: `grep -r "sk-ant-" tests/fixtures/anthropic/` returns empty)
 - [ ] All tests use mock curl_multi (no real network, no blocking calls)
 - [ ] Tests exercise fdset/perform/info_read cycle
 - [ ] Responses delivered via completion callbacks

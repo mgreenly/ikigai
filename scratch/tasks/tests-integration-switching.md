@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/extended
-**Depends on:** repl-provider-routing.md, fork-model-override.md, tests-openai-basic.md, tests-mock-infrastructure.md
+**Depends on:** repl-provider-routing.md, fork-model-override.md, tests-openai-basic.md, vcr-mock-integration.md
 
 ## Context
 
@@ -17,7 +17,8 @@ All needed context is provided in this file. Do not research, explore, or spawn 
 ## Preconditions
 
 - [ ] Clean worktree (verify: `git status --porcelain` is empty)
-- [ ] Mock infrastructure from tests-mock-infrastructure.md is complete
+- [ ] VCR core infrastructure from vcr-core.md is complete
+- [ ] VCR mock integration from vcr-mock-integration.md is complete
 
 ## Pre-Read
 

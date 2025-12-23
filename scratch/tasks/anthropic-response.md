@@ -29,7 +29,7 @@
 
 ## Objective
 
-Implement response parsing for Anthropic API. Transform Anthropic JSON response to internal `ik_response_t` format, including content blocks, usage statistics, and finish reasons. Also implement the non-streaming `send` vtable function.
+Implement response parsing for Anthropic API. Transform Anthropic JSON response to internal `ik_response_t` format, including content blocks, usage statistics, and finish reasons. Also implement the async `start_request()` and `start_stream()` vtable functions that follow the non-blocking pattern required by the select()-based event loop.
 
 ## Interface
 
@@ -40,7 +40,8 @@ Functions to implement:
 | `res_t ik_anthropic_parse_response(TALLOC_CTX *ctx, const char *json, size_t json_len, ik_response_t **out_resp)` | Parses Anthropic JSON response to internal format, returns OK with response or ERR on parse error |
 | `res_t ik_anthropic_parse_error(TALLOC_CTX *ctx, int http_status, const char *json, size_t json_len, ik_error_category_t *out_category, char **out_message)` | Parses Anthropic error response, maps HTTP status to category, extracts message |
 | `ik_finish_reason_t ik_anthropic_map_finish_reason(const char *stop_reason)` | Maps Anthropic stop_reason string to internal finish reason enum |
-| `res_t ik_anthropic_send_impl(void *impl_ctx, ik_request_t *req, ik_response_t **out_resp)` | Vtable send implementation: serialize request, POST to API, parse response |
+| `res_t ik_anthropic_start_request(void *impl_ctx, const ik_request_t *req, ik_provider_completion_cb_t cb, void *cb_ctx)` | Async vtable start_request implementation: serialize request, start non-blocking HTTP POST, returns immediately |
+| `res_t ik_anthropic_start_stream(void *impl_ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_provider_completion_cb_t completion_cb, void *completion_ctx)` | Async vtable start_stream implementation: serialize streaming request, start non-blocking HTTP POST, returns immediately |
 
 Structs to define: None (uses existing provider types)
 
@@ -91,57 +92,87 @@ Structs to define: None (uses existing provider types)
 - Extract error.message and error.type from JSON if present
 - Format message as "type: message" or "HTTP status" if JSON unavailable
 
-### Send Implementation (Async Pattern)
+### Async start_request() Implementation
+- Cast `impl_ctx` to Anthropic provider context
 - Serialize request to JSON using `ik_anthropic_serialize_request()`
 - Build headers using `ik_anthropic_build_headers()`
 - Construct URL: base_url + "/v1/messages"
 - Build `ik_http_request_t` with method="POST", url, headers, body
 - Call `ik_http_multi_add_request()` with write callback and completion callback
+- **Return immediately** (non-blocking) - do NOT wait for response
 - Write callback accumulates response body into buffer
-- Completion callback:
-  - Check HTTP status, if >= 400 parse error using `ik_anthropic_handle_error()`
+- Completion callback (invoked later from info_read()):
+  - Check HTTP status, if >= 400 parse error using `ik_anthropic_parse_error()`
   - Parse successful response using `ik_anthropic_parse_response()`
-  - Invoke `ik_provider_completion_cb_t` with result
+  - Build `ik_provider_completion_t` with success flag, response, or error
+  - Invoke user's `ik_provider_completion_cb_t` with completion struct
+
+### Async start_stream() Implementation
+- Cast `impl_ctx` to Anthropic provider context
+- Serialize request to JSON using `ik_anthropic_serialize_request()` with streaming enabled
+- Build headers using `ik_anthropic_build_headers()` (include "Accept: text/event-stream")
+- Construct URL: base_url + "/v1/messages"
+- Build `ik_http_request_t` with method="POST", url, headers, body
+- Call `ik_http_multi_add_request()` with SSE parsing callbacks
+- **Return immediately** (non-blocking) - do NOT wait for response
+- SSE event callback parses stream events and invokes `ik_stream_cb_t`
+- Completion callback (invoked later from info_read()):
+  - Build `ik_provider_completion_t` with final state
+  - Invoke user's `ik_provider_completion_cb_t` with completion struct
 
 ## Test Scenarios
 
-### Simple Response Parsing
+### Simple Response Parsing (Unit)
 - Response with single text block parses correctly
 - Model name extracted
 - Finish reason "end_turn" maps to IK_FINISH_STOP
 - Usage tokens extracted correctly
 - Content block has correct text
 
-### Tool Use Response
+### Tool Use Response (Unit)
 - Response with tool_use block parses correctly
 - Tool call has id, name, and input JSON
 - Finish reason "tool_use" maps to IK_FINISH_TOOL_USE
 
-### Thinking Response
+### Thinking Response (Unit)
 - Response with thinking block parses correctly
 - Thinking content extracted
 - thinking_tokens counted in usage
 - Multiple content blocks (thinking + text) parsed
 
-### Redacted Thinking
+### Redacted Thinking (Unit)
 - Response with redacted_thinking block creates THINKING content
 - Text is "[thinking redacted]"
 
-### Finish Reason Mapping
+### Finish Reason Mapping (Unit)
 - All stop_reason strings map correctly
 - NULL returns IK_FINISH_UNKNOWN
 - Unknown string returns IK_FINISH_UNKNOWN
 
-### Error Parsing
+### Error Parsing (Unit)
 - HTTP 401 maps to IK_ERR_CAT_AUTH
 - HTTP 429 maps to IK_ERR_CAT_RATE_LIMIT
 - HTTP 500 maps to IK_ERR_CAT_SERVER
 - Error JSON message extracted and formatted
 - Missing JSON returns default "HTTP status" message
 
-### Error Response Detection
+### Error Response Detection (Unit)
 - Response with type="error" returns ERR(PROVIDER)
 - Error message extracted from error.message field
+
+### Async start_request() Tests (With Mocked curl_multi)
+- **start_request returns immediately**: Verify function returns OK before HTTP completes
+- **Callback invoked from info_read**: Start request, simulate perform/info_read cycle, verify callback fires
+- **Text response transform**: Verify response parsed correctly in callback
+- **Tool call response**: Verify tool calls parsed and delivered via callback
+- **Error response**: Verify error completion delivered to user callback
+- **Missing API key**: start_request returns error immediately (before HTTP)
+
+### Async start_stream() Tests (With Mocked curl_multi)
+- **start_stream returns immediately**: Verify function returns OK before HTTP completes
+- **Stream events delivered**: Simulate SSE events, verify stream_cb invoked with parsed events
+- **Completion callback invoked**: Verify completion_cb fires at end of stream
+- **Stream error handling**: Verify error delivered via completion_cb
 
 ## Postconditions
 
@@ -153,7 +184,10 @@ Structs to define: None (uses existing provider types)
 - [ ] Finish reason correctly mapped for all stop_reasons
 - [ ] `ik_anthropic_parse_error()` maps HTTP status to category
 - [ ] Error messages extracted from JSON when available
-- [ ] `ik_anthropic_send_impl()` wired to vtable in anthropic.c
+- [ ] `ik_anthropic_start_request()` and `ik_anthropic_start_stream()` wired to vtable in anthropic.c
+- [ ] Functions use async pattern: return immediately, callbacks invoked from info_read()
+- [ ] Functions accept const ik_request_t* (not mutable pointer)
+- [ ] Callbacks receive ik_provider_completion_t struct with success/error info
 - [ ] Compiles without warnings
 - [ ] All response parsing tests pass
 - [ ] All error mapping tests pass

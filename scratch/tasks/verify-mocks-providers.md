@@ -23,6 +23,8 @@ All needed context is provided in this file. Do not research, explore, or spawn 
 
 This eliminates the risk of mocks diverging from real API behavior.
 
+**Fixture Format:** All fixtures use JSONL (JSON Lines) format as specified in `scratch/plan/vcr-cassettes.md`. Each fixture contains `_request`, `_response`, and `_chunk`/`_body` lines representing the complete HTTP exchange.
+
 **VCR Principle:**
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
@@ -40,8 +42,8 @@ This eliminates the risk of mocks diverging from real API behavior.
 ## Preconditions
 
 - [ ] Clean worktree (verify: `git status --porcelain` is empty)
-- [ ] `~/.config/ikigai/credentials.json` exists with valid API keys for all providers
 - [ ] `src/credentials.h` exists (from credentials-core.md)
+- [ ] All provider credentials valid (verify: `make verify-credentials` exits 0)
 
 ## Pre-Read
 
@@ -86,6 +88,7 @@ Create verification test suites for Anthropic and Google APIs that:
 
 | Target | Purpose |
 |--------|---------|
+| `verify-credentials` | Check all provider API keys are available (env vars or credentials.json) |
 | `verify-mocks-anthropic` | Run Anthropic verification (requires ANTHROPIC_API_KEY) |
 | `verify-mocks-google` | Run Google verification (requires GOOGLE_API_KEY) |
 | `verify-mocks-all` | Run all provider verifications |
@@ -111,25 +114,56 @@ static bool should_capture_fixtures(void)
     return capture != NULL && strcmp(capture, "1") == 0;
 }
 
-// Save response to fixture file
-// Note: Only response bodies are captured, not request headers.
-// API keys should never appear in responses. If they do, investigate the bug.
+// Save request/response to fixture file in JSONL format
+// Writes _request, _response, and _chunk/_body lines as specified in vcr-cassettes.md
+// API keys are redacted before writing to ensure no credentials leak
 static void capture_fixture(const char *provider, const char *name,
-                            const char *content, size_t len)
+                            const char *method, const char *url,
+                            const char *request_headers, const char *request_body,
+                            int status_code, const char *response_headers,
+                            const char **chunks, size_t chunk_count)
 {
     if (!should_capture_fixtures()) return;
 
     char path[256];
-    snprintf(path, sizeof(path), "tests/fixtures/%s/%s", provider, name);
+    snprintf(path, sizeof(path), "tests/fixtures/%s/%s.jsonl", provider, name);
 
     FILE *f = fopen(path, "w");
     if (f) {
-        fwrite(content, 1, len, f);
+        // Write _request line (with redacted credentials)
+        fprintf(f, "{\"_request\": {\"method\": \"%s\", \"url\": \"%s\", \"headers\": %s, \"body\": %s}}\n",
+                method, url, redact_headers(request_headers), request_body);
+
+        // Write _response line
+        fprintf(f, "{\"_response\": {\"status\": %d, \"headers\": %s}}\n",
+                status_code, response_headers);
+
+        // Write _chunk lines (streaming) or _body line (non-streaming)
+        if (chunk_count == 1) {
+            fprintf(f, "{\"_body\": %s}\n", chunks[0]);
+        } else {
+            for (size_t i = 0; i < chunk_count; i++) {
+                fprintf(f, "{\"_chunk\": %s}\n", chunks[i]);
+            }
+        }
+
         fclose(f);
         fprintf(stderr, "Captured fixture: %s\n", path);
     }
 }
 ```
+
+### Credential Validation (First Step)
+
+Before running any tests, verify credentials are available. Call this in suite setup.
+
+**Function:** `verify_credentials_available(void)`
+
+**Behavior:**
+- Check `ANTHROPIC_API_KEY` and `GOOGLE_API_KEY` environment variables
+- If either is missing or empty, print diagnostic message pointing to `make verify-credentials`
+- Exit with code 77 (Check framework skip code) if credentials unavailable
+- This ensures early failure with clear diagnostics rather than cryptic HTTP errors later
 
 ### Anthropic Verification Tests
 
@@ -158,7 +192,7 @@ static void capture_fixture(const char *provider, const char *name,
 - Final content is non-empty string
 - `stop_reason` is one of: "end_turn", "max_tokens", "stop_sequence", "tool_use"
 
-**Fixture:** `stream_text_basic.txt`
+**Fixture:** `stream_text_basic.jsonl`
 
 #### Test 2: `verify_anthropic_streaming_thinking`
 
@@ -182,7 +216,7 @@ static void capture_fixture(const char *provider, const char *name,
 - Both blocks have corresponding `content_block_stop` events
 - `message_delta.usage` includes thinking tokens
 
-**Fixture:** `stream_text_thinking.txt`
+**Fixture:** `stream_text_thinking.jsonl`
 
 #### Test 3: `verify_anthropic_tool_call`
 
@@ -214,7 +248,7 @@ static void capture_fixture(const char *provider, const char *name,
 - Accumulated `input` is valid JSON matching tool schema
 - `stop_reason` = "tool_use"
 
-**Fixture:** `stream_tool_call.txt`
+**Fixture:** `stream_tool_call.jsonl`
 
 #### Test 4: `verify_anthropic_error_auth`
 
@@ -269,7 +303,7 @@ POST /v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=API_KEY
 - `finishReason` is one of: "STOP", "MAX_TOKENS", "SAFETY", "RECITATION", "OTHER"
 - `usageMetadata` contains: `promptTokenCount`, `candidatesTokenCount`, `totalTokenCount`
 
-**Fixture:** `stream_text_basic.txt`
+**Fixture:** `stream_text_basic.jsonl`
 
 #### Test 2: `verify_google_streaming_thinking`
 
@@ -292,7 +326,7 @@ POST /v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=API_KEY
 - Thinking parts appear before regular content parts
 - `usageMetadata` may include `thoughtsTokenCount` (model-dependent)
 
-**Fixture:** `stream_text_thinking.txt`
+**Fixture:** `stream_text_thinking.jsonl`
 
 #### Test 3: `verify_google_tool_call`
 
@@ -322,7 +356,7 @@ POST /v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=API_KEY
 - `args` matches function parameter schema
 - Note: Google does NOT provide tool call IDs - must be generated client-side
 
-**Fixture:** `stream_tool_call.txt`
+**Fixture:** `stream_tool_call.jsonl`
 
 #### Test 4: `verify_google_error_auth`
 
@@ -354,6 +388,43 @@ END_TEST
 Add to Makefile after existing `verify-mocks` target:
 
 ```makefile
+# Credential verification - checks all provider API keys are available
+verify-credentials:
+	@echo "Checking provider credentials..."
+	@MISSING=""; \
+	OPENAI_KEY="$$OPENAI_API_KEY"; \
+	if [ -z "$$OPENAI_KEY" ]; then \
+		CONFIG_FILE="$$HOME/.config/ikigai/credentials.json"; \
+		if [ -f "$$CONFIG_FILE" ]; then \
+			OPENAI_KEY=$$(jq -r '.openai.api_key // empty' "$$CONFIG_FILE" 2>/dev/null); \
+		fi; \
+	fi; \
+	if [ -z "$$OPENAI_KEY" ]; then MISSING="$$MISSING openai"; fi; \
+	ANTHROPIC_KEY="$$ANTHROPIC_API_KEY"; \
+	if [ -z "$$ANTHROPIC_KEY" ]; then \
+		CONFIG_FILE="$$HOME/.config/ikigai/credentials.json"; \
+		if [ -f "$$CONFIG_FILE" ]; then \
+			ANTHROPIC_KEY=$$(jq -r '.anthropic.api_key // empty' "$$CONFIG_FILE" 2>/dev/null); \
+		fi; \
+	fi; \
+	if [ -z "$$ANTHROPIC_KEY" ]; then MISSING="$$MISSING anthropic"; fi; \
+	GOOGLE_KEY="$$GOOGLE_API_KEY"; \
+	if [ -z "$$GOOGLE_KEY" ]; then \
+		CONFIG_FILE="$$HOME/.config/ikigai/credentials.json"; \
+		if [ -f "$$CONFIG_FILE" ]; then \
+			GOOGLE_KEY=$$(jq -r '.google.api_key // empty' "$$CONFIG_FILE" 2>/dev/null); \
+		fi; \
+	fi; \
+	if [ -z "$$GOOGLE_KEY" ]; then MISSING="$$MISSING google"; fi; \
+	if [ -n "$$MISSING" ]; then \
+		echo "ERROR: Missing API keys for:$$MISSING"; \
+		echo "Set environment variables or add to ~/.config/ikigai/credentials.json"; \
+		exit 1; \
+	fi; \
+	echo "All provider credentials available"
+
+.PHONY: verify-credentials
+
 # Anthropic mock verification
 $(BUILDDIR)/tests/integration/anthropic_mock_verification_test: \
     tests/integration/anthropic_mock_verification_test.c \
@@ -403,7 +474,7 @@ verify-mocks-google: $(BUILDDIR)/tests/integration/google_mock_verification_test
 # All provider verification
 verify-mocks-all: verify-mocks verify-mocks-anthropic verify-mocks-google
 
-.PHONY: verify-mocks-anthropic verify-mocks-google verify-mocks-all
+.PHONY: verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials
 ```
 
 ## HTTP Client Requirements
@@ -466,6 +537,10 @@ static size_t sse_write_callback(char *ptr, size_t size, size_t nmemb, void *use
 - [ ] When `CAPTURE_FIXTURES=1`:
   - [ ] Real responses captured to fixture files
   - [ ] No API keys in fixtures (verify: `grep -rE '(sk-[a-zA-Z0-9]{20,}|AIza[a-zA-Z0-9]{30,})' tests/fixtures/` returns empty)
+- [ ] If `make verify-credentials` fails:
+  - [ ] Task exits with skip status (exit 77), not failure
+  - [ ] No partial fixtures created
+  - [ ] Clear message: "Run 'make verify-credentials' to diagnose"
 - [ ] Changes committed to git with message: `task: verify-mocks-providers.md - <summary>`
 - [ ] Clean worktree (verify: `git status --porcelain` is empty)
 

@@ -14,5 +14,9 @@ the over-the-wire format. We'll polyfil some behaviors for the providers that do
 support all the ones we need but we'll also store the raw responses for features
 we don't support and are not using, primarily for debugging if we need it.
 
+This is actually our second try. The first attempt didn't properly consider the
+async nature of the code it interfaced with and we're also adding a substantially
+more complete VCR style mocking for better testing in this attempt.
+
   * https://github.com/mgreenly/ikigai
   * https://www.youtube.com/@IkigaiDevlog

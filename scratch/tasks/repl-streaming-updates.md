@@ -42,7 +42,7 @@ Functions to update:
 
 | Function | Signature | Changes |
 |----------|-----------|---------|
-| `ik_repl_stream_callback` | `void (ik_stream_event_t *event, void *ctx)` | Handle normalized events; invoked during `perform()` |
+| `ik_repl_stream_callback` | `res_t (const ik_stream_event_t *event, void *ctx)` | Handle normalized events; invoked during `perform()` |
 | `ik_repl_save_message` | `res_t (ik_repl_t *repl, ...)` | Store provider/model/thinking metadata |
 
 Files to update:

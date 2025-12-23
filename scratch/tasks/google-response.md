@@ -51,7 +51,8 @@ Functions to implement:
 | `res_t ik_google_parse_error(TALLOC_CTX *ctx, int http_status, const char *json, size_t json_len, ik_error_category_t *out_category, char **out_message)` | Parse error response and map to category, returns OK/ERR |
 | `ik_finish_reason_t ik_google_map_finish_reason(const char *finish_reason)` | Map Google finishReason string to internal enum |
 | `char *ik_google_generate_tool_id(TALLOC_CTX *ctx)` | Generate 22-character base64url tool call ID |
-| `res_t ik_google_send_impl(void *impl_ctx, ik_request_t *req, ik_response_t **out_resp)` | Vtable send implementation (non-streaming) |
+| `res_t ik_google_start_request(void *impl_ctx, const ik_request_t *req, ik_provider_completion_cb_t cb, void *cb_ctx)` | Async vtable start_request implementation (non-streaming) |
+| `res_t ik_google_start_stream(void *impl_ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_provider_completion_cb_t completion_cb, void *completion_ctx)` | Async vtable start_stream implementation (streaming) |
 
 ## Behaviors
 
@@ -97,17 +98,35 @@ Functions to implement:
 - Extract error.message from JSON if present
 - Format message as "status: message" or "HTTP {code}" if no JSON
 
-**Send Implementation (Async Pattern):**
+**start_request() Implementation (Async Pattern):**
+- Cast `impl_ctx` to Google provider context
 - Serialize request using ik_google_serialize_request()
 - Build URL using ik_google_build_url() with streaming=false
 - Build headers using ik_google_build_headers() with streaming=false
 - Build `ik_http_request_t` with method="POST", url, headers, body
 - Call `ik_http_multi_add_request()` with write callback and completion callback
+- **Return immediately** (non-blocking) - do NOT wait for response
 - Write callback accumulates response body into buffer
 - Completion callback:
-  - Check HTTP status, parse error if >= 400 using ik_google_handle_error()
+  - Check HTTP status, parse error if >= 400 using ik_google_parse_error()
   - Parse response body using ik_google_parse_response()
-  - Invoke `ik_provider_completion_cb_t` with result
+  - Create `ik_provider_completion_t` with result
+  - Invoke user's `ik_provider_completion_cb_t` callback with completion
+
+**start_stream() Implementation (Async Pattern):**
+- Cast `impl_ctx` to Google provider context
+- Serialize request using ik_google_serialize_request()
+- Build URL using ik_google_build_url() with streaming=true
+- Build headers using ik_google_build_headers() with streaming=true
+- Build `ik_http_request_t` with method="POST", url, headers, body
+- Call `ik_http_multi_add_request()` with stream write callback and completion callback
+- **Return immediately** (non-blocking) - do NOT wait for response
+- Stream write callback:
+  - Parse SSE chunks as they arrive
+  - Invoke `ik_stream_cb_t` callback with stream events (TEXT_DELTA, TOOL_CALL_START, etc.)
+- Completion callback:
+  - Send final DONE or ERROR event
+  - Invoke user's `ik_provider_completion_cb_t` callback with completion
 
 ## Test Scenarios
 
@@ -171,7 +190,7 @@ Functions to implement:
 - [ ] Finish reason correctly mapped for all finishReason values
 - [ ] `ik_google_parse_error()` maps HTTP status to category
 - [ ] Blocked prompts (`promptFeedback.blockReason`) return error
-- [ ] `ik_google_send_impl()` wired to vtable in google.c
+- [ ] `ik_google_start_request()` and `ik_google_start_stream()` wired to vtable in google.c
 - [ ] Makefile updated with response.c
 - [ ] All response parsing tests pass
 - [ ] Changes committed to git with message: `task: google-response.md - <summary>`

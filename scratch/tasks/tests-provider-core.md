@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** provider-factory.md, error-core.md, credentials-core.md, tests-mock-infrastructure.md
+**Depends on:** provider-factory.md, error-core.md, credentials-core.md, vcr-core.md, vcr-mock-integration.md
 
 ## Context
 
@@ -476,16 +476,24 @@ END_TEST
 4. Missing key returns error
 5. Unknown provider returns error
 
-## Mock curl_multi Pattern
+## VCR (Video Cassette Recorder) Pattern
 
-Tests use MOCKABLE() wrappers for curl_multi functions:
-- `curl_multi_fdset_()` - Returns mock FDs
-- `curl_multi_perform_()` - Simulates progress, delivers data to write callbacks
-- `curl_multi_info_read_()` - Returns completion messages
+Tests use VCR infrastructure for HTTP recording/replay:
+- `vcr_next_chunk()` - Retrieves next HTTP response chunk from fixture
+- `vcr_has_more()` - Checks if more chunks available in playback
+- `vcr_record_chunk()` - Writes response chunk to fixture (record mode)
+- `vcr_record_response()` - Writes response metadata to fixture
 
-The mock harness simulates the fdset/perform/info_read cycle so tests can verify the async pattern works correctly without real network I/O.
+VCR hooks into MOCKABLE curl_multi wrappers to intercept HTTP traffic:
+- Playback mode (default): Reads JSONL fixtures, delivers chunks to curl write callbacks
+- Record mode (VCR_RECORD=1): Captures real API responses, writes to JSONL fixtures
 
-Reference: `scratch/plan/testing-strategy.md` for complete mock pattern documentation.
+The VCR layer simulates the fdset/perform/info_read cycle so tests can verify the async pattern works correctly without real network I/O.
+
+References:
+- `scratch/plan/vcr-cassettes.md` - Complete VCR design specification
+- `scratch/tasks/vcr-core.md` - VCR core infrastructure
+- `scratch/tasks/vcr-mock-integration.md` - Curl integration layer
 
 ## Postconditions
 

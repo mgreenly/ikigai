@@ -216,7 +216,7 @@ shim_completion_wrapper(completion, ctx):
 
 ### Mock Pattern
 
-Mock `ik_openai_multi_add_request` to inject test responses. Use existing mock infrastructure from tests-mock-infrastructure.md.
+Mock `ik_openai_multi_add_request` to inject test responses. Use VCR infrastructure from vcr-core.md (core recording/playback) and vcr-mock-integration.md (curl hook integration).
 
 ## Postconditions
 

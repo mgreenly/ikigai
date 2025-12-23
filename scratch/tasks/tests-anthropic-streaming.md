@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** anthropic-streaming.md, tests-anthropic-basic.md, tests-mock-infrastructure.md
+**Depends on:** anthropic-streaming.md, tests-anthropic-basic.md, vcr-core.md, vcr-mock-integration.md
 
 ## Context
 
@@ -115,6 +115,22 @@ START_TEST(test_basic_streaming)
 END_TEST
 ```
 
+## Recording Fixtures
+
+Before tests can run in playback mode, fixtures must be recorded from real API responses:
+
+1. **Ensure valid credentials** - `ANTHROPIC_API_KEY` environment variable must be set
+2. **Run in record mode**:
+   ```bash
+   VCR_RECORD=1 make build/tests/unit/providers/anthropic/test_anthropic_streaming
+   VCR_RECORD=1 ./build/tests/unit/providers/anthropic/test_anthropic_streaming
+   ```
+3. **Verify fixtures created** - Check `tests/fixtures/anthropic/*.jsonl` files exist
+4. **Verify no credentials leaked** - `grep -r "sk-ant-" tests/fixtures/anthropic/` returns nothing
+5. **Commit fixtures** - Fixtures are committed to git for deterministic CI runs
+
+**Note:** Fixtures only need re-recording when API behavior changes. Normal test runs use playback mode (VCR_RECORD unset).
+
 ## Interface
 
 **Test file to create:**
@@ -123,13 +139,13 @@ END_TEST
 |------|---------|
 | `tests/unit/providers/anthropic/test_anthropic_streaming.c` | Async streaming through provider vtable |
 
-**Fixture files to create:**
+**Fixture files (VCR JSONL format):**
 
 | File | Purpose |
 |------|---------|
-| `tests/fixtures/anthropic/stream_basic.txt` | SSE stream for basic completion |
-| `tests/fixtures/anthropic/stream_thinking.txt` | SSE stream with thinking deltas |
-| `tests/fixtures/anthropic/stream_tool_call.txt` | SSE stream with tool use |
+| `tests/fixtures/anthropic/stream_basic.jsonl` | SSE stream for basic completion |
+| `tests/fixtures/anthropic/stream_thinking.jsonl` | SSE stream with thinking deltas |
+| `tests/fixtures/anthropic/stream_tool_call.jsonl` | SSE stream with tool use |
 
 ## Mock curl_multi Requirements
 
@@ -228,7 +244,8 @@ data: {"type":"message_stop"}
 ## Postconditions
 
 - [ ] 1 test file with 20+ tests
-- [ ] 3 fixture files with valid SSE format (basic, thinking, tool_call)
+- [ ] 3 fixture files recorded with VCR_RECORD=1 (JSONL format)
+- [ ] No API keys in fixtures (verify: `grep -r "sk-ant-" tests/fixtures/anthropic/` returns empty)
 - [ ] All async patterns tested (fdset, perform, info_read)
 - [ ] All stream event types tested
 - [ ] Event sequence verified (START -> deltas -> DONE)

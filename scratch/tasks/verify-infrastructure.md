@@ -3,7 +3,7 @@
 **VERIFICATION TASK:** This task does not create code. It verifies previous tasks completed correctly.
 
 **Model:** sonnet/thinking
-**Depends on:** verify-foundation.md, tests-mock-infrastructure.md, tests-common-utilities.md, tests-provider-core.md
+**Depends on:** verify-foundation.md, vcr-core.md, vcr-mock-integration.md, tests-common-utilities.md, tests-provider-core.md
 
 ## Context
 
@@ -16,7 +16,8 @@ If any verification step fails, return `{"ok": false, "blocked_by": "<specific f
 ## Pre-Read
 
 Read these files to understand what was supposed to be created:
-- `scratch/tasks/tests-mock-infrastructure.md` - Mock curl_multi pattern
+- `scratch/tasks/vcr-core.md` - VCR core recording/playback infrastructure
+- `scratch/tasks/vcr-mock-integration.md` - VCR integration with curl mock system
 - `scratch/tasks/tests-common-utilities.md` - HTTP and SSE test utilities
 - `scratch/tasks/tests-provider-core.md` - Provider factory and vtable tests
 

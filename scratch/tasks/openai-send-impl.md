@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** openai-request-chat.md, openai-request-responses.md, openai-response-chat.md, openai-response-responses.md, http-client.md, provider-types.md
+**Depends on:** openai-core.md, openai-request-chat.md, openai-request-responses.md, openai-response-chat.md, openai-response-responses.md, http-client.md, provider-types.md
 
 ## Context
 

@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** google-streaming.md, tests-google-basic.md, tests-mock-infrastructure.md
+**Depends on:** google-streaming.md, tests-google-basic.md, vcr-core.md, vcr-mock-integration.md
 
 ## Context
 
@@ -17,7 +17,7 @@ All needed context is provided in this file. Do not research, explore, or spawn 
 ## Preconditions
 
 - [ ] Clean worktree (verify: `git status --porcelain` is empty)
-- [ ] Mock curl_multi infrastructure exists (from tests-mock-infrastructure.md)
+- [ ] VCR mock infrastructure exists (from vcr-core.md, vcr-mock-integration.md)
 - [ ] Google streaming implementation exists (from google-streaming.md)
 
 ## Pre-Read
@@ -41,6 +41,22 @@ All needed context is provided in this file. Do not research, explore, or spawn 
 
 Create tests for Google Gemini async streaming response handling. Tests must verify the fdset/perform/info_read cycle using mock curl_multi, ensuring stream events are delivered via callbacks during `perform()` calls. Validates JSON chunk parsing, thought part detection, and event normalization in an async context.
 
+## Recording Fixtures
+
+Before tests can run in playback mode, fixtures must be recorded from real API responses:
+
+1. **Ensure valid credentials** - `GOOGLE_API_KEY` environment variable must be set
+2. **Run in record mode**:
+   ```bash
+   VCR_RECORD=1 make build/tests/unit/providers/google/test_google_streaming
+   VCR_RECORD=1 ./build/tests/unit/providers/google/test_google_streaming
+   ```
+3. **Verify fixtures created** - Check `tests/fixtures/google/*.jsonl` files exist
+4. **Verify no credentials leaked** - `grep -r "AIza" tests/fixtures/google/` returns nothing
+5. **Commit fixtures** - Fixtures are committed to git for deterministic CI runs
+
+**Note:** Fixtures only need re-recording when API behavior changes. Normal test runs use playback mode (VCR_RECORD unset).
+
 ## Interface
 
 **Test file to create:**
@@ -49,13 +65,13 @@ Create tests for Google Gemini async streaming response handling. Tests must ver
 |------|---------|
 | `tests/unit/providers/google/test_google_streaming.c` | Async streaming with mock curl_multi |
 
-**Fixture files to create:**
+**Fixture files (VCR JSONL format):**
 
 | File | Purpose |
 |------|---------|
-| `tests/fixtures/google/stream_basic.txt` | Streaming response for basic completion |
-| `tests/fixtures/google/stream_thinking.txt` | Streaming response with thought parts |
-| `tests/fixtures/google/stream_tool_call.txt` | Streaming response with function call |
+| `tests/fixtures/google/stream_basic.jsonl` | Streaming response for basic completion |
+| `tests/fixtures/google/stream_thinking.jsonl` | Streaming response with thought parts |
+| `tests/fixtures/google/stream_tool_call.jsonl` | Streaming response with function call |
 
 ## Behaviors
 
@@ -198,7 +214,8 @@ END_TEST
 ## Postconditions
 
 - [ ] 1 test file with 21+ tests covering async behavior
-- [ ] 3 fixture files with valid streaming format
+- [ ] 3 fixture files recorded with VCR_RECORD=1 (JSONL format)
+- [ ] No API keys in fixtures (verify: `grep -r "AIza" tests/fixtures/google/` returns empty)
 - [ ] Async event loop tests verify fdset/perform/info_read cycle
 - [ ] Stream callbacks invoked during perform() verified
 - [ ] Thought part detection verified

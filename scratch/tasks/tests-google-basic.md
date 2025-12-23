@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** google-core.md, google-request.md, google-response.md, tests-mock-infrastructure.md
+**Depends on:** google-core.md, google-request.md, google-response.md, vcr-core.md, vcr-mock-integration.md
 
 ## Context
 
@@ -36,6 +36,22 @@ All needed context is provided in this file. Do not research, explore, or spawn 
 
 Create tests for Google Gemini provider adapter, request serialization, response parsing, and error handling. Covers both Gemini 2.5 (thinkingBudget) and Gemini 3.0 (thinkingLevel) thinking parameters.
 
+## Recording Fixtures
+
+Before tests can run in playback mode, fixtures must be recorded from real API responses:
+
+1. **Ensure valid credentials** - `GOOGLE_API_KEY` environment variable must be set
+2. **Run in record mode**:
+   ```bash
+   VCR_RECORD=1 make build/tests/unit/providers/google/test_google_adapter
+   VCR_RECORD=1 ./build/tests/unit/providers/google/test_google_adapter
+   ```
+3. **Verify fixtures created** - Check `tests/fixtures/google/*.jsonl` files exist
+4. **Verify no credentials leaked** - `grep -r "AIza" tests/fixtures/google/` returns nothing
+5. **Commit fixtures** - Fixtures are committed to git for deterministic CI runs
+
+**Note:** Fixtures only need re-recording when API behavior changes. Normal test runs use playback mode (VCR_RECORD unset).
+
 ## Interface
 
 **Test files to create:**
@@ -46,15 +62,15 @@ Create tests for Google Gemini provider adapter, request serialization, response
 | `tests/unit/providers/google/test_google_client.c` | Request serialization to Gemini API |
 | `tests/unit/providers/google/test_google_errors.c` | Error response parsing and mapping |
 
-**Fixture files to create:**
+**Fixture files (VCR JSONL format):**
 
 | File | Purpose |
 |------|---------|
-| `tests/fixtures/google/response_basic.json` | Standard completion response |
-| `tests/fixtures/google/response_thinking.json` | Response with thought=true parts |
-| `tests/fixtures/google/response_function_call.json` | Response with functionCall |
-| `tests/fixtures/google/error_auth.json` | 401/403 authentication error |
-| `tests/fixtures/google/error_rate_limit.json` | 429 rate limit error |
+| `tests/fixtures/google/response_basic.jsonl` | Standard completion response |
+| `tests/fixtures/google/response_thinking.jsonl` | Response with thought=true parts |
+| `tests/fixtures/google/response_function_call.jsonl` | Response with functionCall |
+| `tests/fixtures/google/error_auth.jsonl` | 401/403 authentication error |
+| `tests/fixtures/google/error_rate_limit.jsonl` | 429 rate limit error (synthetic) |
 
 ## Test Scenarios
 
@@ -144,7 +160,8 @@ END_TEST
 ## Postconditions
 
 - [ ] 3 test files created with 23+ tests total
-- [ ] 5 fixture files created with valid JSON
+- [ ] 5 fixture files recorded with VCR_RECORD=1 (JSONL format)
+- [ ] No API keys in fixtures (verify: `grep -r "AIza" tests/fixtures/google/` returns empty)
 - [ ] Both Gemini 2.5 and 3.0 thinking params tested
 - [ ] UUID generation for tool calls tested
 - [ ] Compiles without warnings

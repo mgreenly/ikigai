@@ -22,6 +22,7 @@
 **Source:**
 - `src/openai/client_msg.c` - Reference for message building patterns
 - `src/tool.h` - Tool definition structures
+- `src/agent.h` - Agent structure with model, system_prompt, conversation, tools, thinking_level
 
 **Plan:**
 - `scratch/plan/request-response-format.md` - Builder pattern specification
@@ -42,6 +43,7 @@ Create builder functions for constructing `ik_request_t` and working with `ik_re
 | `ik_request_add_message_blocks` | `res_t (ik_request_t *req, ik_role_t role, ik_content_block_t *blocks, size_t count)` | Add message with content blocks |
 | `ik_request_set_thinking` | `void (ik_request_t *req, ik_thinking_level_t level, bool include_summary)` | Configure thinking level |
 | `ik_request_add_tool` | `res_t (ik_request_t *req, const char *name, const char *description, yyjson_val *parameters, bool strict)` | Add tool definition |
+| `ik_request_build_from_conversation` | `res_t (TALLOC_CTX *ctx, ik_agent_ctx_t *agent, ik_request_t **out)` | Build complete request from agent state |
 
 ### Response Helper Functions
 
@@ -104,6 +106,21 @@ Create builder functions for constructing `ik_request_t` and working with `ik_re
 - Append to tools array
 - Return OK, ERR on allocation failure
 
+### Building Request from Conversation
+
+Build complete `ik_request_t` from agent state for provider submission:
+
+1. Create request with `agent->model`
+2. Set system prompt from `agent->system_prompt` (if non-NULL)
+3. Iterate `agent->conversation->messages`:
+   - Map each message role and content blocks to request messages
+   - Preserve tool calls and tool results
+4. Add tool definitions from `agent->tools` array (if any)
+5. Set thinking level from `agent->thinking_level`
+6. Return OK with populated request, ERR on allocation failure
+
+This function bridges the agent's conversation state to the normalized provider request format.
+
 ### Response Creation
 
 - Allocate empty response structure
@@ -161,6 +178,10 @@ tests/unit/providers/
 - Set thinking: Thinking config updated
 - Add tools: Tools array grows correctly
 - Memory lifecycle: Freeing request frees all child allocations
+- Build from conversation: Agent state converted to request
+- Build from conversation with system prompt: System prompt included
+- Build from conversation with tools: Tool definitions included
+- Build from conversation with thinking: Thinking level set
 
 ### Response Builder Tests (`response_test.c`)
 

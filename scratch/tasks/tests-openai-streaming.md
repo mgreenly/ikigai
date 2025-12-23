@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** openai-streaming-chat.md, tests-openai-basic.md, tests-mock-infrastructure.md
+**Depends on:** openai-streaming-chat.md, tests-openai-basic.md, vcr-core.md, vcr-mock-integration.md
 
 ## Context
 
@@ -25,7 +25,7 @@ Tests MUST verify the async fdset/perform/info_read pattern, not blocking behavi
 ## Preconditions
 
 - [ ] Clean worktree (verify: `git status --porcelain` is empty)
-- [ ] `tests-mock-infrastructure.md` complete (mock curl_multi available)
+- [ ] VCR mock infrastructure complete (vcr-core.md, vcr-mock-integration.md)
 - [ ] `openai-streaming-chat.md` complete (streaming implementation exists)
 
 ## Pre-Read
@@ -47,6 +47,22 @@ Tests MUST verify the async fdset/perform/info_read pattern, not blocking behavi
 ## Objective
 
 Create tests for OpenAI async streaming event handling. Tests MUST use mock curl_multi and exercise the fdset/perform/info_read cycle. Verifies SSE parsing, delta accumulation, tool call argument streaming, and event normalization through the async pattern.
+
+## Recording Fixtures
+
+Before tests can run in playback mode, fixtures must be recorded from real API responses:
+
+1. **Ensure valid credentials** - `OPENAI_API_KEY` environment variable must be set
+2. **Run in record mode**:
+   ```bash
+   VCR_RECORD=1 make build/tests/unit/providers/openai/test_openai_streaming
+   VCR_RECORD=1 ./build/tests/unit/providers/openai/test_openai_streaming
+   ```
+3. **Verify fixtures created** - Check `tests/fixtures/openai/*.jsonl` files exist
+4. **Verify no credentials leaked** - `grep -r "sk-" tests/fixtures/openai/` returns nothing
+5. **Commit fixtures** - Fixtures are committed to git for deterministic CI runs
+
+**Note:** Fixtures only need re-recording when API behavior changes. Normal test runs use playback mode (VCR_RECORD unset).
 
 ## Async Test Pattern
 
@@ -89,13 +105,13 @@ assert(events.items[events.count-1].type == IK_STREAM_DONE);
 |------|---------|
 | `tests/unit/providers/openai/test_openai_streaming.c` | Async SSE streaming response handling |
 
-**Fixture files to create:**
+**Fixture files (VCR JSONL format):**
 
 | File | Purpose |
 |------|---------|
-| `tests/fixtures/openai/stream_basic.txt` | SSE stream for basic completion |
-| `tests/fixtures/openai/stream_tool_call.txt` | SSE stream with tool call |
-| `tests/fixtures/openai/stream_reasoning.txt` | SSE stream from reasoning model |
+| `tests/fixtures/openai/stream_basic.jsonl` | SSE stream for basic completion |
+| `tests/fixtures/openai/stream_tool_call.jsonl` | SSE stream with tool call |
+| `tests/fixtures/openai/stream_reasoning.jsonl` | SSE stream from reasoning model |
 
 ## Normalized Event Types
 
@@ -218,7 +234,8 @@ static res_t completion_cb(const ik_provider_completion_t *completion, void *ctx
 ## Postconditions
 
 - [ ] 1 test file with 21+ tests
-- [ ] 3 fixture files with valid SSE format
+- [ ] 3 fixture files recorded with VCR_RECORD=1 (JSONL format)
+- [ ] No API keys in fixtures (verify: `grep -r "sk-" tests/fixtures/openai/` returns empty)
 - [ ] All tests use async fdset/perform/info_read pattern
 - [ ] Tool call argument accumulation verified
 - [ ] Event normalization verified

@@ -37,7 +37,7 @@ Define the shim context structure and factory function signature for the OpenAI 
 
 | Struct | Members | Purpose |
 |--------|---------|---------|
-| `ik_openai_shim_ctx_t` | creds (ik_credentials_t*), api_key (char*) | Holds OpenAI-specific context for vtable callbacks |
+| `ik_openai_shim_ctx_t` | creds (ik_credentials_t*), api_key (char*), multi (ik_openai_multi_t*) | Holds OpenAI-specific context for vtable callbacks |
 
 ### Functions to Declare
 
@@ -58,6 +58,7 @@ Define the shim context structure and factory function signature for the OpenAI 
 - Obtain API key via `ik_credentials_get(creds, "openai")`
 - Return ERR_MISSING_CREDENTIALS if key not found
 - Store API key in context
+- Initialize multi-handle: `ik_openai_multi_create(shim, &shim->multi)`
 - Create provider with vtable pointing to stub send/stream functions
 - Stub send/stream return `ERR(ctx, ERR_NOT_IMPLEMENTED, "Not yet implemented")`
 

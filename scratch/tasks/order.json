@@ -97,17 +97,35 @@
       "thinking": "thinking"
     },
     {
+      "task": "vcr-core.md",
+      "group": "VCR Infrastructure",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "vcr-mock-integration.md",
+      "group": "VCR Infrastructure",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "vcr-fixtures-setup.md",
+      "group": "VCR Infrastructure",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "vcr-precommit-hook.md",
+      "group": "VCR Infrastructure",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
       "task": "verify-mocks-providers.md",
       "group": "Testing",
       "model": "sonnet",
       "thinking": "none",
-      "note": "VCR-style: Records cassettes from real APIs before mock infrastructure"
-    },
-    {
-      "task": "tests-mock-infrastructure.md",
-      "group": "Testing",
-      "model": "sonnet",
-      "thinking": "thinking"
+      "note": "VCR-style: Records cassettes from real APIs using VCR infrastructure"
     },
     {
       "task": "tests-common-utilities.md",
@@ -384,6 +402,12 @@
       "group": "Testing",
       "model": "sonnet",
       "thinking": "extended"
+    },
+    {
+      "task": "vcr-makefile.md",
+      "group": "VCR Infrastructure",
+      "model": "sonnet",
+      "thinking": "none"
     }
   ]
 }

@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** openai-core.md, openai-request-chat.md, openai-response-chat.md, tests-mock-infrastructure.md
+**Depends on:** openai-core.md, openai-request-chat.md, openai-response-chat.md, vcr-core.md, vcr-mock-integration.md
 
 ## Context
 
@@ -45,6 +45,22 @@ Tests MUST exercise the async fdset/perform/info_read pattern, not blocking patt
 
 Create tests for OpenAI provider adapter, request serialization, response parsing, and error handling. Covers both standard GPT models and o-series reasoning models. All tests use the async curl_multi mock pattern.
 
+## Recording Fixtures
+
+Before tests can run in playback mode, fixtures must be recorded from real API responses:
+
+1. **Ensure valid credentials** - `OPENAI_API_KEY` environment variable must be set
+2. **Run in record mode**:
+   ```bash
+   VCR_RECORD=1 make build/tests/unit/providers/openai/test_openai_adapter
+   VCR_RECORD=1 ./build/tests/unit/providers/openai/test_openai_adapter
+   ```
+3. **Verify fixtures created** - Check `tests/fixtures/openai/*.jsonl` files exist
+4. **Verify no credentials leaked** - `grep -r "sk-" tests/fixtures/openai/` returns nothing
+5. **Commit fixtures** - Fixtures are committed to git for deterministic CI runs
+
+**Note:** Fixtures only need re-recording when API behavior changes. Normal test runs use playback mode (VCR_RECORD unset).
+
 ## Interface
 
 **Test files to create:**
@@ -55,15 +71,15 @@ Create tests for OpenAI provider adapter, request serialization, response parsin
 | `tests/unit/providers/openai/test_openai_client.c` | Request serialization to Chat Completions API |
 | `tests/unit/providers/openai/test_openai_errors.c` | Error response parsing and mapping |
 
-**Fixture files to create:**
+**Fixture files (VCR JSONL format):**
 
 | File | Purpose |
 |------|---------|
-| `tests/fixtures/openai/response_basic.json` | Standard chat completion response |
-| `tests/fixtures/openai/response_tool_call.json` | Response with tool_calls array |
-| `tests/fixtures/openai/response_reasoning.json` | Response from o-series model |
-| `tests/fixtures/openai/error_auth.json` | 401 authentication error |
-| `tests/fixtures/openai/error_rate_limit.json` | 429 rate limit error |
+| `tests/fixtures/openai/response_basic.jsonl` | Standard chat completion response |
+| `tests/fixtures/openai/response_tool_call.jsonl` | Response with tool_calls array |
+| `tests/fixtures/openai/response_reasoning.jsonl` | Response from o-series model |
+| `tests/fixtures/openai/error_auth.jsonl` | 401 authentication error |
+| `tests/fixtures/openai/error_rate_limit.jsonl` | 429 rate limit error (synthetic) |
 
 ## Test Scenarios
 
@@ -142,7 +158,8 @@ END_TEST
 ## Postconditions
 
 - [ ] 3 test files created with 27+ tests total
-- [ ] 5 fixture files created with valid JSON
+- [ ] 5 fixture files recorded with VCR_RECORD=1 (JSONL format)
+- [ ] No API keys in fixtures (verify: `grep -r "sk-" tests/fixtures/openai/` returns empty)
 - [ ] Async tests use fdset/perform/info_read pattern (not blocking send)
 - [ ] Mock curl_multi functions used (not curl_easy)
 - [ ] Callbacks receive responses via ik_http_completion_t
