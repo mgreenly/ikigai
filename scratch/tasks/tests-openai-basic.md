@@ -128,7 +128,7 @@ END_TEST
 
 - start_request with mock response triggers callback on info_read
 - start_request with mock HTTP error triggers callback with error
-- Callback receives response via ik_http_completion_t
+- Callback receives response via ik_provider_completion_t
 - Event loop drives fdset/perform/info_read cycle
 
 **Request Serialization Tests (7 tests):**
@@ -464,7 +464,7 @@ This may occur with o-series models or very large contexts. Consider simplifying
 - [ ] No API keys in fixtures (verify: `grep -r "sk-" tests/fixtures/openai/` returns empty)
 - [ ] Async tests use fdset/perform/info_read pattern (not blocking send)
 - [ ] Mock curl_multi functions used (not curl_easy)
-- [ ] Callbacks receive responses via ik_http_completion_t
+- [ ] Callbacks receive responses via ik_provider_completion_t
 - [ ] Both GPT and o-series models tested
 - [ ] Reasoning effort mapping tested
 - [ ] Tool call argument parsing tested

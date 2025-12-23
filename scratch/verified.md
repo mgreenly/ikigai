@@ -43,3 +43,11 @@ Gaps identified during task review that have been fixed.
 **Issue:** Step 7 (HTTP Client API) didn't verify `ik_http_completion_t` struct. Step 12 referenced it with wrong fields (success, http_status, response - which are `ik_provider_completion_t` fields).
 
 **Fix:** Added `ik_http_completion_t` check to Step 7 with correct fields per http-client.md. Updated Step 12 to reference Step 7 instead of listing wrong fields.
+
+### Wrong completion type in provider interface tests
+
+**Files:** `scratch/tasks/tests-openai-basic.md`, `scratch/tasks/tests-common-utilities.md`
+
+**Issue:** tests-openai-basic.md said provider callbacks receive `ik_http_completion_t` but provider vtable callbacks deliver `ik_provider_completion_t`. tests-common-utilities.md example had wrong field names for `ik_http_completion_t`.
+
+**Fix:** Changed tests-openai-basic.md to use `ik_provider_completion_t`. Fixed tests-common-utilities.md callback example to match actual `ik_http_completion_t` fields.
