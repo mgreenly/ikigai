@@ -77,19 +77,19 @@ Add these convenience targets to the Makefile:
 
 .PHONY: vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all
 
-vcr-record-openai:
+vcr-record-openai: $(BUILDDIR)/tests/unit/providers/openai
 	@echo "Recording OpenAI fixtures (requires OPENAI_API_KEY)..."
 	VCR_RECORD=1 $(BUILDDIR)/tests/unit/providers/openai
 
-vcr-record-anthropic:
+vcr-record-anthropic: $(BUILDDIR)/tests/unit/providers/anthropic
 	@echo "Recording Anthropic fixtures (requires ANTHROPIC_API_KEY)..."
 	VCR_RECORD=1 $(BUILDDIR)/tests/unit/providers/anthropic
 
-vcr-record-google:
+vcr-record-google: $(BUILDDIR)/tests/unit/providers/google
 	@echo "Recording Google fixtures (requires GOOGLE_API_KEY)..."
 	VCR_RECORD=1 $(BUILDDIR)/tests/unit/providers/google
 
-vcr-record-all: vcr-record-openai vcr-record-anthropic vcr-record-google
+vcr-record-all: $(BUILDDIR)/tests/unit/providers/openai $(BUILDDIR)/tests/unit/providers/anthropic $(BUILDDIR)/tests/unit/providers/google
 	@echo "All fixtures re-recorded"
 ```
 

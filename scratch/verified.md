@@ -61,3 +61,8 @@ Fixed gaps - do not re-investigate.
 **Location:** `scratch/tasks/provider-types.md`, `scratch/tasks/anthropic-core.md`, `scratch/tasks/google-core.md`, `scratch/tasks/openai-core.md`
 **Problem:** No documentation for handling incompatible thinking level + model combinations (e.g., thinking on non-thinking model, or NONE on model requiring thinking).
 **Fix:** Added "Thinking Configuration Validation" section to provider-types.md with validation rules, provider-specific examples (OpenAI o1/o3, Anthropic Claude, Google Gemini 2.5/3.0), and standardized error messages (ERR_INVALID_ARG).
+
+### 2024-12-22: VCR Makefile Target Missing Dependencies
+**Location:** `scratch/tasks/vcr-makefile.md`
+**Problem:** vcr-record-* targets ran test binaries without declaring them as dependencies. Running `make vcr-record-openai` would fail if tests weren't built first.
+**Fix:** Added test binary dependencies to all vcr-record-* targets (openai, anthropic, google) and vcr-record-all. Make will now auto-build binaries before recording.
