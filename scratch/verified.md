@@ -76,3 +76,8 @@ Fixed gaps - do not re-investigate.
 **Location:** `scratch/tasks/repl-streaming-updates.md`
 **Problem:** Current REPL uses old callbacks (const char *chunk, ik_http_completion_t) but new provider abstraction uses different signatures (ik_stream_event_t, ik_provider_completion_t). Migration path was unclear.
 **Fix:** Added "Callback Signature Migration" section with: OLD vs NEW signature comparison, key differences explained, migration notes for REPL code, OpenAI shim translation behavior.
+
+### 2024-12-22: Configuration API Migration Strategy Missing
+**Location:** `scratch/tasks/configuration.md`
+**Problem:** ik_cfg_load() signature change affects 130+ files (65+ call sites, type rename everywhere). No migration strategy documented, risked broken build.
+**Fix:** Added comprehensive migration strategy: ATOMIC change requirement, ik_cfg_t→ik_config_t type rename docs, complete file lists, sed automation commands, 4-phase implementation order, verification checklist.
