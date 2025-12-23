@@ -151,7 +151,7 @@ Messages and system prompts are composed of content blocks.
 | input_tokens | int32_t | Prompt tokens |
 | output_tokens | int32_t | Generated tokens (excluding thinking) |
 | thinking_tokens | int32_t | Reasoning/thinking tokens (if separate) |
-| cached_tokens | int32_t | Cached input tokens (if reported) |
+| cached_tokens | int32_t | Cached input tokens (sum of cache_creation + cache_read) |
 | total_tokens | int32_t | Sum of above |
 
 ## Provider Mapping Examples
