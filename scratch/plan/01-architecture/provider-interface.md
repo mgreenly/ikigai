@@ -352,10 +352,15 @@ Error structures include:
 ## Common Utilities
 
 ### Credentials Loading
-**ik_credentials_load()** - Load API key for provider
-- Checks environment variable first ({PROVIDER}_API_KEY)
-- Falls back to credentials.json file
-- Returns allocated key string on success
+**ik_credentials_load()** - Load all credentials from environment and file
+- Loads credentials from all sources (environment variables and credentials.json)
+- Environment variables take precedence over file values
+- Returns credentials object containing all provider keys
+
+**ik_credentials_get()** - Look up specific provider's API key
+- Takes credentials object and provider name
+- Returns key string for the provider, or NULL if not found
+- Simple lookup, no I/O operations
 
 ### Environment Variable Names
 **ik_provider_env_var()** - Get environment variable name for provider

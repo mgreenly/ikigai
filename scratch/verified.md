@@ -151,3 +151,11 @@ Gaps identified during task review that have been fixed.
 **Issue:** Inconsistent model name formats - some used `claude-sonnet-4-5-20250929`, others used `claude-sonnet-4-20250514` (missing "4-5" version).
 
 **Fix:** Standardized all 11 instances to use `claude-sonnet-4-5-20250514` across 5 files.
+
+### Credentials loading function description aligned with two-function design
+
+**Files:** `scratch/plan/01-architecture/provider-interface.md`
+
+**Issue:** Description said `ik_credentials_load()` loads "API key for provider" (singular), but configuration.md shows a two-function design where load() gets ALL credentials and get() looks up specific provider.
+
+**Fix:** Updated credentials loading section to document both functions: `ik_credentials_load()` (loads all) and `ik_credentials_get()` (lookup by provider).
