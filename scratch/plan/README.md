@@ -44,6 +44,20 @@ This release REPLACES old OpenAI code, tests, and fixtures through a phased migr
 - Delete old unit/integration tests for OpenAI client
 - Delete old fixtures in non-VCR format (`tests/fixtures/openai/`, etc.)
 
+**Phase 2 Prerequisites (DO NOT start deletion until ALL verified):**
+
+- [ ] `make test` passes with new provider abstraction
+- [ ] All VCR tests for OpenAI provider pass
+- [ ] All VCR tests for Anthropic provider pass
+- [ ] All VCR tests for Google provider pass
+- [ ] `/model claude-sonnet-4-5/med` successfully sends message and receives response
+- [ ] `/model gpt-4o` successfully sends message and receives response
+- [ ] `/model gemini-2.5-pro/med` successfully sends message and receives response
+- [ ] `/fork --model` creates child agent with correct provider
+- [ ] `grep -r "openai/client" src/` returns only `src/providers/openai/` paths
+- [ ] No production code imports from `src/openai/` (old location)
+- [ ] Makefile updated to build from `src/providers/` only
+
 **End State:**
 - **Code:** New provider abstraction in `src/providers/` (including `src/providers/openai/`)
 - **Tests:** VCR-based tests only
