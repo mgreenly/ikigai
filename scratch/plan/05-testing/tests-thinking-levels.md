@@ -249,8 +249,8 @@ Tests must verify that changing thinking level mid-session works correctly:
 - Gemini 1.5: thinking experimental/unavailable
 
 **Invalid Configurations:**
-- Negative thinking level: returns ERR_INVALID
-- Unknown thinking level: returns ERR_INVALID
+- Negative thinking level: returns IK_ERR_CAT_INVALID_ARG
+- Unknown thinking level: returns IK_ERR_CAT_INVALID_ARG
 - Thinking on non-thinking model: silently skipped
 
 ## Directory Structure
@@ -428,7 +428,7 @@ tests/fixtures/vcr/
 **Invalid Thinking Level:**
 1. Create request with invalid thinking level (-1)
 2. Attempt to serialize
-3. Verify returns ERR_INVALID
+3. Verify returns IK_ERR_CAT_INVALID_ARG
 4. Assert: invalid level rejected
 
 **Streaming Thinking Content:**

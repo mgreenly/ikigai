@@ -253,11 +253,11 @@ For streaming responses, each `_chunk` line contains exactly what curl's write c
 
 ### Authentication Errors
 
-Tests verify that authentication failures (HTTP 401) are properly mapped to ERR_AUTH category with appropriate error messages. Mock responses return auth error fixtures with invalid API key scenarios.
+Tests verify that authentication failures (HTTP 401) are properly mapped to IK_ERR_CAT_AUTH category with appropriate error messages. Mock responses return auth error fixtures with invalid API key scenarios.
 
 ### Rate Limit Errors
 
-Tests verify that rate limit responses (HTTP 429) are mapped to ERR_RATE_LIMIT category. Mock responses include retry-after headers, and tests verify that retry_after_ms is correctly extracted and converted to milliseconds.
+Tests verify that rate limit responses (HTTP 429) are mapped to IK_ERR_CAT_RATE_LIMIT category. Mock responses include retry-after headers, and tests verify that retry_after_ms is correctly extracted and converted to milliseconds.
 
 ## Thinking Level Testing
 

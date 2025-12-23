@@ -94,10 +94,10 @@ Contract validation ensures our implementation stays aligned with the real API a
 - Finish reason: extracted from message_delta event
 
 **Error Response Validation:**
-- HTTP 401: maps to ERR_AUTH with api key error message
-- HTTP 429: maps to ERR_RATE_LIMIT with retry_after extracted from headers
-- HTTP 400: maps to ERR_INVALID_ARG with validation error details
-- HTTP 500: maps to ERR_SERVER with server error details
+- HTTP 401: maps to IK_ERR_CAT_AUTH with api key error message
+- HTTP 429: maps to IK_ERR_CAT_RATE_LIMIT with retry_after extracted from headers
+- HTTP 400: maps to IK_ERR_CAT_INVALID_ARG with validation error details
+- HTTP 500: maps to IK_ERR_CAT_SERVER with server error details
 - Error details: preserve provider error type and message
 
 ### Test Request Fixtures
@@ -242,21 +242,21 @@ tests/contract_validations/
 1. Load VCR cassette: `test_contract_error_auth.jsonl` (401 response)
 2. Create request with invalid API key
 3. Send through provider
-4. Verify: result is ERR_AUTH, error message preserved
+4. Verify: result is IK_ERR_CAT_AUTH, error message preserved
 5. Assert: authentication errors mapped correctly
 
 ### Rate Limit Error Contract
 1. Load VCR cassette: `test_contract_error_rate_limit.jsonl` (429 response)
 2. Create request that triggers rate limit
 3. Send through provider
-4. Verify: result is ERR_RATE_LIMIT, retry_after extracted
+4. Verify: result is IK_ERR_CAT_RATE_LIMIT, retry_after extracted
 5. Assert: rate limit handling matches API contract
 
 ### Invalid Request Error Contract
 1. Load VCR cassette: `test_contract_error_invalid_request.jsonl` (400 response)
 2. Create request with invalid parameters
 3. Send through provider
-4. Verify: result is ERR_INVALID_ARG, validation error details preserved
+4. Verify: result is IK_ERR_CAT_INVALID_ARG, validation error details preserved
 5. Assert: client errors mapped correctly
 
 ### Multi-Turn Contract

@@ -535,11 +535,11 @@ The `src/client.c` file contains the main() entry point for the REPL application
 
 Providers return errors through standard `res_t` mechanism with appropriate error codes:
 
-- `ERR_AUTH` - Invalid or missing API key (401 status)
-- `ERR_RATE_LIMIT` - Rate limit exceeded (429 status)
-- `ERR_NETWORK` - Connection failures, timeouts
-- `ERR_INVALID_ARG` - Bad request / validation error (400)
-- `ERR_SERVER` - Server error (500, 502, 503)
+- `IK_ERR_CAT_AUTH` - Invalid or missing API key (401 status)
+- `IK_ERR_CAT_RATE_LIMIT` - Rate limit exceeded (429 status)
+- `IK_ERR_CAT_NETWORK` - Connection failures, timeouts
+- `IK_ERR_CAT_INVALID_ARG` - Bad request / validation error (400)
+- `IK_ERR_CAT_SERVER` - Server error (500, 502, 503)
 
 Error messages include actionable guidance such as credential setup URLs and retry timing.
 

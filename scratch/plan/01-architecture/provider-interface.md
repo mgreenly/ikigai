@@ -329,15 +329,15 @@ ik_provider_t *ik_provider_get_or_create(TALLOC_CTX *ctx, ik_agent_ctx_t *agent)
 
 ### Error Categories
 Providers must map HTTP and API errors to these categories:
-- ERR_AUTH - Invalid credentials (401)
-- ERR_RATE_LIMIT - Rate limit exceeded (429)
-- ERR_INVALID_ARG - Bad request (400)
-- ERR_NOT_FOUND - Model not found (404)
-- ERR_SERVER - Server error (500, 502, 503)
-- ERR_TIMEOUT - Request timeout
-- ERR_CONTENT_FILTER - Content policy violation
-- ERR_NETWORK - Network/connection error
-- ERR_UNKNOWN - Other errors
+- IK_ERR_CAT_AUTH - Invalid credentials (401)
+- IK_ERR_CAT_RATE_LIMIT - Rate limit exceeded (429)
+- IK_ERR_CAT_INVALID_ARG - Bad request (400)
+- IK_ERR_CAT_NOT_FOUND - Model not found (404)
+- IK_ERR_CAT_SERVER - Server error (500, 502, 503)
+- IK_ERR_CAT_TIMEOUT - Request timeout
+- IK_ERR_CAT_CONTENT_FILTER - Content policy violation
+- IK_ERR_CAT_NETWORK - Network/connection error
+- IK_ERR_CAT_UNKNOWN - Other errors
 
 See [02-data-formats/error-handling.md](../02-data-formats/error-handling.md) for full mapping tables.
 
