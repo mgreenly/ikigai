@@ -27,3 +27,19 @@ Gaps that have been reviewed and fixed. Do not re-investigate these.
 **Fix:** Changed `agent-provider-fields.md` from "Enums to define:" to "Enums to use:" with explicit reference to `src/providers/provider.h` (defined by provider-types.md). The enum is now defined ONLY in provider-types.md.
 
 **Impact:** No duplicate definition - enum defined once in provider-types.md, referenced elsewhere.
+
+### 2024-12-22: ik_infer_provider() Circular Dependency (CRITICAL)
+
+**Location:** `scratch/tasks/model-command.md`, `scratch/tasks/agent-provider-fields.md`, `scratch/tasks/provider-types.md`
+
+**Problem:** Circular dependency between tasks:
+- `agent-provider-fields.md` referenced `ik_infer_provider()` from `model-command.md`
+- `model-command.md` depended on `agent-provider-fields.md`
+- Neither task could be implemented first
+
+**Fix:** Moved `ik_infer_provider()` function definition to `provider-types.md` (the foundation task):
+- Added function spec to provider-types.md with model prefix mappings
+- Updated agent-provider-fields.md to reference provider-types.md
+- Updated model-command.md to use function from provider-types.md instead of defining it
+
+**Impact:** Dependency chain is now linear: provider-types.md → agent-provider-fields.md → model-command.md

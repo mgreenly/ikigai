@@ -1,7 +1,7 @@
 # Task: Update /model Command
 
 **Model:** sonnet/thinking
-**Depends on:** agent-provider-fields.md, configuration.md
+**Depends on:** agent-provider-fields.md, configuration.md, provider-types.md
 
 ## Context
 
@@ -39,7 +39,8 @@ Functions to implement:
 | `res_t cmd_model_parse(const char *input, char **model, char **thinking)` | Parse MODEL/THINKING syntax, returns OK/ERR |
 | `res_t ik_model_supports_thinking(const char *model, bool *supports)` | Check if model supports extended thinking |
 | `res_t ik_model_get_thinking_budget(const char *model, int32_t *budget)` | Get max thinking tokens for model, 0 if unsupported |
-| `res_t ik_infer_provider(const char *model, const char **provider)` | Infer provider from model name prefix |
+
+**Note:** This task uses `ik_infer_provider()` from `provider-types.md` for provider inference.
 
 Structs to define:
 
@@ -63,12 +64,9 @@ Data structures to create:
 - Return ERR_INVALID_ARG for malformed input
 
 **Provider Inference:**
-- Match model prefix to provider:
-  - `claude-*` -> "anthropic"
-  - `gpt-*` or `o1*` or `o3*` -> "openai"
-  - `gemini-*` -> "google"
-- Use longest matching prefix
-- Return ERR_NOT_FOUND for unknown prefixes
+- Use `ik_infer_provider()` from provider-types.md
+- Returns NULL for unknown models
+- Handle NULL return by returning ERR_NOT_FOUND
 
 **Model Capability Lookup:**
 - Search MODEL_CAPABILITIES array by prefix matching

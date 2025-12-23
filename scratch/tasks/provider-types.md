@@ -181,6 +181,20 @@ Provider-specific errors (auth failures, rate limits, etc.) are delivered via th
 
 All structs use talloc patterns. No direct malloc/free. Provider implementations store opaque context in `impl_ctx`.
 
+## Functions to Define
+
+In `src/providers/provider.h`:
+
+| Function | Signature | Purpose |
+|----------|-----------|---------|
+| `ik_infer_provider` | `const char *ik_infer_provider(const char *model_name)` | Infer provider name from model prefix. Returns "openai" for "gpt-*", "o1-*", "o3-*"; "anthropic" for "claude-*"; "google" for "gemini-*". Returns NULL for unknown models. |
+
+**Model prefix to provider mapping:**
+- `gpt-*`, `o1-*`, `o3-*` → "openai"
+- `claude-*` → "anthropic"
+- `gemini-*` → "google"
+- Unknown → NULL
+
 ## Directory Structure
 
 ```

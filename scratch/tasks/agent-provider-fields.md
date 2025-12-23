@@ -1,7 +1,7 @@
 # Task: Add Provider Fields to Agent Context
 
 **Model:** sonnet/thinking
-**Depends on:** provider-types.md, database-migration.md, configuration.md, model-command.md
+**Depends on:** provider-types.md, database-migration.md, configuration.md
 
 ## Context
 
@@ -44,7 +44,7 @@ Functions to implement:
 | `res_t ik_agent_restore_from_row(ik_agent_ctx_t *agent, ik_db_agent_row_t *row)` | Populate agent from database row |
 | `res_t ik_agent_get_provider(ik_agent_ctx_t *agent, ik_provider_t **out)` | Get or create provider instance (lazy-loaded, cached) |
 
-**Note:** This task uses `ik_infer_provider()` from `model-command.md` to map model names to provider names.
+**Note:** This task uses `ik_infer_provider()` from `provider-types.md` to map model names to provider names.
 
 Structs to update:
 
