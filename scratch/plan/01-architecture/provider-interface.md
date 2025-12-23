@@ -240,7 +240,7 @@ Each provider maintains its own context structure containing:
 - Optional rate limit tracking state
 
 ### Ownership
-Context is talloc-allocated and owned by the provider wrapper. Cleaned up when provider is freed.
+Context is talloc-allocated as a child of the agent context. The agent owns the provider; freeing the agent automatically frees the provider. On model switch, the old provider is explicitly freed before the new one is created.
 
 ## Factory Functions
 

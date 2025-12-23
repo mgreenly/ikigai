@@ -71,6 +71,23 @@ When `/model` is executed, the following steps occur:
 5. Invalidate any cached provider instance (will be recreated on next use)
 6. Persist the updated agent state to the database
 
+### Provider Lifecycle on Model Switch
+
+When the model changes, provider memory is managed as follows:
+
+1. **Ownership:** Agent owns provider via talloc (`agent->provider` is child of agent context)
+2. **Cleanup:** Before updating model fields, free existing provider:
+   ```c
+   if (agent->provider) {
+       talloc_free(agent->provider);
+       agent->provider = NULL;
+   }
+   ```
+3. **Lazy recreation:** New provider created by `ik_provider_get_or_create()` on next LLM request
+4. **In-flight safety:** Model switch is rejected if requests are active (see "Model Switch During Active Request")
+
+This ensures no memory leaks and no dangling pointers during provider transitions.
+
 ### User Feedback
 
 See [thinking-abstraction.md](thinking-abstraction.md#user-feedback) for feedback format.
