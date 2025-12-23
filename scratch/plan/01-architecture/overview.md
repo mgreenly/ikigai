@@ -282,8 +282,8 @@ The existing pattern in `src/repl.c` (calling `ik_openai_multi_*` functions) bec
 Agent structure extended with:
 - `provider` - String identifying provider (e.g., "anthropic")
 - `model` - Model name within provider's namespace
-- `thinking_level` - Normalized thinking level (LOW/MED/HIGH/MAX)
-- `provider` - Cached provider handle (NULL until first use)
+- `thinking_level` - Normalized thinking level (NONE/LOW/MED/HIGH)
+- `provider_ctx` - Cached provider handle (NULL until first use)
 
 ### Database Schema Changes
 
