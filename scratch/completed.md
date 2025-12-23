@@ -10,3 +10,4 @@
 - 2.4 Doc Sync: Plan Diagram - updated 03-provider-types.md with async vtable pattern diagram showing provider structure, vtable methods, and async data flow (from todo-2-provider-types.md)
 - 3.1 Missing: Provider Data Persistence - added provider_data handling to google-response.md and google-request.md for thought signatures (from todo-3-data-formats.md)
 - 3.2 Missing: Rate Limit Headers - decided on decentralized per-provider parsing due to divergent header formats (Anthropic/OpenAI headers vs Google JSON body) (from todo-3-data-formats.md)
+- 3.3 Clarify: ik_content_block_t - verified union type fully defined in provider-types.md with TEXT, TOOL_CALL, TOOL_RESULT, THINKING variants (from todo-3-data-formats.md)
