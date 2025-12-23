@@ -127,3 +127,11 @@ Gaps identified during task review that have been fixed.
 **Issue:** JSON example and transformation comment showed `43000` but correct value per formula and 03-provider-types.md is `43008`.
 
 **Fix:** Changed 43000 to 43008 in 2 places (lines 177 and 185).
+
+### Error category naming standardized to IK_ERR_CAT_* prefix
+
+**Files:** `scratch/plan/02-data-formats/error-handling.md`
+
+**Issue:** Error categories used inconsistent naming - some places used `ERR_AUTH`, others used `IK_ERR_CAT_CONTENT_FILTER`. Per project naming conventions, all enum values should use the `IK_ERR_CAT_*` prefix.
+
+**Fix:** Changed all 58 error category references from `ERR_*` to `IK_ERR_CAT_*` throughout the document (category list, provider mapping tables, retry strategy sections, utility function docs).
