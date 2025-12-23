@@ -7,3 +7,4 @@
 - 2.1 Missing: Google Thought Signatures - created google-thought-signatures.md documenting Gemini 3 thought signature handling (from todo-2-provider-types.md)
 - 2.2 Verify: OpenAI Streaming - verified openai-streaming-chat.md and openai-streaming-responses.md cover SSE, tool call streaming, delta accumulation, finish reasons, error handling (from todo-2-provider-types.md)
 - 2.3 Verify: Google Streaming - verified google-streaming.md covers SSE parsing, tool ID generation (22-char base64url), thinking content (thought:true flag), delta accumulation, finish reasons, error handling (from todo-2-provider-types.md)
+- 2.4 Doc Sync: Plan Diagram - updated 03-provider-types.md with async vtable pattern diagram showing provider structure, vtable methods, and async data flow (from todo-2-provider-types.md)
