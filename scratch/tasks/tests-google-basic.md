@@ -157,7 +157,7 @@ Please verify your GOOGLE_API_KEY is correct.
 **Error Mapping:**
 - API not enabled: `IK_ERR_CAT_AUTH` (configuration error)
 - Permission denied: `IK_ERR_CAT_AUTH` (insufficient permissions)
-- Quota exceeded: `IK_ERR_CAT_QUOTA` (billing/quota issue)
+- Quota exceeded: `IK_ERR_CAT_RATE_LIMIT` (billing/quota issue)
 
 **Google Error Status Values:**
 - `PERMISSION_DENIED` - API not enabled or insufficient permissions
@@ -342,7 +342,7 @@ This may occur with very long or complex requests. Consider simplifying the requ
 |-------------|---------------|---------------|--------|---------------------|
 | 401 | UNAUTHENTICATED | IK_ERR_CAT_AUTH | No | No |
 | 403 (API disabled) | PERMISSION_DENIED | IK_ERR_CAT_AUTH | No | No |
-| 403 (quota) | RESOURCE_EXHAUSTED | IK_ERR_CAT_QUOTA | No | No |
+| 403 (quota) | RESOURCE_EXHAUSTED | IK_ERR_CAT_RATE_LIMIT | No | No |
 | 429 | RESOURCE_EXHAUSTED | IK_ERR_CAT_RATE_LIMIT | Caller decides | Maybe |
 | 500 | INTERNAL | IK_ERR_CAT_SERVER | No | No |
 | 503 | UNAVAILABLE | IK_ERR_CAT_SERVER | Caller decides | Maybe |

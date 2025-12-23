@@ -253,10 +253,10 @@ END_TEST
 **Thinking Level Mapping:**
 | Level | Anthropic | OpenAI | Google 2.5 | Google 3.0 |
 |-------|-----------|--------|------------|------------|
-| none | - | - | - | - |
-| low | 1024 tokens | "low" | 1024 tokens | "low" |
-| medium | 4096 tokens | "medium" | 4096 tokens | "medium" |
-| high | 16384 tokens | "high" | 16384 tokens | "high" |
+| none | 1024 tokens | - | 128 tokens | - |
+| low | 22016 tokens | "low" | 11008 tokens | "low" |
+| medium | 43008 tokens | "medium" | 21888 tokens | "medium" |
+| high | 64000 tokens | "high" | 32768 tokens | "high" |
 
 **Async Streaming Verification:**
 - Mock `perform()` feeds SSE chunks to curl write callback incrementally

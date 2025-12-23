@@ -219,7 +219,7 @@ Please verify your ANTHROPIC_API_KEY is correct.
 
 **Error Mapping:**
 - Permission denied: `IK_ERR_CAT_AUTH` (insufficient permissions)
-- Quota exhausted: `IK_ERR_CAT_QUOTA` (credits exhausted)
+- Quota exhausted: `IK_ERR_CAT_RATE_LIMIT` (credits exhausted)
 
 **User-Facing Message Format:**
 ```
@@ -403,7 +403,7 @@ This may occur with very long or complex requests. Consider simplifying the requ
 |-------------|------------|---------------|--------|---------------------|
 | 401 | Authentication | IK_ERR_CAT_AUTH | No | No |
 | 403 (permission) | Permission denied | IK_ERR_CAT_AUTH | No | No |
-| 403 (quota) | Quota exhausted | IK_ERR_CAT_QUOTA | No | No |
+| 403 (quota) | Quota exhausted | IK_ERR_CAT_RATE_LIMIT | No | No |
 | 429 | Rate limit | IK_ERR_CAT_RATE_LIMIT | Caller decides | Yes (required) |
 | 500 | Server error | IK_ERR_CAT_SERVER | No | No |
 | 503 | Overloaded | IK_ERR_CAT_SERVER | Caller decides | Maybe |

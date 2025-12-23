@@ -53,3 +53,5 @@
 | HTTP layer replacement refs | `tasks/cleanup-openai-source.md`, `tasks/cleanup-openai-docs.md` | `http_handler.c/h` → `http_multi.c/h` for NEW replacement file references (4 changes) |
 | credentials-tests-integration dep | `tasks/credentials-tests-integration.md` | Added missing `credentials-migrate.md` dependency |
 | VCR fixture extension fix | `tasks/tests-openai-basic.md`, `tasks/tests-anthropic-basic.md`, `tasks/tests-google-basic.md`, `tasks/tests-provider-core.md`, `tasks/tests-integration-flows.md` | `load_fixture("*.json")` → `load_fixture("*.jsonl")` (5 changes across 5 files) |
+| Thinking budget values | `tasks/tests-integration-switching.md` | Anthropic: 1024→22016 (low), 4096→43008 (med), 16384→64000 (high); Google: 1024→11008 (low), 4096→21888 (med), 16384→32768 (high); added NONE values |
+| Invalid error enum | `tasks/tests-anthropic-basic.md`, `tasks/tests-google-basic.md` | `IK_ERR_CAT_QUOTA` → `IK_ERR_CAT_RATE_LIMIT` (4 occurrences) - QUOTA not in enum |
