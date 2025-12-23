@@ -28,7 +28,7 @@
 
 ## Objective
 
-Extend config.json to support multi-provider settings including default provider selection and per-provider defaults (model, thinking level). This task focuses on configuration structure only - credentials loading is handled by the separate credentials API implemented in credentials-core.md.
+Extend config.json to support multi-provider settings by adding default provider selection. Per-provider defaults (model, thinking level) are hardcoded in provider implementations, not stored in config files. This task focuses on configuration structure only - credentials loading is handled by the separate credentials API implemented in credentials-core.md.
 
 ## Interface
 
@@ -38,19 +38,25 @@ Functions to implement:
 |----------|---------|
 | `res_t ik_config_load(TALLOC_CTX *ctx, const char *path, ik_config_t **out)` | Load and parse config.json with new multi-provider format |
 | `const char *ik_config_get_default_provider(ik_config_t *config)` | Get default provider name with env var override support |
-| `res_t ik_config_get_provider_defaults(ik_config_t *config, const char *provider, ik_provider_defaults_t **out)` | Get defaults for specific provider |
 
 Structs to update:
 
 | Struct | Members | Purpose |
 |--------|---------|---------|
-| `ik_config_t` | db_connection_string, default_provider, providers_map | Main configuration including existing and new fields |
+| `ik_config_t` | `char *db_connection_string` - Database connection string (existing)<br>`char *default_provider` - Default provider name ("anthropic", "openai", "google") | Main configuration including existing and new fields |
 
-Structs to define:
+### Struct Definitions
 
-| Struct | Members | Purpose |
-|--------|---------|---------|
-| `ik_provider_defaults_t` | default_model, default_thinking | Per-provider default settings |
+**ik_config_t** - Main configuration struct:
+```c
+typedef struct {
+    char *db_connection_string;           // Existing field (unchanged)
+    char *default_provider;               // NEW: "anthropic", "openai", "google"
+    // ... other existing fields unchanged
+} ik_config_t;
+```
+
+**Note:** Per-provider defaults (model, thinking level) are hardcoded in provider implementations, not stored in the config struct.
 
 Files to update:
 
@@ -62,13 +68,11 @@ Files to update:
 ### Configuration Loading
 - Parse existing fields: `db_connection_string`, etc. (unchanged)
 - Parse new field: `default_provider` (string)
-- Parse new section: `providers` (object with per-provider settings)
-- Each provider entry contains: `default_model`, `default_thinking`
 - Return ERR_PARSE if JSON is malformed
 - Return OK with partial config if optional fields missing
 
 ### Backward Compatibility
-- Support old config format (no `default_provider` or `providers`)
+- Support old config format (no `default_provider`)
 - Fall back to hardcoded defaults if new fields missing
 - Emit warning if using deprecated format (optional)
 
@@ -78,21 +82,19 @@ Files to update:
 - Fall back to hardcoded default ("openai") if neither present
 - Return ERR_INVALID_ARG if provider name is empty string
 
-### Provider Defaults Lookup
-- Look up provider name in `providers` map
-- Return defaults if found
-- Return hardcoded defaults if provider not in config
-- Return ERR_INVALID_ARG if provider name is NULL
+### Provider Defaults
 
-### Hardcoded Fallback Defaults
+Per-provider defaults (model, thinking level) are hardcoded in provider implementations:
 - anthropic: model="claude-sonnet-4-5", thinking="med"
 - openai: model="gpt-4o", thinking="none"
 - google: model="gemini-2.5-flash", thinking="med"
 
+These defaults are NOT stored in config files. Config only specifies which provider to use by default.
+
 ### Memory Management
 - Config allocated on provided talloc context
-- All strings and nested objects allocated on config context
-- Caller owns returned config and provider_defaults
+- All strings allocated on config context
+- Caller owns returned config
 
 ### Environment Variable Override
 - `IKIGAI_DEFAULT_PROVIDER` overrides config file setting
@@ -105,23 +107,11 @@ Files to update:
 ```json
 {
   "db_connection_string": "postgresql://...",
-  "default_provider": "anthropic",
-  "providers": {
-    "anthropic": {
-      "default_model": "claude-sonnet-4-5",
-      "default_thinking": "med"
-    },
-    "openai": {
-      "default_model": "gpt-4o",
-      "default_thinking": "none"
-    },
-    "google": {
-      "default_model": "gemini-2.5-flash",
-      "default_thinking": "med"
-    }
-  }
+  "default_provider": "anthropic"
 }
 ```
+
+**Note:** Per-provider defaults (model, thinking level) are hardcoded in provider implementations. Config only specifies which provider to use by default.
 
 ### Legacy Format (backward compatible)
 ```json
@@ -142,7 +132,6 @@ Files to update:
 ### Configuration Loading
 - Load config with new format: returns OK with all fields
 - Load config with legacy format: returns OK with defaults
-- Load config with missing provider section: uses hardcoded defaults
 - Load malformed JSON: returns ERR_PARSE
 
 ### Default Provider Selection
@@ -151,11 +140,6 @@ Files to update:
 - Neither set: returns hardcoded default "openai"
 - Empty string in config: treated as unset, uses hardcoded default
 
-### Provider Defaults Lookup
-- Provider in config: returns configured defaults
-- Provider not in config: returns hardcoded defaults
-- NULL provider name: returns ERR_INVALID_ARG
-- Unknown provider: returns hardcoded generic defaults
 
 ### Backward Compatibility
 - Old config format loads successfully
@@ -447,10 +431,8 @@ Before committing the atomic migration, verify:
 
 ## Postconditions
 
-- [ ] Config loads new format with `default_provider` and `providers` section
+- [ ] Config loads new format with `default_provider`
 - [ ] `ik_config_get_default_provider()` returns correct value
-- [ ] `ik_config_get_provider_defaults()` returns correct values
-- [ ] Missing provider config falls back to hardcoded defaults
 - [ ] Existing config fields (db_connection_string, etc.) still work
 - [ ] `IKIGAI_DEFAULT_PROVIDER` env var overrides config file
 - [ ] Legacy config format still loads successfully

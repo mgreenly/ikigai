@@ -22,3 +22,4 @@ Fixed gaps - do not re-investigate.
 | 12-22 | Enum Prefix Inconsistency | provider-types.md | All enum values now use consistent prefixes: IK_ERR_CAT_, IK_FINISH_, IK_STREAM_, IK_CONTENT_, IK_TOOL_, IK_ROLE_, IK_THINKING_ |
 | 12-22 | Responses Callback Ownership | openai-streaming-responses.md | Removed completion_cb/ctx from stream context; completion callback passed to start_stream() vtable method (matches canonical pattern) |
 | 12-22 | Responses API Tool Format | openai-request-responses.md | Corrected tool format to use SAME nested structure as Chat Completions (type + function object), not "name at top level" |
+| 12-22 | Config Provider Defaults | configuration.md | Removed per-provider defaults from config; providers hardcode their own defaults via lookup function. Config only stores default_provider. |
