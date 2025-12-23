@@ -107,7 +107,7 @@ The thinking abstraction is a critical feature that must work consistently acros
 - Minimum: 128 tokens
 - IK_THINKING_NONE → 128 (minimum, cannot disable)
 - IK_THINKING_LOW → 11,008 (1/3 of range from min to max)
-- IK_THINKING_MED → 21,760 (2/3 of range from min to max)
+- IK_THINKING_MED → 21,888 (2/3 of range from min to max)
 - IK_THINKING_HIGH → 32,768 (max)
 
 ### Request Serialization Format
@@ -137,7 +137,7 @@ The thinking abstraction is a critical feature that must work consistently acros
 {
   "generationConfig": {
     "thinkingConfig": {
-      "thinkingBudget": 21760,
+      "thinkingBudget": 21888,
       "includeThoughts": true
     }
   }
@@ -303,7 +303,7 @@ tests/fixtures/vcr/
 **Google Budget Calculation:**
 1. For IK_THINKING_NONE: verify thinkingBudget = 128
 2. For IK_THINKING_LOW: verify thinkingBudget = 11,008
-3. For IK_THINKING_MED: verify thinkingBudget = 21,760
+3. For IK_THINKING_MED: verify thinkingBudget = 21,888
 4. For IK_THINKING_HIGH: verify thinkingBudget = 32,768
 5. Assert: all budgets within valid range [128, 32768]
 
@@ -329,7 +329,7 @@ tests/fixtures/vcr/
 1. Create request with IK_THINKING_MED, model gemini-2.5-pro
 2. Serialize request to JSON
 3. Parse JSON, extract generationConfig.thinkingConfig
-4. Verify thinkingBudget = 21,760
+4. Verify thinkingBudget = 21,888
 5. Verify includeThoughts = true
 6. Assert: JSON valid and parseable
 

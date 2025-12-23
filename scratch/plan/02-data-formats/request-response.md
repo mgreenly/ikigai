@@ -224,7 +224,7 @@ Messages and system prompts are composed of content blocks.
   ],
   "generationConfig": {
     "thinkingConfig": {
-      "thinkingBudget": 21760,
+      "thinkingBudget": 21888,
       "includeThoughts": true
     },
     "maxOutputTokens": 4096
@@ -234,7 +234,7 @@ Messages and system prompts are composed of content blocks.
 
 **Transformation:**
 - System prompt → `systemInstruction.parts[]`
-- Thinking: IK_THINKING_MED → `thinkingBudget: 21760` (2/3 of 32,768 max for 2.5-pro)
+- Thinking: IK_THINKING_MED → `thinkingBudget: 21888` (2/3 of 32,768 max for 2.5-pro)
 - Messages → `contents[]` with role/parts structure
 
 ## Tool Call Representation

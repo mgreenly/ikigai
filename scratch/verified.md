@@ -111,3 +111,11 @@ Gaps identified during task review that have been fixed.
 **Fix:** Changed all references:
 - `http_client.c` → `http_multi.c`
 - `test_http_client.c` → `test_http_multi.c`
+
+### Google MED thinking budget calculation error
+
+**Files:** `scratch/plan/03-provider-types.md`, `scratch/plan/02-data-formats/request-response.md`, `scratch/plan/05-testing/tests-thinking-levels.md`
+
+**Issue:** Google Gemini 2.5 Pro MED thinking budget was shown as 21,760 but the formula `min + (2/3) * (max - min)` = `128 + 21760` = **21,888**. The 21,760 was the delta, not the final budget.
+
+**Fix:** Changed all instances of 21,760 (and 21760) to 21,888 across 3 files (10 total changes).

@@ -265,7 +265,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
   ],
   "generationConfig": {
     "thinkingConfig": {
-      "thinkingBudget": 21760,
+      "thinkingBudget": 21888,
       "includeThoughts": true
     },
     "maxOutputTokens": 4096
@@ -277,7 +277,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
 **Transformation rules:**
 - **System:** Internal system prompt → `systemInstruction.parts[]`
 - **Messages:** Internal messages → `contents[]` with `role: "user"` or `role: "model"`
-- **Thinking:** `IK_THINKING_MED` → `thinkingBudget: 21760` (model-specific calculation, 2/3 of 32,768 for Gemini 2.5 Pro)
+- **Thinking:** `IK_THINKING_MED` → `thinkingBudget: 21888` (model-specific calculation, 2/3 of 32,768 for Gemini 2.5 Pro)
 - **Thinking blocks:** Mark with `thought: true` flag
 - **Roles:** `ASSISTANT` → `"model"`, `USER` → `"user"`
 
@@ -505,7 +505,7 @@ Google uses **different parameters for different model series:**
 ```
 none → 128     (minimum, cannot disable)
 low  → 11,008  (128 + 1/3 * (32768 - 128))
-med  → 21,760  (128 + 2/3 * (32768 - 128))
+med  → 21,888  (128 + 2/3 * (32768 - 128))
 high → 32,768  (maximum)
 ```
 
@@ -533,7 +533,7 @@ high → "HIGH"
 {
   "generationConfig": {
     "thinkingConfig": {
-      "thinkingBudget": 21760,
+      "thinkingBudget": 21888,
       "includeThoughts": true
     }
   }
