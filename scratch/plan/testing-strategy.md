@@ -1,5 +1,19 @@
 # Testing Strategy
 
+## Clean Slate Approach
+
+This release REPLACES all old OpenAI code and tests. Old tests/fixtures are deleted, not migrated.
+
+**What is deleted:**
+- `src/openai/` - Entire directory and all code
+- Old unit/integration tests for OpenAI client
+- Old fixtures in `tests/fixtures/` (non-VCR format)
+
+**What remains:**
+- New provider abstraction in `src/providers/`
+- VCR-based tests with fixtures in `tests/fixtures/vcr/`
+- Only new code - no migration, no compatibility layer
+
 ## Critical Architecture Constraint
 
 The application uses a select()-based event loop. ALL HTTP operations
@@ -62,20 +76,21 @@ tests/
     google_contract_test.c         # Google API contract validation
 
   fixtures/
-    anthropic/
-      response_basic.json
-      response_thinking.json
-      response_tool_call.json
-      stream_basic.txt
-      stream_thinking.txt
-      error_auth.json
-      error_rate_limit.json
+    vcr/
+      anthropic/
+        test_anthropic_streaming_basic.jsonl
+        test_anthropic_streaming_tool_call.jsonl
+        test_anthropic_thinking_high.jsonl
+        test_anthropic_error_rate_limit.jsonl
 
-    openai/
-      (similar structure)
+      openai/
+        test_openai_chat_basic.jsonl
+        test_openai_streaming_basic.jsonl
+        test_openai_responses_api.jsonl
 
-    google/
-      (similar structure)
+      google/
+        test_google_streaming_basic.jsonl
+        test_google_thinking_medium.jsonl
 ```
 
 ## Mock HTTP Pattern

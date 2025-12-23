@@ -354,8 +354,10 @@ src/providers/
     openai.h
 
 src/client.c            # Removed (blocking HTTP not used)
-src/openai/             # DELETED (moved to src/providers/openai/)
+src/openai/             # DELETED completely (moved to src/providers/openai/)
 ```
+
+**Emphasis:** The old `src/openai/` directory is COMPLETELY DELETED, not refactored in place. This is a clean replacement.
 
 ### Migration Strategy: Adapter-First
 
@@ -384,11 +386,12 @@ src/openai/             # DELETED (moved to src/providers/openai/)
 
 After migration completes:
 - Old `src/openai/` directory must be completely deleted
+- Old tests and fixtures are also completely deleted - not migrated or converted
 - Adapter shim code removed
 - No `#include` statements referencing old paths outside `src/providers/`
 - No direct function calls to provider implementations outside vtable dispatch
 - Makefile updated to remove references to deleted files
-- Full test suite passing with new structure
+- Full test suite passing with new structure (VCR-based tests only)
 
 ### src/client.c Integration
 

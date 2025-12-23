@@ -12,6 +12,20 @@
 
 All needed context is provided in this file. Do not research, explore, or spawn sub-agents.
 
+### Clean Slate Approach
+
+**This is a REPLACEMENT, not a migration:**
+
+- Old OpenAI code in `src/openai/` will be DELETED
+- Old OpenAI tests will be DELETED
+- Old fixtures in `tests/fixtures/openai/` will be DELETED (not migrated)
+- Only new provider abstraction code and VCR-based tests remain
+- VCR fixtures are the ONLY fixture format going forward
+
+The approach is: record fresh VCR fixtures from real API calls, use those for all new tests, delete everything old.
+
+**Cleanup:** The old `tests/fixtures/openai/` directory is removed as part of cleanup-openai-* tasks.
+
 ## Preconditions
 
 - [ ] Clean worktree (verify: `git status --porcelain` is empty)
@@ -25,33 +39,44 @@ Create the fixture directory structure for VCR cassettes and document the JSONL 
 
 ```
 tests/fixtures/
-├── anthropic/.gitkeep
-├── google/.gitkeep
-├── brave/.gitkeep
-└── README.md
+└── vcr/                              # Root for ALL VCR fixtures
+    ├── openai/.gitkeep               # OpenAI provider fixtures
+    ├── anthropic/.gitkeep            # Anthropic provider fixtures
+    ├── google/.gitkeep               # Google provider fixtures
+    ├── brave/.gitkeep                # Brave Search API fixtures
+    └── README.md                     # VCR format documentation
 ```
 
 **Naming convention:** Fixture filename matches test function name.
 
 Example:
 - Test function: `test_anthropic_streaming_basic()`
-- Fixture file: `tests/fixtures/anthropic/test_anthropic_streaming_basic.jsonl`
+- Fixture file: `tests/fixtures/vcr/anthropic/test_anthropic_streaming_basic.jsonl`
+
+**Important:** Old fixtures in `tests/fixtures/openai/` (if they exist) are NOT migrated - they are deleted along with old OpenAI code and tests.
 
 ## Files to Create
 
-### 1. Create Provider Directories
+### 1. Create VCR Root Directory
 
-Create these directories with `.gitkeep` files:
+Create the VCR root directory:
 
-- [ ] `tests/fixtures/anthropic/.gitkeep`
-- [ ] `tests/fixtures/google/.gitkeep`
-- [ ] `tests/fixtures/brave/.gitkeep`
+- [ ] `tests/fixtures/vcr/` (parent directory for all VCR fixtures)
+
+### 2. Create Provider Subdirectories
+
+Create these provider-specific directories with `.gitkeep` files:
+
+- [ ] `tests/fixtures/vcr/openai/.gitkeep`
+- [ ] `tests/fixtures/vcr/anthropic/.gitkeep`
+- [ ] `tests/fixtures/vcr/google/.gitkeep`
+- [ ] `tests/fixtures/vcr/brave/.gitkeep`
 
 The `.gitkeep` files ensure empty directories are tracked by git.
 
-### 2. Create Format Documentation
+### 3. Create Format Documentation
 
-Create `tests/fixtures/README.md` with the following content:
+Create `tests/fixtures/vcr/README.md` with the following content:
 
 ---
 
@@ -66,6 +91,18 @@ This directory contains VCR-style HTTP cassettes for deterministic testing. Fixt
 - Fast execution (no network latency)
 - CI/CD without API credentials
 - Debug with real response data
+
+## Clean Slate Approach
+
+**This is a REPLACEMENT, not a migration:**
+
+VCR fixtures are the ONLY fixture format in this project. Old OpenAI-specific fixtures, tests, and code have been completely removed:
+
+- `src/openai/` - DELETED (replaced by provider abstraction)
+- Old OpenAI tests - DELETED (replaced by VCR-based provider tests)
+- `tests/fixtures/openai/` - DELETED (old fixture format, not migrated)
+
+All fixtures in this directory are recorded fresh from real API calls using VCR capture mode. There is no migration or compatibility layer with old fixtures.
 
 ## File Format: JSONL
 
@@ -204,11 +241,11 @@ Before committing fixtures, a pre-commit hook validates no secrets leaked:
 
 ```bash
 # These patterns should return NO matches
-grep -rE "Bearer [^R]" tests/fixtures/   # Bearer tokens not redacted
-grep -r "sk-" tests/fixtures/            # OpenAI key patterns
-grep -r "sk-ant-" tests/fixtures/        # Anthropic key patterns
-grep -r "AIza" tests/fixtures/           # Google key patterns
-grep -r "BSA" tests/fixtures/            # Brave key patterns
+grep -rE "Bearer [^R]" tests/fixtures/vcr/   # Bearer tokens not redacted
+grep -r "sk-" tests/fixtures/vcr/            # OpenAI key patterns
+grep -r "sk-ant-" tests/fixtures/vcr/        # Anthropic key patterns
+grep -r "AIza" tests/fixtures/vcr/           # Google key patterns
+grep -r "BSA" tests/fixtures/vcr/            # Brave key patterns
 ```
 
 ## Modes of Operation
@@ -261,18 +298,26 @@ If you need to create fixtures without running capture mode:
 Fixture filename must match test function name:
 
 - Test function: `test_anthropic_streaming_basic()`
-- Fixture file: `tests/fixtures/anthropic/test_anthropic_streaming_basic.jsonl`
+- Fixture file: `tests/fixtures/vcr/anthropic/test_anthropic_streaming_basic.jsonl`
 
 This allows VCR to automatically locate the correct fixture for each test.
+
+**Directory structure:**
+- `tests/fixtures/vcr/openai/` - OpenAI provider fixtures
+- `tests/fixtures/vcr/anthropic/` - Anthropic provider fixtures
+- `tests/fixtures/vcr/google/` - Google provider fixtures
+- `tests/fixtures/vcr/brave/` - Brave Search API fixtures
 
 ---
 
 ## Postconditions
 
-- [ ] Directory `tests/fixtures/anthropic/` exists with `.gitkeep`
-- [ ] Directory `tests/fixtures/google/` exists with `.gitkeep`
-- [ ] Directory `tests/fixtures/brave/` exists with `.gitkeep`
-- [ ] File `tests/fixtures/README.md` exists with complete JSONL format documentation
+- [ ] Directory `tests/fixtures/vcr/` exists (root for all VCR fixtures)
+- [ ] Directory `tests/fixtures/vcr/openai/` exists with `.gitkeep`
+- [ ] Directory `tests/fixtures/vcr/anthropic/` exists with `.gitkeep`
+- [ ] Directory `tests/fixtures/vcr/google/` exists with `.gitkeep`
+- [ ] Directory `tests/fixtures/vcr/brave/` exists with `.gitkeep`
+- [ ] File `tests/fixtures/vcr/README.md` exists with complete JSONL format documentation
 - [ ] README includes examples for all line types (_request, _response, _body, _chunk)
 - [ ] README documents credential redaction rules
 - [ ] README documents playback vs capture modes

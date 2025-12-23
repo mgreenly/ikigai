@@ -173,8 +173,10 @@ Consider adding a pre-commit hook to enforce this.
 
 ## Directory Structure
 
+**Note:** Old fixtures in `tests/fixtures/openai/`, `tests/fixtures/anthropic/`, and `tests/fixtures/google/` are DELETED, not migrated. This release uses a clean slate VCR-based fixture format.
+
 ```
-tests/fixtures/
+tests/fixtures/vcr/
 ├── anthropic/
 │   ├── test_anthropic_streaming_basic.jsonl
 │   ├── test_anthropic_streaming_tool_call.jsonl
@@ -391,16 +393,18 @@ CURLMcode curl_multi_perform_(CURLM *multi, int *running_handles)
 }
 ```
 
-## Migration from Current Fixtures
+## Clean Slate: No Migration from Old Fixtures
 
-Existing fixtures in `tests/fixtures/openai/`:
-- `stream_hello_world.txt` - raw SSE
-- `error_429_rate_limit.json` - raw JSON
+**This release does NOT migrate old fixtures.** All old fixtures are deleted:
+- `tests/fixtures/openai/` - DELETED
+- `tests/fixtures/anthropic/` - DELETED (if existed)
+- `tests/fixtures/google/` - DELETED (if existed)
 
-Migration path:
-1. Keep old fixtures temporarily
-2. Create new JSONL fixtures as tests are updated
-3. Remove old fixtures when no longer referenced
+New VCR fixtures are created from scratch using `VCR_RECORD=1`:
+1. Delete old `tests/fixtures/` directory
+2. Create new `tests/fixtures/vcr/` directory structure
+3. Record new fixtures with VCR capture mode
+4. All fixtures follow JSONL format specification
 
 ## Design Decisions Summary
 

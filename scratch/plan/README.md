@@ -29,6 +29,22 @@ This design implements multi-provider AI API support for ikigai, enabling seamle
 5. **No Remnants** - Existing OpenAI code refactored into new abstraction; no dual code paths
 6. **Provider Parity** - OpenAI is just another provider, no special treatment
 
+## Clean Slate Approach
+
+This release completely REPLACES old OpenAI code, tests, and fixtures. There is no migration - only new code remains.
+
+**What is deleted:**
+- **Code:** `src/openai/` - Entire directory and all implementation files
+- **Tests:** All old unit/integration tests for OpenAI client
+- **Fixtures:** All old fixtures in non-VCR format (`tests/fixtures/openai/`, etc.)
+
+**What remains:**
+- **Code:** New provider abstraction in `src/providers/` (including `src/providers/openai/`)
+- **Tests:** VCR-based tests only
+- **Fixtures:** VCR JSONL cassettes in `tests/fixtures/vcr/`
+
+**Key principle:** This is a REPLACEMENT, not a migration. No compatibility layer, no dual code paths, no remnants.
+
 ## Design Documents
 
 ### Architecture & Structure
@@ -59,6 +75,7 @@ This design implements multi-provider AI API support for ikigai, enabling seamle
 ### Testing
 
 - **[testing-strategy.md](testing-strategy.md)** - Mock HTTP pattern, fixture validation, test organization
+- **[vcr-cassettes.md](vcr-cassettes.md)** - VCR fixture format, record/playback modes, credential redaction
 
 ## Implementation Order
 
