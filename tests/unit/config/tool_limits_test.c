@@ -19,7 +19,6 @@ START_TEST(test_config_with_valid_max_tool_turns) {
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -53,7 +52,6 @@ END_TEST START_TEST(test_config_missing_max_tool_turns)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -83,7 +81,6 @@ END_TEST START_TEST(test_config_missing_max_output_size)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -113,7 +110,6 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_low)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -144,7 +140,6 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_high)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -175,7 +170,6 @@ END_TEST START_TEST(test_config_max_output_size_out_of_range_low)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -206,7 +200,6 @@ END_TEST START_TEST(test_config_max_output_size_out_of_range_high)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"

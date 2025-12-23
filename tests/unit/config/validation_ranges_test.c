@@ -29,7 +29,7 @@ END_TEST START_TEST(test_config_port_too_low)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 80}");
+            "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 80}");
     fclose(f);
 
     // Try to load - should fail with OUT_OF_RANGE error
@@ -54,7 +54,7 @@ END_TEST START_TEST(test_config_port_too_high)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 70000}");
+            "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 70000}");
     fclose(f);
 
     // Try to load - should fail with OUT_OF_RANGE error
@@ -79,7 +79,7 @@ END_TEST START_TEST(test_config_port_valid_range)
     FILE *f1 = fopen(test_file1, "w");
     ck_assert_ptr_nonnull(f1);
     fprintf(f1,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1024, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
+            "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1024, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f1);
 
     res_t result1 = ik_cfg_load(ctx, test_file1);
@@ -93,7 +93,7 @@ END_TEST START_TEST(test_config_port_valid_range)
     FILE *f2 = fopen(test_file2, "w");
     ck_assert_ptr_nonnull(f2);
     fprintf(f2,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 65535, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
+            "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 65535, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f2);
 
     res_t result2 = ik_cfg_load(ctx, test_file2);
@@ -107,7 +107,7 @@ END_TEST START_TEST(test_config_port_valid_range)
     FILE *f3 = fopen(test_file3, "w");
     ck_assert_ptr_nonnull(f3);
     fprintf(f3,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
+            "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f3);
 
     res_t result3 = ik_cfg_load(ctx, test_file3);
@@ -132,7 +132,7 @@ END_TEST START_TEST(test_config_temperature_too_low)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-5-mini\", \"openai_temperature\": -0.1, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
+            "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": -0.1, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
     res_t result = ik_cfg_load(ctx, test_file);
@@ -154,7 +154,7 @@ END_TEST START_TEST(test_config_temperature_too_high)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 2.1, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
+            "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 2.1, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
     res_t result = ik_cfg_load(ctx, test_file);
@@ -176,7 +176,7 @@ END_TEST START_TEST(test_config_max_tokens_too_low)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 0, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
+            "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 0, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
     res_t result = ik_cfg_load(ctx, test_file);
@@ -198,7 +198,7 @@ END_TEST START_TEST(test_config_max_tokens_too_high)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 130000, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
+            "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 130000, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
     res_t result = ik_cfg_load(ctx, test_file);
@@ -220,7 +220,7 @@ END_TEST START_TEST(test_config_valid_openai_system_message)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": \"You are a helpful assistant\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
+            "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": \"You are a helpful assistant\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f);
 
     res_t result = ik_cfg_load(ctx, test_file);

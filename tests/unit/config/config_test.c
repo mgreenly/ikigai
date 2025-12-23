@@ -39,7 +39,6 @@ START_TEST(test_config_with_db_connection_string) {
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -78,7 +77,6 @@ END_TEST START_TEST(test_config_without_db_connection_string)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -116,7 +114,6 @@ END_TEST START_TEST(test_config_with_full_connection_string)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -156,7 +153,6 @@ END_TEST START_TEST(test_config_with_unix_socket_connection_string)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -196,7 +192,6 @@ END_TEST START_TEST(test_config_with_empty_db_connection_string)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -235,7 +230,6 @@ END_TEST START_TEST(test_config_with_invalid_db_connection_string_type)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -291,7 +285,6 @@ END_TEST START_TEST(test_config_with_db_connection_string_null_value)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -305,11 +298,11 @@ END_TEST START_TEST(test_config_with_db_connection_string_null_value)
     fclose(f);
 
     // Reset mock counter and set to return NULL on the call for db_connection_string
-    // Calls are: api_key, model, address, db_connection_string
+    // Calls are: model, address, db_connection_string
     // (system_message is null so yyjson_get_str_ is not called for it)
-    // So db_connection_string is the 4th call (index 3)
+    // So db_connection_string is the 3rd call (index 2)
     g_call_counter = 0;
-    g_return_null_on_call = 3;
+    g_return_null_on_call = 2;
 
     // Load config - should succeed with NULL db_connection_string due to mock
     res_t result = ik_cfg_load(ctx, test_config);

@@ -8,30 +8,7 @@
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 
-START_TEST(test_config_missing_field_openai_key) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create a config missing openai_api_key
-    char test_file[256];
-    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_missing_%d.json", getpid());
-
-    FILE *f = fopen(test_file, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
-    fclose(f);
-
-    // Try to load - should fail with PARSE error
-    res_t result = ik_cfg_load(ctx, test_file);
-    ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, ERR_PARSE);
-
-    // Clean up
-    unlink(test_file);
-    talloc_free(ctx);
-}
-
-END_TEST START_TEST(test_config_missing_field_listen_address)
+START_TEST(test_config_missing_field_listen_address)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -43,7 +20,7 @@ END_TEST START_TEST(test_config_missing_field_listen_address)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_port\": 1984}");
+            "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_port\": 1984}");
     fclose(f);
 
     // Try to load - should fail with PARSE error
@@ -68,7 +45,7 @@ END_TEST START_TEST(test_config_missing_field_listen_port)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\"}");
+            "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\"}");
     fclose(f);
 
     // Try to load - should fail with PARSE error
@@ -91,7 +68,7 @@ END_TEST START_TEST(test_config_missing_field_openai_model)
 
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\"openai_api_key\": \"test\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
+    fprintf(f, "{\"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
     res_t result = ik_cfg_load(ctx, test_file);
@@ -113,7 +90,7 @@ END_TEST START_TEST(test_config_missing_field_openai_temperature)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-5-mini\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
+            "{\"openai_model\": \"gpt-5-mini\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
     res_t result = ik_cfg_load(ctx, test_file);
@@ -135,7 +112,7 @@ END_TEST START_TEST(test_config_missing_field_openai_max_completion_tokens)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
+            "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
     res_t result = ik_cfg_load(ctx, test_file);
@@ -158,7 +135,7 @@ END_TEST START_TEST(test_config_missing_openai_system_message)
     ck_assert_ptr_nonnull(f);
     // Completely omit openai_system_message field
     fprintf(f,
-            "{\"openai_api_key\": \"test\", \"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
+            "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f);
 
     res_t result = ik_cfg_load(ctx, test_file);
@@ -178,7 +155,6 @@ static Suite *config_validation_missing_suite(void)
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
 
-    tcase_add_test(tc_core, test_config_missing_field_openai_key);
     tcase_add_test(tc_core, test_config_missing_field_listen_address);
     tcase_add_test(tc_core, test_config_missing_field_listen_port);
     tcase_add_test(tc_core, test_config_missing_field_openai_model);
