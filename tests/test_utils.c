@@ -62,7 +62,6 @@ ik_cfg_t *ik_test_create_config(TALLOC_CTX *ctx)
     if (cfg == NULL) return NULL;
 
     // Set minimal required fields for testing
-    cfg->openai_api_key = talloc_strdup(cfg, "test-api-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4-turbo");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 4096;

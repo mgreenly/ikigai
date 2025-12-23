@@ -15,7 +15,6 @@ ik_cfg_t *test_cfg_create(TALLOC_CTX *ctx)
     // Minimal defaults for testing
     cfg->history_size = 100;
     cfg->db_connection_string = NULL;  // No database in tests by default
-    cfg->openai_api_key = NULL;        // No API key in tests
     cfg->openai_model = NULL;
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 4096;

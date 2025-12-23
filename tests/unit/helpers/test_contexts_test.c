@@ -121,7 +121,6 @@ START_TEST(test_cfg_create_returns_valid_config) {
     ck_assert_ptr_nonnull(cfg);
     ck_assert_int_eq(cfg->history_size, 100);
     ck_assert_ptr_null(cfg->db_connection_string);
-    ck_assert_ptr_null(cfg->openai_api_key);
 
     talloc_free(ctx);
 }
