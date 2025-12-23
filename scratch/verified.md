@@ -32,3 +32,4 @@
 | thinking_level DB type | `plan/01-architecture/overview.md` | INTEGER → TEXT (match database-schema.md) |
 | Agent context duplicate field | `plan/01-architecture/overview.md` | Renamed duplicate `provider` → `provider_ctx`; fixed `(LOW/MED/HIGH/MAX)` → `(NONE/LOW/MED/HIGH)` |
 | Vtable methods in overview | `plan/01-architecture/overview.md` | Added missing methods (timeout, info_read, cleanup, cancel) to vtable description |
+| Error enum prefix in task | `tasks/error-core.md` | `IK_ERR_*` → `IK_ERR_CAT_*` (13 occurrences) |
