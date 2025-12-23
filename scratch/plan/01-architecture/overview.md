@@ -433,6 +433,38 @@ The 8 implementation steps below map to the high-level phases in [README.md](../
 ### Critical Cleanup Requirements
 
 After migration completes:
+
+### Files and Directories to Delete
+
+**Phase 2 deletion targets (execute only after all prerequisites verified):**
+
+```
+# Old OpenAI implementation (replaced by src/providers/openai/)
+rm -rf src/openai/
+
+# Old test files for OpenAI client
+rm -rf tests/unit/openai/
+rm -rf tests/integration/openai/
+
+# Old fixtures (replaced by VCR cassettes in tests/fixtures/vcr/)
+rm -rf tests/fixtures/openai/
+rm -rf tests/fixtures/responses/
+
+# Any mock files specific to old implementation
+rm -f tests/mocks/openai_*.c
+```
+
+**Verification before deletion:**
+```bash
+# Ensure no remaining references to old paths
+grep -r "src/openai/" src/ --include="*.c" --include="*.h"
+grep -r "openai/client" src/ --include="*.c" --include="*.h"
+# Should return empty or only src/providers/openai/ paths
+```
+
+**Note:** The Makefile must be updated BEFORE deletion to remove references to these files, otherwise the build will fail.
+
+**Additional cleanup requirements:**
 - Old `src/openai/` directory must be completely deleted
 - Old tests and fixtures are also completely deleted - not migrated or converted
 - Adapter shim code removed

@@ -47,3 +47,4 @@ Fixed gaps - do not re-investigate.
 | 12-22 | Missing Credentials UX (5.5) | configuration.md | Added "Missing Credentials UX" section: error message format, provider URLs table, ik_credentials_load() behavior |
 | 12-22 | Provider State in /fork (5.8) | commands.md | Added "Provider Instance Ownership" section: no sharing, lazy creation, independent state, memory model diagram |
 | 12-22 | Phase Numbering Conflict (1.1) | overview.md | Added "Phase Mapping" table: Steps 1-7 = Phase 1 (Coexistence), Step 8 = Phase 2 (Removal) |
+| 12-22 | No File-by-File Deletion List (1.4) | overview.md | Added "Files and Directories to Delete" section: explicit rm commands, verification grep, Makefile warning |
