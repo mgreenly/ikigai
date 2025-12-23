@@ -23,6 +23,7 @@
 - **openai-shim-types.md**: Added `multi (ik_openai_multi_t*)` to `ik_openai_shim_ctx_t` struct and multi-handle initialization in factory stub
 - **repl-streaming-updates.md**: Fixed `ik_repl_stream_callback` signature from `void (ik_stream_event_t*, void*)` to `res_t (const ik_stream_event_t*, void*)` to match vtable
 - **vcr-makefile.md**: Removed circular dependency on tests-*-basic.md; now depends only on vcr-mock-integration.md; updated precondition from "VCR-integrated provider tests exist" to "VCR infrastructure ready"
+- **vcr-core.md**: Added missing `vcr_is_active()` function declaration (called by vcr-mock-integration.md but was not in API); added behavior documentation and test scenarios
 
 ### Known Issues (Not Yet Fixed)
 | Task | Issue | Severity |
