@@ -30,10 +30,12 @@ Read these files to understand what was supposed to be created:
 - [ ] `tests/mocks/curl_multi_mock.c` exists
 - [ ] Mock state machine types are defined
 
-**Test fixtures:**
-- [ ] `tests/fixtures/responses/` directory exists
-- [ ] `tests/fixtures/errors/` directory exists
-- [ ] At least one fixture file exists in each directory
+**VCR fixtures:**
+- [ ] `tests/fixtures/vcr/` directory exists
+- [ ] `tests/fixtures/vcr/anthropic/` directory exists
+- [ ] `tests/fixtures/vcr/google/` directory exists
+- [ ] `tests/fixtures/vcr/openai/` directory exists
+- [ ] At least one .jsonl fixture file exists
 
 **Test utilities:**
 - [ ] HTTP client test file exists in `tests/unit/providers/common/`
@@ -81,17 +83,17 @@ Read mock implementation and verify:
 - [ ] Mock supports multiple sequential perform() calls before completion
 - [ ] Mock can simulate streaming (partial data delivery)
 
-### Step 5: Test Fixture Format Verification
+### Step 5: VCR Fixture Format Verification
 
-Read a sample response fixture and verify format:
+Read a sample VCR fixture and verify format:
 
 ```bash
-head -20 tests/fixtures/responses/*.json | head -40
+head -20 tests/fixtures/vcr/*/*.jsonl | head -40
 ```
 
-- [ ] Fixtures are valid JSON
-- [ ] Fixtures match expected provider response format
-- [ ] Error fixtures include HTTP status and error body
+- [ ] Fixtures are valid JSONL (one JSON object per line)
+- [ ] Fixtures contain _request, _response, and _body or _chunk lines
+- [ ] Error fixtures include HTTP status in _response line
 
 ### Step 6: HTTP Client Tests Pass
 

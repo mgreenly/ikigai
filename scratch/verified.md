@@ -40,3 +40,4 @@
 | Test tasks fixtures dependency | `tasks/tests-*.md` (9 files) | Added `vcr-fixtures-setup.md` dependency for fixture directory availability |
 | Provider vtable cancel method | `plan/03-provider-types.md` | Added `cancel()` method to vtable diagram and async data flow |
 | Error enum prefix batch 2 | `tasks/verify-openai-shim.md`, `tasks/http-client.md`, `tasks/provider-types.md`, `tasks/verify-providers.md` | `IK_ERR_*` → `IK_ERR_CAT_*` (17 occurrences across 4 files) |
+| verify-infrastructure fixture paths | `tasks/verify-infrastructure.md` | `tests/fixtures/responses/` → `tests/fixtures/vcr/` (JSONL format) |
