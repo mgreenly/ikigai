@@ -17,3 +17,13 @@ Gaps that have been reviewed and fixed. Do not re-investigate these.
 - Includes complete code example of curl write callback integration
 
 **Impact:** Streaming implementations now have clear guidance on how to integrate with the SSE parser using the correct pull-based pattern.
+
+### 2024-12-22: ik_thinking_level_t Duplicate Definition (CRITICAL)
+
+**Location:** `scratch/tasks/agent-provider-fields.md`
+
+**Problem:** Both `provider-types.md` and `agent-provider-fields.md` instructed to "define" the same `ik_thinking_level_t` enum, which would cause a compiler "redefinition" error.
+
+**Fix:** Changed `agent-provider-fields.md` from "Enums to define:" to "Enums to use:" with explicit reference to `src/providers/provider.h` (defined by provider-types.md). The enum is now defined ONLY in provider-types.md.
+
+**Impact:** No duplicate definition - enum defined once in provider-types.md, referenced elsewhere.

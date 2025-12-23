@@ -52,11 +52,11 @@ Structs to update:
 |--------|---------|---------|
 | `ik_agent_ctx_t` | provider (char*), model (char*), thinking_level (ik_thinking_level_t), provider_instance (ik_provider_t*) | Add provider configuration and cached instance |
 
-Enums to define:
+Enums to use:
 
-| Enum | Values | Purpose |
+| Enum | Source | Purpose |
 |------|--------|---------|
-| `ik_thinking_level_t` | NONE, LOW, MED, HIGH | Thinking/reasoning level setting |
+| `ik_thinking_level_t` | `src/providers/provider.h` (defined by provider-types.md) | Thinking/reasoning level setting |
 
 Files to update:
 
