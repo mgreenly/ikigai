@@ -45,12 +45,13 @@ src/
 **Purpose:** Defines the common async interface all providers must implement.
 
 **Key types:**
-- `ik_provider_vtable_t` - Function pointer table with async operations (fdset, perform, start_request, start_stream)
+- `ik_provider_vtable_t` - Function pointer table with async operations (fdset, perform, timeout, info_read, start_request, start_stream, cleanup, cancel)
 - `ik_provider_t` - Provider handle containing name, vtable pointer, and implementation context
 
 **Responsibilities:**
 - Define unified async interface for sending requests (streaming and non-streaming)
-- Establish contract for event loop integration (fdset, perform, timeout)
+- Establish contract for event loop integration (fdset, perform, timeout, info_read)
+- Support request cancellation (cancel) for Ctrl+C handling
 - Enable polymorphic dispatch to provider-specific implementations
 - **All operations are non-blocking**
 

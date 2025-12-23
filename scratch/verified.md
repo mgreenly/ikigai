@@ -31,3 +31,4 @@
 | Google thinking budgets | `plan/05-testing/contract-google.md` | ~5000/~10000/~20000 → 11,008/21,888/32,768 (exact values) |
 | thinking_level DB type | `plan/01-architecture/overview.md` | INTEGER → TEXT (match database-schema.md) |
 | Agent context duplicate field | `plan/01-architecture/overview.md` | Renamed duplicate `provider` → `provider_ctx`; fixed `(LOW/MED/HIGH/MAX)` → `(NONE/LOW/MED/HIGH)` |
+| Vtable methods in overview | `plan/01-architecture/overview.md` | Added missing methods (timeout, info_read, cleanup, cancel) to vtable description |
