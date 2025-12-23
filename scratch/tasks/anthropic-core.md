@@ -45,6 +45,7 @@ Functions to implement:
 | `bool ik_anthropic_supports_thinking(const char *model)` | Checks if model supports extended thinking |
 | `res_t ik_anthropic_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body, ik_error_category_t *out_category)` | Parse error response, map to category, extract details |
 | `int32_t ik_anthropic_get_retry_after(const char **headers)` | Extract retry-after header value in seconds, returns -1 if not present |
+| `res_t ik_anthropic_validate_thinking(const char *model, ik_thinking_level_t level)` | Validate thinking level for model, returns OK or ERR with message |
 
 Structs to define:
 
@@ -82,6 +83,14 @@ Structs to define:
 - Register provider in `ik_provider_create()` dispatch table
 - When name is "anthropic", call `ik_anthropic_create()`
 - Return ERR(INVALID_ARG) for unknown provider names
+
+### Thinking Validation
+- `ik_anthropic_validate_thinking(model, level)` validates model/level compatibility
+- Claude models that support thinking: All levels valid (NONE/LOW/MED/HIGH)
+- Claude models that don't support thinking: Only NONE is valid, others return ERR
+- Non-Claude models: Only NONE is valid, others return ERR
+- NULL model: Return ERR(INVALID_ARG)
+- Returns OK(NULL) if valid, ERR with descriptive message if invalid
 
 ### Error Handling
 
@@ -163,6 +172,15 @@ Create the following files:
 - `ik_provider_create()` with "anthropic" calls `ik_anthropic_create()`
 - Factory returns valid provider
 - Unknown provider name returns ERR(INVALID_ARG)
+
+### Thinking Validation Tests
+- claude-sonnet-4-5 with NONE → OK
+- claude-sonnet-4-5 with LOW/MED/HIGH → OK (supports thinking)
+- claude-3-opus with NONE → OK
+- claude-3-opus with LOW → ERR (older model doesn't support thinking)
+- gpt-4o with NONE → OK (non-Claude, but NONE is always valid)
+- gpt-4o with LOW → ERR (non-Claude model doesn't support Anthropic thinking)
+- NULL model → ERR(INVALID_ARG)
 
 ### Error Handling Tests
 - 401 status maps to IK_ERR_CAT_AUTH

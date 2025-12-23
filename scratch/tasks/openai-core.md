@@ -55,6 +55,7 @@ Create native OpenAI provider to replace the adapter shim. This establishes dire
 | `ik_openai_prefer_responses_api(model)` | Determine if model should use Responses API (reasoning models perform 3% better) |
 | `ik_openai_handle_error(ctx, status, body, out_category)` | Parse error response, map to category, extract details |
 | `ik_openai_get_retry_after(headers)` | Extract retry delay from x-ratelimit-reset-* headers, returns seconds or -1 |
+| `ik_openai_validate_thinking(model, level)` | Validate thinking level for model, returns OK or ERR with message |
 
 ### Structs to Define
 
@@ -95,6 +96,14 @@ Create native OpenAI provider to replace the adapter shim. This establishes dire
 
 - Reasoning models do NOT support temperature parameter
 - Check via `!ik_openai_is_reasoning_model(model)`
+
+### Thinking Validation
+
+- `ik_openai_validate_thinking(model, level)` validates model/level compatibility
+- Non-reasoning models (gpt-4o, gpt-5): Only IK_THINKING_NONE is valid, others return ERR
+- Reasoning models (o1, o3): All levels valid (LOW/MED/HIGH map to effort strings)
+- NULL model: Return ERR(INVALID_ARG)
+- Returns OK(NULL) if valid, ERR with descriptive message if invalid
 
 ### Provider Factory
 
@@ -182,6 +191,15 @@ src/providers/openai/
 
 - Reasoning models → prefer Responses API (true)
 - Regular models → prefer Chat Completions (false)
+
+### Thinking Validation
+
+- o1 with NONE → OK (valid, no thinking)
+- o1 with LOW/MED/HIGH → OK (valid reasoning levels)
+- gpt-4o with NONE → OK (valid, no thinking for non-reasoning model)
+- gpt-4o with LOW → ERR (non-reasoning model doesn't support thinking)
+- gpt-4o with MED/HIGH → ERR
+- NULL model → ERR(INVALID_ARG)
 
 ### Provider Creation
 

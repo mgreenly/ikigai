@@ -62,6 +62,7 @@ Functions to implement:
 | `bool ik_google_can_disable_thinking(const char *model)` | Check if thinking can be disabled for model |
 | `res_t ik_google_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body, ik_error_category_t *out_category)` | Parse error response, map to category, extract details |
 | `int32_t ik_google_get_retry_after(const char *body)` | Extract retryDelay from response body JSON, returns seconds or -1 |
+| `res_t ik_google_validate_thinking(const char *model, ik_thinking_level_t level)` | Validate thinking level for model, returns OK or ERR with message |
 
 Structs to define:
 
@@ -92,6 +93,15 @@ Structs to define:
 - NONE returns NULL (don't include config)
 - LOW and MED both map to "LOW"
 - HIGH maps to "HIGH"
+
+**Thinking Validation:**
+- `ik_google_validate_thinking(model, level)` validates model/level compatibility
+- Gemini 2.5 models that can disable (min=0): All levels valid
+- Gemini 2.5 models that cannot disable (min>0): NONE returns ERR, LOW/MED/HIGH valid
+- Gemini 3 models: All levels valid (NONE means don't include thinking config)
+- Non-thinking models (Gemini 1.5, etc.): Only NONE is valid, others return ERR
+- NULL model: Return ERR(INVALID_ARG)
+- Returns OK(NULL) if valid, ERR with descriptive message if invalid
 
 **Provider Factory Registration:**
 - Register "google" provider in ik_provider_create() dispatch
@@ -190,6 +200,17 @@ HTTP Status to Category Mapping:
 - gemini-2.5-flash can disable (min=0, returns true)
 - gemini-2.5-flash-lite cannot disable (min=512, returns false)
 - gemini-3-pro cannot disable (uses levels, returns false)
+
+**Thinking Validation:**
+- gemini-2.5-flash with NONE → OK (can disable thinking)
+- gemini-2.5-flash with LOW/MED/HIGH → OK
+- gemini-2.5-pro with NONE → ERR (cannot disable thinking, min=128)
+- gemini-2.5-pro with LOW/MED/HIGH → OK
+- gemini-3-pro with NONE → OK (NONE means don't send thinking config)
+- gemini-3-pro with LOW/MED/HIGH → OK
+- gemini-1.5-pro with NONE → OK
+- gemini-1.5-pro with LOW → ERR (doesn't support thinking)
+- NULL model → ERR(INVALID_ARG)
 
 **Provider Creation:**
 - Create with valid API key returns OK
