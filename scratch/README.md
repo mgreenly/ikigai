@@ -45,8 +45,8 @@ The system automatically translates these abstract levels to provider-specific p
 ```
 > /model claude-sonnet-4-5/med
 
-✓ Switched to Anthropic claude-sonnet-4-5-20250929
-  Thinking: enabled (43,008 token budget - medium)
+✓ Switched to Anthropic claude-sonnet-4-5
+  Thinking: medium (43,008 tokens)
 ```
 
 ### Fork with Model Override
@@ -89,13 +89,12 @@ Create child agents with different providers/models:
 **Example config.json:**
 ```json
 {
-  "providers": {
-    "anthropic": { "default_model": "claude-sonnet-4" },
-    "openai": { "default_model": "gpt-4o" },
-    "google": { "default_model": "gemini-2.5-pro" }
-  },
   "default_provider": "anthropic",
-  "max_output_tokens": 4096
+  "providers": {
+    "anthropic": { "default_model": "claude-sonnet-4-5", "default_thinking": "med" },
+    "openai": { "default_model": "gpt-4o", "default_thinking": "none" },
+    "google": { "default_model": "gemini-2.5-flash", "default_thinking": "med" }
+  }
 }
 ```
 
@@ -138,13 +137,13 @@ Switch providers freely mid-conversation. History is preserved and sent to new p
 
 ```
 > /model claude-sonnet-4-5/med
-✓ Switched to Anthropic claude-sonnet-4-5-20250929
+✓ Switched to Anthropic claude-sonnet-4-5
 
 [Continue conversation with Claude...]
 
 > /model o3-mini/high
 ✓ Switched to OpenAI o3-mini
-  Reasoning: high effort
+  Thinking: high effort
 
 [Continue same conversation with OpenAI...]
 ```
