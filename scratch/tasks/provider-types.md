@@ -237,6 +237,40 @@ Provider-specific errors (auth failures, rate limits, etc.) are delivered via th
 - DONE: finish_reason, usage, provider_data
 - ERROR: category, message
 
+### Event Index Semantics
+
+The `index` field in `ik_stream_event_t` represents the content block index within the current response. This is a **canonical format** that provider implementations MUST normalize to, regardless of their internal indexing schemes.
+
+**Indexing Rules:**
+
+1. The index field represents the content block index within the current response
+2. For simple text responses: index is always 0
+3. For tool calls: each tool call gets a unique index (0, 1, 2, ...)
+4. For thinking + text: thinking content is index 0, text content is index 1
+5. Index resets to 0 for each new response/turn
+6. Provider implementations MUST normalize their internal indices to this canonical format
+
+**Provider Index Normalization:**
+
+Different providers use different indexing schemes in their streaming APIs:
+- Anthropic: `current_block_index` (0-based content block index)
+- Google: `part_index` (per-part index within a candidate)
+- OpenAI: `tool_call_index` (tool-specific index)
+
+Provider implementations are responsible for mapping these provider-specific indices to the canonical index format described above.
+
+**Example Index Values:**
+
+| Scenario | Event Type | Index | Description |
+|----------|-----------|-------|-------------|
+| Text only | TEXT_DELTA | 0 | Single text content block |
+| Single tool call | TOOL_CALL_START/DELTA/DONE | 0 | Only one tool call |
+| Two tool calls | TOOL_CALL_START/DELTA/DONE | 0, 1 | First tool call: 0, Second tool call: 1 |
+| Thinking + text | THINKING_DELTA | 0 | Thinking content block |
+| Thinking + text | TEXT_DELTA | 1 | Text content block after thinking |
+| Thinking + 2 tools | THINKING_DELTA | 0 | Thinking block |
+| Thinking + 2 tools | TOOL_CALL_START/DELTA/DONE | 1, 2 | First tool: 1, Second tool: 2 |
+
 ### HTTP Completion Structure
 
 `ik_provider_completion_t` contains all information about a completed request:

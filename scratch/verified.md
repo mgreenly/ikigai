@@ -66,3 +66,8 @@ Fixed gaps - do not re-investigate.
 **Location:** `scratch/tasks/vcr-makefile.md`
 **Problem:** vcr-record-* targets ran test binaries without declaring them as dependencies. Running `make vcr-record-openai` would fail if tests weren't built first.
 **Fix:** Added test binary dependencies to all vcr-record-* targets (openai, anthropic, google) and vcr-record-all. Make will now auto-build binaries before recording.
+
+### 2024-12-22: Stream Event Index Semantics Unclear
+**Location:** `scratch/tasks/provider-types.md`, `scratch/tasks/anthropic-streaming.md`, `scratch/tasks/google-streaming.md`, `scratch/tasks/openai-streaming-chat.md`
+**Problem:** Different providers used different indexing (current_block_index, part_index, tool_call_index). REPL consuming events didn't know what index field means.
+**Fix:** Added "Event Index Semantics" section to provider-types.md with canonical rules: text=0, tool calls sequential, thinking=0/text=1. Providers MUST normalize to this format. Includes example table.
