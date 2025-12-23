@@ -84,13 +84,13 @@ Create `src/providers/provider.h` with vtable definition and core types that all
 
 | Enum | Values | Purpose |
 |------|--------|---------|
-| `ik_thinking_level_t` | NONE (0), LOW (1), MED (2), HIGH (3) | Provider-agnostic thinking budget levels |
-| `ik_finish_reason_t` | STOP, LENGTH, TOOL_USE, CONTENT_FILTER, ERROR, UNKNOWN | Normalized completion reasons across providers |
-| `ik_content_type_t` | TEXT, TOOL_CALL, TOOL_RESULT, THINKING | Content block types |
-| `ik_role_t` | USER, ASSISTANT, TOOL | Message roles |
-| `ik_tool_choice_t` | AUTO, NONE, REQUIRED, SPECIFIC | Tool invocation control modes |
-| `ik_error_category_t` | AUTH, RATE_LIMIT, INVALID_ARG, NOT_FOUND, SERVER, TIMEOUT, CONTENT_FILTER, NETWORK, UNKNOWN | Provider error categories for retry logic |
-| `ik_stream_event_type_t` | START, TEXT_DELTA, THINKING_DELTA, TOOL_CALL_START, TOOL_CALL_DELTA, TOOL_CALL_DONE, DONE, ERROR | Stream event types |
+| `ik_thinking_level_t` | IK_THINKING_NONE (0), IK_THINKING_LOW (1), IK_THINKING_MED (2), IK_THINKING_HIGH (3) | Provider-agnostic thinking budget levels |
+| `ik_finish_reason_t` | IK_FINISH_STOP, IK_FINISH_LENGTH, IK_FINISH_TOOL_USE, IK_FINISH_CONTENT_FILTER, IK_FINISH_ERROR, IK_FINISH_UNKNOWN | Normalized completion reasons across providers |
+| `ik_content_type_t` | IK_CONTENT_TEXT, IK_CONTENT_TOOL_CALL, IK_CONTENT_TOOL_RESULT, IK_CONTENT_THINKING | Content block types |
+| `ik_role_t` | IK_ROLE_USER, IK_ROLE_ASSISTANT, IK_ROLE_TOOL | Message roles |
+| `ik_tool_choice_t` | IK_TOOL_AUTO, IK_TOOL_NONE, IK_TOOL_REQUIRED, IK_TOOL_SPECIFIC | Tool invocation control modes |
+| `ik_error_category_t` | IK_ERR_CAT_AUTH, IK_ERR_CAT_RATE_LIMIT, IK_ERR_CAT_INVALID_ARG, IK_ERR_CAT_NOT_FOUND, IK_ERR_CAT_SERVER, IK_ERR_CAT_TIMEOUT, IK_ERR_CAT_CONTENT_FILTER, IK_ERR_CAT_NETWORK, IK_ERR_CAT_UNKNOWN | Provider error categories for retry logic |
+| `ik_stream_event_type_t` | IK_STREAM_START, IK_STREAM_TEXT_DELTA, IK_STREAM_THINKING_DELTA, IK_STREAM_TOOL_CALL_START, IK_STREAM_TOOL_CALL_DELTA, IK_STREAM_TOOL_CALL_DONE, IK_STREAM_DONE, IK_STREAM_ERROR | Stream event types |
 
 ### Thinking Configuration Validation
 
@@ -99,12 +99,12 @@ Providers MUST validate the requested thinking level against model capabilities 
 **Validation Rules:**
 
 1. **Non-thinking model requested with thinking enabled:**
-   - If thinking level > NONE for a model that does not support thinking
+   - If thinking level > IK_THINKING_NONE for a model that does not support thinking
    - Return `ERR(ctx, ERR_INVALID_ARG, "Model <model_name> does not support thinking")`
    - Example: User requests `IK_THINKING_HIGH` on `gpt-4`
 
 2. **Thinking-required model requested with thinking disabled:**
-   - If thinking level == NONE for a model that requires thinking to be enabled
+   - If thinking level == IK_THINKING_NONE for a model that requires thinking to be enabled
    - Return `ERR(ctx, ERR_INVALID_ARG, "Model <model_name> requires thinking to be enabled")`
    - Example: User requests `IK_THINKING_NONE` on `o1-preview`
 
@@ -116,20 +116,20 @@ Providers MUST validate the requested thinking level against model capabilities 
 
 - **OpenAI:**
   - Only `o1-*` and `o3-*` models support reasoning (thinking)
-  - `gpt-*` models: thinking level MUST be NONE, otherwise return ERR_INVALID_ARG
-  - `o1-*`, `o3-*` models: thinking level MUST NOT be NONE, otherwise return ERR_INVALID_ARG
-  - Token budget mapping: LOW=2000, MED=5000, HIGH=10000 reasoning tokens
+  - `gpt-*` models: thinking level MUST be IK_THINKING_NONE, otherwise return ERR_INVALID_ARG
+  - `o1-*`, `o3-*` models: thinking level MUST NOT be IK_THINKING_NONE, otherwise return ERR_INVALID_ARG
+  - Token budget mapping: IK_THINKING_LOW=2000, IK_THINKING_MED=5000, IK_THINKING_HIGH=10000 reasoning tokens
 
 - **Anthropic:**
   - All Claude models support thinking (extended_thinking parameter)
-  - Thinking can be enabled or disabled (NONE is valid)
+  - Thinking can be enabled or disabled (IK_THINKING_NONE is valid)
   - Token budget varies by model tier (Claude Opus vs Sonnet vs Haiku)
   - Validation: Check if requested budget exceeds model's maximum thinking tokens
 
 - **Google:**
   - Gemini 2.5: Supports thinking via `thought` content blocks
   - Gemini 3.0: Different thinking mode implementation
-  - Thinking can be enabled or disabled (NONE is valid)
+  - Thinking can be enabled or disabled (IK_THINKING_NONE is valid)
   - Validation: Verify model version supports requested thinking mode
 
 **Error Message Format:**
@@ -221,21 +221,21 @@ Provider-specific errors (auth failures, rate limits, etc.) are delivered via th
 ### Content Block Variants
 
 `ik_content_block_t` uses tagged union:
-- TEXT: contains text string
-- TOOL_CALL: contains id, name, arguments (parsed JSON object)
-- TOOL_RESULT: contains tool_call_id, content, is_error flag
-- THINKING: contains thinking text summary
+- IK_CONTENT_TEXT: contains text string
+- IK_CONTENT_TOOL_CALL: contains id, name, arguments (parsed JSON object)
+- IK_CONTENT_TOOL_RESULT: contains tool_call_id, content, is_error flag
+- IK_CONTENT_THINKING: contains thinking text summary
 
 ### Stream Event Variants
 
 `ik_stream_event_t` uses tagged union with different data per type:
-- START: model name
-- TEXT_DELTA/THINKING_DELTA: text fragment, block index
-- TOOL_CALL_START: id, name, index
-- TOOL_CALL_DELTA: arguments fragment, index
-- TOOL_CALL_DONE: index
-- DONE: finish_reason, usage, provider_data
-- ERROR: category, message
+- IK_STREAM_START: model name
+- IK_STREAM_TEXT_DELTA/IK_STREAM_THINKING_DELTA: text fragment, block index
+- IK_STREAM_TOOL_CALL_START: id, name, index
+- IK_STREAM_TOOL_CALL_DELTA: arguments fragment, index
+- IK_STREAM_TOOL_CALL_DONE: index
+- IK_STREAM_DONE: finish_reason, usage, provider_data
+- IK_STREAM_ERROR: category, message
 
 ### Event Index Semantics
 
@@ -263,13 +263,13 @@ Provider implementations are responsible for mapping these provider-specific ind
 
 | Scenario | Event Type | Index | Description |
 |----------|-----------|-------|-------------|
-| Text only | TEXT_DELTA | 0 | Single text content block |
-| Single tool call | TOOL_CALL_START/DELTA/DONE | 0 | Only one tool call |
-| Two tool calls | TOOL_CALL_START/DELTA/DONE | 0, 1 | First tool call: 0, Second tool call: 1 |
-| Thinking + text | THINKING_DELTA | 0 | Thinking content block |
-| Thinking + text | TEXT_DELTA | 1 | Text content block after thinking |
-| Thinking + 2 tools | THINKING_DELTA | 0 | Thinking block |
-| Thinking + 2 tools | TOOL_CALL_START/DELTA/DONE | 1, 2 | First tool: 1, Second tool: 2 |
+| Text only | IK_STREAM_TEXT_DELTA | 0 | Single text content block |
+| Single tool call | IK_STREAM_TOOL_CALL_START/DELTA/DONE | 0 | Only one tool call |
+| Two tool calls | IK_STREAM_TOOL_CALL_START/DELTA/DONE | 0, 1 | First tool call: 0, Second tool call: 1 |
+| Thinking + text | IK_STREAM_THINKING_DELTA | 0 | Thinking content block |
+| Thinking + text | IK_STREAM_TEXT_DELTA | 1 | Text content block after thinking |
+| Thinking + 2 tools | IK_STREAM_THINKING_DELTA | 0 | Thinking block |
+| Thinking + 2 tools | IK_STREAM_TOOL_CALL_START/DELTA/DONE | 1, 2 | First tool: 1, Second tool: 2 |
 
 ### HTTP Completion Structure
 
