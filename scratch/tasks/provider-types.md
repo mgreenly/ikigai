@@ -118,11 +118,18 @@ Providers MUST validate the requested thinking level against model capabilities 
   - Only `o1-*` and `o3-*` models support reasoning (thinking)
   - `gpt-*` models: thinking level MUST be IK_THINKING_NONE, otherwise return ERR_INVALID_ARG
   - `o1-*`, `o3-*` models: thinking level MUST NOT be IK_THINKING_NONE, otherwise return ERR_INVALID_ARG
-  - Token budget mapping: IK_THINKING_LOW=2000, IK_THINKING_MED=5000, IK_THINKING_HIGH=10000 reasoning tokens
+  - Reasoning effort mapping: OpenAI uses string values ("low"/"medium"/"high") for `reasoning_effort` field (NOT numeric token budgets)
+    - Map IK_THINKING_LOW → "low"
+    - Map IK_THINKING_MED → "medium"
+    - Map IK_THINKING_HIGH → "high"
 
 - **Anthropic:**
   - All Claude models support thinking (extended_thinking parameter)
   - Thinking can be enabled or disabled (IK_THINKING_NONE is valid)
+  - Uses numeric `budget_tokens` field (NOT string values)
+    - IK_THINKING_LOW → 1024 tokens
+    - IK_THINKING_MED → 22016 tokens
+    - IK_THINKING_HIGH → 43008 tokens
   - Token budget varies by model tier (Claude Opus vs Sonnet vs Haiku)
   - Validation: Check if requested budget exceeds model's maximum thinking tokens
 
@@ -130,6 +137,10 @@ Providers MUST validate the requested thinking level against model capabilities 
   - Gemini 2.5: Supports thinking via `thought` content blocks
   - Gemini 3.0: Different thinking mode implementation
   - Thinking can be enabled or disabled (IK_THINKING_NONE is valid)
+  - Uses numeric `thinking_budget` field (NOT string values)
+    - IK_THINKING_LOW → 128 tokens
+    - IK_THINKING_MED → 11008 tokens
+    - IK_THINKING_HIGH → 21888 tokens
   - Validation: Verify model version supports requested thinking mode
 
 **Error Message Format:**
