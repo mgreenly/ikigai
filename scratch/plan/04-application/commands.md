@@ -90,7 +90,7 @@ This ensures no memory leaks and no dangling pointers during provider transition
 
 ### User Feedback
 
-See [thinking-abstraction.md](thinking-abstraction.md#user-feedback) for feedback format.
+See [03-provider-types.md](../03-provider-types.md#user-feedback) for feedback format.
 
 ### Tab Completion
 

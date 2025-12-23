@@ -20,3 +20,4 @@
 | credentials.json format | `plan/01-architecture/overview.md`, `plan/04-application/configuration.md` | Flat → nested `{"anthropic": {"api_key": "..."}}` |
 | Model name suffix | `plan/03-provider-types.md`, `plan/05-testing/strategy.md`, `plan/02-data-formats/request-response.md`, `plan/04-application/database-schema.md`, `plan/05-testing/vcr-cassettes.md` | Standardized to `claude-sonnet-4-5-20250514` (11 changes) |
 | Credentials load description | `plan/01-architecture/provider-interface.md` | Document two-function design: `ik_credentials_load()` + `ik_credentials_get()` |
+| Dead reference fix | `plan/04-application/commands.md` | `thinking-abstraction.md` → `../03-provider-types.md` |
