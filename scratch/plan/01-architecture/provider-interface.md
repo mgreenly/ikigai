@@ -128,6 +128,16 @@ struct ik_provider_vtable_t {
      * Called before provider is freed.
      */
     void (*cleanup)(void *ctx);
+
+    /**
+     * cancel - Cancel all in-flight requests
+     *
+     * @param ctx Provider context
+     *
+     * Called when user presses Ctrl+C or agent is being terminated.
+     * After cancel(), perform() should complete quickly with no more callbacks.
+     */
+    void (*cancel)(void *ctx);
 };
 ```
 
@@ -178,6 +188,21 @@ res_t (*start_stream)(void *ctx, const ik_request_t *req,
 
 This callback-only design keeps the interface simple and matches the
 select()-based event loop architecture.
+
+### Request Cancellation
+
+When the user cancels (Ctrl+C) or an agent is terminated:
+
+1. REPL calls `provider->vt->cancel(provider->ctx)`
+2. Provider marks all active transfers for abort
+3. Provider calls `curl_multi_remove_handle()` for each active transfer
+4. Next `perform()` call completes quickly with no pending work
+5. Completion callbacks are NOT invoked for cancelled requests
+6. Stream callbacks may have already been invoked for partial data
+
+**Memory cleanup:** Cancelled request contexts are still owned by talloc hierarchy and freed when provider context is freed.
+
+**Thread safety:** cancel() may be called from signal handler context. Implementation must be async-signal-safe (no malloc, no mutex).
 
 ## Provider Context
 
