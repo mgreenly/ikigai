@@ -36,8 +36,9 @@ All providers implement the same async interface via function pointers (vtable):
 │    start_request()  - initiate non-streaming request       │
 │    start_stream()   - initiate streaming request           │
 │                                                             │
-│  Cleanup:                                                   │
+│  Cleanup & Cancellation:                                    │
 │    cleanup()    - release resources (optional)             │
+│    cancel()     - cancel all in-flight requests            │
 └────────────────────────────────────────────────────────────┘
                  │
                  │ Implemented by each provider
@@ -76,6 +77,11 @@ All providers implement the same async interface via function pointers (vtable):
                     │
                     └─→ Detect completed transfers
                         Invoke completion_cb() with final result
+
+4. Cancellation:    provider->vt->cancel()  (on Ctrl+C)
+                    │
+                    └─→ Abort all in-flight requests
+                        Next perform() completes quickly with no callbacks
 ```
 
 ## Transformation Flow

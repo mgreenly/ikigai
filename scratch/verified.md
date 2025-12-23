@@ -38,3 +38,4 @@
 | VCR provider-types dependency | `tasks/vcr-core.md`, `tasks/vcr-mock-integration.md` | Added `provider-types.md` dependency for callback type definitions |
 | verify-mocks VCR dependency | `tasks/verify-mocks-providers.md` | Added `vcr-core.md`, `vcr-mock-integration.md`, `vcr-fixtures-setup.md` dependencies |
 | Test tasks fixtures dependency | `tasks/tests-*.md` (9 files) | Added `vcr-fixtures-setup.md` dependency for fixture directory availability |
+| Provider vtable cancel method | `plan/03-provider-types.md` | Added `cancel()` method to vtable diagram and async data flow |
