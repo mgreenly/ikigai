@@ -31,3 +31,8 @@ Fixed gaps - do not re-investigate.
 **Location:** `scratch/tasks/openai-shim-types.md`, `scratch/tasks/provider-factory.md`
 **Problem:** OpenAI create function used `ik_credentials_t *creds` but Anthropic/Google used `const char *api_key`. Factory expected consistent signatures.
 **Fix:** Changed `ik_openai_create()` to take `const char *api_key`. Removed credentials dependency from openai-shim-types.md. All providers now have consistent signatures for factory dispatch.
+
+### 2024-12-22: Missing retry_after_ms in ik_provider_completion_t Struct Table
+**Location:** `scratch/tasks/provider-types.md`
+**Problem:** Struct table for `ik_provider_completion_t` omitted `retry_after_ms` field, but detailed description included it.
+**Fix:** Added `retry_after_ms | int32_t | Suggested retry delay (-1 if not applicable)` to struct table. Table now matches detailed description.

@@ -81,7 +81,7 @@ Create `src/providers/provider.h` with vtable definition and core types that all
 | `ik_request_t` | system_prompt, messages, model, thinking config, tools, max_output_tokens | Request to provider |
 | `ik_response_t` | content blocks, finish_reason, usage, model, provider_data | Response from provider |
 | `ik_stream_event_t` | type, union of event-specific data | Streaming event with variant payload |
-| `ik_provider_completion_t` | success (bool), http_status, response (ik_response_t*), error_category, error_message | Completion callback payload |
+| `ik_provider_completion_t` | success (bool), http_status, response (ik_response_t*), error_category, error_message, retry_after_ms | Completion callback payload |
 | `ik_provider_vtable_t` | fdset(), perform(), timeout(), info_read(), start_request(), start_stream(), cleanup() | Provider vtable interface (async) |
 | `ik_provider_t` | name, vtable pointer, impl_ctx (opaque) | Provider wrapper |
 
