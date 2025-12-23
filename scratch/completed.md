@@ -16,3 +16,4 @@
 - 4.3 Inconsistency: Thinking Levels - aligned naming to 4 levels (none/low/med/high), removed "extended" references in 5 task files (from todo-4-application.md)
 - 5.1 Missing: Contract Tests - created contract-anthropic.md and contract-google.md following openai-equivalence-validation.md pattern (from todo-5-testing.md)
 - 5.2 Missing: Thinking Tests - created tests-thinking-levels.md for cross-provider thinking validation (from todo-5-testing.md)
+- 5.3 Missing: Performance Task - created tests-performance-benchmarking.md with <100μs targets, 6 benchmark categories, CI integration (from todo-5-testing.md)
