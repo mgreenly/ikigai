@@ -361,8 +361,39 @@ src/openai/             # DELETED completely (moved to src/providers/openai/)
    - Keep fdset/perform/timeout/info_read pattern
 3. **Adapter Shim** - Wrap existing `src/openai/` with vtable adapter to validate interface
    - Adapter delegates to existing client_multi functions
-4. **Call Site Updates** - Route all traffic through provider abstraction
-   - REPL calls provider->vt->fdset/perform instead of ik_openai_multi_*
+4. **Call Site Updates (Incremental)** - Break the transition into testable sub-steps
+
+   **4a: Add Provider Fields to Agent**
+   - Add `provider`, `model`, `thinking_level` fields to `ik_agent_ctx_t`
+   - Initialize to NULL/defaults in agent creation
+   - Test: Agent creates successfully, fields are NULL
+   - Files: `src/agent.c`, `src/agent.h`
+
+   **4b: Provider Dispatch Layer**
+   - Create `src/providers/dispatch.c` with `ik_provider_send()`
+   - This function checks agent->provider, creates if needed, calls vtable
+   - Initially just wraps old OpenAI code path
+   - Test: Message send still works through dispatch layer
+   - Files: `src/providers/dispatch.c`, `src/providers/dispatch.h`
+
+   **4c: Update REPL to Use Dispatch**
+   - Change `src/repl_actions_llm.c` to call `ik_provider_send()` instead of direct OpenAI
+   - Old OpenAI path still works via dispatch wrapper
+   - Test: REPL sends messages successfully
+   - Files: `src/repl_actions_llm.c`
+
+   **4d: Wire Up /model Command**
+   - Update `/model` to set agent->provider, agent->model, agent->thinking_level
+   - Dispatch layer now routes to correct provider based on fields
+   - Test: `/model gpt-4o` then send message works
+   - Files: `src/commands.c` or `src/commands_basic.c`
+
+   **4e: Update Tab Completion**
+   - Add model names to completion provider
+   - Test: Tab completion shows model options
+   - Files: `src/completion.c`
+
+   Each sub-step is independently testable. If any fails, previous steps still work.
 5. **Anthropic Provider** - Add second provider using same async pattern
    - Uses common http_multi layer
    - Implements provider-specific serialization and SSE handling
