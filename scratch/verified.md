@@ -43,3 +43,20 @@ Gaps that have been reviewed and fixed. Do not re-investigate these.
 - Updated model-command.md to use function from provider-types.md instead of defining it
 
 **Impact:** Dependency chain is now linear: provider-types.md → agent-provider-fields.md → model-command.md
+
+### 2024-12-22: ik_http_completion_t vs ik_provider_completion_t Type Confusion (CRITICAL)
+
+**Location:** `scratch/tasks/http-client.md`
+
+**Problem:** Multiple tasks used `ik_http_completion_t` and `ik_provider_completion_t` interchangeably without clarifying:
+- Which type belongs to which abstraction layer
+- When to use which type
+- How provider implementations convert between them
+
+**Fix:** Added "Completion Type Mapping: HTTP to Provider Layer" section to http-client.md documenting:
+- `ik_http_completion_t` is LOW-LEVEL (HTTP client internal, raw HTTP/CURL data)
+- `ik_provider_completion_t` is HIGH-LEVEL (provider API, parsed responses, error categories)
+- Provider implementations are responsible for the conversion
+- Includes pseudo-code example of the conversion pattern
+
+**Impact:** Clear abstraction boundary documented; implementers know which type to use at each layer.

@@ -151,6 +151,116 @@ From reference implementation:
 - `IK_HTTP_SERVER_ERROR` - HTTP 500-599
 - `IK_HTTP_NETWORK_ERROR` - Connection failed, timeout, DNS error
 
+## Completion Type Mapping: HTTP to Provider Layer
+
+**Two distinct completion types exist at different abstraction layers:**
+
+### Low-Level Type: `ik_http_completion_t`
+
+Defined in this task (http-client.md). Used INTERNALLY by the HTTP client layer.
+
+**Members:**
+- `type` (enum) - Status category (success, client error, server error, network error)
+- `http_code` (int32) - Raw HTTP status code
+- `curl_code` (int32) - CURL error code
+- `error_message` (char*) - CURL error string
+- `response_body` (char*) - Raw response bytes
+- `response_len` (size_t) - Response body length
+
+**Purpose:** Transport-level completion info from curl_multi. No awareness of provider APIs, JSON parsing, or retry logic.
+
+### High-Level Type: `ik_provider_completion_t`
+
+Defined in provider-types.md. Used by REPL and application code.
+
+**Members:**
+- `success` (bool) - Whether request succeeded
+- `http_status` (int) - HTTP status code
+- `response` (ik_response_t*) - Parsed provider response with content blocks
+- `error_category` (ik_error_category_t) - Provider error category (auth, rate limit, etc.)
+- `error_message` (char*) - Human-readable error
+- `retry_after_ms` (int32_t) - Suggested retry delay
+
+**Purpose:** Provider-level completion with parsed responses, error categorization, and retry guidance.
+
+### Conversion Pattern: Provider Implementation Responsibility
+
+**Provider adapters (openai, anthropic, google) bridge the two layers:**
+
+1. **HTTP client delivers `ik_http_completion_t` to provider callback:**
+   - HTTP client calls provider's internal completion callback with raw HTTP data
+   - Provider callback receives `ik_http_completion_t*` with HTTP status, response body, CURL codes
+
+2. **Provider parses and categorizes:**
+   - Extract HTTP status code from `http_code`
+   - Parse JSON response body into provider-specific structures
+   - Map HTTP status + provider error codes to `ik_error_category_t`
+   - Construct `ik_response_t*` with content blocks, usage, finish reason
+
+3. **Provider constructs `ik_provider_completion_t`:**
+   - Set `success` based on HTTP status and parse result
+   - Copy `http_status` from `http_code`
+   - Set `response` to parsed `ik_response_t*` (or NULL on error)
+   - Map provider-specific errors to `error_category` (AUTH, RATE_LIMIT, etc.)
+   - Extract retry-after header into `retry_after_ms`
+
+4. **Provider invokes user callback with `ik_provider_completion_t`:**
+   - User's completion callback receives high-level completion struct
+   - User code works with parsed responses, not raw HTTP
+
+### Pseudo-code Example
+
+```c
+// Provider's internal HTTP completion handler
+static void http_completion_handler(const ik_http_completion_t *http_comp, void *ctx) {
+    provider_request_ctx_t *req_ctx = ctx;
+
+    // Construct high-level completion
+    ik_provider_completion_t provider_comp = {0};
+    provider_comp.http_status = http_comp->http_code;
+
+    if (http_comp->type == IK_HTTP_SUCCESS) {
+        // Parse JSON response body
+        ik_response_t *response = parse_provider_response(
+            http_comp->response_body,
+            http_comp->response_len
+        );
+
+        if (response) {
+            provider_comp.success = true;
+            provider_comp.response = response;
+        } else {
+            provider_comp.success = false;
+            provider_comp.error_category = IK_ERROR_SERVER;  // Parse failure
+            provider_comp.error_message = "Failed to parse response";
+        }
+    } else {
+        // HTTP error - categorize and construct error message
+        provider_comp.success = false;
+        provider_comp.error_category = categorize_http_error(http_comp->http_code);
+        provider_comp.error_message = http_comp->error_message;
+
+        // Extract retry-after from headers if rate limited
+        if (http_comp->http_code == 429) {
+            provider_comp.retry_after_ms = extract_retry_after(req_ctx);
+        }
+    }
+
+    // Invoke user's completion callback with provider-level completion
+    req_ctx->user_completion_cb(&provider_comp, req_ctx->user_ctx);
+}
+```
+
+### Abstraction Boundary Summary
+
+| Layer | Type | Responsibility |
+|-------|------|----------------|
+| HTTP Client | `ik_http_completion_t` | Transport HTTP responses, report CURL errors |
+| Provider Adapter | Both types | Convert from HTTP completion to provider completion |
+| REPL/Application | `ik_provider_completion_t` | Work with parsed responses and semantic errors |
+
+**Key principle:** The HTTP client is protocol-agnostic. Provider adapters own the mapping from HTTP semantics to provider API semantics.
+
 ### Memory Management
 
 - Multi-handle and all children allocated via talloc
