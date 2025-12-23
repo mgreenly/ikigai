@@ -25,3 +25,5 @@ Fixed gaps - do not re-investigate.
 | 12-22 | Config Provider Defaults | configuration.md | Removed per-provider defaults from config; providers hardcode their own defaults via lookup function. Config only stores default_provider. |
 | 12-22 | VCR Clean Slate Approach | vcr-fixtures-setup.md, plan/*.md | Documented clean slate: old code/tests/fixtures DELETED, only new provider code and VCR fixtures remain. No migration. |
 | 12-22 | README.md Scope Creep | scratch/README.md | Restructured from 1116→214 lines. Product-focused only; technical details in plan/*.md. |
+| 12-22 | Model Naming Inconsistency | scratch/README.md | Changed dots to hyphens (claude-sonnet-4.5 → claude-sonnet-4-5) to match Anthropic naming |
+| 12-22 | Refactor vs Clean Slate | scratch/plan/README.md | Clarified "Coexistence-Then-Removal" approach: build new alongside old, verify, then delete old |

@@ -28,7 +28,7 @@ Abstract support for multiple AI providers and models, enabling ikigai to work s
 Switch models and thinking levels with a single command:
 
 ```
-/model claude-sonnet-4.5/med
+/model claude-sonnet-4-5/med
 /model o3-mini/high
 /model gemini-2.5-pro/low
 /model gpt-4o/none
@@ -43,9 +43,9 @@ Switch models and thinking levels with a single command:
 The system automatically translates these abstract levels to provider-specific parameters (token budgets, effort levels, etc.) and displays the concrete mapping:
 
 ```
-> /model claude-sonnet-4.5/med
+> /model claude-sonnet-4-5/med
 
-✓ Switched to Anthropic claude-sonnet-4.5-20250929
+✓ Switched to Anthropic claude-sonnet-4-5-20250929
   Thinking: enabled (20,000 token budget - medium)
 ```
 
@@ -75,7 +75,7 @@ Create child agents with different providers/models:
 
 - **Testing across providers:**
   ```
-  > /fork --model claude-sonnet-4.5/high "Solve this problem"
+  > /fork --model claude-sonnet-4-5/high "Solve this problem"
   > /fork --model o3-mini/high "Solve this problem"
   > /fork --model gemini-3-pro/high "Solve this problem"
   ```
@@ -137,8 +137,8 @@ Tokens: 1,234 input + 567 output + 890 thinking = 2,691 total
 Switch providers freely mid-conversation. History is preserved and sent to new provider in appropriate format.
 
 ```
-> /model claude-sonnet-4.5/med
-✓ Switched to Anthropic claude-sonnet-4.5-20250929
+> /model claude-sonnet-4-5/med
+✓ Switched to Anthropic claude-sonnet-4-5-20250929
 
 [Continue conversation with Claude...]
 

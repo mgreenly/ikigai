@@ -26,24 +26,30 @@ This design implements multi-provider AI API support for ikigai, enabling seamle
 2. **Lazy Everything** - No provider initialization or credential validation until first use
 3. **Zero Pre-Configuration** - App starts with no credentials; errors surface when features are used
 4. **Unified Abstraction** - All providers implement identical async vtable interface
-5. **No Remnants** - Existing OpenAI code refactored into new abstraction; no dual code paths
+5. **No Remnants** - Old OpenAI code deleted after new abstraction proven; clean end state
 6. **Provider Parity** - OpenAI is just another provider, no special treatment
 
-## Clean Slate Approach
+## Coexistence-Then-Removal Approach
 
-This release completely REPLACES old OpenAI code, tests, and fixtures. There is no migration - only new code remains.
+This release REPLACES old OpenAI code, tests, and fixtures through a phased migration:
 
-**What is deleted:**
-- **Code:** `src/openai/` - Entire directory and all implementation files
-- **Tests:** All old unit/integration tests for OpenAI client
-- **Fixtures:** All old fixtures in non-VCR format (`tests/fixtures/openai/`, etc.)
+**Phase 1: Coexistence**
+- Build new `src/providers/openai/` alongside existing `src/openai/`
+- Both implementations exist temporarily
+- Switch application to use new implementation
+- Verify new implementation works
 
-**What remains:**
+**Phase 2: Removal**
+- Delete old `src/openai/` directory and all implementation files
+- Delete old unit/integration tests for OpenAI client
+- Delete old fixtures in non-VCR format (`tests/fixtures/openai/`, etc.)
+
+**End State:**
 - **Code:** New provider abstraction in `src/providers/` (including `src/providers/openai/`)
 - **Tests:** VCR-based tests only
 - **Fixtures:** VCR JSONL cassettes in `tests/fixtures/vcr/`
 
-**Key principle:** This is a REPLACEMENT, not a migration. No compatibility layer, no dual code paths, no remnants.
+**Key principle:** Temporary dual code paths during migration, but NO remnants in the end state.
 
 ## Design Documents
 
