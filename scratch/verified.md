@@ -45,3 +45,4 @@
 | Anthropic MED budget consistency | `plan/03-provider-types.md` | `43000` → `43008` in transformation example |
 | Model date suffix update | `plan/*.md`, `tasks/*.md`, `findings/*.md`, `README.md` | `20250514` → `20250929` across 12 files (35 replacements); also fixed `claude-sonnet-4-20250514` → `claude-sonnet-4-5-20250929` and `claude-*.5` dot notation → hyphen notation |
 | openai-core dependency fix | `tasks/openai-core.md` | Removed `openai-shim-send.md` from dependencies (architecture inversion - native provider should not depend on shim) |
+| REPL routing dependency fix | `tasks/repl-provider-routing.md` | Removed `openai-shim-send.md` from dependencies (REPL should be provider-agnostic via vtable) |
