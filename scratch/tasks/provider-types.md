@@ -92,6 +92,53 @@ Create `src/providers/provider.h` with vtable definition and core types that all
 | `ik_error_category_t` | AUTH, RATE_LIMIT, INVALID_ARG, NOT_FOUND, SERVER, TIMEOUT, CONTENT_FILTER, NETWORK, UNKNOWN | Provider error categories for retry logic |
 | `ik_stream_event_type_t` | START, TEXT_DELTA, THINKING_DELTA, TOOL_CALL_START, TOOL_CALL_DELTA, TOOL_CALL_DONE, DONE, ERROR | Stream event types |
 
+### Thinking Configuration Validation
+
+Providers MUST validate the requested thinking level against model capabilities before initiating requests. Thinking support varies by provider and model:
+
+**Validation Rules:**
+
+1. **Non-thinking model requested with thinking enabled:**
+   - If thinking level > NONE for a model that does not support thinking
+   - Return `ERR(ctx, ERR_INVALID_ARG, "Model <model_name> does not support thinking")`
+   - Example: User requests `IK_THINKING_HIGH` on `gpt-4`
+
+2. **Thinking-required model requested with thinking disabled:**
+   - If thinking level == NONE for a model that requires thinking to be enabled
+   - Return `ERR(ctx, ERR_INVALID_ARG, "Model <model_name> requires thinking to be enabled")`
+   - Example: User requests `IK_THINKING_NONE` on `o1-preview`
+
+3. **Provider implementation must validate in `start_request()` and `start_stream()`:**
+   - Check thinking level compatibility before constructing API request
+   - Return error immediately if validation fails (before making HTTP call)
+
+**Provider-Specific Examples:**
+
+- **OpenAI:**
+  - Only `o1-*` and `o3-*` models support reasoning (thinking)
+  - `gpt-*` models: thinking level MUST be NONE, otherwise return ERR_INVALID_ARG
+  - `o1-*`, `o3-*` models: thinking level MUST NOT be NONE, otherwise return ERR_INVALID_ARG
+  - Token budget mapping: LOW=2000, MED=5000, HIGH=10000 reasoning tokens
+
+- **Anthropic:**
+  - All Claude models support thinking (extended_thinking parameter)
+  - Thinking can be enabled or disabled (NONE is valid)
+  - Token budget varies by model tier (Claude Opus vs Sonnet vs Haiku)
+  - Validation: Check if requested budget exceeds model's maximum thinking tokens
+
+- **Google:**
+  - Gemini 2.5: Supports thinking via `thought` content blocks
+  - Gemini 3.0: Different thinking mode implementation
+  - Thinking can be enabled or disabled (NONE is valid)
+  - Validation: Verify model version supports requested thinking mode
+
+**Error Message Format:**
+
+All validation errors should use consistent messaging:
+- Non-thinking model: `"Model {model_name} does not support thinking"`
+- Thinking-required model: `"Model {model_name} requires thinking to be enabled"`
+- Budget exceeded: `"Thinking budget {level} exceeds maximum for model {model_name}"`
+
 ### Structs to Define
 
 | Struct | Members | Purpose |

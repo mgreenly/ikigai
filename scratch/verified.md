@@ -56,3 +56,8 @@ Fixed gaps - do not re-investigate.
 **Location:** `scratch/tasks/vcr-core.md`
 **Problem:** `vcr_next_chunk()` returns both `data_out` and `len_out` but didn't specify if chunks are null-terminated or binary. SSE parser uses `strlen()` expecting null-terminated strings.
 **Fix:** Added "Chunk Format" section clarifying chunks are null-terminated C strings. `len_out` is provided for convenience/optimization. Guaranteed: `strlen(*data_out) == *len_out`. Safe to use with all string functions.
+
+### 2024-12-22: Missing Thinking Configuration Validation
+**Location:** `scratch/tasks/provider-types.md`, `scratch/tasks/anthropic-core.md`, `scratch/tasks/google-core.md`, `scratch/tasks/openai-core.md`
+**Problem:** No documentation for handling incompatible thinking level + model combinations (e.g., thinking on non-thinking model, or NONE on model requiring thinking).
+**Fix:** Added "Thinking Configuration Validation" section to provider-types.md with validation rules, provider-specific examples (OpenAI o1/o3, Anthropic Claude, Google Gemini 2.5/3.0), and standardized error messages (ERR_INVALID_ARG).
