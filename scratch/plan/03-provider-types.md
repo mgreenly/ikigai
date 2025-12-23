@@ -6,6 +6,78 @@ Providers differ in how they structure requests and responses. This document des
 
 **Key Principle:** Each provider adapter owns the complete bidirectional transformation between ikigai's internal format and the provider's API format. This happens in a single step with no intermediate representations.
 
+## Architecture Overview
+
+### Provider Vtable Pattern (Async)
+
+All providers implement the same async interface via function pointers (vtable):
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                     ik_provider_t                          │
+├────────────────────────────────────────────────────────────┤
+│  name: const char*                                         │
+│  vtable: ik_provider_vtable_t*  ──────┐                    │
+│  impl_ctx: void*                       │                    │
+└────────────────────────────────────────┼────────────────────┘
+                                         │
+                 ┌───────────────────────┘
+                 v
+┌────────────────────────────────────────────────────────────┐
+│              ik_provider_vtable_t (async)                  │
+├────────────────────────────────────────────────────────────┤
+│  Event Loop Integration (curl_multi):                      │
+│    fdset()      - populate fd_sets for select()            │
+│    perform()    - process pending I/O (non-blocking)       │
+│    timeout()    - get recommended select() timeout         │
+│    info_read()  - process completed transfers              │
+│                                                             │
+│  Request Initiation (returns immediately):                 │
+│    start_request()  - initiate non-streaming request       │
+│    start_stream()   - initiate streaming request           │
+│                                                             │
+│  Cleanup:                                                   │
+│    cleanup()    - release resources (optional)             │
+└────────────────────────────────────────────────────────────┘
+                 │
+                 │ Implemented by each provider
+                 v
+┌─────────────────────────────────────────────────────────────┐
+│  OpenAI Provider    │  Anthropic Provider  │  Google Provider│
+├─────────────────────┼──────────────────────┼─────────────────┤
+│ curl_multi handle   │ curl_multi handle    │ curl_multi handle│
+│ API key             │ API key              │ API key         │
+│ Base URL            │ Base URL             │ Base URL        │
+│                     │                      │                 │
+│ Transform:          │ Transform:           │ Transform:      │
+│ internal→OpenAI     │ internal→Anthropic   │ internal→Google │
+│ OpenAI→internal     │ Anthropic→internal   │ Google→internal │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Async Data Flow
+
+```
+1. REPL calls: provider->vt->start_stream(req, callbacks)
+                    │
+                    └─→ Returns immediately (non-blocking)
+                        Adds request to curl_multi
+
+2. Event loop:      provider->vt->fdset() → populate fd_sets
+                    select() on file descriptors
+                    provider->vt->perform() → curl_multi_perform()
+                    │
+                    └─→ Curl write callback triggered as data arrives
+                        │
+                        └─→ Parse streaming data (SSE/NDJSON)
+                            Emit ik_stream_event_t via stream_cb()
+
+3. Completion:      provider->vt->info_read()
+                    │
+                    └─→ Detect completed transfers
+                        Invoke completion_cb() with final result
+```
+
 ## Transformation Flow
 
 ```
