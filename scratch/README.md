@@ -46,7 +46,7 @@ The system automatically translates these abstract levels to provider-specific p
 > /model claude-sonnet-4-5/med
 
 ✓ Switched to Anthropic claude-sonnet-4-5-20250929
-  Thinking: enabled (20,000 token budget - medium)
+  Thinking: enabled (43,008 token budget - medium)
 ```
 
 ### Fork with Model Override
@@ -210,13 +210,13 @@ For implementation details, architecture decisions, and technical specifications
 
 ## Research Artifacts
 
-Provider API specifications documented in `rel-07/specs/`:
-- `anthropic.md` - Claude API (extended thinking, tool use)
-- `google.md` - Gemini API (thinking levels, grounding)
-- `xai.md` - Grok API (flexible message ordering)
-- `openai.md` - OpenAI Chat Completions + Responses API
-- `meta.md` - Llama API (open weights, MoE models)
-- `openrouter.md` - Unified gateway to 500+ models
+Provider API specifications documented in `findings/`:
+- `anthropic-extended-thinking.md` - Claude API (extended thinking, tool use)
+- `google-gemini-thinking.md` - Gemini API (thinking levels, grounding)
+- `openai-reasoning-models.md` - OpenAI Chat Completions + Responses API
+- `model-registry-patterns.md` - Model registry patterns
+- `provider-configuration.md` - Provider configuration patterns
+- `thinking-token-pricing.md` - Thinking token pricing research
 
 Token counting research in `project/tokens/`:
 - Tokenizer library design
