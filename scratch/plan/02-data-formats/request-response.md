@@ -174,7 +174,7 @@ Messages and system prompts are composed of content blocks.
   ],
   "thinking": {
     "type": "enabled",
-    "budget_tokens": 43000
+    "budget_tokens": 43008
   },
   "max_tokens": 4096
 }
@@ -182,7 +182,7 @@ Messages and system prompts are composed of content blocks.
 
 **Transformation:**
 - System prompt: Array → single string (concatenate blocks)
-- Thinking: IK_THINKING_MED → `budget_tokens: 43000` (2/3 of 64K max)
+- Thinking: IK_THINKING_MED → `budget_tokens: 43008` (2/3 of 64K max)
 - Messages: Internal format → Anthropic format
 
 ### OpenAI Request

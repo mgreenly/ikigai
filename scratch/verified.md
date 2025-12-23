@@ -119,3 +119,11 @@ Gaps identified during task review that have been fixed.
 **Issue:** Google Gemini 2.5 Pro MED thinking budget was shown as 21,760 but the formula `min + (2/3) * (max - min)` = `128 + 21760` = **21,888**. The 21,760 was the delta, not the final budget.
 
 **Fix:** Changed all instances of 21,760 (and 21760) to 21,888 across 3 files (10 total changes).
+
+### Anthropic MED thinking budget typo
+
+**Files:** `scratch/plan/02-data-formats/request-response.md`
+
+**Issue:** JSON example and transformation comment showed `43000` but correct value per formula and 03-provider-types.md is `43008`.
+
+**Fix:** Changed 43000 to 43008 in 2 places (lines 177 and 185).
