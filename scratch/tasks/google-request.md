@@ -66,6 +66,7 @@ Functions to implement:
   - IK_CONTENT_THINKING: `{"text": "...", "thought": true}`
   - IK_CONTENT_TOOL_CALL: `{"functionCall": {"name": "...", "args": {...}}}`
   - IK_CONTENT_TOOL_RESULT: `{"functionResponse": {"name": "...", "response": {"content": "..."}}}`
+- Check message provider_data for thought signatures and add as first part if present
 - If tools exist, wrap in `{"tools": [{"functionDeclarations": [...]}]}`
 - Add tool config: `{"toolConfig": {"functionCallingConfig": {"mode": "..."}}}`
 - Map tool choice: NONE -> "NONE", AUTO -> "AUTO", REQUIRED -> "ANY"
@@ -87,6 +88,17 @@ Functions to implement:
 - Streaming: ["Content-Type: application/json", "Accept: text/event-stream", NULL]
 - Return talloc-allocated NULL-terminated array
 - Google needs fewer headers than Anthropic (no API key header)
+
+**Provider Data Handling (Thought Signatures):**
+- When serializing messages, check each ASSISTANT message's provider_data field
+- If provider_data contains thought_signature, extract the value
+- Add thought signature as FIRST part in the message's parts array
+- Format: `{"thoughtSignature": "value"}`
+- Only process thought signatures for Gemini 3 models (optimization)
+- Use most recent thought signature only (iterate messages in reverse order)
+- If signature is NULL or empty, skip adding thoughtSignature part
+- If provider_data JSON is malformed, log warning and continue
+- This preserves encrypted tokens from previous responses (see google-response.md)
 
 **Error Handling:**
 - Return ERR(ctx, PARSE, ...) on JSON serialization failure
@@ -144,6 +156,14 @@ Functions to implement:
 - Accept: text/event-stream present
 - NULL-terminated array with third element NULL
 
+**Thought Signature Resubmission:**
+- Message with provider_data containing thought_signature adds thoughtSignature part
+- thoughtSignature part is FIRST in parts array, before text/tool parts
+- Message without provider_data does not add thoughtSignature part
+- Empty or NULL signature does not create thoughtSignature part
+- Malformed provider_data JSON logs warning but serialization continues
+- Only most recent ASSISTANT message signature is used
+
 ## Postconditions
 
 - [ ] `src/providers/google/request.h` exists
@@ -157,6 +177,9 @@ Functions to implement:
 - [ ] Tool choice maps: NONE->"NONE", AUTO->"AUTO", REQUIRED->"ANY"
 - [ ] Gemini 2.5 thinking uses `thinkingBudget`
 - [ ] Gemini 3 thinking uses `thinkingLevel`
+- [ ] Thought signatures from message provider_data added as first part
+- [ ] thoughtSignature part only added if signature present in provider_data
+- [ ] Messages without provider_data do not add thoughtSignature part
 - [ ] URL includes `?key=` parameter
 - [ ] Makefile updated with request.c
 - [ ] All serialization tests pass

@@ -71,6 +71,7 @@ Functions to implement:
   - Part with thought=true flag: IK_CONTENT_THINKING
   - Part with text only: IK_CONTENT_TEXT
 - Return empty response (content_count=0) if no candidates or no parts
+- Extract thought signature if present (Gemini 3 only) and store in provider_data
 - All allocations use talloc
 
 **Tool ID Generation:**
@@ -129,6 +130,16 @@ Functions to implement:
   - Send final DONE or ERROR event
   - Invoke user's `ik_provider_completion_cb_t` callback with completion
 
+**Provider Data Handling (Thought Signatures):**
+- Extract thought signature from response JSON if present (Gemini 3 only)
+- Thought signatures are encrypted tokens required for function calling with extended thinking
+- Check if response contains `thoughtSignature` field (location varies by API version)
+- If found, store in `response->provider_data` as JSON: `{"thought_signature": "value"}`
+- If not found or model is not Gemini 3, leave `provider_data` as NULL
+- Use yyjson_mut API to build provider_data JSON object
+- provider_data is owned by response struct (talloc hierarchy)
+- This data will be extracted and resubmitted in subsequent requests (see google-request.md)
+
 ## Test Scenarios
 
 **Simple Text Response:**
@@ -178,6 +189,13 @@ Functions to implement:
 - Response with no candidates returns empty content array
 - No error returned for empty response
 
+**Thought Signature Extraction:**
+- Response with thoughtSignature field extracts and stores in provider_data
+- provider_data has correct JSON structure: {"thought_signature": "value"}
+- Response without thoughtSignature leaves provider_data as NULL
+- Gemini 2.5 responses skip signature extraction (provider_data remains NULL)
+- Invalid signature extraction logs warning but does not fail response parsing
+
 ## Postconditions
 
 - [ ] `src/providers/google/response.h` exists
@@ -192,6 +210,9 @@ Functions to implement:
 - [ ] `ik_google_parse_error()` maps HTTP status to category
 - [ ] Blocked prompts (`promptFeedback.blockReason`) return error
 - [ ] `ik_google_start_request()` and `ik_google_start_stream()` wired to vtable in google.c
+- [ ] Thought signatures extracted from responses and stored in `provider_data`
+- [ ] `provider_data` format is JSON: `{"thought_signature": "value"}`
+- [ ] Responses without signatures have `provider_data` set to NULL
 - [ ] Makefile updated with response.c
 - [ ] All response parsing tests pass
 - [ ] Changes committed to git with message: `task: google-response.md - <summary>`
