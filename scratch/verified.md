@@ -19,3 +19,11 @@ Gaps identified during task review that have been fixed.
 **Issue:** Plan doc `01-architecture/provider-interface.md` defines `cancel` method in vtable for Ctrl+C handling, but `provider-types.md` didn't include it.
 
 **Fix:** Added `cancel` method to vtable definition in provider-types.md and verification checks in verify-foundation.md.
+
+### Wrong struct name in verify-foundation Step 3
+
+**Files:** `scratch/tasks/verify-foundation.md`
+
+**Issue:** Step 3 listed `ik_http_completion_t` as a struct to verify in `provider.h`, but that struct belongs in `http_multi.h`. The members listed were actually for `ik_provider_completion_t`.
+
+**Fix:** Changed `ik_http_completion_t` to `ik_provider_completion_t` in the struct verification list.

@@ -108,7 +108,7 @@ Read `src/providers/provider.h` and verify these symbols exist:
 - [ ] `ik_request_t` - with system_prompt, messages, model, thinking, tools, max_output_tokens
 - [ ] `ik_response_t` - with content blocks, finish_reason, usage, model
 - [ ] `ik_stream_event_t` - with type and union of event data
-- [ ] `ik_http_completion_t` - with success, http_status, response, error_category, error_message, retry_after_ms
+- [ ] `ik_provider_completion_t` - with success, http_status, response (ik_response_t*), error_category, error_message, retry_after_ms
 - [ ] `ik_provider_vtable_t` - with async methods (see Step 4)
 - [ ] `ik_provider_t` - with name, vt, impl_ctx
 
