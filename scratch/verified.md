@@ -52,3 +52,4 @@
 | Error enum prefix batch 3 | `tasks/openai-streaming-responses.md`, `tasks/tests-openai-basic.md`, `tasks/tests-integration-flows.md` | `ERR_*` → `IK_ERR_CAT_*` for provider error categories (44 replacements across 3 files) |
 | HTTP layer replacement refs | `tasks/cleanup-openai-source.md`, `tasks/cleanup-openai-docs.md` | `http_handler.c/h` → `http_multi.c/h` for NEW replacement file references (4 changes) |
 | credentials-tests-integration dep | `tasks/credentials-tests-integration.md` | Added missing `credentials-migrate.md` dependency |
+| VCR fixture extension fix | `tasks/tests-openai-basic.md`, `tasks/tests-anthropic-basic.md`, `tasks/tests-google-basic.md`, `tasks/tests-provider-core.md`, `tasks/tests-integration-flows.md` | `load_fixture("*.json")` → `load_fixture("*.jsonl")` (5 changes across 5 files) |

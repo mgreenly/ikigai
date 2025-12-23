@@ -106,7 +106,7 @@ static res_t test_completion_cb(const ik_provider_completion_t *completion, void
 START_TEST(test_non_streaming_request)
 {
     captured_response = NULL;
-    mock_set_response(200, load_fixture("openai/response_basic.json"));
+    mock_set_response(200, load_fixture("openai/response_basic.jsonl"));
 
     res_t r = provider->vt->start_request(provider->ctx, req, test_completion_cb, NULL);
     ck_assert(is_ok(&r));  // Returns immediately

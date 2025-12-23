@@ -64,7 +64,7 @@ START_TEST(test_non_streaming_request)
     captured_completion = NULL;
 
     // Setup: Load fixture data, configure mock curl_multi
-    const char *response_json = load_fixture("anthropic/response_basic.json");
+    const char *response_json = load_fixture("anthropic/response_basic.jsonl");
     mock_set_response(200, response_json);
 
     // Create provider

@@ -216,7 +216,7 @@ START_TEST(test_async_request)
     captured_response = NULL;
 
     // Setup: Load fixture and configure mock curl_multi
-    const char *response_json = load_fixture("provider/response.json");
+    const char *response_json = load_fixture("provider/response.jsonl");
     mock_curl_multi_set_response(200, response_json);
 
     // Create provider (uses async vtable, credentials loaded internally)

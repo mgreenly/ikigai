@@ -244,7 +244,7 @@ START_TEST(test_provider_async_request_flow)
     setenv("OPENAI_API_KEY", "test-key", 1);
 
     // Setup mock to return fixture response
-    const char *response_json = load_fixture("openai/response_basic.json");
+    const char *response_json = load_fixture("openai/response_basic.jsonl");
     mock_set_response(200, response_json);
 
     ik_provider_t *provider = NULL;

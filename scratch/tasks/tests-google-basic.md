@@ -403,7 +403,7 @@ START_TEST(test_non_streaming_request)
     captured_response = NULL;
 
     // Setup: Load fixture data
-    const char *response_json = load_fixture("google/response_basic.json");
+    const char *response_json = load_fixture("google/response_basic.jsonl");
     mock_set_response(200, response_json);
 
     // Create provider
