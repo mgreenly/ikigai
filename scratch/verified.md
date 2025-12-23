@@ -23,3 +23,4 @@
 | Dead reference fix | `plan/04-application/commands.md` | `thinking-abstraction.md` → `../03-provider-types.md` |
 | Contract thinking budgets | `plan/05-testing/contract-anthropic.md` | ~21000/~42000 → 22,016/43,008 (exact values) |
 | Agent field name | `plan/01-architecture/overview.md` | `provider_name` → `provider` (match DB schema) |
+| VCR OpenAI example | `plan/05-testing/vcr-cassettes.md` | Chat Completions → Responses API format |

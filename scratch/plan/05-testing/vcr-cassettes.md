@@ -99,13 +99,12 @@ Google uses newline-delimited JSON, not SSE:
 ### Streaming Example (OpenAI SSE)
 
 ```jsonl
-{"_request": {"method": "POST", "url": "https://api.openai.com/v1/chat/completions", "headers": {"Authorization": "Bearer REDACTED"}, "body": "{\"model\":\"gpt-4\",\"stream\":true,\"messages\":[...]}"}}
+{"_request": {"method": "POST", "url": "https://api.openai.com/v1/responses", "headers": {"Authorization": "Bearer REDACTED"}, "body": "{\"model\":\"o3\",\"stream\":true,\"input\":\"Hello\"}"}}
 {"_response": {"status": 200, "headers": {"content-type": "text/event-stream"}}}
-{"_chunk": "data: {\"id\":\"chatcmpl-123\",\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}\n\n"}
-{"_chunk": "data: {\"id\":\"chatcmpl-123\",\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\n"}
-{"_chunk": "data: {\"id\":\"chatcmpl-123\",\"choices\":[{\"delta\":{\"content\":\" world\"}}]}\n\n"}
-{"_chunk": "data: {\"id\":\"chatcmpl-123\",\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"}
-{"_chunk": "data: [DONE]\n\n"}
+{"_chunk": "event: response.created\ndata: {\"type\":\"response.created\",\"response\":{\"id\":\"resp_123\",\"status\":\"in_progress\"}}\n\n"}
+{"_chunk": "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"Hello\"}\n\n"}
+{"_chunk": "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\" world\"}\n\n"}
+{"_chunk": "event: response.completed\ndata: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_123\",\"status\":\"completed\"}}\n\n"}
 ```
 
 ### Error Response Example
