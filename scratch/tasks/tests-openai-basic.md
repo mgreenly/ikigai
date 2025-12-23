@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** openai-core.md, openai-request-chat.md, openai-response-chat.md, vcr-core.md, vcr-mock-integration.md
+**Depends on:** openai-core.md, openai-request-chat.md, openai-response-chat.md, vcr-core.md, vcr-mock-integration.md, vcr-fixtures-setup.md
 
 ## Context
 

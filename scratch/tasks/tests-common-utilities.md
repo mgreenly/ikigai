@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** http-client.md, sse-parser.md, vcr-core.md, vcr-mock-integration.md
+**Depends on:** http-client.md, sse-parser.md, vcr-core.md, vcr-mock-integration.md, vcr-fixtures-setup.md
 
 ## Context
 

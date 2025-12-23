@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** provider-factory.md, error-core.md, credentials-core.md, vcr-core.md, vcr-mock-integration.md
+**Depends on:** provider-factory.md, error-core.md, credentials-core.md, vcr-core.md, vcr-mock-integration.md, vcr-fixtures-setup.md
 
 ## Context
 
