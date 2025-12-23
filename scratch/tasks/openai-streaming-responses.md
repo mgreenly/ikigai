@@ -137,17 +137,21 @@ REPL Event Loop                        Provider/Streaming
 
 | Struct | Members | Purpose |
 |--------|---------|---------|
-| `ik_openai_responses_stream_ctx_t` | parent (talloc), stream_cb, stream_ctx, completion_cb, completion_ctx, model, finish_reason, usage, started, in_tool_call, tool_call_index, current_tool_id, current_tool_name, sse_parser | Responses API streaming state including callbacks for async delivery |
+| `ik_openai_responses_stream_ctx_t` | parent (talloc), stream_cb, stream_ctx, model, finish_reason, usage, started, in_tool_call, tool_call_index, current_tool_id, current_tool_name, sse_parser | Responses API streaming state with stream callback only (completion callback passed to start_stream() vtable method) |
+
+**Note:** Following the canonical pattern from `anthropic-streaming.md`, the stream context stores ONLY `stream_cb` and `stream_ctx`. The completion callback (`completion_cb`, `completion_ctx`) is passed to the `start_stream()` vtable method, not stored in the stream context.
 
 ### Functions to Implement
 
 | Function | Purpose |
 |----------|---------|
-| `ik_openai_responses_stream_ctx_create(ctx, stream_cb, stream_ctx, completion_cb, completion_ctx, out_stream_ctx)` | Create streaming context with both stream and completion callbacks |
+| `ik_openai_responses_stream_ctx_create(ctx, stream_cb, stream_ctx, out_stream_ctx)` | Create streaming context with stream callback only (completion callback passed to start_stream() instead) |
 | `ik_openai_responses_stream_process_event(stream_ctx, event_name, data)` | Process SSE event (called from curl write callback during perform()) |
 | `ik_openai_responses_stream_get_usage(stream_ctx)` | Get accumulated usage from stream |
 | `ik_openai_responses_stream_get_finish_reason(stream_ctx)` | Get finish reason from stream |
 | `ik_openai_responses_stream_write_callback(ptr, size, nmemb, userdata)` | Curl write callback - feeds data to SSE parser |
+
+**Note:** The `start_stream()` vtable method receives completion callback parameters and stores them separately for invocation during `info_read()`, following the canonical pattern from `anthropic-streaming.md` and `repl-streaming-updates.md`.
 
 ### Write Callback Flow
 
@@ -180,14 +184,22 @@ static size_t ik_openai_responses_stream_write_callback(void *ptr, size_t size, 
 
 ## Behaviors
 
+**Canonical Callback Ownership Pattern:**
+This implementation follows the canonical pattern documented in `anthropic-streaming.md` and `repl-streaming-updates.md`:
+- Stream context stores ONLY `stream_cb` and `stream_ctx` (for stream events during perform())
+- Completion callback (`completion_cb`, `completion_ctx`) is passed to `start_stream()` vtable method
+- `start_stream()` stores completion callback separately for invocation during `info_read()`
+- Stream context does NOT store completion callbacks
+
 ### Stream Initialization (in create function)
 
-- Create stream context with stream_cb, stream_ctx, completion_cb, completion_ctx
+- Create stream context with stream_cb and stream_ctx only
 - Create SSE parser with sse_event_handler callback pointing to this context
 - Initialize finish_reason to UNKNOWN
 - Set started = false, in_tool_call = false
 - Initialize tool_call_index = -1
 - **Does NOT start any I/O** - that happens when request is added to curl_multi
+- **Does NOT store completion callback** - that is passed to `start_stream()` vtable method instead
 
 ### Event Processing (invoked during perform() via write callback)
 
@@ -286,7 +298,7 @@ Events to handle:
   - `total_tokens` -> usage.total_tokens (or sum if not present)
   - `output_tokens_details.reasoning_tokens` -> usage.thinking_tokens
 - Emit IK_STREAM_DONE via stream_cb with finish_reason and usage
-- Invoke completion_cb to signal transfer complete (called from info_read context, not here)
+- **Note:** completion_cb is NOT invoked here - it's invoked by `info_read()` when curl signals transfer complete. The completion callback is handled by the `start_stream()` implementation and curl_multi infrastructure.
 
 ### error Event
 
@@ -299,7 +311,7 @@ Events to handle:
   - "server_error" -> ERR_SERVER
   - default -> ERR_UNKNOWN
 - Emit IK_STREAM_ERROR via stream_cb with category and message
-- Note: completion_cb will be invoked from info_read when curl detects connection close
+- **Note:** completion_cb will be invoked from `info_read()` when curl detects connection close. The completion callback is NOT stored in stream context - it's handled by the `start_stream()` vtable method.
 
 ### Usage Extraction
 
@@ -466,17 +478,20 @@ Expected:
 ### Async Integration Test
 
 Simulate full async flow:
-1. Create stream context with mock stream_cb and completion_cb
+1. Create stream context with mock stream_cb only (completion_cb passed to start_stream() separately)
 2. Create mock SSE data chunks (may be partial events)
 3. Feed chunks via write_callback (simulating curl write callback during perform)
 4. Verify stream_cb receives correct sequence of normalized events
 5. Verify completion_cb is not called from write_callback (it comes from info_read)
+6. Verify stream context does not store completion callback (only stream callback)
 
 ## Postconditions
 
 - [ ] `src/providers/openai/streaming.h` declares Responses streaming types and functions
 - [ ] `src/providers/openai/streaming_responses.c` implements async event processing
-- [ ] Stream context holds stream_cb, stream_ctx, completion_cb, completion_ctx
+- [ ] Stream context holds stream_cb and stream_ctx ONLY (completion callback passed to start_stream() instead)
+- [ ] `ik_openai_responses_stream_ctx_create()` takes stream_cb and stream_ctx parameters only (NOT completion callback)
+- [ ] Completion callback handled by `start_stream()` vtable method and curl_multi infrastructure
 - [ ] Write callback (`ik_openai_responses_stream_write_callback`) feeds data to SSE parser
 - [ ] SSE parser invokes `process_event` for each complete event
 - [ ] `process_event` invokes stream_cb with normalized events (during perform context)
