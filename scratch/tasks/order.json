@@ -93,8 +93,8 @@
     {
       "task": "verify-foundation.md",
       "group": "Verification",
-      "model": "sonnet",
-      "thinking": "thinking"
+      "model": "opus",
+      "thinking": "extended"
     },
     {
       "task": "vcr-core.md",
@@ -142,8 +142,8 @@
     {
       "task": "verify-infrastructure.md",
       "group": "Verification",
-      "model": "sonnet",
-      "thinking": "thinking"
+      "model": "opus",
+      "thinking": "extended"
     },
     {
       "task": "openai-shim-types.md",
@@ -178,8 +178,8 @@
     {
       "task": "verify-openai-shim.md",
       "group": "Verification",
-      "model": "sonnet",
-      "thinking": "thinking"
+      "model": "opus",
+      "thinking": "extended"
     },
     {
       "task": "agent-provider-fields.md",
@@ -364,8 +364,8 @@
     {
       "task": "verify-providers.md",
       "group": "Verification",
-      "model": "sonnet",
-      "thinking": "thinking"
+      "model": "opus",
+      "thinking": "extended"
     },
     {
       "task": "cleanup-openai-adapter.md",
@@ -388,8 +388,8 @@
     {
       "task": "verify-cleanup.md",
       "group": "Verification",
-      "model": "sonnet",
-      "thinking": "thinking"
+      "model": "opus",
+      "thinking": "extended"
     },
     {
       "task": "tests-integration-switching.md",
