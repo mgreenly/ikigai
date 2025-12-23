@@ -39,7 +39,7 @@ Implement request serialization for OpenAI Responses API. This API is used for r
 | Messages | `messages[]` | `input` (string or array) |
 | Max tokens | `max_completion_tokens` | `max_output_tokens` |
 | Thinking | N/A | `reasoning.effort` |
-| Tools | `tools[].function` | `tools[]` (name at top level) |
+| Tools | `tools[].function` | `tools[].function` (same format) |
 
 ## Interface
 
@@ -82,10 +82,11 @@ Implement request serialization for OpenAI Responses API. This API is used for r
 
 ### Tool Definition Format
 
-- Different from Chat Completions: name at top level
-- Each tool has: type: "function", name, description, parameters
+- Tool definitions in Responses API use identical format to Chat Completions API
+- Each tool has nested structure: `{type: "function", function: {name, description, parameters}}`
+- The `function` object contains: name, description, parameters
 - Add "strict": true for structured outputs
-- No nested function object
+- Same nested function object as Chat Completions
 
 ### Request Fields
 
@@ -135,8 +136,8 @@ Implement request serialization for OpenAI Responses API. This API is used for r
 ### Tool Format
 
 - Request with tools
-- Verify tools have name at top level (not nested in function)
-- Verify type, description, parameters present
+- Verify tools use nested format with `type: "function"` and `function` object
+- Verify function object contains: name, description, parameters
 - Verify "strict": true added
 
 ### URL Building
@@ -151,7 +152,7 @@ Implement request serialization for OpenAI Responses API. This API is used for r
 - [ ] System prompt becomes `instructions` field
 - [ ] Single user message uses string input, multi-turn uses array
 - [ ] Reasoning effort included for reasoning models only
-- [ ] Tool definitions have name at top level
+- [ ] Tool definitions use same nested format as Chat Completions (type + function object)
 - [ ] Makefile updated with request_responses.c
 - [ ] All serialization tests pass
 - [ ] Compiles without warnings
