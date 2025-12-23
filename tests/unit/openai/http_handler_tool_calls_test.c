@@ -142,7 +142,7 @@ CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
  * Tests canonical message conversion in ik_openai_chat_create
  */
 START_TEST(test_tool_call_single_chunk) {
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
@@ -209,7 +209,7 @@ END_TEST
  */
 START_TEST(test_tool_call_streaming_multiple_chunks)
 {
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
@@ -281,7 +281,7 @@ END_TEST
  */
 START_TEST(test_tool_call_no_content)
 {
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
@@ -350,7 +350,7 @@ END_TEST
  */
 START_TEST(test_parse_tool_calls_ok_null)
 {
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
@@ -396,7 +396,7 @@ END_TEST
  */
 START_TEST(test_parse_tool_calls_error)
 {
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 

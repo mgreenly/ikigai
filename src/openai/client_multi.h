@@ -91,7 +91,7 @@ res_t ik_openai_multi_create(void *parent);
  * @return               OK(NULL) or ERR(...)
  */
 res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
-                                   const ik_cfg_t *cfg,
+                                   const ik_config_t *cfg,
                                    ik_openai_conversation_t *conv,
                                    ik_openai_stream_cb_t stream_cb,
                                    void *stream_ctx,

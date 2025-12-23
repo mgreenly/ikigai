@@ -68,7 +68,8 @@ START_TEST(test_config_mkdir_failure) {
     mock_mkdir_errno = EACCES;
 
     // Attempt to load config - should fail when creating directory
-    res_t res = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+    res_t res = ik_config_load(ctx, test_config, &config);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -101,7 +102,8 @@ START_TEST(test_config_stat_directory_exists)
     }
 
     // Load config - should succeed
-    res_t res = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+    res_t res = ik_config_load(ctx, test_config, &config);
 
     // Verify success
     ck_assert(is_ok(&res));

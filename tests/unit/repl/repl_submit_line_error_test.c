@@ -186,7 +186,7 @@ START_TEST(test_submit_line_event_render_fails) {
 
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init

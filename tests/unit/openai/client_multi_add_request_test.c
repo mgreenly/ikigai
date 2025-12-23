@@ -15,7 +15,7 @@ START_TEST(test_multi_add_request_empty_conversation) {
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
 
     /* Create config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -44,7 +44,7 @@ END_TEST START_TEST(test_multi_add_request_no_api_key)
     ik_openai_conversation_add_msg(conv, msg);
 
     /* Create config without API key */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -73,7 +73,7 @@ END_TEST START_TEST(test_multi_add_request_empty_api_key)
     ik_openai_conversation_add_msg(conv, msg);
 
     /* Create config with empty API key */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -98,7 +98,7 @@ END_TEST START_TEST(test_multi_add_request_curl_easy_init_failure)
     ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -134,7 +134,7 @@ END_TEST START_TEST(test_multi_add_request_api_key_too_long)
     /* Set very long API key in environment */
     setenv("OPENAI_API_KEY", long_key, 1);
 
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -158,7 +158,7 @@ END_TEST START_TEST(test_multi_add_request_snprintf_error)
     ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -187,7 +187,7 @@ END_TEST START_TEST(test_multi_add_request_success)
     ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config with normal API key */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -211,7 +211,7 @@ END_TEST START_TEST(test_multi_add_request_curl_multi_add_handle_failure)
     ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -240,7 +240,7 @@ END_TEST START_TEST(test_multi_destructor_with_active_requests)
     ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -267,7 +267,7 @@ END_TEST START_TEST(test_multi_add_request_limit_reached)
     ik_openai_conversation_add_msg(conv, msg_tmp);
 
     /* Create config with normal API key */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;

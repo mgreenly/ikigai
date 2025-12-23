@@ -216,7 +216,7 @@ START_TEST(test_history_loads_on_init) {
     ck_assert(write(fd, l2, strlen(l2)) == (ssize_t)strlen(l2));
     fsync(fd); close(fd);
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
@@ -238,7 +238,7 @@ END_TEST START_TEST(test_history_saves_on_submit)
     setup_test_env();
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
@@ -271,7 +271,7 @@ END_TEST START_TEST(test_history_survives_repl_restart)
     cleanup_test_dir();
 
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl1 = NULL;

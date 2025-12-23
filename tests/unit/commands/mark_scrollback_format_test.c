@@ -23,7 +23,7 @@
 // Test fixture
 static TALLOC_CTX *ctx;
 static ik_repl_ctx_t *repl;
-static ik_cfg_t *cfg;
+static ik_config_t *cfg;
 
 /**
  * Create a REPL context with conversation and config for testing
@@ -37,7 +37,7 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
     ck_assert_ptr_nonnull(conv);
 
     // Create minimal config (will be replaced by setup)
-    ik_cfg_t *test_cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *test_cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(test_cfg);
 
     // Create shared context
@@ -79,7 +79,7 @@ static void setup(void)
     ck_assert_ptr_nonnull(ctx);
 
     // Create config with system message
-    cfg = talloc_zero(ctx, ik_cfg_t);
+    cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant for testing.");
 

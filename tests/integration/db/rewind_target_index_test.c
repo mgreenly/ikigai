@@ -135,7 +135,7 @@ START_TEST(test_rewind_persists_correct_target_message_index)
 
     // Create shared context with config
     ik_shared_ctx_t *shared = talloc_zero(test_ctx, ik_shared_ctx_t);
-    shared->cfg = talloc_zero(test_ctx, ik_cfg_t);
+    shared->cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(shared->cfg);
     repl->shared = shared;
 

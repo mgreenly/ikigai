@@ -94,7 +94,7 @@ START_TEST(test_page_down_scrolling)
 
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -129,7 +129,7 @@ START_TEST(test_page_down_at_bottom)
 
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -164,7 +164,7 @@ START_TEST(test_page_down_small_offset)
 
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -199,7 +199,7 @@ START_TEST(test_page_up_scrolling)
 
     // Setup REPL with scrollback
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -242,7 +242,7 @@ START_TEST(test_page_up_empty_scrollback)
 
     // Setup REPL with empty scrollback
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -280,7 +280,7 @@ START_TEST(test_page_up_clamping)
 
     // Setup REPL with scrollback (terminal is 24 rows from ik_repl_init)
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -334,7 +334,7 @@ START_TEST(test_submit_line_to_scrollback)
 
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -380,7 +380,7 @@ START_TEST(test_submit_line_auto_scroll)
 
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -422,7 +422,7 @@ START_TEST(test_submit_empty_line)
 
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init

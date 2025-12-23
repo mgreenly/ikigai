@@ -20,7 +20,7 @@
 START_TEST(test_completion_debug_args) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
@@ -54,7 +54,7 @@ START_TEST(test_completion_partial_arg)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;

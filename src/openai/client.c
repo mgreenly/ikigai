@@ -89,7 +89,7 @@ void ik_openai_conversation_clear(ik_openai_conversation_t *conv) {
  * Request/Response functions
  */
 
-ik_openai_request_t *ik_openai_request_create(void *parent, const ik_cfg_t *cfg,
+ik_openai_request_t *ik_openai_request_create(void *parent, const ik_config_t *cfg,
                                                ik_openai_conversation_t *conv) {
     assert(cfg != NULL); // LCOV_EXCL_BR_LINE
     assert(conv != NULL); // LCOV_EXCL_BR_LINE
@@ -229,7 +229,7 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
     return result;
 }
 
-res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
+res_t ik_openai_chat_create(void *parent, const ik_config_t *cfg,
                              ik_openai_conversation_t *conv,
                              ik_openai_stream_cb_t stream_cb, void *cb_ctx) {
     assert(cfg != NULL); // LCOV_EXCL_BR_LINE

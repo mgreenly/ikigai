@@ -111,7 +111,7 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ck_assert_ptr_nonnull(conv);
 
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Create shared context
@@ -159,7 +159,7 @@ static void teardown(void)
 // Test: Clear with database error on clear event persist
 START_TEST(test_clear_db_error_clear_event) {
     // Create minimal config (no system message for this test)
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
 
@@ -203,7 +203,7 @@ END_TEST
 START_TEST(test_clear_db_error_system_message)
 {
     // Create config with system message
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant");
 
@@ -270,7 +270,7 @@ END_TEST
 START_TEST(test_clear_db_error_no_debug_pipe)
 {
     // Create minimal config (no system message)
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
 
@@ -304,7 +304,7 @@ END_TEST
 START_TEST(test_clear_system_db_error_no_debug_pipe)
 {
     // Create config with system message
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are helpful");
 
@@ -339,7 +339,7 @@ END_TEST
 START_TEST(test_clear_db_error_write_end_null)
 {
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
 
@@ -376,7 +376,7 @@ END_TEST
 START_TEST(test_clear_system_db_error_write_end_null)
 {
     // Create config with system message
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are helpful");
 

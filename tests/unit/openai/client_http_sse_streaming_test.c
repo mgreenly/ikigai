@@ -171,7 +171,7 @@ CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
  */
 START_TEST(test_http_callback_with_sse_streaming) {
     /* Create configuration */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
@@ -213,7 +213,7 @@ END_TEST
 START_TEST(test_http_callback_empty_response)
 {
     /* Create configuration */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
@@ -250,7 +250,7 @@ END_TEST
 START_TEST(test_http_callback_sse_parser_feed_error)
 {
     /* Create configuration */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
@@ -288,7 +288,7 @@ END_TEST
 START_TEST(test_http_callback_sse_parse_error)
 {
     /* Create configuration */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
@@ -351,7 +351,7 @@ static res_t failing_callback(const char *content, void *user_ctx)
  */
 START_TEST(test_http_callback_user_success) {
     /* Create configuration */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
@@ -389,7 +389,7 @@ END_TEST
 START_TEST(test_http_callback_user_error)
 {
     /* Create configuration */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;

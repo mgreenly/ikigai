@@ -123,7 +123,7 @@ static void setup(void)
     repl->current = agent;
 
     // Create config
-    shared->cfg = talloc_zero_(test_ctx, sizeof(ik_cfg_t));
+    shared->cfg = talloc_zero_(test_ctx, sizeof(ik_config_t));
     ck_assert_ptr_nonnull(shared->cfg);
     shared->cfg->openai_model = talloc_strdup_(shared->cfg, "gpt-4");
     shared->cfg->openai_temperature = 0.7;

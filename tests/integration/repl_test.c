@@ -283,7 +283,7 @@ START_TEST(test_repl_init) {
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
@@ -322,7 +322,7 @@ END_TEST START_TEST(test_repl_run)
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
@@ -341,7 +341,7 @@ END_TEST START_TEST(test_thread_infrastructure_init)
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
@@ -363,7 +363,7 @@ END_TEST START_TEST(test_mutex_init_failure)
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
     mock_pthread_mutex_init_fail = 1;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
@@ -380,7 +380,7 @@ END_TEST START_TEST(test_transition_to_executing_tool)
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
@@ -404,7 +404,7 @@ END_TEST START_TEST(test_transition_from_executing_tool)
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
@@ -432,7 +432,7 @@ START_TEST(test_repl_init_null_parent)
 END_TEST START_TEST(test_repl_init_null_out)
 {
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);

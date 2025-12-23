@@ -116,7 +116,7 @@ START_TEST(test_cfg_create_returns_valid_config) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    ik_cfg_t *cfg = test_cfg_create(ctx);
+    ik_config_t *cfg = test_cfg_create(ctx);
 
     ck_assert_ptr_nonnull(cfg);
     ck_assert_int_eq(cfg->history_size, 100);
@@ -195,7 +195,7 @@ START_TEST(test_shared_ctx_create_with_custom_cfg)
     ck_assert_ptr_nonnull(ctx);
 
     // Create custom config
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 250;
     cfg->openai_model = talloc_strdup(cfg, "custom-model");

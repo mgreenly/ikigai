@@ -40,9 +40,9 @@ static const char *get_api_key(void)
 }
 
 /* Helper: Create test configuration */
-static ik_cfg_t *create_test_cfg(void *parent, const char *model)
+static ik_config_t *create_test_cfg(void *parent, const char *model)
 {
-    ik_cfg_t *cfg = talloc(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     cfg->openai_model = talloc_strdup(cfg, model);
@@ -117,7 +117,7 @@ START_TEST(verify_stream_hello_world) {
     ck_assert_ptr_nonnull(ctx);
 
     /* Create configuration */
-    ik_cfg_t *cfg = create_test_cfg(ctx, "gpt-5-mini");
+    ik_config_t *cfg = create_test_cfg(ctx, "gpt-5-mini");
 
     /* Create conversation with simple greeting */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
@@ -183,7 +183,7 @@ END_TEST START_TEST(verify_stream_multiline)
     ck_assert_ptr_nonnull(ctx);
 
     /* Create configuration */
-    ik_cfg_t *cfg = create_test_cfg(ctx, "gpt-5-mini");
+    ik_config_t *cfg = create_test_cfg(ctx, "gpt-5-mini");
 
     /* Create conversation requesting code (likely to be multi-line) */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
@@ -241,7 +241,7 @@ END_TEST START_TEST(verify_stream_conversation)
     ck_assert_ptr_nonnull(ctx);
 
     /* Create configuration */
-    ik_cfg_t *cfg = create_test_cfg(ctx, "gpt-5-mini");
+    ik_config_t *cfg = create_test_cfg(ctx, "gpt-5-mini");
 
     /* Create multi-turn conversation */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);

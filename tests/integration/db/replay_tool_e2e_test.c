@@ -271,7 +271,7 @@ START_TEST(test_tool_conversation_e2e)
     ck_assert(is_ok(&res));
 
     // Create config for request serialization
-    ik_cfg_t *cfg = talloc_zero(replay_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(replay_ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
     cfg->openai_temperature = 1.0;
     cfg->openai_max_completion_tokens = 2000;

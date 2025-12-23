@@ -87,10 +87,11 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
     return OK(NULL);
 }
 
-res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
+res_t ik_config_load(TALLOC_CTX *ctx, const char *path, ik_config_t **out)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(path != NULL); // LCOV_EXCL_BR_LINE
+    assert(out != NULL); // LCOV_EXCL_BR_LINE
 
     // expand tilde in path
     char *expanded_path = TRY(ik_cfg_expand_tilde(ctx, path));
@@ -119,7 +120,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     }
 
     // Allocate config structure
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     if (cfg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Extract fields
@@ -133,6 +134,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     yyjson_val *max_tool_turns = yyjson_obj_get_(root, "max_tool_turns");
     yyjson_val *max_output_size = yyjson_obj_get_(root, "max_output_size");
     yyjson_val *history_size = yyjson_obj_get_(root, "history_size");
+    yyjson_val *default_provider = yyjson_obj_get_(root, "default_provider");
 
     // validate openai_model
     if (!model) {
@@ -275,6 +277,42 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     cfg->max_output_size = max_output_size_value;
     cfg->history_size = history_size_value;
 
+    // parse default_provider (optional)
+    if (default_provider) {
+        if (!yyjson_is_str(default_provider)) {
+            return ERR(ctx, PARSE, "Invalid type for default_provider");
+        }
+        const char *provider_str = yyjson_get_str_(default_provider);
+        // Empty string treated as unset
+        if (provider_str && provider_str[0] != '\0') {
+            cfg->default_provider = talloc_strdup(cfg, provider_str);
+        } else {
+            cfg->default_provider = NULL;
+        }
+    } else {
+        cfg->default_provider = NULL;
+    }
+
     // no cleanup required talloc frees everything when ctx is freed
-    return OK(cfg);
+    *out = cfg;
+    return OK(NULL);
+}
+
+const char *ik_config_get_default_provider(ik_config_t *config)
+{
+    assert(config != NULL); // LCOV_EXCL_BR_LINE
+
+    // Check environment variable first
+    const char *env_provider = getenv("IKIGAI_DEFAULT_PROVIDER");
+    if (env_provider && env_provider[0] != '\0') {
+        return env_provider;
+    }
+
+    // Use config file value
+    if (config->default_provider && config->default_provider[0] != '\0') {
+        return config->default_provider;
+    }
+
+    // Fall back to hardcoded default
+    return "openai";
 }

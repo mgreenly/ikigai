@@ -23,7 +23,7 @@ static int shared_destructor(ik_shared_ctx_t *shared)
 }
 
 res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
-                         ik_cfg_t *cfg,
+                         ik_config_t *cfg,
                          const char *working_dir,
                          const char *ikigai_path,
                          ik_logger_t *logger,

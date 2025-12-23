@@ -22,7 +22,7 @@ END_TEST START_TEST(test_multi_info_read_with_completed_message)
     ik_openai_multi_t *multi = multi_res.ok;
 
     ik_openai_conversation_t *conv = create_test_conversation("Hello");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
     res_t add_res = add_test_request(multi, cfg, conv);
     ck_assert(!add_res.is_err);
 
@@ -57,7 +57,7 @@ END_TEST START_TEST(test_multi_info_read_multiple_requests)
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
     ik_openai_conversation_t *conv1 = create_test_conversation("Hello");
     res_t add_res1 = add_test_request(multi, cfg, conv1);
     ck_assert(!add_res1.is_err);
@@ -82,7 +82,7 @@ END_TEST START_TEST(test_multi_info_read_multiple_requests_shift)
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
     CURL *first_handle = NULL;
 
     for (int i = 0; i < 3; i++) {
@@ -123,7 +123,7 @@ END_TEST START_TEST(test_multi_info_read_network_error)
     ik_openai_multi_t *multi = multi_res.ok;
 
     ik_openai_conversation_t *conv = create_test_conversation("Hello");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
     res_t add_res = add_test_request(multi, cfg, conv);
     ck_assert(!add_res.is_err);
 
@@ -142,7 +142,7 @@ END_TEST START_TEST(test_multi_info_read_http_success_with_metadata)
     ik_openai_multi_t *multi = multi_res.ok;
 
     ik_openai_conversation_t *conv = create_test_conversation("Hello");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
     res_t add_res = add_test_request(multi, cfg, conv);
     ck_assert(!add_res.is_err);
 
@@ -161,7 +161,7 @@ END_TEST START_TEST(test_multi_info_read_http_client_error)
     ik_openai_multi_t *multi = multi_res.ok;
 
     ik_openai_conversation_t *conv = create_test_conversation("Hello");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
     res_t add_res = add_test_request(multi, cfg, conv);
     ck_assert(!add_res.is_err);
 
@@ -180,7 +180,7 @@ END_TEST START_TEST(test_multi_info_read_http_server_error)
     ik_openai_multi_t *multi = multi_res.ok;
 
     ik_openai_conversation_t *conv = create_test_conversation("Hello");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
     res_t add_res = add_test_request(multi, cfg, conv);
     ck_assert(!add_res.is_err);
 
@@ -199,7 +199,7 @@ END_TEST START_TEST(test_multi_info_read_http_unexpected_code)
     ik_openai_multi_t *multi = multi_res.ok;
 
     ik_openai_conversation_t *conv = create_test_conversation("Hello");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
     res_t add_res = add_test_request(multi, cfg, conv);
     ck_assert(!add_res.is_err);
 
@@ -218,7 +218,7 @@ END_TEST START_TEST(test_multi_info_read_completion_callback_error)
     ik_openai_multi_t *multi = multi_res.ok;
 
     ik_openai_conversation_t *conv = create_test_conversation("Hello");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
                                                 error_completion_callback, ctx, false, NULL);
     ck_assert(!add_res.is_err);

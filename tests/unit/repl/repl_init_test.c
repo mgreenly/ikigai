@@ -185,7 +185,7 @@ START_TEST(test_repl_init_terminal_open_failure) {
     mock_open_should_fail = true;
 
     // Attempt to initialize shared context - should fail during terminal init
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
@@ -210,7 +210,7 @@ START_TEST(test_repl_init_render_invalid_dimensions)
     mock_ioctl_should_fail = true;
 
     // Attempt to initialize shared context - should fail when creating render
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
@@ -237,7 +237,7 @@ START_TEST(test_repl_init_signal_handler_failure)
     mock_sigaction_should_fail = true;
 
     // Attempt to initialize REPL - should fail when setting up signal handler
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -266,7 +266,7 @@ START_TEST(test_repl_init_history_load_failure)
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL - should succeed even with history failure
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context (logger needs to initialize first)
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -304,7 +304,7 @@ START_TEST(test_repl_init_success_debug_manager)
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL - should succeed
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -337,7 +337,7 @@ START_TEST(test_repl_init_creates_agent)
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL - should create an agent
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -377,7 +377,7 @@ START_TEST(test_repl_init_agent_in_array)
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
@@ -406,7 +406,7 @@ START_TEST(test_repl_find_agent_found)
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
@@ -434,7 +434,7 @@ START_TEST(test_repl_find_agent_not_found)
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);

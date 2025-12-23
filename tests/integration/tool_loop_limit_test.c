@@ -310,7 +310,7 @@ END_TEST START_TEST(test_tool_loop_limit_end_to_end)
 END_TEST START_TEST(test_request_serialization_with_tool_choice)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
     cfg->openai_temperature = 1.0;
     cfg->openai_max_completion_tokens = 4096;

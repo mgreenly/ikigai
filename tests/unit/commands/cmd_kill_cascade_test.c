@@ -35,7 +35,7 @@ static void setup_repl(void)
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
 
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);

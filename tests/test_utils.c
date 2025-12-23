@@ -56,9 +56,9 @@ char *talloc_asprintf_(TALLOC_CTX *ctx, const char *fmt, ...)
 
 // ========== Test Config Helper ==========
 
-ik_cfg_t *ik_test_create_config(TALLOC_CTX *ctx)
+ik_config_t *ik_test_create_config(TALLOC_CTX *ctx)
 {
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     if (cfg == NULL) return NULL;
 
     // Set minimal required fields for testing

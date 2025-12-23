@@ -46,7 +46,8 @@ int main(void)
     if (root_ctx == NULL) PANIC("Failed to create root talloc context");
 
     // Load configuration
-    res_t cfg_result = ik_cfg_load(root_ctx, "~/.config/ikigai/config.json");
+    ik_config_t *cfg = NULL;
+    res_t cfg_result = ik_config_load(root_ctx, "~/.config/ikigai/config.json", &cfg);
     if (is_err(&cfg_result)) {
         doc = ik_log_create();
         root = yyjson_mut_doc_get_root(doc);
@@ -69,7 +70,6 @@ int main(void)
         talloc_free(logger_ctx); // Logger last
         return EXIT_FAILURE;
     }
-    ik_cfg_t *cfg = cfg_result.ok;
 
     // Create shared context
     ik_shared_ctx_t *shared = NULL;

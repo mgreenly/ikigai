@@ -173,7 +173,7 @@ void ik_openai_conversation_clear(ik_openai_conversation_t *conv);
  * @param conv         Conversation to send (borrowed reference)
  * @return             Request instance
  */
-ik_openai_request_t *ik_openai_request_create(void *parent, const ik_cfg_t *cfg, ik_openai_conversation_t *conv);
+ik_openai_request_t *ik_openai_request_create(void *parent, const ik_config_t *cfg, ik_openai_conversation_t *conv);
 
 /**
  * Create a new API response
@@ -219,7 +219,7 @@ char *ik_openai_serialize_request(void *parent, const ik_openai_request_t *reque
  * @param cb_ctx      Context pointer passed to callback
  * @return            OK(ik_msg_t*) or ERR(...)
  */
-res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
+res_t ik_openai_chat_create(void *parent, const ik_config_t *cfg,
                              ik_openai_conversation_t *conv,
                              ik_openai_stream_cb_t stream_cb, void *cb_ctx);
 

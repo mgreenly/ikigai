@@ -23,10 +23,9 @@ START_TEST(test_config_full_flow) {
     rmdir(test_dir);
 
     // First call: config doesn't exist, should create defaults
-    res_t result1 = ik_cfg_load(ctx, test_config);
+    ik_config_t *cfg1 = NULL;
+    res_t result1 = ik_config_load(ctx, test_config, &cfg1);
     ck_assert(!result1.is_err);
-
-    ik_cfg_t *cfg1 = result1.ok;
     ck_assert_ptr_nonnull(cfg1);
     ck_assert_str_eq(cfg1->openai_model, "gpt-5-mini");
     ck_assert(cfg1->openai_temperature >= 0.99 && cfg1->openai_temperature <= 1.01);
@@ -41,10 +40,9 @@ START_TEST(test_config_full_flow) {
     ck_assert(S_ISREG(st.st_mode));
 
     // Second call: config exists, should load the same defaults
-    res_t result2 = ik_cfg_load(ctx, test_config);
+    ik_config_t *cfg2 = NULL;
+    res_t result2 = ik_config_load(ctx, test_config, &cfg2);
     ck_assert(!result2.is_err);
-
-    ik_cfg_t *cfg2 = result2.ok;
     ck_assert_ptr_nonnull(cfg2);
     ck_assert_str_eq(cfg2->openai_model, "gpt-5-mini");
     ck_assert(cfg2->openai_temperature >= 0.99 && cfg2->openai_temperature <= 1.01);
@@ -69,10 +67,9 @@ START_TEST(test_config_full_flow) {
     fclose(f);
 
     // Third call: should load modified values
-    res_t result3 = ik_cfg_load(ctx, test_config);
+    ik_config_t *cfg3 = NULL;
+    res_t result3 = ik_config_load(ctx, test_config, &cfg3);
     ck_assert(!result3.is_err);
-
-    ik_cfg_t *cfg3 = result3.ok;
     ck_assert_ptr_nonnull(cfg3);
     ck_assert_str_eq(cfg3->openai_model, "gpt-3.5-turbo");
     ck_assert(cfg3->openai_temperature >= 1.49 && cfg3->openai_temperature <= 1.51);
@@ -122,7 +119,9 @@ START_TEST(test_config_write_failure) {
     mock_write_failure = true;
 
     // Try to load config - should fail to create default config
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_IO);
 
@@ -166,14 +165,16 @@ START_TEST(test_config_read_failure) {
     rmdir(test_dir);
 
     // First create a valid config file
-    res_t result1 = ik_cfg_load(ctx, test_config);
+    ik_config_t *config1 = NULL;
+    res_t result1 = ik_config_load(ctx, test_config, &config1);
     ck_assert(!result1.is_err);
 
     // Now enable mock read failure
     mock_read_failure = true;
 
     // Try to load config - should fail to read
-    res_t result2 = ik_cfg_load(ctx, test_config);
+    ik_config_t *config2 = NULL;
+    res_t result2 = ik_config_load(ctx, test_config, &config2);
     ck_assert(result2.is_err);
     ck_assert_int_eq(result2.err->code, ERR_PARSE);
 
@@ -213,7 +214,9 @@ END_TEST START_TEST(test_config_invalid_json_root)
     fclose(f);
 
     // Try to load config - should fail because root is not an object
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
@@ -250,14 +253,16 @@ START_TEST(test_config_doc_get_root_null) {
     rmdir(test_dir);
 
     // First create a valid config file
-    res_t result1 = ik_cfg_load(ctx, test_config);
+    ik_config_t *config1 = NULL;
+    res_t result1 = ik_config_load(ctx, test_config, &config1);
     ck_assert(!result1.is_err);
 
     // Now enable mock to return NULL from doc_get_root
     mock_doc_get_root_null = true;
 
     // Try to load config - should fail because root is NULL
-    res_t result2 = ik_cfg_load(ctx, test_config);
+    ik_config_t *config2 = NULL;
+    res_t result2 = ik_config_load(ctx, test_config, &config2);
     ck_assert(result2.is_err);
     ck_assert_int_eq(result2.err->code, ERR_PARSE);
 

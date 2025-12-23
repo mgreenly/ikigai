@@ -80,7 +80,9 @@ END_TEST START_TEST(test_config_load_tilde_home_unset)
     unsetenv("HOME");
 
     // Try to load with tilde path - should fail
-    res_t result = ik_cfg_load(ctx, "~/test/config.json");
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, "~/test/config.json", &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
 

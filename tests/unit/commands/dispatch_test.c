@@ -47,7 +47,7 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ck_assert_ptr_nonnull(conv);
 
     // Create config (needed for model/system commands)
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-5-mini");
     ck_assert_ptr_nonnull(cfg->openai_model);

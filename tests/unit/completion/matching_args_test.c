@@ -41,7 +41,7 @@ static void setup(void)
     test_repl->shared = shared;
 
     // Initialize config with a default model
-    shared->cfg = talloc_zero(ctx, ik_cfg_t);
+    shared->cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(shared->cfg);
     shared->cfg->openai_model = talloc_strdup(shared->cfg, "gpt-4o");
     ck_assert_ptr_nonnull(shared->cfg->openai_model);

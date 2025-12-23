@@ -150,7 +150,7 @@ START_TEST(test_clear_persists_system_message_event)
     SKIP_IF_NO_DB();
 
     // Create a REPL context with system message configured
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant.");
     ck_assert_ptr_nonnull(cfg->openai_system_message);
@@ -206,7 +206,7 @@ START_TEST(test_clear_no_system_message_when_null)
     SKIP_IF_NO_DB();
 
     // Create a REPL context WITHOUT system message
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;  // No system message
 

@@ -42,7 +42,7 @@ static void setup_repl(void)
 
     ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
 
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;

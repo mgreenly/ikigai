@@ -28,7 +28,7 @@ static void setup(void)
 
     /* Create shared context */
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
-    shared->cfg = talloc_zero(ctx, ik_cfg_t);
+    shared->cfg = talloc_zero(ctx, ik_config_t);
     shared->cfg->max_tool_turns = 10;  /* Set reasonable limit */
     repl->shared = shared;
 

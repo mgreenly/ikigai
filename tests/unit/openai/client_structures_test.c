@@ -108,7 +108,7 @@ END_TEST
 START_TEST(test_request_create_valid)
 {
     /* Create test config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4-turbo");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 2048;
@@ -226,7 +226,7 @@ END_TEST START_TEST(test_get_message_at_index_valid)
 END_TEST START_TEST(test_serialize_with_tools_and_tool_choice)
 {
     /* Create test config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
     cfg->openai_temperature = 1.0;
     cfg->openai_max_completion_tokens = 4096;
@@ -272,7 +272,7 @@ END_TEST START_TEST(test_serialize_with_tools_and_tool_choice)
 END_TEST START_TEST(test_serialize_with_tool_choice_none)
 {
     /* Create test config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
     cfg->openai_temperature = 1.0;
     cfg->openai_max_completion_tokens = 4096;
@@ -310,7 +310,7 @@ END_TEST START_TEST(test_serialize_with_tool_choice_none)
 END_TEST START_TEST(test_serialize_with_tool_choice_required)
 {
     /* Create test config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
     cfg->openai_temperature = 1.0;
     cfg->openai_max_completion_tokens = 4096;
@@ -348,7 +348,7 @@ END_TEST START_TEST(test_serialize_with_tool_choice_required)
 END_TEST START_TEST(test_serialize_with_tool_choice_specific)
 {
     /* Create test config */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
     cfg->openai_temperature = 1.0;
     cfg->openai_max_completion_tokens = 4096;

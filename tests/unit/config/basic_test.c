@@ -14,7 +14,7 @@ START_TEST(test_config_types_exist) {
 
     // This test verifies that the config types compile
     // We'll test actual functionality in later tests
-    ik_cfg_t *cfg = talloc(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     cfg->listen_address = talloc_strdup(ctx, "127.0.0.1");
@@ -31,9 +31,10 @@ END_TEST START_TEST(test_config_load_function_exists)
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // This test verifies that ik_cfg_load function exists and can be called
+    // This test verifies that ik_config_load function exists and can be called
     // We expect it to fail since we haven't implemented it yet
-    res_t result = ik_cfg_load(ctx, "/tmp/nonexistent_test_config.json");
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, "/tmp/nonexistent_test_config.json", &config);
 
     // For now, just verify the function exists and returns a result
     // Later tests will verify actual behavior
@@ -57,8 +58,9 @@ END_TEST START_TEST(test_config_auto_create_directory)
     unlink(test_config);
     rmdir(test_dir);
 
-    // Call ik_cfg_load - should create directory and file
-    res_t result = ik_cfg_load(ctx, test_config);
+    // Call ik_config_load - should create directory and file
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, test_config, &config);
 
     // Should succeed
     ck_assert(!result.is_err);
@@ -102,8 +104,9 @@ END_TEST START_TEST(test_config_auto_create_with_existing_directory)
     ck_assert_int_eq(stat(test_dir, &st), 0);
     ck_assert(S_ISDIR(st.st_mode));
 
-    // Call ik_cfg_load - should create config in existing directory
-    res_t result = ik_cfg_load(ctx, test_config);
+    // Call ik_config_load - should create config in existing directory
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, test_config, &config);
 
     // Should succeed
     ck_assert(!result.is_err);
@@ -133,12 +136,10 @@ END_TEST START_TEST(test_config_auto_create_defaults)
     unlink(test_config);
     rmdir(test_dir);
 
-    // Call ik_cfg_load - should create with defaults
-    res_t result = ik_cfg_load(ctx, test_config);
+    // Call ik_config_load - should create with defaults
+    ik_config_t *cfg = NULL;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
-
-    // Load the config
-    ik_cfg_t *cfg = result.ok;
     ck_assert_ptr_nonnull(cfg);
 
     // Verify default values
@@ -170,7 +171,8 @@ END_TEST START_TEST(test_config_load_invalid_json)
     fclose(f);
 
     // Try to load - should fail with PARSE error
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
@@ -195,10 +197,9 @@ END_TEST START_TEST(test_config_memory_cleanup)
     fclose(f);
 
     // Load config
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *cfg = NULL;
+    res_t result = ik_config_load(ctx, test_file, &cfg);
     ck_assert(!result.is_err);
-
-    ik_cfg_t *cfg = result.ok;
     ck_assert_ptr_nonnull(cfg);
 
     // Verify all strings are on the config context (child of ctx)

@@ -88,7 +88,7 @@ static void suite_setup(void)
 // Helper: Create REPL with scrollback and set viewport offset
 static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offset)
 {
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
 
     // Create shared context
     ik_shared_ctx_t *shared = NULL;

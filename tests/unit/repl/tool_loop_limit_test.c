@@ -18,14 +18,14 @@
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
-static ik_cfg_t *cfg;
+static ik_config_t *cfg;
 
 static void setup(void)
 {
     ctx = talloc_new(NULL);
 
     /* Create minimal config with max_tool_turns set to 3 */
-    cfg = talloc_zero(ctx, ik_cfg_t);
+    cfg = talloc_zero(ctx, ik_config_t);
     cfg->max_tool_turns = 3;
 
     /* Create minimal REPL context for testing */

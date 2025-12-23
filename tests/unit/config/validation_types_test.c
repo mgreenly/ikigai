@@ -23,7 +23,9 @@ START_TEST(test_config_wrong_type_port) {
     fclose(f);
 
     // Try to load - should fail with PARSE error
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
@@ -48,7 +50,9 @@ END_TEST START_TEST(test_config_wrong_type_address)
     fclose(f);
 
     // Try to load - should fail with PARSE error
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
@@ -71,7 +75,10 @@ END_TEST START_TEST(test_config_wrong_type_openai_model)
             "{\"openai_model\": 123, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
@@ -93,7 +100,10 @@ END_TEST START_TEST(test_config_wrong_type_openai_temperature)
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": \"0.7\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
@@ -115,7 +125,10 @@ END_TEST START_TEST(test_config_wrong_type_openai_max_completion_tokens)
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": \"4096\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
@@ -137,7 +150,10 @@ END_TEST START_TEST(test_config_wrong_type_openai_system_message)
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": 123, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
@@ -159,7 +175,10 @@ END_TEST START_TEST(test_config_wrong_type_max_tool_turns)
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": \"50\", \"max_output_size\": 1048576}");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
@@ -181,7 +200,10 @@ END_TEST START_TEST(test_config_wrong_type_max_output_size)
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": \"1048576\"}");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 

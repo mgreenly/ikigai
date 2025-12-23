@@ -31,10 +31,10 @@ START_TEST(test_config_history_size_default) {
     fclose(f);
 
     // Load config - should succeed with default history_size
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     // Default history_size should be 10000
     ck_assert_int_eq(cfg->history_size, 10000);
@@ -68,10 +68,10 @@ END_TEST START_TEST(test_config_history_size_custom)
     fclose(f);
 
     // Load config - should succeed with custom history_size
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     // Custom history_size should be 5000
     ck_assert_int_eq(cfg->history_size, 5000);
@@ -106,7 +106,9 @@ END_TEST START_TEST(test_config_history_size_zero)
     fclose(f);
 
     // Load config - should fail with OUT_OF_RANGE error
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
@@ -140,7 +142,9 @@ END_TEST START_TEST(test_config_history_size_negative)
     fclose(f);
 
     // Load config - should fail with OUT_OF_RANGE error
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
@@ -174,10 +178,10 @@ END_TEST START_TEST(test_config_history_size_large_value)
     fclose(f);
 
     // Load config - should succeed with large history_size
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_int_eq(cfg->history_size, 1000000);
 
@@ -211,7 +215,9 @@ END_TEST START_TEST(test_config_history_size_exceeds_int32)
     fclose(f);
 
     // Load config - should fail with OUT_OF_RANGE error
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
@@ -245,7 +251,9 @@ END_TEST START_TEST(test_config_history_size_invalid_type)
     fclose(f);
 
     // Load config - should fail with PARSE error
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
 

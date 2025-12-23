@@ -165,7 +165,7 @@ CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
  */
 START_TEST(test_http_curl_init_failure) {
     /* Create configuration */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
@@ -193,7 +193,7 @@ END_TEST
 START_TEST(test_http_curl_perform_failure)
 {
     /* Create configuration */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;
@@ -232,7 +232,7 @@ START_TEST(test_http_api_key_too_long)
     setenv("OPENAI_API_KEY", long_key, 1);
 
     /* Create configuration with very long API key */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
@@ -276,7 +276,7 @@ START_TEST(test_http_successful_request)
     mock_response_len = strlen(response_json);
 
     /* Create configuration */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;

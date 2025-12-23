@@ -52,10 +52,10 @@ START_TEST(test_config_with_db_connection_string) {
     fclose(f);
 
     // Load config
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_nonnull(cfg->db_connection_string);
     ck_assert_str_eq(cfg->db_connection_string, "postgresql://localhost/ikigai");
@@ -89,10 +89,10 @@ END_TEST START_TEST(test_config_without_db_connection_string)
     fclose(f);
 
     // Load config - should succeed with NULL db_connection_string
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_null(cfg->db_connection_string);
 
@@ -127,10 +127,10 @@ END_TEST START_TEST(test_config_with_full_connection_string)
     fclose(f);
 
     // Load config
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_nonnull(cfg->db_connection_string);
     ck_assert_str_eq(cfg->db_connection_string, "postgresql://user:pass@localhost:5432/ikigai");
@@ -166,10 +166,10 @@ END_TEST START_TEST(test_config_with_unix_socket_connection_string)
     fclose(f);
 
     // Load config
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_nonnull(cfg->db_connection_string);
     ck_assert_str_eq(cfg->db_connection_string, "postgresql:///ikigai?host=/var/run/postgresql");
@@ -205,10 +205,10 @@ END_TEST START_TEST(test_config_with_empty_db_connection_string)
     fclose(f);
 
     // Load config - should succeed with NULL db_connection_string
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_null(cfg->db_connection_string);
 
@@ -243,7 +243,8 @@ END_TEST START_TEST(test_config_with_invalid_db_connection_string_type)
     fclose(f);
 
     // Load config - should fail with invalid type error
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
 
@@ -258,7 +259,7 @@ END_TEST START_TEST(test_config_structure_has_db_connection_string_field)
     ck_assert_ptr_nonnull(ctx);
 
     // Test that we can directly access the db_connection_string field
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Field should be NULL by default
@@ -305,10 +306,10 @@ END_TEST START_TEST(test_config_with_db_connection_string_null_value)
     g_return_null_on_call = 2;
 
     // Load config - should succeed with NULL db_connection_string due to mock
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     // Even though JSON has a value, mock returns NULL, so config should be NULL
     ck_assert_ptr_null(cfg->db_connection_string);

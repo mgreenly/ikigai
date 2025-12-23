@@ -275,7 +275,7 @@ START_TEST(test_repl_init_db_init_failure) {
     mock_db_init_should_fail = true;
 
     // Attempt to initialize shared context with database - should fail
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context - should fail at db_init
     ik_shared_ctx_t *shared = NULL;
@@ -303,7 +303,7 @@ START_TEST(test_repl_init_ensure_agent_zero_failure)
     mock_ensure_agent_zero_should_fail = true;
 
     // Attempt to initialize REPL with database - should fail during agent zero ensure
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
@@ -333,7 +333,7 @@ START_TEST(test_repl_init_db_success)
     ik_repl_ctx_t *repl = NULL;
 
     // Both db_init and session_restore should succeed (mocks return success by default)
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
@@ -365,7 +365,7 @@ START_TEST(test_repl_init_signal_handler_failure_with_db)
     mock_sigaction_should_fail = true;
 
     // Attempt to initialize REPL with database - db_init succeeds, signal_handler fails
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     // Create shared context
     ik_shared_ctx_t *shared = NULL;

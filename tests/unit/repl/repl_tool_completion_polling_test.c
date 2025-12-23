@@ -63,7 +63,7 @@ static void setup(void)
     repl->shared = shared;
 
     /* Create config */
-    shared->cfg = talloc_zero(ctx, ik_cfg_t);
+    shared->cfg = talloc_zero(ctx, ik_config_t);
     shared->cfg->max_tool_turns = 5;
     shared->cfg->openai_model = talloc_strdup(shared->cfg, "gpt-4o-mini");
 

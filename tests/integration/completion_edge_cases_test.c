@@ -26,7 +26,7 @@ static void press_space(ik_repl_ctx_t *r)
 START_TEST(test_completion_space_commits) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
@@ -57,7 +57,7 @@ START_TEST(test_completion_tab_wraparound)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
@@ -82,7 +82,7 @@ END_TEST START_TEST(test_completion_single_item)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
@@ -112,7 +112,7 @@ START_TEST(test_completion_escape_exact_revert)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
@@ -156,7 +156,7 @@ START_TEST(test_completion_tab_cycle_then_space)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
@@ -181,7 +181,7 @@ END_TEST START_TEST(test_completion_space_on_first_tab)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
@@ -214,7 +214,7 @@ START_TEST(test_completion_type_cancels)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
@@ -248,7 +248,7 @@ START_TEST(test_completion_rewind_args)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
@@ -278,7 +278,7 @@ START_TEST(test_completion_mark_no_args)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
@@ -307,7 +307,7 @@ START_TEST(test_completion_help_no_args)
 {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;

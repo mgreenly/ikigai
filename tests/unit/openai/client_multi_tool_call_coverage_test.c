@@ -51,7 +51,7 @@ START_TEST(test_info_read_success_with_tool_call_steal) {
 
     /* Create conversation */
     ik_openai_conversation_t *conv = create_test_conversation("What's the weather?");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
 
     /* Add request with completion callback that captures tool_call fields */
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
@@ -111,7 +111,7 @@ START_TEST(test_info_read_callback_error_with_tool_call_free)
 
     /* Create conversation */
     ik_openai_conversation_t *conv = create_test_conversation("What's the weather?");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
 
     /* Add request with completion callback that returns error */
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,
@@ -170,7 +170,7 @@ START_TEST(test_info_read_success_with_tool_call_free)
 
     /* Create conversation */
     ik_openai_conversation_t *conv = create_test_conversation("What's the weather?");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
 
     /* Add request with completion callback that succeeds */
     res_t add_res = ik_openai_multi_add_request(multi, cfg, conv, NULL, NULL,

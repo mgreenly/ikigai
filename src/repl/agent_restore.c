@@ -48,7 +48,7 @@ static void handle_fresh_install(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
     }
 
     // Write system message if configured
-    ik_cfg_t *cfg = repl->shared->cfg;
+    ik_config_t *cfg = repl->shared->cfg;
     if (cfg != NULL && cfg->openai_system_message != NULL) {     // LCOV_EXCL_BR_LINE
         res_t system_res = ik_db_message_insert(
             db_ctx, repl->shared->session_id, repl->current->uuid,

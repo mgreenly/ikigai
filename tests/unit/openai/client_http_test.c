@@ -34,7 +34,7 @@ static void teardown(void)
  */
 START_TEST(test_chat_create_empty_conversation) {
     /* Create configuration */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
@@ -58,7 +58,7 @@ START_TEST(test_chat_create_missing_api_key)
     setenv("HOME", "/tmp/nonexistent_home_for_test", 1);
 
     /* Create configuration without API key */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
@@ -88,7 +88,7 @@ START_TEST(test_chat_create_empty_api_key)
     setenv("OPENAI_API_KEY", "", 1);
 
     /* Create configuration with empty API key */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
@@ -115,7 +115,7 @@ END_TEST
 START_TEST(test_chat_create_valid_inputs)
 {
     /* Create configuration with valid API key */
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
     cfg->openai_temperature = 0.7;

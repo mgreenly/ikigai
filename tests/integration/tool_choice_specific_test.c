@@ -138,7 +138,7 @@ START_TEST(test_request_has_tool_choice_specific) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
     cfg->openai_temperature = 1.0;
     cfg->openai_max_completion_tokens = 4096;

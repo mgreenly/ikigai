@@ -31,7 +31,7 @@ START_TEST(test_rewind_to_same_mark_twice) {
     repl->current = agent;
 
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Create shared context
@@ -124,7 +124,7 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     repl->current = agent;
 
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Create shared context

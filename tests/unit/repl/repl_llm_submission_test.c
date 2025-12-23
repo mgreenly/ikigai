@@ -121,7 +121,7 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     ck_assert(is_ok(&res));
 
     // Create config and set in shared context (already created above)
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;

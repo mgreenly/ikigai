@@ -278,7 +278,7 @@ START_TEST(test_repl_init_session_get_active_failure) {
     mock_session_get_active_should_fail = true;
 
     // Create config with database
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
@@ -308,7 +308,7 @@ START_TEST(test_repl_init_session_create_failure)
     mock_session_create_should_fail = true;
 
     // Create config with database
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
@@ -339,7 +339,7 @@ START_TEST(test_repl_init_restore_agents_failure)
     mock_restore_agents_should_fail = true;
 
     // Create config with database
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
@@ -370,7 +370,7 @@ START_TEST(test_repl_init_existing_session)
     mock_session_exists = true;
 
     // Create config with database
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;

@@ -212,7 +212,7 @@ START_TEST(test_history_respects_config_capacity) {
     setup_test_env();
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 3;
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
@@ -232,7 +232,7 @@ END_TEST START_TEST(test_history_multiline_preserved)
     cleanup_test_dir();
 
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;
@@ -265,7 +265,7 @@ END_TEST START_TEST(test_history_submit_stops_browsing)
     cleanup_test_dir();
 
     void *ctx = talloc_new(NULL);
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->history_size = 100;
 
     ik_repl_ctx_t *repl = NULL;

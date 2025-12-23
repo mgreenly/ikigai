@@ -127,7 +127,7 @@ START_TEST(test_multi_info_read_empty_response_body)
     ik_openai_multi_t *multi = multi_res.ok;
 
     ik_openai_conversation_t *conv = create_test_conversation("Hello");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
 
     /* Add request but don't invoke write callback - this leaves complete_response as NULL */
     res_t add_res = add_test_request(multi, cfg, conv);
@@ -156,7 +156,7 @@ START_TEST(test_multi_info_read_with_response_body)
     ik_openai_multi_t *multi = multi_res.ok;
 
     ik_openai_conversation_t *conv = create_test_conversation("Hello");
-    ik_cfg_t *cfg = create_test_config();
+    ik_config_t *cfg = create_test_config();
 
     /* Add request */
     res_t add_res = add_test_request(multi, cfg, conv);

@@ -33,7 +33,9 @@ END_TEST START_TEST(test_config_port_too_low)
     fclose(f);
 
     // Try to load - should fail with OUT_OF_RANGE error
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
 
@@ -58,7 +60,9 @@ END_TEST START_TEST(test_config_port_too_high)
     fclose(f);
 
     // Try to load - should fail with OUT_OF_RANGE error
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
 
@@ -82,9 +86,10 @@ END_TEST START_TEST(test_config_port_valid_range)
             "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1024, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f1);
 
-    res_t result1 = ik_cfg_load(ctx, test_file1);
+    ik_config_t *config1 = NULL;
+    res_t result1 = ik_config_load(ctx, test_file1, &config1);
     ck_assert(!result1.is_err);
-    ck_assert_int_eq(((ik_cfg_t *)result1.ok)->listen_port, 1024);
+    ck_assert_int_eq(config1->listen_port, 1024);
 
     // Test maximum valid port (65535)
     char test_file2[256];
@@ -96,9 +101,10 @@ END_TEST START_TEST(test_config_port_valid_range)
             "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 65535, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f2);
 
-    res_t result2 = ik_cfg_load(ctx, test_file2);
+    ik_config_t *config2 = NULL;
+    res_t result2 = ik_config_load(ctx, test_file2, &config2);
     ck_assert(!result2.is_err);
-    ck_assert_int_eq(((ik_cfg_t *)result2.ok)->listen_port, 65535);
+    ck_assert_int_eq(config2->listen_port, 65535);
 
     // Test default port (1984)
     char test_file3[256];
@@ -110,9 +116,10 @@ END_TEST START_TEST(test_config_port_valid_range)
             "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f3);
 
-    res_t result3 = ik_cfg_load(ctx, test_file3);
+    ik_config_t *config3 = NULL;
+    res_t result3 = ik_config_load(ctx, test_file3, &config3);
     ck_assert(!result3.is_err);
-    ck_assert_int_eq(((ik_cfg_t *)result3.ok)->listen_port, 1984);
+    ck_assert_int_eq(config3->listen_port, 1984);
 
     // Clean up
     unlink(test_file1);
@@ -135,7 +142,10 @@ END_TEST START_TEST(test_config_temperature_too_low)
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": -0.1, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
 
@@ -157,7 +167,10 @@ END_TEST START_TEST(test_config_temperature_too_high)
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 2.1, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
 
@@ -179,7 +192,10 @@ END_TEST START_TEST(test_config_max_tokens_too_low)
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 0, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
 
@@ -201,7 +217,10 @@ END_TEST START_TEST(test_config_max_tokens_too_high)
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 130000, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+
+
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
 
@@ -223,9 +242,11 @@ END_TEST START_TEST(test_config_valid_openai_system_message)
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": \"You are a helpful assistant\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *cfg = NULL;
+
+
+    res_t result = ik_config_load(ctx, test_file, &cfg);
     ck_assert(!result.is_err);
-    ik_cfg_t *cfg = result.ok;
     ck_assert_str_eq(cfg->openai_system_message, "You are a helpful assistant");
 
     unlink(test_file);

@@ -44,7 +44,7 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ck_assert_ptr_nonnull(conv);
 
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Create shared context
@@ -259,7 +259,7 @@ END_TEST
 START_TEST(test_clear_with_system_message_displays_in_scrollback)
 {
     // Create a config with system message
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant.");
     ck_assert_ptr_nonnull(cfg->openai_system_message);
@@ -308,7 +308,7 @@ END_TEST
 START_TEST(test_clear_without_system_message_empty_scrollback)
 {
     // Create a config WITHOUT system message
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
 
@@ -349,7 +349,7 @@ START_TEST(test_clear_with_system_message_append_failure)
     long_message[sizeof(long_message) - 1] = '\0';
 
     // Create a config with long system message
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, long_message);
     ck_assert_ptr_nonnull(cfg->openai_system_message);

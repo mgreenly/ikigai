@@ -31,7 +31,7 @@ static ik_repl_ctx_t *create_test_repl(void *parent)
     ck_assert_ptr_nonnull(debug_mgr);
 
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Create shared context

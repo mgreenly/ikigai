@@ -182,7 +182,7 @@ START_TEST(test_api_key_too_long) {
     /* Set very long API key in environment */
     setenv("OPENAI_API_KEY", long_key, 1);
 
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
@@ -217,7 +217,7 @@ static res_t failing_stream_callback(const char *content, void *user_ctx)
  * This tests the defensive check where curl returns OK but callback had error
  */
 START_TEST(test_callback_error_propagation_defensive) {
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
@@ -250,7 +250,7 @@ END_TEST
  */
 START_TEST(test_callback_error_normal_path)
 {
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-3.5-turbo");
 
