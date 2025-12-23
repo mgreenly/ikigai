@@ -228,6 +228,46 @@ If a stream ends without receiving `IK_STREAM_DONE`:
 - Saves partial response with "incomplete" status
 - Allows user to retry or continue conversation
 
+## Partial Response Handling
+
+When a streaming error occurs mid-response, the partial content must be clearly marked:
+
+### Detection
+
+- Network error during stream (CURLE_* errors)
+- Provider returns error event mid-stream
+- Stream callback returns ERR() to abort
+
+### Behavior
+
+1. **Preserve partial content:** Keep whatever text/tool_calls were received before the error
+2. **Mark as incomplete:** Set `finish_reason = IK_FINISH_ERROR` (not IK_FINISH_STOP)
+3. **Visual indicator:** Append to scrollback:
+   ```
+   [incomplete - stream error: {error_message}]
+   ```
+4. **Completion callback:** Still invoke with `success=false` and partial data
+
+### Scrollback Display
+
+Partial responses appear in scrollback with a trailing error indicator:
+
+```
+Assistant: Here is the beginning of my response that was
+interrupted by a network error mid-stream...
+
+[incomplete - connection lost]
+```
+
+### Database Storage
+
+Partial assistant messages are stored with:
+- `kind = "assistant"` (same as complete)
+- `content` = partial text received
+- `data` = JSON with `{"incomplete": true, "error": "..."}`
+
+This allows replay to show the partial response and error state.
+
 ## Content Block Indexing
 
 Multiple content blocks may stream in parallel (rare but possible with some providers). The index field in delta events allows tracking which block each fragment belongs to:

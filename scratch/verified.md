@@ -43,3 +43,4 @@ Fixed gaps - do not re-investigate.
 | 12-22 | Provider Context Lifecycle (5.1) | commands.md, provider-interface.md | Added "Provider Lifecycle on Model Switch" section: agent owns provider via talloc, explicit free before replacement, lazy recreation |
 | 12-22 | yyjson Document Lifetime (5.2) | request-response.md | Added "yyjson Document Lifetime" section: talloc ownership, pointer validity rules, automatic cleanup, example code |
 | 12-22 | Content Filter Mapping (5.3) | error-handling.md | Added "Content Filter Error Mapping" table: Anthropic/OpenAI/Google detection patterns, note that Google returns HTTP 200 |
+| 12-22 | Streaming Error Partial Response (5.4) | streaming.md | Added "Partial Response Handling" section: detection, IK_FINISH_ERROR, visual indicator, database storage with incomplete flag |
