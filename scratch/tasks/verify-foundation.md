@@ -132,8 +132,9 @@ Verify `ik_provider_vtable_t` has EXACTLY these methods:
 - [ ] `start_request` - signature: `res_t (*)(void *ctx, const ik_request_t *req, ik_provider_completion_cb_t cb, void *cb_ctx)`
 - [ ] `start_stream` - signature: `res_t (*)(void *ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_provider_completion_cb_t completion_cb, void *completion_ctx)`
 
-**Cleanup (1 required):**
+**Cleanup & Cancellation (2 required):**
 - [ ] `cleanup` - signature: `void (*)(void *ctx)`
+- [ ] `cancel` - signature: `void (*)(void *ctx)`
 
 **Must NOT exist (blocking methods):**
 - [ ] No `send` method
@@ -297,7 +298,8 @@ static void check_vtable(void) {
         .info_read = NULL,
         .start_request = NULL,
         .start_stream = NULL,
-        .cleanup = NULL
+        .cleanup = NULL,
+        .cancel = NULL
     };
     (void)vt;
 }

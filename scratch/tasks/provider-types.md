@@ -186,11 +186,12 @@ All vtable methods are non-blocking. Request initiation returns immediately; pro
 | `start_request` | `res_t (*)(void *ctx, const ik_request_t *req, ik_provider_completion_cb_t cb, void *cb_ctx)` | Start non-streaming request, returns immediately |
 | `start_stream` | `res_t (*)(void *ctx, const ik_request_t *req, ik_stream_cb_t stream_cb, void *stream_ctx, ik_provider_completion_cb_t completion_cb, void *completion_ctx)` | Start streaming request, returns immediately |
 
-**Cleanup:**
+**Cleanup & Cancellation:**
 
 | Function Pointer | Signature | Purpose |
 |------------------|-----------|---------|
 | `cleanup` | `void (*)(void *ctx)` | Cleanup provider resources (may be NULL if talloc handles everything) |
+| `cancel` | `void (*)(void *ctx)` | Cancel all in-flight requests (Ctrl+C, agent termination). Must be async-signal-safe. |
 
 ## Behaviors
 
@@ -337,7 +338,7 @@ Create `tests/unit/providers/provider_types_test.c`:
 - [ ] All enums have explicit integer values (no gaps)
 - [ ] All structs use talloc-compatible patterns
 - [ ] No provider-specific dependencies (no OpenAI/Anthropic includes)
-- [ ] Vtable defines async methods: `fdset`, `perform`, `timeout`, `info_read`, `start_request`, `start_stream`
+- [ ] Vtable defines async methods: `fdset`, `perform`, `timeout`, `info_read`, `start_request`, `start_stream`, `cleanup`, `cancel`
 - [ ] Vtable does NOT have blocking `send` or `stream` methods
 - [ ] Callback types `ik_stream_cb_t` and `ik_provider_completion_cb_t` defined
 - [ ] `ik_provider_completion_t` struct defined for completion callback payload
