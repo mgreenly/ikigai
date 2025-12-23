@@ -123,7 +123,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
   ],
   "thinking": {
     "type": "enabled",
-    "budget_tokens": 43000
+    "budget_tokens": 43008
   },
   "tools": [...],
   "max_tokens": 4096
@@ -133,7 +133,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
 **Transformation rules:**
 - **System prompt:** Array of content blocks → single string (concatenate text blocks)
 - **Messages:** Internal role/content → Anthropic role/content (may combine blocks)
-- **Thinking:** `IK_THINKING_MED` → `budget_tokens: 43000` (2/3 of 64K max for Sonnet 4.5)
+- **Thinking:** `IK_THINKING_MED` → `budget_tokens: 43008` (2/3 of 64K max for Sonnet 4.5)
 - **Tools:** Internal tool defs → Anthropic tool schema (mostly 1:1)
 - **Max tokens:** Direct mapping
 

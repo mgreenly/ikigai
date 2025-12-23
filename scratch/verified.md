@@ -42,3 +42,4 @@
 | Error enum prefix batch 2 | `tasks/verify-openai-shim.md`, `tasks/http-client.md`, `tasks/provider-types.md`, `tasks/verify-providers.md` | `IK_ERR_*` → `IK_ERR_CAT_*` (17 occurrences across 4 files) |
 | verify-infrastructure fixture paths | `tasks/verify-infrastructure.md` | `tests/fixtures/responses/` → `tests/fixtures/vcr/` (JSONL format) |
 | HTTP layer filename in cleanup docs | `tasks/cleanup-openai-docs.md` | `http_client.c` → `http_multi.c` |
+| Anthropic MED budget consistency | `plan/03-provider-types.md` | `43000` → `43008` in transformation example |
