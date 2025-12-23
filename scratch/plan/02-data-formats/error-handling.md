@@ -234,6 +234,7 @@ The following error categories should be retried with exponential backoff:
 - **IK_ERR_CAT_RATE_LIMIT** - Rate limit exceeded, retry after delay
 - **IK_ERR_CAT_SERVER** - Server errors (500, 502, 503, 529)
 - **IK_ERR_CAT_TIMEOUT** - Request timeout
+- **IK_ERR_CAT_NETWORK** - Network/connection error (transient)
 
 ### Non-Retryable Error Categories
 
@@ -242,7 +243,6 @@ These errors fail immediately without retry:
 - **IK_ERR_CAT_INVALID_ARG** - Request is malformed
 - **IK_ERR_CAT_NOT_FOUND** - Model doesn't exist
 - **IK_ERR_CAT_CONTENT_FILTER** - Content violates policy
-- **IK_ERR_CAT_NETWORK** - Network/connection error
 - **IK_ERR_CAT_UNKNOWN** - Unmapped errors
 
 ### Retry Flow (Async)
@@ -389,13 +389,13 @@ const char *ik_error_category_name(ik_error_category_t category);
  * - IK_ERR_CAT_RATE_LIMIT (with delay)
  * - IK_ERR_CAT_SERVER (with exponential backoff)
  * - IK_ERR_CAT_TIMEOUT (with exponential backoff)
+ * - IK_ERR_CAT_NETWORK (with exponential backoff)
  *
  * Non-retryable categories:
  * - IK_ERR_CAT_AUTH (credentials invalid)
  * - IK_ERR_CAT_INVALID_ARG (request malformed)
  * - IK_ERR_CAT_NOT_FOUND (model doesn't exist)
  * - IK_ERR_CAT_CONTENT_FILTER (policy violation)
- * - IK_ERR_CAT_NETWORK (connection failure)
  * - IK_ERR_CAT_UNKNOWN (unmapped errors)
  */
 bool ik_error_is_retryable(ik_error_category_t category);

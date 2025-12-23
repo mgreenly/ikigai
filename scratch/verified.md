@@ -25,3 +25,4 @@
 | Agent field name | `plan/01-architecture/overview.md` | `provider_name` → `provider` (match DB schema) |
 | VCR OpenAI example | `plan/05-testing/vcr-cassettes.md` | Chat Completions → Responses API format |
 | Cache tokens clarity | `plan/02-data-formats/request-response.md` | Clarified cached_tokens = cache_creation + cache_read |
+| Network errors retryable | `plan/02-data-formats/error-handling.md` | IK_ERR_CAT_NETWORK moved to retryable category |
