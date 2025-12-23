@@ -2,82 +2,20 @@
 
 Fixed gaps - do not re-investigate.
 
-## Fixed
-
-### 2024-12-22: SSE Parser API Mismatch
-**Location:** `scratch/tasks/sse-parser.md`
-**Problem:** SSE parser is pull-based (`ik_sse_parser_next()`) but streaming tasks assumed push-based/callback API.
-**Fix:** Added "Callback Integration Pattern" section - API is PULL-based; caller runs extraction loop. Includes curl callback example.
-
-### 2024-12-22: ik_thinking_level_t Duplicate Definition
-**Location:** `scratch/tasks/agent-provider-fields.md`
-**Problem:** Both `provider-types.md` and `agent-provider-fields.md` defined `ik_thinking_level_t` enum.
-**Fix:** Changed agent-provider-fields.md to "Enums to use:" referencing `src/providers/provider.h`. Enum defined ONLY in provider-types.md.
-
-### 2024-12-22: ik_infer_provider() Circular Dependency
-**Location:** `scratch/tasks/model-command.md`, `scratch/tasks/agent-provider-fields.md`, `scratch/tasks/provider-types.md`
-**Problem:** Circular: agent-provider-fields.md → model-command.md → agent-provider-fields.md.
-**Fix:** Moved `ik_infer_provider()` to provider-types.md. Linear chain: provider-types.md → agent-provider-fields.md → model-command.md.
-
-### 2024-12-22: ik_http_completion_t vs ik_provider_completion_t Confusion
-**Location:** `scratch/tasks/http-client.md`
-**Problem:** Tasks used types interchangeably without clarifying abstraction layers.
-**Fix:** Added "Completion Type Mapping" section:
-- `ik_http_completion_t`: LOW-LEVEL (HTTP client, raw CURL data)
-- `ik_provider_completion_t`: HIGH-LEVEL (provider API, parsed responses)
-- Provider implementations convert between them
-
-### 2024-12-22: Factory Function Signature Mismatch
-**Location:** `scratch/tasks/openai-shim-types.md`, `scratch/tasks/provider-factory.md`
-**Problem:** OpenAI create function used `ik_credentials_t *creds` but Anthropic/Google used `const char *api_key`. Factory expected consistent signatures.
-**Fix:** Changed `ik_openai_create()` to take `const char *api_key`. Removed credentials dependency from openai-shim-types.md. All providers now have consistent signatures for factory dispatch.
-
-### 2024-12-22: Missing retry_after_ms in ik_provider_completion_t Struct Table
-**Location:** `scratch/tasks/provider-types.md`
-**Problem:** Struct table for `ik_provider_completion_t` omitted `retry_after_ms` field, but detailed description included it.
-**Fix:** Added `retry_after_ms | int32_t | Suggested retry delay (-1 if not applicable)` to struct table. Table now matches detailed description.
-
-### 2024-12-22: Streaming Context Callback Ownership Inconsistency
-**Location:** `scratch/tasks/anthropic-streaming.md`, `scratch/tasks/google-streaming.md`, `scratch/tasks/openai-streaming-chat.md`
-**Problem:** Anthropic stream_ctx_create() took BOTH stream_cb AND completion_cb, but Google/OpenAI took only stream_cb. Inconsistent ownership semantics.
-**Fix:** Changed Anthropic to match Google/OpenAI pattern. Stream context stores only stream callback. Completion callback is passed to start_stream() vtable method instead. All three providers now have consistent callback ownership.
-
-### 2024-12-22: HTTP Multi Function Name Mismatch
-**Location:** `scratch/tasks/anthropic-streaming.md`
-**Problem:** Referenced `ik_http_multi_add_handle()` but HTTP client API defines `ik_http_multi_add_request()`.
-**Fix:** Changed `ik_http_multi_add_handle()` to `ik_http_multi_add_request()` to match http-client.md API.
-
-### 2024-12-22: Missing Header Include Order Documentation
-**Location:** `scratch/tasks/provider-types.md`
-**Problem:** Provider files reference `ik_thinking_level_t` but no documentation specified required include order. Could cause compilation failures.
-**Fix:** Added "Include Order" section specifying that `src/providers/provider.h` must be included first. Provider-specific headers must include provider.h. Application code should include provider.h before provider-specific headers.
-
-### 2024-12-22: VCR Chunk Format Ambiguity
-**Location:** `scratch/tasks/vcr-core.md`
-**Problem:** `vcr_next_chunk()` returns both `data_out` and `len_out` but didn't specify if chunks are null-terminated or binary. SSE parser uses `strlen()` expecting null-terminated strings.
-**Fix:** Added "Chunk Format" section clarifying chunks are null-terminated C strings. `len_out` is provided for convenience/optimization. Guaranteed: `strlen(*data_out) == *len_out`. Safe to use with all string functions.
-
-### 2024-12-22: Missing Thinking Configuration Validation
-**Location:** `scratch/tasks/provider-types.md`, `scratch/tasks/anthropic-core.md`, `scratch/tasks/google-core.md`, `scratch/tasks/openai-core.md`
-**Problem:** No documentation for handling incompatible thinking level + model combinations (e.g., thinking on non-thinking model, or NONE on model requiring thinking).
-**Fix:** Added "Thinking Configuration Validation" section to provider-types.md with validation rules, provider-specific examples (OpenAI o1/o3, Anthropic Claude, Google Gemini 2.5/3.0), and standardized error messages (ERR_INVALID_ARG).
-
-### 2024-12-22: VCR Makefile Target Missing Dependencies
-**Location:** `scratch/tasks/vcr-makefile.md`
-**Problem:** vcr-record-* targets ran test binaries without declaring them as dependencies. Running `make vcr-record-openai` would fail if tests weren't built first.
-**Fix:** Added test binary dependencies to all vcr-record-* targets (openai, anthropic, google) and vcr-record-all. Make will now auto-build binaries before recording.
-
-### 2024-12-22: Stream Event Index Semantics Unclear
-**Location:** `scratch/tasks/provider-types.md`, `scratch/tasks/anthropic-streaming.md`, `scratch/tasks/google-streaming.md`, `scratch/tasks/openai-streaming-chat.md`
-**Problem:** Different providers used different indexing (current_block_index, part_index, tool_call_index). REPL consuming events didn't know what index field means.
-**Fix:** Added "Event Index Semantics" section to provider-types.md with canonical rules: text=0, tool calls sequential, thinking=0/text=1. Providers MUST normalize to this format. Includes example table.
-
-### 2024-12-22: REPL Callback Signature Migration Undocumented
-**Location:** `scratch/tasks/repl-streaming-updates.md`
-**Problem:** Current REPL uses old callbacks (const char *chunk, ik_http_completion_t) but new provider abstraction uses different signatures (ik_stream_event_t, ik_provider_completion_t). Migration path was unclear.
-**Fix:** Added "Callback Signature Migration" section with: OLD vs NEW signature comparison, key differences explained, migration notes for REPL code, OpenAI shim translation behavior.
-
-### 2024-12-22: Configuration API Migration Strategy Missing
-**Location:** `scratch/tasks/configuration.md`
-**Problem:** ik_cfg_load() signature change affects 130+ files (65+ call sites, type rename everywhere). No migration strategy documented, risked broken build.
-**Fix:** Added comprehensive migration strategy: ATOMIC change requirement, ik_cfg_t→ik_config_t type rename docs, complete file lists, sed automation commands, 4-phase implementation order, verification checklist.
+| Date | Gap | Location | Fix |
+|------|-----|----------|-----|
+| 12-22 | SSE Parser API Mismatch | sse-parser.md | Added "Callback Integration Pattern" - API is PULL-based, caller runs extraction loop |
+| 12-22 | ik_thinking_level_t Duplicate | agent-provider-fields.md | Enum defined ONLY in provider-types.md; others reference it |
+| 12-22 | ik_infer_provider() Circular Dep | provider-types.md, model-command.md | Moved to provider-types.md. Chain: provider-types→agent-provider-fields→model-command |
+| 12-22 | Completion Type Confusion | http-client.md | Added mapping: ik_http_completion_t=LOW-LEVEL, ik_provider_completion_t=HIGH-LEVEL |
+| 12-22 | Factory Signature Mismatch | openai-shim-types.md | Changed ik_openai_create() to `const char *api_key` (matches Anthropic/Google) |
+| 12-22 | Missing retry_after_ms | provider-types.md | Added `retry_after_ms \| int32_t` to struct table |
+| 12-22 | Stream Callback Ownership | anthropic-streaming.md | Stream ctx takes only stream_cb; completion_cb passed to start_stream() |
+| 12-22 | HTTP Multi Function Name | anthropic-streaming.md | Changed ik_http_multi_add_handle→ik_http_multi_add_request |
+| 12-22 | Missing Include Order | provider-types.md | Added section: provider.h must be included first |
+| 12-22 | VCR Chunk Format | vcr-core.md | Chunks are null-terminated strings; len_out for optimization |
+| 12-22 | Thinking Validation Missing | provider-types.md | Added validation rules for incompatible model+thinking combinations |
+| 12-22 | VCR Makefile Dependencies | vcr-makefile.md | Added test binary deps to vcr-record-* targets |
+| 12-22 | Stream Event Index Semantics | provider-types.md | Canonical rules: text=0, tools sequential, thinking=0/text=1 |
+| 12-22 | REPL Callback Migration | repl-streaming-updates.md | Added OLD→NEW signature comparison and migration notes |
+| 12-22 | Config API Migration | configuration.md | Added ATOMIC strategy, ik_cfg_t→ik_config_t rename, sed commands, 4-phase order |
