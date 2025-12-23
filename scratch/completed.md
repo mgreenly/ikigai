@@ -17,3 +17,4 @@
 - 5.1 Missing: Contract Tests - created contract-anthropic.md and contract-google.md following openai-equivalence-validation.md pattern (from todo-5-testing.md)
 - 5.2 Missing: Thinking Tests - created tests-thinking-levels.md for cross-provider thinking validation (from todo-5-testing.md)
 - 5.3 Missing: Performance Task - created tests-performance-benchmarking.md with <100μs targets, 6 benchmark categories, CI integration (from todo-5-testing.md)
+- 5.4 Missing: Coverage Task - verified existing Makefile targets suffice (100% threshold, branch coverage, CI integration, LCOV exclusion limits) (from todo-5-testing.md)
