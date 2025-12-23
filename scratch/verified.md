@@ -27,3 +27,4 @@ Fixed gaps - do not re-investigate.
 | 12-22 | README.md Scope Creep | scratch/README.md | Restructured from 1116→214 lines. Product-focused only; technical details in plan/*.md. |
 | 12-22 | Model Naming Inconsistency | scratch/README.md | Changed dots to hyphens (claude-sonnet-4.5 → claude-sonnet-4-5) to match Anthropic naming |
 | 12-22 | Refactor vs Clean Slate | scratch/plan/README.md | Clarified "Coexistence-Then-Removal" approach: build new alongside old, verify, then delete old |
+| 12-22 | Plan Directory Disorganized | scratch/plan/ | Reorganized into 01-architecture/, 02-data-formats/, 03-provider-types.md, 04-application/, 05-testing/. Merged transformation+thinking docs. Deduplicated constraint block. Deleted fix-verify-mocks-precondition.md. |

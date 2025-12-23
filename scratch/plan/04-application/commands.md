@@ -218,6 +218,6 @@ Get your API key at: https://console.anthropic.com/settings/keys
 
 ## References
 
-- [thinking-abstraction.md](thinking-abstraction.md) - Thinking level mapping and user feedback
+- [03-provider-types.md](../03-provider-types.md) - Thinking level mapping and user feedback
 - [configuration.md](configuration.md) - Credentials loading
 - [database-schema.md](database-schema.md) - Agent table schema

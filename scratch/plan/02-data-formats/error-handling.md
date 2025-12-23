@@ -1,17 +1,5 @@
 # Error Handling Strategy
 
-## Critical Architecture Constraint
-
-The application uses a select()-based event loop. ALL HTTP operations
-MUST be non-blocking:
-
-- Use curl_multi (NOT curl_easy)
-- Expose fdset() for select() integration
-- Expose perform() for incremental processing
-- NEVER block the main thread
-
-Reference: `src/openai/client_multi.c`
-
 ## Overview
 
 Provider adapters map provider-specific HTTP errors to ikigai's unified error categories. Errors include both category (for programmatic handling) and provider details (for debugging).

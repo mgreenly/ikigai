@@ -54,9 +54,9 @@ The system automatically translates these abstract levels to provider-specific p
 Create child agents with different providers/models:
 
 ```
-/fork                                    # Inherits parent's model/thinking
-/fork "prompt"                          # Inherits model/thinking + assigns task
-/fork --model NAME/THINKING             # Override model/thinking
+/fork                                  # Inherits parent's model/thinking
+/fork "prompt"                         # Inherits model/thinking + assigns task
+/fork --model NAME/THINKING            # Override model/thinking
 /fork --model NAME/THINKING "prompt"   # Override model/thinking + assigns task
 ```
 
@@ -186,17 +186,27 @@ Switch providers freely mid-conversation. History is preserved and sent to new p
 For implementation details, architecture decisions, and technical specifications, see:
 
 - **[plan/README.md](plan/README.md)** - Design overview and document index
-- **[plan/architecture.md](plan/architecture.md)** - System architecture, vtable pattern, module organization
-- **[plan/provider-interface.md](plan/provider-interface.md)** - Provider vtable interface specification
-- **[plan/request-response-format.md](plan/request-response-format.md)** - Internal data format (superset of all providers)
-- **[plan/streaming.md](plan/streaming.md)** - Normalized streaming event types
-- **[plan/error-handling.md](plan/error-handling.md)** - Error categories, mapping, retry strategies
-- **[plan/thinking-abstraction.md](plan/thinking-abstraction.md)** - Thinking level mapping to provider parameters
-- **[plan/configuration.md](plan/configuration.md)** - Configuration file format and precedence
-- **[plan/database-schema.md](plan/database-schema.md)** - Schema changes for provider/model storage
-- **[plan/commands.md](plan/commands.md)** - `/model` and `/fork` command specifications
-- **[plan/testing-strategy.md](plan/testing-strategy.md)** - Mock HTTP pattern, test organization
-- **[plan/vcr-cassettes.md](plan/vcr-cassettes.md)** - VCR fixture format for HTTP recording/playback
+
+**Architecture:**
+- **[plan/01-architecture/overview.md](plan/01-architecture/overview.md)** - System architecture, vtable pattern, module organization
+- **[plan/01-architecture/provider-interface.md](plan/01-architecture/provider-interface.md)** - Provider vtable interface specification
+
+**Data Formats:**
+- **[plan/02-data-formats/request-response.md](plan/02-data-formats/request-response.md)** - Internal data format (superset of all providers)
+- **[plan/02-data-formats/streaming.md](plan/02-data-formats/streaming.md)** - Normalized streaming event types
+- **[plan/02-data-formats/error-handling.md](plan/02-data-formats/error-handling.md)** - Error categories, mapping, retry strategies
+
+**Provider Details:**
+- **[plan/03-provider-types.md](plan/03-provider-types.md)** - Provider-specific transformation and thinking abstraction
+
+**Application:**
+- **[plan/04-application/commands.md](plan/04-application/commands.md)** - `/model` and `/fork` command specifications
+- **[plan/04-application/configuration.md](plan/04-application/configuration.md)** - Configuration file format and precedence
+- **[plan/04-application/database-schema.md](plan/04-application/database-schema.md)** - Schema changes for provider/model storage
+
+**Testing:**
+- **[plan/05-testing/strategy.md](plan/05-testing/strategy.md)** - Mock HTTP pattern, test organization
+- **[plan/05-testing/vcr-cassettes.md](plan/05-testing/vcr-cassettes.md)** - VCR fixture format for HTTP recording/playback
 
 ## Research Artifacts
 

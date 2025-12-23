@@ -55,33 +55,29 @@ This release REPLACES old OpenAI code, tests, and fixtures through a phased migr
 
 ### Architecture & Structure
 
-- **[architecture.md](architecture.md)** - System architecture, vtable pattern, directory structure, module organization
-- **[provider-interface.md](provider-interface.md)** - Vtable interface specification, lifecycle, common utilities
+- **[01-architecture/overview.md](01-architecture/overview.md)** - System architecture, vtable pattern, directory structure, module organization
+- **[01-architecture/provider-interface.md](01-architecture/provider-interface.md)** - Vtable interface specification, lifecycle, common utilities
 
 ### Data Formats
 
-- **[request-response-format.md](request-response-format.md)** - Internal superset format for requests and responses
-- **[streaming.md](streaming.md)** - Normalized streaming event types and flow
-- **[error-handling.md](error-handling.md)** - Error categories, mapping, retry strategies
+- **[02-data-formats/request-response.md](02-data-formats/request-response.md)** - Internal superset format for requests and responses
+- **[02-data-formats/streaming.md](02-data-formats/streaming.md)** - Normalized streaming event types and flow
+- **[02-data-formats/error-handling.md](02-data-formats/error-handling.md)** - Error categories, mapping, retry strategies
 
-### Transformation & Flow
+### Provider Types & Transformations
 
-- **[transformation.md](transformation.md)** - Request/response transformation pipeline per provider
-- **[thinking-abstraction.md](thinking-abstraction.md)** - Unified thinking level mapping to provider-specific parameters
+- **[03-provider-types.md](03-provider-types.md)** - Request/response transformation pipeline per provider, unified thinking level mapping to provider-specific parameters, tool call handling
 
-### Commands
+### Application Layer
 
-- **[commands.md](commands.md)** - `/model` and `/fork` command behavior, provider inference, argument parsing
-
-### Configuration & Storage
-
-- **[configuration.md](configuration.md)** - config.json and credentials.json format, precedence rules
-- **[database-schema.md](database-schema.md)** - Schema changes for provider/model/thinking storage
+- **[04-application/commands.md](04-application/commands.md)** - `/model` and `/fork` command behavior, provider inference, argument parsing
+- **[04-application/configuration.md](04-application/configuration.md)** - config.json and credentials.json format, precedence rules
+- **[04-application/database-schema.md](04-application/database-schema.md)** - Schema changes for provider/model/thinking storage
 
 ### Testing
 
-- **[testing-strategy.md](testing-strategy.md)** - Mock HTTP pattern, fixture validation, test organization
-- **[vcr-cassettes.md](vcr-cassettes.md)** - VCR fixture format, record/playback modes, credential redaction
+- **[05-testing/strategy.md](05-testing/strategy.md)** - Mock HTTP pattern, fixture validation, test organization
+- **[05-testing/vcr-cassettes.md](05-testing/vcr-cassettes.md)** - VCR fixture format, record/playback modes, credential redaction
 
 ## Implementation Order
 

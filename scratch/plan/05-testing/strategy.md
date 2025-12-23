@@ -14,18 +14,6 @@ This release REPLACES all old OpenAI code and tests. Old tests/fixtures are dele
 - VCR-based tests with fixtures in `tests/fixtures/vcr/`
 - Only new code - no migration, no compatibility layer
 
-## Critical Architecture Constraint
-
-The application uses a select()-based event loop. ALL HTTP operations
-MUST be non-blocking:
-
-- Use curl_multi (NOT curl_easy)
-- Expose fdset() for select() integration
-- Expose perform() for incremental processing
-- NEVER block the main thread
-
-Reference: `src/openai/client_multi.c`
-
 ## Overview
 
 The multi-provider abstraction testing follows ikigai's existing patterns:

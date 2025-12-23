@@ -1,17 +1,5 @@
 # Streaming Event Normalization
 
-## Critical Architecture Constraint
-
-The application uses a select()-based event loop. ALL HTTP operations
-MUST be non-blocking:
-
-- Use curl_multi (NOT curl_easy)
-- Expose fdset() for select() integration
-- Expose perform() for incremental processing
-- NEVER block the main thread
-
-Reference: `src/openai/client_multi.c`
-
 ## Overview
 
 All providers emit normalized streaming events through a unified `ik_stream_event_t` type. Provider adapters are responsible for transforming provider-specific SSE events into this normalized format.

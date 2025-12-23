@@ -1,17 +1,5 @@
 # Provider Interface Specification
 
-## Critical Architecture Constraint
-
-The application uses a select()-based event loop. ALL HTTP operations
-MUST be non-blocking:
-
-- Use curl_multi (NOT curl_easy)
-- Expose fdset() for select() integration
-- Expose perform() for incremental processing
-- NEVER block the main thread
-
-Reference: `src/openai/client_multi.c`
-
 ## Overview
 
 This document specifies the vtable interface that all provider adapters must implement, along with lifecycle management and common utilities.
@@ -165,7 +153,7 @@ typedef res_t (*ik_stream_cb_t)(const ik_stream_event_t *event, void *ctx);
 typedef res_t (*ik_provider_completion_cb_t)(const ik_provider_completion_t *completion, void *ctx);
 ```
 
-See [streaming.md](streaming.md) for stream event structure details.
+See [02-data-formats/streaming.md](../02-data-formats/streaming.md) for stream event structure details.
 
 ## Response Handling
 
@@ -279,7 +267,7 @@ Providers must map HTTP and API errors to these categories:
 - ERR_NETWORK - Network/connection error
 - ERR_UNKNOWN - Other errors
 
-See [error-handling.md](error-handling.md) for full mapping tables.
+See [02-data-formats/error-handling.md](../02-data-formats/error-handling.md) for full mapping tables.
 
 ### Error Information
 Error structures include:

@@ -406,4 +406,4 @@ Convenience builders for common operations provide a friendlier API for construc
 4. Configure thinking with ik_request_set_thinking()
 5. Add tools with ik_request_add_tool()
 
-See [transformation.md](transformation.md) for adapter-specific serialization details.
+See [03-provider-types.md](../03-provider-types.md) for adapter-specific serialization details.

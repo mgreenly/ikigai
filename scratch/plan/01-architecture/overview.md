@@ -1,17 +1,5 @@
 # Provider Abstraction Architecture
 
-## Critical Architecture Constraint
-
-The application uses a select()-based event loop. ALL HTTP operations
-MUST be non-blocking:
-
-- Use curl_multi (NOT curl_easy)
-- Expose fdset() for select() integration
-- Expose perform() for incremental processing
-- NEVER block the main thread
-
-Reference: `src/openai/client_multi.c`
-
 ## Overview
 
 The multi-provider architecture uses a vtable pattern to abstract AI provider APIs behind a unified interface. Each provider implements the same vtable, enabling polymorphic behavior without tight coupling.
