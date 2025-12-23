@@ -61,6 +61,7 @@ During Phase 1, the OpenAI provider uses a thin adapter shim that wraps existing
 - [ ] `/model gpt-4o` successfully sends message and receives response
 - [ ] `/model gemini-2.5-pro/med` successfully sends message and receives response
 - [ ] `/fork --model` creates child agent with correct provider
+- [ ] OpenAI adapter shim deleted and replaced with native provider implementation
 - [ ] `grep -r "openai/client" src/` returns only `src/providers/openai/` paths
 - [ ] No production code imports from `src/openai/` (old location)
 - [ ] Makefile updated to build from `src/providers/` only
