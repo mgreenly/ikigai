@@ -181,7 +181,7 @@ This matrix defines how each HTTP status code should be handled, mapped to inter
 - Error delivered via completion callback with `success = false`
 
 **Error Mapping:**
-- Internal code: `ERR_AUTH`
+- Internal code: `IK_ERR_CAT_AUTH`
 - Category: Authentication failure
 
 **User-Facing Message Format:**
@@ -206,7 +206,7 @@ Please verify your ANTHROPIC_API_KEY is correct.
 
 **Test Coverage:**
 - Parse error type and message from response body
-- Map to ERR_AUTH
+- Map to IK_ERR_CAT_AUTH
 - Verify callback receives error (not thrown exception)
 
 ### 403 Forbidden
@@ -218,8 +218,8 @@ Please verify your ANTHROPIC_API_KEY is correct.
 - Distinguish between permission errors and quota errors
 
 **Error Mapping:**
-- Permission denied: `ERR_AUTH` (insufficient permissions)
-- Quota exhausted: `ERR_QUOTA` (credits exhausted)
+- Permission denied: `IK_ERR_CAT_AUTH` (insufficient permissions)
+- Quota exhausted: `IK_ERR_CAT_QUOTA` (credits exhausted)
 
 **User-Facing Message Format:**
 ```
@@ -258,7 +258,7 @@ Visit https://console.anthropic.com to add credits.
 - Do NOT automatically retry within provider
 
 **Error Mapping:**
-- Internal code: `ERR_RATE_LIMIT`
+- Internal code: `IK_ERR_CAT_RATE_LIMIT`
 - Include `retry_after_ms` in error context
 
 **Anthropic Rate Limit Headers:**
@@ -297,7 +297,7 @@ Tokens: 5000/100000 remaining
 - Parse retry-after header (integer seconds)
 - Parse rate limit headers (requests and tokens)
 - Extract reset timestamps
-- Map to ERR_RATE_LIMIT with retry_after_ms
+- Map to IK_ERR_CAT_RATE_LIMIT with retry_after_ms
 - Format user message with quota details
 
 ### 500 Internal Server Error
@@ -310,7 +310,7 @@ Tokens: 5000/100000 remaining
 - Return generic server error to user
 
 **Error Mapping:**
-- Internal code: `ERR_PROVIDER` (provider-side failure)
+- Internal code: `IK_ERR_CAT_SERVER` (provider-side failure)
 
 **User-Facing Message Format:**
 ```
@@ -325,7 +325,7 @@ This is a temporary issue on Anthropic's side. Please retry later.
 
 **Test Coverage:**
 - Handle 500 status even if response body is empty
-- Map to ERR_PROVIDER
+- Map to IK_ERR_CAT_SERVER
 - Verify error message includes status code
 
 ### 503 Service Unavailable
@@ -337,7 +337,7 @@ This is a temporary issue on Anthropic's side. Please retry later.
 - May include retry-after header
 
 **Error Mapping:**
-- Internal code: `ERR_OVERLOADED`
+- Internal code: `IK_ERR_CAT_SERVER`
 
 **User-Facing Message Format:**
 ```
@@ -361,7 +361,7 @@ The service may be temporarily overloaded. Retry after 30 seconds.
 
 **Test Coverage:**
 - Parse retry-after if present
-- Map to ERR_OVERLOADED
+- Map to IK_ERR_CAT_SERVER
 - Handle missing retry-after gracefully
 
 ### 504 Gateway Timeout
@@ -373,7 +373,7 @@ The service may be temporarily overloaded. Retry after 30 seconds.
 - Distinguish from local timeout (curl timeout)
 
 **Error Mapping:**
-- Internal code: `ERR_TIMEOUT` (provider gateway timeout)
+- Internal code: `IK_ERR_CAT_TIMEOUT` (provider gateway timeout)
 
 **User-Facing Message Format:**
 ```
@@ -386,7 +386,7 @@ This may occur with very long or complex requests. Consider simplifying the requ
 - Status code 504 with minimal body
 
 **Test Coverage:**
-- Map 504 to ERR_TIMEOUT
+- Map 504 to IK_ERR_CAT_TIMEOUT
 - Verify distinct from curl-level timeout (CURLE_OPERATION_TIMEDOUT)
 - Include timeout guidance in error message
 
@@ -394,21 +394,21 @@ This may occur with very long or complex requests. Consider simplifying the requ
 
 **529 Overloaded (Anthropic-specific):**
 - Similar to 503, but Anthropic's custom code
-- Map to `ERR_OVERLOADED`
+- Map to `IK_ERR_CAT_SERVER`
 - Already covered in existing test scenarios
 
 ### Error Mapping Summary Table
 
 | HTTP Status | Error Type | Internal Code | Retry? | Retry-After Header? |
 |-------------|------------|---------------|--------|---------------------|
-| 401 | Authentication | ERR_AUTH | No | No |
-| 403 (permission) | Permission denied | ERR_AUTH | No | No |
-| 403 (quota) | Quota exhausted | ERR_QUOTA | No | No |
-| 429 | Rate limit | ERR_RATE_LIMIT | Caller decides | Yes (required) |
-| 500 | Server error | ERR_PROVIDER | No | No |
-| 503 | Overloaded | ERR_OVERLOADED | Caller decides | Maybe |
-| 504 | Gateway timeout | ERR_TIMEOUT | No | No |
-| 529 | Overloaded (custom) | ERR_OVERLOADED | Caller decides | Maybe |
+| 401 | Authentication | IK_ERR_CAT_AUTH | No | No |
+| 403 (permission) | Permission denied | IK_ERR_CAT_AUTH | No | No |
+| 403 (quota) | Quota exhausted | IK_ERR_CAT_QUOTA | No | No |
+| 429 | Rate limit | IK_ERR_CAT_RATE_LIMIT | Caller decides | Yes (required) |
+| 500 | Server error | IK_ERR_CAT_SERVER | No | No |
+| 503 | Overloaded | IK_ERR_CAT_SERVER | Caller decides | Maybe |
+| 504 | Gateway timeout | IK_ERR_CAT_TIMEOUT | No | No |
+| 529 | Overloaded (custom) | IK_ERR_CAT_SERVER | Caller decides | Maybe |
 
 ### Implementation Notes
 

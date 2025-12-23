@@ -118,7 +118,7 @@ This matrix defines how each HTTP status code should be handled, mapped to inter
 - Error delivered via completion callback with `success = false`
 
 **Error Mapping:**
-- Internal code: `ERR_AUTH`
+- Internal code: `IK_ERR_CAT_AUTH`
 - Category: Authentication failure
 
 **User-Facing Message Format:**
@@ -143,7 +143,7 @@ Please verify your GOOGLE_API_KEY is correct.
 
 **Test Coverage:**
 - Parse error.code and error.message from response body
-- Map to ERR_AUTH
+- Map to IK_ERR_CAT_AUTH
 - Verify callback receives error (not thrown exception)
 
 ### 403 Forbidden
@@ -155,9 +155,9 @@ Please verify your GOOGLE_API_KEY is correct.
 - Distinguish between different 403 subtypes based on error.status
 
 **Error Mapping:**
-- API not enabled: `ERR_AUTH` (configuration error)
-- Permission denied: `ERR_AUTH` (insufficient permissions)
-- Quota exceeded: `ERR_QUOTA` (billing/quota issue)
+- API not enabled: `IK_ERR_CAT_AUTH` (configuration error)
+- Permission denied: `IK_ERR_CAT_AUTH` (insufficient permissions)
+- Quota exceeded: `IK_ERR_CAT_QUOTA` (billing/quota issue)
 
 **Google Error Status Values:**
 - `PERMISSION_DENIED` - API not enabled or insufficient permissions
@@ -202,7 +202,7 @@ Visit https://console.cloud.google.com/apis/api/generativelanguage.googleapis.co
 - Do NOT automatically retry within provider
 
 **Error Mapping:**
-- Internal code: `ERR_RATE_LIMIT`
+- Internal code: `IK_ERR_CAT_RATE_LIMIT`
 - Include `retry_after_ms` in error context if available
 
 **Google Rate Limit Response:**
@@ -241,7 +241,7 @@ Retry after 60 seconds.
 **Test Coverage:**
 - Parse Retry-After header if present
 - Parse error.details for quota_limit and reason
-- Map to ERR_RATE_LIMIT with retry_after_ms
+- Map to IK_ERR_CAT_RATE_LIMIT with retry_after_ms
 - Format user message with quota details
 
 **Note:** Google does not provide detailed rate limit headers like Anthropic. Quota information is in error.details.
@@ -256,7 +256,7 @@ Retry after 60 seconds.
 - Return generic server error to user
 
 **Error Mapping:**
-- Internal code: `ERR_PROVIDER` (provider-side failure)
+- Internal code: `IK_ERR_CAT_SERVER` (provider-side failure)
 
 **User-Facing Message Format:**
 ```
@@ -271,7 +271,7 @@ This is a temporary issue on Google's side. Please retry later.
 
 **Test Coverage:**
 - Handle 500 status even if response body is empty or malformed
-- Map to ERR_PROVIDER
+- Map to IK_ERR_CAT_SERVER
 - Verify error message includes status code
 
 ### 503 Service Unavailable
@@ -283,7 +283,7 @@ This is a temporary issue on Google's side. Please retry later.
 - May include Retry-After header
 
 **Error Mapping:**
-- Internal code: `ERR_OVERLOADED`
+- Internal code: `IK_ERR_CAT_SERVER`
 
 **User-Facing Message Format:**
 ```
@@ -307,7 +307,7 @@ Retry after 30 seconds.
 
 **Test Coverage:**
 - Parse Retry-After header if present
-- Map to ERR_OVERLOADED
+- Map to IK_ERR_CAT_SERVER
 - Handle missing Retry-After gracefully (use default backoff)
 
 ### 504 Gateway Timeout
@@ -319,7 +319,7 @@ Retry after 30 seconds.
 - Distinguish from local timeout (curl timeout)
 
 **Error Mapping:**
-- Internal code: `ERR_TIMEOUT` (provider gateway timeout)
+- Internal code: `IK_ERR_CAT_TIMEOUT` (provider gateway timeout)
 
 **User-Facing Message Format:**
 ```
@@ -332,7 +332,7 @@ This may occur with very long or complex requests. Consider simplifying the requ
 - Status code 504 with minimal or no body
 
 **Test Coverage:**
-- Map 504 to ERR_TIMEOUT
+- Map 504 to IK_ERR_CAT_TIMEOUT
 - Verify distinct from curl-level timeout (CURLE_OPERATION_TIMEDOUT)
 - Include timeout guidance in error message
 
@@ -340,13 +340,13 @@ This may occur with very long or complex requests. Consider simplifying the requ
 
 | HTTP Status | Google Status | Internal Code | Retry? | Retry-After Header? |
 |-------------|---------------|---------------|--------|---------------------|
-| 401 | UNAUTHENTICATED | ERR_AUTH | No | No |
-| 403 (API disabled) | PERMISSION_DENIED | ERR_AUTH | No | No |
-| 403 (quota) | RESOURCE_EXHAUSTED | ERR_QUOTA | No | No |
-| 429 | RESOURCE_EXHAUSTED | ERR_RATE_LIMIT | Caller decides | Maybe |
-| 500 | INTERNAL | ERR_PROVIDER | No | No |
-| 503 | UNAVAILABLE | ERR_OVERLOADED | Caller decides | Maybe |
-| 504 | DEADLINE_EXCEEDED | ERR_TIMEOUT | No | No |
+| 401 | UNAUTHENTICATED | IK_ERR_CAT_AUTH | No | No |
+| 403 (API disabled) | PERMISSION_DENIED | IK_ERR_CAT_AUTH | No | No |
+| 403 (quota) | RESOURCE_EXHAUSTED | IK_ERR_CAT_QUOTA | No | No |
+| 429 | RESOURCE_EXHAUSTED | IK_ERR_CAT_RATE_LIMIT | Caller decides | Maybe |
+| 500 | INTERNAL | IK_ERR_CAT_SERVER | No | No |
+| 503 | UNAVAILABLE | IK_ERR_CAT_SERVER | Caller decides | Maybe |
+| 504 | DEADLINE_EXCEEDED | IK_ERR_CAT_TIMEOUT | No | No |
 
 ### Google-Specific Error Handling Notes
 

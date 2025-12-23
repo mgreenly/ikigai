@@ -340,40 +340,40 @@ END_TEST
 ```c
 START_TEST(test_error_category_names)
 {
-    ck_assert_str_eq(ik_error_category_name(ERR_CAT_AUTH), "authentication");
-    ck_assert_str_eq(ik_error_category_name(ERR_CAT_RATE_LIMIT), "rate_limit");
-    ck_assert_str_eq(ik_error_category_name(ERR_CAT_SERVICE), "service");
-    ck_assert_str_eq(ik_error_category_name(ERR_CAT_NETWORK), "network");
-    ck_assert_str_eq(ik_error_category_name(ERR_CAT_INVALID_REQUEST), "invalid_request");
+    ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_AUTH), "authentication");
+    ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_RATE_LIMIT), "rate_limit");
+    ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_SERVER), "service");
+    ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_NETWORK), "network");
+    ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_INVALID_ARG), "invalid_request");
 }
 END_TEST
 
 START_TEST(test_error_is_retryable)
 {
-    ck_assert(ik_error_is_retryable(ERR_CAT_RATE_LIMIT));
-    ck_assert(ik_error_is_retryable(ERR_CAT_SERVICE));
-    ck_assert(ik_error_is_retryable(ERR_CAT_NETWORK));
+    ck_assert(ik_error_is_retryable(IK_ERR_CAT_RATE_LIMIT));
+    ck_assert(ik_error_is_retryable(IK_ERR_CAT_SERVER));
+    ck_assert(ik_error_is_retryable(IK_ERR_CAT_NETWORK));
 
-    ck_assert(!ik_error_is_retryable(ERR_CAT_AUTH));
-    ck_assert(!ik_error_is_retryable(ERR_CAT_INVALID_REQUEST));
+    ck_assert(!ik_error_is_retryable(IK_ERR_CAT_AUTH));
+    ck_assert(!ik_error_is_retryable(IK_ERR_CAT_INVALID_ARG));
 }
 END_TEST
 
 START_TEST(test_http_status_to_category)
 {
-    ck_assert_int_eq(ik_http_status_to_category(401), ERR_CAT_AUTH);
-    ck_assert_int_eq(ik_http_status_to_category(403), ERR_CAT_AUTH);
-    ck_assert_int_eq(ik_http_status_to_category(429), ERR_CAT_RATE_LIMIT);
-    ck_assert_int_eq(ik_http_status_to_category(500), ERR_CAT_SERVICE);
-    ck_assert_int_eq(ik_http_status_to_category(502), ERR_CAT_SERVICE);
-    ck_assert_int_eq(ik_http_status_to_category(503), ERR_CAT_SERVICE);
-    ck_assert_int_eq(ik_http_status_to_category(400), ERR_CAT_INVALID_REQUEST);
+    ck_assert_int_eq(ik_http_status_to_category(401), IK_ERR_CAT_AUTH);
+    ck_assert_int_eq(ik_http_status_to_category(403), IK_ERR_CAT_AUTH);
+    ck_assert_int_eq(ik_http_status_to_category(429), IK_ERR_CAT_RATE_LIMIT);
+    ck_assert_int_eq(ik_http_status_to_category(500), IK_ERR_CAT_SERVER);
+    ck_assert_int_eq(ik_http_status_to_category(502), IK_ERR_CAT_SERVER);
+    ck_assert_int_eq(ik_http_status_to_category(503), IK_ERR_CAT_SERVER);
+    ck_assert_int_eq(ik_http_status_to_category(400), IK_ERR_CAT_INVALID_ARG);
 }
 END_TEST
 
 START_TEST(test_error_user_message)
 {
-    const char *msg = ik_error_user_message(ERR_CAT_RATE_LIMIT);
+    const char *msg = ik_error_user_message(IK_ERR_CAT_RATE_LIMIT);
     ck_assert_ptr_nonnull(msg);
     ck_assert(strstr(msg, "rate") != NULL || strstr(msg, "limit") != NULL);
 }
