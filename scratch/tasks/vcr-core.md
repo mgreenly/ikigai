@@ -92,7 +92,7 @@ Each `_chunk` line contains exactly what curl's write callback received - one ca
 ### Example: Streaming (Anthropic SSE)
 
 ```jsonl
-{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-20250514\",\"stream\":true,\"messages\":[...]}"}}
+{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-5-20250929\",\"stream\":true,\"messages\":[...]}"}}
 {"_response": {"status": 200, "headers": {"content-type": "text/event-stream"}}}
 {"_chunk": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_123\"}}\n\n"}
 {"_chunk": "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"delta\":{\"text\":\"Hello\"}}\n\n"}

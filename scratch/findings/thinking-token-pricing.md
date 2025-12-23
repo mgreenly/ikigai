@@ -705,7 +705,7 @@ total_cost = (input_tokens × input_price) +
 
 **Proposed `/model` syntax from README:**
 ```
-/model claude-sonnet-4.5/med
+/model claude-sonnet-4-5/med
 /model o3-mini/high
 /model gemini-2.5-pro/low
 ```
@@ -742,7 +742,7 @@ total_cost = (input_tokens × input_price) +
 
 **Example output:**
 ```
-> /model claude-sonnet-4.5/med
+> /model claude-sonnet-4-5/med
 
 ✓ Switched to Anthropic claude-sonnet-4.5-20250929
   Extended thinking: enabled (10,000 token budget - medium)

@@ -145,7 +145,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
   "id": "msg_123",
   "type": "message",
   "role": "assistant",
-  "model": "claude-sonnet-4-5-20250514",
+  "model": "claude-sonnet-4-5-20250929",
   "content": [
     {
       "type": "thinking",

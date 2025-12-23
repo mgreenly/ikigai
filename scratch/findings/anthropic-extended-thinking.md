@@ -1,7 +1,7 @@
 # Anthropic Extended Thinking Limits and Behavior
 
 **Research Date:** 2025-12-14
-**Models Investigated:** claude-opus-4.5, claude-sonnet-4.5, claude-3.7-sonnet, claude-haiku-4.5
+**Models Investigated:** claude-opus-4-5, claude-sonnet-4-5, claude-3.7-sonnet, claude-haiku-4-5
 
 ## Summary
 
@@ -20,10 +20,10 @@ Anthropic's Extended Thinking feature supports token budgets from a minimum of 1
 
 | Model | Min Budget | Max Budget | Context Window | Output Limit | Notes |
 |-------|------------|------------|----------------|--------------|-------|
-| claude-opus-4.5-20251101 | 1,024 | 64,000 (std) / 128,000 (beta) | 200K | 64K (std) / 128K (beta) | Supports effort parameter, preserves thinking blocks by default |
+| claude-opus-4-5-20251101 | 1,024 | 64,000 (std) / 128,000 (beta) | 200K | 64K (std) / 128K (beta) | Supports effort parameter, preserves thinking blocks by default |
 | claude-sonnet-4.5-20250929 | 1,024 | 64,000 (std) | 200K | 64K (std) | Used 64K reasoning tokens on AIME benchmarks |
 | claude-3-7-sonnet-20250219 | 1,024 | 128,000 (with beta) | 200K | 128K (beta) | Requires `output-128k-2025-02-19` beta header for 128K, returns full thinking (not summarized) |
-| claude-haiku-4.5-20251001 | 1,024 | 64,000 (std) | 200K | 64K (std) | Hybrid model with instant + extended thinking |
+| claude-haiku-4-5-20251001 | 1,024 | 64,000 (std) | 200K | 64K (std) | Hybrid model with instant + extended thinking |
 | claude-opus-4.1-20250805 | 1,024 | 64,000 (std) | 200K | 64K (std) | - |
 | claude-opus-4-20250514 | 1,024 | 64,000 (std) | 200K | 64K (std) | - |
 

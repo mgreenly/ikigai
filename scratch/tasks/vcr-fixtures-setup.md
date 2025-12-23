@@ -148,9 +148,9 @@ Each `_chunk` line contains exactly what curl's write callback received - one ca
 ### Non-Streaming Example (Anthropic Messages API)
 
 ```jsonl
-{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json", "anthropic-version": "2023-06-01"}, "body": "{\"model\":\"claude-sonnet-4-20250514\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"}}
+{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json", "anthropic-version": "2023-06-01"}, "body": "{\"model\":\"claude-sonnet-4-5-20250929\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"}}
 {"_response": {"status": 200, "headers": {"content-type": "application/json"}}}
-{"_body": "{\"id\":\"msg_01ABC123\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"Hello! How can I help you today?\"}],\"model\":\"claude-sonnet-4-20250514\",\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":10,\"output_tokens\":12}}"}
+{"_body": "{\"id\":\"msg_01ABC123\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"Hello! How can I help you today?\"}],\"model\":\"claude-sonnet-4-5-20250929\",\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":10,\"output_tokens\":12}}"}
 ```
 
 ### Streaming Example (Anthropic SSE)
@@ -158,9 +158,9 @@ Each `_chunk` line contains exactly what curl's write callback received - one ca
 Raw SSE chunks exactly as delivered by the API:
 
 ```jsonl
-{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json", "anthropic-version": "2023-06-01"}, "body": "{\"model\":\"claude-sonnet-4-20250514\",\"max_tokens\":1024,\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"}}
+{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json", "anthropic-version": "2023-06-01"}, "body": "{\"model\":\"claude-sonnet-4-5-20250929\",\"max_tokens\":1024,\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"}}
 {"_response": {"status": 200, "headers": {"content-type": "text/event-stream"}}}
-{"_chunk": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_01ABC123\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"claude-sonnet-4-20250514\"}}\n\n"}
+{"_chunk": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_01ABC123\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"claude-sonnet-4-5-20250929\"}}\n\n"}
 {"_chunk": "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n"}
 {"_chunk": "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}\n\n"}
 {"_chunk": "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"! How\"}}\n\n"}
@@ -199,7 +199,7 @@ Google uses newline-delimited JSON, not SSE:
 ### Error Response Example
 
 ```jsonl
-{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json", "anthropic-version": "2023-06-01"}, "body": "{\"model\":\"claude-sonnet-4-20250514\",\"max_tokens\":1024,\"messages\":[]}"}}
+{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json", "anthropic-version": "2023-06-01"}, "body": "{\"model\":\"claude-sonnet-4-5-20250929\",\"max_tokens\":1024,\"messages\":[]}"}}
 {"_response": {"status": 429, "headers": {"content-type": "application/json", "retry-after": "30"}}}
 {"_body": "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Number of request tokens has exceeded your per-minute rate limit\"}}"}
 ```

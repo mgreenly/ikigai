@@ -167,7 +167,7 @@ Messages and system prompts are composed of content blocks.
 **Anthropic Wire Format:**
 ```json
 {
-  "model": "claude-sonnet-4-5-20250514",
+  "model": "claude-sonnet-4-5-20250929",
   "system": "You are helpful",
   "messages": [
     {"role": "user", "content": "Hello"}

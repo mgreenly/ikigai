@@ -57,7 +57,7 @@ Each `_chunk` line contains exactly what curl's write callback received - one ca
 ### Non-Streaming Example (LLM)
 
 ```jsonl
-{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-5-20250514\",\"messages\":[...]}"}}
+{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-5-20250929\",\"messages\":[...]}"}}
 {"_response": {"status": 200, "headers": {"content-type": "application/json"}}}
 {"_body": "{\"id\":\"msg_123\",\"type\":\"message\",\"content\":[{\"type\":\"text\",\"text\":\"Hello world\"}]}"}
 ```
@@ -75,7 +75,7 @@ Each `_chunk` line contains exactly what curl's write callback received - one ca
 Raw SSE chunks exactly as delivered by the API:
 
 ```jsonl
-{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-5-20250514\",\"stream\":true,\"messages\":[...]}"}}
+{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-5-20250929\",\"stream\":true,\"messages\":[...]}"}}
 {"_response": {"status": 200, "headers": {"content-type": "text/event-stream"}}}
 {"_chunk": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_123\"}}\n\n"}
 {"_chunk": "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0}\n\n"}

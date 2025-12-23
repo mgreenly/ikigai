@@ -176,7 +176,7 @@ Before running any tests, verify credentials are available. Call this in suite s
 **Request:**
 ```json
 {
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-5-20250929",
   "max_tokens": 100,
   "stream": true,
   "messages": [{"role": "user", "content": "Say hello"}]
@@ -201,7 +201,7 @@ Before running any tests, verify credentials are available. Call this in suite s
 **Request:**
 ```json
 {
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-5-20250929",
   "max_tokens": 1000,
   "stream": true,
   "thinking": {"type": "enabled", "budget_tokens": 500},
@@ -225,7 +225,7 @@ Before running any tests, verify credentials are available. Call this in suite s
 **Request:**
 ```json
 {
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-5-20250929",
   "max_tokens": 500,
   "stream": true,
   "tools": [{
