@@ -31,3 +31,4 @@ Fixed gaps - do not re-investigate.
 | 12-22 | No Phase 2 Deletion Gate | scratch/plan/README.md | Added explicit "Phase 2 Prerequisites" checklist with 11 verification criteria before old code deletion |
 | 12-22 | src/client.c Fate Contradiction | scratch/plan/01-architecture/overview.md | Clarified: src/client.c (main entry) STAYS, src/openai/client.c (HTTP client) DELETED. Fixed 3 locations. |
 | 12-22 | Missing Cancel In-Flight Request | scratch/plan/01-architecture/provider-interface.md | Added cancel() method to vtable + "Request Cancellation" section with 6-step flow, memory cleanup, async-signal-safe requirements |
+| 12-22 | /model Switch During Active Request | scratch/plan/04-application/commands.md | Specified: reject switch with error message, check curl_still_running, user can wait or Ctrl+C |

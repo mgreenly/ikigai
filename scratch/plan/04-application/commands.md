@@ -105,6 +105,25 @@ Tab completion should provide the following model suggestions:
 - gemini-2.5-pro/high
 - gemini-2.5-flash
 
+### Model Switch During Active Request
+
+When `/model` is invoked while a streaming response is in progress:
+
+1. **Reject the switch** - Display error: "Cannot switch model while response is streaming. Wait for completion or press Ctrl+C to cancel."
+
+2. **Rationale:** Allowing mid-stream switching would create confusing UX:
+   - Partial response from old model visible in scrollback
+   - Unclear which model generated which content
+   - Potential for response corruption if callbacks interleave
+
+3. **Detection:** Check `agent->curl_still_running > 0` before processing /model command
+
+4. **User options:**
+   - Wait for current response to complete, then switch
+   - Press Ctrl+C to cancel current request, then switch
+
+**Note:** This applies only to the current agent. Other agents in the tree can have model switches applied independently.
+
 ## /fork Command
 
 ### Syntax
