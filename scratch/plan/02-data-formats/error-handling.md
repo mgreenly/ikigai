@@ -20,6 +20,8 @@ Provider adapters map provider-specific HTTP errors to ikigai's unified error ca
 
 ## Error Structure Fields
 
+**Naming:** Uses `ik_provider_error_t` (not `ik_error_t`) to avoid collision with existing `err_t` in src/error.h. The existing `err_t` is for general result types; `ik_provider_error_t` is specifically for provider API errors with HTTP status, retry info, etc.
+
 | Field | Type | Description |
 |-------|------|-------------|
 | `category` | enum | Error category (see above) |

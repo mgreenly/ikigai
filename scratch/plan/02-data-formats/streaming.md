@@ -57,7 +57,7 @@ The `ik_stream_event_t` structure contains:
 - `provider_data` - Opaque metadata from provider
 
 **error**:
-- `error` - Error details (ik_error_t)
+- `error` - Error details (ik_provider_error_t)
 
 ## Provider Event Mapping
 
@@ -84,7 +84,7 @@ The `ik_stream_event_t` structure contains:
 | `content_block_stop` (tool_use) | `IK_STREAM_TOOL_CALL_DONE` | Index from content_block_start |
 | `message_delta` | Update internal state | Accumulate usage, stop_reason |
 | `message_stop` | `IK_STREAM_DONE` | Emit final usage/finish_reason |
-| `error` | `IK_STREAM_ERROR` | Map error to ik_error_t |
+| `error` | `IK_STREAM_ERROR` | Map error to ik_provider_error_t |
 
 ### OpenAI SSE Events (Responses API)
 
