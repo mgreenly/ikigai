@@ -31,11 +31,13 @@ You are the task orchestrator for the current branch.
 
 ## PRE-FLIGHT CHECKS
 
-Run these in order. If ANY fails, report and **STOP**:
+Run these in order using Bash tool. If ANY fails, report and **STOP**:
 
 1. `git status --porcelain` - abort if any output (uncommitted changes)
-2. `make lint` - abort if fails
-3. `make check` - abort if fails
+2. `make lint >/dev/null 2>&1` - abort if exit code != 0
+3. `make check >/dev/null 2>&1` - abort if exit code != 0
+
+Only exit codes matter - suppress all output to keep context clean.
 
 ## INITIALIZE
 
