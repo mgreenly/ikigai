@@ -36,6 +36,83 @@
 
 Update REPL streaming callbacks to handle normalized `ik_stream_event_t` types instead of OpenAI-specific events. Callbacks are invoked during `perform()` calls in the REPL event loop. UI updates (scrollback, spinner, etc.) happen incrementally as data arrives through these callbacks. This includes accumulating content deltas, handling thinking content, and persisting messages with provider metadata.
 
+## Callback Signature Migration
+
+This task migrates REPL callbacks from OpenAI-specific signatures to the new provider abstraction.
+
+### OLD Signatures (OpenAI-specific)
+
+**Streaming callback:**
+```c
+// From src/openai/client.h
+typedef res_t (*ik_openai_stream_cb_t)(const char *chunk, void *ctx);
+
+// Current REPL implementation (src/repl_callbacks.h):
+res_t ik_repl_streaming_callback(const char *chunk, void *ctx);
+```
+
+**Completion callback:**
+```c
+// From src/openai/client_multi.h
+typedef res_t (*ik_http_completion_cb_t)(const ik_http_completion_t *completion, void *ctx);
+
+// Current REPL implementation (src/repl_callbacks.h):
+res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, void *ctx);
+```
+
+### NEW Signatures (Provider abstraction)
+
+**Streaming callback:**
+```c
+// From scratch/plan/provider-interface.md
+typedef res_t (*ik_stream_cb_t)(const ik_stream_event_t *event, void *ctx);
+
+// Updated REPL implementation (to be implemented):
+res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx);
+```
+
+**Completion callback:**
+```c
+// From scratch/plan/provider-interface.md
+typedef res_t (*ik_provider_completion_cb_t)(const ik_provider_completion_t *completion, void *ctx);
+
+// Updated REPL implementation (to be implemented):
+res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, void *ctx);
+```
+
+### Key Differences
+
+**Streaming:**
+- **OLD:** Received raw text chunks as `const char *` - simple string fragments
+- **NEW:** Receives structured events as `const ik_stream_event_t *` - discriminated union with event type and typed data fields
+- **Migration:** Must handle multiple event types (TEXT_DELTA, THINKING_DELTA, TOOL_CALL_START, etc.) instead of just text chunks
+
+**Completion:**
+- **OLD:** Received OpenAI-specific HTTP completion info (`ik_http_completion_t`) with OpenAI-specific fields (model, finish_reason, completion_tokens, tool_call)
+- **NEW:** Receives provider-agnostic completion info (`ik_provider_completion_t`) with normalized usage data, provider metadata, and standardized error categories
+- **Migration:** Extract usage/metadata from new structure instead of HTTP-specific fields
+
+### Migration Notes
+
+**REPL code changes:**
+1. Update `src/repl_callbacks.h` to declare new callback signatures
+2. Update `src/repl_callbacks.c` to implement event-based streaming logic (switch on event type)
+3. Update `src/repl_event_handlers.c` to handle provider completion structure
+4. Update REPL initialization to pass new callback types to provider vtable methods
+
+**OpenAI shim behavior:**
+- The OpenAI shim (`src/providers/openai/openai_shim.c`) will implement the provider vtable
+- **Internally**, the shim will continue using OLD callbacks (`ik_openai_stream_cb_t`, `ik_http_completion_cb_t`) to communicate with `src/openai/client_multi.c`
+- The shim will **translate** between old and new signatures:
+  - Receives `const char *chunk` from OpenAI client → Wraps in `ik_stream_event_t` with type `IK_STREAM_TEXT_DELTA` → Calls provider callback
+  - Receives `ik_http_completion_t` from OpenAI client → Translates to `ik_provider_completion_t` → Calls provider completion callback
+- This allows the existing OpenAI HTTP client to remain unchanged while providing the new provider interface
+
+**All new provider code uses new callbacks:**
+- Anthropic provider: Directly emits `ik_stream_event_t` events from SSE parser
+- Google provider: Directly emits `ik_stream_event_t` events from SSE parser
+- Any future providers: Must implement provider vtable with new callback signatures
+
 ## Interface
 
 Functions to update:

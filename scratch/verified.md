@@ -71,3 +71,8 @@ Fixed gaps - do not re-investigate.
 **Location:** `scratch/tasks/provider-types.md`, `scratch/tasks/anthropic-streaming.md`, `scratch/tasks/google-streaming.md`, `scratch/tasks/openai-streaming-chat.md`
 **Problem:** Different providers used different indexing (current_block_index, part_index, tool_call_index). REPL consuming events didn't know what index field means.
 **Fix:** Added "Event Index Semantics" section to provider-types.md with canonical rules: text=0, tool calls sequential, thinking=0/text=1. Providers MUST normalize to this format. Includes example table.
+
+### 2024-12-22: REPL Callback Signature Migration Undocumented
+**Location:** `scratch/tasks/repl-streaming-updates.md`
+**Problem:** Current REPL uses old callbacks (const char *chunk, ik_http_completion_t) but new provider abstraction uses different signatures (ik_stream_event_t, ik_provider_completion_t). Migration path was unclear.
+**Fix:** Added "Callback Signature Migration" section with: OLD vs NEW signature comparison, key differences explained, migration notes for REPL code, OpenAI shim translation behavior.
