@@ -204,6 +204,32 @@ When the user cancels (Ctrl+C) or an agent is terminated:
 
 **Thread safety:** cancel() may be called from signal handler context. Implementation must be async-signal-safe (no malloc, no mutex).
 
+## Provider Structures
+
+### Provider Instance
+
+```c
+// Provider instance - holds vtable and implementation context
+typedef struct ik_provider {
+    const char *name;                    // "anthropic", "openai", "google"
+    const ik_provider_vtable_t *vt;      // Vtable with async methods
+    void *ctx;                           // Provider-specific context (ik_anthropic_ctx_t, etc.)
+} ik_provider_t;
+```
+
+### Completion Result
+
+```c
+// Completion result from provider request
+typedef struct ik_provider_completion {
+    bool success;                        // true if request completed successfully
+    ik_provider_error_t *error;          // Non-NULL if success==false
+    ik_usage_t usage;                    // Token counts (input, output, thinking)
+    const char *model;                   // Actual model used (may differ from requested)
+    ik_finish_reason_t finish_reason;    // Why generation stopped
+} ik_provider_completion_t;
+```
+
 ## Provider Context
 
 ### Purpose

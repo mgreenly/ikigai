@@ -28,13 +28,24 @@ typedef enum {
 The `ik_stream_event_t` structure contains:
 
 ```c
-typedef struct {
-    ik_stream_event_type_t type;
-    // ... other fields
+typedef struct ik_stream_event {
+    ik_stream_event_type_t type;         // Event type (IK_STREAM_TEXT_DELTA, etc.)
+    int32_t index;                       // Content block index
+    union {
+        const char *text;                // For TEXT_DELTA, THINKING_DELTA
+        struct {
+            const char *id;              // Tool call ID
+            const char *name;            // Tool name (only on START)
+            const char *arguments;       // Partial JSON arguments
+        } tool_call;
+        ik_provider_error_t *error;      // For ERROR event
+        ik_provider_completion_t *completion; // For DONE event
+    } data;
 } ik_stream_event_t;
 ```
 
 - **type**: The event type (from the enum above)
+- **index**: The content block index within the current response
 - **data**: A union containing event-specific data based on type:
 
 ### Event Data Fields by Type
