@@ -63,3 +63,11 @@ Gaps identified during task review that have been fixed.
 - Provider parses response_body, maps errors
 - Provider builds `ik_provider_completion_t`
 - Provider invokes user callback with `ik_provider_completion_t`
+
+### Finish reason enum name inconsistency
+
+**Files:** `scratch/plan/05-testing/contract-anthropic.md`
+
+**Issue:** contract-anthropic.md used `IK_FINISH_TOOL_CALLS` but the canonical enum in request-response.md defines `IK_FINISH_TOOL_USE`.
+
+**Fix:** Changed `IK_FINISH_TOOL_CALLS` to `IK_FINISH_TOOL_USE` on line 160.

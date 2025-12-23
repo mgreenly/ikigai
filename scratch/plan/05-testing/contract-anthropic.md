@@ -157,7 +157,7 @@ Cassette naming convention: `test_contract_{scenario}.jsonl`
 **Stop Reasons:**
 - `end_turn` → IK_FINISH_STOP
 - `max_tokens` → IK_FINISH_LENGTH
-- `tool_use` → IK_FINISH_TOOL_CALLS
+- `tool_use` → IK_FINISH_TOOL_USE
 - `stop_sequence` → IK_FINISH_STOP
 
 **Cache Tokens:**
