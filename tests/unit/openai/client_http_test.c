@@ -53,8 +53,9 @@ END_TEST
  */
 START_TEST(test_chat_create_missing_api_key)
 {
-    /* Unset API key for this test */
+    /* Unset API key and point to non-existent credentials file */
     unsetenv("OPENAI_API_KEY");
+    setenv("HOME", "/tmp/nonexistent_home_for_test", 1);
 
     /* Create configuration without API key */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
@@ -82,7 +83,8 @@ END_TEST
  */
 START_TEST(test_chat_create_empty_api_key)
 {
-    /* Override with empty API key */
+    /* Point to non-existent credentials file and set empty API key */
+    setenv("HOME", "/tmp/nonexistent_home_for_test", 1);
     setenv("OPENAI_API_KEY", "", 1);
 
     /* Create configuration with empty API key */

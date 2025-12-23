@@ -65,6 +65,7 @@ static void setup(void)
     /* Create config */
     shared->cfg = talloc_zero(ctx, ik_cfg_t);
     shared->cfg->max_tool_turns = 5;
+    shared->cfg->openai_model = talloc_strdup(shared->cfg, "gpt-4o-mini");
 
     /* Create minimal terminal context for rendering */
     repl->shared->term = talloc_zero(repl, ik_term_ctx_t);

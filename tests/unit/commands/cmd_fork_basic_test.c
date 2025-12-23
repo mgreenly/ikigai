@@ -45,6 +45,7 @@ static void setup_repl(void)
 
     ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
+    cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
 
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);

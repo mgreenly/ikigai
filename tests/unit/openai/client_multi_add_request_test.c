@@ -32,8 +32,9 @@ END_TEST START_TEST(test_multi_add_request_no_api_key)
     ck_assert(!multi_res.is_err);
     ik_openai_multi_t *multi = multi_res.ok;
 
-    /* Unset API key for this test */
+    /* Unset API key and point to non-existent credentials file */
     unsetenv("OPENAI_API_KEY");
+    setenv("HOME", "/tmp/nonexistent_home_for_test", 1);
 
     /* Create conversation with one message */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
@@ -56,7 +57,8 @@ END_TEST START_TEST(test_multi_add_request_no_api_key)
 
 END_TEST START_TEST(test_multi_add_request_empty_api_key)
 {
-    /* Set empty API key for this test */
+    /* Point to non-existent credentials file and set empty API key */
+    setenv("HOME", "/tmp/nonexistent_home_for_test", 1);
     setenv("OPENAI_API_KEY", "", 1);
 
     res_t multi_res = ik_openai_multi_create(ctx);
