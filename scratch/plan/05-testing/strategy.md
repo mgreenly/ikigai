@@ -107,9 +107,8 @@ START_TEST(test_non_streaming_request)
 {
     captured_response = NULL;
 
-    // Setup: Load fixture data
-    const char *response_json = load_fixture("anthropic/response_basic.json");
-    mock_set_response(200, response_json);
+    // Setup: Load JSONL fixture and initialize VCR
+    vcr_init(__func__, "anthropic");  // Loads test_non_streaming_request.jsonl
 
     // Create provider
     res_t r = ik_anthropic_create(ctx, "test-key", &provider);
@@ -141,9 +140,8 @@ For streaming tests, mock implementations maintain an array of SSE event strings
 
 **Mock streaming flow:**
 ```c
-// Setup: Load SSE fixture
-const char *sse_data = load_fixture("anthropic/stream_basic.txt");
-mock_set_streaming_response(200, sse_data);
+// Setup: Load JSONL fixture with SSE chunks
+vcr_init(__func__, "anthropic");  // Loads JSONL with _chunk lines
 
 // Start async stream (returns immediately)
 r = provider->vt->start_stream(provider->ctx, req, stream_cb, &events, ...);
@@ -165,7 +163,18 @@ assert(events.items[events.count-1].type == IK_STREAM_DONE);
 
 ### Fixture Loading
 
-A utility function loads fixture files from the tests/fixtures/ directory using talloc for memory management. It constructs the full path, reads the file content, null-terminates the data, and returns it for use in mock responses.
+A utility function loads JSONL fixture files from the tests/fixtures/vcr/ directory using talloc for memory management. The loader:
+- Constructs the full path to the `.jsonl` file
+- Reads file line-by-line (one JSON object per line)
+- Parses each line to extract `_request`, `_response`, `_body`, or `_chunk` objects
+- Returns structured data for use in VCR playback mode
+
+**Example usage:**
+```c
+// Load fixture for VCR playback
+const char *fixture_path = "tests/fixtures/vcr/anthropic/test_anthropic_basic.jsonl";
+vcr_cassette_t *cassette = vcr_load_cassette(ctx, fixture_path);
+```
 
 ## Live Validation Tests
 
@@ -196,53 +205,48 @@ Command examples:
 
 ## Test Fixtures
 
-### JSON Response Fixtures
+All fixtures use JSONL format (JSON Lines, newline-delimited JSON). Each line is a complete JSON object representing one part of an HTTP exchange.
 
-```json
-// tests/fixtures/anthropic/response_basic.json
-{
-  "id": "msg_123",
-  "type": "message",
-  "role": "assistant",
-  "model": "claude-sonnet-4-5-20250929",
-  "content": [
-    {
-      "type": "text",
-      "text": "Hello! How can I assist you today?"
-    }
-  ],
-  "stop_reason": "end_turn",
-  "usage": {
-    "input_tokens": 50,
-    "output_tokens": 15
-  }
-}
+### JSONL Format Benefits
+
+- **Streamable:** Can be processed line-by-line without loading entire file
+- **Appendable:** New exchanges can be added to multi-turn tests
+- **Easier diffs:** Line-based format shows clear before/after in version control
+- **File extension:** `.jsonl` (not `.json`)
+
+### Line Types
+
+| Line Type | Purpose |
+|-----------|---------|
+| `_request` | HTTP request (method, url, headers, body) |
+| `_response` | HTTP response metadata (status, headers) |
+| `_body` | Complete response body (non-streaming) |
+| `_chunk` | Raw chunk as delivered to write callback (streaming) |
+
+### Non-Streaming JSONL Fixture
+
+```jsonl
+// tests/fixtures/vcr/anthropic/test_anthropic_basic.jsonl
+{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-5-20250929\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"}}
+{"_response": {"status": 200, "headers": {"content-type": "application/json"}}}
+{"_body": "{\"id\":\"msg_123\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-sonnet-4-5-20250929\",\"content\":[{\"type\":\"text\",\"text\":\"Hello! How can I assist you today?\"}],\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":50,\"output_tokens\":15}}"}
 ```
 
-### SSE Stream Fixtures
+### Streaming JSONL Fixture
 
-```
-// tests/fixtures/anthropic/stream_basic.txt
-event: message_start
-data: {"type":"message_start","message":{"id":"msg_123","model":"claude-sonnet-4-5-20250929"}}
+For streaming responses, each `_chunk` line contains exactly what curl's write callback received (one callback invocation = one `_chunk` line).
 
-event: content_block_start
-data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
-
-event: content_block_delta
-data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}
-
-event: content_block_delta
-data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}}
-
-event: content_block_stop
-data: {"type":"content_block_stop","index":0}
-
-event: message_delta
-data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":2}}
-
-event: message_stop
-data: {"type":"message_stop"}
+```jsonl
+// tests/fixtures/vcr/anthropic/test_anthropic_streaming_basic.jsonl
+{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-5-20250929\",\"stream\":true,\"messages\":[...]}"}}
+{"_response": {"status": 200, "headers": {"content-type": "text/event-stream"}}}
+{"_chunk": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_123\",\"model\":\"claude-sonnet-4-5-20250929\"}}\n\n"}
+{"_chunk": "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n"}
+{"_chunk": "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}\n\n"}
+{"_chunk": "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"!\"}}\n\n"}
+{"_chunk": "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n"}
+{"_chunk": "event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\n"}
+{"_chunk": "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"}
 ```
 
 ## Error Testing
