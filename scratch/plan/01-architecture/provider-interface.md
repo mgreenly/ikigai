@@ -268,7 +268,7 @@ Providers supported:
  *
  * This function implements lazy provider initialization:
  * - If agent->provider is already set, returns it immediately
- * - Otherwise, loads credentials and creates provider based on agent->provider_name
+ * - Otherwise, loads credentials and creates provider based on agent->provider
  * - Caches the created provider in agent->provider for reuse
  * - Returns NULL without error if agent has no model configured
  *

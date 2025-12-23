@@ -26,3 +26,4 @@
 | VCR OpenAI example | `plan/05-testing/vcr-cassettes.md` | Chat Completions → Responses API format |
 | Cache tokens clarity | `plan/02-data-formats/request-response.md` | Clarified cached_tokens = cache_creation + cache_read |
 | Network errors retryable | `plan/02-data-formats/error-handling.md` | IK_ERR_CAT_NETWORK moved to retryable category |
+| provider_name cleanup | `plan/04-application/commands.md`, `plan/01-architecture/provider-interface.md` | 3 remaining `provider_name` → `provider` |

@@ -221,7 +221,7 @@ Child agent record requires the following fields:
 
 Each agent has its **own** provider instance - they are never shared:
 
-1. **Inheritance:** Forked agent copies parent's `provider_name`, `model`, and `thinking_level` fields
+1. **Inheritance:** Forked agent copies parent's `provider`, `model`, and `thinking_level` fields
 2. **No instance sharing:** Parent's `provider` pointer is NOT copied - child starts with `provider = NULL`
 3. **Lazy creation:** Child's provider instance created on first LLM request via `ik_provider_get_or_create()`
 4. **Independent state:** Each agent maintains independent HTTP connection state, rate limit tracking, etc.
@@ -239,7 +239,7 @@ parent_agent
 
 child_agent
 ├── provider = NULL            ← created lazily on first request
-├── provider_name = "anthropic" (copied from parent)
+├── provider = "anthropic" (copied from parent)
 ├── model = "claude-sonnet-4-5" (copied from parent)
 └── ...
 ```
