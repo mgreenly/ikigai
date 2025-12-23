@@ -74,9 +74,9 @@ ck_assert_ptr_nonnull(cfg->openai_api_key);
 
 **JSON fixtures:**
 ```c
-"{\"openai_api_key\": \"test-key\", \"openai_model\": \"gpt-4\", ...}"
+"{\"openai_api_key\": \"test-key\", \"openai_model\": \"gpt-5\", ...}"
 // Remove the openai_api_key field entirely
-"{\"openai_model\": \"gpt-4\", ...}"
+"{\"openai_model\": \"gpt-5\", ...}"
 ```
 
 ## Test Scenarios

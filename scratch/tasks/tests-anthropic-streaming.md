@@ -80,7 +80,7 @@ START_TEST(test_basic_streaming)
     mock_curl_multi_set_streaming_response(200, sse_data);
 
     // Create provider
-    res_t r = ik_anthropic_create(ctx, "test-key", &provider);
+    res_t r = ik_provider_get_or_create(ctx, "anthropic", &provider);
     ck_assert(is_ok(&r));
 
     // Start async stream (returns immediately)

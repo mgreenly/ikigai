@@ -407,7 +407,7 @@ START_TEST(test_non_streaming_request)
     mock_set_response(200, response_json);
 
     // Create provider
-    res_t r = ik_google_create(ctx, "test-key", &provider);
+    res_t r = ik_provider_get_or_create(ctx, "google", &provider);
     ck_assert(is_ok(&r));
 
     // Start request with callback (returns immediately)

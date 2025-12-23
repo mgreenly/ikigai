@@ -82,7 +82,7 @@ Create integration tests for provider switching and fork inheritance using the a
    - Drive event loop with fdset/select/perform cycle
    - Verify stream_cb receives IK_STREAM_TEXT_DELTA events
    - Verify completion_cb receives final response via info_read()
-   - Switch to OpenAI gpt-4o via /model command
+   - Switch to OpenAI gpt-5 via /model command
    - Repeat async streaming cycle
    - Verify both messages in history with correct formatting
 
@@ -122,7 +122,7 @@ Create integration tests for provider switching and fork inheritance using the a
 2. **OpenAI reasoning to Google thinking (async)**
    - Start with OpenAI o1, set thinking to "high"
    - Mock returns IK_STREAM_THINKING_DELTA events during perform()
-   - Switch to Google gemini-2.5
+   - Switch to Google gemini-2.5-flash-lite
    - Start async stream
    - Verify thinkingBudget in serialized request
 
@@ -151,24 +151,24 @@ Create integration tests for provider switching and fork inheritance using the a
 
 2. **Fork with model override (different provider async)**
    - Parent: claude-sonnet-4-5/medium
-   - /fork --model gpt-4o
+   - /fork --model gpt-5
    - Start async stream on child
    - Verify child's fdset() returns OpenAI provider FDs (not Anthropic)
-   - Verify child uses gpt-4o (implicit provider switch)
+   - Verify child uses gpt-5 (implicit provider switch)
 
 3. **Fork with thinking override (async)**
-   - Parent: gpt-4o/low
+   - Parent: gpt-5/low
    - /fork --thinking high
    - Start async stream on child
    - Verify reasoning_effort: "high" in serialized request
-   - Verify child uses gpt-4o/high
+   - Verify child uses gpt-5/high
 
 4. **Fork with full override (cross-provider async)**
    - Parent: claude-sonnet-4-5/medium
-   - /fork --model gemini-2.5-flash/high
+   - /fork --model gemini-2.5-flash-lite/high
    - Start async stream on child
    - Verify child's provider is Google (via fdset/perform cycle)
-   - Verify child uses gemini-2.5-flash/high
+   - Verify child uses gemini-2.5-flash-lite/high
 
 5. **Database records fork hierarchy after async completion**
    - Create parent and start async request, complete via event loop

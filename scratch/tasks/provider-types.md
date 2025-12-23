@@ -89,7 +89,7 @@ Create `src/providers/provider.h` with vtable definition and core types that all
 | `ik_content_type_t` | IK_CONTENT_TEXT, IK_CONTENT_TOOL_CALL, IK_CONTENT_TOOL_RESULT, IK_CONTENT_THINKING | Content block types |
 | `ik_role_t` | IK_ROLE_USER, IK_ROLE_ASSISTANT, IK_ROLE_TOOL | Message roles |
 | `ik_tool_choice_t` | IK_TOOL_AUTO, IK_TOOL_NONE, IK_TOOL_REQUIRED, IK_TOOL_SPECIFIC | Tool invocation control modes |
-| `ik_error_category_t` | IK_ERR_CAT_AUTH, IK_ERR_CAT_RATE_LIMIT, IK_ERR_CAT_INVALID_ARG, IK_ERR_CAT_NOT_FOUND, IK_ERR_CAT_SERVER, IK_ERR_CAT_TIMEOUT, IK_ERR_CAT_CONTENT_FILTER, IK_ERR_CAT_NETWORK, IK_ERR_CAT_UNKNOWN | Provider error categories for retry logic |
+| `ik_error_category_t` | IK_ERR_AUTH, IK_ERR_RATE_LIMIT, IK_ERR_INVALID_ARG, IK_ERR_NOT_FOUND, IK_ERR_SERVER, IK_ERR_TIMEOUT, IK_ERR_CONTENT_FILTER, IK_ERR_NETWORK, IK_ERR_UNKNOWN | Provider error categories for retry logic |
 | `ik_stream_event_type_t` | IK_STREAM_START, IK_STREAM_TEXT_DELTA, IK_STREAM_THINKING_DELTA, IK_STREAM_TOOL_CALL_START, IK_STREAM_TOOL_CALL_DELTA, IK_STREAM_TOOL_CALL_DONE, IK_STREAM_DONE, IK_STREAM_ERROR | Stream event types |
 
 ### Thinking Configuration Validation

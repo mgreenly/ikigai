@@ -75,7 +75,7 @@ Structs to define:
 - For LOW level: return min_budget + range/3
 - For MED level: return min_budget + 2*range/3
 - For HIGH level: return max_budget
-- Use model prefix matching: "claude-sonnet-4-5" → 64000 max, "claude-haiku-4-5" → 32000 max
+- Use model prefix matching: "claude-sonnet-4.5" → 64000 max, "claude-haiku-4.5" → 32000 max
 - Default to 32000 max for unknown models
 - Return -1 if model doesn't support thinking
 
@@ -147,17 +147,17 @@ Create the following files:
 ## Test Scenarios
 
 ### Thinking Budget Tests
-- Sonnet 4.5 with NONE level returns 1024
-- Sonnet 4.5 with LOW level returns 22016 (1024 + 62976/3)
-- Sonnet 4.5 with MED level returns 43008 (1024 + 2*62976/3)
-- Sonnet 4.5 with HIGH level returns 64000
-- Haiku 4.5 with HIGH level returns 32000
+- claude-sonnet-4.5 with NONE level returns 1024
+- claude-sonnet-4.5 with LOW level returns 22016 (1024 + 62976/3)
+- claude-sonnet-4.5 with MED level returns 43008 (1024 + 2*62976/3)
+- claude-sonnet-4.5 with HIGH level returns 64000
+- claude-haiku-4.5 with HIGH level returns 32000
 - Unknown model with HIGH level returns 32000 (default)
 - Non-Claude model returns -1
 
 ### Support Tests
-- `ik_anthropic_supports_thinking("claude-sonnet-4-5")` returns true
-- `ik_anthropic_supports_thinking("claude-opus-4-5-20251101")` returns true
+- `ik_anthropic_supports_thinking("claude-sonnet-4.5")` returns true
+- `ik_anthropic_supports_thinking("claude-opus-4.5")` returns true
 - `ik_anthropic_supports_thinking("gpt-4o")` returns false
 - `ik_anthropic_supports_thinking(NULL)` returns false
 
@@ -174,8 +174,8 @@ Create the following files:
 - Unknown provider name returns ERR(INVALID_ARG)
 
 ### Thinking Validation Tests
-- claude-sonnet-4-5 with NONE → OK
-- claude-sonnet-4-5 with LOW/MED/HIGH → OK (supports thinking)
+- claude-sonnet-4.5 with NONE → OK
+- claude-sonnet-4.5 with LOW/MED/HIGH → OK (supports thinking)
 - claude-3-opus with NONE → OK
 - claude-3-opus with LOW → ERR (older model doesn't support thinking)
 - gpt-4o with NONE → OK (non-Claude, but NONE is always valid)

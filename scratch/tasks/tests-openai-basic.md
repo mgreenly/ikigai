@@ -134,7 +134,7 @@ END_TEST
 **Request Serialization Tests (7 tests):**
 - Build request with system and user messages
 - Build request for o1 model with reasoning_effort
-- Build request for gpt-4 model without reasoning_effort
+- Build request for gpt-5 model without reasoning_effort
 - Build request with tool definitions
 - Build request without optional fields
 - Verify correct headers (API key, content-type)

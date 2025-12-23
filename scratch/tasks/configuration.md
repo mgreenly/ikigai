@@ -86,8 +86,8 @@ Files to update:
 
 Per-provider defaults (model, thinking level) are hardcoded in provider implementations:
 - anthropic: model="claude-sonnet-4-5", thinking="med"
-- openai: model="gpt-4o", thinking="none"
-- google: model="gemini-2.5-flash", thinking="med"
+- openai: model="gpt-5-mini", thinking="none"
+- google: model="gemini-3.0-flash", thinking="med"
 
 These defaults are NOT stored in config files. Config only specifies which provider to use by default.
 

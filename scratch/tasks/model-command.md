@@ -107,40 +107,40 @@ Data structures to create:
 
 **Parsing:**
 - `/model claude-sonnet-4-5/med` -> model="claude-sonnet-4-5", thinking="med"
-- `/model gpt-4o` -> model="gpt-4o", thinking=current
-- `/model gemini-2.5/high` -> model="gemini-2.5", thinking="high"
+- `/model gpt-5` -> model="gpt-5", thinking=current
+- `/model gemini-3.0-flash/high` -> model="gemini-3.0-flash", thinking="high"
 - `/model invalid/` -> ERR_INVALID_ARG
 
 **Provider Inference:**
 - "claude-sonnet-4-5" -> "anthropic"
-- "gpt-4o" -> "openai"
-- "o1-preview" -> "openai"
-- "gemini-2.5-flash" -> "google"
+- "gpt-5" -> "openai"
+- "gpt-5-mini" -> "openai"
+- "gemini-3.0-flash" -> "google"
 - "unknown-model" -> ERR_NOT_FOUND
 
 **Capability Lookup:**
-- "claude-sonnet-4" -> supports_thinking=true, budget=128000
-- "gpt-4o" -> supports_thinking=false, budget=0
-- "o1" -> supports_thinking=true, budget=0 (no budget control)
-- "gemini-2.5" -> supports_thinking=true, budget=24576
-- "gemini-1.5" -> supports_thinking=false, budget=0
+- "claude-sonnet-4-5" -> supports_thinking=true, budget=64000
+- "gpt-5" -> supports_thinking=true, budget=0 (effort-based)
+- "gpt-5-mini" -> supports_thinking=true, budget=0 (effort-based)
+- "gemini-3.0-flash" -> supports_thinking=true, budget=0 (level-based)
+- "gemini-2.5-flash-lite" -> supports_thinking=true, budget=24576
 
 **Active Request Rejection:**
 - Agent has active LLM request streaming
-- Execute: `/model gpt-4o`
+- Execute: `/model gpt-5`
 - Command rejected with error
 - Message displayed: "Cannot switch models during active request"
 - Agent state unchanged
 
 **Agent State:**
-- Before: provider="anthropic", model="claude-3-5-sonnet", thinking="none"
-- Execute: `/model gpt-4o/high`
-- After: provider="openai", model="gpt-4o", thinking="high"
+- Before: provider="anthropic", model="claude-sonnet-4-5", thinking="none"
+- Execute: `/model gpt-5/high`
+- After: provider="openai", model="gpt-5", thinking="high"
 - Database updated correctly
 
 **Provider Invalidation:**
 - Agent has cached Anthropic provider instance
-- Execute: `/model gpt-4o`
+- Execute: `/model gpt-5`
 - Cached provider instance freed (invalidated)
 - provider_instance set to NULL
 - Next `ik_agent_get_provider()` creates new OpenAI provider
@@ -151,23 +151,23 @@ Data structures to create:
   Switched to Anthropic claude-sonnet-4-5
     Thinking: medium (43,008 tokens)
   ```
-- `/model gpt-4o/none` displays:
+- `/model gpt-5/none` displays:
   ```
-  Switched to OpenAI gpt-4o
+  Switched to OpenAI gpt-5
     Thinking: disabled
   ```
-- `/model gpt-4o/high` displays:
+- `/model gpt-5-mini/high` displays:
   ```
-  Switched to OpenAI gpt-4o
-    Thinking: high
-    Warning: gpt-4o does not support thinking
+  Switched to OpenAI gpt-5-mini
+    Thinking: high effort
   ```
 
 **Completion:**
 - Tab completion after `/model ` shows:
   ```
-  claude-sonnet-4-5    gpt-4o    gemini-2.5-flash
-  claude-opus-4        o1        gemini-2.0-flash
+  claude-sonnet-4-5    gpt-5           gemini-3.0-flash
+  claude-haiku-4-5     gpt-5-mini      gemini-3.0-pro
+  claude-opus-4-5      gpt-5-nano      gemini-2.5-flash-lite
   ```
 - Tab completion after `/model claude-sonnet-4-5/` shows:
   ```

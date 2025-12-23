@@ -157,7 +157,7 @@ Error tests verify that errors are delivered via completion callback, NOT as ret
 Session restoration tests database operations (synchronous) followed by async provider interactions. After restoration, subsequent message sends use the async vtable pattern.
 
 1. **Restore provider setting**
-   - Create session with openai/gpt-4o
+   - Create session with openai/gpt-5
    - Save to database
    - Simulate restart (new REPL context)
    - Load from database

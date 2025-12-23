@@ -85,36 +85,31 @@ Functions to implement:
 
 **Override with model only:**
 - Parent: provider="anthropic", model="claude-sonnet-4-5", thinking="medium"
-- Execute: `/fork --model gpt-4o`
-- Child: provider="openai", model="gpt-4o", thinking="medium" (inherits thinking)
+- Execute: `/fork --model gpt-5`
+- Child: provider="openai", model="gpt-5", thinking="medium" (inherits thinking)
 - Database has child record with new provider/model
 
 **Override with model and thinking:**
 - Parent: provider="anthropic", model="claude-sonnet-4-5", thinking="medium"
-- Execute: `/fork --model o3-mini/high`
-- Child: provider="openai", model="o3-mini", thinking="high"
+- Execute: `/fork --model gpt-5-mini/high`
+- Child: provider="openai", model="gpt-5-mini", thinking="high"
 - Database has child record with new values
 
 **Override with prompt:**
 - Parent: provider="anthropic", model="claude-sonnet-4-5", thinking="none"
-- Execute: `/fork --model gemini-2.5/med "Analyze this data"`
-- Child: provider="google", model="gemini-2.5", thinking="medium", has prompt task
+- Execute: `/fork --model gemini-3.0-flash/med "Analyze this data"`
+- Child: provider="google", model="gemini-3.0-flash", thinking="medium", has prompt task
 - Database has child with prompt and config
 
 **Argument ordering:**
-- `/fork --model gpt-4o "prompt"` works
-- `/fork "prompt" --model gpt-4o` works
+- `/fork --model gpt-5 "prompt"` works
+- `/fork "prompt" --model gpt-5` works
 - Both produce same result
 
 **Invalid model:**
 - Execute: `/fork --model unknown-model/high`
 - Returns: ERR_NOT_FOUND (unknown provider)
 - Child not created
-
-**Warning for non-thinking model:**
-- Execute: `/fork --model gpt-4o/high`
-- Child created with: provider="openai", model="gpt-4o", thinking="high"
-- Warning displayed: "gpt-4o does not support extended thinking"
 
 ## Postconditions
 
