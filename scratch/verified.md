@@ -41,3 +41,4 @@ Fixed gaps - do not re-investigate.
 | 12-22 | Incomplete Struct Definitions | scratch/plan/01-architecture/provider-interface.md, streaming.md | Added formal C typedefs for ik_provider_t, ik_provider_completion_t, ik_stream_event_t |
 | 12-22 | Missing Function Signatures | scratch/plan/01-architecture/*.md, error-handling.md | Added signatures: ik_provider_get_or_create, ik_sse_parse_chunk, ik_error_category_name, ik_error_is_retryable, ik_error_user_message |
 | 12-22 | Provider Context Lifecycle (5.1) | commands.md, provider-interface.md | Added "Provider Lifecycle on Model Switch" section: agent owns provider via talloc, explicit free before replacement, lazy recreation |
+| 12-22 | yyjson Document Lifetime (5.2) | request-response.md | Added "yyjson Document Lifetime" section: talloc ownership, pointer validity rules, automatic cleanup, example code |

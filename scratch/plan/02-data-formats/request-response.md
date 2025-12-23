@@ -407,3 +407,30 @@ Convenience builders for common operations provide a friendlier API for construc
 5. Add tools with ik_request_add_tool()
 
 See [03-provider-types.md](../03-provider-types.md) for adapter-specific serialization details.
+
+## yyjson Document Lifetime
+
+yyjson documents and the `yyjson_val` pointers they contain follow these ownership rules:
+
+1. **Talloc ownership:** yyjson documents (`yyjson_doc`, `yyjson_mut_doc`) must be allocated as talloc children of the struct that contains references to their values
+2. **Pointer validity:** `yyjson_val` and `yyjson_mut_val` pointers are only valid while the parent document exists
+3. **Automatic cleanup:** When the containing struct is freed via talloc, the yyjson document is freed automatically via talloc destructor
+4. **No manual free:** Never call `yyjson_doc_free()` or `yyjson_mut_doc_free()` directly - use talloc hierarchy
+
+**Example:**
+```c
+typedef struct ik_response {
+    yyjson_doc *doc;        // Talloc child of this struct
+    yyjson_val *content;    // Points into doc - valid while struct exists
+} ik_response_t;
+
+// Creation: doc is child of response
+ik_response_t *resp = talloc_zero(ctx, ik_response_t);
+resp->doc = yyjson_read_opts(...);  // Uses talloc allocator
+talloc_steal(resp, resp->doc);       // Ensure doc is child of resp
+
+// Cleanup: single free releases everything
+talloc_free(resp);  // Also frees doc, invalidates all yyjson_val pointers
+```
+
+This pattern ensures no dangling pointers and integrates with the project's talloc-based memory management.
