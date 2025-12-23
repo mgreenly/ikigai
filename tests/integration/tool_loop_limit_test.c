@@ -77,6 +77,7 @@ static void test_setup(void)
         return;
     }
 
+    setenv("OPENAI_API_KEY", "test-key", 1);
     test_ctx = talloc_new(NULL);
     res_t res = ik_test_db_connect(test_ctx, DB_NAME, &db);
     if (is_err(&res)) {
@@ -108,6 +109,7 @@ static void test_setup(void)
 // Per-test teardown
 static void test_teardown(void)
 {
+    unsetenv("OPENAI_API_KEY");
     if (test_ctx != NULL) {
         if (db != NULL) {
             ik_test_db_rollback(db);
@@ -309,7 +311,6 @@ END_TEST START_TEST(test_request_serialization_with_tool_choice)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4o-mini");
     cfg->openai_temperature = 1.0;
     cfg->openai_max_completion_tokens = 4096;

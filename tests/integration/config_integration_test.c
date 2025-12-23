@@ -28,7 +28,6 @@ START_TEST(test_config_full_flow) {
 
     ik_cfg_t *cfg1 = result1.ok;
     ck_assert_ptr_nonnull(cfg1);
-    ck_assert_str_eq(cfg1->openai_api_key, "YOUR_API_KEY_HERE");
     ck_assert_str_eq(cfg1->openai_model, "gpt-5-mini");
     ck_assert(cfg1->openai_temperature >= 0.99 && cfg1->openai_temperature <= 1.01);
     ck_assert_int_eq(cfg1->openai_max_completion_tokens, 4096);
@@ -47,7 +46,6 @@ START_TEST(test_config_full_flow) {
 
     ik_cfg_t *cfg2 = result2.ok;
     ck_assert_ptr_nonnull(cfg2);
-    ck_assert_str_eq(cfg2->openai_api_key, "YOUR_API_KEY_HERE");
     ck_assert_str_eq(cfg2->openai_model, "gpt-5-mini");
     ck_assert(cfg2->openai_temperature >= 0.99 && cfg2->openai_temperature <= 1.01);
     ck_assert_int_eq(cfg2->openai_max_completion_tokens, 4096);
@@ -59,7 +57,6 @@ START_TEST(test_config_full_flow) {
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n");
-    fprintf(f, "  \"openai_api_key\": \"custom_key_123\",\n");
     fprintf(f, "  \"openai_model\": \"gpt-3.5-turbo\",\n");
     fprintf(f, "  \"openai_temperature\": 1.5,\n");
     fprintf(f, "  \"openai_max_completion_tokens\": 2048,\n");
@@ -77,7 +74,6 @@ START_TEST(test_config_full_flow) {
 
     ik_cfg_t *cfg3 = result3.ok;
     ck_assert_ptr_nonnull(cfg3);
-    ck_assert_str_eq(cfg3->openai_api_key, "custom_key_123");
     ck_assert_str_eq(cfg3->openai_model, "gpt-3.5-turbo");
     ck_assert(cfg3->openai_temperature >= 1.49 && cfg3->openai_temperature <= 1.51);
     ck_assert_int_eq(cfg3->openai_max_completion_tokens, 2048);

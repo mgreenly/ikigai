@@ -39,14 +39,12 @@ static const char *get_api_key(void)
     return getenv("OPENAI_API_KEY");
 }
 
-/* Helper: Create test configuration with API key */
-static ik_cfg_t *create_test_cfg(void *parent, const char *api_key,
-                                 const char *model)
+/* Helper: Create test configuration */
+static ik_cfg_t *create_test_cfg(void *parent, const char *model)
 {
     ik_cfg_t *cfg = talloc(parent, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
 
-    cfg->openai_api_key = talloc_strdup(cfg, api_key);
     cfg->openai_model = talloc_strdup(cfg, model);
     cfg->openai_temperature = 1.0;
     cfg->openai_max_completion_tokens = 4096;
@@ -119,7 +117,7 @@ START_TEST(verify_stream_hello_world) {
     ck_assert_ptr_nonnull(ctx);
 
     /* Create configuration */
-    ik_cfg_t *cfg = create_test_cfg(ctx, api_key, "gpt-5-mini");
+    ik_cfg_t *cfg = create_test_cfg(ctx, "gpt-5-mini");
 
     /* Create conversation with simple greeting */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
@@ -185,7 +183,7 @@ END_TEST START_TEST(verify_stream_multiline)
     ck_assert_ptr_nonnull(ctx);
 
     /* Create configuration */
-    ik_cfg_t *cfg = create_test_cfg(ctx, api_key, "gpt-5-mini");
+    ik_cfg_t *cfg = create_test_cfg(ctx, "gpt-5-mini");
 
     /* Create conversation requesting code (likely to be multi-line) */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
@@ -243,7 +241,7 @@ END_TEST START_TEST(verify_stream_conversation)
     ck_assert_ptr_nonnull(ctx);
 
     /* Create configuration */
-    ik_cfg_t *cfg = create_test_cfg(ctx, api_key, "gpt-5-mini");
+    ik_cfg_t *cfg = create_test_cfg(ctx, "gpt-5-mini");
 
     /* Create multi-turn conversation */
     ik_openai_conversation_t *conv = ik_openai_conversation_create(ctx);
