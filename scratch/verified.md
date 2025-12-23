@@ -45,3 +45,4 @@ Fixed gaps - do not re-investigate.
 | 12-22 | Content Filter Mapping (5.3) | error-handling.md | Added "Content Filter Error Mapping" table: Anthropic/OpenAI/Google detection patterns, note that Google returns HTTP 200 |
 | 12-22 | Streaming Error Partial Response (5.4) | streaming.md | Added "Partial Response Handling" section: detection, IK_FINISH_ERROR, visual indicator, database storage with incomplete flag |
 | 12-22 | Missing Credentials UX (5.5) | configuration.md | Added "Missing Credentials UX" section: error message format, provider URLs table, ik_credentials_load() behavior |
+| 12-22 | Provider State in /fork (5.8) | commands.md | Added "Provider Instance Ownership" section: no sharing, lazy creation, independent state, memory model diagram |
