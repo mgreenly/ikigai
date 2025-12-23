@@ -14,3 +14,4 @@
 - 4.1 Missing: Model Switch Rejection - added active request check to model-command.md (reject /model during streaming) (from todo-4-application.md)
 - 4.2 Missing: No Model Error - added "No model configured" error to repl-provider-routing.md (check before sending) (from todo-4-application.md)
 - 4.3 Inconsistency: Thinking Levels - aligned naming to 4 levels (none/low/med/high), removed "extended" references in 5 task files (from todo-4-application.md)
+- 5.1 Missing: Contract Tests - created contract-anthropic.md and contract-google.md following openai-equivalence-validation.md pattern (from todo-5-testing.md)
