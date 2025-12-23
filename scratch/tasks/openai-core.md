@@ -1,7 +1,7 @@
 # Task: OpenAI Provider Core Structure
 
 **Model:** sonnet/thinking
-**Depends on:** openai-shim-send.md, provider-types.md, credentials-core.md, error-core.md
+**Depends on:** provider-types.md, credentials-core.md, error-core.md
 
 ## Context
 
