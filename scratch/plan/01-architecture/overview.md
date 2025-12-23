@@ -552,7 +552,7 @@ Each provider has dedicated test suites:
 - `tests/unit/providers/test_anthropic_client.c` - Request/response handling
 - `tests/unit/providers/test_openai_adapter.c`
 - `tests/unit/providers/test_google_adapter.c`
-- `tests/unit/common/test_http_client.c` - Shared HTTP layer
+- `tests/unit/common/test_http_multi.c` - Shared HTTP layer
 - `tests/unit/common/test_sse_parser.c` - SSE parsing
 
 **Integration tests:**

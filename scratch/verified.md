@@ -101,3 +101,13 @@ Gaps identified during task review that have been fixed.
 - Google NONE: "no thinkingConfig sent" → "128 (minimum, cannot disable)"
 - Google LOW: ~10,923 → 11,008
 - Google MED: ~21,845 → 21,760
+
+### HTTP layer naming inconsistency
+
+**Files:** `scratch/plan/05-testing/strategy.md`, `scratch/plan/01-architecture/overview.md`, `scratch/plan/05-testing/tests-performance-benchmarking.md`, `scratch/plan/05-testing/vcr-cassettes.md`
+
+**Issue:** Some files referenced `http_client.c` and `test_http_client.c` but the canonical implementation name in overview.md is `http_multi.c`. Test file name should match implementation.
+
+**Fix:** Changed all references:
+- `http_client.c` → `http_multi.c`
+- `test_http_client.c` → `test_http_multi.c`

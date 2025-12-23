@@ -252,7 +252,7 @@ VCR operates at the HTTP layer, below provider-specific logic:
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────┐
-│ HTTP Layer (http_client.c)                              │
+│ HTTP Layer (http_multi.c)                                │
 │   - curl_multi management                               │
 │   - Write callbacks deliver raw bytes                  │
 │   - VCR hooks at this layer                            │

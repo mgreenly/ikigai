@@ -36,7 +36,7 @@ Reference: `scratch/plan/05-testing/strategy.md`
 - `src/providers/anthropic/` - Anthropic provider implementation
 - `src/providers/openai/` - OpenAI provider implementation
 - `src/providers/google/` - Google provider implementation
-- `src/providers/common/http_client.c` - HTTP client infrastructure
+- `src/providers/common/http_multi.c` - HTTP client infrastructure
 - `src/providers/common/sse_parser.c` - SSE parser infrastructure
 - `tests/helpers/mock_http.h` - Mock HTTP infrastructure
 

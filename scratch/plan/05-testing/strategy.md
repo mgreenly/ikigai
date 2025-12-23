@@ -31,7 +31,7 @@ tests/
   unit/
     providers/
       common/
-        test_http_client.c        # Shared HTTP client
+        test_http_multi.c          # Shared HTTP client
         test_sse_parser.c          # Shared SSE parser
 
       anthropic/
