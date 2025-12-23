@@ -430,6 +430,60 @@ The 8 implementation steps below map to the high-level phases in [README.md](../
 7. **OpenAI Refactor** - Move OpenAI to native vtable implementation in `src/providers/openai/`
 8. **Cleanup** - Delete adapter shim and old `src/openai/` directory
 
+### Makefile Migration
+
+The Makefile must be updated incrementally during migration to maintain a working build at each step.
+
+**Step 3 (Adapter Shim):** Add new source paths
+```makefile
+# Add to SRC list
+SRC += src/providers/provider_common.c
+SRC += src/providers/common/http_multi.c
+SRC += src/providers/common/sse_parser.c
+```
+
+**Step 5-6 (New Providers):** Add provider implementations
+```makefile
+# Add as each provider is implemented
+SRC += src/providers/anthropic/adapter.c
+SRC += src/providers/anthropic/client.c
+SRC += src/providers/anthropic/streaming.c
+# ... repeat for openai/, google/
+```
+
+**Step 7 (OpenAI Refactor):** Both old and new OpenAI paths exist temporarily
+```makefile
+# Old paths still present (will be removed in Step 8)
+SRC += src/openai/client.c
+SRC += src/openai/client_multi.c
+# ...
+
+# New paths added
+SRC += src/providers/openai/adapter.c
+SRC += src/providers/openai/client.c
+SRC += src/providers/openai/streaming.c
+```
+
+**Step 8 (Cleanup):** Remove old paths BEFORE deleting files
+```makefile
+# Remove these lines from Makefile:
+# SRC += src/openai/client.c
+# SRC += src/openai/client_multi.c
+# SRC += src/openai/client_multi_callbacks.c
+# SRC += src/openai/client_multi_request.c
+# SRC += src/openai/client_msg.c
+# SRC += src/openai/client_serialize.c
+# SRC += src/openai/http_handler.c
+# SRC += src/openai/sse_parser.c
+# SRC += src/openai/tool_choice.c
+```
+
+**Test target updates:** Similarly update test paths:
+- Add `tests/unit/providers/` tests as providers are implemented
+- Remove `tests/unit/openai/` references in Step 8
+
+**Critical:** Always run `make clean && make all && make check` after Makefile changes to verify build integrity.
+
 ### Critical Cleanup Requirements
 
 After migration completes:
