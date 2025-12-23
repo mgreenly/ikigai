@@ -11,3 +11,4 @@
 - 3.1 Missing: Provider Data Persistence - added provider_data handling to google-response.md and google-request.md for thought signatures (from todo-3-data-formats.md)
 - 3.2 Missing: Rate Limit Headers - decided on decentralized per-provider parsing due to divergent header formats (Anthropic/OpenAI headers vs Google JSON body) (from todo-3-data-formats.md)
 - 3.3 Clarify: ik_content_block_t - verified union type fully defined in provider-types.md with TEXT, TOOL_CALL, TOOL_RESULT, THINKING variants (from todo-3-data-formats.md)
+- 4.1 Missing: Model Switch Rejection - added active request check to model-command.md (reject /model during streaming) (from todo-4-application.md)

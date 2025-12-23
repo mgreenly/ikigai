@@ -56,6 +56,12 @@ Data structures to create:
 
 ## Behaviors
 
+**Active Request Check:**
+- Check if an LLM request is currently active/streaming
+- If active, reject command with ERR_BUSY or appropriate error
+- Display error message: "Cannot switch models during active request"
+- Only allow model switching when idle (no active LLM request)
+
 **Command Parsing:**
 - Parse `/model MODEL/THINKING` syntax
 - Extract model name before `/`
@@ -120,6 +126,13 @@ Data structures to create:
 - "gemini-2.5" -> supports_thinking=true, budget=24576
 - "gemini-1.5" -> supports_thinking=false, budget=0
 
+**Active Request Rejection:**
+- Agent has active LLM request streaming
+- Execute: `/model gpt-4o`
+- Command rejected with error
+- Message displayed: "Cannot switch models during active request"
+- Agent state unchanged
+
 **Agent State:**
 - Before: provider="anthropic", model="claude-3-5-sonnet", thinking="none"
 - Execute: `/model gpt-4o/high`
@@ -164,6 +177,7 @@ Data structures to create:
 
 ## Postconditions
 
+- [ ] `/model` rejects execution during active LLM request with appropriate error
 - [ ] `/model` parses MODEL/THINKING syntax correctly
 - [ ] Provider inferred from model prefix
 - [ ] Agent state updated with provider/model/thinking_level
