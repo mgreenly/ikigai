@@ -162,6 +162,71 @@ Files to update:
 - Existing fields (db_connection_string) still accessible
 - Missing new fields don't cause errors
 
+## Call Site Updates
+
+The task renames `ik_cfg_load()` to `ik_config_load()` with a new signature. All existing call sites must be updated.
+
+### Signature Change
+
+**Old:**
+```c
+res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);
+```
+
+**New:**
+```c
+res_t ik_config_load(TALLOC_CTX *ctx, const char *path, ik_config_t **out);
+```
+
+**Key differences:**
+- Function renamed: `ik_cfg_load` → `ik_config_load`
+- Added output parameter: `ik_config_t **out` (third parameter)
+- Config struct now returned via output parameter instead of embedded in result
+
+### Files to Update
+
+**Source files:**
+- `src/client.c` - 1 call site
+- `src/config.h` - Function declaration
+- `src/config.c` - Function implementation
+
+**Unit tests (tests/unit/config/):**
+- `basic_test.c` - 6 call sites
+- `config_test.c` - 7 call sites
+- `filesystem_test.c` - 2 call sites
+- `history_size_test.c` - 7 call sites
+- `tilde_test.c` - 1 call site
+- `tool_limits_test.c` - 7 call sites
+- `validation_missing_test.c` - 7 call sites
+- `validation_ranges_test.c` - 10 call sites
+- `validation_types_test.c` - 9 call sites
+
+**Integration tests:**
+- `tests/integration/config_integration_test.c` - 8 call sites
+
+**Total:** 65+ call sites across 13 files
+
+### Update Pattern
+
+**Old pattern:**
+```c
+res_t result = ik_cfg_load(ctx, test_file);
+if (!result.ok) {
+    // handle error
+}
+ik_config_t *config = result.value;
+```
+
+**New pattern:**
+```c
+ik_config_t *config = NULL;
+res_t result = ik_config_load(ctx, test_file, &config);
+if (!result.ok) {
+    // handle error
+}
+// use config
+```
+
 ## Postconditions
 
 - [ ] Config loads new format with `default_provider` and `providers` section
@@ -171,6 +236,7 @@ Files to update:
 - [ ] Existing config fields (db_connection_string, etc.) still work
 - [ ] `IKIGAI_DEFAULT_PROVIDER` env var overrides config file
 - [ ] Legacy config format still loads successfully
+- [ ] All call sites updated to use `ik_config_load()` with new signature
 - [ ] `make check` passes
 - [ ] Changes committed to git with message: `task: configuration.md - <summary>`
   - If `make check` passed: success message

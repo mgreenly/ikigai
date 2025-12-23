@@ -35,7 +35,7 @@
 | ~~provider-factory.md~~ | ~~Circular dependency - needs provider-create functions from downstream tasks~~ | ~~HIGH~~ FALSE ALARM |
 | ~~openai-send-impl.md~~ | ~~Missing dependency on openai-core.md (uses `ik_openai_ctx_t` defined there)~~ | ~~HIGH~~ FIXED |
 | ~~configuration.md~~ | ~~Missing dependency on credentials-migrate.md~~ | ~~MEDIUM~~ FALSE ALARM (tasks are independent, no data flow) |
-| configuration.md | Missing "update all call sites" for ik_cfg_load rename (72+ locations) | HIGH |
+| ~~configuration.md~~ | ~~Missing "update all call sites" for ik_cfg_load rename (72+ locations)~~ | ~~HIGH~~ FIXED (added Call Site Updates section documenting 65+ call sites across 13 files) |
 | ~~tests-mock-infrastructure.md~~ | ~~DELETED - test tasks still reference it (replaced by VCR)~~ | ~~INFO~~ FIXED |
 
 ### Verified Groups (No Blocking Issues)
