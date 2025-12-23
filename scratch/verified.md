@@ -21,3 +21,4 @@
 | Model name suffix | `plan/03-provider-types.md`, `plan/05-testing/strategy.md`, `plan/02-data-formats/request-response.md`, `plan/04-application/database-schema.md`, `plan/05-testing/vcr-cassettes.md` | Standardized to `claude-sonnet-4-5-20250514` (11 changes) |
 | Credentials load description | `plan/01-architecture/provider-interface.md` | Document two-function design: `ik_credentials_load()` + `ik_credentials_get()` |
 | Dead reference fix | `plan/04-application/commands.md` | `thinking-abstraction.md` → `../03-provider-types.md` |
+| Contract thinking budgets | `plan/05-testing/contract-anthropic.md` | ~21000/~42000 → 22,016/43,008 (exact values) |
