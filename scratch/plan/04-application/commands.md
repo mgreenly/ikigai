@@ -235,6 +235,35 @@ No credentials for anthropic. Set ANTHROPIC_API_KEY or add to credentials.json
 Get your API key at: https://console.anthropic.com/settings/keys
 ```
 
+### No Model Configured Error
+
+When user sends a message but no model has been configured for the agent:
+
+**Detection:** `agent->model == NULL`
+
+**Error Message:**
+```
+No model configured. Use /model to select one.
+
+Examples:
+  /model claude-sonnet-4-5      (Anthropic)
+  /model gpt-4o                 (OpenAI)
+  /model gemini-2.5-pro         (Google)
+
+Run /model with Tab for available options.
+```
+
+**Behavior:**
+1. Display error in scrollback (not a crash/panic)
+2. Return to input prompt - user can then run /model
+3. Do NOT send anything to any provider
+4. Do NOT save message to database
+
+**When this occurs:**
+- Fresh agent with no prior /model command
+- After database truncation (migration 005)
+- If config.json has no default_provider set
+
 ## References
 
 - [03-provider-types.md](../03-provider-types.md) - Thinking level mapping and user feedback
