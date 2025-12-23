@@ -35,3 +35,4 @@
 | Error enum prefix in task | `tasks/error-core.md` | `IK_ERR_*` → `IK_ERR_CAT_*` (13 occurrences) |
 | VCR fixture path alignment | `tasks/vcr-core.md`, `tasks/tests-*.md`, `tasks/verify-mocks-providers.md`, `tasks/openai-shim-compat-tests.md` | `tests/fixtures/{provider}/` → `tests/fixtures/vcr/{provider}/` (42 edits across 9 files) |
 | Shim tool call clarification | `tasks/openai-shim-streaming.md` | Clarified shim emits START+DONE (no DELTA) because legacy code accumulates internally |
+| VCR provider-types dependency | `tasks/vcr-core.md`, `tasks/vcr-mock-integration.md` | Added `provider-types.md` dependency for callback type definitions |

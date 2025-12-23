@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** vcr-core.md
+**Depends on:** provider-types.md, vcr-core.md
 
 ## Context
 

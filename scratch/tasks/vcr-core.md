@@ -3,7 +3,7 @@
 **UNATTENDED EXECUTION:** This task executes automatically without human oversight. Provide complete context.
 
 **Model:** sonnet/thinking
-**Depends on:** credentials-core.md
+**Depends on:** provider-types.md, credentials-core.md
 
 ## Context
 
