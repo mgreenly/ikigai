@@ -36,3 +36,4 @@ Fixed gaps - do not re-investigate.
 | 12-22 | ik_config_t vs ik_cfg_t Naming | scratch/plan/04-application/configuration.md | Changed all ik_config_* to ik_cfg_* to match existing code and naming conventions. Added naming note. |
 | 12-22 | ik_error_t vs err_t Conflict | scratch/plan/02-data-formats/*.md | Renamed ik_error_t → ik_provider_error_t to avoid collision with existing err_t. Added clarifying note. |
 | 12-22 | Migration Not Transactional | scratch/plan/04-application/database-schema.md | Wrapped 005-multi-provider.sql in BEGIN/COMMIT. Added IF NOT EXISTS. Added transaction safety note. |
+| 12-22 | Missing Stream Event Enum Type | scratch/plan/02-data-formats/streaming.md | Added ik_stream_event_type_t enum typedef and showed ik_stream_event_t struct reference. |

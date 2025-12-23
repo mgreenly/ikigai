@@ -8,20 +8,31 @@ All providers emit normalized streaming events through a unified `ik_stream_even
 
 ## Stream Event Types
 
-The system defines the following stream event types:
+The system defines the following stream event type enum:
 
-- `IK_STREAM_START` - Stream started
-- `IK_STREAM_TEXT_DELTA` - Text content delta
-- `IK_STREAM_THINKING_DELTA` - Thinking/reasoning delta
-- `IK_STREAM_TOOL_CALL_START` - Tool call started
-- `IK_STREAM_TOOL_CALL_DELTA` - Tool call arguments delta
-- `IK_STREAM_TOOL_CALL_DONE` - Tool call completed
-- `IK_STREAM_DONE` - Stream completed successfully
-- `IK_STREAM_ERROR` - Error occurred
+```c
+typedef enum {
+    IK_STREAM_START,           // Stream started
+    IK_STREAM_TEXT_DELTA,      // Text content chunk
+    IK_STREAM_THINKING_DELTA,  // Thinking/reasoning chunk
+    IK_STREAM_TOOL_CALL_START, // Tool call started
+    IK_STREAM_TOOL_CALL_DELTA, // Tool call argument chunk
+    IK_STREAM_TOOL_CALL_DONE,  // Tool call complete
+    IK_STREAM_DONE,            // Stream complete
+    IK_STREAM_ERROR            // Error occurred
+} ik_stream_event_type_t;
+```
 
 ## Stream Event Structure
 
 The `ik_stream_event_t` structure contains:
+
+```c
+typedef struct {
+    ik_stream_event_type_t type;
+    // ... other fields
+} ik_stream_event_t;
+```
 
 - **type**: The event type (from the enum above)
 - **data**: A union containing event-specific data based on type:
