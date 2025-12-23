@@ -176,7 +176,7 @@ HTTP Status to Category Mapping:
 
 **Thinking Budget Calculation:**
 - gemini-2.5-pro with NONE returns 128 (minimum, cannot disable)
-- gemini-2.5-pro with LOW returns 10008 (128 + 32640/3)
+- gemini-2.5-pro with LOW returns 11008 (128 + 32640/3)
 - gemini-2.5-pro with MED returns 21888 (128 + 2*32640/3)
 - gemini-2.5-pro with HIGH returns 32768 (maximum)
 - gemini-2.5-flash with NONE returns 0 (can disable)
