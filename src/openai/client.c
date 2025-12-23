@@ -1,5 +1,6 @@
 #include "openai/client.h"
 
+#include "credentials.h"
 #include "error.h"
 #include "json_allocator.h"
 #include "msg.h"
@@ -239,8 +240,17 @@ res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
         return ERR(parent, INVALID_ARG, "Conversation must contain at least one message");
     }
 
-    if (cfg->openai_api_key == NULL || strlen(cfg->openai_api_key) == 0) {
-        return ERR(parent, INVALID_ARG, "OpenAI API key is required");
+    /* Load credentials */
+    ik_credentials_t *creds = NULL;
+    res_t creds_res = ik_credentials_load(parent, NULL, &creds);
+    if (creds_res.is_err) {
+        return creds_res;
+    }
+
+    /* Get OpenAI API key */
+    const char *api_key = ik_credentials_get(creds, "openai");
+    if (api_key == NULL || strlen(api_key) == 0) {
+        return ERR(parent, INVALID_ARG, "No OpenAI credentials. Set OPENAI_API_KEY or add to ~/.config/ikigai/credentials.json");
     }
 
     /* Create request */
@@ -252,7 +262,7 @@ res_t ik_openai_chat_create(void *parent, const ik_cfg_t *cfg,
 
     /* Perform HTTP POST */
     const char *url = "https://api.openai.com/v1/chat/completions";
-    res_t http_res = ik_openai_http_post(parent, url, cfg->openai_api_key, json_body, stream_cb, cb_ctx);
+    res_t http_res = ik_openai_http_post(parent, url, api_key, json_body, stream_cb, cb_ctx);
     if (http_res.is_err) {
         return http_res;
     }

@@ -6,7 +6,6 @@
 #include "error.h"
 
 typedef struct {
-    char *openai_api_key;
     char *openai_model;
     double openai_temperature;
     int32_t openai_max_completion_tokens;

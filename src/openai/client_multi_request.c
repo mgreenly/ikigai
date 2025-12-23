@@ -1,5 +1,6 @@
 #include "openai/client_multi_internal.h"
 
+#include "credentials.h"
 #include "openai/client.h"
 #include "openai/sse_parser.h"
 #include "openai/tool_choice.h"
@@ -38,8 +39,17 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
         return ERR(multi, INVALID_ARG, "Conversation must contain at least one message");
     }
 
-    if (cfg->openai_api_key == NULL || strlen(cfg->openai_api_key) == 0) {
-        return ERR(multi, INVALID_ARG, "OpenAI API key is required");
+    // Load credentials
+    ik_credentials_t *creds = NULL;
+    res_t creds_res = ik_credentials_load(multi, NULL, &creds);
+    if (creds_res.is_err) {
+        return creds_res;
+    }
+
+    // Get OpenAI API key
+    const char *api_key = ik_credentials_get(creds, "openai");
+    if (api_key == NULL || strlen(api_key) == 0) {
+        return ERR(multi, INVALID_ARG, "No OpenAI credentials. Set OPENAI_API_KEY or add to ~/.config/ikigai/credentials.json");
     }
 
     // Create request
@@ -102,7 +112,7 @@ res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
     active_req->headers = curl_slist_append_(active_req->headers, "Content-Type: application/json");
 
     char auth_header[512];  // Increased from 256 to handle longer API keys
-    int32_t written = snprintf_(auth_header, sizeof(auth_header), "Authorization: Bearer %s", cfg->openai_api_key);
+    int32_t written = snprintf_(auth_header, sizeof(auth_header), "Authorization: Bearer %s", api_key);
     if (written < 0 || (size_t)written >= sizeof(auth_header)) {
         curl_easy_cleanup_(active_req->easy_handle);
         curl_slist_free_all_(active_req->headers);

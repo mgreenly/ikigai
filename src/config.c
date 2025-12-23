@@ -67,7 +67,6 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
     yyjson_mut_doc_set_root(doc, root);
 
     // add the objects
-    yyjson_mut_obj_add_str(doc, root, "openai_api_key", "YOUR_API_KEY_HERE");
     yyjson_mut_obj_add_str(doc, root, "openai_model", "gpt-5-mini");
     yyjson_mut_obj_add_real(doc, root, "openai_temperature", 1.0);
     yyjson_mut_obj_add_int(doc, root, "openai_max_completion_tokens", 4096);
@@ -124,7 +123,6 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     if (cfg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Extract fields
-    yyjson_val *api_key = yyjson_obj_get_(root, "openai_api_key");
     yyjson_val *model = yyjson_obj_get_(root, "openai_model");
     yyjson_val *temperature = yyjson_obj_get_(root, "openai_temperature");
     yyjson_val *max_completion_tokens = yyjson_obj_get_(root, "openai_max_completion_tokens");
@@ -135,14 +133,6 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     yyjson_val *max_tool_turns = yyjson_obj_get_(root, "max_tool_turns");
     yyjson_val *max_output_size = yyjson_obj_get_(root, "max_output_size");
     yyjson_val *history_size = yyjson_obj_get_(root, "history_size");
-
-    // validate openai_api_key
-    if (!api_key) {
-        return ERR(ctx, PARSE, "Missing openai_api_key");
-    }
-    if (!yyjson_is_str(api_key)) {
-        return ERR(ctx, PARSE, "Invalid type for openai_api_key");
-    }
 
     // validate openai_model
     if (!model) {
@@ -260,7 +250,6 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     }
 
     // copy values to config
-    cfg->openai_api_key = talloc_strdup(cfg, yyjson_get_str_(api_key));
     cfg->openai_model = talloc_strdup(cfg, yyjson_get_str_(model));
     cfg->openai_temperature = temperature_value;
     cfg->openai_max_completion_tokens = (int32_t)max_completion_tokens_value;
