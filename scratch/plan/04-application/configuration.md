@@ -213,6 +213,50 @@ Check your config file:
 ⚠️  No default model configured for xai, using first available model
 ```
 
+## Missing Credentials UX
+
+When the credentials file doesn't exist and no environment variable is set, display a helpful error:
+
+### Error Message Format
+
+```
+No credentials found for {provider}.
+
+Option 1: Set environment variable
+  export {PROVIDER}_API_KEY="your-key-here"
+
+Option 2: Create credentials file at ~/.config/ikigai/credentials.json
+  {
+    "anthropic": "sk-ant-...",
+    "openai": "sk-...",
+    "google": "..."
+  }
+
+Get your API key at:
+  {provider_url}
+```
+
+### Provider URLs
+
+| Provider | URL |
+|----------|-----|
+| anthropic | https://console.anthropic.com/settings/keys |
+| openai | https://platform.openai.com/api-keys |
+| google | https://aistudio.google.com/apikey |
+
+### Implementation
+
+The `ik_credentials_load()` function should:
+1. Check environment variable first (silent success if found)
+2. Check credentials.json file (silent success if found)
+3. If neither found, return ERR with formatted message including:
+   - The provider name that needs credentials
+   - Both options (env var and file)
+   - Example JSON structure
+   - Direct link to get API key
+
+This ensures first-time users get actionable guidance rather than a cryptic error.
+
 ## Configuration Validation
 
 ### Startup Validation
