@@ -83,7 +83,7 @@ Functions to implement:
 
 | Function | Purpose |
 |----------|---------|
-| `res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb, void *stream_ctx, ik_provider_completion_cb_t completion_cb, void *completion_ctx, ik_anthropic_stream_ctx_t **out)` | Creates streaming context with both callbacks |
+| `res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb, void *stream_ctx, ik_anthropic_stream_ctx_t **out)` | Creates streaming context with stream callback only |
 | `void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx, const char *event, const char *data)` | Processes single SSE event, emits normalized events via stream callback |
 | `ik_usage_t ik_anthropic_stream_get_usage(ik_anthropic_stream_ctx_t *stream_ctx)` | Returns accumulated usage statistics from stream |
 | `ik_finish_reason_t ik_anthropic_stream_get_finish_reason(ik_anthropic_stream_ctx_t *stream_ctx)` | Returns finish reason from stream |
@@ -93,7 +93,7 @@ Structs to define:
 
 | Struct | Members | Purpose |
 |--------|---------|---------|
-| `ik_anthropic_stream_ctx_t` | ctx, stream_cb (ik_stream_cb_t), stream_ctx, completion_cb (ik_provider_completion_cb_t), completion_ctx, sse_parser, model, finish_reason, usage, current_block_index, current_block_type, current_tool_id, current_tool_name | Streaming context tracks state, callbacks, and accumulated metadata |
+| `ik_anthropic_stream_ctx_t` | ctx, stream_cb (ik_stream_cb_t), stream_ctx, sse_parser, model, finish_reason, usage, current_block_index, current_block_type, current_tool_id, current_tool_name | Streaming context tracks state, stream callback, and accumulated metadata. **Note:** Completion callback is passed to start_stream() vtable method, not stored in stream context. This matches Google and OpenAI patterns. |
 
 ## Behaviors
 
@@ -121,16 +121,18 @@ The curl write callback (set via `CURLOPT_WRITEFUNCTION`) must:
 ### Streaming Context Creation
 - Allocate context with talloc
 - Store user stream callback and context
-- Store user completion callback and context
+- **Do NOT store completion callback** - it is passed to start_stream() vtable method instead
 - Create SSE parser with event callback bound to `ik_anthropic_stream_process_event`
 - Initialize current_block_index to -1
 - Initialize finish_reason to IK_FINISH_UNKNOWN
 - Zero usage statistics
 
+**Note:** Completion callback is passed to start_stream() vtable method, not stored in stream context. This matches Google and OpenAI patterns.
+
 ### start_stream() Implementation (NON-BLOCKING)
 
 ```
-1. Create streaming context with ik_anthropic_stream_ctx_create()
+1. Create streaming context with ik_anthropic_stream_ctx_create() (stream callback only)
 2. Serialize request with ik_anthropic_serialize_request() (stream: true)
 3. Build headers with ik_anthropic_build_headers()
 4. Construct URL: base_url + "/v1/messages"
@@ -141,12 +143,14 @@ The curl write callback (set via `CURLOPT_WRITEFUNCTION`) must:
    - CURLOPT_HTTPHEADER = headers
    - CURLOPT_WRITEFUNCTION = anthropic_write_callback
    - CURLOPT_WRITEDATA = stream_ctx
-   - Store completion_cb in stream_ctx for later invocation
+   - Store completion_cb/completion_ctx separately (NOT in stream_ctx) for info_read() to invoke
 6. Add easy handle to curl_multi via ik_http_multi_add_handle()
 7. Return OK(NULL) immediately
 ```
 
 **Critical:** This function MUST return immediately. No blocking I/O. The curl handle is added to multi and actual I/O happens during subsequent perform() calls.
+
+**Note:** The completion callback is handled by start_stream() directly and passed to the curl_multi infrastructure for invocation during info_read(). It is NOT stored in the stream context.
 
 ### Message Start Processing
 - Extract model name from message object, store in context
@@ -244,7 +248,7 @@ When curl_multi signals transfer complete (detected in `info_read()`):
 
 - [ ] `src/providers/anthropic/streaming.h` exists with async interface
 - [ ] `src/providers/anthropic/streaming.c` implements async event processing
-- [ ] `ik_anthropic_stream_ctx_create()` stores both stream and completion callbacks
+- [ ] `ik_anthropic_stream_ctx_create()` stores stream callback only (completion callback passed to start_stream() instead)
 - [ ] `ik_anthropic_start_stream()` is NON-BLOCKING (adds to curl_multi, returns immediately)
 - [ ] Curl write callback feeds SSE parser, which invokes stream_process_event
 - [ ] `ik_anthropic_stream_process_event()` handles all SSE event types

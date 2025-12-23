@@ -36,3 +36,8 @@ Fixed gaps - do not re-investigate.
 **Location:** `scratch/tasks/provider-types.md`
 **Problem:** Struct table for `ik_provider_completion_t` omitted `retry_after_ms` field, but detailed description included it.
 **Fix:** Added `retry_after_ms | int32_t | Suggested retry delay (-1 if not applicable)` to struct table. Table now matches detailed description.
+
+### 2024-12-22: Streaming Context Callback Ownership Inconsistency
+**Location:** `scratch/tasks/anthropic-streaming.md`, `scratch/tasks/google-streaming.md`, `scratch/tasks/openai-streaming-chat.md`
+**Problem:** Anthropic stream_ctx_create() took BOTH stream_cb AND completion_cb, but Google/OpenAI took only stream_cb. Inconsistent ownership semantics.
+**Fix:** Changed Anthropic to match Google/OpenAI pattern. Stream context stores only stream callback. Completion callback is passed to start_stream() vtable method instead. All three providers now have consistent callback ownership.
