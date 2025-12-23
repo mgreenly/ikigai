@@ -66,10 +66,12 @@ If config.json doesn't exist or is incomplete, use these defaults:
 
 ### Loading Functions
 
+**Naming Convention:** Uses `cfg` abbreviation per project naming standards (see .claude/library/naming/SKILL.md). Type is `ik_cfg_t`, functions are `ik_cfg_*()`.
+
 ```c
 // Load configuration from XDG_CONFIG_HOME or ~/.config/ikigai/config.json
 // Falls back to defaults if file doesn't exist
-res_t ik_config_load(TALLOC_CTX *ctx, ik_config_t **out_config);
+res_t ik_cfg_load(TALLOC_CTX *ctx, ik_cfg_t **out_config);
 ```
 
 **Loading flow:**
@@ -217,7 +219,7 @@ Check your config file:
 
 Function signature:
 ```c
-res_t ik_config_validate(ik_config_t *config);
+res_t ik_cfg_validate(ik_cfg_t *config);
 ```
 
 **Validation checks:**
