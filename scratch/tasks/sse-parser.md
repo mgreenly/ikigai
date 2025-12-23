@@ -115,6 +115,63 @@ data: [DONE]
 - Buffer grows automatically, never shrinks
 - All allocations cleaned up when parser freed
 
+## Callback Integration Pattern
+
+**IMPORTANT:** This is a **pull-based API**. The SSE parser does not invoke callbacks. Instead, the caller must loop and pull events using `ik_sse_parser_next()`.
+
+### Integration with Streaming Providers
+
+Streaming provider implementations (Anthropic, OpenAI, etc.) should follow this pattern:
+
+1. **cURL write callback** receives chunks of data from the network
+2. **Feed data** to the SSE parser using `ik_sse_parser_feed()`
+3. **Pull events** in a loop by calling `ik_sse_parser_next()` until it returns NULL
+4. **Process each event** by invoking your provider-specific event processor function
+
+### Example Integration
+
+```c
+// Provider-specific streaming context
+typedef struct {
+    ik_sse_parser_t *parser;
+    // ... other provider fields ...
+} stream_context_t;
+
+// cURL write callback - feeds data and pulls events
+static size_t curl_write_callback(char *data, size_t size, size_t nmemb, void *userdata) {
+    stream_context_t *ctx = userdata;
+    size_t total = size * nmemb;
+
+    // Feed incoming data to SSE parser
+    ik_sse_parser_feed(ctx->parser, data, total);
+
+    // Pull and process all available events
+    ik_sse_event_t *event;
+    while ((event = ik_sse_parser_next(ctx->parser, ctx)) != NULL) {
+        // Check for stream termination
+        if (ik_sse_event_is_done(event)) {
+            talloc_free(event);
+            break;
+        }
+
+        // Invoke provider-specific event processor
+        // e.g., ik_anthropic_stream_process_event(ctx, event);
+        process_sse_event(ctx, event);
+
+        talloc_free(event);
+    }
+
+    return total;
+}
+```
+
+### Key Points
+
+- The **parser is passive** - it accumulates data and provides events on demand
+- The **caller controls the loop** - streaming implementations must loop over `ik_sse_parser_next()`
+- **No callbacks in the parser** - event processing happens in the caller's code
+- **Memory ownership** - caller receives events on their provided context and must free them
+
 ## Directory Structure
 
 ```
