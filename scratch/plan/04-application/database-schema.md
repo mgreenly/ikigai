@@ -13,16 +13,23 @@ Follows existing convention: `NNN-kebab-case-description.sql` (see 001-004 in `m
 **For rel-07:** Truncate all tables (clean slate for developer).
 
 ```sql
--- Migration: 005-multi-provider.sql
+-- 005-multi-provider.sql
+-- Multi-provider support: add provider fields, truncate for clean slate
+
+BEGIN;
 
 -- Add new columns to agents table
-ALTER TABLE agents ADD COLUMN provider TEXT;
-ALTER TABLE agents ADD COLUMN model TEXT;
-ALTER TABLE agents ADD COLUMN thinking_level TEXT;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS provider TEXT;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS model TEXT;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS thinking_level TEXT;
 
--- Truncate tables (developer-only migration)
-TRUNCATE agents CASCADE;  -- Cascades to messages, events, etc.
+-- Clean slate for developer dogfooding
+TRUNCATE agents CASCADE;
+
+COMMIT;
 ```
+
+**Transaction Safety:** Migration is wrapped in BEGIN/COMMIT. If any statement fails, the entire migration rolls back, preventing partial schema changes or data loss.
 
 **Future migrations** (for users beyond developer) would include:
 - Backfill existing rows with provider='openai'
