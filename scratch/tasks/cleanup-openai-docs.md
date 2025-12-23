@@ -38,7 +38,7 @@ grep -rn 'tests/unit/openai/' project/ .claude/
 
 For each file containing old paths, update:
 - `src/openai/client.c` → `src/providers/openai/client.c`
-- `src/openai/http_handler.c` → `src/providers/common/http_client.c`
+- `src/openai/http_handler.c` → `src/providers/common/http_multi.c`
 - `src/openai/sse_parser.c` → `src/providers/common/sse_parser.c`
 - `tests/unit/openai/` → `tests/unit/providers/openai/`
 
@@ -60,7 +60,7 @@ The `.claude/library/source-code/SKILL.md` file lists all source files. Update t
 ## Provider System
 
 ### Common Infrastructure
-- `src/providers/common/http_client.c` - HTTP client with curl...
+- `src/providers/common/http_multi.c` - HTTP client with curl...
 - `src/providers/common/sse_parser.c` - Server-Sent Events parser...
 
 ### OpenAI Provider
