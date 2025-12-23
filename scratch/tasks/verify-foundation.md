@@ -186,6 +186,7 @@ Read `src/providers/common/http_multi.h` and verify:
 - [ ] `ik_http_multi_timeout()` function declared
 - [ ] `ik_http_multi_info_read()` function declared
 - [ ] `ik_http_multi_add_request()` function declared
+- [ ] `ik_http_completion_t` struct defined with type, http_code, curl_code, error_message, response_body, response_len
 
 ### Step 8: SSE Parser API Verification
 
@@ -240,7 +241,7 @@ Read downstream task files and verify their expectations are met:
 
 **From `http-client.md`:**
 - Expects `ik_stream_cb_t` callback type → verify in provider.h
-- Expects `ik_http_completion_t` struct → verify has success, http_status, response fields
+- Expects `ik_http_completion_t` struct → verify in http_multi.h (Step 7)
 
 **From `repl-provider-routing.md`:**
 - Expects `ik_provider_t` with name, vt, impl_ctx → verify struct fields

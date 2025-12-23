@@ -35,3 +35,11 @@ Gaps identified during task review that have been fixed.
 **Issue:** Overview line 241 said completion callback receives `ik_http_completion_t`, but provider-interface.md defines `ik_provider_completion_cb_t` as taking `ik_provider_completion_t`.
 
 **Fix:** Changed `ik_http_completion_t` to `ik_provider_completion_t` in overview.md.
+
+### verify-foundation.md missing ik_http_completion_t check and wrong fields
+
+**Files:** `scratch/tasks/verify-foundation.md`
+
+**Issue:** Step 7 (HTTP Client API) didn't verify `ik_http_completion_t` struct. Step 12 referenced it with wrong fields (success, http_status, response - which are `ik_provider_completion_t` fields).
+
+**Fix:** Added `ik_http_completion_t` check to Step 7 with correct fields per http-client.md. Updated Step 12 to reference Step 7 instead of listing wrong fields.
