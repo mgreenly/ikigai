@@ -49,3 +49,4 @@
 | Error enum prefix in test tasks | `tasks/tests-provider-core.md`, `tasks/tests-google-basic.md`, `tasks/tests-anthropic-basic.md` | `ERR_*` → `IK_ERR_CAT_*` (59 replacements across 3 files) |
 | Google LOW budget typo | `tasks/google-core.md` | `10008` → `11008` (correct calculation: 128 + 32640/3 = 11008) |
 | VCR fixture path in verify-cleanup | `tasks/verify-cleanup.md` | `tests/fixtures/responses/` → `tests/fixtures/vcr/` (line 197) |
+| Error enum prefix batch 3 | `tasks/openai-streaming-responses.md`, `tasks/tests-openai-basic.md`, `tasks/tests-integration-flows.md` | `ERR_*` → `IK_ERR_CAT_*` for provider error categories (44 replacements across 3 files) |

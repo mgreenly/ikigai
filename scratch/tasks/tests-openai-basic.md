@@ -168,7 +168,7 @@ This matrix defines how each HTTP status code should be handled, mapped to inter
 - Error delivered via completion callback with `success = false`
 
 **Error Mapping:**
-- Internal code: `ERR_AUTH`
+- Internal code: `IK_ERR_CAT_AUTH`
 - Category: Authentication failure
 
 **User-Facing Message Format:**
@@ -194,7 +194,7 @@ Please verify your OPENAI_API_KEY is correct.
 
 **Test Coverage:**
 - Parse error.type and error.message from response body
-- Map to ERR_AUTH
+- Map to IK_ERR_CAT_AUTH
 - Verify callback receives error (not thrown exception)
 - Handle error.code = "invalid_api_key"
 
@@ -207,9 +207,9 @@ Please verify your OPENAI_API_KEY is correct.
 - Distinguish between different 403 subtypes based on error.type
 
 **Error Mapping:**
-- Organization restriction: `ERR_AUTH` (insufficient permissions)
-- Geographic restriction: `ERR_AUTH` (region blocked)
-- Quota/billing: `ERR_QUOTA` (payment required)
+- Organization restriction: `IK_ERR_CAT_AUTH` (insufficient permissions)
+- Geographic restriction: `IK_ERR_CAT_AUTH` (region blocked)
+- Quota/billing: `IK_ERR_CAT_RATE_LIMIT` (payment required)
 
 **OpenAI Error Types for 403:**
 - `invalid_request_error` - Typically permission/access issues
@@ -241,7 +241,7 @@ Visit https://platform.openai.com/account/billing
 
 **Test Coverage:**
 - Parse error.type to distinguish permission vs quota
-- Map to correct ERR_* category based on type and code
+- Map to correct IK_ERR_CAT_* category based on type and code
 - Extract and format error message
 
 ### 429 Too Many Requests
@@ -254,7 +254,7 @@ Visit https://platform.openai.com/account/billing
 - Do NOT automatically retry within provider
 
 **Error Mapping:**
-- Internal code: `ERR_RATE_LIMIT`
+- Internal code: `IK_ERR_CAT_RATE_LIMIT`
 - Include `retry_after_ms` in error context
 
 **OpenAI Rate Limit Headers:**
@@ -296,7 +296,7 @@ Tokens: 15000/200000 remaining (resets in 6.2s)
 - Parse retry-after header (integer seconds)
 - Parse x-ratelimit-* headers (requests and tokens)
 - Extract reset durations (e.g., "8.64s")
-- Map to ERR_RATE_LIMIT with retry_after_ms
+- Map to IK_ERR_CAT_RATE_LIMIT with retry_after_ms
 - Format user message with quota details
 - Handle both "requests" and "tokens" limit types
 
@@ -310,7 +310,7 @@ Tokens: 15000/200000 remaining (resets in 6.2s)
 - Return generic server error to user
 
 **Error Mapping:**
-- Internal code: `ERR_PROVIDER` (provider-side failure)
+- Internal code: `IK_ERR_CAT_SERVER` (provider-side failure)
 
 **User-Facing Message Format:**
 ```
@@ -325,7 +325,7 @@ This is a temporary issue on OpenAI's side. Please retry later.
 
 **Test Coverage:**
 - Handle 500 status even if response body is empty or plain text
-- Map to ERR_PROVIDER
+- Map to IK_ERR_CAT_SERVER
 - Verify error message includes status code
 
 ### 503 Service Unavailable
@@ -338,7 +338,7 @@ This is a temporary issue on OpenAI's side. Please retry later.
 - Common during high load or when models are being loaded
 
 **Error Mapping:**
-- Internal code: `ERR_OVERLOADED`
+- Internal code: `IK_ERR_CAT_SERVER`
 
 **OpenAI 503 Response:**
 ```json
@@ -365,7 +365,7 @@ Retry after 30 seconds.
 
 **Test Coverage:**
 - Parse retry-after header if present
-- Map to ERR_OVERLOADED
+- Map to IK_ERR_CAT_SERVER
 - Handle missing retry-after gracefully (use default backoff)
 - Parse error.code field
 
@@ -379,7 +379,7 @@ Retry after 30 seconds.
 - Common with o-series models or very large contexts
 
 **Error Mapping:**
-- Internal code: `ERR_TIMEOUT` (provider gateway timeout)
+- Internal code: `IK_ERR_CAT_TIMEOUT` (provider gateway timeout)
 
 **User-Facing Message Format:**
 ```
@@ -393,7 +393,7 @@ This may occur with o-series models or very large contexts. Consider simplifying
 - May include plain text: "Gateway timeout"
 
 **Test Coverage:**
-- Map 504 to ERR_TIMEOUT
+- Map 504 to IK_ERR_CAT_TIMEOUT
 - Verify distinct from curl-level timeout (CURLE_OPERATION_TIMEDOUT)
 - Handle both JSON error and plain text body
 - Include timeout guidance in error message
@@ -402,14 +402,14 @@ This may occur with o-series models or very large contexts. Consider simplifying
 
 | HTTP Status | OpenAI Error Code | Internal Code | Retry? | Retry-After Header? |
 |-------------|-------------------|---------------|--------|---------------------|
-| 401 | invalid_api_key | ERR_AUTH | No | No |
-| 403 (permission) | model_not_found | ERR_AUTH | No | No |
-| 403 (billing) | billing_not_active | ERR_QUOTA | No | No |
-| 429 (requests) | rate_limit_exceeded | ERR_RATE_LIMIT | Caller decides | Yes (required) |
-| 429 (tokens) | rate_limit_exceeded | ERR_RATE_LIMIT | Caller decides | Yes (required) |
-| 500 | N/A | ERR_PROVIDER | No | No |
-| 503 | service_unavailable | ERR_OVERLOADED | Caller decides | Maybe |
-| 504 | N/A | ERR_TIMEOUT | No | No |
+| 401 | invalid_api_key | IK_ERR_CAT_AUTH | No | No |
+| 403 (permission) | model_not_found | IK_ERR_CAT_AUTH | No | No |
+| 403 (billing) | billing_not_active | IK_ERR_CAT_RATE_LIMIT | No | No |
+| 429 (requests) | rate_limit_exceeded | IK_ERR_CAT_RATE_LIMIT | Caller decides | Yes (required) |
+| 429 (tokens) | rate_limit_exceeded | IK_ERR_CAT_RATE_LIMIT | Caller decides | Yes (required) |
+| 500 | N/A | IK_ERR_CAT_SERVER | No | No |
+| 503 | service_unavailable | IK_ERR_CAT_SERVER | Caller decides | Maybe |
+| 504 | N/A | IK_ERR_CAT_TIMEOUT | No | No |
 
 ### OpenAI-Specific Error Handling Notes
 
@@ -455,7 +455,7 @@ This may occur with o-series models or very large contexts. Consider simplifying
 
 9. **Mock Testing:** Mock curl_multi must simulate both HTTP status, headers, and OpenAI error JSON structure.
 
-10. **Context Length Errors:** 400 errors with code "context_length_exceeded" are common and should be mapped to `ERR_INVALID_REQUEST` with specific guidance about reducing context.
+10. **Context Length Errors:** 400 errors with code "context_length_exceeded" are common and should be mapped to `IK_ERR_CAT_INVALID_ARG` with specific guidance about reducing context.
 
 ## Postconditions
 

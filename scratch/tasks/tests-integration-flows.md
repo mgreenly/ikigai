@@ -119,37 +119,37 @@ Error tests verify that errors are delivered via completion callback, NOT as ret
    - Configure mock curl_multi to return HTTP 429
    - Call `start_request()` - returns OK immediately
    - Drive event loop until completion callback fires
-   - Verify completion->result has ERR_RATE_LIMIT category
+   - Verify completion->result has IK_ERR_CAT_RATE_LIMIT category
    - Verify completion->retryable is true
    - Verify completion->retry_after_ms extracted from header
 
 2. **Rate limit from OpenAI (async)**
    - Configure mock curl_multi with OpenAI 429 response
    - Drive event loop
-   - Verify same ERR_RATE_LIMIT category via callback
+   - Verify same IK_ERR_CAT_RATE_LIMIT category via callback
 
 3. **Auth error from OpenAI (async)**
    - Configure mock curl_multi to return HTTP 401
    - Call `start_request()` - returns OK immediately
    - Drive event loop
-   - Verify completion callback receives ERR_AUTH category
+   - Verify completion callback receives IK_ERR_CAT_AUTH category
    - Verify completion->retryable is false
 
 4. **Overloaded error from Anthropic (async)**
    - Configure mock curl_multi to return HTTP 529
    - Drive event loop
-   - Verify ERR_SERVICE category via callback
+   - Verify IK_ERR_CAT_SERVER category via callback
    - Verify retryable flag true
 
 5. **Context length error (async)**
    - Configure mock curl_multi with 400 + context_length_exceeded body
    - Drive event loop
-   - Verify ERR_INVALID_REQUEST category via callback
+   - Verify IK_ERR_CAT_INVALID_ARG category via callback
 
 6. **Network error (async)**
    - Configure mock curl_multi_info_read to return CURLE_COULDNT_CONNECT
    - Drive event loop
-   - Verify ERR_NETWORK category via callback
+   - Verify IK_ERR_CAT_NETWORK category via callback
    - Verify retryable flag true
 
 ### Session Restoration E2E (5 tests)
@@ -295,12 +295,12 @@ CURLMsg *curl_multi_info_read_(CURLM *multi_handle, int *msgs_in_queue);
 
 | HTTP Status | Category | Retryable |
 |-------------|----------|-----------|
-| 401, 403 | ERR_AUTH | false |
-| 429 | ERR_RATE_LIMIT | true |
-| 400 | ERR_INVALID_REQUEST | false |
-| 500, 502, 503 | ERR_SERVICE | true |
-| 529 (Anthropic) | ERR_SERVICE | true |
-| Connection fail | ERR_NETWORK | true |
+| 401, 403 | IK_ERR_CAT_AUTH | false |
+| 429 | IK_ERR_CAT_RATE_LIMIT | true |
+| 400 | IK_ERR_CAT_INVALID_ARG | false |
+| 500, 502, 503 | IK_ERR_CAT_SERVER | true |
+| 529 (Anthropic) | IK_ERR_CAT_SERVER | true |
+| Connection fail | IK_ERR_CAT_NETWORK | true |
 
 **Errors are delivered via completion callback**, not as return values from start_request/start_stream. Tests must verify error handling through the callback.
 

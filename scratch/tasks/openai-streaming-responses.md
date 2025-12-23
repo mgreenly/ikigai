@@ -305,11 +305,11 @@ Events to handle:
 - Parse JSON: `{"type":"error","error":{"type":"rate_limit_error","message":"Rate limit exceeded"}}`
 - Extract `error.message` and `error.type`
 - Map type to category:
-  - "authentication_error" -> ERR_AUTH
-  - "rate_limit_error" -> ERR_RATE_LIMIT
-  - "invalid_request_error" -> ERR_INVALID_ARG
-  - "server_error" -> ERR_SERVER
-  - default -> ERR_UNKNOWN
+  - "authentication_error" -> IK_ERR_CAT_AUTH
+  - "rate_limit_error" -> IK_ERR_CAT_RATE_LIMIT
+  - "invalid_request_error" -> IK_ERR_CAT_INVALID_ARG
+  - "server_error" -> IK_ERR_CAT_SERVER
+  - default -> IK_ERR_CAT_UNKNOWN
 - Emit IK_STREAM_ERROR via stream_cb with category and message
 - **Note:** completion_cb will be invoked from `info_read()` when curl detects connection close. The completion callback is NOT stored in stream context - it's handled by the `start_stream()` vtable method.
 
@@ -424,12 +424,12 @@ Input events:
 
 Expected stream_cb invocations:
 1. IK_STREAM_START
-2. IK_STREAM_ERROR with category=ERR_RATE_LIMIT, message="Rate limit exceeded"
+2. IK_STREAM_ERROR with category=IK_ERR_CAT_RATE_LIMIT, message="Rate limit exceeded"
 
 Verify error category mapping:
-- "authentication_error" -> ERR_AUTH
-- "rate_limit_error" -> ERR_RATE_LIMIT
-- "invalid_request_error" -> ERR_INVALID_ARG
+- "authentication_error" -> IK_ERR_CAT_AUTH
+- "rate_limit_error" -> IK_ERR_CAT_RATE_LIMIT
+- "invalid_request_error" -> IK_ERR_CAT_INVALID_ARG
 
 ### Incomplete Status (Length)
 
