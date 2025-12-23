@@ -887,7 +887,9 @@ data: {"error": {"message": "Error occurred", "type": "api_error"}}
 
 #### GPT Series
 
-- **gpt-5** - Latest flagship model
+- **gpt-5** - Latest flagship model, most capable
+- **gpt-5-mini** - Balanced performance and cost, default model
+- **gpt-5-nano** - Fast, cost-efficient for simple tasks
 - **gpt-4.1-2025-04-14** - GPT-4 series update (April 2025)
 - **gpt-4.1-nano-2025-04-14** - Smaller GPT-4.1 variant
 - **gpt-4o** - Optimized GPT-4

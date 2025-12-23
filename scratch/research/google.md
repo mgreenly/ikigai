@@ -9,6 +9,11 @@
   - Integrated grounding
   - Requires pay-as-you-go Blaze pricing plan
 
+- **gemini-3-flash** - Fast, efficient model balancing speed and capability
+  - 1M token context window
+  - Thinking mode support (thinkingLevel: LOW/HIGH)
+  - Optimized for interactive use cases
+
 - **gemini-3-pro-image** (Preview) - High-fidelity image generation with reasoning-enhanced composition
   - Legible text rendering
   - Complex multi-turn editing
