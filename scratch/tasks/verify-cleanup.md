@@ -194,7 +194,7 @@ ls tests/fixtures/openai/ 2>/dev/null | wc -l
 
 If fixtures existed in old location, verify they're moved:
 - [ ] Old fixture location empty or doesn't exist
-- [ ] New fixtures in `tests/fixtures/responses/` or similar
+- [ ] New fixtures in `tests/fixtures/vcr/` or similar
 
 ### Step 13: REPL Integration Complete
 
