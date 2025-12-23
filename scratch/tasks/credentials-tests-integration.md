@@ -1,7 +1,7 @@
 # Task: Update Integration Tests and Docs for Credentials API
 
 **Model:** sonnet/none
-**Depends on:** credentials-tests-helpers.md, credentials-tests-config.md, credentials-tests-openai.md, credentials-tests-repl.md
+**Depends on:** credentials-migrate.md, credentials-tests-helpers.md, credentials-tests-config.md, credentials-tests-openai.md, credentials-tests-repl.md
 
 ## Context
 
