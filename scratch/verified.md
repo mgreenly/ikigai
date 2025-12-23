@@ -29,3 +29,4 @@ Fixed gaps - do not re-investigate.
 | 12-22 | Refactor vs Clean Slate | scratch/plan/README.md | Clarified "Coexistence-Then-Removal" approach: build new alongside old, verify, then delete old |
 | 12-22 | Plan Directory Disorganized | scratch/plan/ | Reorganized into 01-architecture/, 02-data-formats/, 03-provider-types.md, 04-application/, 05-testing/. Merged transformation+thinking docs. Deduplicated constraint block. Deleted fix-verify-mocks-precondition.md. |
 | 12-22 | No Phase 2 Deletion Gate | scratch/plan/README.md | Added explicit "Phase 2 Prerequisites" checklist with 11 verification criteria before old code deletion |
+| 12-22 | src/client.c Fate Contradiction | scratch/plan/01-architecture/overview.md | Clarified: src/client.c (main entry) STAYS, src/openai/client.c (HTTP client) DELETED. Fixed 3 locations. |

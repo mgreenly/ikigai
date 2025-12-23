@@ -307,7 +307,7 @@ src/openai/                    # Hardcoded implementation (ALREADY ASYNC)
   sse_parser.c                 # SSE parsing (reusable)
   tool_choice.c
 
-src/client.c                   # HTTP client (blocking - not used for OpenAI)
+src/client.c                   # Main entry point (REPL application) - STAYS
 ```
 
 **Key insight:** The existing `src/openai/client_multi.c` already implements the correct async pattern. New providers must follow this pattern:
@@ -341,7 +341,7 @@ src/providers/
     streaming.c         # SSE event handling
     openai.h
 
-src/client.c            # Removed (blocking HTTP not used)
+src/client.c            # Main entry point - UPDATED to use provider abstraction
 src/openai/             # DELETED completely (moved to src/providers/openai/)
 ```
 
@@ -383,7 +383,7 @@ After migration completes:
 
 ### src/client.c Integration
 
-The existing `src/client.c` HTTP client will be refactored into `src/providers/common/http_client.c` to support all providers. Migration occurs during Phase 3 when call sites are updated to use provider abstraction.
+The `src/client.c` file contains the main() entry point for the REPL application. It will be UPDATED (not removed) to use the new provider abstraction when calling agent operations. No structural changes are needed - only the agent context will gain provider fields that client.c passes through.
 
 ## Error Handling
 
