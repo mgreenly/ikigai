@@ -135,3 +135,11 @@ Gaps identified during task review that have been fixed.
 **Issue:** Error categories used inconsistent naming - some places used `ERR_AUTH`, others used `IK_ERR_CAT_CONTENT_FILTER`. Per project naming conventions, all enum values should use the `IK_ERR_CAT_*` prefix.
 
 **Fix:** Changed all 58 error category references from `ERR_*` to `IK_ERR_CAT_*` throughout the document (category list, provider mapping tables, retry strategy sections, utility function docs).
+
+### credentials.json format standardized to nested structure
+
+**Files:** `scratch/plan/01-architecture/overview.md`, `scratch/plan/04-application/configuration.md`
+
+**Issue:** Two different JSON schemas were defined - configuration.md showed nested `{"anthropic": {"api_key": "..."}}` but overview.md and an example in configuration.md showed flat `{"anthropic": "..."}`.
+
+**Fix:** Updated all instances to use the nested format for extensibility (allows future fields like org_id, base_url).

@@ -308,7 +308,7 @@ The `/model` command updated to:
 New credentials loading:
 - Check environment variable `{PROVIDER}_API_KEY` (e.g., `ANTHROPIC_API_KEY`)
 - Fall back to `credentials.json` file in config directory
-- Format: `{"anthropic": "sk-ant-...", "openai": "sk-..."}`
+- Format: `{"anthropic": {"api_key": "sk-ant-..."}, "openai": {"api_key": "sk-..."}}`
 - Return auth error with setup instructions if credentials missing
 
 ## Migration from Existing OpenAI Code

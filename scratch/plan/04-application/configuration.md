@@ -227,9 +227,15 @@ Option 1: Set environment variable
 
 Option 2: Create credentials file at ~/.config/ikigai/credentials.json
   {
-    "anthropic": "sk-ant-...",
-    "openai": "sk-...",
-    "google": "..."
+    "anthropic": {
+      "api_key": "sk-ant-..."
+    },
+    "openai": {
+      "api_key": "sk-..."
+    },
+    "google": {
+      "api_key": "..."
+    }
   }
 
 Get your API key at:
