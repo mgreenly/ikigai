@@ -371,6 +371,15 @@ src/openai/             # DELETED completely (moved to src/providers/openai/)
 
 **Approach:** Maintain OpenAI functionality throughout migration by creating adapter shim, then refactor incrementally.
 
+**Phase Mapping:**
+
+The 8 implementation steps below map to the high-level phases in [README.md](../README.md):
+
+| Phase | Steps | Description |
+|-------|-------|-------------|
+| Phase 1: Coexistence | Steps 1-7 | Build new provider abstraction alongside existing code |
+| Phase 2: Removal | Step 8 | Delete old code after verification (see README.md prerequisites) |
+
 **Phases:**
 
 1. **Vtable Foundation** - Create `src/providers/provider.h` with async interface definitions
