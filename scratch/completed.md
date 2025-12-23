@@ -22,3 +22,4 @@
 - 5.6 Doc Sync: VCR Format - updated 05-testing/strategy.md to show JSONL format with line types (_request, _response, _body, _chunk) (from todo-5-testing.md)
 - 6.1 Missing: Old Fixtures - added tests/fixtures/openai/ deletion to cleanup-openai-tests.md (from todo-6-cleanup.md)
 - 6.2 Missing: Integration Tests - added tests/integration/openai/ deletion to cleanup-openai-tests.md (from todo-6-cleanup.md)
+- 6.3 Incomplete: File List - updated cleanup-openai-source.md with complete src/openai/ inventory (19 files) (from todo-6-cleanup.md)
