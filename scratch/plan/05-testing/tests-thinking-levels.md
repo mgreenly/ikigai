@@ -90,9 +90,9 @@ The thinking abstraction is a critical feature that must work consistently acros
 **Anthropic Claude Sonnet 4.5:**
 - Model max: 64,000 tokens
 - Minimum: 1,024 tokens (enforced by API)
-- IK_THINKING_NONE → 1024 tokens
-- IK_THINKING_LOW → ~21,669 tokens (1/3 of range from min to max)
-- IK_THINKING_MED → ~43,008 tokens (2/3 of range from min to max)
+- IK_THINKING_NONE → 1,024 tokens
+- IK_THINKING_LOW → 22,016 tokens (1/3 of range from min to max)
+- IK_THINKING_MED → 43,008 tokens (2/3 of range from min to max)
 - IK_THINKING_HIGH → 64,000 tokens
 
 **OpenAI o-series (o1, o3, o3-mini):**
@@ -103,11 +103,12 @@ The thinking abstraction is a critical feature that must work consistently acros
 - IK_THINKING_HIGH → "effort": "high"
 
 **Google Gemini 2.5 Pro:**
-- Model max: ~32,768 tokens (experimental feature)
-- IK_THINKING_NONE → no thinkingConfig sent
-- IK_THINKING_LOW → thinkingBudget: ~10,923 (1/3 of max)
-- IK_THINKING_MED → thinkingBudget: ~21,845 (2/3 of max)
-- IK_THINKING_HIGH → thinkingBudget: 32,768 (max)
+- Model max: 32,768 tokens (experimental feature)
+- Minimum: 128 tokens
+- IK_THINKING_NONE → 128 (minimum, cannot disable)
+- IK_THINKING_LOW → 11,008 (1/3 of range from min to max)
+- IK_THINKING_MED → 21,760 (2/3 of range from min to max)
+- IK_THINKING_HIGH → 32,768 (max)
 
 ### Request Serialization Format
 
@@ -136,7 +137,7 @@ The thinking abstraction is a critical feature that must work consistently acros
 {
   "generationConfig": {
     "thinkingConfig": {
-      "thinkingBudget": 21845,
+      "thinkingBudget": 21760,
       "includeThoughts": true
     }
   }
@@ -287,8 +288,8 @@ tests/fixtures/vcr/
 
 **Anthropic Budget Calculation:**
 1. For IK_THINKING_NONE: verify budget = 1024
-2. For IK_THINKING_LOW: verify budget ≈ 21,669 (within 1% tolerance)
-3. For IK_THINKING_MED: verify budget ≈ 43,008 (within 1% tolerance)
+2. For IK_THINKING_LOW: verify budget = 22,016
+3. For IK_THINKING_MED: verify budget = 43,008
 4. For IK_THINKING_HIGH: verify budget = 64,000
 5. Assert: all budgets within valid range [1024, 64000]
 
@@ -300,11 +301,11 @@ tests/fixtures/vcr/
 5. Assert: effort string matches expected value exactly
 
 **Google Budget Calculation:**
-1. For IK_THINKING_NONE: verify no thinkingConfig
-2. For IK_THINKING_LOW: verify thinkingBudget ≈ 10,923 (within 1% tolerance)
-3. For IK_THINKING_MED: verify thinkingBudget ≈ 21,845 (within 1% tolerance)
+1. For IK_THINKING_NONE: verify thinkingBudget = 128
+2. For IK_THINKING_LOW: verify thinkingBudget = 11,008
+3. For IK_THINKING_MED: verify thinkingBudget = 21,760
 4. For IK_THINKING_HIGH: verify thinkingBudget = 32,768
-5. Assert: all budgets within valid range [0, 32768]
+5. Assert: all budgets within valid range [128, 32768]
 
 ### Serialization Tests (3 tests)
 
@@ -328,7 +329,7 @@ tests/fixtures/vcr/
 1. Create request with IK_THINKING_MED, model gemini-2.5-pro
 2. Serialize request to JSON
 3. Parse JSON, extract generationConfig.thinkingConfig
-4. Verify thinkingBudget ≈ 21,845
+4. Verify thinkingBudget = 21,760
 5. Verify includeThoughts = true
 6. Assert: JSON valid and parseable
 

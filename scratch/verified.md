@@ -89,3 +89,15 @@ Gaps identified during task review that have been fixed.
 **Fix:** Replaced all occurrences:
 - `ERR_INVALID` → `ERR_INVALID_ARG`
 - `ERR_PROVIDER` → `ERR_SERVER`
+
+### Thinking budget calculations mismatch
+
+**Files:** `scratch/plan/05-testing/tests-thinking-levels.md`
+
+**Issue:** tests-thinking-levels.md had incorrect thinking budget values that didn't match canonical provider-types.md. Used "~21,669" instead of 22,016 for Anthropic LOW, "~10,923" instead of 11,008 for Google LOW, etc. Also incorrectly said Google NONE sends "no thinkingConfig" when it should send minimum 128.
+
+**Fix:** Updated all budget values to match canonical formula `min + (level/3) * (max - min)`:
+- Anthropic LOW: ~21,669 → 22,016
+- Google NONE: "no thinkingConfig sent" → "128 (minimum, cannot disable)"
+- Google LOW: ~10,923 → 11,008
+- Google MED: ~21,845 → 21,760
