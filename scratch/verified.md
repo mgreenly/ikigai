@@ -26,3 +26,8 @@ Fixed gaps - do not re-investigate.
 - `ik_http_completion_t`: LOW-LEVEL (HTTP client, raw CURL data)
 - `ik_provider_completion_t`: HIGH-LEVEL (provider API, parsed responses)
 - Provider implementations convert between them
+
+### 2024-12-22: Factory Function Signature Mismatch
+**Location:** `scratch/tasks/openai-shim-types.md`, `scratch/tasks/provider-factory.md`
+**Problem:** OpenAI create function used `ik_credentials_t *creds` but Anthropic/Google used `const char *api_key`. Factory expected consistent signatures.
+**Fix:** Changed `ik_openai_create()` to take `const char *api_key`. Removed credentials dependency from openai-shim-types.md. All providers now have consistent signatures for factory dispatch.

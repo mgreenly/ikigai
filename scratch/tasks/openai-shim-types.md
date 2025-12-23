@@ -1,7 +1,7 @@
 # Task: Define OpenAI Shim Types
 
 **Model:** sonnet/none
-**Depends on:** provider-types.md, credentials-core.md
+**Depends on:** provider-types.md
 
 ## Context
 
@@ -22,7 +22,6 @@
 **Source:**
 - `src/providers/provider.h` - Provider vtable and types (created by provider-types.md)
 - `src/openai/client.h` - Existing OpenAI types to understand
-- `src/credentials.h` - Credentials API
 
 **Plan:**
 - `scratch/plan/architecture.md` - Migration Strategy section
@@ -37,13 +36,13 @@ Define the shim context structure and factory function signature for the OpenAI 
 
 | Struct | Members | Purpose |
 |--------|---------|---------|
-| `ik_openai_shim_ctx_t` | creds (ik_credentials_t*), api_key (char*), multi (ik_openai_multi_t*) | Holds OpenAI-specific context for vtable callbacks |
+| `ik_openai_shim_ctx_t` | api_key (char*), multi (ik_openai_multi_t*) | Holds OpenAI-specific context for vtable callbacks |
 
 ### Functions to Declare
 
 | Function | Purpose |
 |----------|---------|
-| `res_t ik_openai_create(TALLOC_CTX *ctx, ik_credentials_t *creds, ik_provider_t **out)` | Factory function (declaration only, stub impl) |
+| `res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out)` | Factory function (declaration only, stub impl) |
 | `void ik_openai_shim_destroy(void *impl_ctx)` | Cleanup shim context (declaration only, stub impl) |
 
 ### Files to Create
@@ -55,9 +54,9 @@ Define the shim context structure and factory function signature for the OpenAI 
 
 ### Factory Function Stub
 - Allocate shim context on provider's talloc context
-- Obtain API key via `ik_credentials_get(creds, "openai")`
-- Return ERR_MISSING_CREDENTIALS if key not found
-- Store API key in context
+- Validate API key is not NULL
+- Return ERR_MISSING_CREDENTIALS if key is NULL
+- Store API key in context (duplicate with talloc_strdup)
 - Initialize multi-handle: `ik_openai_multi_create(shim, &shim->multi)`
 - Create provider with vtable pointing to stub send/stream functions
 - Stub send/stream return `ERR(ctx, ERR_NOT_IMPLEMENTED, "Not yet implemented")`
@@ -73,8 +72,8 @@ Define the shim context structure and factory function signature for the OpenAI 
 
 ## Test Scenarios
 
-- Create shim context with valid credentials: succeeds, api_key populated
-- Create shim context with missing credentials: returns ERR_MISSING_CREDENTIALS
+- Create shim context with valid API key: succeeds, api_key populated
+- Create shim context with NULL API key: returns ERR_MISSING_CREDENTIALS
 - Destroy NULL context: no crash
 - Destroy valid context: no memory leaks
 - Call stub send(): returns ERR_NOT_IMPLEMENTED
@@ -85,7 +84,7 @@ Define the shim context structure and factory function signature for the OpenAI 
 - [ ] `src/providers/openai/shim.h` exists and compiles
 - [ ] `src/providers/openai/shim.c` exists and compiles
 - [ ] Factory function creates provider with valid vtable
-- [ ] Missing credentials returns correct error
+- [ ] NULL API key returns correct error
 - [ ] Unit tests pass
 - [ ] `make check` passes
 - [ ] No changes to `src/openai/` files
