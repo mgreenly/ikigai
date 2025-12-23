@@ -156,6 +156,23 @@ Content policy violation: Your request was blocked by the provider's safety filt
 
 ## Rate Limit Headers
 
+**Design Decision:** Rate limit header parsing is **decentralized per-provider**. No shared `ik_parse_rate_limit_headers()` function is created.
+
+**Rationale:**
+1. **Header names differ completely** - Each provider uses different naming conventions (anthropic-ratelimit-*, x-ratelimit-*, vs no headers)
+2. **Data formats vary** - Anthropic uses integers, OpenAI uses duration strings ("6m0s"), Google uses JSON body with duration ("60s")
+3. **Semantics differ** - Anthropic provides raw limits/remaining, OpenAI provides reset times, Google only provides retry delay in errors
+4. **Google is special** - No HTTP headers at all; rate limit info only appears in error response body
+5. **Per-provider logic is simpler** - Each adapter knows exactly which headers to look for and how to parse them
+6. **No abstraction benefit** - A shared parser would need conditionals for each provider anyway
+
+**Implementation approach:**
+- Each provider adapter parses its own headers in the HTTP response handler
+- Anthropic: Extract integer values from `anthropic-ratelimit-*` and `retry-after` headers
+- OpenAI: Extract integers and parse duration strings from `x-ratelimit-*` headers
+- Google: Parse `retryDelay` from error response JSON body (no headers)
+- All providers populate the same `retry_after_ms` field in `ik_provider_error_t`
+
 ### Anthropic
 
 ```
@@ -163,8 +180,13 @@ anthropic-ratelimit-requests-limit: 1000
 anthropic-ratelimit-requests-remaining: 999
 anthropic-ratelimit-tokens-limit: 100000
 anthropic-ratelimit-tokens-remaining: 99950
-retry-after: 20  // On 429 only
+retry-after: 20  // On 429 only, in seconds
 ```
+
+**Parsing logic:**
+- Extract `retry-after` header value (integer seconds)
+- Convert to milliseconds: `retry_after_ms = retry_after * 1000`
+- Other headers are informational only (for logging/debugging)
 
 ### OpenAI
 
@@ -176,6 +198,12 @@ x-ratelimit-limit-tokens: 800000
 x-ratelimit-remaining-tokens: 799500
 x-ratelimit-reset-tokens: 3m20s
 ```
+
+**Parsing logic:**
+- Parse duration string format: "Xm Ys" or "Xs" (e.g., "6m0s", "3m20s", "45s")
+- Extract minutes and seconds, convert to total milliseconds
+- Use whichever reset time is sooner (requests vs tokens)
+- Example: "6m0s" → 360,000ms
 
 ### Google
 
@@ -191,6 +219,12 @@ No standard headers. Rate limit info in error response body:
   }
 }
 ```
+
+**Parsing logic:**
+- Extract `retryDelay` string from error JSON (format: "Xs")
+- Parse integer and convert to milliseconds
+- Example: "60s" → 60,000ms
+- Field may be absent; use exponential backoff if missing
 
 ## Retry Strategy
 

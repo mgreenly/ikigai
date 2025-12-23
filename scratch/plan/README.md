@@ -126,6 +126,7 @@ Based on README.md decisions:
 | Streaming normalization | In adapter (during perform) | Provider adapters emit normalized events via callbacks |
 | Tool call IDs | Preserve provider IDs | Generate UUIDs only for Google (22-char base64url) |
 | Error preservation | Enriched errors | Store category + provider details for debugging |
+| Rate limit parsing | Decentralized per-provider | Headers differ completely across providers; no shared parser |
 | Testing | Mock curl_multi layer | Test async behavior, validate with live tests |
 
 ## Migration Impact
