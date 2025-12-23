@@ -143,3 +143,11 @@ Gaps identified during task review that have been fixed.
 **Issue:** Two different JSON schemas were defined - configuration.md showed nested `{"anthropic": {"api_key": "..."}}` but overview.md and an example in configuration.md showed flat `{"anthropic": "..."}`.
 
 **Fix:** Updated all instances to use the nested format for extensibility (allows future fields like org_id, base_url).
+
+### Model name suffixes standardized to claude-sonnet-4-5-20250514
+
+**Files:** `scratch/plan/03-provider-types.md`, `scratch/plan/05-testing/strategy.md`, `scratch/plan/02-data-formats/request-response.md`, `scratch/plan/04-application/database-schema.md`, `scratch/plan/05-testing/vcr-cassettes.md`
+
+**Issue:** Inconsistent model name formats - some used `claude-sonnet-4-5-20250929`, others used `claude-sonnet-4-20250514` (missing "4-5" version).
+
+**Fix:** Standardized all 11 instances to use `claude-sonnet-4-5-20250514` across 5 files.

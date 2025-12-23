@@ -227,9 +227,9 @@ All fixtures use JSONL format (JSON Lines, newline-delimited JSON). Each line is
 
 ```jsonl
 // tests/fixtures/vcr/anthropic/test_anthropic_basic.jsonl
-{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-5-20250929\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"}}
+{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-5-20250514\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"}}
 {"_response": {"status": 200, "headers": {"content-type": "application/json"}}}
-{"_body": "{\"id\":\"msg_123\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-sonnet-4-5-20250929\",\"content\":[{\"type\":\"text\",\"text\":\"Hello! How can I assist you today?\"}],\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":50,\"output_tokens\":15}}"}
+{"_body": "{\"id\":\"msg_123\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-sonnet-4-5-20250514\",\"content\":[{\"type\":\"text\",\"text\":\"Hello! How can I assist you today?\"}],\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":50,\"output_tokens\":15}}"}
 ```
 
 ### Streaming JSONL Fixture
@@ -238,9 +238,9 @@ For streaming responses, each `_chunk` line contains exactly what curl's write c
 
 ```jsonl
 // tests/fixtures/vcr/anthropic/test_anthropic_streaming_basic.jsonl
-{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-5-20250929\",\"stream\":true,\"messages\":[...]}"}}
+{"_request": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "headers": {"x-api-key": "REDACTED", "content-type": "application/json"}, "body": "{\"model\":\"claude-sonnet-4-5-20250514\",\"stream\":true,\"messages\":[...]}"}}
 {"_response": {"status": 200, "headers": {"content-type": "text/event-stream"}}}
-{"_chunk": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_123\",\"model\":\"claude-sonnet-4-5-20250929\"}}\n\n"}
+{"_chunk": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_123\",\"model\":\"claude-sonnet-4-5-20250514\"}}\n\n"}
 {"_chunk": "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n"}
 {"_chunk": "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}\n\n"}
 {"_chunk": "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"!\"}}\n\n"}

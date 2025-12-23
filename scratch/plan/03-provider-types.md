@@ -102,7 +102,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
 **Wire (Anthropic JSON):**
 ```json
 {
-  "model": "claude-sonnet-4-5-20250929",
+  "model": "claude-sonnet-4-5-20250514",
   "system": "You are helpful",
   "messages": [
     {"role": "user", "content": "Hello"},
@@ -139,7 +139,7 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
   "id": "msg_123",
   "type": "message",
   "role": "assistant",
-  "model": "claude-sonnet-4-5-20250929",
+  "model": "claude-sonnet-4-5-20250514",
   "content": [
     {
       "type": "thinking",

@@ -89,7 +89,7 @@ The `messages.data` JSONB column structure changes:
 ```json
 {
   "provider": "anthropic",
-  "model": "claude-sonnet-4-5-20250929",
+  "model": "claude-sonnet-4-5-20250514",
   "thinking_level": "med",
 
   "thinking": "Let me analyze this...",  // Thinking summary (if available)
@@ -260,7 +260,7 @@ ALTER TABLE agents DROP COLUMN thinking_level;
 ```json
 {
   "provider": "anthropic",
-  "model": "claude-sonnet-4-5-20250929",
+  "model": "claude-sonnet-4-5-20250514",
   "thinking_level": "med",
   "thinking": "I should provide a concise answer...",
   "thinking_tokens": 1234,
