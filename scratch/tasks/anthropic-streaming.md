@@ -144,7 +144,7 @@ The curl write callback (set via `CURLOPT_WRITEFUNCTION`) must:
    - CURLOPT_WRITEFUNCTION = anthropic_write_callback
    - CURLOPT_WRITEDATA = stream_ctx
    - Store completion_cb/completion_ctx separately (NOT in stream_ctx) for info_read() to invoke
-6. Add easy handle to curl_multi via ik_http_multi_add_handle()
+6. Add easy handle to curl_multi via ik_http_multi_add_request()
 7. Return OK(NULL) immediately
 ```
 

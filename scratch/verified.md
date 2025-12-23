@@ -41,3 +41,8 @@ Fixed gaps - do not re-investigate.
 **Location:** `scratch/tasks/anthropic-streaming.md`, `scratch/tasks/google-streaming.md`, `scratch/tasks/openai-streaming-chat.md`
 **Problem:** Anthropic stream_ctx_create() took BOTH stream_cb AND completion_cb, but Google/OpenAI took only stream_cb. Inconsistent ownership semantics.
 **Fix:** Changed Anthropic to match Google/OpenAI pattern. Stream context stores only stream callback. Completion callback is passed to start_stream() vtable method instead. All three providers now have consistent callback ownership.
+
+### 2024-12-22: HTTP Multi Function Name Mismatch
+**Location:** `scratch/tasks/anthropic-streaming.md`
+**Problem:** Referenced `ik_http_multi_add_handle()` but HTTP client API defines `ik_http_multi_add_request()`.
+**Fix:** Changed `ik_http_multi_add_handle()` to `ik_http_multi_add_request()` to match http-client.md API.
