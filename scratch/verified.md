@@ -51,3 +51,8 @@ Fixed gaps - do not re-investigate.
 **Location:** `scratch/tasks/provider-types.md`
 **Problem:** Provider files reference `ik_thinking_level_t` but no documentation specified required include order. Could cause compilation failures.
 **Fix:** Added "Include Order" section specifying that `src/providers/provider.h` must be included first. Provider-specific headers must include provider.h. Application code should include provider.h before provider-specific headers.
+
+### 2024-12-22: VCR Chunk Format Ambiguity
+**Location:** `scratch/tasks/vcr-core.md`
+**Problem:** `vcr_next_chunk()` returns both `data_out` and `len_out` but didn't specify if chunks are null-terminated or binary. SSE parser uses `strlen()` expecting null-terminated strings.
+**Fix:** Added "Chunk Format" section clarifying chunks are null-terminated C strings. `len_out` is provided for convenience/optimization. Guaranteed: `strlen(*data_out) == *len_out`. Safe to use with all string functions.

@@ -153,6 +153,23 @@ Each `_chunk` line contains exactly what curl's write callback received - one ca
 | `vcr_record_body` | `void (const char *data, size_t len)` | Record complete body (non-streaming, record mode) |
 | `vcr_verify_request` | `void (const char *method, const char *url, const char *body)` | Verify request matches recorded (playback mode) |
 
+## Chunk Format
+
+**Critical: Chunks are null-terminated C strings.**
+
+All chunks returned by `vcr_next_chunk()` are guaranteed to be null-terminated:
+- **Null terminator guarantee**: Every chunk `data_out` is a valid null-terminated C string
+- **Safe for string functions**: Can be used with `strlen()`, `strcpy()`, `strstr()`, etc.
+- **Length parameter**: `len_out` provides the string length for convenience/optimization to avoid redundant `strlen()` calls
+- **Consistency**: `strlen(*data_out)` always equals `*len_out`
+
+This design provides flexibility:
+- Use `*data_out` directly with string functions when convenient
+- Use `*len_out` to avoid redundant strlen() calls in performance-sensitive code
+- Use both for validation/debugging (assert `strlen(*data_out) == *len_out`)
+
+Implementation note: When recording chunks via `vcr_record_chunk(data, len)`, VCR internally stores them as null-terminated strings. The `len` parameter indicates the content length, but storage includes the null terminator.
+
 ## Behaviors
 
 ### VCR Active State (vcr_is_active)
