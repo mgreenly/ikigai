@@ -7,6 +7,7 @@
 #include "repl_streaming_test_common.h"
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
+#include <stdlib.h>
 
 // Global state for curl mocking
 curl_write_callback g_write_callback = NULL;
@@ -160,7 +161,6 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     // Create config
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "test-api-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;

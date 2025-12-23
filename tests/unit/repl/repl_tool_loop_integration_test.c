@@ -23,6 +23,7 @@
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
+#include <stdlib.h>
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
@@ -30,6 +31,7 @@ static ik_repl_ctx_t *repl;
 static void setup(void)
 {
     ctx = talloc_new(NULL);
+    setenv("OPENAI_API_KEY", "test-key", 1);
 
     /* Create minimal REPL context for testing */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -51,7 +53,6 @@ static void setup(void)
 
     /* Create config */
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    cfg->openai_api_key = talloc_strdup(cfg, "test-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -77,6 +78,7 @@ static void setup(void)
 
 static void teardown(void)
 {
+    unsetenv("OPENAI_API_KEY");
     talloc_free(ctx);
 }
 

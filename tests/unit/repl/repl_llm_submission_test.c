@@ -11,6 +11,7 @@
 #include "../../../src/agent.h"
 #include <talloc.h>
 #include <string.h>
+#include <stdlib.h>
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
@@ -19,6 +20,18 @@
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/openai/client_multi.h"
 #include "../../test_utils.h"
+
+static void *test_ctx;
+
+static void setup(void) {
+    test_ctx = talloc_new(NULL);
+    setenv("OPENAI_API_KEY", "test-key", 1);
+}
+
+static void teardown(void) {
+    unsetenv("OPENAI_API_KEY");
+    talloc_free(test_ctx);
+}
 
 // Forward declaration for wrapper function
 ssize_t posix_write_(int fd, const void *buf, size_t count);
@@ -110,7 +123,6 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     // Create config and set in shared context (already created above)
     ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->openai_api_key = talloc_strdup(cfg, "test-api-key");
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 1000;
@@ -242,12 +254,17 @@ END_TEST
 /* Test: API request failure is handled gracefully (empty API key) */
 START_TEST(test_submit_message_api_request_failure)
 {
+    // Save original environment
+    char *orig_home = getenv("HOME") ? strdup(getenv("HOME")) : NULL;
+    char *orig_api_key = getenv("OPENAI_API_KEY") ? strdup(getenv("OPENAI_API_KEY")) : NULL;
+
+    // Set HOME to /tmp to avoid reading real credentials file
+    setenv("HOME", "/tmp", 1);
+    // Clear the API key for this test
+    unsetenv("OPENAI_API_KEY");
+
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl_with_llm(ctx);
-
-    // Set empty API key to trigger failure
-    talloc_free(repl->shared->cfg->openai_api_key);
-    repl->shared->cfg->openai_api_key = talloc_strdup(repl->shared->cfg, "");
 
     // Type a message
     const char *message = "Hello";
@@ -257,7 +274,7 @@ START_TEST(test_submit_message_api_request_failure)
         ck_assert(is_ok(&res));
     }
 
-    // Submit the message (should trigger API request that fails due to empty API key)
+    // Submit the message (should trigger API request that fails due to missing API key)
     ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
     res_t res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
@@ -275,6 +292,18 @@ START_TEST(test_submit_message_api_request_failure)
     // Verify user message was added to conversation (error happens after message creation)
     ck_assert_uint_eq((unsigned int)repl->current->conversation->message_count, 1);
 
+    // Restore environment variables
+    if (orig_home) {
+        setenv("HOME", orig_home, 1);
+        free(orig_home);
+    }
+    if (orig_api_key) {
+        setenv("OPENAI_API_KEY", orig_api_key, 1);
+        free(orig_api_key);
+    } else {
+        setenv("OPENAI_API_KEY", "test-key", 1);
+    }
+
     talloc_free(ctx);
 }
 
@@ -287,6 +316,7 @@ static Suite *repl_llm_submission_suite(void)
 
     TCase *tc_submission = tcase_create("Submission");
     tcase_set_timeout(tc_submission, 30);
+    tcase_add_checked_fixture(tc_submission, setup, teardown);
     tcase_add_test(tc_submission, test_submit_message_with_llm_initialized);
     tcase_add_test(tc_submission, test_submit_message_clears_previous_assistant_response);
     tcase_add_test(tc_submission, test_submit_message_without_cfg);
