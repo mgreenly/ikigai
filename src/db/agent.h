@@ -44,6 +44,9 @@ typedef struct {
     char *status;
     int64_t created_at;
     int64_t ended_at;  // 0 if still running
+    char *provider;        // LLM provider (nullable)
+    char *model;           // Model identifier (nullable)
+    char *thinking_level;  // Thinking budget/level (nullable)
 } ik_db_agent_row_t;
 
 /**
@@ -119,5 +122,23 @@ res_t ik_db_agent_get_parent(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
  */
 res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid,
                                        int64_t *out_message_id);
+
+/**
+ * Update agent provider configuration
+ *
+ * Updates the provider, model, and thinking_level fields for an agent.
+ * All three fields are updated atomically. NULL values are allowed and will
+ * clear the configuration. Returns OK if agent not found (UPDATE affects 0 rows).
+ *
+ * @param db_ctx Database context (must not be NULL)
+ * @param uuid Agent UUID to update (must not be NULL)
+ * @param provider Provider name (may be NULL)
+ * @param model Model identifier (may be NULL)
+ * @param thinking_level Thinking budget/level (may be NULL)
+ * @return OK on success, ERR_DB_CONNECT on database error
+ */
+res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
+                                   const char *provider, const char *model,
+                                   const char *thinking_level);
 
 #endif // IK_DB_AGENT_H

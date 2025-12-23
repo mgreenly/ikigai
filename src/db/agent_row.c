@@ -63,6 +63,30 @@ res_t ik_db_agent_parse_row(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
         return ERR(db_ctx, PARSE, "Failed to parse ended_at");
     }
 
+    // Extract provider (column 7) - nullable
+    if (!PQgetisnull(res, row_index, 7)) {
+        row->provider = talloc_strdup(row, PQgetvalue_(res, row_index, 7));
+        if (row->provider == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    } else {
+        row->provider = NULL;
+    }
+
+    // Extract model (column 8) - nullable
+    if (!PQgetisnull(res, row_index, 8)) {
+        row->model = talloc_strdup(row, PQgetvalue_(res, row_index, 8));
+        if (row->model == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    } else {
+        row->model = NULL;
+    }
+
+    // Extract thinking_level (column 9) - nullable
+    if (!PQgetisnull(res, row_index, 9)) {
+        row->thinking_level = talloc_strdup(row, PQgetvalue_(res, row_index, 9));
+        if (row->thinking_level == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    } else {
+        row->thinking_level = NULL;
+    }
+
     *out = row;
     return OK(NULL);
 }

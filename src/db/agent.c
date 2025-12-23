@@ -29,8 +29,9 @@ res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
 
     // Insert agent into registry with status='running'
     const char *query =
-        "INSERT INTO agents (uuid, name, parent_uuid, status, created_at, fork_message_id) "
-        "VALUES ($1, $2, $3, 'running', $4, $5)";
+        "INSERT INTO agents (uuid, name, parent_uuid, status, created_at, fork_message_id, "
+        "provider, model, thinking_level) "
+        "VALUES ($1, $2, $3, 'running', $4, $5, $6, $7, $8)";
 
     // Convert created_at and fork_message_id to strings for parameters
     char created_at_str[32];
@@ -38,15 +39,18 @@ res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
     snprintf(created_at_str, sizeof(created_at_str), "%" PRId64, agent->created_at);
     snprintf(fork_message_id_str, sizeof(fork_message_id_str), "%" PRId64, agent->fork_message_id);
 
-    const char *param_values[5];
+    const char *param_values[8];
     param_values[0] = agent->uuid;
     param_values[1] = agent->name;            // Can be NULL
     param_values[2] = agent->parent_uuid;     // Can be NULL for root agent
     param_values[3] = created_at_str;
     param_values[4] = fork_message_id_str;
+    param_values[5] = NULL;  // provider - not yet in agent context, always NULL for now
+    param_values[6] = NULL;  // model - not yet in agent context, always NULL for now
+    param_values[7] = NULL;  // thinking_level - not yet in agent context, always NULL for now
 
     ik_pg_result_wrapper_t *res_wrapper =
-        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 5, NULL,
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 8, NULL,
                                                    param_values, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
@@ -113,7 +117,8 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     // Query for agent by UUID
     const char *query =
         "SELECT uuid, name, parent_uuid, fork_message_id, status::text, "
-        "created_at, COALESCE(ended_at, 0) as ended_at "
+        "created_at, COALESCE(ended_at, 0) as ended_at, "
+        "provider, model, thinking_level "
         "FROM agents WHERE uuid = $1";
 
     const char *param_values[1];
@@ -162,7 +167,8 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     // Query for all running agents
     const char *query =
         "SELECT uuid, name, parent_uuid, fork_message_id, status::text, "
-        "created_at, COALESCE(ended_at, 0) as ended_at "
+        "created_at, COALESCE(ended_at, 0) as ended_at, "
+        "provider, model, thinking_level "
         "FROM agents WHERE status = 'running' ORDER BY created_at";
 
     ik_pg_result_wrapper_t *res_wrapper =
@@ -221,7 +227,8 @@ res_t ik_db_agent_get_children(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     // Query for children of parent_uuid
     const char *query =
         "SELECT uuid, name, parent_uuid, fork_message_id, status::text, "
-        "created_at, COALESCE(ended_at, 0) as ended_at "
+        "created_at, COALESCE(ended_at, 0) as ended_at, "
+        "provider, model, thinking_level "
         "FROM agents WHERE parent_uuid = $1 ORDER BY created_at";
 
     const char *param_values[1];
@@ -281,7 +288,8 @@ res_t ik_db_agent_get_parent(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     // Query for parent via JOIN
     const char *query =
         "SELECT p.uuid, p.name, p.parent_uuid, p.fork_message_id, p.status::text, "
-        "p.created_at, COALESCE(p.ended_at, 0) as ended_at "
+        "p.created_at, COALESCE(p.ended_at, 0) as ended_at, "
+        "p.provider, p.model, p.thinking_level "
         "FROM agents c "
         "JOIN agents p ON c.parent_uuid = p.uuid "
         "WHERE c.uuid = $1";
@@ -356,5 +364,45 @@ res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uui
     }
 
     talloc_free(tmp);
+    return OK(NULL);
+}
+
+res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
+                                   const char *provider, const char *model,
+                                   const char *thinking_level)
+{
+    assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(uuid != NULL);    // LCOV_EXCL_BR_LINE
+
+    // Create temporary context for query result
+    TALLOC_CTX *tmp = tmp_ctx_create();
+
+    // Update provider configuration for agent
+    const char *query =
+        "UPDATE agents SET provider = $1, model = $2, thinking_level = $3 "
+        "WHERE uuid = $4";
+
+    const char *param_values[4];
+    param_values[0] = provider;         // Can be NULL
+    param_values[1] = model;            // Can be NULL
+    param_values[2] = thinking_level;   // Can be NULL
+    param_values[3] = uuid;
+
+    ik_pg_result_wrapper_t *res_wrapper =
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 4, NULL,
+                                                   param_values, NULL, NULL, 0));
+    PGresult *res = res_wrapper->pg_result;
+
+    // Check query execution status
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        const char *pq_err = PQerrorMessage(db_ctx->conn);
+        talloc_free(tmp);  // Destructor automatically calls PQclear
+        return ERR(db_ctx, IO, "Failed to update agent provider: %s", pq_err);
+    }
+
+    // Note: UPDATE affecting 0 rows (agent not found) is not an error
+    // as per the task specification
+
+    talloc_free(tmp);  // Destructor automatically calls PQclear
     return OK(NULL);
 }

@@ -17,7 +17,7 @@ Tracks applied migrations for incremental schema updates.
 |----------------|---------|----------------|-------------------------------|
 | schema_version | INTEGER | PRIMARY KEY    | Current schema version number |
 
-**Current version:** 4
+**Current version:** 5
 
 ### sessions
 Groups messages by conversation session with persistent state across app launches.
@@ -75,6 +75,9 @@ Agent registry tracking agent lifecycle, parent-child relationships, and status 
 | status          | agent_status | NOT NULL, DEFAULT 'running'          | Agent status (running/dead)              |
 | created_at      | BIGINT       | NOT NULL                             | Unix epoch timestamp (seconds)           |
 | ended_at        | BIGINT       | NULL                                 | Unix epoch timestamp (NULL if running)   |
+| provider        | TEXT         | NULL                                 | LLM provider (anthropic, openai, etc.)   |
+| model           | TEXT         | NULL                                 | Model identifier (claude-opus-4.5, etc.) |
+| thinking_level  | TEXT         | NULL                                 | Thinking budget/level for extended thinking |
 
 **Enum Types:**
 - `agent_status`: `'running'`, `'dead'`
@@ -198,6 +201,9 @@ typedef struct {
     char *status;
     int64_t created_at;
     int64_t ended_at;  // 0 if still running
+    char *provider;        // LLM provider (nullable)
+    char *model;           // Model identifier (nullable)
+    char *thinking_level;  // Thinking budget/level (nullable)
 } ik_db_agent_row_t;
 ```
 
@@ -483,6 +489,22 @@ res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uui
 - **Returns:** `OK` on success, `ERR` on failure
 - **Behavior:** Returns maximum message ID for agent. Used during fork to record fork point. Returns 0 if agent has no messages.
 
+### ik_db_agent_update_provider
+Update agent provider configuration.
+```c
+res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
+                                   const char *provider, const char *model,
+                                   const char *thinking_level);
+```
+- **Parameters:**
+  - `db_ctx`: Database context (must not be NULL)
+  - `uuid`: Agent UUID to update (must not be NULL)
+  - `provider`: Provider name (may be NULL)
+  - `model`: Model identifier (may be NULL)
+  - `thinking_level`: Thinking budget/level (may be NULL)
+- **Returns:** `OK` on success, `ERR_DB_CONNECT` on database error
+- **Behavior:** Updates all three fields atomically. NULL values clear configuration. Returns OK if agent not found (UPDATE affects 0 rows).
+
 ## Mail API
 
 ### ik_db_mail_insert
@@ -704,6 +726,7 @@ res_t ik_db_migrate(ik_db_ctx_t *db_ctx, const char *migrations_dir);
 - **002-agents-table.sql**: Creates `agents` table with agent_status enum, parent_uuid FK, and indexes
 - **003-messages-agent-uuid.sql**: Adds `agent_uuid` column to messages table with FK and index
 - **004-mail-table.sql**: Creates `mail` table for inter-agent messaging with indexes
+- **005-multi-provider.sql**: Adds `provider`, `model`, and `thinking_level` columns to agents table; TRUNCATES all tables for rel-07 clean slate
 
 ## PGresult Memory Management
 
