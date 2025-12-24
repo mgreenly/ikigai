@@ -59,3 +59,4 @@
 | request-builders stub | `src/providers/request.c` | Implemented `ik_request_build_from_conversation()` - was stub returning ERR, now fully builds request from agent conversation state with all 5 standard tools |
 | REPL test mock vtables | `tests/unit/repl/repl_run_test_common.c`, `repl_streaming_test_common.c` | Added complete provider vtable implementations (fdset, perform, timeout, info_read, start_stream) - were NULL/missing causing segfaults |
 | yyjson document root | `src/providers/request.c` | Added `yyjson_mut_doc_set_root(doc, parameters)` in `build_tool_parameters_json()` - was trying to serialize document with no root causing PANIC |
+| Mock streaming callbacks | `tests/unit/repl/repl_streaming_test_common.c` | Implemented callback adapters and fixed `test_vt_start_stream()` to invoke streaming/completion callbacks via curl multi handle - tests were failing with NULL assistant_response |
