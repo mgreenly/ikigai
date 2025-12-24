@@ -136,7 +136,7 @@ VCR_STUBS_OBJ = $(BUILDDIR)/tests/helpers/vcr_stubs.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -390,6 +390,48 @@ verify-mocks: $(BUILDDIR)/tests/integration/openai_mock_verification_test
 	echo "Note: This will make real API calls and incur costs."; \
 	VERIFY_MOCKS=1 OPENAI_API_KEY="$$API_KEY" $(BUILDDIR)/tests/integration/openai_mock_verification_test; \
 	echo "Mock verification passed!"
+
+# Verify mock fixtures against real Anthropic API
+verify-mocks-anthropic: $(BUILDDIR)/tests/integration/anthropic_mock_verification_test
+	@API_KEY="$$ANTHROPIC_API_KEY"; \
+	if [ -z "$$API_KEY" ]; then \
+		CONFIG_FILE="$$HOME/.config/ikigai/credentials.json"; \
+		if [ -f "$$CONFIG_FILE" ]; then \
+			API_KEY=$$(jq -r '.anthropic.api_key // empty' "$$CONFIG_FILE"); \
+		fi; \
+	fi; \
+	if [ -z "$$API_KEY" ]; then \
+		echo "Error: ANTHROPIC_API_KEY not found"; \
+		echo "Set ANTHROPIC_API_KEY env var or add anthropic.api_key to ~/.config/ikigai/credentials.json"; \
+		exit 1; \
+	fi; \
+	echo "Running Anthropic mock verification tests..."; \
+	echo "Note: This will make real API calls and incur costs."; \
+	VERIFY_MOCKS=1 ANTHROPIC_API_KEY="$$API_KEY" $(BUILDDIR)/tests/integration/anthropic_mock_verification_test; \
+	echo "Anthropic mock verification passed!"
+
+# Verify mock fixtures against real Google API
+verify-mocks-google: $(BUILDDIR)/tests/integration/google_mock_verification_test
+	@API_KEY="$$GOOGLE_API_KEY"; \
+	if [ -z "$$API_KEY" ]; then \
+		CONFIG_FILE="$$HOME/.config/ikigai/credentials.json"; \
+		if [ -f "$$CONFIG_FILE" ]; then \
+			API_KEY=$$(jq -r '.google.api_key // empty' "$$CONFIG_FILE"); \
+		fi; \
+	fi; \
+	if [ -z "$$API_KEY" ]; then \
+		echo "Error: GOOGLE_API_KEY not found"; \
+		echo "Set GOOGLE_API_KEY env var or add google.api_key to ~/.config/ikigai/credentials.json"; \
+		exit 1; \
+	fi; \
+	echo "Running Google mock verification tests..."; \
+	echo "Note: This will make real API calls and incur costs."; \
+	VERIFY_MOCKS=1 GOOGLE_API_KEY="$$API_KEY" $(BUILDDIR)/tests/integration/google_mock_verification_test; \
+	echo "Google mock verification passed!"
+
+# Verify all provider mocks
+verify-mocks-all: verify-mocks verify-mocks-anthropic verify-mocks-google
+	@echo "All provider mock verifications passed!"
 
 # Validate API credentials in ~/.config/ikigai/credentials.json
 # Tests each provider's API key without exposing the key values
@@ -803,6 +845,9 @@ help:
 	@echo "  check-unit      - Build and run only unit tests"
 	@echo "  check-integration - Build and run only integration tests"
 	@echo "  verify-mocks    - Verify OpenAI mock fixtures (uses credentials.json or OPENAI_API_KEY)"
+	@echo "  verify-mocks-anthropic - Verify Anthropic mock fixtures (uses credentials.json or ANTHROPIC_API_KEY)"
+	@echo "  verify-mocks-google - Verify Google mock fixtures (uses credentials.json or GOOGLE_API_KEY)"
+	@echo "  verify-mocks-all - Verify all provider mock fixtures"
 	@echo "  verify-credentials - Validate API keys in ~/.config/ikigai/credentials.json"
 	@echo "  check-sanitize  - Run all tests with AddressSanitizer + UBSanitizer"
 	@echo "  check-valgrind  - Run all tests under Valgrind Memcheck"
