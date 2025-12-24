@@ -38,8 +38,8 @@ START_TEST(test_create_provider_success)
 
     ck_assert(!is_err(&result));
     ck_assert_ptr_nonnull(test_provider);
-    ck_assert_ptr_nonnull(test_provider->vtable);
-    ck_assert_ptr_nonnull(test_provider->impl_ctx);
+    ck_assert_ptr_nonnull(test_provider->vt);
+    ck_assert_ptr_nonnull(test_provider->ctx);
 }
 END_TEST
 
@@ -49,7 +49,7 @@ START_TEST(test_create_provider_missing_credentials)
     res_t result = ik_openai_create(test_ctx, NULL, &test_provider);
 
     ck_assert(is_err(&result));
-    ck_assert_int_eq(result.err->type, IK_ERR_MISSING_CREDENTIALS);
+    ck_assert_int_eq(result.err->code, ERR_MISSING_CREDENTIALS);
 }
 END_TEST
 
@@ -59,13 +59,21 @@ START_TEST(test_create_provider_empty_credentials)
     res_t result = ik_openai_create(test_ctx, "", &test_provider);
 
     ck_assert(is_err(&result));
-    ck_assert_int_eq(result.err->type, IK_ERR_MISSING_CREDENTIALS);
+    ck_assert_int_eq(result.err->code, ERR_MISSING_CREDENTIALS);
 }
 END_TEST
 
 /* ================================================================
  * Request Validation Tests
  * ================================================================ */
+
+/* Dummy completion callback for tests */
+static res_t dummy_completion_cb(const ik_provider_completion_t *completion, void *ctx)
+{
+    (void)completion;
+    (void)ctx;
+    return OK(NULL);
+}
 
 START_TEST(test_start_request_empty_messages)
 {
@@ -75,15 +83,15 @@ START_TEST(test_start_request_empty_messages)
     ck_assert(!is_err(&create_res));
 
     /* Try to start request - should fail */
-    res_t result = provider->vtable->start_request(
-        provider->impl_ctx,
+    res_t result = provider->vt->start_request(
+        provider->ctx,
         req,
-        NULL,  /* completion_cb */
+        dummy_completion_cb,
         NULL   /* completion_ctx */
     );
 
     ck_assert(is_err(&result));
-    ck_assert_int_eq(result.err->type, IK_ERR_INVALID_ARG);
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
 }
 END_TEST
 
@@ -93,15 +101,15 @@ END_TEST
 
 START_TEST(test_vtable_methods_exist)
 {
-    ck_assert_ptr_nonnull(provider->vtable);
-    ck_assert_ptr_nonnull(provider->vtable->fdset);
-    ck_assert_ptr_nonnull(provider->vtable->perform);
-    ck_assert_ptr_nonnull(provider->vtable->timeout);
-    ck_assert_ptr_nonnull(provider->vtable->info_read);
-    ck_assert_ptr_nonnull(provider->vtable->start_request);
-    ck_assert_ptr_nonnull(provider->vtable->start_stream);
-    ck_assert_ptr_nonnull(provider->vtable->cleanup);
-    ck_assert_ptr_nonnull(provider->vtable->cancel);
+    ck_assert_ptr_nonnull(provider->vt);
+    ck_assert_ptr_nonnull(provider->vt->fdset);
+    ck_assert_ptr_nonnull(provider->vt->perform);
+    ck_assert_ptr_nonnull(provider->vt->timeout);
+    ck_assert_ptr_nonnull(provider->vt->info_read);
+    ck_assert_ptr_nonnull(provider->vt->start_request);
+    ck_assert_ptr_nonnull(provider->vt->start_stream);
+    ck_assert_ptr_nonnull(provider->vt->cleanup);
+    ck_assert_ptr_nonnull(provider->vt->cancel);
 }
 END_TEST
 
@@ -114,8 +122,8 @@ START_TEST(test_fdset_basic)
     FD_ZERO(&write_fds);
     FD_ZERO(&exc_fds);
 
-    res_t result = provider->vtable->fdset(
-        provider->impl_ctx,
+    res_t result = provider->vt->fdset(
+        provider->ctx,
         &read_fds,
         &write_fds,
         &exc_fds,
@@ -131,8 +139,8 @@ START_TEST(test_perform_basic)
 {
     int running_handles = 0;
 
-    res_t result = provider->vtable->perform(
-        provider->impl_ctx,
+    res_t result = provider->vt->perform(
+        provider->ctx,
         &running_handles
     );
 
@@ -146,8 +154,8 @@ START_TEST(test_timeout_basic)
 {
     long timeout_ms = 0;
 
-    res_t result = provider->vtable->timeout(
-        provider->impl_ctx,
+    res_t result = provider->vt->timeout(
+        provider->ctx,
         &timeout_ms
     );
 
@@ -159,7 +167,7 @@ END_TEST
 START_TEST(test_info_read_basic)
 {
     /* info_read should not crash with NULL logger */
-    provider->vtable->info_read(provider->impl_ctx, NULL);
+    provider->vt->info_read(provider->ctx, NULL);
 
     /* If we get here, it didn't crash */
     ck_assert(1);
@@ -176,8 +184,8 @@ START_TEST(test_start_stream_not_implemented)
     ik_request_add_message(req, IK_ROLE_USER, "test");
 
     /* start_stream should return NOT_IMPLEMENTED */
-    res_t result = provider->vtable->start_stream(
-        provider->impl_ctx,
+    res_t result = provider->vt->start_stream(
+        provider->ctx,
         req,
         NULL,  /* stream_cb */
         NULL,  /* stream_ctx */
@@ -186,14 +194,14 @@ START_TEST(test_start_stream_not_implemented)
     );
 
     ck_assert(is_err(&result));
-    ck_assert_int_eq(result.err->type, IK_ERR_NOT_IMPLEMENTED);
+    ck_assert_int_eq(result.err->code, ERR_NOT_IMPLEMENTED);
 }
 END_TEST
 
 START_TEST(test_cleanup_does_not_crash)
 {
     /* cleanup should be safe to call */
-    provider->vtable->cleanup(provider->impl_ctx);
+    provider->vt->cleanup(provider->ctx);
 
     /* If we get here, it didn't crash */
     ck_assert(1);
@@ -203,7 +211,7 @@ END_TEST
 START_TEST(test_cancel_does_not_crash)
 {
     /* cancel should be safe to call */
-    provider->vtable->cancel(provider->impl_ctx);
+    provider->vt->cancel(provider->ctx);
 
     /* If we get here, it didn't crash */
     ck_assert(1);

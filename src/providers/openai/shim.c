@@ -345,12 +345,30 @@ res_t ik_openai_shim_transform_response(TALLOC_CTX *ctx, const ik_msg_t *msg, ik
             return ERR(ctx, PARSE, "tool_call data_json is not an object");
         }
 
-        /* Extract fields */
+        /* Extract fields - handle nested function object structure */
         yyjson_val *id_val = yyjson_obj_get(root, "id");
-        yyjson_val *name_val = yyjson_obj_get(root, "name");
-        yyjson_val *args_val = yyjson_obj_get(root, "arguments");
+        if (!yyjson_is_str(id_val)) {
+            yyjson_doc_free(doc);
+            talloc_free(response);
+            return ERR(ctx, PARSE, "tool_call data_json missing id field");
+        }
 
-        if (!yyjson_is_str(id_val) || !yyjson_is_str(name_val) || !yyjson_is_str(args_val)) {
+        /* Check for nested function object (created by ik_openai_msg_create_tool_call) */
+        yyjson_val *function_obj = yyjson_obj_get(root, "function");
+        yyjson_val *name_val = NULL;
+        yyjson_val *args_val = NULL;
+
+        if (function_obj != NULL && yyjson_is_obj(function_obj)) {
+            /* Nested structure: {"id": "...", "function": {"name": "...", "arguments": "..."}} */
+            name_val = yyjson_obj_get(function_obj, "name");
+            args_val = yyjson_obj_get(function_obj, "arguments");
+        } else {
+            /* Flat structure: {"id": "...", "name": "...", "arguments": "..."} */
+            name_val = yyjson_obj_get(root, "name");
+            args_val = yyjson_obj_get(root, "arguments");
+        }
+
+        if (!yyjson_is_str(name_val) || !yyjson_is_str(args_val)) {
             yyjson_doc_free(doc);
             talloc_free(response);
             return ERR(ctx, PARSE, "tool_call data_json missing required string fields");
@@ -751,8 +769,8 @@ res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out
     assert(out != NULL);   // LCOV_EXCL_BR_LINE
 
     /* Validate API key */
-    if (api_key == NULL) {
-        return ERR(ctx, MISSING_CREDENTIALS, "OpenAI API key is NULL");
+    if (api_key == NULL || api_key[0] == '\0') {
+        return ERR(ctx, MISSING_CREDENTIALS, "OpenAI API key is NULL or empty");
     }
 
     /* Allocate provider */
