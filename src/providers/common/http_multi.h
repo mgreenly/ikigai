@@ -5,6 +5,7 @@
 #include <sys/select.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 // Forward declaration
 typedef struct ik_logger ik_logger_t;
