@@ -14,7 +14,8 @@
 #include "providers/anthropic/streaming.h"
 #include "providers/provider.h"
 #include "providers/request.h"
-#include "tests/helpers/vcr.h"
+#include "logger.h"
+#include "../../../helpers/vcr.h"
 
 static TALLOC_CTX *test_ctx;
 static ik_provider_t *provider;
@@ -345,7 +346,8 @@ START_TEST(test_completion_callback_invoked)
     }
 
     /* Check for completion via info_read */
-    provider->vt->info_read(provider->ctx, NULL);
+    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
+    provider->vt->info_read(provider->ctx, logger);
 
     /* Completion callback should have been invoked */
     vcr_ck_assert(completion_called);
@@ -762,7 +764,7 @@ END_TEST
 
 START_TEST(test_http_error_calls_completion_cb)
 {
-    vcr_init("error_auth", "anthropic");
+    vcr_init("error_auth_stream", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -783,7 +785,8 @@ START_TEST(test_http_error_calls_completion_cb)
     }
 
     /* Check completion */
-    provider->vt->info_read(provider->ctx, NULL);
+    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
+    provider->vt->info_read(provider->ctx, logger);
 
     vcr_ck_assert(completion_called);
     vcr_ck_assert(!captured_completion.success);

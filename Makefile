@@ -293,6 +293,11 @@ $(BUILDDIR)/tests/unit/helpers/vcr_mock_integration_test: $(BUILDDIR)/tests/unit
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
+# Special rule for anthropic_streaming_test (needs vcr helper for fixture playback)
+$(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_test: $(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
 # Special rule for repl_full_viewport_test
 $(BUILDDIR)/tests/unit/repl/repl_full_viewport_test: $(BUILDDIR)/tests/unit/repl/repl_full_viewport_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
