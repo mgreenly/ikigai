@@ -344,6 +344,12 @@
       "thinking": "thinking"
     },
     {
+      "task": "cleanup-openai-source.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
       "task": "tests-openai-basic.md",
       "group": "Testing",
       "model": "sonnet",
@@ -357,6 +363,30 @@
     },
     {
       "task": "verify-providers.md",
+      "group": "Verification",
+      "model": "opus",
+      "thinking": "extended"
+    },
+    {
+      "task": "cleanup-openai-adapter.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "cleanup-openai-tests.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "cleanup-openai-docs.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "none"
+    },
+    {
+      "task": "verify-cleanup.md",
       "group": "Verification",
       "model": "opus",
       "thinking": "extended"

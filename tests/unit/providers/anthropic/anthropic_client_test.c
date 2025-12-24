@@ -6,7 +6,7 @@
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
-#include <jansson.h>
+#include "vendor/yyjson/yyjson.h"
 #include "providers/anthropic/request.h"
 #include "providers/provider.h"
 #include "providers/request.h"
@@ -53,22 +53,23 @@ START_TEST(test_build_request_with_system_and_user_messages)
     ck_assert_ptr_nonnull(json);
 
     // Parse and verify structure
-    json_error_t error;
-    json_t *root = json_loads(json, 0, &error);
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
     ck_assert_ptr_nonnull(root);
 
-    json_t *model = json_object_get(root, "model");
+    yyjson_val *model = yyjson_obj_get(root, "model");
     ck_assert_ptr_nonnull(model);
-    ck_assert_str_eq(json_string_value(model), "claude-sonnet-4-5-20250929");
+    ck_assert_str_eq(yyjson_get_str(model), "claude-sonnet-4-5-20250929");
 
-    json_t *system = json_object_get(root, "system");
+    yyjson_val *system = yyjson_obj_get(root, "system");
     ck_assert_ptr_nonnull(system);
 
-    json_t *messages = json_object_get(root, "messages");
+    yyjson_val *messages = yyjson_obj_get(root, "messages");
     ck_assert_ptr_nonnull(messages);
-    ck_assert(json_is_array(messages));
+    ck_assert(yyjson_is_arr(messages));
 
-    json_decref(root);
+    yyjson_doc_free(doc);
 }
 END_TEST
 
@@ -97,18 +98,19 @@ START_TEST(test_build_request_with_thinking_budget)
     ck_assert_ptr_nonnull(json);
 
     // Verify thinking configuration is present
-    json_error_t error;
-    json_t *root = json_loads(json, 0, &error);
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
     ck_assert_ptr_nonnull(root);
 
     // Anthropic uses "thinking" field for extended thinking
-    json_t *thinking = json_object_get(root, "thinking");
+    yyjson_val *thinking = yyjson_obj_get(root, "thinking");
     if (thinking != NULL) {
         // Verify it has proper structure
-        ck_assert(json_is_object(thinking));
+        ck_assert(yyjson_is_obj(thinking));
     }
 
-    json_decref(root);
+    yyjson_doc_free(doc);
 }
 END_TEST
 
@@ -141,15 +143,16 @@ START_TEST(test_build_request_with_tool_definitions)
     ck_assert_ptr_nonnull(json);
 
     // Verify tools array is present
-    json_error_t error;
-    json_t *root = json_loads(json, 0, &error);
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
     ck_assert_ptr_nonnull(root);
 
-    json_t *tools = json_object_get(root, "tools");
+    yyjson_val *tools = yyjson_obj_get(root, "tools");
     ck_assert_ptr_nonnull(tools);
-    ck_assert(json_is_array(tools));
+    ck_assert(yyjson_is_arr(tools));
 
-    json_decref(root);
+    yyjson_doc_free(doc);
 }
 END_TEST
 
@@ -174,16 +177,17 @@ START_TEST(test_build_request_without_optional_fields)
     ck_assert(!is_err(&r));
     ck_assert_ptr_nonnull(json);
 
-    json_error_t error;
-    json_t *root = json_loads(json, 0, &error);
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
     ck_assert_ptr_nonnull(root);
 
     // Should have model, max_tokens, messages
-    ck_assert_ptr_nonnull(json_object_get(root, "model"));
-    ck_assert_ptr_nonnull(json_object_get(root, "max_tokens"));
-    ck_assert_ptr_nonnull(json_object_get(root, "messages"));
+    ck_assert_ptr_nonnull(yyjson_obj_get(root, "model"));
+    ck_assert_ptr_nonnull(yyjson_obj_get(root, "max_tokens"));
+    ck_assert_ptr_nonnull(yyjson_obj_get(root, "messages"));
 
-    json_decref(root);
+    yyjson_doc_free(doc);
 }
 END_TEST
 
@@ -235,12 +239,13 @@ START_TEST(test_verify_json_structure_matches_api_spec)
     ck_assert_ptr_nonnull(json);
 
     // Verify valid JSON
-    json_error_t error;
-    json_t *root = json_loads(json, 0, &error);
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
     ck_assert_ptr_nonnull(root);
-    ck_assert(json_is_object(root));
+    ck_assert(yyjson_is_obj(root));
 
-    json_decref(root);
+    yyjson_doc_free(doc);
 }
 END_TEST
 
