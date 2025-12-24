@@ -1,0 +1,11 @@
+{"_request": {"method": "POST", "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=REDACTED&alt=sse", "headers": {"content-type": "application/json"}, "body": "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Hello!\"}]}],\"generationConfig\":{\"maxOutputTokens\":1024}}"}}
+{"_response": {"status": 200, "headers": {"content-type": "text/event-stream"}}}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}],\"role\":\"model\"}}],\"modelVersion\":\"gemini-2.5-flash\"}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"!\"}],\"role\":\"model\"}}]}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" How\"}],\"role\":\"model\"}}]}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" can\"}],\"role\":\"model\"}}]}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" I\"}],\"role\":\"model\"}}]}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" help\"}],\"role\":\"model\"}}]}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" you\"}],\"role\":\"model\"}}]}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" today\"}],\"role\":\"model\"}}]}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"?\"}],\"role\":\"model\"},\"finishReason\":\"STOP\"}],\"usageMetadata\":{\"promptTokenCount\":5,\"candidatesTokenCount\":12,\"totalTokenCount\":17}}\n\n"}

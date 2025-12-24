@@ -1,0 +1,3 @@
+{"_request": {"method": "POST", "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=REDACTED&alt=sse", "headers": {"content-type": "application/json"}, "body": "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Hello!\"}]}],\"generationConfig\":{\"maxOutputTokens\":1024}}"}}
+{"_response": {"status": 401, "headers": {"content-type": "application/json"}}}
+{"_body": "{\"error\":{\"code\":401,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"UNAUTHENTICATED\"}}"}

@@ -1,0 +1,4 @@
+{"_request": {"method": "POST", "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=REDACTED&alt=sse", "headers": {"content-type": "application/json"}, "body": "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Hello!\"}]}],\"tools\":[{\"functionDeclarations\":[{\"name\":\"get_weather\",\"description\":\"Get weather\",\"parameters\":{}}]}],\"generationConfig\":{\"maxOutputTokens\":1024}}"}}
+{"_response": {"status": 200, "headers": {"content-type": "text/event-stream"}}}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"get_weather\",\"args\":{\"location\":\"San Francisco\"}}}],\"role\":\"model\"}}],\"modelVersion\":\"gemini-2.5-flash\"}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[],\"role\":\"model\"},\"finishReason\":\"STOP\"}],\"usageMetadata\":{\"promptTokenCount\":10,\"candidatesTokenCount\":15,\"totalTokenCount\":25}}\n\n"}
