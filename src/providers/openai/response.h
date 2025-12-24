@@ -108,4 +108,65 @@ res_t ik_openai_parse_error(TALLOC_CTX *ctx, int http_status, const char *json,
  */
 ik_finish_reason_t ik_openai_map_chat_finish_reason(const char *finish_reason);
 
+/**
+ * Parse OpenAI Responses API JSON response to internal format
+ *
+ * @param ctx      Talloc context for allocations
+ * @param json     JSON response string
+ * @param json_len Length of JSON string
+ * @param out_resp Output: parsed response allocated on ctx
+ * @return         OK(response) on success, ERR(...) on failure
+ *
+ * Responses API response format:
+ * {
+ *   "id": "resp-123",
+ *   "object": "response",
+ *   "created": 1677652288,
+ *   "model": "gpt-4o",
+ *   "status": "completed",
+ *   "output": [{
+ *     "type": "message",
+ *     "content": [{
+ *       "type": "output_text",
+ *       "text": "Hello there, how may I assist you today?"
+ *     }]
+ *   }],
+ *   "usage": {
+ *     "prompt_tokens": 9,
+ *     "completion_tokens": 12,
+ *     "total_tokens": 21,
+ *     "completion_tokens_details": {
+ *       "reasoning_tokens": 0
+ *     }
+ *   }
+ * }
+ *
+ * Transformations:
+ * - output[] array -> content_blocks array
+ * - status + incomplete_details.reason -> finish_reason enum
+ * - usage -> ik_usage_t (including reasoning_tokens)
+ * - Function call arguments (JSON strings) are parsed to yyjson_val
+ */
+res_t ik_openai_parse_responses_response(TALLOC_CTX *ctx, const char *json,
+                                          size_t json_len, ik_response_t **out_resp);
+
+/**
+ * Map OpenAI Responses API status to internal finish reason enum
+ *
+ * @param status            Status string from Responses API
+ * @param incomplete_reason Incomplete reason string (may be NULL)
+ * @return                  Internal finish reason enum
+ *
+ * Mappings:
+ * - "completed" -> IK_FINISH_STOP
+ * - "failed" -> IK_FINISH_ERROR
+ * - "cancelled" -> IK_FINISH_STOP
+ * - "incomplete" + "max_output_tokens" -> IK_FINISH_LENGTH
+ * - "incomplete" + "content_filter" -> IK_FINISH_CONTENT_FILTER
+ * - "incomplete" + other/NULL -> IK_FINISH_LENGTH
+ * - NULL or unknown -> IK_FINISH_UNKNOWN
+ */
+ik_finish_reason_t ik_openai_map_responses_status(const char *status,
+                                                    const char *incomplete_reason);
+
 #endif /* IK_PROVIDERS_OPENAI_RESPONSE_H */
