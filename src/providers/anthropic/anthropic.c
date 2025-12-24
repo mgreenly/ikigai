@@ -6,6 +6,7 @@
 #include "anthropic.h"
 #include "thinking.h"
 #include "error.h"
+#include "response.h"
 #include "panic.h"
 #include <string.h>
 #include <sys/select.h>
@@ -153,13 +154,8 @@ static res_t anthropic_start_request(void *ctx, const ik_request_t *req,
     assert(req != NULL);           // LCOV_EXCL_BR_LINE
     assert(completion_cb != NULL); // LCOV_EXCL_BR_LINE
 
-    (void)ctx;
-    (void)req;
-    (void)completion_cb;
-    (void)completion_ctx;
-
-    // Stub: Will be implemented in anthropic-request.md
-    return OK(NULL);
+    // Delegate to response module
+    return ik_anthropic_start_request(ctx, req, completion_cb, completion_ctx);
 }
 
 static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
@@ -172,15 +168,8 @@ static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
     assert(stream_cb != NULL);     // LCOV_EXCL_BR_LINE
     assert(completion_cb != NULL); // LCOV_EXCL_BR_LINE
 
-    (void)ctx;
-    (void)req;
-    (void)stream_cb;
-    (void)stream_ctx;
-    (void)completion_cb;
-    (void)completion_ctx;
-
-    // Stub: Will be implemented in anthropic-streaming.md
-    return OK(NULL);
+    // Delegate to response module
+    return ik_anthropic_start_stream(ctx, req, stream_cb, stream_ctx, completion_cb, completion_ctx);
 }
 
 static void anthropic_cleanup(void *ctx)
