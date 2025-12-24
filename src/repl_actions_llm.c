@@ -163,8 +163,8 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
 
     // Start async stream (returns immediately)
     result = provider->vt->start_stream(provider->ctx, req,
-                                        ik_repl_provider_stream_adapter, agent,
-                                        ik_repl_provider_completion_adapter, agent);
+                                        ik_repl_stream_callback, agent,
+                                        ik_repl_completion_callback, agent);
     if (is_err(&result)) {
         const char *err_msg = error_message(result.err);
         ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));

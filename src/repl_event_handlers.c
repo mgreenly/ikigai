@@ -132,19 +132,45 @@ static void persist_assistant_msg(ik_repl_ctx_t *repl)
     char *data_json = talloc_strdup(repl, "{");
     bool first = true;
 
-    if (repl->current->response_model != NULL) {
-        data_json = talloc_asprintf_append(data_json, "\"model\":\"%s\"", repl->current->response_model);
+    // Store provider information
+    if (repl->current->provider != NULL) {
+        data_json = talloc_asprintf_append(data_json, "\"provider\":\"%s\"", repl->current->provider);
         first = false;
     }
+
+    // Store model information
+    if (repl->current->response_model != NULL) {
+        data_json = talloc_asprintf_append(data_json, "%s\"model\":\"%s\"",
+                                           first ? "" : ",", repl->current->response_model);
+        first = false;
+    }
+
+    // Store thinking level if set (not NONE)
+    if (repl->current->thinking_level > 0) {
+        const char *level_str = "unknown";
+        switch (repl->current->thinking_level) {
+            case 1: level_str = "low"; break;
+            case 2: level_str = "med"; break;
+            case 3: level_str = "high"; break;
+        }
+        data_json = talloc_asprintf_append(data_json, "%s\"thinking_level\":\"%s\"",
+                                           first ? "" : ",", level_str);
+        first = false;
+    }
+
+    // Store token counts (output_tokens is stored as "tokens" for backward compatibility)
     if (repl->current->response_completion_tokens > 0) {
-        data_json = talloc_asprintf_append(data_json, "%s\"tokens\":%d",
+        data_json = talloc_asprintf_append(data_json, "%s\"output_tokens\":%d",
                                            first ? "" : ",", repl->current->response_completion_tokens);
         first = false;
     }
+
+    // Store finish reason
     if (repl->current->response_finish_reason != NULL) {
         data_json = talloc_asprintf_append(data_json, "%s\"finish_reason\":\"%s\"",
                                            first ? "" : ",", repl->current->response_finish_reason);
     }
+
     data_json = talloc_strdup_append(data_json, "}");
 
     res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
@@ -200,33 +226,6 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
     }
 }
 
-// Temporary adapter: Convert provider stream events to old OpenAI chunks
-// TODO: Replace with proper event handling in repl-streaming-updates.md
-res_t ik_repl_provider_stream_adapter(const ik_stream_event_t *event, void *ctx)
-{
-    if (event->type == IK_STREAM_TEXT_DELTA && event->data.delta.text != NULL) {
-        return ik_repl_streaming_callback(event->data.delta.text, ctx);
-    }
-    // Ignore other event types for now (thinking, tool_call, etc.)
-    return OK(NULL);
-}
-
-// Temporary adapter: Convert provider completion to old OpenAI HTTP completion
-// TODO: Replace with proper completion handling in repl-streaming-updates.md
-res_t ik_repl_provider_completion_adapter(const ik_provider_completion_t *completion, void *ctx)
-{
-    // For now, just extract error info if failed
-    ik_agent_ctx_t *agent = (ik_agent_ctx_t *)ctx;
-
-    if (!completion->success && completion->error_message != NULL) {
-        agent->http_error_message = talloc_strdup(agent, completion->error_message);
-    }
-
-    // Old callback expected ik_http_completion_t which had different fields
-    // For now we just handle the basic error case
-    // Full implementation will be in repl-streaming-updates.md
-    return OK(NULL);
-}
 
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
@@ -256,8 +255,8 @@ static void submit_tool_loop_continuation(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
 
     // Start async stream (returns immediately)
     result = provider->vt->start_stream(provider->ctx, req,
-                                        ik_repl_provider_stream_adapter, agent,
-                                        ik_repl_provider_completion_adapter, agent);
+                                        ik_repl_stream_callback, agent,
+                                        ik_repl_completion_callback, agent);
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
         const char *err_msg = error_message(result.err);  // LCOV_EXCL_LINE
         ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));  // LCOV_EXCL_LINE

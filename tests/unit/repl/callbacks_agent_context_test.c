@@ -12,7 +12,7 @@
 #include "shared.h"
 #include "scrollback.h"
 #include "config.h"
-#include "openai/client_multi.h"
+#include "providers/provider.h"
 #include "tool.h"
 #include <check.h>
 #include <talloc.h>
@@ -69,8 +69,19 @@ START_TEST(test_streaming_callback_uses_agent_context) {
     /* repl->current is agent_b, but we'll pass agent_a to callback */
     const char *chunk = "Hello from agent A\n";
 
+    /* Create stream event */
+    ik_stream_event_t event = {
+        .type = IK_STREAM_TEXT_DELTA,
+        .index = 0,
+        .data = {
+            .delta = {
+                .text = chunk
+            }
+        }
+    };
+
     /* Call streaming callback with agent_a as context */
-    res_t result = ik_repl_streaming_callback(chunk, agent_a);
+    res_t result = ik_repl_stream_callback(&event, agent_a);
     ck_assert(is_ok(&result));
 
     /* Verify agent_a was updated, not agent_b */
@@ -88,19 +99,26 @@ START_TEST(test_completion_callback_uses_agent_context)
 {
     /* repl->current is agent_b, but we'll pass agent_a to callback */
     char *model = talloc_strdup(ctx, "gpt-4");
-    char *finish_reason = talloc_strdup(ctx, "stop");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
+
+    /* Create response structure */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = model;
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.output_tokens = 42;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    ik_provider_completion_t completion = {
+        .success = true,
+        .http_status = 200,
+        .response = response,
+        .error_category = IK_ERR_CAT_UNKNOWN,
         .error_message = NULL,
-        .model = model,
-        .finish_reason = finish_reason,
-        .completion_tokens = 42
+        .retry_after_ms = -1
     };
 
     /* Call completion callback with agent_a as context */
-    res_t result = ik_repl_http_completion_callback(&completion, agent_a);
+    res_t result = ik_repl_completion_callback(&completion, agent_a);
     ck_assert(is_ok(&result));
 
     /* Verify agent_a was updated, not agent_b */
@@ -122,7 +140,16 @@ START_TEST(test_streaming_partial_buffer_uses_agent_context)
 
     /* Send partial chunk to agent_a (no newline) */
     const char *chunk1 = "Partial ";
-    res_t result = ik_repl_streaming_callback(chunk1, agent_a);
+    ik_stream_event_t event1 = {
+        .type = IK_STREAM_TEXT_DELTA,
+        .index = 0,
+        .data = {
+            .delta = {
+                .text = chunk1
+            }
+        }
+    };
+    res_t result = ik_repl_stream_callback(&event1, agent_a);
     ck_assert(is_ok(&result));
 
     /* Verify agent_a has buffered content */
@@ -134,7 +161,16 @@ START_TEST(test_streaming_partial_buffer_uses_agent_context)
 
     /* Complete the line */
     const char *chunk2 = "line\n";
-    result = ik_repl_streaming_callback(chunk2, agent_a);
+    ik_stream_event_t event2 = {
+        .type = IK_STREAM_TEXT_DELTA,
+        .index = 0,
+        .data = {
+            .delta = {
+                .text = chunk2
+            }
+        }
+    };
+    result = ik_repl_stream_callback(&event2, agent_a);
     ck_assert(is_ok(&result));
 
     /* Verify agent_a flushed to scrollback */
@@ -155,19 +191,26 @@ START_TEST(test_completion_flushes_correct_agent_buffer)
     /* Add buffered content to agent_a */
     agent_a->streaming_line_buffer = talloc_strdup(agent_a, "Incomplete");
 
+    /* Create response structure */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.output_tokens = 0;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
     /* Create completion */
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
+    ik_provider_completion_t completion = {
+        .success = true,
+        .http_status = 200,
+        .response = response,
+        .error_category = IK_ERR_CAT_UNKNOWN,
         .error_message = NULL,
-        .model = NULL,
-        .finish_reason = NULL,
-        .completion_tokens = 0
+        .retry_after_ms = -1
     };
 
     /* Call completion callback with agent_a */
-    res_t result = ik_repl_http_completion_callback(&completion, agent_a);
+    res_t result = ik_repl_completion_callback(&completion, agent_a);
     ck_assert(is_ok(&result));
 
     /* Verify agent_a's buffer was flushed */

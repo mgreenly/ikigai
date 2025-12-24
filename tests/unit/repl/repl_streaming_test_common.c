@@ -104,10 +104,6 @@ static void test_vt_info_read(void *pctx, ik_logger_t *logger) {
     ik_openai_multi_info_read(tctx->multi, logger);
 }
 
-// Forward declaration for stream adapter
-res_t ik_repl_provider_stream_adapter(const ik_stream_event_t *event, void *ctx);
-res_t ik_repl_provider_completion_adapter(const ik_provider_completion_t *completion, void *ctx);
-
 // Context for callback adapters
 typedef struct {
     ik_stream_cb_t provider_stream_cb;

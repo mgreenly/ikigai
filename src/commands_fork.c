@@ -150,8 +150,8 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
 
     // Start async stream (returns immediately)
     res = provider->vt->start_stream(provider->ctx, req,
-                                     ik_repl_provider_stream_adapter, repl->current,
-                                     ik_repl_provider_completion_adapter, repl->current);
+                                     ik_repl_stream_callback, repl->current,
+                                     ik_repl_completion_callback, repl->current);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         const char *err_msg = error_message(res.err);     // LCOV_EXCL_LINE
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));     // LCOV_EXCL_LINE
