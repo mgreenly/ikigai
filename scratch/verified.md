@@ -61,3 +61,4 @@
 | yyjson document root | `src/providers/request.c` | Added `yyjson_mut_doc_set_root(doc, parameters)` in `build_tool_parameters_json()` - was trying to serialize document with no root causing PANIC |
 | Mock streaming callbacks | `tests/unit/repl/repl_streaming_test_common.c` | Implemented callback adapters and fixed `test_vt_start_stream()` to invoke streaming/completion callbacks via curl multi handle - tests were failing with NULL assistant_response |
 | repl_llm_submission_test migration | `tests/unit/repl/repl_llm_submission_test.c` | Migrated from `agent->multi` to `provider_instance` with mock vtable - compilation error "has no member named 'multi'" |
+| repl_tool_loop_integration_test fix | `tests/unit/repl/repl_tool_loop_integration_test.c` | Added mock `start_stream` to provider vtable and provider/model initialization - 4 test failures due to NULL vtable method and missing state setup |
