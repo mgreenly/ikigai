@@ -1,4 +1,5 @@
 #include "providers/openai/shim.h"
+#include "config.h"
 #include "db/message.h"
 #include "msg.h"
 #include "panic.h"
@@ -31,19 +32,58 @@ extern ik_msg_t *ik_openai_msg_create_tool_result(void *parent, const char *tool
 extern ik_openai_conversation_t *ik_openai_conversation_create(TALLOC_CTX *ctx);
 extern res_t ik_openai_conversation_add_msg(ik_openai_conversation_t *conv, ik_msg_t *msg);
 
-/* Struct definitions (duplicated here to avoid header conflicts) */
-struct ik_openai_conversation {
-    ik_msg_t **messages;      /* Array of message pointers */
-    size_t message_count;     /* Number of messages */
+/* Type definitions needed for multi_add_request */
+typedef res_t (*ik_openai_stream_cb_t)(const char *chunk, void *ctx);
+
+/* Forward declare http completion types from openai/client_multi.h */
+typedef struct ik_http_completion ik_http_completion_t;
+typedef res_t (*ik_http_completion_cb_t)(const ik_http_completion_t *completion, void *ctx);
+
+/* Forward declare tool_call type from tool.h */
+typedef struct {
+    char *id;
+    char *name;
+    char *arguments;
+} ik_tool_call_t;
+
+/* HTTP completion structure from openai/client_multi.h */
+typedef enum {
+    IK_HTTP_SUCCESS = 0,
+    IK_HTTP_CLIENT_ERROR = 1,
+    IK_HTTP_SERVER_ERROR = 2,
+    IK_HTTP_NETWORK_ERROR = 3,
+} ik_http_status_type_t;
+
+struct ik_http_completion {
+    ik_http_status_type_t type;
+    int32_t http_code;
+    int32_t curl_code;
+    char *error_message;
+    char *model;
+    char *finish_reason;
+    int32_t completion_tokens;
+    ik_tool_call_t *tool_call;
 };
 
+/* Struct definition for ik_openai_request_t from openai/client.h */
 struct ik_openai_request {
-    char *model;                      /* Model identifier */
-    ik_openai_conversation_t *conv;   /* Conversation messages */
-    double temperature;               /* Randomness (0.0-2.0) */
-    int32_t max_completion_tokens;    /* Maximum response tokens */
-    bool stream;                      /* Enable streaming responses */
+    char *model;
+    ik_openai_conversation_t *conv;
+    double temperature;
+    int32_t max_completion_tokens;
+    bool stream;
 };
+
+/* Multi-handle add_request function (needs types defined above) */
+extern res_t ik_openai_multi_add_request(ik_openai_multi_t *multi,
+                                          const ik_config_t *cfg,
+                                          ik_openai_conversation_t *conv,
+                                          ik_openai_stream_cb_t stream_cb,
+                                          void *stream_ctx,
+                                          ik_http_completion_cb_t completion_cb,
+                                          void *completion_ctx,
+                                          bool limit_reached,
+                                          ik_logger_t *logger);
 
 /* ================================================================
  * Request Transformation Functions
@@ -400,20 +440,253 @@ static void openai_info_read(void *ctx, ik_logger_t *logger)
     ik_openai_multi_info_read(shim->multi, logger);
 }
 
+/* ================================================================
+ * Helper: Build temporary config for existing client
+ * ================================================================ */
+
+/**
+ * Build temporary ik_config_t for existing OpenAI client
+ *
+ * The legacy client expects ik_config_t with specific fields.
+ * We build a minimal config from the request and shim context.
+ */
+static res_t build_temp_config(TALLOC_CTX *ctx, ik_openai_shim_ctx_t *shim,
+                                const ik_request_t *req, ik_config_t **out)
+{
+    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(shim != NULL);  // LCOV_EXCL_BR_LINE
+    assert(req != NULL);  // LCOV_EXCL_BR_LINE
+    assert(out != NULL);  // LCOV_EXCL_BR_LINE
+
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
+    if (cfg == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+
+    /* Model from request */
+    cfg->openai_model = talloc_strdup(cfg, req->model);
+    if (cfg->openai_model == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+
+    /* Temperature - default 0.7 */
+    cfg->openai_temperature = 0.7;
+
+    /* Max completion tokens */
+    cfg->openai_max_completion_tokens = req->max_output_tokens;
+
+    /* System message is passed separately in conversation */
+    cfg->openai_system_message = NULL;
+
+    *out = cfg;
+    return OK(cfg);
+}
+
+/* ================================================================
+ * Completion Callback Wrapper
+ * ================================================================ */
+
+/**
+ * Wrapper context for completion callback
+ *
+ * Captures user callback and context for response transformation.
+ */
+typedef struct {
+    ik_provider_completion_cb_t user_cb;  /* User's completion callback */
+    void *user_ctx;                       /* User's callback context */
+} completion_wrapper_ctx_t;
+
+/**
+ * Completion callback wrapper
+ *
+ * Transforms legacy HTTP completion to provider completion format
+ * before invoking user callback.
+ */
+static res_t completion_wrapper(const ik_http_completion_t *http_completion, void *ctx)
+{
+    assert(http_completion != NULL);  // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
+
+    completion_wrapper_ctx_t *wrapper = (completion_wrapper_ctx_t *)ctx;
+
+    /* Allocate provider completion on wrapper context */
+    ik_provider_completion_t *provider_completion = talloc_zero(wrapper, ik_provider_completion_t);
+    if (provider_completion == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+
+    /* Check if HTTP request succeeded */
+    if (http_completion->type == IK_HTTP_SUCCESS) {
+        /* Success - need to build response from tool_call or text */
+        provider_completion->success = true;
+        provider_completion->http_status = http_completion->http_code;
+        provider_completion->error_category = IK_ERR_CAT_UNKNOWN;
+        provider_completion->error_message = NULL;
+        provider_completion->retry_after_ms = -1;
+
+        /* Build ik_msg_t from completion data */
+        ik_msg_t *msg = NULL;
+        if (http_completion->tool_call != NULL) {
+            /* Tool call response */
+            msg = ik_openai_msg_create_tool_call(
+                provider_completion,
+                http_completion->tool_call->id,
+                "function",
+                http_completion->tool_call->name,
+                http_completion->tool_call->arguments,
+                http_completion->tool_call->arguments
+            );
+        } else {
+            /* Text response - model should have sent content but we don't have it in completion */
+            /* For now, create empty assistant message */
+            msg = ik_openai_msg_create(provider_completion, "assistant", "");
+        }
+
+        /* Transform legacy message to normalized response */
+        ik_response_t *response = NULL;
+        res_t transform_res = ik_openai_shim_transform_response(provider_completion, msg, &response);
+        if (is_err(&transform_res)) {
+            /* Transform error - deliver as error completion */
+            provider_completion->success = false;
+            provider_completion->response = NULL;
+            provider_completion->error_category = IK_ERR_CAT_UNKNOWN;
+            provider_completion->error_message = talloc_asprintf(provider_completion,
+                "Response transformation failed: %s", transform_res.err->msg);
+            provider_completion->retry_after_ms = -1;
+
+            /* Free transform error */
+            talloc_free(transform_res.err);
+        } else {
+            provider_completion->response = response;
+        }
+
+    } else {
+        /* HTTP error - map to provider error */
+        provider_completion->success = false;
+        provider_completion->http_status = http_completion->http_code;
+        provider_completion->response = NULL;
+        provider_completion->retry_after_ms = -1;
+
+        /* Map HTTP error type to error category */
+        switch (http_completion->type) {
+            case IK_HTTP_CLIENT_ERROR:
+                if (http_completion->http_code == 401 || http_completion->http_code == 403) {
+                    provider_completion->error_category = IK_ERR_CAT_AUTH;
+                } else if (http_completion->http_code == 429) {
+                    provider_completion->error_category = IK_ERR_CAT_RATE_LIMIT;
+                } else if (http_completion->http_code == 404) {
+                    provider_completion->error_category = IK_ERR_CAT_NOT_FOUND;
+                } else {
+                    provider_completion->error_category = IK_ERR_CAT_INVALID_ARG;
+                }
+                break;
+
+            case IK_HTTP_SERVER_ERROR:
+                provider_completion->error_category = IK_ERR_CAT_SERVER;
+                break;
+
+            case IK_HTTP_NETWORK_ERROR:
+                provider_completion->error_category = IK_ERR_CAT_NETWORK;
+                break;
+
+            default:
+                provider_completion->error_category = IK_ERR_CAT_UNKNOWN;
+                break;
+        }
+
+        /* Copy error message */
+        if (http_completion->error_message != NULL) {
+            provider_completion->error_message = talloc_strdup(provider_completion,
+                http_completion->error_message);
+            if (provider_completion->error_message == NULL) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+        } else {
+            provider_completion->error_message = NULL;
+        }
+    }
+
+    /* Invoke user callback */
+    res_t cb_result = wrapper->user_cb(provider_completion, wrapper->user_ctx);
+
+    /* User callback is responsible for stealing response if needed */
+    /* We can now free the wrapper context which will free provider_completion */
+
+    return cb_result;
+}
+
+/* ================================================================
+ * Vtable Methods - Request Initiation
+ * ================================================================ */
+
 static res_t openai_start_request(void *ctx, const ik_request_t *req,
                                    ik_provider_completion_cb_t completion_cb, void *completion_ctx)
 {
-    (void)ctx;
-    (void)req;
-    (void)completion_cb;
-    (void)completion_ctx;
+    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(req != NULL);  // LCOV_EXCL_BR_LINE
+    assert(completion_cb != NULL);  // LCOV_EXCL_BR_LINE
 
-    /* LCOV_EXCL_START */
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    res_t result = ERR(tmp, NOT_IMPLEMENTED, "openai_start_request not yet implemented");
-    talloc_free(tmp);
-    return result;
-    /* LCOV_EXCL_STOP */
+    ik_openai_shim_ctx_t *shim = (ik_openai_shim_ctx_t *)ctx;
+
+    /* Validate API key */
+    if (shim->api_key == NULL || shim->api_key[0] == '\0') {
+        return ERR(shim, MISSING_CREDENTIALS, "OpenAI API key is not set");
+    }
+
+    /* Validate messages */
+    if (req->message_count == 0) {
+        return ERR(shim, INVALID_ARG, "Request has no messages");
+    }
+
+    /* Transform request to legacy format */
+    ik_openai_request_t *legacy_req = NULL;
+    res_t transform_res = ik_openai_shim_transform_request(shim, req, &legacy_req);
+    if (is_err(&transform_res)) {
+        return transform_res;
+    }
+
+    /* Build temporary config */
+    ik_config_t *cfg = NULL;
+    res_t cfg_res = build_temp_config(shim, shim, req, &cfg);
+    if (is_err(&cfg_res)) {
+        talloc_free(legacy_req);
+        return cfg_res;
+    }
+
+    /* Create wrapper context for completion callback */
+    completion_wrapper_ctx_t *wrapper = talloc_zero(shim->multi, completion_wrapper_ctx_t);
+    if (wrapper == NULL) {  // LCOV_EXCL_BR_LINE
+        talloc_free(legacy_req);  // LCOV_EXCL_LINE
+        talloc_free(cfg);  // LCOV_EXCL_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+    wrapper->user_cb = completion_cb;
+    wrapper->user_ctx = completion_ctx;
+
+    /* Add request to multi-handle (non-blocking) */
+    res_t add_res = ik_openai_multi_add_request(
+        shim->multi,
+        cfg,
+        legacy_req->conv,
+        NULL,  /* stream_cb - not used for non-streaming */
+        NULL,  /* stream_ctx */
+        completion_wrapper,
+        wrapper,
+        false,  /* limit_reached - use tool_choice auto */
+        NULL    /* logger */
+    );
+
+    /* Clean up temporary allocations */
+    talloc_free(legacy_req);
+    talloc_free(cfg);
+
+    if (is_err(&add_res)) {
+        talloc_free(wrapper);
+        return add_res;
+    }
+
+    /* Return immediately - request will progress through perform/info_read cycle */
+    return OK(NULL);
 }
 
 static res_t openai_start_stream(void *ctx, const ik_request_t *req,
