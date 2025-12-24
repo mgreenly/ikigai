@@ -3,10 +3,13 @@
 
 #include "error.h"
 #include "providers/provider.h"
+#include "msg.h"
 #include <talloc.h>
 
-/* Forward declaration to avoid including openai/client_multi.h */
+/* Forward declarations to avoid including openai/client.h fully */
 typedef struct ik_openai_multi ik_openai_multi_t;
+typedef struct ik_openai_request ik_openai_request_t;
+typedef struct ik_openai_conversation ik_openai_conversation_t;
 
 /**
  * OpenAI Provider Shim
@@ -73,5 +76,70 @@ res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out
  * @param impl_ctx Shim context to destroy (may be NULL)
  */
 void ik_openai_shim_destroy(void *impl_ctx);
+
+/**
+ * Transform a single normalized message to legacy ik_msg_t format
+ *
+ * Converts from ik_message_t (normalized provider format) to ik_msg_t
+ * (legacy OpenAI client format).
+ *
+ * Transformation rules:
+ * - IK_ROLE_USER -> kind="user"
+ * - IK_ROLE_ASSISTANT -> kind="assistant"
+ * - IK_CONTENT_TEXT -> content=text, data_json=NULL
+ * - IK_CONTENT_TOOL_CALL -> kind="tool_call", data_json with structured data
+ * - IK_CONTENT_TOOL_RESULT -> kind="tool_result", data_json with structured data
+ *
+ * @param ctx Talloc context for allocation (must not be NULL)
+ * @param msg Normalized message to transform (must not be NULL)
+ * @param out Output parameter for legacy message (must not be NULL)
+ * @return    OK(msg) on success, ERR(...) on failure
+ *
+ * Error cases:
+ * - ERR_INVALID_ARG if msg has no content blocks
+ * - ERR_INVALID_ARG if content block type is unsupported
+ */
+res_t ik_openai_shim_transform_message(TALLOC_CTX *ctx, const ik_message_t *msg, ik_msg_t **out);
+
+/**
+ * Build legacy conversation from normalized messages
+ *
+ * Converts an array of normalized ik_message_t to legacy ik_openai_conversation_t.
+ * System prompt is handled as the first message with kind="system".
+ *
+ * @param ctx Talloc context for allocation (must not be NULL)
+ * @param req Normalized request with messages (must not be NULL)
+ * @param out Output parameter for legacy conversation (must not be NULL)
+ * @return    OK(conv) on success, ERR(...) on failure
+ *
+ * Error cases:
+ * - ERR_INVALID_ARG if req has no messages
+ * - Propagates errors from message transformation
+ */
+res_t ik_openai_shim_build_conversation(TALLOC_CTX *ctx, const ik_request_t *req, ik_openai_conversation_t **out);
+
+/**
+ * Transform normalized request to legacy OpenAI request format
+ *
+ * Converts from ik_request_t (normalized provider format) to ik_openai_request_t
+ * (legacy OpenAI client format).
+ *
+ * Handles:
+ * - Message transformation via ik_openai_shim_build_conversation()
+ * - Model name passthrough
+ * - Temperature (default 0.7 if not specified)
+ * - max_output_tokens -> max_completion_tokens
+ * - System prompt as first message
+ *
+ * @param ctx Talloc context for allocation (must not be NULL)
+ * @param req Normalized request to transform (must not be NULL)
+ * @param out Output parameter for legacy request (must not be NULL)
+ * @return    OK(request) on success, ERR(...) on failure
+ *
+ * Error cases:
+ * - ERR_INVALID_ARG if req has no messages
+ * - Propagates errors from conversation building
+ */
+res_t ik_openai_shim_transform_request(TALLOC_CTX *ctx, const ik_request_t *req, ik_openai_request_t **out);
 
 #endif /* IK_PROVIDERS_OPENAI_SHIM_H */
