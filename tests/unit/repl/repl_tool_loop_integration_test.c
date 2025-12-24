@@ -29,6 +29,18 @@
 static void *ctx;
 static ik_repl_ctx_t *repl;
 
+// Mock start_stream that mimics successful request submission
+static res_t test_mock_start_stream(void *pctx, const ik_request_t *req,
+                                    ik_stream_cb_t stream_cb, void *stream_ctx,
+                                    ik_provider_completion_cb_t completion_cb, void *completion_ctx) {
+    (void)pctx; (void)req; (void)stream_cb; (void)stream_ctx;
+    (void)completion_cb; (void)completion_ctx;
+
+    // Mock implementation returns success immediately
+    // The caller (submit_tool_loop_continuation) will set curl_still_running = 1
+    return OK(NULL);
+}
+
 static void setup(void)
 {
     ctx = talloc_new(NULL);
@@ -57,7 +69,7 @@ static void setup(void)
 
     static const ik_provider_vtable_t mock_vt = {
         .fdset = NULL, .perform = NULL, .timeout = NULL, .info_read = NULL,
-        .start_request = NULL, .start_stream = NULL, .cleanup = NULL, .cancel = NULL,
+        .start_request = NULL, .start_stream = test_mock_start_stream, .cleanup = NULL, .cancel = NULL,
     };
 
     ik_provider_t *provider = talloc_zero(repl->current, ik_provider_t);
@@ -65,6 +77,10 @@ static void setup(void)
     provider->vt = &mock_vt;
     provider->ctx = mock_ctx;
     repl->current->provider_instance = provider;
+
+    /* Set provider and model so ik_agent_get_provider doesn't fail */
+    repl->current->provider = talloc_strdup(repl->current, "openai");
+    repl->current->model = talloc_strdup(repl->current, "gpt-4");
 
     /* Create config */
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
@@ -83,7 +99,7 @@ static void setup(void)
     repl->current->response_model = NULL;
     repl->current->response_finish_reason = NULL;
     repl->current->response_completion_tokens = 0;
-    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;  // Simulate mid-request state
     repl->current->curl_still_running = 0;
     repl->current->tool_iteration_count = 0;  // Initialize tool loop counter
 
