@@ -56,4 +56,36 @@ res_t ik_openai_build_chat_url(TALLOC_CTX *ctx, const char *base_url, char **out
  */
 res_t ik_openai_build_headers(TALLOC_CTX *ctx, const char *api_key, char ***out_headers);
 
+/**
+ * Serialize request to OpenAI Responses API JSON format
+ *
+ * @param ctx       Talloc context for allocations
+ * @param req       Internal request structure
+ * @param streaming True if streaming mode enabled
+ * @param out_json  Output: JSON string allocated on ctx
+ * @return          OK(json) on success, ERR(...) on failure
+ *
+ * Transforms internal request to Responses API wire format:
+ * - System prompt becomes top-level instructions field
+ * - Single user message with simple text uses string input
+ * - Multi-turn conversation uses array input
+ * - Tool definitions use same nested format as Chat Completions
+ * - Reasoning effort included for reasoning models only
+ * - Uses max_output_tokens instead of max_completion_tokens
+ */
+res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t *req,
+                                             bool streaming, char **out_json);
+
+/**
+ * Build URL for OpenAI Responses API endpoint
+ *
+ * @param ctx      Talloc context for allocations
+ * @param base_url Base URL (e.g., "https://api.openai.com")
+ * @param out_url  Output: Full URL allocated on ctx
+ * @return         OK(url) on success, ERR(...) on failure
+ *
+ * Returns: {base_url}/v1/responses
+ */
+res_t ik_openai_build_responses_url(TALLOC_CTX *ctx, const char *base_url, char **out_url);
+
 #endif /* IK_PROVIDERS_OPENAI_REQUEST_H */
