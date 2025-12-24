@@ -37,3 +37,9 @@ res_t ik_repl_handle_select_timeout(ik_repl_ctx_t *repl);
 
 // Poll for tool thread completion across all agents
 res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl);
+
+// Temporary adapter callbacks for provider abstraction (will be replaced in repl-streaming-updates.md)
+struct ik_stream_event;
+struct ik_provider_completion;
+res_t ik_repl_provider_stream_adapter(const struct ik_stream_event *event, void *ctx);
+res_t ik_repl_provider_completion_adapter(const struct ik_provider_completion *completion, void *ctx);

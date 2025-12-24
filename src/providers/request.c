@@ -108,7 +108,7 @@ res_t ik_request_create(TALLOC_CTX *ctx, const char *model, ik_request_t **out) 
     req->max_output_tokens = -1;
     req->thinking.level = IK_THINKING_NONE;
     req->thinking.include_summary = false;
-    req->tool_choice_mode = IK_TOOL_AUTO;
+    req->tool_choice_mode = 0;  // IK_TOOL_AUTO (temporarily int during coexistence)
     req->tool_choice_name = NULL;
 
     *out = req;

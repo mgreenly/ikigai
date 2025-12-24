@@ -4,6 +4,7 @@
 #include "repl.h"
 #include "agent.h"
 #include "repl_callbacks.h"
+#include "repl_event_handlers.h"
 #include "panic.h"
 #include "shared.h"
 #include "wrapper.h"
@@ -12,7 +13,8 @@
 #include "db/message.h"
 #include "input_buffer/core.h"
 #include "openai/client.h"
-#include "openai/client_multi.h"
+#include "providers/provider.h"
+#include "providers/request.h"
 #include "scrollback.h"
 #include <assert.h>
 #include <talloc.h>
@@ -88,8 +90,17 @@ static void handle_slash_cmd_(ik_repl_ctx_t *repl, char *command_text)
  */
 static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
 {
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", message_text);
-    res_t result = ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
+    ik_agent_ctx_t *agent = repl->current;
+
+    // Check if model is configured
+    if (agent->model == NULL || strlen(agent->model) == 0) {
+        const char *err_msg = "Error: No model configured";
+        ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));
+        return;
+    }
+
+    ik_msg_t *user_msg = ik_openai_msg_create(agent->conversation, "user", message_text);
+    res_t result = ik_openai_conversation_add_msg(agent->conversation, user_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Persist user message to database
@@ -101,7 +112,7 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
                                           repl->shared->cfg->openai_max_completion_tokens);
 
         res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                            repl->current->uuid, "user", message_text, data_json);
+                                            agent->uuid, "user", message_text, data_json);
         if (is_err(&db_res)) {
             yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
             yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
@@ -116,29 +127,51 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
     }
 
     // Clear previous assistant response
-    if (repl->current->assistant_response != NULL) {
-        talloc_free(repl->current->assistant_response);
-        repl->current->assistant_response = NULL;
+    if (agent->assistant_response != NULL) {
+        talloc_free(agent->assistant_response);
+        agent->assistant_response = NULL;
     }
-    if (repl->current->streaming_line_buffer != NULL) {
-        talloc_free(repl->current->streaming_line_buffer);
-        repl->current->streaming_line_buffer = NULL;
+    if (agent->streaming_line_buffer != NULL) {
+        talloc_free(agent->streaming_line_buffer);
+        agent->streaming_line_buffer = NULL;
     }
 
-    repl->current->tool_iteration_count = 0;
-    ik_agent_transition_to_waiting_for_llm(repl->current);
+    agent->tool_iteration_count = 0;
+    ik_agent_transition_to_waiting_for_llm(agent);
 
-    result = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
-                                         ik_repl_streaming_callback, repl->current,
-                                         ik_repl_http_completion_callback, repl->current, false,
-                                         repl->shared->logger);
+    // Get or create provider (lazy initialization)
+    ik_provider_t *provider = NULL;
+    result = ik_agent_get_provider(agent, &provider);
     if (is_err(&result)) {
         const char *err_msg = error_message(result.err);
-        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
-        ik_agent_transition_to_idle(repl->current);
+        ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));
+        ik_agent_transition_to_idle(agent);
+        talloc_free(result.err);
+        return;
+    }
+
+    // Build normalized request from conversation
+    ik_request_t *req = NULL;
+    result = ik_request_build_from_conversation(agent, agent, &req);
+    if (is_err(&result)) {
+        const char *err_msg = error_message(result.err);
+        ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));
+        ik_agent_transition_to_idle(agent);
+        talloc_free(result.err);
+        return;
+    }
+
+    // Start async stream (returns immediately)
+    result = provider->vt->start_stream(provider->ctx, req,
+                                        ik_repl_provider_stream_adapter, agent,
+                                        ik_repl_provider_completion_adapter, agent);
+    if (is_err(&result)) {
+        const char *err_msg = error_message(result.err);
+        ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));
+        ik_agent_transition_to_idle(agent);
         talloc_free(result.err);
     } else {
-        repl->current->curl_still_running = 1;
+        agent->curl_still_running = 1;
     }
 }
 

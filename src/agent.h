@@ -98,7 +98,6 @@ typedef struct ik_agent_ctx {
     size_t mark_count;
 
     // LLM interaction state (per-agent)
-    struct ik_openai_multi *multi;
     int curl_still_running;
     ik_agent_state_t state;
     char *assistant_response;

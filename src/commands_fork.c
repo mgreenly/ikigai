@@ -12,10 +12,12 @@
 #include "event_render.h"
 #include "logger.h"
 #include "openai/client.h"
-#include "openai/client_multi.h"
 #include "panic.h"
+#include "providers/provider.h"
+#include "providers/request.h"
 #include "repl.h"
 #include "repl_callbacks.h"
+#include "repl_event_handlers.h"
 #include "scrollback.h"
 #include "shared.h"
 #include "wrapper.h"
@@ -124,11 +126,32 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
     // Transition to waiting for LLM
     ik_agent_transition_to_waiting_for_llm(repl->current);
 
-    // Trigger LLM request
-    res = ik_openai_multi_add_request(repl->current->multi, repl->shared->cfg, repl->current->conversation,
-                                      ik_repl_streaming_callback, repl->current,
-                                      ik_repl_http_completion_callback, repl->current, false,
-                                      repl->shared->logger);
+    // Get or create provider (lazy initialization)
+    ik_provider_t *provider = NULL;
+    res = ik_agent_get_provider(repl->current, &provider);
+    if (is_err(&res)) {
+        const char *err_msg = error_message(res.err);
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        ik_agent_transition_to_idle(repl->current);
+        talloc_free(res.err);
+        return;
+    }
+
+    // Build normalized request from conversation
+    ik_request_t *req = NULL;
+    res = ik_request_build_from_conversation(repl->current, repl->current, &req);
+    if (is_err(&res)) {
+        const char *err_msg = error_message(res.err);
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        ik_agent_transition_to_idle(repl->current);
+        talloc_free(res.err);
+        return;
+    }
+
+    // Start async stream (returns immediately)
+    res = provider->vt->start_stream(provider->ctx, req,
+                                     ik_repl_provider_stream_adapter, repl->current,
+                                     ik_repl_provider_completion_adapter, repl->current);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         const char *err_msg = error_message(res.err);     // LCOV_EXCL_LINE
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));     // LCOV_EXCL_LINE

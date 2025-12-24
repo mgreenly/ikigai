@@ -6,8 +6,9 @@
 #include "input.h"
 #include "layer_wrappers.h"
 #include "logger.h"
-#include "openai/client_multi.h"
 #include "panic.h"
+#include "providers/provider.h"
+#include "providers/request.h"
 #include "repl.h"
 #include "repl_actions.h"
 #include "repl_actions_internal.h"
@@ -81,11 +82,14 @@ res_t ik_repl_setup_fd_sets(ik_repl_ctx_t *repl,
     int max_fd = terminal_fd;
     for (size_t i = 0; i < repl->agent_count; i++) {
         ik_agent_ctx_t *agent = repl->agents[i];
-        int agent_max_fd = -1;
-        res_t result = ik_openai_multi_fdset(agent->multi, read_fds, write_fds, exc_fds, &agent_max_fd);
-        if (is_err(&result)) return result;
-        if (agent_max_fd > max_fd) {
-            max_fd = agent_max_fd;
+        if (agent->provider_instance != NULL) {
+            int agent_max_fd = -1;
+            res_t result = agent->provider_instance->vt->fdset(agent->provider_instance->ctx,
+                                                                read_fds, write_fds, exc_fds, &agent_max_fd);
+            if (is_err(&result)) return result;
+            if (agent_max_fd > max_fd) {
+                max_fd = agent_max_fd;
+            }
         }
     }
     *max_fd_out = max_fd;
@@ -196,15 +200,64 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
     }
 }
 
+// Temporary adapter: Convert provider stream events to old OpenAI chunks
+// TODO: Replace with proper event handling in repl-streaming-updates.md
+res_t ik_repl_provider_stream_adapter(const ik_stream_event_t *event, void *ctx)
+{
+    if (event->type == IK_STREAM_TEXT_DELTA && event->data.delta.text != NULL) {
+        return ik_repl_streaming_callback(event->data.delta.text, ctx);
+    }
+    // Ignore other event types for now (thinking, tool_call, etc.)
+    return OK(NULL);
+}
+
+// Temporary adapter: Convert provider completion to old OpenAI HTTP completion
+// TODO: Replace with proper completion handling in repl-streaming-updates.md
+res_t ik_repl_provider_completion_adapter(const ik_provider_completion_t *completion, void *ctx)
+{
+    // For now, just extract error info if failed
+    ik_agent_ctx_t *agent = (ik_agent_ctx_t *)ctx;
+
+    if (!completion->success && completion->error_message != NULL) {
+        agent->http_error_message = talloc_strdup(agent, completion->error_message);
+    }
+
+    // Old callback expected ik_http_completion_t which had different fields
+    // For now we just handle the basic error case
+    // Full implementation will be in repl-streaming-updates.md
+    return OK(NULL);
+}
+
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
-    bool limit_reached = (repl->shared->cfg != NULL &&  // LCOV_EXCL_BR_LINE
-                          agent->tool_iteration_count >= repl->shared->cfg->max_tool_turns);  // LCOV_EXCL_BR_LINE
-    res_t result = ik_openai_multi_add_request(agent->multi, repl->shared->cfg, agent->conversation,
-                                               ik_repl_streaming_callback, agent,
-                                               ik_repl_http_completion_callback, agent,
-                                               limit_reached,
-                                               repl->shared->logger);
+    (void)repl; // Unused - was used for repl->shared->cfg
+
+    // Get or create provider (lazy initialization)
+    ik_provider_t *provider = NULL;
+    res_t result = ik_agent_get_provider(agent, &provider);
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
+        const char *err_msg = error_message(result.err);  // LCOV_EXCL_LINE
+        ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));  // LCOV_EXCL_LINE
+        ik_agent_transition_to_idle(agent);  // LCOV_EXCL_LINE
+        talloc_free(result.err);  // LCOV_EXCL_LINE
+        return;  // LCOV_EXCL_LINE
+    }
+
+    // Build normalized request from conversation
+    ik_request_t *req = NULL;
+    result = ik_request_build_from_conversation(agent, agent, &req);
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
+        const char *err_msg = error_message(result.err);  // LCOV_EXCL_LINE
+        ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));  // LCOV_EXCL_LINE
+        ik_agent_transition_to_idle(agent);  // LCOV_EXCL_LINE
+        talloc_free(result.err);  // LCOV_EXCL_LINE
+        return;  // LCOV_EXCL_LINE
+    }
+
+    // Start async stream (returns immediately)
+    result = provider->vt->start_stream(provider->ctx, req,
+                                        ik_repl_provider_stream_adapter, agent,
+                                        ik_repl_provider_completion_adapter, agent);
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
         const char *err_msg = error_message(result.err);  // LCOV_EXCL_LINE
         ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));  // LCOV_EXCL_LINE
@@ -217,10 +270,10 @@ static void submit_tool_loop_continuation(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
 
 static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
-    if (agent->curl_still_running > 0) {
+    if (agent->curl_still_running > 0 && agent->provider_instance != NULL) {
         int prev_running = agent->curl_still_running;
-        CHECK(ik_openai_multi_perform(agent->multi, &agent->curl_still_running));
-        ik_openai_multi_info_read(agent->multi, repl->shared->logger);
+        CHECK(agent->provider_instance->vt->perform(agent->provider_instance->ctx, &agent->curl_still_running));
+        agent->provider_instance->vt->info_read(agent->provider_instance->ctx, repl->shared->logger);
         pthread_mutex_lock_(&agent->tool_thread_mutex);
         ik_agent_state_t current_state = agent->state;
         pthread_mutex_unlock_(&agent->tool_thread_mutex);
@@ -293,11 +346,13 @@ res_t ik_repl_calculate_curl_min_timeout(ik_repl_ctx_t *repl, long *timeout_out)
 
     long curl_timeout_ms = -1;
     for (size_t i = 0; i < repl->agent_count; i++) {
-        long agent_timeout = -1;
-        CHECK(ik_openai_multi_timeout(repl->agents[i]->multi, &agent_timeout));
-        if (agent_timeout >= 0) {
-            if (curl_timeout_ms < 0 || agent_timeout < curl_timeout_ms) {  // LCOV_EXCL_BR_LINE
-                curl_timeout_ms = agent_timeout;
+        if (repl->agents[i]->provider_instance != NULL) {
+            long agent_timeout = -1;
+            CHECK(repl->agents[i]->provider_instance->vt->timeout(repl->agents[i]->provider_instance->ctx, &agent_timeout));
+            if (agent_timeout >= 0) {
+                if (curl_timeout_ms < 0 || agent_timeout < curl_timeout_ms) {  // LCOV_EXCL_BR_LINE
+                    curl_timeout_ms = agent_timeout;
+                }
             }
         }
     }

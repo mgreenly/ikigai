@@ -147,7 +147,7 @@ release:
 	@$(MAKE) clean
 	@$(MAKE) all BUILD=release
 
-$(CLIENT_TARGET): $(CLIENT_OBJ) | bin
+$(CLIENT_TARGET): $(CLIENT_OBJ) $(VCR_STUBS_OBJ) | bin
 	$(CC) $(LDFLAGS) -o $@ $^ -Wl,-Bstatic $(CLIENT_STATIC_LIBS) -Wl,-Bdynamic $(CLIENT_LIBS)
 
 # Vendor files compile with relaxed warnings (no -Werror, disable conversion warnings)

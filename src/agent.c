@@ -7,7 +7,6 @@
 #include "layer.h"
 #include "layer_wrappers.h"
 #include "openai/client.h"
-#include "openai/client_multi.h"
 #include "panic.h"
 #include "scrollback.h"
 #include "shared.h"
@@ -91,8 +90,6 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->mark_count = 0;
 
     // Initialize LLM interaction state (per-agent)
-    agent->multi = ik_openai_multi_create(agent).ok;  // Created immediately for event loop
-    if (agent->multi == NULL) PANIC("Failed to create curl_multi handle");  // LCOV_EXCL_BR_LINE
     agent->curl_still_running = 0;
     agent->state = IK_AGENT_STATE_IDLE;
     agent->assistant_response = NULL;
@@ -214,8 +211,6 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->mark_count = 0;
 
     // Initialize LLM interaction state (per-agent)
-    agent->multi = ik_openai_multi_create(agent).ok;  // Created immediately for event loop
-    if (agent->multi == NULL) PANIC("Failed to create curl_multi handle");  // LCOV_EXCL_BR_LINE
     agent->curl_still_running = 0;
     agent->state = IK_AGENT_STATE_IDLE;
     agent->assistant_response = NULL;
