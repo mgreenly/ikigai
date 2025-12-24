@@ -13,15 +13,7 @@
 #include "providers/stubs.h"
 
 // OpenAI factory implementation moved to providers/openai/shim.c
-
-// Stub implementation for Anthropic factory
-// TODO: Replace with actual implementation from anthropic-core.md
-res_t ik_anthropic_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out)
-{
-    (void)api_key;
-    (void)out;
-    return ERR(ctx, NOT_IMPLEMENTED, "Anthropic provider not yet implemented");
-}
+// Anthropic factory implementation moved to providers/anthropic/anthropic.c
 
 // Stub implementation for Google factory
 // TODO: Replace with actual implementation from google-core.md
