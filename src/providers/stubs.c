@@ -12,14 +12,7 @@
 
 #include "providers/stubs.h"
 
-// Stub implementation for OpenAI factory
-// TODO: Replace with actual implementation from openai-core.md
-res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out)
-{
-    (void)api_key;
-    (void)out;
-    return ERR(ctx, NOT_IMPLEMENTED, "OpenAI provider not yet implemented");
-}
+// OpenAI factory implementation moved to providers/openai/shim.c
 
 // Stub implementation for Anthropic factory
 // TODO: Replace with actual implementation from anthropic-core.md
