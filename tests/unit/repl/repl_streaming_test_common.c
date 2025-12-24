@@ -9,6 +9,8 @@
 #include "../../../src/providers/provider.h"
 #include "../../../src/repl_callbacks.h"
 #include "../../../src/shared.h"
+#include "../../../src/config.h"
+#include "../../../src/openai/client.h"
 #include <stdlib.h>
 
 // Global state for curl mocking
@@ -106,13 +108,94 @@ static void test_vt_info_read(void *pctx, ik_logger_t *logger) {
 res_t ik_repl_provider_stream_adapter(const ik_stream_event_t *event, void *ctx);
 res_t ik_repl_provider_completion_adapter(const ik_provider_completion_t *completion, void *ctx);
 
-// Mock start_stream for streaming tests - returns OK immediately
+// Context for callback adapters
+typedef struct {
+    ik_stream_cb_t provider_stream_cb;
+    void *provider_stream_ctx;
+    ik_provider_completion_cb_t provider_completion_cb;
+    void *provider_completion_ctx;
+} callback_adapter_ctx_t;
+
+// Adapter: old OpenAI chunk callback → new provider stream callback
+static res_t streaming_callback_adapter(const char *chunk, void *ctx)
+{
+    callback_adapter_ctx_t *adapter = (callback_adapter_ctx_t *)ctx;
+
+    // Convert chunk to provider stream event
+    ik_stream_event_t event = {
+        .type = IK_STREAM_TEXT_DELTA,
+        .index = 0,
+        .data = {
+            .delta = {
+                .text = chunk
+            }
+        }
+    };
+
+    // Invoke provider callback
+    return adapter->provider_stream_cb(&event, adapter->provider_stream_ctx);
+}
+
+// Adapter: old HTTP completion callback → new provider completion callback
+static res_t completion_callback_adapter(const ik_http_completion_t *http_completion, void *ctx)
+{
+    callback_adapter_ctx_t *adapter = (callback_adapter_ctx_t *)ctx;
+
+    // Convert HTTP completion to provider completion
+    ik_provider_completion_t provider_completion = {
+        .success = (http_completion->type == IK_HTTP_SUCCESS),
+        .http_status = http_completion->http_code,
+        .response = NULL,  // Streaming doesn't provide full response in completion
+        .error_category = IK_ERR_CAT_UNKNOWN,
+        .error_message = http_completion->error_message,
+        .retry_after_ms = -1
+    };
+
+    // Invoke provider callback
+    return adapter->provider_completion_cb(&provider_completion, adapter->provider_completion_ctx);
+}
+
+// Mock start_stream for streaming tests - adds request to multi handle
 static res_t test_vt_start_stream(void *pctx, const ik_request_t *req,
                                    ik_stream_cb_t stream_cb, void *stream_ctx,
                                    ik_provider_completion_cb_t completion_cb, void *completion_ctx) {
-    (void)pctx; (void)req; (void)stream_cb; (void)stream_ctx;
-    (void)completion_cb; (void)completion_ctx;
-    return OK(NULL);
+    (void)req;  // Request content not used in mock (uses conversation from agent)
+
+    test_provider_ctx_t *tctx = (test_provider_ctx_t *)pctx;
+
+    // Create adapter context (allocated on multi handle so it persists until completion)
+    callback_adapter_ctx_t *adapter = talloc_zero(tctx->multi, callback_adapter_ctx_t);
+    if (adapter == NULL) {
+        return ERR(tctx->multi, OUT_OF_MEMORY, "Failed to allocate callback adapter");
+    }
+
+    adapter->provider_stream_cb = stream_cb;
+    adapter->provider_stream_ctx = stream_ctx;
+    adapter->provider_completion_cb = completion_cb;
+    adapter->provider_completion_ctx = completion_ctx;
+
+    // Get agent from stream context (assumes stream_ctx is ik_agent_ctx_t)
+    ik_agent_ctx_t *agent = (ik_agent_ctx_t *)stream_ctx;
+
+    // Create minimal config for multi_add_request
+    ik_config_t *cfg = talloc_zero(adapter, ik_config_t);
+    cfg->openai_model = talloc_strdup(cfg, agent->model ? agent->model : "gpt-4");
+    cfg->openai_temperature = 0.7;
+    cfg->openai_max_completion_tokens = 1000;
+    cfg->openai_system_message = NULL;
+
+    // Add request to multi handle using old OpenAI API
+    return ik_openai_multi_add_request(
+        tctx->multi,
+        cfg,
+        agent->conversation,
+        streaming_callback_adapter,
+        adapter,
+        completion_callback_adapter,
+        adapter,
+        false,  // limit_reached
+        NULL    // logger
+    );
 }
 
 static const ik_provider_vtable_t g_test_vtable = {
