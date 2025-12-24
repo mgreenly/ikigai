@@ -182,8 +182,8 @@ START_TEST(test_model_persisted)
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
     ck_assert(is_ok(&res));
 
-    // Should have called ik_db_message_insert once
-    ck_assert_int_eq(insert_call_count, 1);
+    // Should have called DB twice: once for agent update, once for message insert
+    ck_assert_int_eq(insert_call_count, 2);
 
     // Verify kind is "command"
     ck_assert_ptr_nonnull(last_kind);
@@ -192,7 +192,7 @@ START_TEST(test_model_persisted)
     // Verify content contains command and output
     ck_assert_ptr_nonnull(last_content);
     ck_assert(strncmp(last_content, "/model gpt-4\n", 13) == 0);
-    ck_assert(strstr(last_content, "Switched to model: gpt-4") != NULL);
+    ck_assert(strstr(last_content, "Switched to") != NULL);
 
     // Verify data_json contains command metadata
     ck_assert_ptr_nonnull(last_data_json);

@@ -77,13 +77,18 @@ typedef enum {
 
 /**
  * Tool invocation control modes
+ *
+ * NOTE: Temporarily commented out to avoid conflict with openai/tool_choice.h
+ * during coexistence phase. Will be uncommented after old OpenAI code is removed.
  */
+/* TEMPORARILY DISABLED - TYPE CONFLICT
 typedef enum {
-    IK_TOOL_AUTO = 0,     /* Model decides when to use tools */
-    IK_TOOL_NONE = 1,     /* No tool use allowed */
-    IK_TOOL_REQUIRED = 2, /* Must use a tool */
-    IK_TOOL_SPECIFIC = 3  /* Must use specific tool */
+    IK_TOOL_AUTO = 0,     / * Model decides when to use tools * /
+    IK_TOOL_NONE = 1,     / * No tool use allowed * /
+    IK_TOOL_REQUIRED = 2, / * Must use a tool * /
+    IK_TOOL_SPECIFIC = 3  / * Must use specific tool * /
 } ik_tool_choice_t;
+**/
 
 /**
  * Provider error categories for retry logic
@@ -201,7 +206,7 @@ struct ik_request {
     ik_tool_def_t *tools;              /* Array of tool definitions */
     size_t tool_count;                 /* Number of tools */
     int32_t max_output_tokens;         /* Maximum response tokens */
-    ik_tool_choice_t tool_choice_mode; /* Tool choice mode */
+    int tool_choice_mode;              /* Tool choice mode (temporarily int during coexistence) */
     char *tool_choice_name;            /* Specific tool name (if mode is IK_TOOL_SPECIFIC) */
 };
 
@@ -465,5 +470,35 @@ struct ik_provider {
  * - Unknown -> NULL
  */
 const char *ik_infer_provider(const char *model_name);
+
+/**
+ * Model capability information
+ *
+ * Maps model prefixes to their capabilities for validation and user feedback.
+ */
+typedef struct {
+    const char *prefix;          /* Model name prefix (e.g., "claude-sonnet-4-5") */
+    const char *provider;        /* Provider name ("anthropic", "openai", "google") */
+    bool supports_thinking;      /* true if model supports thinking/reasoning */
+    int32_t max_thinking_tokens; /* Maximum thinking tokens (0 if effort-based or unsupported) */
+} ik_model_capability_t;
+
+/**
+ * Check if a model supports thinking/reasoning
+ *
+ * @param model    Model identifier
+ * @param supports Output: true if model supports thinking
+ * @return         OK on success, ERR on failure
+ */
+res_t ik_model_supports_thinking(const char *model, bool *supports);
+
+/**
+ * Get maximum thinking token budget for a model
+ *
+ * @param model  Model identifier
+ * @param budget Output: max thinking tokens (0 if effort-based or unsupported)
+ * @return       OK on success, ERR on failure
+ */
+res_t ik_model_get_thinking_budget(const char *model, int32_t *budget);
 
 #endif /* IK_PROVIDER_H */

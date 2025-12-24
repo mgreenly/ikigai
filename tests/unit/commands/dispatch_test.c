@@ -256,8 +256,9 @@ START_TEST(test_dispatch_model_with_arg)
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4-turbo");
     ck_assert(is_ok(&res));
 
-    // Verify model changed
-    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-4-turbo");
+    // Verify model changed in agent state
+    ck_assert_str_eq(repl->current->model, "gpt-4-turbo");
+    ck_assert_str_eq(repl->current->provider, "openai");
 
     // Verify scrollback received confirmation message
     const char *line = NULL;
@@ -265,7 +266,8 @@ START_TEST(test_dispatch_model_with_arg)
     res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "Switched to model: gpt-4-turbo");
+    ck_assert(strstr(line, "Switched to") != NULL);
+    ck_assert(strstr(line, "gpt-4-turbo") != NULL);
 }
 
 END_TEST

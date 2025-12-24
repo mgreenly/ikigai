@@ -24,27 +24,64 @@ typedef struct {
 /**
  * Provide arguments for /model command
  *
- * Returns a hardcoded list of available models.
+ * Returns a list of available models from all providers.
  */
 static arg_provider_result_t provide_model_args(TALLOC_CTX *ctx, ik_repl_ctx_t *repl)
 {
     (void)ctx;   // Unused - using static array
     (void)repl;  // Unused - using static array
 
+    // Complete list of models from all providers
     static const char *model_list[] = {
-        "claude-opus-4-5",
+        // Anthropic
+        "claude-haiku-4-5",
         "claude-sonnet-4-5",
+        "claude-opus-4-5",
+        // OpenAI
+        "gpt-4",
+        "gpt-4-turbo",
         "gpt-4o",
         "gpt-4o-mini",
+        "gpt-3.5-turbo",
+        "gpt-5",
         "gpt-5-mini",
+        "gpt-5-nano",
         "o1",
         "o1-mini",
-        "o3-mini"
+        "o1-preview",
+        "o3-mini",
+        // Google
+        "gemini-2.5-flash-lite",
+        "gemini-3.0-flash",
+        "gemini-3.0-pro"
     };
 
     arg_provider_result_t result;
     result.args = model_list;
     result.count = sizeof(model_list) / sizeof(model_list[0]);
+    return result;
+}
+
+/**
+ * Provide thinking level arguments for /model command
+ *
+ * Returns thinking levels: none, low, med, high
+ */
+static arg_provider_result_t provide_thinking_args(TALLOC_CTX *ctx, ik_repl_ctx_t *repl)
+{
+    (void)ctx;   // Unused - using static array
+    (void)repl;  // Unused - using static array
+
+    static const char *thinking_levels[] = {
+        "none",
+        "low",
+        "med",
+        "high"
+    };
+
+    arg_provider_result_t result;
+    result.args = thinking_levels;
+    result.count = sizeof(thinking_levels) / sizeof(thinking_levels[0]);
     return result;
 }
 
@@ -268,7 +305,17 @@ ik_completion_t *ik_completion_create_for_arguments(TALLOC_CTX *ctx,
     arg_provider_result_t provider_result;
 
     if (strcmp(cmd_name, "model") == 0) {
-        provider_result = provide_model_args(ctx, repl);
+        // Check if we're completing thinking level (after "/")
+        const char *slash = strchr(arg_prefix, '/');
+        if (slash != NULL) {
+            // Complete thinking level after slash
+            provider_result = provide_thinking_args(ctx, repl);
+            // Update arg_prefix to start after the slash
+            arg_prefix = slash + 1;
+        } else {
+            // Complete model name
+            provider_result = provide_model_args(ctx, repl);
+        }
     } else if (strcmp(cmd_name, "debug") == 0) {
         provider_result = provide_debug_args(ctx, repl);
     } else if (strcmp(cmd_name, "rewind") == 0) {
