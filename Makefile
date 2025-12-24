@@ -131,6 +131,7 @@ MODULE_OBJ_NO_DB_AGENT = $(filter-out $(BUILDDIR)/db/agent.o $(BUILDDIR)/db/agen
 # Test utilities (linked with all tests)
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
 TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts.o
+VCR_OBJ = $(BUILDDIR)/tests/helpers/vcr.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 
@@ -185,6 +186,10 @@ $(BUILDDIR)/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | $(BUILDD
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILDDIR)/tests/helpers/test_contexts.o: tests/helpers/test_contexts.c tests/helpers/test_contexts.h | $(BUILDDIR)/tests
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILDDIR)/tests/helpers/vcr.o: tests/helpers/vcr.c tests/helpers/vcr.h | $(BUILDDIR)/tests
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
@@ -272,6 +277,11 @@ $(BUILDDIR)/tests/unit/repl/repl_session_test: $(BUILDDIR)/tests/unit/repl/repl_
 $(BUILDDIR)/tests/unit/helpers/test_contexts_test: $(BUILDDIR)/tests/unit/helpers/test_contexts_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(TEST_CONTEXTS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+# Special rule for vcr_test (needs vcr helper, no module objects needed)
+$(BUILDDIR)/tests/unit/helpers/vcr_test: $(BUILDDIR)/tests/unit/helpers/vcr_test.o $(VCR_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit
 
 # Special rule for repl_full_viewport_test
 $(BUILDDIR)/tests/unit/repl/repl_full_viewport_test: $(BUILDDIR)/tests/unit/repl/repl_full_viewport_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ)
