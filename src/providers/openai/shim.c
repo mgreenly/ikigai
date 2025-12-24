@@ -2,6 +2,7 @@
 #include "db/message.h"
 #include "msg.h"
 #include "panic.h"
+#include "vendor/yyjson/yyjson.h"
 #include <string.h>
 #include <assert.h>
 
@@ -219,6 +220,150 @@ res_t ik_openai_shim_transform_request(TALLOC_CTX *ctx, const ik_request_t *req,
 
     *out = legacy_req;
     return OK(legacy_req);
+}
+
+/* ================================================================
+ * Response Transformation Functions
+ *
+ * These functions convert from the legacy OpenAI client format
+ * (ik_msg_t) to the normalized provider format (ik_response_t).
+ * ================================================================ */
+
+ik_finish_reason_t ik_openai_shim_map_finish_reason(const char *openai_reason)
+{
+    if (openai_reason == NULL) {
+        return IK_FINISH_UNKNOWN;
+    }
+
+    if (strcmp(openai_reason, "stop") == 0) {
+        return IK_FINISH_STOP;
+    }
+    if (strcmp(openai_reason, "length") == 0) {
+        return IK_FINISH_LENGTH;
+    }
+    if (strcmp(openai_reason, "tool_calls") == 0) {
+        return IK_FINISH_TOOL_USE;
+    }
+    if (strcmp(openai_reason, "content_filter") == 0) {
+        return IK_FINISH_CONTENT_FILTER;
+    }
+
+    return IK_FINISH_UNKNOWN;
+}
+
+res_t ik_openai_shim_transform_response(TALLOC_CTX *ctx, const ik_msg_t *msg, ik_response_t **out)
+{
+    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(msg != NULL);  // LCOV_EXCL_BR_LINE
+    assert(out != NULL);  // LCOV_EXCL_BR_LINE
+
+    /* Allocate response structure */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    if (response == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+
+    /* Allocate single content block */
+    response->content_blocks = talloc_zero(response, ik_content_block_t);
+    if (response->content_blocks == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+    response->content_count = 1;
+
+    ik_content_block_t *block = &response->content_blocks[0];
+
+    /* Transform based on message kind */
+    if (strcmp(msg->kind, "assistant") == 0) {
+        /* Text response */
+        block->type = IK_CONTENT_TEXT;
+        block->data.text.text = talloc_strdup(block, msg->content);
+        if (block->data.text.text == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+
+        /* Default finish reason for text responses */
+        response->finish_reason = IK_FINISH_STOP;
+
+    } else if (strcmp(msg->kind, "tool_call") == 0) {
+        /* Tool call response - parse data_json */
+        if (msg->data_json == NULL) {
+            talloc_free(response);
+            return ERR(ctx, PARSE, "tool_call message has NULL data_json");
+        }
+
+        /* Parse data_json to extract tool call fields */
+        yyjson_doc *doc = yyjson_read(msg->data_json, strlen(msg->data_json), 0);
+        if (doc == NULL) {
+            talloc_free(response);
+            return ERR(ctx, PARSE, "Failed to parse tool_call data_json");
+        }
+
+        yyjson_val *root = yyjson_doc_get_root(doc);
+        if (!yyjson_is_obj(root)) {
+            yyjson_doc_free(doc);
+            talloc_free(response);
+            return ERR(ctx, PARSE, "tool_call data_json is not an object");
+        }
+
+        /* Extract fields */
+        yyjson_val *id_val = yyjson_obj_get(root, "id");
+        yyjson_val *name_val = yyjson_obj_get(root, "name");
+        yyjson_val *args_val = yyjson_obj_get(root, "arguments");
+
+        if (!yyjson_is_str(id_val) || !yyjson_is_str(name_val) || !yyjson_is_str(args_val)) {
+            yyjson_doc_free(doc);
+            talloc_free(response);
+            return ERR(ctx, PARSE, "tool_call data_json missing required string fields");
+        }
+
+        /* Set content block type and data */
+        block->type = IK_CONTENT_TOOL_CALL;
+
+        block->data.tool_call.id = talloc_strdup(block, yyjson_get_str(id_val));
+        if (block->data.tool_call.id == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+
+        block->data.tool_call.name = talloc_strdup(block, yyjson_get_str(name_val));
+        if (block->data.tool_call.name == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+
+        block->data.tool_call.arguments = talloc_strdup(block, yyjson_get_str(args_val));
+        if (block->data.tool_call.arguments == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+
+        yyjson_doc_free(doc);
+
+        /* Finish reason for tool calls */
+        response->finish_reason = IK_FINISH_TOOL_USE;
+
+    } else {
+        /* Unknown kind - treat as text with empty content */
+        block->type = IK_CONTENT_TEXT;
+        block->data.text.text = talloc_strdup(block, "");
+        if (block->data.text.text == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+        response->finish_reason = IK_FINISH_UNKNOWN;
+    }
+
+    /* Set usage statistics - currently limited by what's available */
+    response->usage.input_tokens = 0;      /* Not available in current implementation */
+    response->usage.output_tokens = 0;     /* Not available in current implementation */
+    response->usage.thinking_tokens = 0;   /* OpenAI doesn't expose for Chat Completions */
+    response->usage.cached_tokens = 0;     /* Not available */
+    response->usage.total_tokens = 0;
+
+    /* Model is not available in msg structure */
+    response->model = NULL;
+
+    /* No provider-specific data */
+    response->provider_data = NULL;
+
+    *out = response;
+    return OK(response);
 }
 
 /* ================================================================

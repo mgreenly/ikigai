@@ -142,4 +142,42 @@ res_t ik_openai_shim_build_conversation(TALLOC_CTX *ctx, const ik_request_t *req
  */
 res_t ik_openai_shim_transform_request(TALLOC_CTX *ctx, const ik_request_t *req, ik_openai_request_t **out);
 
+/**
+ * Transform legacy OpenAI response message to normalized format
+ *
+ * Converts from ik_msg_t (legacy OpenAI client format) to ik_response_t
+ * (normalized provider format).
+ *
+ * Transformation rules:
+ * - kind="assistant" -> single text content block
+ * - kind="tool_call" -> single tool_call content block (extracts from data_json)
+ * - finish_reason extracted from msg metadata (if available)
+ * - usage tokens set based on available data
+ *
+ * @param ctx Talloc context for allocation (must not be NULL)
+ * @param msg Legacy message from ik_openai_chat_create() (must not be NULL)
+ * @param out Output parameter for normalized response (must not be NULL)
+ * @return    OK(response) on success, ERR(...) on failure
+ *
+ * Error cases:
+ * - ERR_INVALID_ARG if msg is NULL
+ * - ERR_PARSE if data_json is malformed for tool_call
+ */
+res_t ik_openai_shim_transform_response(TALLOC_CTX *ctx, const ik_msg_t *msg, ik_response_t **out);
+
+/**
+ * Map OpenAI finish_reason string to normalized enum
+ *
+ * Mapping:
+ * - "stop" -> IK_FINISH_STOP
+ * - "length" -> IK_FINISH_LENGTH
+ * - "tool_calls" -> IK_FINISH_TOOL_USE
+ * - "content_filter" -> IK_FINISH_CONTENT_FILTER
+ * - NULL or unknown -> IK_FINISH_UNKNOWN
+ *
+ * @param openai_reason OpenAI finish_reason string (may be NULL)
+ * @return              Normalized finish reason enum
+ */
+ik_finish_reason_t ik_openai_shim_map_finish_reason(const char *openai_reason);
+
 #endif /* IK_PROVIDERS_OPENAI_SHIM_H */
