@@ -1,6 +1,6 @@
 /**
  * @file repl_debug_response_test.c
- * @brief Unit tests for debug output in HTTP completion callback
+ * @brief Unit tests for debug output in provider completion callback
  *
  * Tests the debug response metadata output when completion callback
  * fires with different response types and metadata.
@@ -12,7 +12,7 @@
 #include "../../test_utils.h"
 #include "config.h"
 #include "logger.h"
-#include "openai/client_multi.h"
+#include "providers/provider.h"
 #include "repl_callbacks.h"
 #include "scrollback.h"
 #include "shared.h"
@@ -60,6 +60,7 @@ static void setup(void)
     repl->current->response_model = NULL;
     repl->current->response_finish_reason = NULL;
     repl->current->response_completion_tokens = 0;
+    repl->current->pending_tool_call = NULL;
 }
 
 static void teardown(void)
@@ -106,22 +107,29 @@ static yyjson_doc *read_last_log_entry(void)
 
 /* Test: Debug output for successful response with metadata */
 START_TEST(test_debug_output_response_success) {
-    /* Create successful completion with metadata */
-    char *model = talloc_strdup(ctx, "gpt-4o");
-    char *finish_reason = talloc_strdup(ctx, "stop");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
+    /* Create successful response with metadata */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = talloc_strdup(response, "gpt-4o");
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.input_tokens = 100;
+    response->usage.output_tokens = 42;
+    response->usage.thinking_tokens = 0;
+    response->usage.total_tokens = 142;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create provider completion */
+    ik_provider_completion_t completion = {
+        .success = true,
+        .http_status = 200,
+        .response = response,
+        .error_category = 0,
         .error_message = NULL,
-        .model = model,
-        .finish_reason = finish_reason,
-        .completion_tokens = 42,
-        .tool_call = NULL
+        .retry_after_ms = -1
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Read and verify logger output */
@@ -142,7 +150,7 @@ START_TEST(test_debug_output_response_success) {
     /* Verify logline fields */
     yyjson_val *event = yyjson_obj_get(logline, "event");
     ck_assert_ptr_nonnull(event);
-    ck_assert_str_eq(yyjson_get_str(event), "openai_response");
+    ck_assert_str_eq(yyjson_get_str(event), "provider_response");
 
     yyjson_val *type = yyjson_obj_get(logline, "type");
     ck_assert_ptr_nonnull(type);
@@ -152,13 +160,13 @@ START_TEST(test_debug_output_response_success) {
     ck_assert_ptr_nonnull(model_val);
     ck_assert_str_eq(yyjson_get_str(model_val), "gpt-4o");
 
-    yyjson_val *finish_val = yyjson_obj_get(logline, "finish_reason");
-    ck_assert_ptr_nonnull(finish_val);
-    ck_assert_str_eq(yyjson_get_str(finish_val), "stop");
+    yyjson_val *input_tokens = yyjson_obj_get(logline, "input_tokens");
+    ck_assert_ptr_nonnull(input_tokens);
+    ck_assert_int_eq(yyjson_get_int(input_tokens), 100);
 
-    yyjson_val *tokens = yyjson_obj_get(logline, "completion_tokens");
-    ck_assert_ptr_nonnull(tokens);
-    ck_assert_int_eq(yyjson_get_int(tokens), 42);
+    yyjson_val *output_tokens = yyjson_obj_get(logline, "output_tokens");
+    ck_assert_ptr_nonnull(output_tokens);
+    ck_assert_int_eq(yyjson_get_int(output_tokens), 42);
 
     yyjson_doc_free(doc);
 }
@@ -169,19 +177,17 @@ START_TEST(test_debug_output_response_error)
 {
     /* Create error completion */
     char *error_msg = talloc_strdup(ctx, "HTTP 500 server error");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SERVER_ERROR,
-        .http_code = 500,
-        .curl_code = CURLE_OK,
+    ik_provider_completion_t completion = {
+        .success = false,
+        .http_status = 500,
+        .response = NULL,
+        .error_category = IK_ERR_CAT_SERVER,
         .error_message = error_msg,
-        .model = NULL,
-        .finish_reason = NULL,
-        .completion_tokens = 0,
-        .tool_call = NULL
+        .retry_after_ms = -1
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Read and verify logger output */
@@ -202,7 +208,7 @@ START_TEST(test_debug_output_response_error)
     /* Verify logline fields */
     yyjson_val *event = yyjson_obj_get(logline, "event");
     ck_assert_ptr_nonnull(event);
-    ck_assert_str_eq(yyjson_get_str(event), "openai_response");
+    ck_assert_str_eq(yyjson_get_str(event), "provider_response");
 
     yyjson_val *type = yyjson_obj_get(logline, "type");
     ck_assert_ptr_nonnull(type);
@@ -215,26 +221,41 @@ END_TEST
 /* Test: Debug output with tool_call information */
 START_TEST(test_debug_output_response_with_tool_call)
 {
-    /* Create tool_call */
-    ik_tool_call_t *tc = ik_tool_call_create(ctx, "call_123", "glob", "{\"pattern\":\"*.c\"}");
+    /* Create response with tool call content block */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = talloc_strdup(response, "gpt-4o");
+    response->finish_reason = IK_FINISH_TOOL_USE;
+    response->usage.input_tokens = 100;
+    response->usage.output_tokens = 50;
+    response->usage.thinking_tokens = 0;
+    response->usage.total_tokens = 150;
 
-    /* Create successful completion with tool_call */
-    char *model = talloc_strdup(ctx, "gpt-4o");
-    char *finish_reason = talloc_strdup(ctx, "tool_calls");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
+    /* Add tool call content block */
+    response->content_count = 1;
+    response->content_blocks = talloc_array(response, ik_content_block_t, 1);
+    response->content_blocks[0].type = IK_CONTENT_TOOL_CALL;
+    response->content_blocks[0].data.tool_call.id = talloc_strdup(response, "call_123");
+    response->content_blocks[0].data.tool_call.name = talloc_strdup(response, "glob");
+    response->content_blocks[0].data.tool_call.arguments = talloc_strdup(response, "{\"pattern\":\"*.c\"}");
+
+    /* Create provider completion */
+    ik_provider_completion_t completion = {
+        .success = true,
+        .http_status = 200,
+        .response = response,
+        .error_category = 0,
         .error_message = NULL,
-        .model = model,
-        .finish_reason = finish_reason,
-        .completion_tokens = 50,
-        .tool_call = tc
+        .retry_after_ms = -1
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
+
+    /* Verify that pending_tool_call was set */
+    ck_assert_ptr_nonnull(repl->current->pending_tool_call);
+    ck_assert_str_eq(repl->current->pending_tool_call->name, "glob");
+    ck_assert_str_eq(repl->current->pending_tool_call->arguments, "{\"pattern\":\"*.c\"}");
 
     /* Read and verify logger output */
     yyjson_doc *doc = read_last_log_entry();
@@ -249,7 +270,7 @@ START_TEST(test_debug_output_response_with_tool_call)
     /* Verify logline fields */
     yyjson_val *event = yyjson_obj_get(logline, "event");
     ck_assert_ptr_nonnull(event);
-    ck_assert_str_eq(yyjson_get_str(event), "openai_response");
+    ck_assert_str_eq(yyjson_get_str(event), "provider_response");
 
     yyjson_val *type = yyjson_obj_get(logline, "type");
     ck_assert_ptr_nonnull(type);
@@ -259,44 +280,40 @@ START_TEST(test_debug_output_response_with_tool_call)
     ck_assert_ptr_nonnull(model_val);
     ck_assert_str_eq(yyjson_get_str(model_val), "gpt-4o");
 
-    yyjson_val *finish_val = yyjson_obj_get(logline, "finish_reason");
-    ck_assert_ptr_nonnull(finish_val);
-    ck_assert_str_eq(yyjson_get_str(finish_val), "tool_calls");
-
-    yyjson_val *tokens = yyjson_obj_get(logline, "completion_tokens");
-    ck_assert_ptr_nonnull(tokens);
-    ck_assert_int_eq(yyjson_get_int(tokens), 50);
-
-    /* Verify tool_call fields */
-    yyjson_val *tool_name = yyjson_obj_get(logline, "tool_call_name");
-    ck_assert_ptr_nonnull(tool_name);
-    ck_assert_str_eq(yyjson_get_str(tool_name), "glob");
-
-    yyjson_val *tool_args = yyjson_obj_get(logline, "tool_call_args");
-    ck_assert_ptr_nonnull(tool_args);
-    ck_assert_str_eq(yyjson_get_str(tool_args), "{\"pattern\":\"*.c\"}");
+    yyjson_val *output_tokens = yyjson_obj_get(logline, "output_tokens");
+    ck_assert_ptr_nonnull(output_tokens);
+    ck_assert_int_eq(yyjson_get_int(output_tokens), 50);
 
     yyjson_doc_free(doc);
 }
 
 END_TEST
-/* Test: Debug output with NULL model and finish_reason */
+/* Test: Debug output with NULL model */
 START_TEST(test_debug_output_null_metadata)
 {
-    /* Create successful completion with NULL metadata */
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
+    /* Create response with NULL model */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;  /* NULL model */
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.input_tokens = 0;
+    response->usage.output_tokens = 0;
+    response->usage.thinking_tokens = 0;
+    response->usage.total_tokens = 0;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create provider completion */
+    ik_provider_completion_t completion = {
+        .success = true,
+        .http_status = 200,
+        .response = response,
+        .error_category = 0,
         .error_message = NULL,
-        .model = NULL,
-        .finish_reason = NULL,
-        .completion_tokens = 0,
-        .tool_call = NULL
+        .retry_after_ms = -1
     };
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Read and verify logger output */
@@ -312,7 +329,7 @@ START_TEST(test_debug_output_null_metadata)
     /* Verify logline fields */
     yyjson_val *event = yyjson_obj_get(logline, "event");
     ck_assert_ptr_nonnull(event);
-    ck_assert_str_eq(yyjson_get_str(event), "openai_response");
+    ck_assert_str_eq(yyjson_get_str(event), "provider_response");
 
     yyjson_val *type = yyjson_obj_get(logline, "type");
     ck_assert_ptr_nonnull(type);
@@ -322,13 +339,9 @@ START_TEST(test_debug_output_null_metadata)
     ck_assert_ptr_nonnull(model_val);
     ck_assert_str_eq(yyjson_get_str(model_val), "(null)");
 
-    yyjson_val *finish_val = yyjson_obj_get(logline, "finish_reason");
-    ck_assert_ptr_nonnull(finish_val);
-    ck_assert_str_eq(yyjson_get_str(finish_val), "(null)");
-
-    yyjson_val *tokens = yyjson_obj_get(logline, "completion_tokens");
-    ck_assert_ptr_nonnull(tokens);
-    ck_assert_int_eq(yyjson_get_int(tokens), 0);
+    yyjson_val *output_tokens = yyjson_obj_get(logline, "output_tokens");
+    ck_assert_ptr_nonnull(output_tokens);
+    ck_assert_int_eq(yyjson_get_int(output_tokens), 0);
 
     yyjson_doc_free(doc);
 }
@@ -340,22 +353,29 @@ START_TEST(test_debug_output_no_logger)
     /* Set logger to NULL */
     repl->shared->logger = NULL;
 
-    /* Create successful completion */
-    char *model = talloc_strdup(ctx, "gpt-4o");
-    char *finish_reason = talloc_strdup(ctx, "stop");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
+    /* Create successful response */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = talloc_strdup(response, "gpt-4o");
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.input_tokens = 100;
+    response->usage.output_tokens = 42;
+    response->usage.thinking_tokens = 0;
+    response->usage.total_tokens = 142;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create provider completion */
+    ik_provider_completion_t completion = {
+        .success = true,
+        .http_status = 200,
+        .response = response,
+        .error_category = 0,
         .error_message = NULL,
-        .model = model,
-        .finish_reason = finish_reason,
-        .completion_tokens = 42,
-        .tool_call = NULL
+        .retry_after_ms = -1
     };
 
     /* Call callback - should not crash with NULL logger */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 }
 

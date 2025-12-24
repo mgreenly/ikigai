@@ -1,10 +1,9 @@
-#include "agent.h"
 /**
  * @file repl_http_completion_callback_test.c
- * @brief Unit tests for REPL HTTP completion callback
+ * @brief Unit tests for REPL provider completion callback
  *
- * Tests the ik_repl_http_completion_callback function which handles
- * HTTP request completion for both success and error cases.
+ * Tests the ik_repl_completion_callback function which handles
+ * provider request completion for both success and error cases.
  */
 
 #include "repl.h"
@@ -13,7 +12,7 @@
 #include "shared.h"
 #include "scrollback.h"
 #include "config.h"
-#include "openai/client_multi.h"
+#include "providers/provider.h"
 #include "tool.h"
 #include "debug_pipe.h"
 #include <check.h>
@@ -46,6 +45,35 @@ static void setup(void)
     repl->current->response_model = NULL;
     repl->current->response_finish_reason = NULL;
     repl->current->response_completion_tokens = 0;
+    repl->current->pending_tool_call = NULL;
+}
+
+/* Helper to create a simple successful completion */
+static ik_provider_completion_t make_success_completion(void)
+{
+    ik_provider_completion_t completion = {
+        .success = true,
+        .http_status = 200,
+        .response = NULL,
+        .error_category = 0,
+        .error_message = NULL,
+        .retry_after_ms = -1
+    };
+    return completion;
+}
+
+/* Helper to create an error completion */
+static ik_provider_completion_t make_error_completion(int http_status, ik_error_category_t category, char *msg)
+{
+    ik_provider_completion_t completion = {
+        .success = false,
+        .http_status = http_status,
+        .response = NULL,
+        .error_category = category,
+        .error_message = msg,
+        .retry_after_ms = -1
+    };
+    return completion;
 }
 
 static void teardown(void)
@@ -59,18 +87,10 @@ START_TEST(test_completion_flushes_streaming_buffer) {
     repl->current->streaming_line_buffer = talloc_strdup(repl, "Partial line content");
 
     /* Create successful completion */
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
-        .error_message = NULL,
-        .model = NULL,
-        .finish_reason = NULL,
-        .completion_tokens = 0
-    };
+    ik_provider_completion_t completion = make_success_completion();
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify buffer was flushed to scrollback (content + blank line) and cleared */
@@ -85,18 +105,10 @@ START_TEST(test_completion_clears_previous_error)
     repl->current->http_error_message = talloc_strdup(repl, "Previous error");
 
     /* Create successful completion */
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
-        .error_message = NULL,
-        .model = NULL,
-        .finish_reason = NULL,
-        .completion_tokens = 0
-    };
+    ik_provider_completion_t completion = make_success_completion();
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify error was cleared */
@@ -109,18 +121,10 @@ START_TEST(test_completion_stores_error_on_failure)
 {
     /* Create failed completion */
     char *error_msg = talloc_strdup(ctx, "HTTP 500 server error");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SERVER_ERROR,
-        .http_code = 500,
-        .curl_code = CURLE_OK,
-        .error_message = error_msg,
-        .model = NULL,
-        .finish_reason = NULL,
-        .completion_tokens = 0
-    };
+    ik_provider_completion_t completion = make_error_completion(500, IK_ERR_CAT_SERVER, error_msg);
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify error message was stored */
@@ -132,21 +136,20 @@ END_TEST
 /* Test: Completion stores response metadata on success */
 START_TEST(test_completion_stores_metadata_on_success)
 {
-    /* Create successful completion with metadata */
-    char *model = talloc_strdup(ctx, "gpt-4-turbo");
-    char *finish_reason = talloc_strdup(ctx, "stop");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
-        .error_message = NULL,
-        .model = model,
-        .finish_reason = finish_reason,
-        .completion_tokens = 42
-    };
+    /* Create response with metadata */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = talloc_strdup(response, "gpt-4-turbo");
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.output_tokens = 42;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify metadata was stored */
@@ -166,26 +169,25 @@ START_TEST(test_completion_clears_previous_metadata)
     repl->current->response_finish_reason = talloc_strdup(repl, "old-reason");
     repl->current->response_completion_tokens = 99;
 
-    /* Create successful completion with new metadata */
-    char *model = talloc_strdup(ctx, "new-model");
-    char *finish_reason = talloc_strdup(ctx, "new-reason");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
-        .error_message = NULL,
-        .model = model,
-        .finish_reason = finish_reason,
-        .completion_tokens = 50
-    };
+    /* Create response with new metadata */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = talloc_strdup(response, "new-model");
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.output_tokens = 50;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify old metadata was replaced */
     ck_assert_str_eq(repl->current->response_model, "new-model");
-    ck_assert_str_eq(repl->current->response_finish_reason, "new-reason");
+    ck_assert_str_eq(repl->current->response_finish_reason, "stop");  // Note: finish_reason is now "stop" enum mapping
     ck_assert_int_eq(repl->current->response_completion_tokens, 50);
 }
 
@@ -193,19 +195,12 @@ END_TEST
 /* Test: Completion with NULL metadata doesn't store anything */
 START_TEST(test_completion_null_metadata)
 {
-    /* Create successful completion with NULL metadata */
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
-        .error_message = NULL,
-        .model = NULL,
-        .finish_reason = NULL,
-        .completion_tokens = 0
-    };
+    /* Create successful completion without response (NULL metadata) */
+    ik_provider_completion_t completion = make_success_completion();
+    /* response is already NULL */
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify no metadata was stored */
@@ -220,18 +215,10 @@ START_TEST(test_completion_network_error)
 {
     /* Create network error completion */
     char *error_msg = talloc_strdup(ctx, "Connection error: Failed to connect");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_NETWORK_ERROR,
-        .http_code = 0,
-        .curl_code = CURLE_COULDNT_CONNECT,
-        .error_message = error_msg,
-        .model = NULL,
-        .finish_reason = NULL,
-        .completion_tokens = 0
-    };
+    ik_provider_completion_t completion = make_error_completion(0, IK_ERR_CAT_NETWORK, error_msg);
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify error message was stored */
@@ -245,18 +232,10 @@ START_TEST(test_completion_client_error)
 {
     /* Create client error completion */
     char *error_msg = talloc_strdup(ctx, "HTTP 401 error");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_CLIENT_ERROR,
-        .http_code = 401,
-        .curl_code = CURLE_OK,
-        .error_message = error_msg,
-        .model = NULL,
-        .finish_reason = NULL,
-        .completion_tokens = 0
-    };
+    ik_provider_completion_t completion = make_error_completion(401, IK_ERR_CAT_AUTH, error_msg);
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify error message was stored */
@@ -273,18 +252,10 @@ START_TEST(test_completion_flushes_buffer_and_stores_error)
 
     /* Create failed completion */
     char *error_msg = talloc_strdup(ctx, "Request timeout");
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_NETWORK_ERROR,
-        .http_code = 0,
-        .curl_code = CURLE_OPERATION_TIMEDOUT,
-        .error_message = error_msg,
-        .model = NULL,
-        .finish_reason = NULL,
-        .completion_tokens = 0
-    };
+    ik_provider_completion_t completion = make_error_completion(0, IK_ERR_CAT_TIMEOUT, error_msg);
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify buffer was flushed */
@@ -301,18 +272,10 @@ END_TEST
 START_TEST(test_completion_error_null_message)
 {
     /* Create error completion with NULL error message */
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SERVER_ERROR,
-        .http_code = 500,
-        .curl_code = CURLE_OK,
-        .error_message = NULL,  /* NULL error message on error */
-        .model = NULL,
-        .finish_reason = NULL,
-        .completion_tokens = 0
-    };
+    ik_provider_completion_t completion = make_error_completion(500, IK_ERR_CAT_SERVER, NULL);
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify no error message was stored (NULL && branch) */
@@ -323,23 +286,24 @@ END_TEST
 /* Test: Completion stores tool_call in pending_tool_call */
 START_TEST(test_completion_stores_tool_call)
 {
-    /* Create tool_call */
-    ik_tool_call_t *tc = ik_tool_call_create(ctx, "call_test123", "glob", "{\"pattern\": \"*.c\"}");
+    /* Create response with tool call content block */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;
+    response->finish_reason = IK_FINISH_TOOL_USE;
+    response->usage.output_tokens = 50;
+    response->content_count = 1;
+    response->content_blocks = talloc_array(response, ik_content_block_t, 1);
+    response->content_blocks[0].type = IK_CONTENT_TOOL_CALL;
+    response->content_blocks[0].data.tool_call.id = talloc_strdup(response, "call_test123");
+    response->content_blocks[0].data.tool_call.name = talloc_strdup(response, "glob");
+    response->content_blocks[0].data.tool_call.arguments = talloc_strdup(response, "{\"pattern\": \"*.c\"}");
 
-    /* Create successful completion with tool_call */
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
-        .error_message = NULL,
-        .model = NULL,
-        .finish_reason = talloc_strdup(ctx, "tool_calls"),
-        .completion_tokens = 50,
-        .tool_call = tc
-    };
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify tool_call was stored */
@@ -356,23 +320,24 @@ START_TEST(test_completion_clears_previous_tool_call)
     /* Set up previous pending_tool_call */
     repl->current->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
 
-    /* Create new tool_call */
-    ik_tool_call_t *tc = ik_tool_call_create(ctx, "new_call", "new_tool", "{\"key\": \"value\"}");
+    /* Create response with new tool call */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;
+    response->finish_reason = IK_FINISH_TOOL_USE;
+    response->usage.output_tokens = 25;
+    response->content_count = 1;
+    response->content_blocks = talloc_array(response, ik_content_block_t, 1);
+    response->content_blocks[0].type = IK_CONTENT_TOOL_CALL;
+    response->content_blocks[0].data.tool_call.id = talloc_strdup(response, "new_call");
+    response->content_blocks[0].data.tool_call.name = talloc_strdup(response, "new_tool");
+    response->content_blocks[0].data.tool_call.arguments = talloc_strdup(response, "{\"key\": \"value\"}");
 
-    /* Create successful completion with tool_call */
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
-        .error_message = NULL,
-        .model = NULL,
-        .finish_reason = talloc_strdup(ctx, "tool_calls"),
-        .completion_tokens = 25,
-        .tool_call = tc
-    };
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify new tool_call replaced old one */
@@ -388,20 +353,20 @@ START_TEST(test_completion_null_tool_call_clears_pending)
     /* Set up previous pending_tool_call */
     repl->current->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
 
-    /* Create successful completion without tool_call */
-    ik_http_completion_t completion = {
-        .type = IK_HTTP_SUCCESS,
-        .http_code = 200,
-        .curl_code = CURLE_OK,
-        .error_message = NULL,
-        .model = NULL,
-        .finish_reason = talloc_strdup(ctx, "stop"),
-        .completion_tokens = 10,
-        .tool_call = NULL
-    };
+    /* Create response without tool call */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.output_tokens = 10;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
 
     /* Call callback */
-    res_t result = ik_repl_http_completion_callback(&completion, repl->current);
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
     /* Verify pending_tool_call was cleared */
