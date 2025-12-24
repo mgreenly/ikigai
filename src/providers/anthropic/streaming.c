@@ -512,6 +512,7 @@ void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
  * Called by curl as data arrives from network.
  * Feeds data to SSE parser and pulls complete events.
  */
+__attribute__((unused))
 static size_t curl_write_callback(const char *data, size_t len, void *ctx)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
