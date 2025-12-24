@@ -400,6 +400,9 @@ static char *build_tool_parameters_json(TALLOC_CTX *ctx, const ik_tool_schema_de
         PANIC("Failed to add required array");  // LCOV_EXCL_LINE
     }
 
+    /* Set parameters as document root */
+    yyjson_mut_doc_set_root(doc, parameters);
+
     /* Serialize to JSON string */
     char *json_str = yyjson_mut_write(doc, 0, NULL);
     if (!json_str) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
