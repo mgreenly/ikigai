@@ -30,10 +30,11 @@ static const ik_model_capability_t MODEL_CAPABILITIES[] = {
     {"gpt-4o-mini", "openai", false, 0},
     {"gpt-3.5-turbo", "openai", false, 0},
 
-    // O-series models (deprecated reasoning models)
+    // O-series models (legacy reasoning models, not GPT-5 compatible)
     {"o1", "openai", false, 0},
     {"o1-mini", "openai", false, 0},
     {"o1-preview", "openai", false, 0},
+    {"o3", "openai", false, 0},
     {"o3-mini", "openai", false, 0},
 };
 
@@ -45,14 +46,14 @@ const char *ik_infer_provider(const char *model_name)
         return NULL;
     }
 
-    // OpenAI models: gpt-*, o1-*, o3-*
+    // OpenAI models: gpt-*, o1, o1-*, o3, o3-*
     if (strncmp(model_name, "gpt-", 4) == 0) {
         return "openai";
     }
-    if (strncmp(model_name, "o1-", 3) == 0) {
+    if (strcmp(model_name, "o1") == 0 || strncmp(model_name, "o1-", 3) == 0) {
         return "openai";
     }
-    if (strncmp(model_name, "o3-", 3) == 0) {
+    if (strcmp(model_name, "o3") == 0 || strncmp(model_name, "o3-", 3) == 0) {
         return "openai";
     }
 

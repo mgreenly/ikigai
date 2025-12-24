@@ -44,6 +44,10 @@ START_TEST(test_role_enum_values)
 }
 END_TEST
 
+// TEMPORARILY DISABLED during coexistence phase
+// The IK_TOOL_* enum is commented out in provider.h to avoid conflict with openai/tool_choice.h
+// This test will be re-enabled after old OpenAI code is removed
+/*
 START_TEST(test_tool_choice_enum_values)
 {
     ck_assert_int_eq(IK_TOOL_AUTO, 0);
@@ -52,6 +56,7 @@ START_TEST(test_tool_choice_enum_values)
     ck_assert_int_eq(IK_TOOL_SPECIFIC, 3);
 }
 END_TEST
+*/
 
 START_TEST(test_error_category_enum_values)
 {
@@ -282,7 +287,8 @@ static Suite *provider_types_suite(void)
     tcase_add_test(tc_enums, test_finish_reason_enum_values);
     tcase_add_test(tc_enums, test_content_type_enum_values);
     tcase_add_test(tc_enums, test_role_enum_values);
-    tcase_add_test(tc_enums, test_tool_choice_enum_values);
+    // TEMPORARILY DISABLED: test_tool_choice_enum_values (enum commented out during coexistence)
+    // tcase_add_test(tc_enums, test_tool_choice_enum_values);
     tcase_add_test(tc_enums, test_error_category_enum_values);
     tcase_add_test(tc_enums, test_stream_event_type_enum_values);
     suite_add_tcase(s, tc_enums);
