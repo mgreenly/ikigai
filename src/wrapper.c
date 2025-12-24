@@ -471,12 +471,18 @@ MOCKABLE CURLMcode curl_multi_cleanup_(CURLM *multi)
     return curl_multi_cleanup(multi);
 }
 
+// VCR message tracking - forward declaration of variables defined later
+static CURLMsg g_vcr_curl_msg;
+static bool g_vcr_msg_delivered;
+
 MOCKABLE CURLMcode curl_multi_add_handle_(CURLM *multi, CURL *easy)
 {
     // In VCR playback mode, populate HTTP status from fixture
     if (vcr_is_active() && !vcr_is_recording()) {
         vcr_curl_state_t *state = vcr_find_or_create_state(easy);
         state->http_status = vcr_get_response_status();
+        // Reset the message delivered flag for new requests
+        g_vcr_msg_delivered = false;
     }
 
     return curl_multi_add_handle(multi, easy);
@@ -533,6 +539,32 @@ MOCKABLE CURLMcode curl_multi_timeout_(CURLM *multi, long *timeout)
 
 MOCKABLE CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue)
 {
+    // VCR playback mode: return synthetic CURLMSG_DONE when no more chunks
+    if (vcr_is_active() && !vcr_is_recording()) {
+        // Check if we've already delivered the message
+        if (g_vcr_msg_delivered) {
+            *msgs_in_queue = 0;
+            return NULL;
+        }
+
+        // If there's no more data and we have an active curl handle, signal completion
+        if (!vcr_has_more()) {
+            for (vcr_curl_state_t *state = g_vcr_curl_state_list; state; state = state->next) {
+                if (state->easy_handle) {
+                    g_vcr_curl_msg.msg = CURLMSG_DONE;
+                    g_vcr_curl_msg.easy_handle = state->easy_handle;
+                    g_vcr_curl_msg.data.result = CURLE_OK;
+                    g_vcr_msg_delivered = true;
+                    *msgs_in_queue = 0;
+                    return &g_vcr_curl_msg;
+                }
+            }
+        }
+
+        *msgs_in_queue = 0;
+        return NULL;
+    }
+
     return curl_multi_info_read(multi, msgs_in_queue);
 }
 

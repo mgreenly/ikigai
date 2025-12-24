@@ -288,7 +288,11 @@ static bool serialize_tools(yyjson_mut_doc *doc, yyjson_mut_val *root,
     return true;
 }
 
-res_t ik_anthropic_serialize_request(TALLOC_CTX *ctx, const ik_request_t *req, char **out_json)
+/**
+ * Internal serialize request implementation
+ */
+static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req,
+                                         bool stream, char **out_json)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(req != NULL);      // LCOV_EXCL_BR_LINE
@@ -323,6 +327,14 @@ res_t ik_anthropic_serialize_request(TALLOC_CTX *ctx, const ik_request_t *req, c
     if (!yyjson_mut_obj_add_int(doc, root, "max_tokens", max_tokens)) { // LCOV_EXCL_BR_LINE
         yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
         return ERR(ctx, PARSE, "Failed to add max_tokens field"); // LCOV_EXCL_LINE
+    }
+
+    // Add stream flag if streaming
+    if (stream) {
+        if (!yyjson_mut_obj_add_bool(doc, root, "stream", true)) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            return ERR(ctx, PARSE, "Failed to add stream field"); // LCOV_EXCL_LINE
+        }
     }
 
     // Add system prompt if present
@@ -374,6 +386,16 @@ res_t ik_anthropic_serialize_request(TALLOC_CTX *ctx, const ik_request_t *req, c
 
     *out_json = result;
     return OK(result);
+}
+
+res_t ik_anthropic_serialize_request(TALLOC_CTX *ctx, const ik_request_t *req, char **out_json)
+{
+    return serialize_request_internal(ctx, req, false, out_json);
+}
+
+res_t ik_anthropic_serialize_request_stream(TALLOC_CTX *ctx, const ik_request_t *req, char **out_json)
+{
+    return serialize_request_internal(ctx, req, true, out_json);
 }
 
 res_t ik_anthropic_build_headers(TALLOC_CTX *ctx, const char *api_key, char ***out_headers)
