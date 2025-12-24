@@ -135,6 +135,8 @@ VCR_OBJ = $(BUILDDIR)/tests/helpers/vcr.o
 VCR_STUBS_OBJ = $(BUILDDIR)/tests/helpers/vcr_stubs.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
+EQUIVALENCE_FIXTURES_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures.o
+EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare.o
 
 .PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
@@ -205,6 +207,20 @@ $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o: tests/unit/repl/repl_run_tes
 $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o: tests/unit/repl/repl_streaming_test_common.c tests/unit/repl/repl_streaming_test_common.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+# Equivalence test support objects
+$(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures.o: tests/unit/providers/openai/equivalence_fixtures.c tests/unit/providers/openai/equivalence_fixtures.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILDDIR)/tests/unit/providers/openai/equivalence_compare.o: tests/unit/providers/openai/equivalence_compare.c tests/unit/providers/openai/equivalence_compare.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+# Special rule for equivalence_test that needs fixtures and compare objects
+$(BUILDDIR)/tests/unit/providers/openai/equivalence_test: $(BUILDDIR)/tests/unit/providers/openai/equivalence_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(EQUIVALENCE_FIXTURES_OBJ) $(EQUIVALENCE_COMPARE_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # Special rules for repl_run tests that need the run common object
 $(BUILDDIR)/tests/unit/repl/repl_run_basic_test: $(BUILDDIR)/tests/unit/repl/repl_run_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_RUN_COMMON_OBJ)
