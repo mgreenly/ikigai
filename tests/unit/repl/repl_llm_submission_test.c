@@ -19,6 +19,7 @@
 #include "../../../src/layer.h"
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/openai/client_multi.h"
+#include "../../../src/providers/provider.h"
 #include "../../test_utils.h"
 
 static void *test_ctx;
@@ -42,6 +43,22 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     (void)fd;
     (void)buf;
     return (ssize_t)count;
+}
+
+// Mock start_stream for LLM submission tests - checks for API key and returns OK or ERR
+static res_t llm_test_mock_start_stream(void *ctx, const ik_request_t *req,
+                               ik_stream_cb_t stream_cb, void *stream_ctx,
+                               ik_provider_completion_cb_t completion_cb, void *completion_ctx) {
+    (void)req; (void)stream_cb; (void)stream_ctx;
+    (void)completion_cb; (void)completion_ctx;
+
+    // Simulate API key check - fail if OPENAI_API_KEY is not set
+    const char *api_key = getenv("OPENAI_API_KEY");
+    if (api_key == NULL || api_key[0] == '\0') {
+        return ERR(ctx, MISSING_CREDENTIALS, "Missing OpenAI API key");
+    }
+
+    return OK(NULL);
 }
 
 // Helper function to create a REPL context with cfg and conversation
@@ -132,10 +149,34 @@ static ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     // Create conversation
     repl->current->conversation = ik_openai_conversation_create(ctx);
 
+    // Set provider and model so ik_agent_get_provider doesn't fail
+    if (repl->current->provider == NULL) {
+        repl->current->provider = talloc_strdup(repl->current, "openai");
+    }
+    if (repl->current->model == NULL) {
+        repl->current->model = talloc_strdup(repl->current, "gpt-4");
+    }
+
     // Create multi handle
     res = ik_openai_multi_create(ctx);
     ck_assert(is_ok(&res));
-    repl->current->multi = res.ok;
+
+    // Create a mock provider wrapper for the multi handle
+    typedef struct { ik_openai_multi_t *multi; } mock_pctx_t;
+    mock_pctx_t *mock_ctx = talloc_zero(repl->current, mock_pctx_t);
+    mock_ctx->multi = res.ok;
+
+    // Define vtable with required methods
+    static const ik_provider_vtable_t test_vt = {
+        .fdset = NULL, .perform = NULL, .timeout = NULL, .info_read = NULL,
+        .start_request = NULL, .start_stream = llm_test_mock_start_stream, .cleanup = NULL, .cancel = NULL,
+    };
+
+    ik_provider_t *provider = talloc_zero(repl->current, ik_provider_t);
+    provider->name = "test";
+    provider->vt = &test_vt;
+    provider->ctx = mock_ctx;
+    repl->current->provider_instance = provider;
 
     // Initialize curl_still_running
     repl->current->curl_still_running = 0;
