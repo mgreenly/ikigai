@@ -33,6 +33,7 @@ typedef struct {
     request_data_t *recorded_request;
     chunk_queue_t *chunk_queue;
     bool skip_verification;
+    int response_status;
 } vcr_state_t;
 
 // Global VCR state
@@ -120,6 +121,14 @@ bool vcr_is_active(void)
 bool vcr_is_recording(void)
 {
     return vcr_recording;
+}
+
+int vcr_get_response_status(void)
+{
+    if (!g_vcr_state) {
+        return 0;
+    }
+    return g_vcr_state->response_status;
 }
 
 void vcr_skip_request_verification(void)
@@ -402,7 +411,12 @@ static void parse_fixture(vcr_state_t *state)
             }
 
         } else if (strstr(line, "\"_response\"")) {
-            // Response metadata - we could parse status/headers here if needed
+            // Parse response status
+            const char *status_start = strstr(line, "\"status\": ");
+            if (status_start) {
+                status_start += 10;
+                state->response_status = atoi(status_start);
+            }
             continue;
 
         } else if (strstr(line, "\"_chunk\"")) {

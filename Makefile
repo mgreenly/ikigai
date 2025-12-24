@@ -132,6 +132,7 @@ MODULE_OBJ_NO_DB_AGENT = $(filter-out $(BUILDDIR)/db/agent.o $(BUILDDIR)/db/agen
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
 TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts.o
 VCR_OBJ = $(BUILDDIR)/tests/helpers/vcr.o
+VCR_STUBS_OBJ = $(BUILDDIR)/tests/helpers/vcr_stubs.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 
@@ -162,7 +163,7 @@ $(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ)
+$(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
@@ -172,14 +173,14 @@ $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(T
 $(BUILDDIR)/tests/integration/%_test.o: tests/integration/%_test.c | $(BUILDDIR)/tests/integration
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(BUILDDIR)/tests/integration/%_test: $(BUILDDIR)/tests/integration/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | $(BUILDDIR)/tests/integration
+$(BUILDDIR)/tests/integration/%_test: $(BUILDDIR)/tests/integration/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # DB integration test compilation
 $(BUILDDIR)/tests/integration/db/%_test.o: tests/integration/db/%_test.c | $(BUILDDIR)/tests/integration/db
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(BUILDDIR)/tests/integration/db/%_test: $(BUILDDIR)/tests/integration/db/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) | $(BUILDDIR)/tests/integration/db
+$(BUILDDIR)/tests/integration/db/%_test: $(BUILDDIR)/tests/integration/db/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration/db
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 $(BUILDDIR)/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | $(BUILDDIR)/tests
@@ -193,6 +194,10 @@ $(BUILDDIR)/tests/helpers/vcr.o: tests/helpers/vcr.c tests/helpers/vcr.h | $(BUI
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+$(BUILDDIR)/tests/helpers/vcr_stubs.o: tests/helpers/vcr_stubs.c | $(BUILDDIR)/tests
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o: tests/unit/repl/repl_run_test_common.c tests/unit/repl/repl_run_test_common.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -202,79 +207,79 @@ $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o: tests/unit/repl/repl_s
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 # Special rules for repl_run tests that need the run common object
-$(BUILDDIR)/tests/unit/repl/repl_run_basic_test: $(BUILDDIR)/tests/unit/repl/repl_run_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_run_basic_test: $(BUILDDIR)/tests/unit/repl/repl_run_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-$(BUILDDIR)/tests/unit/repl/repl_run_io_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_io_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_run_io_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_io_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-$(BUILDDIR)/tests/unit/repl/repl_run_curl_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_curl_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_run_curl_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_curl_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-$(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test: $(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_RUN_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test: $(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # Special rule for repl_agent_lookup_test that needs test_contexts
-$(BUILDDIR)/tests/unit/repl/repl_agent_lookup_test: $(BUILDDIR)/tests/unit/repl/repl_agent_lookup_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(TEST_CONTEXTS_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_agent_lookup_test: $(BUILDDIR)/tests/unit/repl/repl_agent_lookup_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(TEST_CONTEXTS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # Special rules for repl streaming/completion tests that need the streaming common object
-$(BUILDDIR)/tests/unit/repl/repl_streaming_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_streaming_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-$(BUILDDIR)/tests/unit/repl/repl_completion_test: $(BUILDDIR)/tests/unit/repl/repl_completion_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_completion_test: $(BUILDDIR)/tests/unit/repl/repl_completion_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-$(BUILDDIR)/tests/unit/repl/handle_request_error_test: $(BUILDDIR)/tests/unit/repl/handle_request_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/handle_request_error_test: $(BUILDDIR)/tests/unit/repl/handle_request_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-$(BUILDDIR)/tests/unit/repl/handle_request_success_advanced_test: $(BUILDDIR)/tests/unit/repl/handle_request_success_advanced_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/handle_request_success_advanced_test: $(BUILDDIR)/tests/unit/repl/handle_request_success_advanced_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) -lgcov
 
-$(BUILDDIR)/tests/unit/repl/repl_streaming_basic_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_streaming_basic_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-$(BUILDDIR)/tests/unit/repl/repl_streaming_advanced_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_advanced_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_streaming_advanced_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_advanced_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # Special rule for repl_actions_db_error_test (uses mocks, excludes DB modules)
-$(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) -lgcov
 
 # Special rule for repl_actions_db_advanced_test (uses mocks, excludes DB modules)
-$(BUILDDIR)/tests/unit/repl/repl_actions_db_advanced_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_advanced_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_actions_db_advanced_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_advanced_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # Special rule for repl_actions_db_basic_test (uses mocks, excludes DB modules)
-$(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # Special rule for repl_init_db_test (uses mocks, excludes src/db/agent.c and src/repl/agent_restore.c)
-$(BUILDDIR)/tests/unit/repl/repl_init_db_test: $(BUILDDIR)/tests/unit/repl/repl_init_db_test.o $(filter-out $(BUILDDIR)/repl/agent_restore.o,$(MODULE_OBJ_NO_DB_AGENT)) $(TEST_UTILS_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_init_db_test: $(BUILDDIR)/tests/unit/repl/repl_init_db_test.o $(filter-out $(BUILDDIR)/repl/agent_restore.o,$(MODULE_OBJ_NO_DB_AGENT)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # Special rule for repl_session_test (uses mocks, excludes src/db/agent.c and src/repl/agent_restore.c)
-$(BUILDDIR)/tests/unit/repl/repl_session_test: $(BUILDDIR)/tests/unit/repl/repl_session_test.o $(filter-out $(BUILDDIR)/repl/agent_restore.o,$(MODULE_OBJ_NO_DB_AGENT)) $(TEST_UTILS_OBJ)
+$(BUILDDIR)/tests/unit/repl/repl_session_test: $(BUILDDIR)/tests/unit/repl/repl_session_test.o $(filter-out $(BUILDDIR)/repl/agent_restore.o,$(MODULE_OBJ_NO_DB_AGENT)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # Special rule for test_contexts_test (needs test_contexts helper)
-$(BUILDDIR)/tests/unit/helpers/test_contexts_test: $(BUILDDIR)/tests/unit/helpers/test_contexts_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(TEST_CONTEXTS_OBJ)
+$(BUILDDIR)/tests/unit/helpers/test_contexts_test: $(BUILDDIR)/tests/unit/helpers/test_contexts_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(TEST_CONTEXTS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
@@ -282,6 +287,11 @@ $(BUILDDIR)/tests/unit/helpers/test_contexts_test: $(BUILDDIR)/tests/unit/helper
 $(BUILDDIR)/tests/unit/helpers/vcr_test: $(BUILDDIR)/tests/unit/helpers/vcr_test.o $(VCR_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit
+
+# Special rule for vcr_mock_integration_test (needs vcr helper and module objects)
+$(BUILDDIR)/tests/unit/helpers/vcr_mock_integration_test: $(BUILDDIR)/tests/unit/helpers/vcr_mock_integration_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # Special rule for repl_full_viewport_test
 $(BUILDDIR)/tests/unit/repl/repl_full_viewport_test: $(BUILDDIR)/tests/unit/repl/repl_full_viewport_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ)

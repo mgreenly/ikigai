@@ -81,6 +81,16 @@ bool vcr_is_active(void);
 bool vcr_is_recording(void);
 
 /**
+ * Get HTTP response status code from fixture
+ *
+ * Returns the status code from the _response line in playback mode.
+ * Only valid after vcr_init() and before vcr_finish().
+ *
+ * @return HTTP status code (e.g., 200, 404, 500), or 0 if not available
+ */
+int vcr_get_response_status(void);
+
+/**
  * Disable request verification for this test
  *
  * Call after vcr_init() to skip request matching in playback mode.

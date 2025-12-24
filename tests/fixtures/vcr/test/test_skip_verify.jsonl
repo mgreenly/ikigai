@@ -1,0 +1,3 @@
+{"_request": {"method": "GET", "url": "http://test.com", "headers": ""}}
+{"_response": {"status": 200, "headers": ""}}
+{"_chunk": "result"}
