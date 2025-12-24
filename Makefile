@@ -81,7 +81,7 @@ endif
 # Allow LDFLAGS override if not set by BUILD type
 LDFLAGS ?=
 
-CLIENT_LIBS ?= -ltalloc -luuid -lb64 -lpthread -lutf8proc -lcurl -lpq -lxkbcommon
+CLIENT_LIBS ?= -ltalloc -luuid -lb64 -lpthread -lutf8proc -lcurl -lpq -lxkbcommon -ljansson
 CLIENT_STATIC_LIBS ?=
 
 COMPLEXITY_THRESHOLD = 15
