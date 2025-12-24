@@ -1017,7 +1017,7 @@ static const ik_provider_vtable_t openai_vtable = {
  * Public API Implementation
  * ================================================================ */
 
-res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out)
+res_t ik_openai_shim_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(out != NULL);   // LCOV_EXCL_BR_LINE
@@ -1050,7 +1050,7 @@ res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out
     shim->multi = multi_res.ok;
 
     /* Initialize provider with vtable */
-    provider->name = "openai";
+    provider->name = "openai-shim";
     provider->vt = &openai_vtable;
     provider->ctx = shim;
 

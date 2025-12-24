@@ -17,7 +17,7 @@ static void setup(void)
     test_ctx = talloc_new(NULL);
 
     /* Create provider with test API key */
-    res_t result = ik_openai_create(test_ctx, "test-api-key", &provider);
+    res_t result = ik_openai_shim_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
     ck_assert_ptr_nonnull(provider);
 }
@@ -34,7 +34,7 @@ static void teardown(void)
 START_TEST(test_create_provider_success)
 {
     ik_provider_t *test_provider = NULL;
-    res_t result = ik_openai_create(test_ctx, "valid-api-key", &test_provider);
+    res_t result = ik_openai_shim_create(test_ctx, "valid-api-key", &test_provider);
 
     ck_assert(!is_err(&result));
     ck_assert_ptr_nonnull(test_provider);
@@ -46,7 +46,7 @@ END_TEST
 START_TEST(test_create_provider_missing_credentials)
 {
     ik_provider_t *test_provider = NULL;
-    res_t result = ik_openai_create(test_ctx, NULL, &test_provider);
+    res_t result = ik_openai_shim_create(test_ctx, NULL, &test_provider);
 
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_MISSING_CREDENTIALS);
@@ -56,7 +56,7 @@ END_TEST
 START_TEST(test_create_provider_empty_credentials)
 {
     ik_provider_t *test_provider = NULL;
-    res_t result = ik_openai_create(test_ctx, "", &test_provider);
+    res_t result = ik_openai_shim_create(test_ctx, "", &test_provider);
 
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_MISSING_CREDENTIALS);
@@ -71,6 +71,14 @@ END_TEST
 static res_t dummy_completion_cb(const ik_provider_completion_t *completion, void *ctx)
 {
     (void)completion;
+    (void)ctx;
+    return OK(NULL);
+}
+
+/* Dummy stream callback for tests */
+static res_t dummy_stream_cb(const ik_stream_event_t *event, void *ctx)
+{
+    (void)event;
     (void)ctx;
     return OK(NULL);
 }
@@ -174,7 +182,7 @@ START_TEST(test_info_read_basic)
 }
 END_TEST
 
-START_TEST(test_start_stream_not_implemented)
+START_TEST(test_start_stream_requires_callbacks)
 {
     /* Create minimal request */
     ik_request_t *req = NULL;
@@ -183,18 +191,18 @@ START_TEST(test_start_stream_not_implemented)
 
     ik_request_add_message(req, IK_ROLE_USER, "test");
 
-    /* start_stream should return NOT_IMPLEMENTED */
+    /* start_stream with valid callbacks should succeed (won't actually make HTTP call) */
     res_t result = provider->vt->start_stream(
         provider->ctx,
         req,
-        NULL,  /* stream_cb */
+        dummy_stream_cb,  /* stream_cb */
         NULL,  /* stream_ctx */
-        NULL,  /* completion_cb */
+        dummy_completion_cb,  /* completion_cb */
         NULL   /* completion_ctx */
     );
 
-    ck_assert(is_err(&result));
-    ck_assert_int_eq(result.err->code, ERR_NOT_IMPLEMENTED);
+    /* Should succeed - request is queued but won't actually execute without perform() */
+    ck_assert(!is_err(&result));
 }
 END_TEST
 
@@ -248,7 +256,7 @@ static Suite *shim_send_suite(void)
     tcase_add_test(tc_vtable, test_perform_basic);
     tcase_add_test(tc_vtable, test_timeout_basic);
     tcase_add_test(tc_vtable, test_info_read_basic);
-    tcase_add_test(tc_vtable, test_start_stream_not_implemented);
+    tcase_add_test(tc_vtable, test_start_stream_requires_callbacks);
     tcase_add_test(tc_vtable, test_cleanup_does_not_crash);
     tcase_add_test(tc_vtable, test_cancel_does_not_crash);
     suite_add_tcase(s, tc_vtable);

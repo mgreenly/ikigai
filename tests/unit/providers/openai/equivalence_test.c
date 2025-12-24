@@ -2,36 +2,22 @@
  * @file equivalence_test.c
  * @brief OpenAI Native vs Shim Equivalence Validation
  *
- * CURRENT STATUS: BLOCKED
- *
  * This test suite validates that the native OpenAI provider (openai.c)
  * produces identical outputs to the shim adapter (shim.c) that wraps
  * the legacy code.
  *
- * BLOCKER: Both shim.c and openai.c define ik_openai_create() with the
- * same signature. They cannot both be linked into the same test executable.
+ * The symbol conflict has been resolved by renaming the shim factory:
+ * - ik_openai_shim_create() - Creates shim provider (wraps legacy code)
+ * - ik_openai_create() - Creates native provider (new implementation)
  *
- * SOLUTIONS CONSIDERED:
- * 1. Symbol renaming at link time
- * 2. Separate test executables with result comparison
- * 3. Conditional compilation
- * 4. Direct function pointers to internal implementations
- *
- * RECOMMENDED APPROACH:
- * Wait for native implementation (openai.c) to be completed and integrated
- * into the build system with a mechanism to select between shim and native
- * (e.g., factory function that chooses based on environment variable or
- * compile-time flag).
- *
- * Once the native implementation is available alongside the shim, this test
- * can be completed to validate equivalence before cleanup tasks delete the
- * legacy code.
+ * Both can now coexist in the same test executable.
  */
 
 #include <check.h>
 #include <stdlib.h>
 #include <talloc.h>
 #include "providers/openai/shim.h"
+#include "providers/openai/openai.h"
 #include "equivalence_fixtures.h"
 #include "equivalence_compare.h"
 
@@ -47,7 +33,7 @@
 static ik_provider_t *create_shim_provider(TALLOC_CTX *ctx, const char *api_key)
 {
     ik_provider_t *provider = NULL;
-    res_t res = ik_openai_create(ctx, api_key, &provider);
+    res_t res = ik_openai_shim_create(ctx, api_key, &provider);
     if (is_err(&res)) {
         talloc_free(res.err);
         return NULL;
@@ -58,20 +44,17 @@ static ik_provider_t *create_shim_provider(TALLOC_CTX *ctx, const char *api_key)
 /**
  * Create native provider for testing
  *
- * BLOCKED: Cannot link both shim.c and openai.c into same binary.
- * Both define ik_openai_create() with identical signature.
- *
- * TODO: Once native provider is integrated with symbol disambiguation,
- * implement this function to create native provider instance.
+ * Uses the native OpenAI implementation (openai.c).
  */
 static ik_provider_t *create_native_provider(TALLOC_CTX *ctx, const char *api_key)
 {
-    (void)ctx;
-    (void)api_key;
-
-    /* This would call the native implementation's factory function */
-    /* Currently blocked by symbol conflict */
-    return NULL;
+    ik_provider_t *provider = NULL;
+    res_t res = ik_openai_create(ctx, api_key, &provider);
+    if (is_err(&res)) {
+        talloc_free(res.err);
+        return NULL;
+    }
+    return provider;
 }
 
 /* ================================================================
@@ -98,12 +81,12 @@ START_TEST(test_equivalence_simple_text)
     ik_provider_t *shim = create_shim_provider(ctx, "test-api-key");
     ik_provider_t *native = create_native_provider(ctx, "test-api-key");
 
-    /* BLOCKED: Cannot create both providers in same binary */
+    /* Both providers should now be created successfully */
     ck_assert_ptr_nonnull(shim);
-    ck_assert_ptr_null(native);  /* Expected to be NULL until symbol conflict resolved */
+    ck_assert_ptr_nonnull(native);
 
-    /* TODO: Once native provider is available:
-     * 1. Send request through both providers
+    /* TODO: Once mock server infrastructure is available:
+     * 1. Send request through both providers with same mock server
      * 2. Collect responses
      * 3. Compare using ik_compare_responses()
      * 4. Assert equivalence
@@ -277,20 +260,19 @@ int main(void)
     fprintf(stderr, "OpenAI Equivalence Validation\n");
     fprintf(stderr, "========================================\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "STATUS: BLOCKED\n");
+    fprintf(stderr, "STATUS: Symbol conflict resolved\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "This test suite is blocked because both\n");
-    fprintf(stderr, "the shim adapter (shim.c) and native\n");
-    fprintf(stderr, "provider (openai.c) define the same\n");
-    fprintf(stderr, "factory function ik_openai_create().\n");
+    fprintf(stderr, "The shim factory has been renamed to\n");
+    fprintf(stderr, "ik_openai_shim_create() to avoid conflict\n");
+    fprintf(stderr, "with the native ik_openai_create().\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "They cannot both be linked into the same\n");
-    fprintf(stderr, "test executable without symbol conflicts.\n");
+    fprintf(stderr, "Both providers can now coexist in the\n");
+    fprintf(stderr, "same test executable.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "NEXT STEPS:\n");
-    fprintf(stderr, "1. Complete native provider implementation\n");
-    fprintf(stderr, "2. Add symbol disambiguation mechanism\n");
-    fprintf(stderr, "3. Implement full equivalence tests\n");
+    fprintf(stderr, "REMAINING WORK:\n");
+    fprintf(stderr, "1. Implement mock server infrastructure\n");
+    fprintf(stderr, "2. Complete full equivalence tests\n");
+    fprintf(stderr, "3. Validate all scenarios before cleanup\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "========================================\n");
     fprintf(stderr, "\n");

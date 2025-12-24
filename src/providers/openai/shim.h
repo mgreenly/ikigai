@@ -40,10 +40,13 @@ typedef struct {
 } ik_openai_shim_ctx_t;
 
 /**
- * Create an OpenAI provider instance
+ * Create an OpenAI provider instance using the shim adapter
  *
  * Factory function that creates a new provider with the OpenAI vtable.
  * The provider uses the existing OpenAI client code via the shim layer.
+ *
+ * This is the shim version that wraps the legacy src/openai/ code.
+ * Use ik_openai_create() from openai.h for the native implementation.
  *
  * Memory ownership:
  * - Provider allocated on ctx
@@ -60,7 +63,7 @@ typedef struct {
  * - ERR_OUT_OF_MEMORY on allocation failure (via PANIC)
  * - ERR_NOT_IMPLEMENTED for stub vtable methods
  */
-res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out);
+res_t ik_openai_shim_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out);
 
 /**
  * Destroy OpenAI shim context
