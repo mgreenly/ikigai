@@ -4,6 +4,7 @@
  */
 
 #include "response.h"
+#include "streaming.h"
 #include "request.h"
 #include "json_allocator.h"
 #include "panic.h"
@@ -403,6 +404,24 @@ res_t ik_anthropic_start_stream(void *impl_ctx, const ik_request_t *req,
     assert(stream_cb != NULL);     // LCOV_EXCL_BR_LINE
     assert(completion_cb != NULL); // LCOV_EXCL_BR_LINE
 
+    // TODO: Implement when HTTP multi layer is ready
+    // This stub satisfies the vtable requirement but doesn't perform actual streaming yet
+    //
+    // Implementation plan:
+    // 1. Create streaming context with ik_anthropic_stream_ctx_create()
+    // 2. Serialize request with ik_anthropic_serialize_request() (stream: true)
+    // 3. Build headers with ik_anthropic_build_headers()
+    // 4. Construct URL: base_url + "/v1/messages"
+    // 5. Configure curl easy handle:
+    //    - CURLOPT_URL = constructed URL
+    //    - CURLOPT_POST = 1
+    //    - CURLOPT_POSTFIELDS = serialized JSON
+    //    - CURLOPT_HTTPHEADER = headers
+    //    - CURLOPT_WRITEFUNCTION = curl_write_callback (from streaming.c)
+    //    - CURLOPT_WRITEDATA = streaming context
+    // 6. Add easy handle to curl_multi via ik_http_multi_add_request()
+    // 7. Return OK(NULL) immediately
+
     (void)impl_ctx;
     (void)req;
     (void)stream_cb;
@@ -410,7 +429,5 @@ res_t ik_anthropic_start_stream(void *impl_ctx, const ik_request_t *req,
     (void)completion_cb;
     (void)completion_ctx;
 
-    // Stub: Will be implemented when HTTP multi layer is ready
-    // TODO: Serialize streaming request, build headers, start HTTP POST with SSE
     return OK(NULL);
 }
