@@ -60,3 +60,4 @@
 | REPL test mock vtables | `tests/unit/repl/repl_run_test_common.c`, `repl_streaming_test_common.c` | Added complete provider vtable implementations (fdset, perform, timeout, info_read, start_stream) - were NULL/missing causing segfaults |
 | yyjson document root | `src/providers/request.c` | Added `yyjson_mut_doc_set_root(doc, parameters)` in `build_tool_parameters_json()` - was trying to serialize document with no root causing PANIC |
 | Mock streaming callbacks | `tests/unit/repl/repl_streaming_test_common.c` | Implemented callback adapters and fixed `test_vt_start_stream()` to invoke streaming/completion callbacks via curl multi handle - tests were failing with NULL assistant_response |
+| repl_llm_submission_test migration | `tests/unit/repl/repl_llm_submission_test.c` | Migrated from `agent->multi` to `provider_instance` with mock vtable - compilation error "has no member named 'multi'" |
