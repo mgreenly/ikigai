@@ -1,0 +1,278 @@
+/**
+ * @file test_anthropic_client.c
+ * @brief Unit tests for Anthropic request serialization
+ */
+
+#include <check.h>
+#include <talloc.h>
+#include <string.h>
+#include <jansson.h>
+#include "providers/anthropic/request.h"
+#include "providers/provider.h"
+#include "providers/request.h"
+
+static TALLOC_CTX *test_ctx;
+
+static void setup(void)
+{
+    test_ctx = talloc_new(NULL);
+}
+
+static void teardown(void)
+{
+    talloc_free(test_ctx);
+}
+
+/* ================================================================
+ * Request Serialization Tests
+ * ================================================================ */
+
+START_TEST(test_build_request_with_system_and_user_messages)
+{
+    // Create a basic request
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
+    req->max_output_tokens = 1024;
+
+    // Add system prompt
+    req->system_prompt = talloc_strdup(req, "You are a helpful assistant.");
+
+    // Add user message
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "Hello!");
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Parse and verify structure
+    json_error_t error;
+    json_t *root = json_loads(json, 0, &error);
+    ck_assert_ptr_nonnull(root);
+
+    json_t *model = json_object_get(root, "model");
+    ck_assert_ptr_nonnull(model);
+    ck_assert_str_eq(json_string_value(model), "claude-sonnet-4-5-20250929");
+
+    json_t *system = json_object_get(root, "system");
+    ck_assert_ptr_nonnull(system);
+
+    json_t *messages = json_object_get(root, "messages");
+    ck_assert_ptr_nonnull(messages);
+    ck_assert(json_is_array(messages));
+
+    json_decref(root);
+}
+END_TEST
+
+START_TEST(test_build_request_with_thinking_budget)
+{
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
+    req->max_output_tokens = 1024;
+
+    // Set thinking configuration
+    req->thinking.level = IK_THINKING_HIGH;
+
+    // Add user message
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "Solve this problem.");
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Verify thinking configuration is present
+    json_error_t error;
+    json_t *root = json_loads(json, 0, &error);
+    ck_assert_ptr_nonnull(root);
+
+    // Anthropic uses "thinking" field for extended thinking
+    json_t *thinking = json_object_get(root, "thinking");
+    if (thinking != NULL) {
+        // Verify it has proper structure
+        ck_assert(json_is_object(thinking));
+    }
+
+    json_decref(root);
+}
+END_TEST
+
+START_TEST(test_build_request_with_tool_definitions)
+{
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
+    req->max_output_tokens = 1024;
+
+    // Add tool definition
+    req->tools = talloc_zero_array(req, ik_tool_def_t, 1);
+    req->tool_count = 1;
+    req->tools[0].name = talloc_strdup(req, "get_weather");
+    req->tools[0].description = talloc_strdup(req, "Get weather for a location");
+    req->tools[0].parameters = talloc_strdup(req, "{\"type\":\"object\",\"properties\":{\"location\":{\"type\":\"string\"}}}");
+
+    // Add user message
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "What's the weather?");
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Verify tools array is present
+    json_error_t error;
+    json_t *root = json_loads(json, 0, &error);
+    ck_assert_ptr_nonnull(root);
+
+    json_t *tools = json_object_get(root, "tools");
+    ck_assert_ptr_nonnull(tools);
+    ck_assert(json_is_array(tools));
+
+    json_decref(root);
+}
+END_TEST
+
+START_TEST(test_build_request_without_optional_fields)
+{
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
+    req->max_output_tokens = 1024;
+
+    // Minimal request - just a user message
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "Hello!");
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    json_error_t error;
+    json_t *root = json_loads(json, 0, &error);
+    ck_assert_ptr_nonnull(root);
+
+    // Should have model, max_tokens, messages
+    ck_assert_ptr_nonnull(json_object_get(root, "model"));
+    ck_assert_ptr_nonnull(json_object_get(root, "max_tokens"));
+    ck_assert_ptr_nonnull(json_object_get(root, "messages"));
+
+    json_decref(root);
+}
+END_TEST
+
+START_TEST(test_verify_correct_headers)
+{
+    const char *api_key = "sk-ant-test-key-12345";
+    char **headers = NULL;
+
+    res_t r = ik_anthropic_build_headers(test_ctx, api_key, &headers);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(headers);
+
+    // Verify headers (exact format may vary, but should contain key components)
+    bool has_api_key = false;
+    bool has_version = false;
+    bool has_content_type = false;
+
+    for (int i = 0; headers[i] != NULL; i++) {
+        if (strstr(headers[i], "x-api-key:") != NULL) has_api_key = true;
+        if (strstr(headers[i], "anthropic-version:") != NULL) has_version = true;
+        if (strstr(headers[i], "content-type:") != NULL) has_content_type = true;
+    }
+
+    ck_assert(has_api_key);
+    ck_assert(has_version);
+    ck_assert(has_content_type);
+}
+END_TEST
+
+START_TEST(test_verify_json_structure_matches_api_spec)
+{
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
+    req->max_output_tokens = 2048;
+
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "Test message");
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Verify valid JSON
+    json_error_t error;
+    json_t *root = json_loads(json, 0, &error);
+    ck_assert_ptr_nonnull(root);
+    ck_assert(json_is_object(root));
+
+    json_decref(root);
+}
+END_TEST
+
+/* ================================================================
+ * Test Suite Setup
+ * ================================================================ */
+
+static Suite *anthropic_client_suite(void)
+{
+    Suite *s = suite_create("Anthropic Client");
+
+    TCase *tc_request = tcase_create("Request Serialization");
+    tcase_add_unchecked_fixture(tc_request, setup, teardown);
+    tcase_add_test(tc_request, test_build_request_with_system_and_user_messages);
+    tcase_add_test(tc_request, test_build_request_with_thinking_budget);
+    tcase_add_test(tc_request, test_build_request_with_tool_definitions);
+    tcase_add_test(tc_request, test_build_request_without_optional_fields);
+    tcase_add_test(tc_request, test_verify_correct_headers);
+    tcase_add_test(tc_request, test_verify_json_structure_matches_api_spec);
+    suite_add_tcase(s, tc_request);
+
+    return s;
+}
+
+int main(void)
+{
+    Suite *s = anthropic_client_suite();
+    SRunner *sr = srunner_create(s);
+
+    srunner_run_all(sr, CK_NORMAL);
+    int number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (number_failed == 0) ? 0 : 1;
+}

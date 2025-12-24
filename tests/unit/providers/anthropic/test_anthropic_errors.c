@@ -1,0 +1,223 @@
+/**
+ * @file test_anthropic_errors.c
+ * @brief Unit tests for Anthropic error handling and HTTP status mapping
+ */
+
+#include <check.h>
+#include <talloc.h>
+#include <string.h>
+#include "providers/anthropic/error.h"
+#include "providers/anthropic/response.h"
+#include "providers/provider.h"
+
+static TALLOC_CTX *test_ctx;
+
+static void setup(void)
+{
+    test_ctx = talloc_new(NULL);
+}
+
+static void teardown(void)
+{
+    talloc_free(test_ctx);
+}
+
+/* ================================================================
+ * Error Handling Tests
+ * ================================================================ */
+
+START_TEST(test_parse_authentication_error_401)
+{
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": {"
+        "    \"type\": \"authentication_error\","
+        "    \"message\": \"invalid x-api-key\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+
+    res_t r = ik_anthropic_parse_error(test_ctx, 401, error_json, strlen(error_json),
+                                        &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
+    ck_assert_ptr_nonnull(message);
+    ck_assert(strstr(message, "authentication") != NULL || strstr(message, "invalid") != NULL);
+}
+END_TEST
+
+START_TEST(test_parse_rate_limit_error_429)
+{
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": {"
+        "    \"type\": \"rate_limit_error\","
+        "    \"message\": \"Rate limit exceeded\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+
+    res_t r = ik_anthropic_parse_error(test_ctx, 429, error_json, strlen(error_json),
+                                        &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
+    ck_assert_ptr_nonnull(message);
+}
+END_TEST
+
+START_TEST(test_parse_overloaded_error_529)
+{
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": {"
+        "    \"type\": \"overloaded_error\","
+        "    \"message\": \"Service is temporarily overloaded\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+
+    res_t r = ik_anthropic_parse_error(test_ctx, 529, error_json, strlen(error_json),
+                                        &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(message);
+}
+END_TEST
+
+START_TEST(test_parse_validation_error_400)
+{
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": {"
+        "    \"type\": \"invalid_request_error\","
+        "    \"message\": \"Invalid model specified\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+
+    res_t r = ik_anthropic_parse_error(test_ctx, 400, error_json, strlen(error_json),
+                                        &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
+    ck_assert_ptr_nonnull(message);
+}
+END_TEST
+
+START_TEST(test_map_errors_to_correct_categories)
+{
+    // Test various HTTP status codes map correctly
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t r;
+
+    // 401 -> AUTH
+    r = ik_anthropic_parse_error(test_ctx, 401, NULL, 0, &category, &message);
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
+
+    // 403 -> AUTH
+    r = ik_anthropic_parse_error(test_ctx, 403, NULL, 0, &category, &message);
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
+
+    // 404 -> NOT_FOUND
+    r = ik_anthropic_parse_error(test_ctx, 404, NULL, 0, &category, &message);
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
+
+    // 500 -> SERVER
+    r = ik_anthropic_parse_error(test_ctx, 500, NULL, 0, &category, &message);
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+
+    // 503 -> SERVER
+    r = ik_anthropic_parse_error(test_ctx, 503, NULL, 0, &category, &message);
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+}
+END_TEST
+
+/* ================================================================
+ * Retry-After Header Tests
+ * ================================================================ */
+
+START_TEST(test_extract_retry_after_header)
+{
+    const char *headers[] = {
+        "content-type: application/json",
+        "retry-after: 60",
+        "anthropic-ratelimit-requests-remaining: 0",
+        NULL
+    };
+
+    int32_t retry_after = ik_anthropic_get_retry_after(headers);
+    ck_assert_int_eq(retry_after, 60);
+}
+END_TEST
+
+START_TEST(test_retry_after_missing)
+{
+    const char *headers[] = {
+        "content-type: application/json",
+        "anthropic-ratelimit-requests-remaining: 0",
+        NULL
+    };
+
+    int32_t retry_after = ik_anthropic_get_retry_after(headers);
+    ck_assert_int_eq(retry_after, -1);
+}
+END_TEST
+
+/* ================================================================
+ * Test Suite Setup
+ * ================================================================ */
+
+static Suite *anthropic_errors_suite(void)
+{
+    Suite *s = suite_create("Anthropic Errors");
+
+    TCase *tc_errors = tcase_create("Error Handling");
+    tcase_add_unchecked_fixture(tc_errors, setup, teardown);
+    tcase_add_test(tc_errors, test_parse_authentication_error_401);
+    tcase_add_test(tc_errors, test_parse_rate_limit_error_429);
+    tcase_add_test(tc_errors, test_parse_overloaded_error_529);
+    tcase_add_test(tc_errors, test_parse_validation_error_400);
+    tcase_add_test(tc_errors, test_map_errors_to_correct_categories);
+    suite_add_tcase(s, tc_errors);
+
+    TCase *tc_retry = tcase_create("Retry-After Headers");
+    tcase_add_unchecked_fixture(tc_retry, setup, teardown);
+    tcase_add_test(tc_retry, test_extract_retry_after_header);
+    tcase_add_test(tc_retry, test_retry_after_missing);
+    suite_add_tcase(s, tc_retry);
+
+    return s;
+}
+
+int main(void)
+{
+    Suite *s = anthropic_errors_suite();
+    SRunner *sr = srunner_create(s);
+
+    srunner_run_all(sr, CK_NORMAL);
+    int number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (number_failed == 0) ? 0 : 1;
+}
