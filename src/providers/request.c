@@ -1,7 +1,11 @@
 #include "providers/request.h"
 #include "agent.h"
 #include "error.h"
+#include "msg.h"
+#include "openai/client.h"
+#include "tool.h"
 #include "wrapper.h"
+#include "vendor/yyjson/yyjson.h"
 #include <assert.h>
 #include <string.h>
 #include <talloc.h>
@@ -247,13 +251,263 @@ res_t ik_request_add_tool(ik_request_t *req, const char *name, const char *descr
     return OK(NULL);
 }
 
+/**
+ * Map ik_msg_t kind to ik_role_t
+ * Note: System messages are handled separately via ik_request_set_system(),
+ * not via message roles.
+ */
+static ik_role_t kind_to_role(const char *kind) {
+    if (strcmp(kind, "user") == 0) {
+        return IK_ROLE_USER;
+    } else if (strcmp(kind, "assistant") == 0) {
+        return IK_ROLE_ASSISTANT;
+    } else if (strcmp(kind, "tool_result") == 0 || strcmp(kind, "tool") == 0) {
+        return IK_ROLE_TOOL;
+    }
+    return IK_ROLE_USER; // Default for unknown kinds
+}
+
+/* ================================================================
+ * Standard Tool Definitions
+ * ================================================================ */
+
+/* Tool schema definitions for standard tools (glob, file_read, grep, file_write, bash) */
+static const ik_tool_param_def_t glob_params[] = {
+    {"pattern", "Glob pattern (e.g., 'src/**/*.c')", true},
+    {"path", "Base directory (default: cwd)", false}
+};
+
+static const ik_tool_schema_def_t glob_schema_def = {
+    .name = "glob",
+    .description = "Find files matching a glob pattern",
+    .params = glob_params,
+    .param_count = 2
+};
+
+static const ik_tool_param_def_t file_read_params[] = {
+    {"path", "Path to file", true}
+};
+
+static const ik_tool_schema_def_t file_read_schema_def = {
+    .name = "file_read",
+    .description = "Read contents of a file",
+    .params = file_read_params,
+    .param_count = 1
+};
+
+static const ik_tool_param_def_t grep_params[] = {
+    {"pattern", "Search pattern (regex)", true},
+    {"path", "File or directory to search", false},
+    {"glob", "File pattern filter (e.g., '*.c')", false}
+};
+
+static const ik_tool_schema_def_t grep_schema_def = {
+    .name = "grep",
+    .description = "Search file contents for a pattern",
+    .params = grep_params,
+    .param_count = 3
+};
+
+static const ik_tool_param_def_t file_write_params[] = {
+    {"path", "Path to file", true},
+    {"content", "Content to write", true}
+};
+
+static const ik_tool_schema_def_t file_write_schema_def = {
+    .name = "file_write",
+    .description = "Write content to a file",
+    .params = file_write_params,
+    .param_count = 2
+};
+
+static const ik_tool_param_def_t bash_params[] = {
+    {"command", "Command to execute", true}
+};
+
+static const ik_tool_schema_def_t bash_schema_def = {
+    .name = "bash",
+    .description = "Execute a shell command",
+    .params = bash_params,
+    .param_count = 1
+};
+
+/**
+ * Build JSON parameter schema string from tool schema definition
+ *
+ * Creates a JSON string suitable for ik_request_add_tool's parameters argument.
+ * Format matches OpenAI function calling schema.
+ *
+ * @param ctx Talloc parent context for result string
+ * @param def Tool schema definition
+ * @return JSON string (owned by ctx), or NULL on error
+ */
+static char *build_tool_parameters_json(TALLOC_CTX *ctx, const ik_tool_schema_def_t *def) {
+    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(def != NULL);  // LCOV_EXCL_BR_LINE
+
+    /* Create yyjson document for building schema */
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    if (!doc) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    /* Build parameters object */
+    yyjson_mut_val *parameters = yyjson_mut_obj(doc);
+    if (!parameters) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    /* Set type to "object" */
+    if (!yyjson_mut_obj_add_str(doc, parameters, "type", "object")) {  // LCOV_EXCL_BR_LINE
+        PANIC("Failed to add type field");  // LCOV_EXCL_LINE
+    }
+
+    /* Build properties object */
+    yyjson_mut_val *properties = yyjson_mut_obj(doc);
+    if (!properties) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    /* Add each parameter as a string property */
+    for (size_t i = 0; i < def->param_count; i++) {
+        yyjson_mut_val *prop = yyjson_mut_obj(doc);
+        if (!prop) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        if (!yyjson_mut_obj_add_str(doc, prop, "type", "string")) {  // LCOV_EXCL_BR_LINE
+            PANIC("Failed to add type field");  // LCOV_EXCL_LINE
+        }
+
+        if (!yyjson_mut_obj_add_str(doc, prop, "description", def->params[i].description)) {  // LCOV_EXCL_BR_LINE
+            PANIC("Failed to add description field");  // LCOV_EXCL_LINE
+        }
+
+        if (!yyjson_mut_obj_add_val(doc, properties, def->params[i].name, prop)) {  // LCOV_EXCL_BR_LINE
+            PANIC("Failed to add parameter to properties");  // LCOV_EXCL_LINE
+        }
+    }
+
+    if (!yyjson_mut_obj_add_val(doc, parameters, "properties", properties)) {  // LCOV_EXCL_BR_LINE
+        PANIC("Failed to add properties to parameters");  // LCOV_EXCL_LINE
+    }
+
+    /* Build required array */
+    yyjson_mut_val *required = yyjson_mut_arr(doc);
+    if (!required) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    for (size_t i = 0; i < def->param_count; i++) {
+        if (def->params[i].required) {
+            if (!yyjson_mut_arr_add_str(doc, required, def->params[i].name)) {  // LCOV_EXCL_BR_LINE
+                PANIC("Failed to add required parameter");  // LCOV_EXCL_LINE
+            }
+        }
+    }
+
+    if (!yyjson_mut_obj_add_val(doc, parameters, "required", required)) {  // LCOV_EXCL_BR_LINE
+        PANIC("Failed to add required array");  // LCOV_EXCL_LINE
+    }
+
+    /* Serialize to JSON string */
+    char *json_str = yyjson_mut_write(doc, 0, NULL);
+    if (!json_str) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    /* Copy to talloc context and free yyjson memory */
+    char *result = talloc_strdup(ctx, json_str);
+    free(json_str);
+    yyjson_mut_doc_free(doc);
+
+    return result;
+}
+
 res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_request_t **out) {
     assert(agent_ptr != NULL); // LCOV_EXCL_BR_LINE
     assert(out != NULL);       // LCOV_EXCL_BR_LINE
 
-    /* This function is a stub for now since we don't have the full agent
-     * conversation structure yet. This will be implemented when the agent
-     * conversation types are defined. */
+    ik_agent_ctx_t *agent = (ik_agent_ctx_t *)agent_ptr;
 
-    return ERR(ctx, INVALID_ARG, "ik_request_build_from_conversation not yet implemented");
+    /* Validate agent has required fields */
+    if (agent->model == NULL || strlen(agent->model) == 0) {
+        return ERR(ctx, INVALID_ARG, "No model configured");
+    }
+
+    /* Create request with agent's model */
+    ik_request_t *req = NULL;
+    res_t res = ik_request_create(ctx, agent->model, &req);
+    if (is_err(&res)) return res;
+
+    /* Set thinking level from agent */
+    ik_request_set_thinking(req, (ik_thinking_level_t)agent->thinking_level, false);
+
+    /* Iterate conversation messages and add to request */
+    if (agent->conversation != NULL) {
+        for (size_t i = 0; i < agent->conversation->message_count; i++) {
+            ik_msg_t *msg = agent->conversation->messages[i];
+            if (msg == NULL || msg->kind == NULL) continue;
+
+            /* Skip system messages - they are handled via system prompt */
+            if (strcmp(msg->kind, "system") == 0) {
+                /* Set as system prompt if we have content */
+                if (msg->content != NULL) {
+                    res = ik_request_set_system(req, msg->content);
+                    if (is_err(&res)) {
+                        talloc_free(req);
+                        return res;
+                    }
+                }
+                continue;
+            }
+
+            /* Skip non-conversation kinds (clear, mark, rewind, etc.) */
+            if (!ik_msg_is_conversation_kind(msg->kind)) {
+                continue;
+            }
+
+            ik_role_t role = kind_to_role(msg->kind);
+
+            /* Handle tool_call messages specially - they need content blocks */
+            if (strcmp(msg->kind, "tool_call") == 0 && msg->data_json != NULL) {
+                /* Parse tool call data from data_json */
+                /* For now, just add as assistant message with the content */
+                if (msg->content != NULL) {
+                    res = ik_request_add_message(req, IK_ROLE_ASSISTANT, msg->content);
+                    if (is_err(&res)) {
+                        talloc_free(req);
+                        return res;
+                    }
+                }
+            } else if (strcmp(msg->kind, "tool_result") == 0 || strcmp(msg->kind, "tool") == 0) {
+                /* Tool results need to be handled specially */
+                if (msg->content != NULL) {
+                    res = ik_request_add_message(req, IK_ROLE_TOOL, msg->content);
+                    if (is_err(&res)) {
+                        talloc_free(req);
+                        return res;
+                    }
+                }
+            } else {
+                /* Regular text message (user or assistant) */
+                if (msg->content != NULL) {
+                    res = ik_request_add_message(req, role, msg->content);
+                    if (is_err(&res)) {
+                        talloc_free(req);
+                        return res;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Add standard tool definitions (glob, file_read, grep, file_write, bash) */
+    const ik_tool_schema_def_t *tool_defs[] = {
+        &glob_schema_def,
+        &file_read_schema_def,
+        &grep_schema_def,
+        &file_write_schema_def,
+        &bash_schema_def
+    };
+
+    for (size_t i = 0; i < 5; i++) {
+        char *params_json = build_tool_parameters_json(req, tool_defs[i]);
+        res = ik_request_add_tool(req, tool_defs[i]->name, tool_defs[i]->description, params_json, false);
+        if (is_err(&res)) {
+            talloc_free(req);
+            return res;
+        }
+    }
+
+    *out = req;
+    return OK(req);
 }
