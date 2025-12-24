@@ -39,15 +39,26 @@ res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
     snprintf(created_at_str, sizeof(created_at_str), "%" PRId64, agent->created_at);
     snprintf(fork_message_id_str, sizeof(fork_message_id_str), "%" PRId64, agent->fork_message_id);
 
+    // Convert thinking_level to string if set
+    const char *thinking_level_param = NULL;
+    if (agent->thinking_level != 0) {
+        switch (agent->thinking_level) {
+            case 1: thinking_level_param = "low"; break;
+            case 2: thinking_level_param = "med"; break;
+            case 3: thinking_level_param = "high"; break;
+            default: thinking_level_param = "none"; break;
+        }
+    }
+
     const char *param_values[8];
     param_values[0] = agent->uuid;
     param_values[1] = agent->name;            // Can be NULL
     param_values[2] = agent->parent_uuid;     // Can be NULL for root agent
     param_values[3] = created_at_str;
     param_values[4] = fork_message_id_str;
-    param_values[5] = NULL;  // provider - not yet in agent context, always NULL for now
-    param_values[6] = NULL;  // model - not yet in agent context, always NULL for now
-    param_values[7] = NULL;  // thinking_level - not yet in agent context, always NULL for now
+    param_values[5] = agent->provider;        // Can be NULL
+    param_values[6] = agent->model;           // Can be NULL
+    param_values[7] = thinking_level_param;   // Can be NULL
 
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 8, NULL,

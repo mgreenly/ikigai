@@ -1,6 +1,8 @@
 #include "agent.h"
 
+#include "config.h"
 #include "db/agent.h"
+#include "db/agent_row.h"
 #include "input_buffer/core.h"
 #include "layer.h"
 #include "layer_wrappers.h"
@@ -16,7 +18,20 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
+
+// Forward declarations to avoid type conflicts during migration
+typedef struct ik_provider ik_provider_t;
+extern res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out);
+
+// Thinking level enums from providers/provider.h (avoid including full header due to conflicts)
+enum {
+    IK_THINKING_NONE = 0,
+    IK_THINKING_LOW = 1,
+    IK_THINKING_MED = 2,
+    IK_THINKING_HIGH = 3
+};
 
 static int agent_destructor(ik_agent_ctx_t *agent)
 {
@@ -45,6 +60,12 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->shared = shared;
     agent->repl = NULL;  // Set by caller after creation
     agent->created_at = time(NULL);
+
+    // Initialize provider configuration (set by ik_agent_apply_defaults)
+    agent->provider = NULL;
+    agent->model = NULL;
+    agent->thinking_level = 0;  // IK_THINKING_NONE
+    agent->provider_instance = NULL;
 
     // Initialize display state
     // Use default terminal width (80) if shared->term is not yet initialized
@@ -162,6 +183,12 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->fork_message_id = row->fork_message_id ? strtoll(row->fork_message_id, NULL, 10) : 0;
     agent->shared = shared;
     agent->repl = NULL;  // Set by caller after restore
+
+    // Initialize provider configuration (populated by ik_agent_restore_from_row)
+    agent->provider = NULL;
+    agent->model = NULL;
+    agent->thinking_level = 0;  // IK_THINKING_NONE
+    agent->provider_instance = NULL;
 
     // Initialize display state
     // Use default terminal width (80) if shared->term is not yet initialized
@@ -343,4 +370,127 @@ void ik_agent_transition_from_executing_tool(ik_agent_ctx_t *agent)
     assert(agent->state == IK_AGENT_STATE_EXECUTING_TOOL); /* LCOV_EXCL_BR_LINE */
     agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
+}
+
+// Helper function to parse thinking level string to enum
+static int parse_thinking_level(const char *level_str)
+{
+    if (level_str == NULL || strcmp(level_str, "none") == 0) {
+        return IK_THINKING_NONE;
+    } else if (strcmp(level_str, "low") == 0) {
+        return IK_THINKING_LOW;
+    } else if (strcmp(level_str, "med") == 0 || strcmp(level_str, "medium") == 0) {
+        return IK_THINKING_MED;
+    } else if (strcmp(level_str, "high") == 0) {
+        return IK_THINKING_HIGH;
+    }
+    // Default to none for unknown values
+    return IK_THINKING_NONE;
+}
+
+res_t ik_agent_apply_defaults(ik_agent_ctx_t *agent, void *config_ptr)
+{
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+
+    if (config_ptr == NULL) {
+        return ERR(agent, INVALID_ARG, "Config is NULL");
+    }
+
+    ik_config_t *config = (ik_config_t *)config_ptr;
+
+    // Get default provider from config
+    const char *provider = ik_config_get_default_provider(config);
+
+    // Set provider (allocated on agent context)
+    agent->provider = talloc_strdup(agent, provider);
+    if (agent->provider == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // For now, use openai_model as the default model
+    // TODO: This will be replaced with provider-specific defaults in future tasks
+    agent->model = talloc_strdup(agent, config->openai_model);
+    if (agent->model == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Default thinking level to medium
+    agent->thinking_level = IK_THINKING_MED;
+
+    // Provider instance is lazy-loaded, leave it NULL
+    agent->provider_instance = NULL;
+
+    return OK(NULL);
+}
+
+res_t ik_agent_restore_from_row(ik_agent_ctx_t *agent, const void *row_ptr)
+{
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+
+    if (row_ptr == NULL) {
+        return ERR(agent, INVALID_ARG, "Row is NULL");
+    }
+
+    const ik_db_agent_row_t *row = (const ik_db_agent_row_t *)row_ptr;
+
+    // Load provider, model, thinking_level from database row
+    // If DB fields are NULL (old agents pre-migration), leave as NULL
+    // and they will be set by caller via ik_agent_apply_defaults
+
+    if (row->provider != NULL) {
+        agent->provider = talloc_strdup(agent, row->provider);
+        if (agent->provider == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    }
+
+    if (row->model != NULL) {
+        agent->model = talloc_strdup(agent, row->model);
+        if (agent->model == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    }
+
+    if (row->thinking_level != NULL) {
+        agent->thinking_level = parse_thinking_level(row->thinking_level);
+    }
+
+    // Provider instance is lazy-loaded, leave it NULL
+    agent->provider_instance = NULL;
+
+    return OK(NULL);
+}
+
+res_t ik_agent_get_provider(ik_agent_ctx_t *agent, struct ik_provider **out)
+{
+    assert(agent != NULL);   // LCOV_EXCL_BR_LINE
+    assert(out != NULL);     // LCOV_EXCL_BR_LINE
+
+    // If already cached, return existing instance
+    if (agent->provider_instance != NULL) {
+        *out = agent->provider_instance;
+        return OK(agent->provider_instance);
+    }
+
+    // Create new provider instance
+    ik_provider_t *provider = NULL;
+    res_t res = ik_provider_create(agent, agent->provider, &provider);
+    if (is_err(&res)) {
+        // Provider creation failed (likely missing credentials)
+        return ERR(agent, MISSING_CREDENTIALS,
+                   "Failed to create provider '%s': %s",
+                   agent->provider ? agent->provider : "NULL",
+                   res.err->msg);
+    }
+
+    // Cache the provider instance
+    agent->provider_instance = provider;
+    *out = provider;
+
+    return OK(provider);
+}
+
+void ik_agent_invalidate_provider(ik_agent_ctx_t *agent)
+{
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Free cached provider instance if it exists
+    if (agent->provider_instance != NULL) {
+        talloc_free(agent->provider_instance);
+        agent->provider_instance = NULL;
+    }
+
+    // Safe to call multiple times - idempotent
 }

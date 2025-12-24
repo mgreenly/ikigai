@@ -59,6 +59,12 @@ typedef struct ik_agent_ctx {
     int64_t created_at;       // Unix timestamp when agent was created
     int64_t fork_message_id;  // Message ID at which this agent forked (0 for root)
 
+    // Provider configuration (from agent-provider-fields.md)
+    char *provider;                       // LLM provider name ("anthropic", "openai", "google")
+    char *model;                          // Model identifier (e.g., "gpt-4", "claude-sonnet-4-5")
+    int thinking_level;                   // Thinking/reasoning level (ik_thinking_level_t from provider.h)
+    struct ik_provider *provider_instance; // Cached provider instance (lazy-loaded)
+
     // Reference to shared infrastructure
     ik_shared_ctx_t *shared;
 
@@ -234,3 +240,54 @@ void ik_agent_start_tool_execution(ik_agent_ctx_t *agent);
  * @param agent Agent context with completed tool thread
  */
 void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent);
+
+/**
+ * Apply configuration defaults to agent
+ *
+ * Sets provider, model, and thinking_level from config defaults.
+ * For root agents: uses ik_config_get_default_provider().
+ * For forked agents: should inherit from parent (caller's responsibility).
+ *
+ * @param agent Agent context to configure (must not be NULL)
+ * @param config Configuration with defaults (must not be NULL)
+ * @return OK on success, ERR_INVALID_ARG if config is NULL
+ */
+res_t ik_agent_apply_defaults(ik_agent_ctx_t *agent, void *config);
+
+/**
+ * Restore agent from database row
+ *
+ * Populates provider, model, and thinking_level fields from database row.
+ * If DB fields are NULL (old agents pre-migration), falls back to config defaults.
+ * Does NOT load provider_instance (lazy-loaded on first use).
+ *
+ * @param agent Agent context to populate (must not be NULL)
+ * @param row Database row with agent data (must not be NULL)
+ * @return OK on success, ERR_INVALID_ARG if row is NULL
+ */
+res_t ik_agent_restore_from_row(ik_agent_ctx_t *agent, const void *row);
+
+/**
+ * Get or create provider instance
+ *
+ * Lazy-loads and caches provider instance. If already cached, returns existing.
+ * If not cached, calls ik_provider_create() and caches result.
+ *
+ * @param agent Agent context (must not be NULL)
+ * @param out Output parameter for provider instance (must not be NULL)
+ * @return OK with provider on success, ERR_MISSING_CREDENTIALS if provider creation fails
+ */
+res_t ik_agent_get_provider(ik_agent_ctx_t *agent, struct ik_provider **out);
+
+/**
+ * Invalidate cached provider instance
+ *
+ * Frees cached provider_instance and sets to NULL.
+ * Called when /model command changes provider or model.
+ * Next ik_agent_get_provider() call creates new provider for updated model.
+ * Safe to call multiple times (idempotent).
+ * Safe to call when provider_instance is NULL.
+ *
+ * @param agent Agent context (must not be NULL)
+ */
+void ik_agent_invalidate_provider(ik_agent_ctx_t *agent);
