@@ -514,6 +514,201 @@ typedef struct {
     void *user_ctx;                       /* User's callback context */
 } completion_wrapper_ctx_t;
 
+/* ================================================================
+ * Stream Callback Wrapper
+ * ================================================================ */
+
+/**
+ * Wrapper context for streaming callbacks
+ *
+ * Bridges legacy ik_openai_stream_cb_t to normalized ik_stream_cb_t.
+ * Manages state for emitting START, TEXT_DELTA, TOOL_CALL_*, and DONE events.
+ */
+typedef struct {
+    ik_stream_cb_t user_stream_cb;             /* User's streaming callback */
+    void *user_stream_ctx;                     /* User's streaming callback context */
+    ik_provider_completion_cb_t user_completion_cb;  /* User's completion callback */
+    void *user_completion_ctx;                 /* User's completion callback context */
+    bool has_started;                          /* true after START event emitted */
+    ik_openai_shim_ctx_t *shim_ctx;           /* Parent shim context (for model info) */
+    const char *model;                         /* Model name (from request) */
+} shim_stream_wrapper_ctx_t;
+
+/**
+ * Stream callback wrapper
+ *
+ * Translates legacy text chunks to normalized stream events.
+ * Emits START on first chunk, then TEXT_DELTA for each chunk.
+ */
+static res_t shim_stream_wrapper(const char *chunk, void *ctx)
+{
+    assert(chunk != NULL);  // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
+
+    shim_stream_wrapper_ctx_t *wrapper = (shim_stream_wrapper_ctx_t *)ctx;
+
+    /* Emit START event on first chunk */
+    if (!wrapper->has_started) {
+        ik_stream_event_t start_event = {0};
+        start_event.type = IK_STREAM_START;
+        start_event.index = 0;
+        start_event.data.start.model = wrapper->model;
+
+        res_t start_res = wrapper->user_stream_cb(&start_event, wrapper->user_stream_ctx);
+        if (is_err(&start_res)) {
+            return start_res;
+        }
+
+        wrapper->has_started = true;
+    }
+
+    /* Emit TEXT_DELTA for the chunk */
+    ik_stream_event_t delta_event = {0};
+    delta_event.type = IK_STREAM_TEXT_DELTA;
+    delta_event.index = 0;
+    delta_event.data.delta.text = chunk;
+
+    return wrapper->user_stream_cb(&delta_event, wrapper->user_stream_ctx);
+}
+
+/**
+ * Completion callback wrapper for streaming
+ *
+ * Emits tool call events and DONE event, then invokes user's completion callback.
+ */
+static res_t shim_completion_wrapper(const ik_http_completion_t *completion, void *ctx)
+{
+    assert(completion != NULL);  // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
+
+    shim_stream_wrapper_ctx_t *wrapper = (shim_stream_wrapper_ctx_t *)ctx;
+
+    /* Check for errors first */
+    if (completion->type != IK_HTTP_SUCCESS) {
+        /* Emit ERROR event */
+        ik_stream_event_t error_event = {0};
+        error_event.type = IK_STREAM_ERROR;
+        error_event.index = 0;
+
+        /* Map HTTP error type to error category */
+        switch (completion->type) {
+            case IK_HTTP_CLIENT_ERROR:
+                if (completion->http_code == 401 || completion->http_code == 403) {
+                    error_event.data.error.category = IK_ERR_CAT_AUTH;
+                } else if (completion->http_code == 429) {
+                    error_event.data.error.category = IK_ERR_CAT_RATE_LIMIT;
+                } else if (completion->http_code == 404) {
+                    error_event.data.error.category = IK_ERR_CAT_NOT_FOUND;
+                } else {
+                    error_event.data.error.category = IK_ERR_CAT_INVALID_ARG;
+                }
+                break;
+            case IK_HTTP_SERVER_ERROR:
+                error_event.data.error.category = IK_ERR_CAT_SERVER;
+                break;
+            case IK_HTTP_NETWORK_ERROR:
+                error_event.data.error.category = IK_ERR_CAT_NETWORK;
+                break;
+            default:
+                error_event.data.error.category = IK_ERR_CAT_UNKNOWN;
+                break;
+        }
+
+        error_event.data.error.message = completion->error_message ?
+            completion->error_message : "Unknown error";
+
+        wrapper->user_stream_cb(&error_event, wrapper->user_stream_ctx);
+    }
+
+    /* If tool call present, emit TOOL_CALL_START and TOOL_CALL_DONE */
+    if (completion->tool_call != NULL) {
+        /* Emit TOOL_CALL_START */
+        ik_stream_event_t start_event = {0};
+        start_event.type = IK_STREAM_TOOL_CALL_START;
+        start_event.index = 0;
+        start_event.data.tool_start.id = completion->tool_call->id;
+        start_event.data.tool_start.name = completion->tool_call->name;
+
+        res_t start_res = wrapper->user_stream_cb(&start_event, wrapper->user_stream_ctx);
+        if (is_err(&start_res)) {
+            /* Continue even if user callback fails - need to deliver completion */
+        }
+
+        /* Emit TOOL_CALL_DONE */
+        ik_stream_event_t done_event = {0};
+        done_event.type = IK_STREAM_TOOL_CALL_DONE;
+        done_event.index = 0;
+
+        res_t done_res = wrapper->user_stream_cb(&done_event, wrapper->user_stream_ctx);
+        if (is_err(&done_res)) {
+            /* Continue even if user callback fails */
+        }
+    }
+
+    /* Emit DONE event with metadata */
+    ik_stream_event_t done_event = {0};
+    done_event.type = IK_STREAM_DONE;
+    done_event.index = 0;
+    done_event.data.done.finish_reason = ik_openai_shim_map_finish_reason(completion->finish_reason);
+    done_event.data.done.usage.input_tokens = 0;  /* Not available from legacy */
+    done_event.data.done.usage.output_tokens = completion->completion_tokens;
+    done_event.data.done.usage.thinking_tokens = 0;
+    done_event.data.done.usage.cached_tokens = 0;
+    done_event.data.done.usage.total_tokens = completion->completion_tokens;
+    done_event.data.done.provider_data = NULL;
+
+    res_t done_res = wrapper->user_stream_cb(&done_event, wrapper->user_stream_ctx);
+    if (is_err(&done_res)) {
+        /* Continue to completion callback even if DONE event fails */
+    }
+
+    /* Build provider completion for user's completion callback */
+    ik_provider_completion_t provider_completion = {0};
+
+    if (completion->type == IK_HTTP_SUCCESS) {
+        provider_completion.success = true;
+        provider_completion.http_status = completion->http_code;
+        provider_completion.response = NULL;  /* Streaming - no buffered response */
+        provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
+        provider_completion.error_message = NULL;
+        provider_completion.retry_after_ms = -1;
+    } else {
+        provider_completion.success = false;
+        provider_completion.http_status = completion->http_code;
+        provider_completion.response = NULL;
+        provider_completion.retry_after_ms = -1;
+
+        /* Map error type to category */
+        switch (completion->type) {
+            case IK_HTTP_CLIENT_ERROR:
+                if (completion->http_code == 401 || completion->http_code == 403) {
+                    provider_completion.error_category = IK_ERR_CAT_AUTH;
+                } else if (completion->http_code == 429) {
+                    provider_completion.error_category = IK_ERR_CAT_RATE_LIMIT;
+                } else if (completion->http_code == 404) {
+                    provider_completion.error_category = IK_ERR_CAT_NOT_FOUND;
+                } else {
+                    provider_completion.error_category = IK_ERR_CAT_INVALID_ARG;
+                }
+                break;
+            case IK_HTTP_SERVER_ERROR:
+                provider_completion.error_category = IK_ERR_CAT_SERVER;
+                break;
+            case IK_HTTP_NETWORK_ERROR:
+                provider_completion.error_category = IK_ERR_CAT_NETWORK;
+                break;
+            default:
+                provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
+                break;
+        }
+
+        provider_completion.error_message = completion->error_message;
+    }
+
+    /* Invoke user's completion callback */
+    return wrapper->user_completion_cb(&provider_completion, wrapper->user_completion_ctx);
+}
+
 /**
  * Completion callback wrapper
  *
@@ -711,19 +906,78 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
                                   ik_stream_cb_t stream_cb, void *stream_ctx,
                                   ik_provider_completion_cb_t completion_cb, void *completion_ctx)
 {
-    (void)ctx;
-    (void)req;
-    (void)stream_cb;
-    (void)stream_ctx;
-    (void)completion_cb;
-    (void)completion_ctx;
+    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(req != NULL);  // LCOV_EXCL_BR_LINE
+    assert(stream_cb != NULL);  // LCOV_EXCL_BR_LINE
+    assert(completion_cb != NULL);  // LCOV_EXCL_BR_LINE
 
-    /* LCOV_EXCL_START */
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    res_t result = ERR(tmp, NOT_IMPLEMENTED, "openai_start_stream not yet implemented");
-    talloc_free(tmp);
-    return result;
-    /* LCOV_EXCL_STOP */
+    ik_openai_shim_ctx_t *shim = (ik_openai_shim_ctx_t *)ctx;
+
+    /* Validate API key */
+    if (shim->api_key == NULL || shim->api_key[0] == '\0') {
+        return ERR(shim, MISSING_CREDENTIALS, "OpenAI API key is not set");
+    }
+
+    /* Validate messages */
+    if (req->message_count == 0) {
+        return ERR(shim, INVALID_ARG, "Request has no messages");
+    }
+
+    /* Build conversation from messages */
+    ik_openai_conversation_t *conv = NULL;
+    res_t conv_res = ik_openai_shim_build_conversation(shim, req, &conv);
+    if (is_err(&conv_res)) {
+        return conv_res;
+    }
+
+    /* Build temporary config */
+    ik_config_t *cfg = NULL;
+    res_t cfg_res = build_temp_config(shim, shim, req, &cfg);
+    if (is_err(&cfg_res)) {
+        talloc_free(conv);
+        return cfg_res;
+    }
+
+    /* Create stream wrapper context */
+    shim_stream_wrapper_ctx_t *wrapper = talloc_zero(shim->multi, shim_stream_wrapper_ctx_t);
+    if (wrapper == NULL) {  // LCOV_EXCL_BR_LINE
+        talloc_free(conv);  // LCOV_EXCL_LINE
+        talloc_free(cfg);  // LCOV_EXCL_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+
+    wrapper->user_stream_cb = stream_cb;
+    wrapper->user_stream_ctx = stream_ctx;
+    wrapper->user_completion_cb = completion_cb;
+    wrapper->user_completion_ctx = completion_ctx;
+    wrapper->has_started = false;
+    wrapper->shim_ctx = shim;
+    wrapper->model = req->model;  /* Pointer is valid for request lifetime */
+
+    /* Add request to multi-handle with stream callbacks */
+    res_t add_res = ik_openai_multi_add_request(
+        shim->multi,
+        cfg,
+        conv,
+        shim_stream_wrapper,      /* Stream callback wrapper */
+        wrapper,                  /* Stream callback context */
+        shim_completion_wrapper,  /* Completion callback wrapper */
+        wrapper,                  /* Completion callback context */
+        false,                    /* limit_reached - use tool_choice auto */
+        NULL                      /* logger */
+    );
+
+    /* Clean up temporary allocations */
+    talloc_free(conv);
+    talloc_free(cfg);
+
+    if (is_err(&add_res)) {
+        talloc_free(wrapper);
+        return add_res;
+    }
+
+    /* Return immediately - streaming will progress through perform/info_read cycle */
+    return OK(NULL);
 }
 
 static void openai_cleanup(void *ctx)
