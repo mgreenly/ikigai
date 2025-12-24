@@ -18,6 +18,7 @@
 #include "../../../src/repl_event_handlers.h"
 #include "../../../src/openai/client.h"
 #include "../../../src/openai/client_multi.h"
+#include "../../../src/providers/provider.h"
 #include "../../../src/tool.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/config.h"
@@ -94,10 +95,24 @@ static void setup(void)
     /* Create conversation */
     repl->current->conversation = ik_openai_conversation_create(repl);
 
-    /* Create curl_multi handle */
+    /* Create curl_multi handle wrapped in mock provider */
     res_t multi_res = ik_openai_multi_create(repl);
     ck_assert(!multi_res.is_err);
-    repl->current->multi = multi_res.ok;
+
+    typedef struct { ik_openai_multi_t *multi; } mock_pctx_t;
+    mock_pctx_t *mock_ctx = talloc_zero(repl->current, mock_pctx_t);
+    mock_ctx->multi = multi_res.ok;
+
+    static const ik_provider_vtable_t mock_vt = {
+        .fdset = NULL, .perform = NULL, .timeout = NULL, .info_read = NULL,
+        .start_request = NULL, .start_stream = NULL, .cleanup = NULL, .cancel = NULL,
+    };
+
+    ik_provider_t *provider = talloc_zero(repl->current, ik_provider_t);
+    provider->name = "mock";
+    provider->vt = &mock_vt;
+    provider->ctx = mock_ctx;
+    repl->current->provider_instance = provider;
 
     /* Initialize thread infrastructure */
     pthread_mutex_init_(&repl->current->tool_thread_mutex, NULL);

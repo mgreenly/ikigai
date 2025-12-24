@@ -19,6 +19,7 @@
 #include "../../../src/error.h"
 #include "../../../src/openai/client.h"
 #include "../../../src/openai/client_multi.h"
+#include "../../../src/providers/provider.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/logger.h"
@@ -89,6 +90,15 @@ static int db_debug_pipe_fds[2];
 static char test_dir[256];
 static char log_file_path[512];
 
+// Mock start_stream for provider - defined here so it can be referenced in static initializer
+static res_t db_basic_mock_start_stream(void *ctx, const ik_request_t *req,
+                               ik_stream_cb_t stream_cb, void *stream_ctx,
+                               ik_provider_completion_cb_t completion_cb, void *completion_ctx) {
+    (void)ctx; (void)req; (void)stream_cb; (void)stream_ctx;
+    (void)completion_cb; (void)completion_ctx;
+    return OK(NULL);
+}
+
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
@@ -140,9 +150,20 @@ static void setup(void)
     // Create conversation
     repl->current->conversation = ik_openai_conversation_create(repl);
 
-    // Create multi client (opaque pointer)
-    repl->current->multi = talloc_zero_(repl, 1);
-    ck_assert_ptr_nonnull(repl->current->multi);
+    // Set agent model (required for send_to_llm check)
+    repl->current->model = talloc_strdup(repl->current, "gpt-4");
+
+    // Create mock provider (opaque pointer)
+    static const ik_provider_vtable_t mock_vt = {
+        .fdset = NULL, .perform = NULL, .timeout = NULL, .info_read = NULL,
+        .start_request = NULL, .start_stream = db_basic_mock_start_stream, .cleanup = NULL, .cancel = NULL,
+    };
+    ik_provider_t *mock_provider = talloc_zero(repl->current, ik_provider_t);
+    mock_provider->name = "mock";
+    mock_provider->vt = &mock_vt;
+    mock_provider->ctx = talloc_zero_(repl->current, 1);
+    repl->current->provider_instance = mock_provider;
+    ck_assert_ptr_nonnull(repl->current->provider_instance);
 
     // Create terminal context
     repl->shared->term = talloc_zero_(repl, sizeof(ik_term_ctx_t));

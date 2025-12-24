@@ -6,6 +6,8 @@
 
 #include "repl_streaming_test_common.h"
 #include "../../../src/agent.h"
+#include "../../../src/providers/provider.h"
+#include "../../../src/repl_callbacks.h"
 #include "../../../src/shared.h"
 #include <stdlib.h>
 
@@ -82,6 +84,43 @@ CURLMcode curl_multi_perform_(CURLM *multi, int *running_handles)
     return CURLM_OK;
 }
 
+// Vtable callbacks that wrap the multi handle for test provider
+static res_t test_vt_fdset(void *pctx, fd_set *read_fds, fd_set *write_fds, fd_set *exc_fds, int *max_fd) {
+    test_provider_ctx_t *tctx = (test_provider_ctx_t *)pctx;
+    return ik_openai_multi_fdset(tctx->multi, read_fds, write_fds, exc_fds, max_fd);
+}
+static res_t test_vt_perform(void *pctx, int *running_handles) {
+    test_provider_ctx_t *tctx = (test_provider_ctx_t *)pctx;
+    return ik_openai_multi_perform(tctx->multi, running_handles);
+}
+static res_t test_vt_timeout(void *pctx, long *timeout_ms) {
+    test_provider_ctx_t *tctx = (test_provider_ctx_t *)pctx;
+    return ik_openai_multi_timeout(tctx->multi, timeout_ms);
+}
+static void test_vt_info_read(void *pctx, ik_logger_t *logger) {
+    test_provider_ctx_t *tctx = (test_provider_ctx_t *)pctx;
+    ik_openai_multi_info_read(tctx->multi, logger);
+}
+
+// Forward declaration for stream adapter
+res_t ik_repl_provider_stream_adapter(const ik_stream_event_t *event, void *ctx);
+res_t ik_repl_provider_completion_adapter(const ik_provider_completion_t *completion, void *ctx);
+
+// Mock start_stream for streaming tests - returns OK immediately
+static res_t test_vt_start_stream(void *pctx, const ik_request_t *req,
+                                   ik_stream_cb_t stream_cb, void *stream_ctx,
+                                   ik_provider_completion_cb_t completion_cb, void *completion_ctx) {
+    (void)pctx; (void)req; (void)stream_cb; (void)stream_ctx;
+    (void)completion_cb; (void)completion_ctx;
+    return OK(NULL);
+}
+
+static const ik_provider_vtable_t g_test_vtable = {
+    .fdset = test_vt_fdset, .perform = test_vt_perform, .timeout = test_vt_timeout,
+    .info_read = test_vt_info_read, .start_request = NULL, .start_stream = test_vt_start_stream,
+    .cleanup = NULL, .cancel = NULL,
+};
+
 // Helper function to create a REPL context with all LLM components
 ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
 {
@@ -129,6 +168,13 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     ck_assert_ptr_nonnull(repl);
     repl->shared = shared;
     repl->current = agent;
+
+    // Update agent's shared pointer to use the REPL's shared context (which has cfg)
+    agent->shared = shared;
+
+    // Set provider and model so ik_agent_get_provider doesn't fail
+    agent->provider = talloc_strdup(agent, "openai");
+    agent->model = talloc_strdup(agent, "gpt-4");
     // Use the agent's input_buffer (already created by ik_test_create_agent)
 
     // Initialize reference fields (agent fields are already initialized)
@@ -168,14 +214,28 @@ ik_repl_ctx_t *create_test_repl_with_llm(void *ctx)
     // Set config in shared context (already created above)
     shared->cfg = cfg;
 
+    // Create logger (required for provider operations)
+    shared->logger = ik_logger_create(shared, "/tmp");
+    ck_assert_ptr_nonnull(shared->logger);
+
     // Create conversation (agent already created above)
     agent->conversation = ik_openai_conversation_create(ctx);
     repl->current = agent;
 
-    // Create multi handle
+    // Create multi handle wrapped in a mock provider
     res = ik_openai_multi_create(ctx);
     ck_assert(is_ok(&res));
-    repl->current->multi = res.ok;
+
+    // Create mock provider for tests that need direct multi access
+    // Uses test_provider_ctx_t from header for compatibility with TEST_GET_MULTI macro
+    test_provider_ctx_t *mock_ctx = talloc_zero(repl->current, test_provider_ctx_t);
+    mock_ctx->multi = res.ok;
+
+    ik_provider_t *provider = talloc_zero(repl->current, ik_provider_t);
+    provider->name = "test";
+    provider->vt = &g_test_vtable;
+    provider->ctx = mock_ctx;
+    repl->current->provider_instance = provider;
 
     // Initialize curl_still_running
     repl->current->curl_still_running = 0;

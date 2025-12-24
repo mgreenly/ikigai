@@ -40,7 +40,7 @@ START_TEST(test_streaming_callback_with_empty_lines) {
     invoke_write_callback = true;
 
     // Call multi_perform to trigger the write callback
-    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
+    res = ik_openai_multi_perform(TEST_GET_MULTI(repl->current), &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify scrollback has new lines added
@@ -105,7 +105,7 @@ START_TEST(test_streaming_callback_buffered_line_flush)
     mock_response_len = strlen(chunk1);
     invoke_write_callback = true;
 
-    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
+    res = ik_openai_multi_perform(TEST_GET_MULTI(repl->current), &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify "First" is buffered (not in scrollback yet)
@@ -118,7 +118,7 @@ START_TEST(test_streaming_callback_buffered_line_flush)
     mock_response_data = chunk2;
     mock_response_len = strlen(chunk2);
 
-    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
+    res = ik_openai_multi_perform(TEST_GET_MULTI(repl->current), &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify "First part" was flushed to scrollback

@@ -459,6 +459,11 @@ res_t ik_agent_get_provider(ik_agent_ctx_t *agent, struct ik_provider **out)
         return OK(agent->provider_instance);
     }
 
+    // Check if provider is configured
+    if (agent->provider == NULL || strlen(agent->provider) == 0) {
+        return ERR(agent, INVALID_ARG, "No provider configured");
+    }
+
     // Create new provider instance
     ik_provider_t *provider = NULL;
     res_t res = ik_provider_create(agent, agent->provider, &provider);

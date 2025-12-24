@@ -41,7 +41,7 @@ START_TEST(test_streaming_callback_appends_to_scrollback) {
     invoke_write_callback = true;
 
     // Call multi_perform to trigger the write callback
-    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
+    res = ik_openai_multi_perform(TEST_GET_MULTI(repl->current), &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify streaming data was appended to scrollback
@@ -89,7 +89,7 @@ START_TEST(test_streaming_callback_accumulates_response)
     mock_response_len = strlen(chunk1);
     invoke_write_callback = true;
 
-    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
+    res = ik_openai_multi_perform(TEST_GET_MULTI(repl->current), &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify first chunk was accumulated
@@ -102,7 +102,7 @@ START_TEST(test_streaming_callback_accumulates_response)
     mock_response_data = chunk2;
     mock_response_len = strlen(chunk2);
 
-    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
+    res = ik_openai_multi_perform(TEST_GET_MULTI(repl->current), &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify second chunk was appended
@@ -149,7 +149,7 @@ START_TEST(test_streaming_callback_empty_chunk)
     invoke_write_callback = true;
 
     // Call multi_perform to trigger the write callback with empty content
-    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
+    res = ik_openai_multi_perform(TEST_GET_MULTI(repl->current), &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify scrollback count unchanged (empty chunk should not add lines)
@@ -199,7 +199,7 @@ START_TEST(test_streaming_callback_content_ending_with_newline)
     invoke_write_callback = true;
 
     // Call multi_perform to trigger the write callback
-    res = ik_openai_multi_perform(repl->current->multi, &repl->current->curl_still_running);
+    res = ik_openai_multi_perform(TEST_GET_MULTI(repl->current), &repl->current->curl_still_running);
     ck_assert(is_ok(&res));
 
     // Verify scrollback has one new line added

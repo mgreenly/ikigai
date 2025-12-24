@@ -17,6 +17,7 @@
 #include "../../../src/input.h"
 #include "../../../src/terminal.h"
 #include "../../../src/render.h"
+#include "../../../src/providers/provider.h"
 #include "../../test_utils.h"
 
 // Mock read tracking

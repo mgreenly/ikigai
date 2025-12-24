@@ -14,6 +14,7 @@
 #include "logger.h"
 #include "openai/client.h"
 #include "openai/client_multi.h"
+#include "providers/provider.h"
 #include "repl.h"
 #include "repl_event_handlers.h"
 #include "scrollback.h"
@@ -35,6 +36,46 @@ static void suite_setup(void)
     ik_test_set_log_dir(__FILE__);
 }
 
+// Mock provider vtable callbacks that wrap curl_multi
+typedef struct {
+    ik_openai_multi_t *multi;
+} mock_provider_ctx_t;
+
+static res_t mock_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds, fd_set *exc_fds, int *max_fd)
+{
+    mock_provider_ctx_t *mock = (mock_provider_ctx_t *)ctx;
+    return ik_openai_multi_fdset(mock->multi, read_fds, write_fds, exc_fds, max_fd);
+}
+
+static res_t mock_perform(void *ctx, int *running_handles)
+{
+    mock_provider_ctx_t *mock = (mock_provider_ctx_t *)ctx;
+    return ik_openai_multi_perform(mock->multi, running_handles);
+}
+
+static res_t mock_timeout(void *ctx, long *timeout_ms)
+{
+    mock_provider_ctx_t *mock = (mock_provider_ctx_t *)ctx;
+    return ik_openai_multi_timeout(mock->multi, timeout_ms);
+}
+
+static void mock_info_read(void *ctx, ik_logger_t *logger)
+{
+    mock_provider_ctx_t *mock = (mock_provider_ctx_t *)ctx;
+    ik_openai_multi_info_read(mock->multi, logger);
+}
+
+static const ik_provider_vtable_t mock_vtable = {
+    .fdset = mock_fdset,
+    .perform = mock_perform,
+    .timeout = mock_timeout,
+    .info_read = mock_info_read,
+    .start_request = NULL,
+    .start_stream = NULL,
+    .cleanup = NULL,
+    .cancel = NULL,
+};
+
 // Create test agent helper
 static ik_agent_ctx_t *create_test_agent(ik_repl_ctx_t *parent, const char *uuid)
 {
@@ -52,10 +93,20 @@ static ik_agent_ctx_t *create_test_agent(ik_repl_ctx_t *parent, const char *uuid
     agent->spinner_state.visible = false;
     agent->spinner_state.frame_index = 0;
 
-    // Create curl_multi handle
+    // Create curl_multi handle wrapped in a mock provider
     res_t multi_res = ik_openai_multi_create(agent);
     ck_assert(!is_err(&multi_res));
-    agent->multi = multi_res.ok;
+
+    // Create mock provider context
+    mock_provider_ctx_t *mock_ctx = talloc_zero(agent, mock_provider_ctx_t);
+    mock_ctx->multi = multi_res.ok;
+
+    // Create provider instance with mock vtable
+    ik_provider_t *provider = talloc_zero(agent, ik_provider_t);
+    provider->name = "mock";
+    provider->vt = &mock_vtable;
+    provider->ctx = mock_ctx;
+    agent->provider_instance = provider;
     agent->curl_still_running = 0;
 
     // Create conversation

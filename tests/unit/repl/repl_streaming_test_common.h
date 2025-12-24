@@ -18,7 +18,14 @@
 #include "../../../src/layer.h"
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/openai/client_multi.h"
+#include "../../../src/providers/provider.h"
 #include "../../test_utils.h"
+
+/* Mock provider context structure for tests that need direct multi handle access */
+typedef struct { ik_openai_multi_t *multi; } test_provider_ctx_t;
+
+/* Helper macro to get multi handle from agent's provider_instance */
+#define TEST_GET_MULTI(agent) (((test_provider_ctx_t *)(agent)->provider_instance->ctx)->multi)
 
 // Forward declarations
 ssize_t posix_write_(int fd, const void *buf, size_t count);

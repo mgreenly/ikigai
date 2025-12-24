@@ -17,6 +17,7 @@
 #include "repl_callbacks.h"
 #include "openai/client.h"
 #include "openai/client_multi.h"
+#include "providers/provider.h"
 #include "scrollback.h"
 #include "config.h"
 #include "../../../src/shared.h"
@@ -46,10 +47,24 @@ static void setup(void)
     repl->current = agent;
     agent->repl = repl;  // Set backpointer
 
-    /* Create multi-handle */
+    /* Create multi-handle wrapped in mock provider */
     res_t res = ik_openai_multi_create(ctx);
     ck_assert(is_ok(&res));
-    repl->current->multi = res.ok;
+
+    typedef struct { ik_openai_multi_t *multi; } mock_pctx_t;
+    mock_pctx_t *mock_ctx = talloc_zero(repl->current, mock_pctx_t);
+    mock_ctx->multi = res.ok;
+
+    static const ik_provider_vtable_t mock_vt = {
+        .fdset = NULL, .perform = NULL, .timeout = NULL, .info_read = NULL,
+        .start_request = NULL, .start_stream = NULL, .cleanup = NULL, .cancel = NULL,
+    };
+
+    ik_provider_t *provider = talloc_zero(repl->current, ik_provider_t);
+    provider->name = "mock";
+    provider->vt = &mock_vt;
+    provider->ctx = mock_ctx;
+    repl->current->provider_instance = provider;
 
     /* Create config */
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
