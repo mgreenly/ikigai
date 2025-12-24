@@ -4,6 +4,7 @@
  */
 
 #include "commands.h"
+#include "commands_basic.h"
 
 #include "agent.h"
 #include "db/agent.h"
@@ -30,41 +31,202 @@
 #include <time.h>
 #include <unistd.h>
 
-// Parse quoted prompt from arguments
-static char *parse_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *args)
+/**
+ * Parse /fork command arguments for --model flag and prompt
+ *
+ * Supports both orderings:
+ * - /fork --model gpt-5 "prompt"
+ * - /fork "prompt" --model gpt-5
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param input Command arguments string
+ * @param model Output: model specification (NULL if no --model flag)
+ * @param prompt Output: prompt string (NULL if no prompt)
+ * @return OK on success, ERR on malformed input
+ */
+static res_t cmd_fork_parse_args(void *ctx, const char *input, char **model, char **prompt)
 {
-    if (args == NULL || args[0] == '\0') {     // LCOV_EXCL_BR_LINE
-        return NULL;
+    assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
+    assert(model != NULL);    // LCOV_EXCL_BR_LINE
+    assert(prompt != NULL);   // LCOV_EXCL_BR_LINE
+
+    *model = NULL;
+    *prompt = NULL;
+
+    if (input == NULL || input[0] == '\0') {     // LCOV_EXCL_BR_LINE
+        return OK(NULL);  // Empty args is valid (no model, no prompt)
     }
 
-    // Check if starts with quote
-    if (args[0] != '"') {
-        char *err_msg = talloc_strdup(ctx, "Error: Prompt must be quoted (usage: /fork \"prompt\")");
-        if (err_msg == NULL) {  // LCOV_EXCL_BR_LINE
-            PANIC("Out of memory");  // LCOV_EXCL_LINE
+    const char *p = input;
+
+    // Skip leading whitespace
+    while (*p == ' ' || *p == '\t') {     // LCOV_EXCL_BR_LINE
+        p++;
+    }
+
+    // Parse tokens in any order
+    while (*p != '\0') {     // LCOV_EXCL_BR_LINE
+        if (strncmp(p, "--model", 7) == 0 && (p[7] == ' ' || p[7] == '\t')) {
+            // Found --model flag
+            p += 7;
+            // Skip whitespace after --model
+            while (*p == ' ' || *p == '\t') {     // LCOV_EXCL_BR_LINE
+                p++;
+            }
+            if (*p == '\0') {
+                return ERR(ctx, INVALID_ARG, "--model requires an argument");
+            }
+            // Extract model spec (until next space or quote)
+            const char *model_start = p;
+            while (*p != '\0' && *p != ' ' && *p != '\t' && *p != '"') {     // LCOV_EXCL_BR_LINE
+                p++;
+            }
+            size_t model_len = (size_t)(p - model_start);
+            if (model_len == 0) {
+                return ERR(ctx, INVALID_ARG, "--model requires an argument");
+            }
+            *model = talloc_strndup(ctx, model_start, model_len);
+            if (*model == NULL) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+        } else if (*p == '"') {
+            // Found quoted prompt
+            p++;  // Skip opening quote
+            const char *prompt_start = p;
+            // Find closing quote
+            while (*p != '\0' && *p != '"') {     // LCOV_EXCL_BR_LINE
+                p++;
+            }
+            if (*p != '"') {
+                return ERR(ctx, INVALID_ARG, "Unterminated quoted string");
+            }
+            size_t prompt_len = (size_t)(p - prompt_start);
+            *prompt = talloc_strndup(ctx, prompt_start, prompt_len);
+            if (*prompt == NULL) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+            p++;  // Skip closing quote
+        } else {
+            // Unknown token - likely unquoted text
+            return ERR(ctx, INVALID_ARG, "Error: Prompt must be quoted (usage: /fork \"prompt\") or use --model flag");
         }
-        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
-        return talloc_strdup(ctx, "");  // Return empty string to signal error
-    }
 
-    // Find closing quote
-    const char *end_quote = strchr(args + 1, '"');
-    if (end_quote == NULL) {
-        char *err_msg = talloc_strdup(ctx, "Error: Unterminated quoted string");
-        if (err_msg == NULL) {  // LCOV_EXCL_BR_LINE
-            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        // Skip trailing whitespace
+        while (*p == ' ' || *p == '\t') {     // LCOV_EXCL_BR_LINE
+            p++;
         }
-        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
-        return talloc_strdup(ctx, "");  // Return empty string to signal error
     }
 
-    // Extract prompt (between quotes)
-    size_t prompt_len = (size_t)(end_quote - (args + 1));
-    char *prompt = talloc_strndup(ctx, args + 1, prompt_len);
-    if (prompt == NULL) {  // LCOV_EXCL_BR_LINE
+    return OK(NULL);
+}
+
+/**
+ * Apply model override to child agent
+ *
+ * Parses MODEL/THINKING specification and updates child's provider, model,
+ * and thinking_level fields. Infers provider from model name.
+ *
+ * @param child Child agent to configure
+ * @param model_spec Model specification (e.g., "gpt-5" or "gpt-5-mini/high")
+ * @return OK on success, ERR on invalid model or provider
+ */
+static res_t cmd_fork_apply_override(ik_agent_ctx_t *child, const char *model_spec)
+{
+    assert(child != NULL);      // LCOV_EXCL_BR_LINE
+    assert(model_spec != NULL); // LCOV_EXCL_BR_LINE
+
+    // Parse MODEL/THINKING syntax (reuse existing parser)
+    char *model_name = NULL;
+    char *thinking_str = NULL;
+    res_t parse_res = cmd_model_parse(child, model_spec, &model_name, &thinking_str);
+    if (is_err(&parse_res)) {
+        return parse_res;
+    }
+
+    // Infer provider from model name
+    const char *provider = ik_infer_provider(model_name);
+    if (provider == NULL) {
+        return ERR(child, INVALID_ARG, "Unknown model '%s'", model_name);
+    }
+
+    // Set provider and model
+    if (child->provider != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(child->provider);     // LCOV_EXCL_LINE
+    }     // LCOV_EXCL_LINE
+    child->provider = talloc_strdup(child, provider);
+    if (child->provider == NULL) {  // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");  // LCOV_EXCL_LINE
     }
-    return prompt;
+
+    if (child->model != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(child->model);     // LCOV_EXCL_LINE
+    }     // LCOV_EXCL_LINE
+    child->model = talloc_strdup(child, model_name);
+    if (child->model == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+
+    // Parse thinking level if specified, otherwise keep parent's level (already inherited)
+    if (thinking_str != NULL) {
+        ik_thinking_level_t thinking_level;
+        if (strcmp(thinking_str, "none") == 0) {
+            thinking_level = IK_THINKING_NONE;
+        } else if (strcmp(thinking_str, "low") == 0) {
+            thinking_level = IK_THINKING_LOW;
+        } else if (strcmp(thinking_str, "med") == 0) {
+            thinking_level = IK_THINKING_MED;
+        } else if (strcmp(thinking_str, "high") == 0) {
+            thinking_level = IK_THINKING_HIGH;
+        } else {
+            return ERR(child, INVALID_ARG, "Invalid thinking level '%s' (must be: none, low, med, high)", thinking_str);
+        }
+        child->thinking_level = thinking_level;
+    }
+
+    return OK(NULL);
+}
+
+/**
+ * Copy parent's provider config to child agent
+ *
+ * Inherits provider, model, and thinking_level from parent to child.
+ * Used when no --model override is specified.
+ *
+ * @param child Child agent to configure
+ * @param parent Parent agent to copy from
+ * @return OK on success, ERR on memory allocation failure
+ */
+static res_t cmd_fork_inherit_config(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent)
+{
+    assert(child != NULL);  // LCOV_EXCL_BR_LINE
+    assert(parent != NULL); // LCOV_EXCL_BR_LINE
+
+    // Copy provider
+    if (parent->provider != NULL) {
+        if (child->provider != NULL) {     // LCOV_EXCL_BR_LINE
+            talloc_free(child->provider);     // LCOV_EXCL_LINE
+        }     // LCOV_EXCL_LINE
+        child->provider = talloc_strdup(child, parent->provider);
+        if (child->provider == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+    }
+
+    // Copy model
+    if (parent->model != NULL) {
+        if (child->model != NULL) {     // LCOV_EXCL_BR_LINE
+            talloc_free(child->model);     // LCOV_EXCL_LINE
+        }     // LCOV_EXCL_LINE
+        child->model = talloc_strdup(child, parent->model);
+        if (child->model == NULL) {  // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");  // LCOV_EXCL_LINE
+        }
+    }
+
+    // Copy thinking level
+    child->thinking_level = parent->thinking_level;
+
+    return OK(NULL);
 }
 
 // Handle prompt-triggered LLM call after fork
@@ -183,11 +345,15 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
-    // Parse prompt argument if present
-    char *prompt = parse_fork_prompt(ctx, repl, args);
-    if (prompt != NULL && prompt[0] == '\0') {
-        // Error was shown to user by parse_fork_prompt
-        return OK(NULL);
+    // Parse arguments for --model flag and prompt
+    char *model_spec = NULL;
+    char *prompt = NULL;
+    res_t parse_res = cmd_fork_parse_args(ctx, args, &model_spec, &prompt);
+    if (is_err(&parse_res)) {
+        const char *err_msg = error_message(parse_res.err);
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        talloc_free(parse_res.err);
+        return OK(NULL);  // Error shown to user
     }
 
     // Concurrency check (Q9)
@@ -232,6 +398,28 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Set fork_message_id on child (history inheritance point)
     child->fork_message_id = fork_message_id;
+
+    // Configure child's provider/model/thinking (either inherit or override)
+    if (model_spec != NULL) {
+        // Apply model override
+        res = cmd_fork_apply_override(child, model_spec);
+        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+            ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
+            atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
+            const char *err_msg = error_message(res.err);     // LCOV_EXCL_LINE
+            ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));     // LCOV_EXCL_LINE
+            talloc_free(res.err);     // LCOV_EXCL_LINE
+            return OK(NULL);  // Error shown to user     // LCOV_EXCL_LINE
+        }
+    } else {
+        // Inherit parent's configuration
+        res = cmd_fork_inherit_config(child, parent);
+        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+            ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
+            atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
+            return res;     // LCOV_EXCL_LINE
+        }
+    }
 
     // Copy parent's conversation to child (history inheritance)
     res = ik_agent_copy_conversation(child, parent);
@@ -320,7 +508,6 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }     // LCOV_EXCL_LINE
 
     // Switch to child (uses ik_repl_switch_agent for state save/restore)
-    const char *parent_uuid = parent->uuid;
     res = ik_repl_switch_agent(repl, child);
     if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
         atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
@@ -328,15 +515,51 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
     atomic_store(&repl->shared->fork_pending, false);
 
-    // Display confirmation
-    char msg[64];
-    int32_t written = snprintf(msg, sizeof(msg), "Forked from %.22s", parent_uuid);
-    if (written < 0 || (size_t)written >= sizeof(msg)) {  // LCOV_EXCL_BR_LINE
-        PANIC("snprintf failed");  // LCOV_EXCL_LINE
+    // Display confirmation with model information
+    char *feedback = NULL;
+    if (model_spec != NULL) {
+        // Override: show what child is using
+        const char *thinking_level_str = NULL;
+        switch (child->thinking_level) {
+            case IK_THINKING_NONE: thinking_level_str = "none"; break;
+            case IK_THINKING_LOW:  thinking_level_str = "low";  break;
+            case IK_THINKING_MED:  thinking_level_str = "medium"; break;
+            case IK_THINKING_HIGH: thinking_level_str = "high"; break;
+        }
+        feedback = talloc_asprintf(ctx, "Forked child with %s/%s/%s",
+                                   child->provider, child->model, thinking_level_str);
+    } else {
+        // Inheritance: show that child inherited parent's config
+        const char *thinking_level_str = NULL;
+        switch (child->thinking_level) {
+            case IK_THINKING_NONE: thinking_level_str = "none"; break;
+            case IK_THINKING_LOW:  thinking_level_str = "low";  break;
+            case IK_THINKING_MED:  thinking_level_str = "medium"; break;
+            case IK_THINKING_HIGH: thinking_level_str = "high"; break;
+        }
+        feedback = talloc_asprintf(ctx, "Forked child with parent's model (%s/%s/%s)",
+                                   child->provider, child->model, thinking_level_str);
     }
-    res = ik_scrollback_append_line(child->scrollback, msg, (size_t)written);
+    if (feedback == NULL) {  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+    res = ik_scrollback_append_line(child->scrollback, feedback, strlen(feedback));
     if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
         return res;  // LCOV_EXCL_LINE
+    }
+
+    // Warn if model doesn't support thinking but thinking level is set
+    if (child->thinking_level != IK_THINKING_NONE && child->model != NULL) {
+        bool supports_thinking = false;
+        ik_model_supports_thinking(child->model, &supports_thinking);
+        if (!supports_thinking) {
+            char *warning = talloc_asprintf(ctx, "Warning: Model '%s' does not support thinking/reasoning",
+                                          child->model);
+            if (warning == NULL) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+            ik_scrollback_append_line(child->scrollback, warning, strlen(warning));
+        }
     }
 
     // If prompt provided, add as user message and trigger LLM
