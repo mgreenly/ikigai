@@ -87,9 +87,10 @@ static bool serialize_tool_call(yyjson_mut_doc *doc, yyjson_mut_val *arr,
 /**
  * Serialize a single message to Chat Completions format
  */
-static bool serialize_chat_message(yyjson_mut_doc *doc, yyjson_mut_val *messages_arr,
+static bool serialize_chat_message(TALLOC_CTX *ctx, yyjson_mut_doc *doc, yyjson_mut_val *messages_arr,
                                      const ik_message_t *message)
 {
+    assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(doc != NULL);          // LCOV_EXCL_BR_LINE
     assert(messages_arr != NULL); // LCOV_EXCL_BR_LINE
     assert(message != NULL);      // LCOV_EXCL_BR_LINE
@@ -148,7 +149,7 @@ static bool serialize_chat_message(yyjson_mut_doc *doc, yyjson_mut_val *messages
             }
         } else {
             // Regular message: concatenate text content
-            char *content = talloc_strdup(doc, "");
+            char *content = talloc_strdup(ctx, "");
             if (!content) return false; // LCOV_EXCL_BR_LINE
 
             for (size_t i = 0; i < message->content_count; i++) {
@@ -338,7 +339,7 @@ res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx, const ik_request_t *req,
 
     // Add conversation messages
     for (size_t i = 0; i < req->message_count; i++) {
-        if (!serialize_chat_message(doc, messages_arr, &req->messages[i])) {
+        if (!serialize_chat_message(ctx, doc, messages_arr, &req->messages[i])) {
             yyjson_mut_doc_free(doc);
             return ERR(ctx, PARSE, "Failed to serialize message");
         }
