@@ -27,7 +27,7 @@ Update agent lifecycle operations (create, fork, clear) to use new provider-agno
 **Source Files to Read:**
 - `src/message.h` - New message API
 - `src/agent.h` - Agent struct and functions
-- `src/agent.c` - Agent creation and fork logic (lines 180-320)
+- `src/agent.c` - Agent creation and fork logic - search for ik_agent_create() and fork functions
 - `src/commands_fork.c` - Fork command implementation
 - `src/commands_basic.c` - Clear command implementation
 - `src/openai/client.h` - Old conversation API
@@ -35,6 +35,29 @@ Update agent lifecycle operations (create, fork, clear) to use new provider-agno
 **Test Files:**
 - `tests/unit/agent/fork_test.c` - Fork operation tests
 - `tests/unit/commands/clear_test.c` - Clear command tests
+
+## Error Handling Policy
+
+**Memory Allocation Failures:**
+- All talloc allocations: PANIC with LCOV_EXCL_BR_LINE
+- Rationale: OOM is unrecoverable, panic is appropriate
+
+**Validation Failures:**
+- Return ERR allocated on parent context (not on object being freed)
+- Example: `return ERR(parent_ctx, INVALID_ARG, "message")`
+
+**During Dual-Mode (Tasks 1-4):**
+- Old API calls succeed: continue normally
+- New API calls fail: log error, continue (old API is authoritative)
+- Pattern: `if (is_err(&res)) { ik_log_error("Failed: %s", res.err->msg); }`
+
+**After Migration (Tasks 5-8):**
+- New API calls fail: propagate error immediately
+- Pattern: `if (is_err(&res)) { return res; }`
+
+**Assertions:**
+- NULL pointer checks: `assert(ptr != NULL)` with LCOV_EXCL_BR_LINE
+- Only for programmer errors, never for runtime conditions
 
 ## Implementation
 

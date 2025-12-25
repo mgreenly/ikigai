@@ -29,9 +29,9 @@ Update provider request builder to read from new `agent->messages` array instead
 - `src/providers/request.h` - Request builder API
 - `src/providers/request.c` - `ik_request_build_from_conversation()` implementation - locate function that builds request from agent
 - `src/providers/provider.h` - Complete struct definitions:
-  - `struct ik_request` (lines 200-211): messages (ik_message_t* array), message_count, model, system_prompt, thinking, tools, tool_count, max_output_tokens
-  - `struct ik_message` (lines 180-185): role, content_blocks (array pointer), content_count, provider_metadata
-  - `struct ik_content_block` (lines 148-175): type discriminator + union (text/tool_call/tool_result/thinking)
+  - `struct ik_request`: messages (ik_message_t* array), message_count, model, system_prompt, thinking, tools, tool_count, max_output_tokens
+  - `struct ik_message`: role, content_blocks (array pointer), content_count, provider_metadata
+  - `struct ik_content_block`: type discriminator + union (text/tool_call/tool_result/thinking)
 - `src/wrapper.c` - Mockable wrapper implementations
 - `src/wrapper_internal.h` - Mockable wrapper declarations
 
@@ -39,11 +39,34 @@ Update provider request builder to read from new `agent->messages` array instead
 - `tests/unit/providers/request_test.c` - Request building tests
 - `tests/integration/providers/anthropic/basic_test.c` - Provider integration tests
 
+## Error Handling Policy
+
+**Memory Allocation Failures:**
+- All talloc allocations: PANIC with LCOV_EXCL_BR_LINE
+- Rationale: OOM is unrecoverable, panic is appropriate
+
+**Validation Failures:**
+- Return ERR allocated on parent context (not on object being freed)
+- Example: `return ERR(parent_ctx, INVALID_ARG, "message")`
+
+**During Dual-Mode (Tasks 1-4):**
+- Old API calls succeed: continue normally
+- New API calls fail: log error, continue (old API is authoritative)
+- Pattern: `if (is_err(&res)) { ik_log_error("Failed: %s", res.err->msg); }`
+
+**After Migration (Tasks 5-8):**
+- New API calls fail: propagate error immediately
+- Pattern: `if (is_err(&res)) { return res; }`
+
+**Assertions:**
+- NULL pointer checks: `assert(ptr != NULL)` with LCOV_EXCL_BR_LINE
+- Only for programmer errors, never for runtime conditions
+
 ## Implementation
 
 ### 1. Update src/providers/request.c - Switch to New Storage
 
-**Location:** `ik_request_build_from_conversation()` function (line 418-516)
+**Location:** `ik_request_build_from_conversation()` function - search for this function
 
 **Current Code:**
 ```c
@@ -98,7 +121,7 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_re
     /* Add standard tool definitions (glob, file_read, grep, file_write, bash) */
     /* Note: ik_tool_schema_def_t is internal to request.c - see existing implementation */
     /* The public API is ik_request_add_tool(req, name, description, params_json, strict) */
-    /* Tool schema definitions exist in request.c lines 275-332 - use as reference */
+    /* Tool schema definitions exist in request.c - search for glob_schema_def, file_read_schema_def, etc. */
     const ik_tool_schema_def_t *tool_defs[] = {
         &glob_schema_def,
         &file_read_schema_def,

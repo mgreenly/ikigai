@@ -32,13 +32,36 @@ Update REPL code to use new provider-agnostic message API instead of legacy Open
 - `src/openai/client_msg.c` - Implementation of old message creation
 
 **Files to Modify:**
-- `src/repl_actions_llm.c` - User message creation (line ~420)
-- `src/repl_event_handlers.c` - Assistant message creation (line ~260)
-- `src/repl_tool.c` - Tool call/result creation (lines ~520-605)
+- `src/repl_actions_llm.c` - User message creation - search for where user input is processed and messages are added to conversation
+- `src/repl_event_handlers.c` - Assistant message creation - search for HTTP completion callback where assistant responses are stored
+- `src/repl_tool.c` - Tool call/result creation - search for tool execution handlers where tool messages are created
 
 **Test Files:**
 - `tests/unit/repl/event_handlers_test.c` - Test pattern for REPL handlers
 - `tests/unit/repl/tool_test.c` - Test pattern for tool messages
+
+## Error Handling Policy
+
+**Memory Allocation Failures:**
+- All talloc allocations: PANIC with LCOV_EXCL_BR_LINE
+- Rationale: OOM is unrecoverable, panic is appropriate
+
+**Validation Failures:**
+- Return ERR allocated on parent context (not on object being freed)
+- Example: `return ERR(parent_ctx, INVALID_ARG, "message")`
+
+**During Dual-Mode (Tasks 1-4):**
+- Old API calls succeed: continue normally
+- New API calls fail: log error, continue (old API is authoritative)
+- Pattern: `if (is_err(&res)) { ik_log_error("Failed: %s", res.err->msg); }`
+
+**After Migration (Tasks 5-8):**
+- New API calls fail: propagate error immediately
+- Pattern: `if (is_err(&res)) { return res; }`
+
+**Assertions:**
+- NULL pointer checks: `assert(ptr != NULL)` with LCOV_EXCL_BR_LINE
+- Only for programmer errors, never for runtime conditions
 
 ## Implementation
 
@@ -66,6 +89,17 @@ if (is_err(&res)) {
     ik_log_error("Failed to add message to new storage: %s", res.err->msg);
 }
 ```
+
+**If exact pattern not found:**
+Use grep to find all occurrences:
+```bash
+grep -n "ik_openai_msg_create" src/repl_actions_llm.c
+grep -n "ik_openai_conversation_add_msg" src/repl_actions_llm.c
+```
+
+Then apply transformation to ALL found instances:
+- After each `ik_openai_msg_create()` → add new API call with `ik_message_create_text()`
+- After each `ik_openai_conversation_add_msg()` → add new API call with `ik_agent_add_message()`
 
 **Include Updates:**
 - Add `#include "message.h"` after existing includes
@@ -98,6 +132,17 @@ if (is_err(&res)) {
     ik_log_error("Failed to add assistant message to new storage: %s", res.err->msg);
 }
 ```
+
+**If exact pattern not found:**
+Use grep to find all occurrences:
+```bash
+grep -n "ik_openai_msg_create" src/repl_event_handlers.c
+grep -n "ik_openai_conversation_add_msg" src/repl_event_handlers.c
+```
+
+Then apply transformation to ALL found instances:
+- After each `ik_openai_msg_create()` → add new API call with `ik_message_create_text()`
+- After each `ik_openai_conversation_add_msg()` → add new API call with `ik_agent_add_message()`
 
 **Include Updates:**
 - Add `#include "message.h"` after existing includes
@@ -136,7 +181,7 @@ if (is_err(&res)) {
 
 **Tool Result Creation Pattern:**
 ```c
-// Current (around line 540, 600):
+// Current pattern - search for where tool result messages are created:
 ik_msg_t *tool_result_msg = ik_openai_msg_create_tool_result(agent->conversation,
                                                               tool_call_id,
                                                               tool_name,
@@ -165,6 +210,18 @@ if (is_err(&res)) {
     ik_log_error("Failed to add tool result to new storage: %s", res.err->msg);
 }
 ```
+
+**If exact pattern not found:**
+Use grep to find all occurrences:
+```bash
+grep -n "ik_openai_msg_create_tool" src/repl_tool.c
+grep -n "ik_openai_conversation_add_msg" src/repl_tool.c
+```
+
+Then apply transformation to ALL found instances:
+- After each `ik_openai_msg_create_tool_call()` → add new API call with `ik_message_create_tool_call()`
+- After each `ik_openai_msg_create_tool_result()` → add new API call with `ik_message_create_tool_result()`
+- After each `ik_openai_conversation_add_msg()` → add new API call with `ik_agent_add_message()`
 
 **Include Updates:**
 - Add `#include "message.h"` after existing includes

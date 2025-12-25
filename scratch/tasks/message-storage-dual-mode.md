@@ -28,14 +28,14 @@ Create provider-agnostic message storage functions and add dual-mode support to 
 
 **Source Files to Read:**
 - `src/providers/provider.h` - Study complete struct definitions:
-  - `struct ik_message` (lines 180-185): role, content_blocks (array pointer), content_count, provider_metadata
-  - `struct ik_content_block` (lines 148-175): type discriminator + union with 4 variants:
+  - `struct ik_message`: role, content_blocks (array pointer), content_count, provider_metadata
+  - `struct ik_content_block`: type discriminator + union with 4 variants:
     - text: {char *text}
     - tool_call: {char *id, char *name, char *arguments}
     - tool_result: {char *tool_call_id, char *content, bool is_error}
     - thinking: {char *text}
-  - `ik_role_t` enum (lines 72-76): IK_ROLE_USER=0, IK_ROLE_ASSISTANT=1, IK_ROLE_TOOL=2
-  - `ik_content_type_t` enum (lines 62-67): IK_CONTENT_TEXT=0, IK_CONTENT_TOOL_CALL=1, IK_CONTENT_TOOL_RESULT=2, IK_CONTENT_THINKING=3
+  - `ik_role_t` enum: IK_ROLE_USER=0, IK_ROLE_ASSISTANT=1, IK_ROLE_TOOL=2
+  - `ik_content_type_t` enum: IK_CONTENT_TEXT=0, IK_CONTENT_TOOL_CALL=1, IK_CONTENT_TOOL_RESULT=2, IK_CONTENT_THINKING=3
 - `src/providers/request.c` - Study existing `ik_content_block_text()`, `ik_content_block_tool_call()`, `ik_content_block_tool_result()` functions
 - `src/agent.h` - Study `ik_agent_ctx_t` struct - locate conversation field to understand dual-mode addition
 - `src/openai/client.h` - Study `ik_openai_conversation_t` to understand what we're replacing
@@ -44,6 +44,29 @@ Create provider-agnostic message storage functions and add dual-mode support to 
 **Test Pattern Files:**
 - `tests/unit/db/message_test.c` - Pattern for message creation tests
 - `tests/unit/agent/fork_test.c` - Pattern for agent operation tests
+
+## Error Handling Policy
+
+**Memory Allocation Failures:**
+- All talloc allocations: PANIC with LCOV_EXCL_BR_LINE
+- Rationale: OOM is unrecoverable, panic is appropriate
+
+**Validation Failures:**
+- Return ERR allocated on parent context (not on object being freed)
+- Example: `return ERR(parent_ctx, INVALID_ARG, "message")`
+
+**During Dual-Mode (Tasks 1-4):**
+- Old API calls succeed: continue normally
+- New API calls fail: log error, continue (old API is authoritative)
+- Pattern: `if (is_err(&res)) { ik_log_error("Failed: %s", res.err->msg); }`
+
+**After Migration (Tasks 5-8):**
+- New API calls fail: propagate error immediately
+- Pattern: `if (is_err(&res)) { return res; }`
+
+**Assertions:**
+- NULL pointer checks: `assert(ptr != NULL)` with LCOV_EXCL_BR_LINE
+- Only for programmer errors, never for runtime conditions
 
 ## Implementation
 
@@ -189,7 +212,7 @@ res_t ik_agent_clone_messages(ik_agent_ctx_t *dest, const ik_agent_ctx_t *src);
 
 ### 3. Update src/agent.h
 
-Add new fields to `ik_agent_ctx_t` struct (after line 96):
+Add new fields to `ik_agent_ctx_t` struct in the "Conversation state" section:
 
 ```c
     // Conversation state (per-agent)

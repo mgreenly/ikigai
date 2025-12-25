@@ -29,12 +29,35 @@ Update conversation restore code to populate new provider-agnostic message stora
 - `src/message.h` - New message API including `ik_message_from_db_msg()`
 - `src/db/message.h` - Database message structure (`ik_msg_t`)
 - `src/db/replay.h` - Replay context and message loading
-- `src/repl/agent_restore.c` - System prompt setup (line 40-80)
-- `src/repl/agent_restore_replay.c` - Message replay logic (line 30-120)
+- `src/repl/agent_restore.c` - System prompt setup - search for where system message is created during restore
+- `src/repl/agent_restore_replay.c` - Message replay logic - search for the message replay loop
 
 **Test Files:**
 - `tests/unit/repl/agent_restore_test.c` - Restore operation tests
 - `tests/integration/agent/restore_test.c` - End-to-end restore tests
+
+## Error Handling Policy
+
+**Memory Allocation Failures:**
+- All talloc allocations: PANIC with LCOV_EXCL_BR_LINE
+- Rationale: OOM is unrecoverable, panic is appropriate
+
+**Validation Failures:**
+- Return ERR allocated on parent context (not on object being freed)
+- Example: `return ERR(parent_ctx, INVALID_ARG, "message")`
+
+**During Dual-Mode (Tasks 1-4):**
+- Old API calls succeed: continue normally
+- New API calls fail: log error, continue (old API is authoritative)
+- Pattern: `if (is_err(&res)) { ik_log_error("Failed: %s", res.err->msg); }`
+
+**After Migration (Tasks 5-8):**
+- New API calls fail: propagate error immediately
+- Pattern: `if (is_err(&res)) { return res; }`
+
+**Assertions:**
+- NULL pointer checks: `assert(ptr != NULL)` with LCOV_EXCL_BR_LINE
+- Only for programmer errors, never for runtime conditions
 
 ## Implementation
 

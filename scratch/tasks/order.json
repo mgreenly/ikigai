@@ -37,10 +37,16 @@
       "thinking": "thinking"
     },
     {
-      "task": "delete-legacy-files.md",
+      "task": "delete-legacy-files-part1.md",
       "group": "Cleanup",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "delete-legacy-files-part2.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "extended"
     },
     {
       "task": "verify-migration-complete.md",

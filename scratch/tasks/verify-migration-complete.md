@@ -26,6 +26,29 @@ Comprehensive verification that legacy OpenAI code removal is complete, all thre
 - `scratch/problem.md` - Original problem analysis
 - `scratch/legacy-openai-removal-checklist.md` - Complete inventory
 
+## Error Handling Policy
+
+**Memory Allocation Failures:**
+- All talloc allocations: PANIC with LCOV_EXCL_BR_LINE
+- Rationale: OOM is unrecoverable, panic is appropriate
+
+**Validation Failures:**
+- Return ERR allocated on parent context (not on object being freed)
+- Example: `return ERR(parent_ctx, INVALID_ARG, "message")`
+
+**During Dual-Mode (Tasks 1-4):**
+- Old API calls succeed: continue normally
+- New API calls fail: log error, continue (old API is authoritative)
+- Pattern: `if (is_err(&res)) { ik_log_error("Failed: %s", res.err->msg); }`
+
+**After Migration (Tasks 5-8):**
+- New API calls fail: propagate error immediately
+- Pattern: `if (is_err(&res)) { return res; }`
+
+**Assertions:**
+- NULL pointer checks: `assert(ptr != NULL)` with LCOV_EXCL_BR_LINE
+- Only for programmer errors, never for runtime conditions
+
 ## Verification Steps
 
 ### 1. File Existence Checks
@@ -150,24 +173,65 @@ Create and run comprehensive integration test.
 
 **Create `tests/integration/full_conversation_test.c`:**
 
-```c
-// Full end-to-end test with all three providers
-START_TEST(test_anthropic_full_flow) {
-    // Create agent, add messages, send request, verify response
-    // Uses only ik_message_t and ik_agent_add_message()
-}
-END_TEST
+**Test Implementation Pattern:**
 
-START_TEST(test_openai_full_flow) {
-    // Same test with OpenAI provider
-}
-END_TEST
+Use existing integration test as template:
+- **Copy from:** `tests/integration/providers/anthropic/basic_test.c`
+- **Test framework:** Check library (CK_* macros)
+- **Structure pattern:**
+  ```c
+  #include <check.h>
+  #include "agent.h"
+  #include "providers/factory.h"
 
-START_TEST(test_google_full_flow) {
-    // Same test with Google provider
-}
-END_TEST
-```
+  START_TEST(test_anthropic_full_flow) {
+      // 1. Create agent
+      ik_agent_ctx_t *agent = ik_agent_create(...);
+
+      // 2. Add messages using ik_message_create_text()
+      ik_message_t *msg = ik_message_create_text(agent, IK_ROLE_USER, "test");
+      ik_agent_add_message(agent, msg);
+
+      // 3. Build request and verify
+      ik_request_t *req;
+      res_t res = ik_request_build_from_conversation(agent, agent, &req);
+      ck_assert(is_ok(&res));
+      ck_assert_int_eq(req->message_count, 1);
+
+      // 4. Clean up
+      talloc_free(agent);
+  }
+  END_TEST
+
+  START_TEST(test_openai_full_flow) {
+      // Same test with OpenAI provider
+  }
+  END_TEST
+
+  START_TEST(test_google_full_flow) {
+      // Same test with Google provider
+  }
+  END_TEST
+
+  Suite *suite(void) {
+      Suite *s = suite_create("Full Conversation");
+      TCase *tc = tcase_create("Core");
+      tcase_add_test(tc, test_anthropic_full_flow);
+      tcase_add_test(tc, test_openai_full_flow);
+      tcase_add_test(tc, test_google_full_flow);
+      suite_add_tcase(s, tc);
+      return s;
+  }
+
+  int main(void) {
+      Suite *s = suite();
+      SRunner *sr = srunner_create(s);
+      srunner_run_all(sr, CK_NORMAL);
+      int failed = srunner_ntests_failed(sr);
+      srunner_free(sr);
+      return failed;
+  }
+  ```
 
 **Run:**
 ```bash
@@ -244,7 +308,7 @@ grep -r "ik_openai_conversation" project/ docs/ README.md 2>/dev/null || true
 
 ### 10. Success Criteria Checklist
 
-From original problem analysis (`scratch/problem.md` line 747-758):
+From original problem analysis in `scratch/problem.md`:
 
 ```bash
 # Create verification script

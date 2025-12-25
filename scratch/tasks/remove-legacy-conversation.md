@@ -25,7 +25,7 @@ Remove old `conversation` field from agent struct and delete all calls to legacy
 - `/load tdd` - Test-driven development
 
 **Source Files to Modify:**
-- `src/agent.h` - Remove conversation field (line 96)
+- `src/agent.h` - Remove conversation field from ik_agent_ctx_t struct
 - `src/agent.c` - Remove conversation creation/cloning
 - `src/repl_actions_llm.c` - Remove old API calls
 - `src/repl_event_handlers.c` - Remove old API calls
@@ -41,11 +41,34 @@ Remove old `conversation` field from agent struct and delete all calls to legacy
 - All `#include "openai/client.h"` references outside src/openai/
 - All `#include "openai/client_msg.h"` references
 
+## Error Handling Policy
+
+**Memory Allocation Failures:**
+- All talloc allocations: PANIC with LCOV_EXCL_BR_LINE
+- Rationale: OOM is unrecoverable, panic is appropriate
+
+**Validation Failures:**
+- Return ERR allocated on parent context (not on object being freed)
+- Example: `return ERR(parent_ctx, INVALID_ARG, "message")`
+
+**During Dual-Mode (Tasks 1-4):**
+- Old API calls succeed: continue normally
+- New API calls fail: log error, continue (old API is authoritative)
+- Pattern: `if (is_err(&res)) { ik_log_error("Failed: %s", res.err->msg); }`
+
+**After Migration (Tasks 5-8):**
+- New API calls fail: propagate error immediately
+- Pattern: `if (is_err(&res)) { return res; }`
+
+**Assertions:**
+- NULL pointer checks: `assert(ptr != NULL)` with LCOV_EXCL_BR_LINE
+- Only for programmer errors, never for runtime conditions
+
 ## Implementation
 
 ### 1. Update src/agent.h - Remove conversation Field
 
-**Location:** Line 95-98
+**Location:** Find the "Conversation state" comment section in ik_agent_ctx_t struct
 
 **Delete:**
 ```c
@@ -65,7 +88,7 @@ Remove old `conversation` field from agent struct and delete all calls to legacy
 ```
 
 **Also Delete:**
-- Forward declaration: `typedef struct ik_openai_conversation ik_openai_conversation_t;` (line 16)
+- Forward declaration: `typedef struct ik_openai_conversation ik_openai_conversation_t;` near the top of the file
 
 ### 2. Update src/agent.c - Remove Conversation Creation
 
