@@ -458,22 +458,84 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_re
                 continue;
             }
 
-            ik_role_t role = kind_to_role(msg->kind);
-
-            /* Handle tool_call messages specially - they need content blocks */
+            /* Handle tool_call messages - parse data_json for structured data */
             if (strcmp(msg->kind, "tool_call") == 0 && msg->data_json != NULL) {
                 /* Parse tool call data from data_json */
-                /* For now, just add as assistant message with the content */
-                if (msg->content != NULL) {
-                    res = ik_request_add_message(req, IK_ROLE_ASSISTANT, msg->content);
+                yyjson_doc *doc = yyjson_read(msg->data_json, strlen(msg->data_json), 0);
+                if (!doc) {
+                    talloc_free(req);
+                    return ERR(ctx, PARSE, "Invalid tool_call data_json");
+                }
+
+                yyjson_val *root = yyjson_doc_get_root(doc);
+                yyjson_val *id_val = yyjson_obj_get(root, "tool_call_id");
+                yyjson_val *name_val = yyjson_obj_get(root, "name");
+                yyjson_val *args_val = yyjson_obj_get(root, "arguments");
+
+                if (!id_val || !name_val || !args_val) {
+                    yyjson_doc_free(doc);
+                    talloc_free(req);
+                    return ERR(ctx, PARSE, "Missing tool_call fields in data_json");
+                }
+
+                const char *id = yyjson_get_str(id_val);
+                const char *name = yyjson_get_str(name_val);
+                const char *arguments = yyjson_get_str(args_val);
+
+                /* Create tool call content block */
+                ik_content_block_t *block = ik_content_block_tool_call(req, id, name, arguments);
+                yyjson_doc_free(doc);
+
+                if (!block) { // LCOV_EXCL_BR_LINE
+                    PANIC("Out of memory"); // LCOV_EXCL_LINE
+                }
+
+                /* Add as assistant message with tool_call block */
+                res = ik_request_add_message_blocks(req, IK_ROLE_ASSISTANT, block, 1);
+                if (is_err(&res)) {
+                    talloc_free(req);
+                    return res;
+                }
+            } else if (strcmp(msg->kind, "tool_result") == 0 || strcmp(msg->kind, "tool") == 0) {
+                /* Handle tool results - parse data_json for structured data */
+                if (msg->data_json != NULL) {
+                    yyjson_doc *doc = yyjson_read(msg->data_json, strlen(msg->data_json), 0);
+                    if (!doc) {
+                        talloc_free(req);
+                        return ERR(ctx, PARSE, "Invalid tool_result data_json");
+                    }
+
+                    yyjson_val *root = yyjson_doc_get_root(doc);
+                    yyjson_val *id_val = yyjson_obj_get(root, "tool_call_id");
+                    yyjson_val *output_val = yyjson_obj_get(root, "output");
+                    yyjson_val *success_val = yyjson_obj_get(root, "success");
+
+                    if (!id_val || !output_val) {
+                        yyjson_doc_free(doc);
+                        talloc_free(req);
+                        return ERR(ctx, PARSE, "Missing tool_result fields in data_json");
+                    }
+
+                    const char *tool_call_id = yyjson_get_str(id_val);
+                    const char *output = yyjson_get_str(output_val);
+                    bool is_error = success_val ? !yyjson_get_bool(success_val) : false;
+
+                    /* Create tool result content block */
+                    ik_content_block_t *block = ik_content_block_tool_result(req, tool_call_id, output, is_error);
+                    yyjson_doc_free(doc);
+
+                    if (!block) { // LCOV_EXCL_BR_LINE
+                        PANIC("Out of memory"); // LCOV_EXCL_LINE
+                    }
+
+                    /* Add as tool message with tool_result block */
+                    res = ik_request_add_message_blocks(req, IK_ROLE_TOOL, block, 1);
                     if (is_err(&res)) {
                         talloc_free(req);
                         return res;
                     }
-                }
-            } else if (strcmp(msg->kind, "tool_result") == 0 || strcmp(msg->kind, "tool") == 0) {
-                /* Tool results need to be handled specially */
-                if (msg->content != NULL) {
+                } else if (msg->content != NULL) {
+                    /* Legacy tool result without data_json - fallback to text */
                     res = ik_request_add_message(req, IK_ROLE_TOOL, msg->content);
                     if (is_err(&res)) {
                         talloc_free(req);
@@ -482,6 +544,7 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_re
                 }
             } else {
                 /* Regular text message (user or assistant) */
+                ik_role_t role = kind_to_role(msg->kind);
                 if (msg->content != NULL) {
                     res = ik_request_add_message(req, role, msg->content);
                     if (is_err(&res)) {
