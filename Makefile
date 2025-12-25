@@ -138,7 +138,7 @@ REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_comm
 EQUIVALENCE_FIXTURES_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures.o
 EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -523,6 +523,36 @@ verify-credentials:
 		exit 1; \
 	fi; \
 	echo "All credentials valid."
+
+# VCR recording targets - re-record fixtures with real API calls
+# Requires API keys via environment variables
+
+vcr-record-openai:
+	@echo "Recording OpenAI fixtures (requires OPENAI_API_KEY)..."
+	@for test in $(BUILDDIR)/tests/unit/providers/openai/*_test; do \
+		echo "Running $$test with VCR_RECORD=1..."; \
+		VCR_RECORD=1 $$test || true; \
+	done
+	@echo "OpenAI fixtures recorded"
+
+vcr-record-anthropic:
+	@echo "Recording Anthropic fixtures (requires ANTHROPIC_API_KEY)..."
+	@for test in $(BUILDDIR)/tests/unit/providers/anthropic/*_test; do \
+		echo "Running $$test with VCR_RECORD=1..."; \
+		VCR_RECORD=1 $$test || true; \
+	done
+	@echo "Anthropic fixtures recorded"
+
+vcr-record-google:
+	@echo "Recording Google fixtures (requires GOOGLE_API_KEY)..."
+	@for test in $(BUILDDIR)/tests/unit/providers/google/*_test; do \
+		echo "Running $$test with VCR_RECORD=1..."; \
+		VCR_RECORD=1 $$test || true; \
+	done
+	@echo "Google fixtures recorded"
+
+vcr-record-all: vcr-record-openai vcr-record-anthropic vcr-record-google
+	@echo "All fixtures re-recorded"
 
 # Clean up .run sentinel files
 clean: clean-test-runs
