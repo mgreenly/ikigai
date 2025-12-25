@@ -1,46 +1,52 @@
 {
   "todo": [
     {
-      "task": "tests-openai-basic.md",
-      "group": "Testing",
+      "task": "message-storage-dual-mode.md",
+      "group": "Foundation",
       "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "tests-openai-streaming.md",
-      "group": "Testing",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "verify-providers.md",
-      "group": "Verification",
-      "model": "opus",
       "thinking": "extended"
     },
     {
-      "task": "tests-integration-switching.md",
-      "group": "Testing",
+      "task": "migrate-repl-messages.md",
+      "group": "Migration",
       "model": "sonnet",
-      "thinking": "high"
+      "thinking": "extended"
     },
     {
-      "task": "tests-integration-flows.md",
-      "group": "Testing",
-      "model": "sonnet",
-      "thinking": "high"
-    },
-    {
-      "task": "vcr-makefile.md",
-      "group": "VCR Infrastructure",
-      "model": "sonnet",
-      "thinking": "none"
-    },
-    {
-      "task": "google-thought-signatures.md",
-      "group": "Google",
+      "task": "migrate-agent-ops.md",
+      "group": "Migration",
       "model": "sonnet",
       "thinking": "thinking"
+    },
+    {
+      "task": "migrate-restore.md",
+      "group": "Migration",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "migrate-providers.md",
+      "group": "Migration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "remove-legacy-conversation.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "delete-legacy-files.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "verify-migration-complete.md",
+      "group": "Verification",
+      "model": "opus",
+      "thinking": "extended"
     }
   ]
 }
