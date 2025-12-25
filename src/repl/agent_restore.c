@@ -2,6 +2,7 @@
 #include "agent_restore.h"
 #include "agent_restore_replay.h"
 
+#include "../agent.h"
 #include "../db/agent.h"
 #include "../db/agent_replay.h"
 #include "../db/message.h"
@@ -86,14 +87,18 @@ static void restore_agent_zero(
     ik_repl_ctx_t *repl,
     ik_db_ctx_t *db_ctx,
     TALLOC_CTX *tmp,
-    const char *uuid)
+    ik_db_agent_row_t *agent_row)
 {
     assert(repl != NULL);       // LCOV_EXCL_BR_LINE
     assert(db_ctx != NULL);     // LCOV_EXCL_BR_LINE
-    assert(uuid != NULL);       // LCOV_EXCL_BR_LINE
+    assert(agent_row != NULL);  // LCOV_EXCL_BR_LINE
 
+    const char *uuid = agent_row->uuid;
     ik_agent_ctx_t *agent = repl->current;
     agent->repl = repl;
+
+    // Restore provider configuration from DB row
+    ik_agent_restore_from_row(agent, agent_row);
 
     // Replay history
     ik_replay_context_t *replay_ctx = NULL;
@@ -150,6 +155,9 @@ static void restore_child_agent(
     }
 
     agent->repl = repl;
+
+    // Restore provider configuration from DB row
+    ik_agent_restore_from_row(agent, agent_row);
 
     // Replay history
     ik_replay_context_t *replay_ctx = NULL;
@@ -221,7 +229,7 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
     // 3. For each agent, restore full state:
     for (size_t i = 0; i < count; i++) {
         if (agents[i]->parent_uuid == NULL) {
-            restore_agent_zero(repl, db_ctx, tmp, agents[i]->uuid);
+            restore_agent_zero(repl, db_ctx, tmp, agents[i]);
         } else {
             restore_child_agent(repl, db_ctx, agents[i]);
         }
