@@ -7,6 +7,7 @@
 #include "reasoning.h"
 #include "request.h"
 #include "response.h"
+#include "streaming.h"
 #include "error.h"
 #include "panic.h"
 #include "providers/common/http_multi.h"
@@ -33,6 +34,21 @@ typedef struct {
     ik_provider_completion_cb_t cb;
     void *cb_ctx;
 } ik_openai_request_ctx_t;
+
+/**
+ * Internal request context for tracking in-flight streaming requests
+ */
+typedef struct {
+    ik_openai_ctx_t *provider;
+    bool use_responses_api;
+    ik_stream_cb_t stream_cb;
+    void *stream_ctx;
+    ik_provider_completion_cb_t completion_cb;
+    void *completion_ctx;
+    ik_openai_chat_stream_ctx_t *parser_ctx;
+    char *sse_buffer;
+    size_t sse_buffer_len;
+} ik_openai_stream_request_ctx_t;
 
 /* ================================================================
  * Forward Declarations - Vtable Methods
@@ -279,6 +295,133 @@ static void http_completion_handler(const ik_http_completion_t *http_completion,
 }
 
 /* ================================================================
+ * Streaming Callbacks
+ * ================================================================ */
+
+/**
+ * curl write callback for SSE streaming
+ *
+ * Called during perform() as HTTP chunks arrive.
+ * Parses SSE format and feeds data events to parser.
+ */
+static size_t openai_stream_write_callback(const char *data, size_t len, void *userdata)
+{
+    ik_openai_stream_request_ctx_t *req_ctx = (ik_openai_stream_request_ctx_t *)userdata;
+    assert(req_ctx != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Append to buffer (handles incomplete lines across chunks)
+    char *new_buffer = talloc_realloc(req_ctx, req_ctx->sse_buffer,
+                                       char, (unsigned int)(req_ctx->sse_buffer_len + len + 1));
+    if (new_buffer == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    memcpy(new_buffer + req_ctx->sse_buffer_len, data, len);
+    req_ctx->sse_buffer_len += len;
+    new_buffer[req_ctx->sse_buffer_len] = '\0';
+    req_ctx->sse_buffer = new_buffer;
+
+    // Process complete lines
+    char *line_start = req_ctx->sse_buffer;
+    char *line_end;
+
+    while ((line_end = strchr(line_start, '\n')) != NULL) {
+        *line_end = '\0';
+
+        // Check for "data: " prefix
+        if (strncmp(line_start, "data: ", 6) == 0) {
+            const char *json_data = line_start + 6;
+
+            // Feed to parser - this invokes user's stream_cb
+            ik_openai_chat_stream_process_data(req_ctx->parser_ctx, json_data);
+        }
+
+        // Move to next line
+        line_start = line_end + 1;
+    }
+
+    // Keep incomplete line in buffer
+    size_t remaining = req_ctx->sse_buffer_len - (size_t)(line_start - req_ctx->sse_buffer);
+    if (remaining > 0) {
+        memmove(req_ctx->sse_buffer, line_start, remaining);
+        req_ctx->sse_buffer_len = remaining;
+        req_ctx->sse_buffer[remaining] = '\0';
+    } else {
+        talloc_free(req_ctx->sse_buffer);
+        req_ctx->sse_buffer = NULL;
+        req_ctx->sse_buffer_len = 0;
+    }
+
+    return len;
+}
+
+/**
+ * HTTP completion callback for streaming requests
+ *
+ * Called from info_read() when HTTP transfer completes.
+ * Invokes user's completion callback with final metadata.
+ */
+static void openai_stream_completion_handler(const ik_http_completion_t *http_completion,
+                                               void *user_ctx)
+{
+    ik_openai_stream_request_ctx_t *req_ctx = (ik_openai_stream_request_ctx_t *)user_ctx;
+    assert(req_ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(req_ctx->completion_cb != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Build provider completion structure
+    ik_provider_completion_t provider_completion = {0};
+    provider_completion.http_status = http_completion->http_code;
+
+    // Handle HTTP errors
+    if (http_completion->type != IK_HTTP_SUCCESS) {
+        provider_completion.success = false;
+        provider_completion.response = NULL;
+        provider_completion.retry_after_ms = -1;
+
+        // Parse error if JSON body available
+        if (http_completion->response_body != NULL && http_completion->response_len > 0) {
+            ik_error_category_t category;
+            char *error_msg = NULL;
+            res_t parse_res = ik_openai_parse_error(req_ctx, http_completion->http_code,
+                                                     http_completion->response_body,
+                                                     http_completion->response_len,
+                                                     &category, &error_msg);
+            if (is_ok(&parse_res)) {
+                provider_completion.error_category = category;
+                provider_completion.error_message = error_msg;
+            } else {
+                provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
+                provider_completion.error_message = talloc_asprintf(req_ctx,
+                    "HTTP %d error", http_completion->http_code);
+            }
+        } else {
+            if (http_completion->http_code == 0) {
+                provider_completion.error_category = IK_ERR_CAT_NETWORK;
+            } else {
+                provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
+            }
+            provider_completion.error_message = http_completion->error_message != NULL
+                ? talloc_strdup(req_ctx, http_completion->error_message)
+                : talloc_asprintf(req_ctx, "HTTP %d error", http_completion->http_code);
+        }
+
+        req_ctx->completion_cb(&provider_completion, req_ctx->completion_ctx);
+        talloc_free(req_ctx);
+        return;
+    }
+
+    // Success - stream events were already delivered during perform()
+    provider_completion.success = true;
+    provider_completion.response = NULL;
+    provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
+    provider_completion.error_message = NULL;
+    provider_completion.retry_after_ms = -1;
+
+    req_ctx->completion_cb(&provider_completion, req_ctx->completion_ctx);
+
+    // Cleanup
+    talloc_free(req_ctx);
+}
+
+/* ================================================================
  * Start Request Implementation
  * ================================================================ */
 
@@ -391,18 +534,102 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
     assert(stream_cb != NULL);     // LCOV_EXCL_BR_LINE
     assert(completion_cb != NULL); // LCOV_EXCL_BR_LINE
 
-    (void)ctx;
-    (void)req;
-    (void)stream_cb;
-    (void)stream_ctx;
-    (void)completion_cb;
-    (void)completion_ctx;
+    ik_openai_ctx_t *impl_ctx = (ik_openai_ctx_t *)ctx;
 
-    // Stub: Will be implemented in openai-streaming.md
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    res_t result = ERR(tmp, NOT_IMPLEMENTED, "openai_start_stream not yet implemented");
-    talloc_free(tmp);
-    return result;
+    // Determine which API to use
+    bool use_responses_api = impl_ctx->use_responses_api
+        || ik_openai_prefer_responses_api(req->model);
+
+    // Create streaming request context
+    ik_openai_stream_request_ctx_t *req_ctx = talloc_zero(impl_ctx, ik_openai_stream_request_ctx_t);
+    if (req_ctx == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    req_ctx->provider = impl_ctx;
+    req_ctx->use_responses_api = use_responses_api;
+    req_ctx->stream_cb = stream_cb;
+    req_ctx->stream_ctx = stream_ctx;
+    req_ctx->completion_cb = completion_cb;
+    req_ctx->completion_ctx = completion_ctx;
+    req_ctx->sse_buffer = NULL;
+    req_ctx->sse_buffer_len = 0;
+
+    // Create streaming parser context
+    ik_openai_chat_stream_ctx_t *parser_ctx =
+        ik_openai_chat_stream_ctx_create(req_ctx, stream_cb, stream_ctx);
+    req_ctx->parser_ctx = parser_ctx;
+
+    // Serialize request with stream=true
+    char *json_body = NULL;
+    res_t serialize_res;
+
+    if (use_responses_api) {
+        serialize_res = ik_openai_serialize_responses_request(req_ctx, req, true, &json_body);
+    } else {
+        serialize_res = ik_openai_serialize_chat_request(req_ctx, req, true, &json_body);
+    }
+
+    if (is_err(&serialize_res)) {
+        talloc_steal(impl_ctx, serialize_res.err);
+        talloc_free(req_ctx);
+        return serialize_res;
+    }
+
+    // Build URL
+    char *url = NULL;
+    res_t url_res;
+
+    if (use_responses_api) {
+        url_res = ik_openai_build_responses_url(req_ctx, impl_ctx->base_url, &url);
+    } else {
+        url_res = ik_openai_build_chat_url(req_ctx, impl_ctx->base_url, &url);
+    }
+
+    if (is_err(&url_res)) {
+        talloc_steal(impl_ctx, url_res.err);
+        talloc_free(req_ctx);
+        return url_res;
+    }
+
+    // Build headers
+    char **headers_tmp = NULL;
+    res_t headers_res = ik_openai_build_headers(req_ctx, impl_ctx->api_key, &headers_tmp);
+    if (is_err(&headers_res)) {
+        talloc_steal(impl_ctx, headers_res.err);
+        talloc_free(req_ctx);
+        return headers_res;
+    }
+
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wcast-qual"
+    const char **headers_const = (const char **)headers_tmp;
+    #pragma GCC diagnostic pop
+
+    // Build HTTP request specification
+    ik_http_request_t http_req = {
+        .url = url,
+        .method = "POST",
+        .headers = headers_const,
+        .body = json_body,
+        .body_len = strlen(json_body)
+    };
+
+    // Add request with streaming write callback
+    res_t add_res = ik_http_multi_add_request(
+        impl_ctx->http_multi,
+        &http_req,
+        openai_stream_write_callback,
+        req_ctx,
+        openai_stream_completion_handler,
+        req_ctx);
+
+    if (is_err(&add_res)) {
+        talloc_steal(impl_ctx, add_res.err);
+        talloc_free(req_ctx);
+        return add_res;
+    }
+
+    // Request successfully started (returns immediately)
+    return OK(NULL);
 }
 
 static void openai_cleanup(void *ctx)
