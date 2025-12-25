@@ -6,6 +6,7 @@
 #include "input.h"
 #include "layer_wrappers.h"
 #include "logger.h"
+#include "message.h"
 #include "panic.h"
 #include "providers/provider.h"
 #include "providers/request.h"
@@ -205,10 +206,8 @@ static void handle_agent_request_error(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
 void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     if (agent->assistant_response != NULL && strlen(agent->assistant_response) > 0) {
-        ik_msg_t *assistant_msg = ik_openai_msg_create(agent->conversation,
-                                                       "assistant",
-                                                       agent->assistant_response);
-        res_t result = ik_openai_conversation_add_msg(agent->conversation, assistant_msg);
+        ik_message_t *assistant_msg = ik_message_create_text(agent, IK_ROLE_ASSISTANT, agent->assistant_response);
+        res_t result = ik_agent_add_message(agent, assistant_msg);
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
         persist_assistant_msg(repl);
     }

@@ -207,8 +207,9 @@ START_TEST(test_restore_agents_fresh_install_with_system_message) {
     // Verify Agent 0 restored
     ck_assert_uint_eq(repl->agent_count, 1);
 
-    // Verify system message was added to conversation
-    ck_assert_uint_ge(repl->current->conversation->message_count, 1);
+    // In the new message API, system messages are handled via request->system_prompt,
+    // not in the messages array. For a fresh install with no history, messages should be empty.
+    ck_assert_uint_eq(repl->current->message_count, 0);
 }
 END_TEST
 // Test: Fresh install scenario - Agent 0 with no history and NO system message configured
@@ -395,7 +396,7 @@ START_TEST(test_restore_agents_agent0_multiple_kinds)
 
     // Conversation should only have user and assistant messages
     ck_assert_uint_eq(repl->agent_count, 1);
-    ck_assert_uint_ge(repl->current->conversation->message_count, 2);
+    ck_assert_uint_ge(repl->current->message_count, 2);
 }
 
 END_TEST
@@ -430,7 +431,7 @@ START_TEST(test_restore_agents_child_multiple_kinds)
     // Verify child conversation filtered correctly
     ck_assert_uint_eq(repl->agent_count, 2);
     ik_agent_ctx_t *child = repl->agents[1];
-    ck_assert_uint_ge(child->conversation->message_count, 2);
+    ck_assert_uint_ge(child->message_count, 2);
 }
 
 END_TEST

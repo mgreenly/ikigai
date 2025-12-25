@@ -30,7 +30,6 @@
 #include "../../src/db/session.h"
 #include "../../src/db/replay.h"
 #include "../../src/error.h"
-#include "../../src/openai/client.h"
 #include "../../src/providers/factory.h"
 #include "../../src/providers/provider.h"
 #include "../../src/providers/request.h"

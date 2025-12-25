@@ -12,7 +12,6 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
 
@@ -90,9 +89,8 @@ static void setup(void)
     repl->shared->logger = ik_logger_create(repl->shared, tmpdir);
     ck_assert_ptr_nonnull(repl->shared->logger);
 
-    // Create conversation
-    agent->conversation = ik_openai_conversation_create(test_ctx);
-    ck_assert_ptr_nonnull(agent->conversation);
+    // Messages array starts empty in new API
+    ck_assert_uint_eq(agent->message_count, 0);
     repl->current = agent;
 
     // Set up minimal database context (we use a dummy pointer since we're mocking)
@@ -122,7 +120,7 @@ START_TEST(test_db_error_no_debug_pipe) {
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should still be added to conversation despite DB error
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 END_TEST
@@ -138,7 +136,7 @@ START_TEST(test_db_error_with_logger)
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should still be added to conversation despite DB error
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 
     // Note: Error is now logged via JSONL logger instead of debug pipe.

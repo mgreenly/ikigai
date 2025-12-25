@@ -11,7 +11,6 @@
 #include "../../src/db/session.h"
 #include "../../src/error.h"
 #include "../../src/marks.h"
-#include "../../src/openai/client.h"
 #include "../../src/repl.h"
 #include "../../src/repl_actions.h"
 #include "../../src/scrollback.h"

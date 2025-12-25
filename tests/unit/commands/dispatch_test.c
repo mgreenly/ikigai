@@ -9,7 +9,6 @@
 #include "../../../src/error.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/shared.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
@@ -43,8 +42,6 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation (needed for mark/rewind commands)
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
 
     // Create config (needed for model/system commands)
     ik_config_t *cfg = talloc_zero(parent, ik_config_t);
@@ -61,7 +58,7 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
 
-    agent->conversation = conv;
+
     r->current = agent;
 
     // Create shared context

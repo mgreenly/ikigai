@@ -12,7 +12,6 @@
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/marks.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
@@ -60,8 +59,6 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_scrollback_t *scrollback = ik_scrollback_create(parent, 80);
     ck_assert_ptr_nonnull(scrollback);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
 
     // Create minimal config
     ik_config_t *cfg = talloc_zero(parent, ik_config_t);
@@ -80,7 +77,7 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
 
-    agent->conversation = conv;
+
     r->current = agent;
 
     r->shared = shared;

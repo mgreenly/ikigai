@@ -4,6 +4,7 @@
  */
 
 #include "request.h"
+#include "serialize.h"
 #include "reasoning.h"
 #include "error.h"
 #include "panic.h"
@@ -14,72 +15,6 @@
 /* ================================================================
  * Helper Functions
  * ================================================================ */
-
-/**
- * Map internal role to OpenAI role string
- */
-static const char *get_openai_role(ik_role_t role)
-{
-    switch (role) {
-        case IK_ROLE_USER:
-            return "user";
-        case IK_ROLE_ASSISTANT:
-            return "assistant";
-        case IK_ROLE_TOOL:
-            return "tool";
-        default: // LCOV_EXCL_LINE
-            return "user"; // LCOV_EXCL_LINE
-    }
-}
-
-/**
- * Serialize a single message for input array
- */
-static bool serialize_input_message(yyjson_mut_doc *doc, yyjson_mut_val *input_arr,
-                                     const ik_message_t *message)
-{
-    assert(doc != NULL);       // LCOV_EXCL_BR_LINE
-    assert(input_arr != NULL); // LCOV_EXCL_BR_LINE
-    assert(message != NULL);   // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *msg_obj = yyjson_mut_obj(doc);
-    if (!msg_obj) return false; // LCOV_EXCL_BR_LINE
-
-    // Add role
-    const char *role_str = get_openai_role(message->role);
-    if (!yyjson_mut_obj_add_str(doc, msg_obj, "role", role_str)) {
-        return false; // LCOV_EXCL_BR_LINE
-    }
-
-    // Concatenate text content for this message
-    char *content = talloc_strdup(doc, "");
-    if (!content) return false; // LCOV_EXCL_BR_LINE
-
-    for (size_t i = 0; i < message->content_count; i++) {
-        if (message->content_blocks[i].type == IK_CONTENT_TEXT) {
-            if (strlen(content) > 0) {
-                content = talloc_asprintf_append_buffer(content, "\n\n%s",
-                                                          message->content_blocks[i].data.text.text);
-            } else {
-                content = talloc_asprintf_append_buffer(content, "%s",
-                                                          message->content_blocks[i].data.text.text);
-            }
-            if (!content) return false; // LCOV_EXCL_BR_LINE
-        }
-    }
-
-    if (!yyjson_mut_obj_add_str(doc, msg_obj, "content", content)) {
-        return false; // LCOV_EXCL_BR_LINE
-    }
-    talloc_free(content);
-
-    // Add to array
-    if (!yyjson_mut_arr_add_val(input_arr, msg_obj)) {
-        return false; // LCOV_EXCL_BR_LINE
-    }
-
-    return true;
-}
 
 /**
  * Serialize a single tool definition to Responses API format
@@ -223,27 +158,45 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
 
     if (use_string_input) {
         // Single user message: concatenate text content into string input
-        char *input_text = talloc_strdup(doc, "");
-        if (!input_text) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
+        // Calculate total length first
+        size_t total_len = 0;
         for (size_t i = 0; i < req->messages[0].content_count; i++) {
             if (req->messages[0].content_blocks[i].type == IK_CONTENT_TEXT) {
-                if (strlen(input_text) > 0) {
-                    input_text = talloc_asprintf_append_buffer(input_text, "\n\n%s",
-                                                                  req->messages[0].content_blocks[i].data.text.text);
-                } else {
-                    input_text = talloc_asprintf_append_buffer(input_text, "%s",
-                                                                  req->messages[0].content_blocks[i].data.text.text);
-                }
-                if (!input_text) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                if (total_len > 0) total_len += 2; // "\n\n"
+                total_len += strlen(req->messages[0].content_blocks[i].data.text.text);
             }
         }
 
-        if (!yyjson_mut_obj_add_str(doc, root, "input", input_text)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            return ERR(ctx, PARSE, "Failed to add input field"); // LCOV_EXCL_LINE
+        if (total_len == 0) {
+            // Empty input
+            if (!yyjson_mut_obj_add_str(doc, root, "input", "")) { // LCOV_EXCL_BR_LINE
+                yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+                return ERR(ctx, PARSE, "Failed to add input field"); // LCOV_EXCL_LINE
+            }
+        } else {
+            // Allocate and build input string
+            char *input_text = malloc(total_len + 1);
+            if (!input_text) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+            input_text[0] = '\0';
+            bool first = true;
+            for (size_t i = 0; i < req->messages[0].content_count; i++) {
+                if (req->messages[0].content_blocks[i].type == IK_CONTENT_TEXT) {
+                    if (!first) {
+                        strcat(input_text, "\n\n"); // NOLINT - buffer sized correctly
+                    }
+                    strcat(input_text, req->messages[0].content_blocks[i].data.text.text); // NOLINT
+                    first = false;
+                }
+            }
+
+            if (!yyjson_mut_obj_add_strcpy(doc, root, "input", input_text)) { // LCOV_EXCL_BR_LINE
+                free(input_text);
+                yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+                return ERR(ctx, PARSE, "Failed to add input field"); // LCOV_EXCL_LINE
+            }
+            free(input_text);
         }
-        talloc_free(input_text);
     } else {
         // Multi-turn conversation: use array format
         yyjson_mut_val *input_arr = yyjson_mut_arr(doc);
@@ -253,9 +206,10 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         }
 
         for (size_t i = 0; i < req->message_count; i++) {
-            if (!serialize_input_message(doc, input_arr, &req->messages[i])) {
-                yyjson_mut_doc_free(doc);
-                return ERR(ctx, PARSE, "Failed to serialize message");
+            yyjson_mut_val *msg_obj = ik_openai_serialize_message(doc, &req->messages[i]);
+            if (!yyjson_mut_arr_add_val(input_arr, msg_obj)) { // LCOV_EXCL_BR_LINE
+                yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+                return ERR(ctx, PARSE, "Failed to add message to input array"); // LCOV_EXCL_LINE
             }
         }
 

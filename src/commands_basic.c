@@ -20,10 +20,6 @@
 // Include provider.h after other headers to avoid type conflicts
 #include "providers/provider.h"
 
-// Forward declare function we need from openai/client.h to avoid type conflicts
-struct ik_openai_conversation;
-void ik_openai_conversation_clear(struct ik_openai_conversation *conv);
-
 #include <assert.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -50,9 +46,7 @@ res_t ik_cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     ik_scrollback_clear(repl->current->scrollback);
 
     // Clear conversation (session messages)
-    if (repl->current->conversation != NULL) {  // LCOV_EXCL_BR_LINE
-        ik_openai_conversation_clear(repl->current->conversation);
-    }
+    ik_agent_clear_messages(repl->current);
 
     // Clear marks
     if (repl->current->marks != NULL) {  // LCOV_EXCL_BR_LINE

@@ -287,7 +287,7 @@ START_TEST(test_restore_agents_handles_agent0_specially)
     ck_assert_uint_eq(repl->agent_count, 1);
 
     // Agent 0's conversation should have messages
-    ck_assert_uint_ge(repl->current->conversation->message_count, 2);
+    ck_assert_uint_ge(repl->current->message_count, 2);
 }
 
 END_TEST
@@ -321,10 +321,10 @@ START_TEST(test_restore_agents_populates_conversation)
     // Verify child exists and has conversation
     ck_assert_uint_eq(repl->agent_count, 2);
     ik_agent_ctx_t *child = repl->agents[1];
-    ck_assert_ptr_nonnull(child->conversation);
+    ck_assert_uint_ge(child->message_count, 0);
 
     // Child should have parent's messages plus its own
-    ck_assert_uint_ge(child->conversation->message_count, 3);
+    ck_assert_uint_ge(child->message_count, 3);
 }
 
 END_TEST

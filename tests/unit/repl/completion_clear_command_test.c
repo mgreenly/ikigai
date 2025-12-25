@@ -59,7 +59,7 @@ START_TEST(test_clear_command_clears_autocomplete) {
     repl->quit = false;
     repl->current->completion = NULL;  // Initialize completion to NULL
 
-    agent->conversation = NULL;  // Initialize conversation to NULL
+    agent->messages = NULL; agent->message_count = 0;  // Initialize conversation to NULL
 
     // Type "/clear" to trigger autocomplete and have a valid command
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};

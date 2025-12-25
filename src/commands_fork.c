@@ -12,7 +12,7 @@
 #include "db/message.h"
 #include "event_render.h"
 #include "logger.h"
-#include "openai/client.h"
+#include "message.h"
 #include "panic.h"
 #include "providers/provider.h"
 #include "providers/request.h"
@@ -233,10 +233,10 @@ static res_t cmd_fork_inherit_config(ik_agent_ctx_t *child, const ik_agent_ctx_t
 static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *prompt)
 {
     // Create user message
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", prompt);
+    ik_message_t *user_msg = ik_message_create_text(repl->current, IK_ROLE_USER, prompt);
 
     // Add to conversation
-    res_t res = ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
+    res_t res = ik_agent_add_message(repl->current, user_msg);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         return;  // Error already logged     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE

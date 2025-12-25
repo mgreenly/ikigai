@@ -6,7 +6,6 @@
 #include "input_buffer/core.h"
 #include "layer_wrappers.h"
 #include "logger.h"
-#include "openai/client_multi.h"
 #include "panic.h"
 #include "render_cursor.h"
 #include "repl_actions.h"

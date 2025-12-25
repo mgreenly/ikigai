@@ -9,7 +9,6 @@
 #include "../event_render.h"
 #include "../logger.h"
 #include "../msg.h"
-#include "../openai/client.h"
 #include "../repl.h"
 #include "../shared.h"
 
@@ -72,21 +71,7 @@ static void handle_fresh_install(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
                 ik_logger_warn_json(repl->shared->logger, render_log);     // LCOV_EXCL_LINE
             }
 
-            ik_msg_t *sys_msg = talloc_zero(repl->current->conversation, ik_msg_t);
-            if (sys_msg != NULL) {     // LCOV_EXCL_BR_LINE
-                sys_msg->id = 0;
-                sys_msg->kind = talloc_strdup(sys_msg, "system");
-                sys_msg->content = talloc_strdup(sys_msg, cfg->openai_system_message);
-                sys_msg->data_json = talloc_strdup(sys_msg, "{}");
-                res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, sys_msg);
-                if (is_err(&add_res)) {     // LCOV_EXCL_BR_LINE
-                    yyjson_mut_doc *conv_log = ik_log_create();     // LCOV_EXCL_LINE
-                    yyjson_mut_val *conv_root = yyjson_mut_doc_get_root(conv_log);     // LCOV_EXCL_LINE
-                    yyjson_mut_obj_add_str(conv_log, conv_root, "event", "fresh_install_conversation_failed");     // LCOV_EXCL_LINE
-                    yyjson_mut_obj_add_str(conv_log, conv_root, "error", error_message(add_res.err));     // LCOV_EXCL_LINE
-                    ik_logger_warn_json(repl->shared->logger, conv_log);     // LCOV_EXCL_LINE
-                }
-            }
+            // System message is NOT added to conversation - it's handled via request->system_prompt
         }
     }
 

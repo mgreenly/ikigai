@@ -10,7 +10,8 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/db/session.h"
 #include "../../../src/marks.h"
-#include "../../../src/openai/client.h"
+#include "../../../src/message.h"
+#include "../../../src/providers/provider.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 
@@ -40,11 +41,10 @@ START_TEST(test_rewind_to_same_mark_twice) {
     shared->cfg = cfg;
     repl->shared = shared;
 
-    // Initialize conversation
-    repl->current->conversation = talloc_zero(repl, ik_openai_conversation_t);
-    ck_assert_ptr_nonnull(repl->current->conversation);
-    repl->current->conversation->messages = NULL;
-    repl->current->conversation->message_count = 0;
+    // Initialize messages array (starts empty)
+    repl->current->messages = NULL;
+    repl->current->message_count = 0;
+    repl->current->message_capacity = 0;
 
     // Initialize marks array
     repl->current->marks = NULL;
@@ -53,13 +53,10 @@ START_TEST(test_rewind_to_same_mark_twice) {
     // Initialize scrollback
     agent->scrollback = ik_scrollback_create(repl, 80);
 
-    // Step 1: Add initial message
-    ik_msg_t *msg1 = talloc_zero(repl->current->conversation, ik_msg_t);
-    msg1->kind = talloc_strdup(msg1, "user");
-    msg1->content = talloc_strdup(msg1, "Message 1");
-    repl->current->conversation->messages = talloc_array(repl->current->conversation, ik_msg_t *, 1);
-    repl->current->conversation->messages[0] = msg1;
-    repl->current->conversation->message_count = 1;
+    // Step 1: Add initial message using new API
+    ik_message_t *msg1 = ik_message_create_text(ctx, IK_ROLE_USER, "Message 1");
+    res_t add_res = ik_agent_add_message(agent, msg1);
+    ck_assert(is_ok(&add_res));
 
     // Step 2: Create mark
     res_t mark_res = ik_mark_create(repl, "test-mark");
@@ -67,20 +64,15 @@ START_TEST(test_rewind_to_same_mark_twice) {
     ck_assert_uint_eq(repl->current->mark_count, 1);
 
     // Step 3: Add more messages
-    ik_msg_t *msg2 = talloc_zero(repl->current->conversation, ik_msg_t);
-    msg2->kind = talloc_strdup(msg2, "assistant");
-    msg2->content = talloc_strdup(msg2, "Response 1");
-    repl->current->conversation->messages = talloc_realloc(repl->current->conversation,
-                                                           repl->current->conversation->messages,
-                                                           ik_msg_t *,
-                                                           2);
-    repl->current->conversation->messages[1] = msg2;
-    repl->current->conversation->message_count = 2;
+    ik_message_t *msg2 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response 1");
+    add_res = ik_agent_add_message(agent, msg2);
+    ck_assert(is_ok(&add_res));
+    ck_assert_uint_eq(agent->message_count, 2);
 
     // Step 4: Rewind to mark (first time)
     res_t rewind1_res = ik_mark_rewind_to(repl, "test-mark");
     ck_assert(is_ok(&rewind1_res));
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
 
     // Bug 7: Mark should still be in stack after rewind
     ck_assert_uint_eq(repl->current->mark_count, 1);
@@ -89,27 +81,24 @@ START_TEST(test_rewind_to_same_mark_twice) {
     ck_assert_str_eq(repl->current->marks[0]->label, "test-mark");
 
     // Step 5: Add different messages
-    ik_msg_t *msg3 = talloc_zero(repl->current->conversation, ik_msg_t);
-    msg3->kind = talloc_strdup(msg3, "assistant");
-    msg3->content = talloc_strdup(msg3, "Response 2");
-    repl->current->conversation->messages = talloc_realloc(repl->current->conversation,
-                                                           repl->current->conversation->messages,
-                                                           ik_msg_t *,
-                                                           2);
-    repl->current->conversation->messages[1] = msg3;
-    repl->current->conversation->message_count = 2;
+    ik_message_t *msg3 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response 2");
+    add_res = ik_agent_add_message(agent, msg3);
+    ck_assert(is_ok(&add_res));
+    ck_assert_uint_eq(agent->message_count, 2);
 
     // Step 6: Rewind to same mark again (second time)
     res_t rewind2_res = ik_mark_rewind_to(repl, "test-mark");
     ck_assert(is_ok(&rewind2_res));
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
 
     // Mark should STILL be in stack
     ck_assert_uint_eq(repl->current->mark_count, 1);
 
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
+END_TEST
+
+START_TEST(test_rewind_to_unlabeled_mark_twice)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -133,11 +122,10 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     shared->cfg = cfg;
     repl->shared = shared;
 
-    // Initialize conversation
-    repl->current->conversation = talloc_zero(repl, ik_openai_conversation_t);
-    ck_assert_ptr_nonnull(repl->current->conversation);
-    repl->current->conversation->messages = NULL;
-    repl->current->conversation->message_count = 0;
+    // Initialize messages array (starts empty)
+    repl->current->messages = NULL;
+    repl->current->message_count = 0;
+    repl->current->message_capacity = 0;
 
     // Initialize marks array
     repl->current->marks = NULL;
@@ -147,12 +135,9 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     agent->scrollback = ik_scrollback_create(repl, 80);
 
     // Add initial message
-    ik_msg_t *msg1 = talloc_zero(repl->current->conversation, ik_msg_t);
-    msg1->kind = talloc_strdup(msg1, "user");
-    msg1->content = talloc_strdup(msg1, "Message 1");
-    repl->current->conversation->messages = talloc_array(repl->current->conversation, ik_msg_t *, 1);
-    repl->current->conversation->messages[0] = msg1;
-    repl->current->conversation->message_count = 1;
+    ik_message_t *msg1 = ik_message_create_text(ctx, IK_ROLE_USER, "Message 1");
+    res_t add_res = ik_agent_add_message(agent, msg1);
+    ck_assert(is_ok(&add_res));
 
     // Create unlabeled mark
     res_t mark_res = ik_mark_create(repl, NULL);
@@ -160,15 +145,10 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     ck_assert_uint_eq(repl->current->mark_count, 1);
 
     // Add message
-    ik_msg_t *msg2 = talloc_zero(repl->current->conversation, ik_msg_t);
-    msg2->kind = talloc_strdup(msg2, "assistant");
-    msg2->content = talloc_strdup(msg2, "Response 1");
-    repl->current->conversation->messages = talloc_realloc(repl->current->conversation,
-                                                           repl->current->conversation->messages,
-                                                           ik_msg_t *,
-                                                           2);
-    repl->current->conversation->messages[1] = msg2;
-    repl->current->conversation->message_count = 2;
+    ik_message_t *msg2 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response 1");
+    add_res = ik_agent_add_message(agent, msg2);
+    ck_assert(is_ok(&add_res));
+    ck_assert_uint_eq(agent->message_count, 2);
 
     // Rewind to unlabeled mark (first time)
     res_t rewind1_res = ik_mark_rewind_to(repl, NULL);
@@ -176,15 +156,10 @@ END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
     ck_assert_uint_eq(repl->current->mark_count, 1);
 
     // Add another message
-    ik_msg_t *msg3 = talloc_zero(repl->current->conversation, ik_msg_t);
-    msg3->kind = talloc_strdup(msg3, "assistant");
-    msg3->content = talloc_strdup(msg3, "Response 2");
-    repl->current->conversation->messages = talloc_realloc(repl->current->conversation,
-                                                           repl->current->conversation->messages,
-                                                           ik_msg_t *,
-                                                           2);
-    repl->current->conversation->messages[1] = msg3;
-    repl->current->conversation->message_count = 2;
+    ik_message_t *msg3 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response 2");
+    add_res = ik_agent_add_message(agent, msg3);
+    ck_assert(is_ok(&add_res));
+    ck_assert_uint_eq(agent->message_count, 2);
 
     // Rewind to unlabeled mark again (second time)
     res_t rewind2_res = ik_mark_rewind_to(repl, NULL);

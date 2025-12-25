@@ -7,8 +7,6 @@
 #include "db/connection.h"
 #include "db/session.h"
 #include "logger.h"
-#include "openai/client.h"
-#include "openai/client_multi.h"
 #include "panic.h"
 #include "repl/agent_restore.h"
 #include "shared.h"

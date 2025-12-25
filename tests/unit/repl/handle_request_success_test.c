@@ -13,7 +13,6 @@
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
 #include "../../../src/debug_pipe.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/tool.h"
 #include "../../../src/wrapper.h"
@@ -93,9 +92,9 @@ static void setup(void)
     ck_assert_ptr_nonnull(agent);
 
     // Create conversation
-    agent->conversation = ik_openai_conversation_create(test_ctx);
+
     repl->current = agent;
-    ck_assert_ptr_nonnull(repl->current->conversation);
+    ck_assert_uint_eq(repl->current->message_count, 0);
 
     if (!db_available) {
         db = NULL;
@@ -151,7 +150,7 @@ START_TEST(test_no_assistant_response) {
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Nothing should happen, conversation should be empty
-    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->message_count, 0);
 }
 END_TEST
 
@@ -165,7 +164,7 @@ START_TEST(test_empty_assistant_response)
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Nothing should happen, conversation should be empty
-    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
 END_TEST
@@ -179,7 +178,7 @@ START_TEST(test_assistant_response_no_db)
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should be added to conversation
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
 
     // Assistant response should be cleared
     ck_assert_ptr_null(repl->current->assistant_response);
@@ -197,7 +196,7 @@ START_TEST(test_assistant_response_db_no_session)
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should be added to conversation but not persisted
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
@@ -215,7 +214,7 @@ START_TEST(test_all_metadata_fields)
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should be added and persisted
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
@@ -232,7 +231,7 @@ START_TEST(test_only_model_metadata)
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
@@ -249,7 +248,7 @@ START_TEST(test_only_tokens_metadata)
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
@@ -266,7 +265,7 @@ START_TEST(test_only_finish_reason_metadata)
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
@@ -283,7 +282,7 @@ START_TEST(test_model_tokens_metadata)
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
@@ -300,7 +299,7 @@ START_TEST(test_model_finish_reason_metadata)
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
@@ -317,7 +316,7 @@ START_TEST(test_tokens_finish_reason_metadata)
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
@@ -334,7 +333,7 @@ START_TEST(test_no_metadata)
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 

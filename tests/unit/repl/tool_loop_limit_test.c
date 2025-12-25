@@ -12,7 +12,6 @@
 #include "config.h"
 #include "../../../src/shared.h"
 #include "scrollback.h"
-#include "openai/client.h"
 #include <check.h>
 #include <talloc.h>
 
@@ -44,7 +43,7 @@ static void setup(void)
     repl->current->scrollback = ik_scrollback_create(repl, 80);
 
     /* Create conversation */
-    repl->current->conversation = ik_openai_conversation_create(ctx);
+    repl->current->messages = NULL; repl->current->message_count = 0; repl->current->message_capacity = 0;
 
     /* Initialize counter to 0 (simulating start of user request) */
     repl->current->tool_iteration_count = 0;

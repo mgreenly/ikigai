@@ -4,8 +4,8 @@
 #include "../error.h"
 #include "../event_render.h"
 #include "../logger.h"
+#include "../message.h"
 #include "../msg.h"
-#include "../openai/client.h"
 
 #include <assert.h>
 #include <talloc.h>
@@ -21,15 +21,27 @@ void ik_agent_restore_populate_conversation(
     for (size_t j = 0; j < replay_ctx->count; j++) {
         ik_msg_t *msg = replay_ctx->messages[j];
         if (ik_msg_is_conversation_kind(msg->kind)) {
-            ik_msg_t *conv_msg = talloc_steal(agent->conversation, msg);
-            res_t res = ik_openai_conversation_add_msg(agent->conversation, conv_msg);
-            if (is_err(&res)) {     // LCOV_EXCL_BR_LINE - OOM/API error tested in openai tests
+            ik_message_t *provider_msg = NULL;
+            res_t res = ik_message_from_db_msg(agent, msg, &provider_msg);
+            if (is_err(&res)) {     // LCOV_EXCL_BR_LINE - Parse error tested in message tests
                 yyjson_mut_doc *log_doc = ik_log_create();     // LCOV_EXCL_LINE
                 yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);     // LCOV_EXCL_LINE
-                yyjson_mut_obj_add_str(log_doc, root, "event", "conversation_add_failed");     // LCOV_EXCL_LINE
+                yyjson_mut_obj_add_str(log_doc, root, "event", "message_parse_failed");     // LCOV_EXCL_LINE
                 yyjson_mut_obj_add_str(log_doc, root, "agent_uuid", agent->uuid);     // LCOV_EXCL_LINE
                 yyjson_mut_obj_add_str(log_doc, root, "error", error_message(res.err));     // LCOV_EXCL_LINE
                 ik_logger_warn_json(logger, log_doc);     // LCOV_EXCL_LINE
+                continue;     // LCOV_EXCL_LINE
+            }
+            if (provider_msg != NULL) {  // NULL for system messages (handled via request->system_prompt)
+                res = ik_agent_add_message(agent, provider_msg);
+                if (is_err(&res)) {     // LCOV_EXCL_BR_LINE - OOM tested in agent tests
+                    yyjson_mut_doc *log_doc = ik_log_create();     // LCOV_EXCL_LINE
+                    yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);     // LCOV_EXCL_LINE
+                    yyjson_mut_obj_add_str(log_doc, root, "event", "conversation_add_failed");     // LCOV_EXCL_LINE
+                    yyjson_mut_obj_add_str(log_doc, root, "agent_uuid", agent->uuid);     // LCOV_EXCL_LINE
+                    yyjson_mut_obj_add_str(log_doc, root, "error", error_message(res.err));     // LCOV_EXCL_LINE
+                    ik_logger_warn_json(logger, log_doc);     // LCOV_EXCL_LINE
+                }
             }
         }
     }

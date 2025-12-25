@@ -6,6 +6,7 @@
 #include "event_render.h"
 #include "format.h"
 #include "logger.h"
+#include "message.h"
 #include "panic.h"
 #include "shared.h"
 #include "tool.h"
@@ -70,9 +71,8 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     // 1. Add tool_call message to conversation (canonical format)
     char *summary = talloc_asprintf(repl, "%s(%s)", tc->name, tc->arguments);
     if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    ik_msg_t *tc_msg = ik_openai_msg_create_tool_call(
-        repl->current->conversation, tc->id, "function", tc->name, tc->arguments, summary);
-    res_t result = ik_openai_conversation_add_msg(repl->current->conversation, tc_msg);
+    ik_message_t *tc_msg = ik_message_create_tool_call(repl->current, tc->id, tc->name, tc->arguments);
+    res_t result = ik_agent_add_message(repl->current, tc_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
@@ -90,9 +90,8 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     char *result_json = tool_res.ok;
 
     // 3. Add tool result message to conversation
-    ik_msg_t *result_msg = ik_openai_msg_create_tool_result(
-        repl->current->conversation, tc->id, result_json);
-    result = ik_openai_conversation_add_msg(repl->current->conversation, result_msg);
+    ik_message_t *result_msg = ik_message_create_tool_result(repl->current, tc->id, result_json, false);
+    result = ik_agent_add_message(repl->current, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added
@@ -113,9 +112,9 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     // 5. Persist to database
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              repl->current->uuid, "tool_call", formatted_call, tc_msg->data_json);
+                              repl->current->uuid, "tool_call", formatted_call, "{}");
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              repl->current->uuid, "tool_result", formatted_result, result_msg->data_json);
+                              repl->current->uuid, "tool_result", formatted_result, "{}");
     }
 
     // 6. Clear pending tool call
@@ -221,9 +220,8 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     char *summary = talloc_asprintf(agent, "%s(%s)", tc->name, tc->arguments);
     if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    ik_msg_t *tc_msg = ik_openai_msg_create_tool_call(
-        agent->conversation, tc->id, "function", tc->name, tc->arguments, summary);
-    res_t result = ik_openai_conversation_add_msg(agent->conversation, tc_msg);
+    ik_message_t *tc_msg = ik_message_create_tool_call(agent, tc->id, tc->name, tc->arguments);
+    res_t result = ik_agent_add_message(agent, tc_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
@@ -236,9 +234,8 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     }
 
     // 2. Add tool result message to conversation
-    ik_msg_t *result_msg = ik_openai_msg_create_tool_result(
-        agent->conversation, tc->id, result_json);
-    result = ik_openai_conversation_add_msg(agent->conversation, result_msg);
+    ik_message_t *result_msg = ik_message_create_tool_result(agent, tc->id, result_json, false);
+    result = ik_agent_add_message(agent, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added
@@ -259,9 +256,9 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     // 4. Persist to database
     if (agent->shared->db_ctx != NULL && agent->shared->session_id > 0) {
         ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
-                              agent->uuid, "tool_call", formatted_call, tc_msg->data_json);
+                              agent->uuid, "tool_call", formatted_call, "{}");
         ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
-                              agent->uuid, "tool_result", formatted_result, result_msg->data_json);
+                              agent->uuid, "tool_result", formatted_result, "{}");
     }
 
     // 5. Clean up

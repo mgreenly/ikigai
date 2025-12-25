@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include "repl.h"
 #include "shared.h"
-#include "openai/client.h"
 #include "tool.h"
 #include "scrollback.h"
 #include "config.h"
@@ -36,7 +35,7 @@ static void setup(void)
     repl->current = agent;
 
     /* Create conversation */
-    repl->current->conversation = ik_openai_conversation_create(repl);
+    repl->current->messages = NULL; repl->current->message_count = 0; repl->current->message_capacity = 0;
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 10);
@@ -104,7 +103,7 @@ START_TEST(test_async_tool_debug_pipe_null_write_end) {
     ik_repl_complete_tool_execution(repl);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 END_TEST
@@ -136,7 +135,7 @@ START_TEST(test_async_tool_no_debug_pipe)
     ik_repl_complete_tool_execution(repl);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
@@ -174,7 +173,7 @@ START_TEST(test_async_tool_with_working_debug_pipe)
     ik_repl_complete_tool_execution(repl);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 

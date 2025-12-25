@@ -25,7 +25,6 @@
 #include "../../src/db/session.h"
 #include "../../src/error.h"
 #include "../../src/msg.h"
-#include "../../src/openai/client.h"
 #include "../../src/tool.h"
 #include "../test_utils.h"
 

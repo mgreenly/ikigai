@@ -10,7 +10,7 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
+#include "../../../src/providers/provider.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -41,7 +41,6 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
 
     ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -53,7 +52,7 @@ static void setup_repl(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "parent-uuid-123");
     agent->name = NULL;
     agent->parent_uuid = NULL;
@@ -299,16 +298,17 @@ START_TEST(test_fork_with_quoted_prompt)
 
     // Verify child has message in conversation
     ik_agent_ctx_t *child = repl->current;
-    ck_assert_ptr_nonnull(child->conversation);
-    ck_assert_uint_gt(child->conversation->message_count, 0);
+    ck_assert_uint_gt(child->message_count, 0);
 
     // Find user message with the prompt
     bool found_prompt = false;
-    for (size_t i = 0; i < child->conversation->message_count; i++) {
-        ik_msg_t *msg = child->conversation->messages[i];
-        if (strcmp(msg->kind, "user") == 0 &&
-            msg->content != NULL &&
-            strcmp(msg->content, "Research OAuth 2.0 patterns") == 0) {
+    for (size_t i = 0; i < child->message_count; i++) {
+        ik_message_t *msg = child->messages[i];
+        if (msg->role == IK_ROLE_USER &&
+            msg->content_count > 0 &&
+            msg->content_blocks[0].type == IK_CONTENT_TEXT &&
+            msg->content_blocks[0].data.text.text != NULL &&
+            strcmp(msg->content_blocks[0].data.text.text, "Research OAuth 2.0 patterns") == 0) {
             found_prompt = true;
             break;
         }
@@ -324,12 +324,12 @@ START_TEST(test_fork_prompt_appended_as_user_message)
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->current;
-    ck_assert_ptr_nonnull(child->conversation);
+    ck_assert_uint_gt(child->message_count, 0);
 
     // Verify at least one user message exists
     bool has_user_message = false;
-    for (size_t i = 0; i < child->conversation->message_count; i++) {
-        if (strcmp(child->conversation->messages[i]->kind, "user") == 0) {
+    for (size_t i = 0; i < child->message_count; i++) {
+        if (child->messages[i]->role == IK_ROLE_USER) {
             has_user_message = true;
             break;
         }
@@ -351,11 +351,13 @@ START_TEST(test_fork_llm_call_triggered)
     // key precondition for LLM triggering.
     ik_agent_ctx_t *child = repl->current;
     bool found_user_message = false;
-    for (size_t i = 0; i < child->conversation->message_count; i++) {
-        ik_msg_t *msg = child->conversation->messages[i];
-        if (strcmp(msg->kind, "user") == 0 &&
-            msg->content != NULL &&
-            strcmp(msg->content, "Test prompt") == 0) {
+    for (size_t i = 0; i < child->message_count; i++) {
+        ik_message_t *msg = child->messages[i];
+        if (msg->role == IK_ROLE_USER &&
+            msg->content_count > 0 &&
+            msg->content_blocks[0].type == IK_CONTENT_TEXT &&
+            msg->content_blocks[0].data.text.text != NULL &&
+            strcmp(msg->content_blocks[0].data.text.text, "Test prompt") == 0) {
             found_user_message = true;
             break;
         }

@@ -12,7 +12,7 @@
 #include "commands.h"
 #include "db/message.h"
 #include "input_buffer/core.h"
-#include "openai/client.h"
+#include "message.h"
 #include "providers/provider.h"
 #include "providers/request.h"
 #include "scrollback.h"
@@ -99,8 +99,8 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
         return;
     }
 
-    ik_msg_t *user_msg = ik_openai_msg_create(agent->conversation, "user", message_text);
-    res_t result = ik_openai_conversation_add_msg(agent->conversation, user_msg);
+    ik_message_t *user_msg = ik_message_create_text(agent, IK_ROLE_USER, message_text);
+    res_t result = ik_agent_add_message(agent, user_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Persist user message to database
@@ -211,7 +211,7 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
     if (is_slash_command) {
         handle_slash_cmd_(repl, command_text);
         talloc_free(command_text);
-    } else if (text_len > 0 && repl->current->conversation != NULL && repl->shared->cfg != NULL) {
+    } else if (text_len > 0 && repl->shared->cfg != NULL) {
         char *message_text = talloc_zero_(repl, text_len + 1);
         if (message_text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         memcpy(message_text, text, text_len);

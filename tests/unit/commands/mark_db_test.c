@@ -17,7 +17,8 @@
 #include "../../../src/error.h"
 #include "../../../src/logger.h"
 #include "../../../src/marks.h"
-#include "../../../src/openai/client.h"
+#include "../../../src/message.h"
+#include "../../../src/providers/provider.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
@@ -98,8 +99,6 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
 
     // Create REPL context
     // Create minimal config
@@ -119,7 +118,7 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
 
-    agent->conversation = conv;
+
     r->current = agent;
 
     r->shared = shared;
@@ -326,8 +325,8 @@ START_TEST(test_rewind_db_insert_error)
     ck_assert(is_ok(&res));
 
     // Add a message
-    ik_msg_t *msg = ik_openai_msg_create(repl->current->conversation, "user", "test");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
+    ik_message_t *msg = ik_message_create_text(test_ctx, IK_ROLE_USER, "test");
+    res = ik_agent_add_message(repl->current, msg);
     ck_assert(is_ok(&res));
 
     // Rewind - should succeed in memory even with DB issues
@@ -335,7 +334,7 @@ START_TEST(test_rewind_db_insert_error)
     ck_assert(is_ok(&res));
 
     // Rewind should succeed in memory
-    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->message_count, 0);
 
     // Note: The logger output won't be generated in this test because
     // target_message_id is 0 (no DB query succeeds with mocks), so the

@@ -162,7 +162,7 @@ res_t ik_request_add_tool(ik_request_t *req, const char *name, const char *descr
  * Steps:
  * 1. Create request with agent->model
  * 2. Set system prompt from agent->system_prompt (if non-NULL)
- * 3. Iterate agent->conversation->messages and map to request messages
+ * 3. Iterate agent->messages and map to request messages
  * 4. Add tool definitions from agent->tools array (if any)
  * 5. Set thinking level from agent->thinking_level
  *

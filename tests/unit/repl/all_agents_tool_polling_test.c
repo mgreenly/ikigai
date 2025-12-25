@@ -8,11 +8,12 @@
  */
 
 #include "agent.h"
+#include "message.h"
+#include "providers/provider.h"
 #include "repl.h"
 #include "repl_event_handlers.h"
 #include "shared.h"
 #include "scrollback.h"
-#include "openai/client.h"
 #include "tool.h"
 #include "wrapper.h"
 #include "db/message.h"
@@ -78,7 +79,7 @@ static void setup(void)
     agent_a->scrollback = ik_scrollback_create(agent_a, 80);
     agent_a->state = IK_AGENT_STATE_EXECUTING_TOOL;
 
-    agent_a->conversation = ik_openai_conversation_create(agent_a);
+    agent_a->messages = NULL; agent_a->message_count = 0; agent_a->message_capacity = 0;
 
     pthread_mutex_init_(&agent_a->tool_thread_mutex, NULL);
     agent_a->tool_thread_running = true;
@@ -103,7 +104,7 @@ static void setup(void)
     agent_b->scrollback = ik_scrollback_create(agent_b, 80);
     agent_b->state = IK_AGENT_STATE_IDLE;
 
-    agent_b->conversation = ik_openai_conversation_create(agent_b);
+    agent_b->messages = NULL; agent_b->message_count = 0; agent_b->message_capacity = 0;
 
     pthread_mutex_init_(&agent_b->tool_thread_mutex, NULL);
     agent_b->tool_thread_running = false;
@@ -156,16 +157,18 @@ START_TEST(test_handle_agent_tool_completion_uses_agent_param) {
     ck_assert_int_eq(agent_a->state, IK_AGENT_STATE_EXECUTING_TOOL);
     ck_assert(agent_a->tool_thread_complete);
     ck_assert_ptr_nonnull(agent_a->tool_thread_result);
-    ck_assert_uint_eq(agent_a->conversation->message_count, 0);
-    ck_assert_uint_eq(agent_b->conversation->message_count, 0);
+    ck_assert_uint_eq(agent_a->message_count, 0);
+    ck_assert_uint_eq(agent_b->message_count, 0);
 
     /* Call ik_repl_handle_agent_tool_completion on Agent A */
     ik_repl_handle_agent_tool_completion(repl, agent_a);
 
     /* Verify Agent A's tool was completed */
-    ck_assert_uint_eq(agent_a->conversation->message_count, 2);
-    ck_assert_str_eq(agent_a->conversation->messages[0]->kind, "tool_call");
-    ck_assert_str_eq(agent_a->conversation->messages[1]->kind, "tool_result");
+    ck_assert_uint_eq(agent_a->message_count, 2);
+    ck_assert(agent_a->messages[0]->role == IK_ROLE_ASSISTANT);
+    ck_assert(agent_a->messages[0]->content_blocks[0].type == IK_CONTENT_TOOL_CALL);
+    ck_assert(agent_a->messages[1]->role == IK_ROLE_TOOL);
+    ck_assert(agent_a->messages[1]->content_blocks[0].type == IK_CONTENT_TOOL_RESULT);
 
     /* Verify Agent A transitioned to IDLE (no more tools to run) */
     ck_assert_int_eq(agent_a->state, IK_AGENT_STATE_IDLE);
@@ -173,7 +176,7 @@ START_TEST(test_handle_agent_tool_completion_uses_agent_param) {
     ck_assert_ptr_null(agent_a->pending_tool_call);
 
     /* Verify Agent B is still unaffected */
-    ck_assert_uint_eq(agent_b->conversation->message_count, 0);
+    ck_assert_uint_eq(agent_b->message_count, 0);
     ck_assert_int_eq(agent_b->state, IK_AGENT_STATE_IDLE);
 }
 END_TEST
@@ -214,11 +217,11 @@ START_TEST(test_event_loop_polls_all_agents)
     }
 
     /* Verify Agent A was handled (was EXECUTING_TOOL with complete=true) */
-    ck_assert_uint_eq(agent_a->conversation->message_count, 2);
+    ck_assert_uint_eq(agent_a->message_count, 2);
     ck_assert_int_eq(agent_a->state, IK_AGENT_STATE_IDLE);
 
     /* Verify Agent B was not affected (was IDLE with complete=false) */
-    ck_assert_uint_eq(agent_b->conversation->message_count, 0);
+    ck_assert_uint_eq(agent_b->message_count, 0);
     ck_assert_int_eq(agent_b->state, IK_AGENT_STATE_IDLE);
 }
 

@@ -2,7 +2,7 @@
 #include "agent.h"
 #include "error.h"
 #include "msg.h"
-#include "openai/client.h"
+#include "shared.h"
 #include "tool.h"
 #include "wrapper.h"
 #include "vendor/yyjson/yyjson.h"
@@ -112,7 +112,7 @@ res_t ik_request_create(TALLOC_CTX *ctx, const char *model, ik_request_t **out) 
     req->max_output_tokens = -1;
     req->thinking.level = IK_THINKING_NONE;
     req->thinking.include_summary = false;
-    req->tool_choice_mode = 0;  // IK_TOOL_AUTO (temporarily int during coexistence)
+    req->tool_choice_mode = 0;  // IK_TOOL_AUTO
     req->tool_choice_name = NULL;
 
     *out = req;
@@ -249,22 +249,6 @@ res_t ik_request_add_tool(ik_request_t *req, const char *name, const char *descr
     talloc_steal(req, tool);
 
     return OK(NULL);
-}
-
-/**
- * Map ik_msg_t kind to ik_role_t
- * Note: System messages are handled separately via ik_request_set_system(),
- * not via message roles.
- */
-static ik_role_t kind_to_role(const char *kind) {
-    if (strcmp(kind, "user") == 0) {
-        return IK_ROLE_USER;
-    } else if (strcmp(kind, "assistant") == 0) {
-        return IK_ROLE_ASSISTANT;
-    } else if (strcmp(kind, "tool_result") == 0 || strcmp(kind, "tool") == 0) {
-        return IK_ROLE_TOOL;
-    }
-    return IK_ROLE_USER; // Default for unknown kinds
 }
 
 /* ================================================================
@@ -415,6 +399,82 @@ static char *build_tool_parameters_json(TALLOC_CTX *ctx, const ik_tool_schema_de
     return result;
 }
 
+/**
+ * Deep copy existing message into request message array
+ */
+static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t *msg)
+{
+    assert(req != NULL);  // LCOV_EXCL_BR_LINE
+    assert(msg != NULL);  // LCOV_EXCL_BR_LINE
+
+    /* Allocate new message in request context */
+    ik_message_t *copy = talloc(req, ik_message_t);
+    if (copy == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    copy->role = msg->role;
+    copy->content_count = msg->content_count;
+    copy->provider_metadata = NULL;  /* Don't copy response metadata into requests */
+
+    /* Allocate content blocks array */
+    copy->content_blocks = talloc_array(copy, ik_content_block_t, (unsigned int)msg->content_count);
+    if (copy->content_blocks == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    /* Deep copy each content block */
+    for (size_t i = 0; i < msg->content_count; i++) {
+        ik_content_block_t *src = &msg->content_blocks[i];
+        ik_content_block_t *dst = &copy->content_blocks[i];
+        dst->type = src->type;
+
+        switch (src->type) {
+        case IK_CONTENT_TEXT:
+            dst->data.text.text = talloc_strdup(copy, src->data.text.text);
+            if (dst->data.text.text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            break;
+
+        case IK_CONTENT_TOOL_CALL:
+            dst->data.tool_call.id = talloc_strdup(copy, src->data.tool_call.id);
+            dst->data.tool_call.name = talloc_strdup(copy, src->data.tool_call.name);
+            dst->data.tool_call.arguments = talloc_strdup(copy, src->data.tool_call.arguments);
+            if (dst->data.tool_call.id == NULL || dst->data.tool_call.name == NULL ||
+                dst->data.tool_call.arguments == NULL) {
+                PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            }
+            break;
+
+        case IK_CONTENT_TOOL_RESULT:
+            dst->data.tool_result.tool_call_id = talloc_strdup(copy, src->data.tool_result.tool_call_id);
+            dst->data.tool_result.content = talloc_strdup(copy, src->data.tool_result.content);
+            dst->data.tool_result.is_error = src->data.tool_result.is_error;
+            if (dst->data.tool_result.tool_call_id == NULL || dst->data.tool_result.content == NULL) {
+                PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            }
+            break;
+
+        case IK_CONTENT_THINKING:
+            dst->data.thinking.text = talloc_strdup(copy, src->data.thinking.text);
+            if (dst->data.thinking.text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            break;
+
+        default:
+            PANIC("Unknown content type");  // LCOV_EXCL_LINE
+        }
+    }
+
+    /* Grow request messages array if needed */
+    size_t new_count = req->message_count + 1;
+    req->messages = talloc_realloc(req, req->messages, ik_message_t, (unsigned int)new_count);
+    if (req->messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    /* Copy message into array */
+    req->messages[req->message_count] = *copy;
+    req->message_count = new_count;
+
+    /* Steal message to request */
+    talloc_steal(req, copy);
+
+    return OK(copy);
+}
+
 res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_request_t **out) {
     assert(agent_ptr != NULL); // LCOV_EXCL_BR_LINE
     assert(out != NULL);       // LCOV_EXCL_BR_LINE
@@ -434,124 +494,26 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_re
     /* Set thinking level from agent */
     ik_request_set_thinking(req, (ik_thinking_level_t)agent->thinking_level, false);
 
-    /* Iterate conversation messages and add to request */
-    if (agent->conversation != NULL) {
-        for (size_t i = 0; i < agent->conversation->message_count; i++) {
-            ik_msg_t *msg = agent->conversation->messages[i];
-            if (msg == NULL || msg->kind == NULL) continue;
+    /* Set system prompt from config if available */
+    if (agent->shared && agent->shared->cfg && agent->shared->cfg->openai_system_message) {
+        res = ik_request_set_system(req, agent->shared->cfg->openai_system_message);
+        if (is_err(&res)) {
+            talloc_free(req);
+            return res;
+        }
+    }
 
-            /* Skip system messages - they are handled via system prompt */
-            if (strcmp(msg->kind, "system") == 0) {
-                /* Set as system prompt if we have content */
-                if (msg->content != NULL) {
-                    res = ik_request_set_system(req, msg->content);
-                    if (is_err(&res)) {
-                        talloc_free(req);
-                        return res;
-                    }
-                }
-                continue;
-            }
+    /* Iterate message storage and add to request */
+    if (agent->messages != NULL) {
+        for (size_t i = 0; i < agent->message_count; i++) {
+            ik_message_t *msg = agent->messages[i];
+            if (msg == NULL) continue;
 
-            /* Skip non-conversation kinds (clear, mark, rewind, etc.) */
-            if (!ik_msg_is_conversation_kind(msg->kind)) {
-                continue;
-            }
-
-            /* Handle tool_call messages - parse data_json for structured data */
-            if (strcmp(msg->kind, "tool_call") == 0 && msg->data_json != NULL) {
-                /* Parse tool call data from data_json */
-                yyjson_doc *doc = yyjson_read(msg->data_json, strlen(msg->data_json), 0);
-                if (!doc) {
-                    talloc_free(req);
-                    return ERR(ctx, PARSE, "Invalid tool_call data_json");
-                }
-
-                yyjson_val *root = yyjson_doc_get_root(doc);
-                yyjson_val *id_val = yyjson_obj_get(root, "tool_call_id");
-                yyjson_val *name_val = yyjson_obj_get(root, "name");
-                yyjson_val *args_val = yyjson_obj_get(root, "arguments");
-
-                if (!id_val || !name_val || !args_val) {
-                    yyjson_doc_free(doc);
-                    talloc_free(req);
-                    return ERR(ctx, PARSE, "Missing tool_call fields in data_json");
-                }
-
-                const char *id = yyjson_get_str(id_val);
-                const char *name = yyjson_get_str(name_val);
-                const char *arguments = yyjson_get_str(args_val);
-
-                /* Create tool call content block */
-                ik_content_block_t *block = ik_content_block_tool_call(req, id, name, arguments);
-                yyjson_doc_free(doc);
-
-                if (!block) { // LCOV_EXCL_BR_LINE
-                    PANIC("Out of memory"); // LCOV_EXCL_LINE
-                }
-
-                /* Add as assistant message with tool_call block */
-                res = ik_request_add_message_blocks(req, IK_ROLE_ASSISTANT, block, 1);
-                if (is_err(&res)) {
-                    talloc_free(req);
-                    return res;
-                }
-            } else if (strcmp(msg->kind, "tool_result") == 0 || strcmp(msg->kind, "tool") == 0) {
-                /* Handle tool results - parse data_json for structured data */
-                if (msg->data_json != NULL) {
-                    yyjson_doc *doc = yyjson_read(msg->data_json, strlen(msg->data_json), 0);
-                    if (!doc) {
-                        talloc_free(req);
-                        return ERR(ctx, PARSE, "Invalid tool_result data_json");
-                    }
-
-                    yyjson_val *root = yyjson_doc_get_root(doc);
-                    yyjson_val *id_val = yyjson_obj_get(root, "tool_call_id");
-                    yyjson_val *output_val = yyjson_obj_get(root, "output");
-                    yyjson_val *success_val = yyjson_obj_get(root, "success");
-
-                    if (!id_val || !output_val) {
-                        yyjson_doc_free(doc);
-                        talloc_free(req);
-                        return ERR(ctx, PARSE, "Missing tool_result fields in data_json");
-                    }
-
-                    const char *tool_call_id = yyjson_get_str(id_val);
-                    const char *output = yyjson_get_str(output_val);
-                    bool is_error = success_val ? !yyjson_get_bool(success_val) : false;
-
-                    /* Create tool result content block */
-                    ik_content_block_t *block = ik_content_block_tool_result(req, tool_call_id, output, is_error);
-                    yyjson_doc_free(doc);
-
-                    if (!block) { // LCOV_EXCL_BR_LINE
-                        PANIC("Out of memory"); // LCOV_EXCL_LINE
-                    }
-
-                    /* Add as tool message with tool_result block */
-                    res = ik_request_add_message_blocks(req, IK_ROLE_TOOL, block, 1);
-                    if (is_err(&res)) {
-                        talloc_free(req);
-                        return res;
-                    }
-                } else if (msg->content != NULL) {
-                    /* Legacy tool result without data_json - fallback to text */
-                    res = ik_request_add_message(req, IK_ROLE_TOOL, msg->content);
-                    if (is_err(&res)) {
-                        talloc_free(req);
-                        return res;
-                    }
-                }
-            } else {
-                /* Regular text message (user or assistant) */
-                ik_role_t role = kind_to_role(msg->kind);
-                if (msg->content != NULL) {
-                    res = ik_request_add_message(req, role, msg->content);
-                    if (is_err(&res)) {
-                        talloc_free(req);
-                        return res;
-                    }
-                }
+            /* Deep copy message into request */
+            res = ik_request_add_message_direct(req, msg);
+            if (is_err(&res)) {
+                talloc_free(req);
+                return res;
             }
         }
     }

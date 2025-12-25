@@ -6,8 +6,8 @@
 #include "input_buffer/core.h"
 #include "layer.h"
 #include "layer_wrappers.h"
-#include "openai/client.h"
 #include "panic.h"
+#include "providers/provider.h"
 #include "scrollback.h"
 #include "shared.h"
 #include "uuid.h"
@@ -23,14 +23,6 @@
 // Forward declarations to avoid type conflicts during migration
 typedef struct ik_provider ik_provider_t;
 extern res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out);
-
-// Thinking level enums from providers/provider.h (avoid including full header due to conflicts)
-enum {
-    IK_THINKING_NONE = 0,
-    IK_THINKING_LOW = 1,
-    IK_THINKING_MED = 2,
-    IK_THINKING_HIGH = 3
-};
 
 static int agent_destructor(ik_agent_ctx_t *agent)
 {
@@ -85,7 +77,9 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->completion = NULL;  // Created on Tab press, destroyed on completion
 
     // Initialize conversation state (per-agent)
-    agent->conversation = ik_openai_conversation_create(agent);
+    agent->messages = NULL;
+    agent->message_count = 0;
+    agent->message_capacity = 0;
     agent->marks = NULL;
     agent->mark_count = 0;
 
@@ -206,7 +200,9 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->completion = NULL;  // Created on Tab press, destroyed on completion
 
     // Initialize conversation state (per-agent)
-    agent->conversation = ik_openai_conversation_create(agent);
+    agent->messages = NULL;
+    agent->message_count = 0;
+    agent->message_capacity = 0;
     agent->marks = NULL;
     agent->mark_count = 0;
 
@@ -281,32 +277,8 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
 res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent)
 {
-    assert(child != NULL);   // LCOV_EXCL_BR_LINE
-    assert(parent != NULL);  // LCOV_EXCL_BR_LINE
-    assert(child->conversation != NULL);   // LCOV_EXCL_BR_LINE
-    assert(parent->conversation != NULL);  // LCOV_EXCL_BR_LINE
-
-    // Copy each message from parent to child
-    for (size_t i = 0; i < parent->conversation->message_count; i++) {
-        ik_msg_t *src_msg = parent->conversation->messages[i];
-
-        // Create a new message with copied content
-        ik_msg_t *new_msg = ik_openai_msg_create(child->conversation, src_msg->kind, src_msg->content);
-
-        // Copy data_json if present
-        if (src_msg->data_json != NULL) {
-            new_msg->data_json = talloc_strdup(new_msg, src_msg->data_json);
-            if (new_msg->data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        }
-
-        // Add to child's conversation
-        res_t add_res = ik_openai_conversation_add_msg(child->conversation, new_msg);
-        if (is_err(&add_res)) {     // LCOV_EXCL_BR_LINE
-            return add_res;     // LCOV_EXCL_LINE
-        }
-    }
-
-    return OK(NULL);
+    // Delegate to ik_agent_clone_messages which handles deep copying
+    return ik_agent_clone_messages(child, parent);
 }
 
 bool ik_agent_has_running_tools(const ik_agent_ctx_t *agent)
@@ -493,4 +465,117 @@ void ik_agent_invalidate_provider(ik_agent_ctx_t *agent)
     }
 
     // Safe to call multiple times - idempotent
+}
+
+res_t ik_agent_add_message(ik_agent_ctx_t *agent, ik_message_t *msg)
+{
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+    assert(msg != NULL);    // LCOV_EXCL_BR_LINE
+
+    // Grow array if needed
+    if (agent->message_count >= agent->message_capacity) {
+        size_t new_capacity = agent->message_capacity == 0 ? 16 : agent->message_capacity * 2;
+        agent->messages = talloc_realloc(agent, agent->messages, ik_message_t *, (unsigned int)new_capacity);
+        if (!agent->messages) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        agent->message_capacity = new_capacity;
+    }
+
+    // Reparent message to agent and add to array
+    talloc_steal(agent, msg);
+    agent->messages[agent->message_count++] = msg;
+
+    return OK(msg);
+}
+
+void ik_agent_clear_messages(ik_agent_ctx_t *agent)
+{
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Free messages array (talloc frees all children)
+    if (agent->messages != NULL) {
+        talloc_free(agent->messages);
+        agent->messages = NULL;
+    }
+
+    agent->message_count = 0;
+    agent->message_capacity = 0;
+}
+
+res_t ik_agent_clone_messages(ik_agent_ctx_t *dest, const ik_agent_ctx_t *src)
+{
+    assert(dest != NULL);  // LCOV_EXCL_BR_LINE
+    assert(src != NULL);   // LCOV_EXCL_BR_LINE
+
+    // Clear destination messages first
+    ik_agent_clear_messages(dest);
+
+    // Nothing to copy if source is empty
+    if (src->message_count == 0) {
+        return OK(NULL);
+    }
+
+    // Allocate array for destination
+    dest->messages = talloc_array(dest, ik_message_t *, (unsigned int)src->message_count);
+    if (!dest->messages) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    dest->message_capacity = src->message_count;
+
+    // Deep copy each message and its content blocks
+    for (size_t i = 0; i < src->message_count; i++) {
+        const ik_message_t *src_msg = src->messages[i];
+
+        // Allocate new message
+        ik_message_t *dest_msg = talloc_zero(dest, ik_message_t);
+        if (!dest_msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        // Copy role
+        dest_msg->role = src_msg->role;
+
+        // Copy content blocks
+        dest_msg->content_count = src_msg->content_count;
+        dest_msg->content_blocks = talloc_array(dest_msg, ik_content_block_t, (unsigned int)src_msg->content_count);
+        if (!dest_msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        for (size_t j = 0; j < src_msg->content_count; j++) {
+            const ik_content_block_t *src_block = &src_msg->content_blocks[j];
+            ik_content_block_t *dest_block = &dest_msg->content_blocks[j];
+
+            dest_block->type = src_block->type;
+
+            // Deep copy based on type
+            if (src_block->type == IK_CONTENT_TEXT) {
+                dest_block->data.text.text = talloc_strdup(dest_msg, src_block->data.text.text);
+                if (!dest_block->data.text.text) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            } else if (src_block->type == IK_CONTENT_TOOL_CALL) {
+                dest_block->data.tool_call.id = talloc_strdup(dest_msg, src_block->data.tool_call.id);
+                if (!dest_block->data.tool_call.id) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+                dest_block->data.tool_call.name = talloc_strdup(dest_msg, src_block->data.tool_call.name);
+                if (!dest_block->data.tool_call.name) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+                dest_block->data.tool_call.arguments = talloc_strdup(dest_msg, src_block->data.tool_call.arguments);
+                if (!dest_block->data.tool_call.arguments) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            } else if (src_block->type == IK_CONTENT_TOOL_RESULT) {
+                dest_block->data.tool_result.tool_call_id = talloc_strdup(dest_msg, src_block->data.tool_result.tool_call_id);
+                if (!dest_block->data.tool_result.tool_call_id) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+                dest_block->data.tool_result.content = talloc_strdup(dest_msg, src_block->data.tool_result.content);
+                if (!dest_block->data.tool_result.content) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+                dest_block->data.tool_result.is_error = src_block->data.tool_result.is_error;
+            } else if (src_block->type == IK_CONTENT_THINKING) {
+                dest_block->data.thinking.text = talloc_strdup(dest_msg, src_block->data.thinking.text);
+                if (!dest_block->data.thinking.text) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            }
+        }
+
+        // Copy provider metadata if present
+        if (src_msg->provider_metadata != NULL) {
+            dest_msg->provider_metadata = talloc_strdup(dest_msg, src_msg->provider_metadata);
+            if (!dest_msg->provider_metadata) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        } else {
+            dest_msg->provider_metadata = NULL;
+        }
+
+        dest->messages[i] = dest_msg;
+    }
+
+    dest->message_count = src->message_count;
+
+    return OK(dest->messages);
 }

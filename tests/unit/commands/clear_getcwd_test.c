@@ -8,7 +8,6 @@
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
@@ -30,10 +29,6 @@ static ik_repl_ctx_t *create_test_repl_minimal(void *parent)
     ik_scrollback_t *scrollback = ik_scrollback_create(parent, 80);
     ck_assert_ptr_nonnull(scrollback);
 
-    // Create conversation
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
-
     // Create minimal config
     ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -47,11 +42,10 @@ static ik_repl_ctx_t *create_test_repl_minimal(void *parent)
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
 
-    // Create agent context
+    // Create agent context (messages array starts empty)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
-    agent->conversation = conv;
     r->current = agent;
 
     r->shared = shared;

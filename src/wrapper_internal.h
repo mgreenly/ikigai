@@ -13,7 +13,6 @@
 #include "config.h"
 #include "scrollback.h"
 #include "msg.h"
-#include "openai/client.h"
 
 MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
 {
@@ -35,11 +34,6 @@ MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, si
     return ik_scrollback_append_line((ik_scrollback_t *)scrollback, text, length);
 }
 
-MOCKABLE res_t ik_openai_conversation_add_msg_(ik_openai_conversation_t *conv, ik_msg_t *msg)
-{
-    return ik_openai_conversation_add_msg(conv, msg);
-}
-
 #else
 // Note: These use void* because the actual types are defined in headers that may
 // not be included when wrapper.h is processed
@@ -53,7 +47,6 @@ MOCKABLE res_t ik_db_message_insert_(void *db,
                                      const char *content,
                                      const char *data_json);
 MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length);
-MOCKABLE res_t ik_openai_conversation_add_msg_(void *conv, void *msg);
 #endif
 
 #endif // IK_WRAPPER_INTERNAL_H

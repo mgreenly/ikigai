@@ -13,7 +13,7 @@
 // Forward declarations
 typedef struct ik_shared_ctx ik_shared_ctx_t;
 typedef struct ik_input_buffer_t ik_input_buffer_t;
-typedef struct ik_openai_conversation ik_openai_conversation_t;
+typedef struct ik_message ik_message_t;
 struct ik_openai_multi;
 struct ik_repl_ctx_t;
 
@@ -93,7 +93,9 @@ typedef struct ik_agent_ctx {
     ik_completion_t *completion;
 
     // Conversation state (per-agent)
-    ik_openai_conversation_t *conversation;
+    ik_message_t **messages;      // Array of message pointers
+    size_t message_count;         // Number of messages
+    size_t message_capacity;      // Allocated capacity
     ik_mark_t **marks;
     size_t mark_count;
 
@@ -290,3 +292,37 @@ res_t ik_agent_get_provider(ik_agent_ctx_t *agent, struct ik_provider **out);
  * @param agent Agent context (must not be NULL)
  */
 void ik_agent_invalidate_provider(ik_agent_ctx_t *agent);
+
+/**
+ * Add message to agent's conversation
+ *
+ * Grows messages array if needed using geometric growth (initial capacity 16).
+ * Reparents message to agent context and adds to messages array.
+ *
+ * @param agent Agent context (must not be NULL)
+ * @param msg   Message to add (will be reparented to agent, must not be NULL)
+ * @return      OK(msg) on success
+ */
+res_t ik_agent_add_message(ik_agent_ctx_t *agent, ik_message_t *msg);
+
+/**
+ * Clear all messages from agent's conversation
+ *
+ * Frees messages array and resets count/capacity to zero.
+ * Safe to call on empty conversation.
+ *
+ * @param agent Agent context (must not be NULL)
+ */
+void ik_agent_clear_messages(ik_agent_ctx_t *agent);
+
+/**
+ * Clone messages from source agent to destination agent
+ *
+ * Deep copies all messages and their content blocks from src to dest.
+ * Used during fork to copy parent's conversation to child.
+ *
+ * @param dest Destination agent (must not be NULL)
+ * @param src  Source agent (must not be NULL)
+ * @return     OK(dest->messages) on success
+ */
+res_t ik_agent_clone_messages(ik_agent_ctx_t *dest, const ik_agent_ctx_t *src);

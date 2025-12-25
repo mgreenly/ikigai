@@ -9,7 +9,8 @@
 #include "../../../src/db/agent.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
+#include "../../../src/message.h"
+#include "../../../src/providers/provider.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -39,7 +40,6 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
 
     ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -50,7 +50,7 @@ static void setup_repl(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "parent-uuid-123");
     agent->name = NULL;
     agent->parent_uuid = NULL;
@@ -138,50 +138,51 @@ static void suite_teardown(void)
 // Test: Child inherits parent conversation
 START_TEST(test_fork_child_inherits_conversation) {
     // Add a message to parent's conversation before forking
-    ik_msg_t *msg = ik_openai_msg_create(test_ctx, "user", "Test message from parent");
+    ik_message_t *msg = ik_message_create_text(test_ctx, IK_ROLE_USER, "Test message from parent");
 
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
+    res_t add_res = ik_agent_add_message(repl->current, msg);
     ck_assert(is_ok(&add_res));
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Child should inherit parent's conversation
     ik_agent_ctx_t *child = repl->current;
-    ck_assert_ptr_nonnull(child->conversation);
-    ck_assert_uint_eq(child->conversation->message_count, 1);
+    ck_assert_uint_eq(child->message_count, 1);
 
     // Verify the message content was copied
-    ck_assert_str_eq(child->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(child->conversation->messages[0]->content, "Test message from parent");
+    ck_assert(child->messages[0]->role == IK_ROLE_USER);
+    ck_assert(child->messages[0]->content_count > 0);
+    ck_assert(child->messages[0]->content_blocks[0].type == IK_CONTENT_TEXT);
+    ck_assert_str_eq(child->messages[0]->content_blocks[0].data.text.text, "Test message from parent");
 }
 END_TEST
 // Test: Child post-fork messages are separate from parent
 START_TEST(test_fork_child_post_fork_messages_separate)
 {
     // Add initial message to parent
-    ik_msg_t *parent_msg = ik_openai_msg_create(test_ctx, "user", "Parent message before fork");
-    res_t add_res = ik_openai_conversation_add_msg(repl->current->conversation, parent_msg);
+    ik_message_t *parent_msg = ik_message_create_text(test_ctx, IK_ROLE_USER, "Parent message before fork");
+    res_t add_res = ik_agent_add_message(repl->current, parent_msg);
     ck_assert(is_ok(&add_res));
 
     ik_agent_ctx_t *parent = repl->current;
-    size_t parent_msg_count_before_fork = parent->conversation->message_count;
+    size_t parent_msg_count_before_fork = parent->message_count;
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Add message to child's conversation (simulating post-fork message)
     ik_agent_ctx_t *child = repl->current;
-    ik_msg_t *child_msg = ik_openai_msg_create(test_ctx, "user", "Child message after fork");
-    res_t child_add_res = ik_openai_conversation_add_msg(child->conversation, child_msg);
+    ik_message_t *child_msg = ik_message_create_text(test_ctx, IK_ROLE_USER, "Child message after fork");
+    res_t child_add_res = ik_agent_add_message(child, child_msg);
     ck_assert(is_ok(&child_add_res));
 
     // Child should have the post-fork message
-    ck_assert_uint_eq(child->conversation->message_count, 2);
+    ck_assert_uint_eq(child->message_count, 2);
 
     // Parent's conversation should remain unchanged
-    ck_assert_uint_eq(parent->conversation->message_count, parent_msg_count_before_fork);
+    ck_assert_uint_eq(parent->message_count, parent_msg_count_before_fork);
 }
 
 END_TEST

@@ -15,6 +15,7 @@
 #include "../../src/db/message.h"
 #include "../../src/db/session.h"
 #include "../../src/agent.h"
+#include "../../src/providers/provider.h"
 #include "../../src/repl.h"
 #include "../../src/error.h"
 #include "../../src/config.h"
@@ -160,7 +161,23 @@ static void insert_msg(const char *uuid, const char *kind, const char *content)
 // Helper: Verify message content at index
 static void verify_msg(ik_agent_ctx_t *agent, size_t idx, const char *expected)
 {
-    ck_assert_str_eq(agent->conversation->messages[idx]->content, expected);
+    ik_message_t *msg = agent->messages[idx];
+    ck_assert_ptr_nonnull(msg);
+    ck_assert_uint_ge(msg->content_count, 1);
+    ck_assert_int_eq(msg->content_blocks[0].type, IK_CONTENT_TEXT);
+    ck_assert_str_eq(msg->content_blocks[0].data.text.text, expected);
+}
+
+// Helper: Get text content from message
+static const char *get_msg_text(ik_message_t *msg)
+{
+    if (msg == NULL || msg->content_count == 0) {
+        return NULL;
+    }
+    if (msg->content_blocks[0].type != IK_CONTENT_TEXT) {
+        return NULL;
+    }
+    return msg->content_blocks[0].data.text.text;
 }
 
 // Helper: Create minimal repl context for testing
@@ -227,7 +244,7 @@ START_TEST(test_multi_agent_restart_preserves_hierarchy) {
     ck_assert_uint_eq(repl->agent_count, 2);
     ik_agent_ctx_t *child = repl->agents[1];
     ck_assert_str_eq(child->parent_uuid, "parent-hier-test");
-    ck_assert_uint_ge(child->conversation->message_count, 3);
+    ck_assert_uint_ge(child->message_count, 3);
 }
 END_TEST
 // Test: Forked agent survives restart with correct history
@@ -252,10 +269,10 @@ START_TEST(test_forked_agent_survives_restart)
     ck_assert_uint_eq(repl->agent_count, 2);
 
     ik_agent_ctx_t *parent = repl->current;
-    ck_assert_uint_ge(parent->conversation->message_count, 4);
+    ck_assert_uint_ge(parent->message_count, 4);
 
     ik_agent_ctx_t *child = repl->agents[1];
-    ck_assert_uint_eq(child->conversation->message_count, 4);
+    ck_assert_uint_eq(child->message_count, 4);
     verify_msg(child, 0, "A");
     verify_msg(child, 1, "B");
     verify_msg(child, 2, "X");
@@ -315,16 +332,20 @@ START_TEST(test_fork_points_respected_on_restore)
     ck_assert(is_ok(&res));
 
     ik_agent_ctx_t *child = repl->agents[1];
-    ck_assert_uint_eq(child->conversation->message_count, 5);
+    ck_assert_uint_eq(child->message_count, 5);
     verify_msg(child, 0, "msg1");
     verify_msg(child, 1, "msg2");
     verify_msg(child, 2, "msg3");
     verify_msg(child, 3, "child_msg1");
     verify_msg(child, 4, "child_msg2");
 
-    for (size_t i = 0; i < child->conversation->message_count; i++) {
-        ck_assert_str_ne(child->conversation->messages[i]->content, "msg4");
-        ck_assert_str_ne(child->conversation->messages[i]->content, "msg5");
+    // Verify child does not have parent's post-fork messages
+    for (size_t i = 0; i < child->message_count; i++) {
+        const char *text = get_msg_text(child->messages[i]);
+        if (text != NULL) {
+            ck_assert_str_ne(text, "msg4");
+            ck_assert_str_ne(text, "msg5");
+        }
     }
 }
 
@@ -345,7 +366,7 @@ START_TEST(test_clear_events_respected_on_restore)
     res_t res = ik_repl_restore_agents(repl, db);
     ck_assert(is_ok(&res));
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     verify_msg(repl->current, 0, "msg3");
     verify_msg(repl->current, 1, "msg4");
 }
@@ -380,7 +401,7 @@ START_TEST(test_deep_ancestry_on_restore)
         }
     }
     ck_assert_ptr_nonnull(child);
-    ck_assert_uint_eq(child->conversation->message_count, 4);
+    ck_assert_uint_eq(child->message_count, 4);
     verify_msg(child, 0, "gp_msg1");
     verify_msg(child, 1, "gp_msg2");
     verify_msg(child, 2, "p_msg1");
@@ -422,17 +443,13 @@ START_TEST(test_metadata_events_filtered_on_restore)
     res_t res = ik_repl_restore_agents(repl, db);
     ck_assert(is_ok(&res));
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 4);
+    // Metadata events (clear, mark, agent_killed) are filtered during replay
+    // Only conversation messages (user, assistant) should be in the array
+    ck_assert_uint_eq(repl->current->message_count, 4);
     verify_msg(repl->current, 0, "Hello");
     verify_msg(repl->current, 1, "Hi there");
     verify_msg(repl->current, 2, "Follow up");
     verify_msg(repl->current, 3, "Response");
-
-    for (size_t i = 0; i < repl->current->conversation->message_count; i++) {
-        ck_assert_str_ne(repl->current->conversation->messages[i]->kind, "agent_killed");
-        ck_assert_str_ne(repl->current->conversation->messages[i]->kind, "mark");
-        ck_assert_str_ne(repl->current->conversation->messages[i]->kind, "clear");
-    }
 }
 
 END_TEST

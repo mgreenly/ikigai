@@ -8,9 +8,10 @@
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/error.h"
+#include "../../../src/message.h"
+#include "../../../src/providers/provider.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/marks.h"
 #include "../../test_utils.h"
 
@@ -34,8 +35,6 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
 
     // Create minimal config
     ik_config_t *cfg = talloc_zero(parent, ik_config_t);
@@ -55,7 +54,7 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
 
-    agent->conversation = conv;
+
     r->current = agent;
 
     r->current->marks = NULL;
@@ -116,8 +115,8 @@ START_TEST(test_create_multiple_marks)
 {
     res_t res;
     // Add some messages to conversation
-    ik_msg_t *msg1 = ik_openai_msg_create(repl->current->conversation, "user", "Hello");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg1);
+    ik_message_t *msg1 = ik_message_create_text(ctx, IK_ROLE_USER, "Hello");
+    res = ik_agent_add_message(repl->current, msg1);
     ck_assert(is_ok(&res));
 
     // Create first mark
@@ -127,8 +126,8 @@ START_TEST(test_create_multiple_marks)
     ck_assert_uint_eq(repl->current->marks[0]->message_index, 1);
 
     // Add another message
-    ik_msg_t *msg2 = ik_openai_msg_create(repl->current->conversation, "assistant", "Hi");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg2);
+    ik_message_t *msg2 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Hi");
+    res = ik_agent_add_message(repl->current, msg2);
     ck_assert(is_ok(&res));
 
     // Create second mark
@@ -228,12 +227,12 @@ START_TEST(test_rewind_to_mark)
 {
     res_t res;
     // Build conversation with messages
-    ik_msg_t *msg1 = ik_openai_msg_create(repl->current->conversation, "user", "Message 1");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg1);
+    ik_message_t *msg1 = ik_message_create_text(ctx, IK_ROLE_USER, "Message 1");
+    res = ik_agent_add_message(repl->current, msg1);
     ck_assert(is_ok(&res));
 
-    ik_msg_t *msg2 = ik_openai_msg_create(repl->current->conversation, "assistant", "Response 1");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg2);
+    ik_message_t *msg2 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response 1");
+    res = ik_agent_add_message(repl->current, msg2);
     ck_assert(is_ok(&res));
 
     // Create mark after 2 messages
@@ -241,23 +240,23 @@ START_TEST(test_rewind_to_mark)
     ck_assert(is_ok(&res));
 
     // Add more messages
-    ik_msg_t *msg3 = ik_openai_msg_create(repl->current->conversation, "user", "Message 2");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg3);
+    ik_message_t *msg3 = ik_message_create_text(ctx, IK_ROLE_USER, "Message 2");
+    res = ik_agent_add_message(repl->current, msg3);
     ck_assert(is_ok(&res));
 
-    ik_msg_t *msg4 = ik_openai_msg_create(repl->current->conversation, "assistant", "Response 2");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg4);
+    ik_message_t *msg4 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response 2");
+    res = ik_agent_add_message(repl->current, msg4);
     ck_assert(is_ok(&res));
 
     // Verify conversation has 4 messages
-    ck_assert_uint_eq(repl->current->conversation->message_count, 4);
+    ck_assert_uint_eq(repl->current->message_count, 4);
 
     // Rewind to checkpoint
     res = ik_mark_rewind_to(repl, "checkpoint");
     ck_assert(is_ok(&res));
 
     // Verify conversation was truncated to 2 messages
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
 
     // Verify mark was preserved (Bug 7 fix: marks are reusable)
     ck_assert_uint_eq(repl->current->mark_count, 1);
@@ -269,15 +268,15 @@ START_TEST(test_rewind_to_most_recent)
 {
     res_t res;
     // Create conversation and marks
-    ik_msg_t *msg = ik_openai_msg_create(repl->current->conversation, "user", "Message");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
+    ik_message_t *msg = ik_message_create_text(ctx, IK_ROLE_USER, "Message");
+    res = ik_agent_add_message(repl->current, msg);
     ck_assert(is_ok(&res));
 
     res = ik_mark_create(repl, "mark1");
     ck_assert(is_ok(&res));
 
-    ik_msg_t *msg2 = ik_openai_msg_create(repl->current->conversation, "assistant", "Response");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg2);
+    ik_message_t *msg2 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response");
+    res = ik_agent_add_message(repl->current, msg2);
     ck_assert(is_ok(&res));
 
     // Rewind without label (to most recent)
@@ -285,7 +284,7 @@ START_TEST(test_rewind_to_most_recent)
     ck_assert(is_ok(&res));
 
     // Verify conversation truncated
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
 }
 
 END_TEST
@@ -294,22 +293,22 @@ START_TEST(test_rewind_to_middle_mark)
 {
     res_t res;
     // Create multiple marks
-    ik_msg_t *msg = ik_openai_msg_create(repl->current->conversation, "user", "Message 1");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
+    ik_message_t *msg = ik_message_create_text(ctx, IK_ROLE_USER, "Message 1");
+    res = ik_agent_add_message(repl->current, msg);
     ck_assert(is_ok(&res));
 
     res = ik_mark_create(repl, "first");
     ck_assert(is_ok(&res));
 
-    ik_msg_t *msg2 = ik_openai_msg_create(repl->current->conversation, "assistant", "Response 1");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg2);
+    ik_message_t *msg2 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response 1");
+    res = ik_agent_add_message(repl->current, msg2);
     ck_assert(is_ok(&res));
 
     res = ik_mark_create(repl, "second");
     ck_assert(is_ok(&res));
 
-    ik_msg_t *msg3 = ik_openai_msg_create(repl->current->conversation, "user", "Message 2");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg3);
+    ik_message_t *msg3 = ik_message_create_text(ctx, IK_ROLE_USER, "Message 2");
+    res = ik_agent_add_message(repl->current, msg3);
     ck_assert(is_ok(&res));
 
     res = ik_mark_create(repl, "third");
@@ -320,7 +319,7 @@ START_TEST(test_rewind_to_middle_mark)
     ck_assert(is_ok(&res));
 
     // Verify conversation truncated to position of second mark
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     // Verify marks truncated (should have kept first and second, removed third)
     ck_assert_uint_eq(repl->current->mark_count, 2);
 }
@@ -366,15 +365,15 @@ START_TEST(test_rewind_command_via_dispatcher)
 {
     res_t res;
     // Create conversation and mark
-    ik_msg_t *msg = ik_openai_msg_create(repl->current->conversation, "user", "Test");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
+    ik_message_t *msg = ik_message_create_text(ctx, IK_ROLE_USER, "Test");
+    res = ik_agent_add_message(repl->current, msg);
     ck_assert(is_ok(&res));
 
     res = ik_cmd_dispatch(ctx, repl, "/mark point1");
     ck_assert(is_ok(&res));
 
-    ik_msg_t *msg2 = ik_openai_msg_create(repl->current->conversation, "assistant", "Response");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg2);
+    ik_message_t *msg2 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response");
+    res = ik_agent_add_message(repl->current, msg2);
     ck_assert(is_ok(&res));
 
     // Rewind via command
@@ -382,7 +381,7 @@ START_TEST(test_rewind_command_via_dispatcher)
     ck_assert(is_ok(&res));
 
     // Verify rewound
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
 }
 
 END_TEST

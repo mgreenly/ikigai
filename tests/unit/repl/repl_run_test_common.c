@@ -4,20 +4,9 @@
  */
 
 #include "repl_run_test_common.h"
-#include "../../../src/openai/client_multi.h"
-#include "../../../src/providers/provider.h"
 #include <curl/curl.h>
 #include <sys/select.h>
 #include <errno.h>
-
-// Mock start_stream for run tests - returns OK immediately
-static res_t run_test_mock_start_stream(void *ctx, const ik_request_t *req,
-                               ik_stream_cb_t stream_cb, void *stream_ctx,
-                               ik_provider_completion_cb_t completion_cb, void *completion_ctx) {
-    (void)ctx; (void)req; (void)stream_cb; (void)stream_ctx;
-    (void)completion_cb; (void)completion_ctx;
-    return OK(NULL);
-}
 
 // Mock read tracking
 const char *mock_input = NULL;
@@ -193,62 +182,11 @@ CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue)
     return NULL;
 }
 
-// Vtable callbacks that wrap the multi handle for test provider
-static res_t test_vt_fdset(void *pctx, fd_set *read_fds, fd_set *write_fds, fd_set *exc_fds, int *max_fd) {
-    typedef struct { ik_openai_multi_t *multi; } mock_pctx_t;
-    mock_pctx_t *tctx = (mock_pctx_t *)pctx;
-    return ik_openai_multi_fdset(tctx->multi, read_fds, write_fds, exc_fds, max_fd);
-}
-static res_t test_vt_perform(void *pctx, int *running_handles) {
-    typedef struct { ik_openai_multi_t *multi; } mock_pctx_t;
-    mock_pctx_t *tctx = (mock_pctx_t *)pctx;
-    return ik_openai_multi_perform(tctx->multi, running_handles);
-}
-static res_t test_vt_timeout(void *pctx, long *timeout_ms) {
-    typedef struct { ik_openai_multi_t *multi; } mock_pctx_t;
-    mock_pctx_t *tctx = (mock_pctx_t *)pctx;
-    return ik_openai_multi_timeout(tctx->multi, timeout_ms);
-}
-static void test_vt_info_read(void *pctx, ik_logger_t *logger) {
-    typedef struct { ik_openai_multi_t *multi; } mock_pctx_t;
-    mock_pctx_t *tctx = (mock_pctx_t *)pctx;
-    ik_openai_multi_info_read(tctx->multi, logger);
-}
-
-// Helper to initialize provider for REPL tests
+// Helper to initialize agents array for REPL tests
+// Note: Provider multi-handles are now internal to each provider,
+// not stored in agent or REPL context.
 void init_repl_multi_handle(ik_repl_ctx_t *repl)
 {
-    // Set provider and model so ik_agent_get_provider doesn't fail
-    if (repl->current->provider == NULL) {
-        repl->current->provider = talloc_strdup(repl->current, "openai");
-    }
-    if (repl->current->model == NULL) {
-        repl->current->model = talloc_strdup(repl->current, "gpt-4");
-    }
-
-    res_t res = ik_openai_multi_create(repl);
-    if (is_err(&res)) {
-        // If we can't create the multi handle, set provider_instance to NULL
-        // This shouldn't happen in tests, but handle it gracefully
-        repl->current->provider_instance = NULL;
-    } else {
-        // Create a mock provider wrapper for the multi handle
-        typedef struct { ik_openai_multi_t *multi; } mock_pctx_t;
-        mock_pctx_t *mock_ctx = talloc_zero(repl->current, mock_pctx_t);
-        mock_ctx->multi = res.ok;
-
-        static const ik_provider_vtable_t test_vt = {
-            .fdset = test_vt_fdset, .perform = test_vt_perform, .timeout = test_vt_timeout, .info_read = test_vt_info_read,
-            .start_request = NULL, .start_stream = run_test_mock_start_stream, .cleanup = NULL, .cancel = NULL,
-        };
-
-        ik_provider_t *provider = talloc_zero(repl->current, ik_provider_t);
-        provider->name = "test";
-        provider->vt = &test_vt;
-        provider->ctx = mock_ctx;
-        repl->current->provider_instance = provider;
-    }
-
     // Initialize agents array with current agent
     repl->agent_count = 1;
     repl->agent_capacity = 4;

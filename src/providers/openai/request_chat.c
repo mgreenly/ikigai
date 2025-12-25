@@ -4,6 +4,7 @@
  */
 
 #include "request.h"
+#include "serialize.h"
 #include "reasoning.h"
 #include "error.h"
 #include "panic.h"
@@ -14,171 +15,6 @@
 /* ================================================================
  * Helper Functions
  * ================================================================ */
-
-/**
- * Map internal role to OpenAI role string
- */
-static const char *get_openai_role(ik_role_t role)
-{
-    switch (role) {
-        case IK_ROLE_USER:
-            return "user";
-        case IK_ROLE_ASSISTANT:
-            return "assistant";
-        case IK_ROLE_TOOL:
-            return "tool";
-        default: // LCOV_EXCL_LINE
-            return "user"; // LCOV_EXCL_LINE
-    }
-}
-
-/**
- * Serialize a single tool call to JSON
- */
-static bool serialize_tool_call(yyjson_mut_doc *doc, yyjson_mut_val *arr,
-                                 const ik_content_block_t *block)
-{
-    assert(doc != NULL);   // LCOV_EXCL_BR_LINE
-    assert(arr != NULL);   // LCOV_EXCL_BR_LINE
-    assert(block != NULL); // LCOV_EXCL_BR_LINE
-    assert(block->type == IK_CONTENT_TOOL_CALL); // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *obj = yyjson_mut_obj(doc);
-    if (!obj) return false; // LCOV_EXCL_BR_LINE
-
-    // Add id
-    if (!yyjson_mut_obj_add_str(doc, obj, "id", block->data.tool_call.id)) {
-        return false; // LCOV_EXCL_BR_LINE
-    }
-
-    // Add type
-    if (!yyjson_mut_obj_add_str(doc, obj, "type", "function")) {
-        return false; // LCOV_EXCL_BR_LINE
-    }
-
-    // Create function object
-    yyjson_mut_val *func_obj = yyjson_mut_obj(doc);
-    if (!func_obj) return false; // LCOV_EXCL_BR_LINE
-
-    // Add name
-    if (!yyjson_mut_obj_add_str(doc, func_obj, "name", block->data.tool_call.name)) {
-        return false; // LCOV_EXCL_BR_LINE
-    }
-
-    // Add arguments as JSON string (not object)
-    // OpenAI requires arguments as a JSON string, not a parsed object
-    if (!yyjson_mut_obj_add_str(doc, func_obj, "arguments", block->data.tool_call.arguments)) {
-        return false; // LCOV_EXCL_BR_LINE
-    }
-
-    // Add function object to tool call
-    if (!yyjson_mut_obj_add_val(doc, obj, "function", func_obj)) {
-        return false; // LCOV_EXCL_BR_LINE
-    }
-
-    // Add to array
-    if (!yyjson_mut_arr_add_val(arr, obj)) {
-        return false; // LCOV_EXCL_BR_LINE
-    }
-
-    return true;
-}
-
-/**
- * Serialize a single message to Chat Completions format
- */
-static bool serialize_chat_message(TALLOC_CTX *ctx, yyjson_mut_doc *doc, yyjson_mut_val *messages_arr,
-                                     const ik_message_t *message)
-{
-    assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
-    assert(doc != NULL);          // LCOV_EXCL_BR_LINE
-    assert(messages_arr != NULL); // LCOV_EXCL_BR_LINE
-    assert(message != NULL);      // LCOV_EXCL_BR_LINE
-
-    yyjson_mut_val *msg_obj = yyjson_mut_obj(doc);
-    if (!msg_obj) return false; // LCOV_EXCL_BR_LINE
-
-    // Add role
-    const char *role_str = get_openai_role(message->role);
-    if (!yyjson_mut_obj_add_str(doc, msg_obj, "role", role_str)) {
-        return false; // LCOV_EXCL_BR_LINE
-    }
-
-    // Handle different message types
-    if (message->role == IK_ROLE_TOOL) {
-        // Tool result message
-        // Find tool_call_id and content from first content block
-        if (message->content_count > 0 && message->content_blocks[0].type == IK_CONTENT_TOOL_RESULT) {
-            const ik_content_block_t *block = &message->content_blocks[0];
-            if (!yyjson_mut_obj_add_str(doc, msg_obj, "tool_call_id", block->data.tool_result.tool_call_id)) {
-                return false; // LCOV_EXCL_BR_LINE
-            }
-            if (!yyjson_mut_obj_add_str(doc, msg_obj, "content", block->data.tool_result.content)) {
-                return false; // LCOV_EXCL_BR_LINE
-            }
-        }
-    } else {
-        // Check if this is an assistant message with tool calls
-        bool has_tool_calls = false;
-        for (size_t i = 0; i < message->content_count; i++) {
-            if (message->content_blocks[i].type == IK_CONTENT_TOOL_CALL) {
-                has_tool_calls = true;
-                break;
-            }
-        }
-
-        if (has_tool_calls) {
-            // Assistant message with tool calls: content is null, add tool_calls array
-            if (!yyjson_mut_obj_add_null(doc, msg_obj, "content")) {
-                return false; // LCOV_EXCL_BR_LINE
-            }
-
-            yyjson_mut_val *tool_calls_arr = yyjson_mut_arr(doc);
-            if (!tool_calls_arr) return false; // LCOV_EXCL_BR_LINE
-
-            for (size_t i = 0; i < message->content_count; i++) {
-                if (message->content_blocks[i].type == IK_CONTENT_TOOL_CALL) {
-                    if (!serialize_tool_call(doc, tool_calls_arr, &message->content_blocks[i])) {
-                        return false;
-                    }
-                }
-            }
-
-            if (!yyjson_mut_obj_add_val(doc, msg_obj, "tool_calls", tool_calls_arr)) {
-                return false; // LCOV_EXCL_BR_LINE
-            }
-        } else {
-            // Regular message: concatenate text content
-            char *content = talloc_strdup(ctx, "");
-            if (!content) return false; // LCOV_EXCL_BR_LINE
-
-            for (size_t i = 0; i < message->content_count; i++) {
-                if (message->content_blocks[i].type == IK_CONTENT_TEXT) {
-                    if (strlen(content) > 0) {
-                        content = talloc_asprintf_append_buffer(content, "\n\n%s",
-                                                                  message->content_blocks[i].data.text.text);
-                    } else {
-                        content = talloc_asprintf_append_buffer(content, "%s",
-                                                                  message->content_blocks[i].data.text.text);
-                    }
-                    if (!content) return false; // LCOV_EXCL_BR_LINE
-                }
-            }
-
-            if (!yyjson_mut_obj_add_str(doc, msg_obj, "content", content)) {
-                return false; // LCOV_EXCL_BR_LINE
-            }
-            talloc_free(content);
-        }
-    }
-
-    // Add message to array
-    if (!yyjson_mut_arr_add_val(messages_arr, msg_obj)) {
-        return false; // LCOV_EXCL_BR_LINE
-    }
-
-    return true;
-}
 
 /**
  * Serialize a single tool definition to Chat Completions format
@@ -339,9 +175,10 @@ res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx, const ik_request_t *req,
 
     // Add conversation messages
     for (size_t i = 0; i < req->message_count; i++) {
-        if (!serialize_chat_message(ctx, doc, messages_arr, &req->messages[i])) {
-            yyjson_mut_doc_free(doc);
-            return ERR(ctx, PARSE, "Failed to serialize message");
+        yyjson_mut_val *msg_obj = ik_openai_serialize_message(doc, &req->messages[i]);
+        if (!yyjson_mut_arr_add_val(messages_arr, msg_obj)) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            return ERR(ctx, PARSE, "Failed to add message to array"); // LCOV_EXCL_LINE
         }
     }
 

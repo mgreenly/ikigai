@@ -40,7 +40,8 @@ START_TEST(test_agent_restore_creates_from_db_row) {
     ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_nonnull(agent->scrollback);
     ck_assert_ptr_nonnull(agent->layer_cake);
-    ck_assert_ptr_nonnull(agent->conversation);
+    // Messages array starts empty (NULL) with count 0
+    ck_assert_uint_eq(agent->message_count, 0);
 
     talloc_free(ctx);
 }

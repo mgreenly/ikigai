@@ -1,4 +1,6 @@
 #include "agent.h"
+#include "message.h"
+#include "providers/provider.h"
 #include "../../test_utils.h"
 #include "../../../src/agent.h"
 #include <check.h>
@@ -7,7 +9,6 @@
 #include <unistd.h>
 #include "repl.h"
 #include "shared.h"
-#include "openai/client.h"
 #include "tool.h"
 #include "scrollback.h"
 #include "config.h"
@@ -89,7 +90,7 @@ static void setup(void)
     repl->current = agent;
 
     /* Create conversation */
-    repl->current->conversation = ik_openai_conversation_create(repl);
+    repl->current->messages = NULL; repl->current->message_count = 0; repl->current->message_capacity = 0;
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 10);
@@ -203,15 +204,17 @@ START_TEST(test_complete_tool_execution)
     ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
 
-    /* First message should be tool_call */
-    ik_msg_t *tc_msg = repl->current->conversation->messages[0];
-    ck_assert_str_eq(tc_msg->kind, "tool_call");
+    /* First message should be tool_call (assistant with tool_call content) */
+    ik_message_t *tc_msg = repl->current->messages[0];
+    ck_assert(tc_msg->role == IK_ROLE_ASSISTANT);
+    ck_assert(tc_msg->content_blocks[0].type == IK_CONTENT_TOOL_CALL);
 
     /* Second message should be tool_result */
-    ik_msg_t *result_msg = repl->current->conversation->messages[1];
-    ck_assert_str_eq(result_msg->kind, "tool_result");
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
+    ck_assert(result_msg->content_blocks[0].type == IK_CONTENT_TOOL_RESULT);
 
     /* Verify thread state was reset */
     ck_assert(!repl->current->tool_thread_running);
@@ -254,7 +257,7 @@ START_TEST(test_async_tool_file_read)
     ik_repl_complete_tool_execution(repl);
 
     /* Verify messages were added */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
@@ -289,7 +292,7 @@ START_TEST(test_async_tool_with_debug_pipe)
     ik_repl_complete_tool_execution(repl);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
@@ -325,7 +328,7 @@ START_TEST(test_async_tool_db_persistence)
     ck_assert_int_eq(db_insert_call_count, 2);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
@@ -361,7 +364,7 @@ START_TEST(test_async_tool_no_db_ctx)
     ck_assert_int_eq(db_insert_call_count, 0);
 
     /* Verify execution still succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
@@ -397,7 +400,7 @@ START_TEST(test_async_tool_no_session_id)
     ck_assert_int_eq(db_insert_call_count, 0);
 
     /* Verify execution still succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 

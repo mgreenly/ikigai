@@ -11,7 +11,6 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
@@ -98,8 +97,6 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
 
     // Create minimal config
     ik_config_t *cfg = talloc_zero(parent, ik_config_t);
@@ -125,7 +122,7 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "test-agent-uuid");
     r->current = agent;
 

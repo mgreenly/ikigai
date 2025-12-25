@@ -645,7 +645,6 @@ MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct 
 #include "config.h"
 #include "scrollback.h"
 #include "msg.h"
-#include "openai/client.h"
 
 MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
 {
@@ -665,11 +664,6 @@ MOCKABLE res_t ik_db_message_insert_(void *db,
 MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length)
 {
     return ik_scrollback_append_line((ik_scrollback_t *)scrollback, text, length);
-}
-
-MOCKABLE res_t ik_openai_conversation_add_msg_(void *conv, void *msg)
-{
-    return ik_openai_conversation_add_msg((ik_openai_conversation_t *)conv, (ik_msg_t *)msg);
 }
 
 // LCOV_EXCL_STOP

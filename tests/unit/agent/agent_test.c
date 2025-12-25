@@ -210,8 +210,8 @@ START_TEST(test_agent_input_buffer_visible_true)
 }
 
 END_TEST
-// Test agent->conversation is initialized
-START_TEST(test_agent_conversation_initialized)
+// Test agent->messages is initialized (empty array)
+START_TEST(test_agent_messages_initialized)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -224,7 +224,8 @@ START_TEST(test_agent_conversation_initialized)
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(agent);
-    ck_assert_ptr_nonnull(agent->conversation);
+    // Messages array starts empty (NULL) with count 0
+    ck_assert_uint_eq(agent->message_count, 0);
 
     talloc_free(ctx);
 }
@@ -495,7 +496,7 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_agent_input_buffer_initialized);
     tcase_add_test(tc_core, test_agent_separator_visible_true);
     tcase_add_test(tc_core, test_agent_input_buffer_visible_true);
-    tcase_add_test(tc_core, test_agent_conversation_initialized);
+    tcase_add_test(tc_core, test_agent_messages_initialized);
     tcase_add_test(tc_core, test_agent_marks_and_count_initially);
     tcase_add_test(tc_core, test_agent_state_idle_initially);
     tcase_add_test(tc_core, test_agent_provider_instance_null_initially);

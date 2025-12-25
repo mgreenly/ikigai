@@ -1,7 +1,7 @@
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
+#include "../../../src/message.h"
 #include "../../test_utils.h"
 
 #include <check.h>
@@ -63,20 +63,17 @@ START_TEST(test_agent_copy_conversation)
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(parent);
 
-    // Add messages to parent - some with data_json, some without
-    ik_msg_t *msg1 = ik_openai_msg_create(parent->conversation, "user", "Hello");
-    res = ik_openai_conversation_add_msg(parent->conversation, msg1);
+    // Add messages to parent using new API
+    ik_message_t *msg1 = ik_message_create_text(parent, IK_ROLE_USER, "Hello");
+    res = ik_agent_add_message(parent, msg1);
     ck_assert(is_ok(&res));
 
-    // Message without data_json
-    ik_msg_t *msg2 = ik_openai_msg_create(parent->conversation, "assistant", "Hi there");
-    res = ik_openai_conversation_add_msg(parent->conversation, msg2);
+    ik_message_t *msg2 = ik_message_create_text(parent, IK_ROLE_ASSISTANT, "Hi there");
+    res = ik_agent_add_message(parent, msg2);
     ck_assert(is_ok(&res));
 
-    // Message with data_json
-    ik_msg_t *msg_with_data = ik_openai_msg_create(parent->conversation, "assistant", "With data");
-    msg_with_data->data_json = talloc_strdup(msg_with_data, "{\"test\": true}");
-    res = ik_openai_conversation_add_msg(parent->conversation, msg_with_data);
+    ik_message_t *msg3 = ik_message_create_text(parent, IK_ROLE_ASSISTANT, "With data");
+    res = ik_agent_add_message(parent, msg3);
     ck_assert(is_ok(&res));
 
     // Create child agent
@@ -90,8 +87,7 @@ START_TEST(test_agent_copy_conversation)
     ck_assert(is_ok(&res));
 
     // Verify child has messages
-    ck_assert_ptr_nonnull(child->conversation);
-    ck_assert_uint_eq(child->conversation->message_count, parent->conversation->message_count);
+    ck_assert_uint_eq(child->message_count, parent->message_count);
 
     talloc_free(ctx);
 }
