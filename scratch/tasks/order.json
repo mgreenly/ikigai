@@ -1,6 +1,12 @@
 {
   "todo": [
     {
+      "task": "task-0-foundation.md",
+      "group": "Foundation",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
       "task": "message-storage-dual-mode.md",
       "group": "Foundation",
       "model": "sonnet",
