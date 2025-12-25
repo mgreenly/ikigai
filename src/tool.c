@@ -194,6 +194,7 @@ yyjson_mut_val *ik_tool_build_schema_from_def(yyjson_mut_doc *doc,
 
     if (!yyjson_mut_obj_add_str(doc, parameters, "type", "object")) PANIC("Failed");  // LCOV_EXCL_BR_LINE
     if (!yyjson_mut_obj_add_val(doc, parameters, "properties", properties)) PANIC("Failed");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_bool(doc, parameters, "additionalProperties", false)) PANIC("Failed");  // LCOV_EXCL_BR_LINE
 
     // Build required array from params marked as required
     yyjson_mut_val *required = yyjson_mut_arr(doc);
