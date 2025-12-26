@@ -41,3 +41,85 @@
    obj:*/libtalloc.so*
    ...
 }
+
+{
+   Talloc test context - definitely lost in forked test processes (setup)
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   obj:*/libtalloc.so*
+   fun:setup
+   ...
+}
+
+{
+   Talloc test context - definitely lost in assertion tests
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   obj:*/libtalloc.so*
+   ...
+}
+
+{
+   Talloc - indirectly lost from forked test processes
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   ...
+   obj:*/libtalloc.so*
+   ...
+}
+
+{
+   Talloc - indirectly lost strdup
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   ...
+   fun:*talloc_strdup*
+   ...
+}
+
+{
+   Curl - indirectly lost in test cleanup
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   ...
+   obj:*/libcurl*
+   ...
+}
+
+{
+   Curl - indirectly lost strdup
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   fun:strdup
+   ...
+   obj:*/libcurl*
+   ...
+}
+
+{
+   Curl - indirectly lost calloc
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:calloc
+   ...
+   obj:*/libcurl*
+   ...
+}
+
+{
+   Curl - indirectly lost realloc
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:realloc
+   ...
+   obj:*/libcurl*
+   ...
+}
