@@ -423,7 +423,11 @@ DB_INTEGRATION_TEST_RUNS = $(DB_INTEGRATION_TEST_TARGETS:%=%.run)
 # Pattern rule to run a test
 %.run: %
 	@echo "Running $<..."
+ifeq ($(BUILD),sanitize)
+	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $< || (echo "✗ Test failed: $<" && exit 1)
+else
 	@$< || (echo "✗ Test failed: $<" && exit 1)
+endif
 
 check: check-unit check-integration
 	@echo "All tests passed!"
