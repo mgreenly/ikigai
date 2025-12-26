@@ -7,6 +7,7 @@
 
 #include "commands_basic.h"
 #include "commands_mark.h"
+#include "commands_model.h"
 #include "db/message.h"
 #include "logger.h"
 #include "panic.h"
