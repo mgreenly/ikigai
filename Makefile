@@ -344,6 +344,10 @@ $(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_advanced_test: $(
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
+$(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_unit_test: $(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_unit_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
 # Special rules for google streaming tests (need vcr helper for fixture playback)
 $(BUILDDIR)/tests/unit/providers/google/google_streaming_async_test: $(BUILDDIR)/tests/unit/providers/google/google_streaming_async_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)

@@ -15,12 +15,6 @@
 #include <string.h>
 
 /* ================================================================
- * Forward Declarations
- * ================================================================ */
-
-static size_t curl_write_callback(const char *data, size_t len, void *ctx);
-
-/* ================================================================
  * Context Creation
  * ================================================================ */
 
@@ -135,42 +129,4 @@ void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
         ik_anthropic_process_error(stream_ctx, root);
     }
     // Unknown events are ignored
-}
-
-/* ================================================================
- * Curl Write Callback
- * ================================================================ */
-
-/**
- * Curl write callback for streaming responses
- *
- * Called by curl as data arrives from network.
- * Feeds data to SSE parser and pulls complete events.
- */
-__attribute__((unused))
-static size_t curl_write_callback(const char *data, size_t len, void *ctx)
-{
-    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
-    assert(data != NULL); // LCOV_EXCL_BR_LINE
-
-    ik_anthropic_stream_ctx_t *stream_ctx = (ik_anthropic_stream_ctx_t *)ctx;
-
-    // Feed data to SSE parser
-    ik_sse_parser_feed(stream_ctx->sse_parser, data, len);
-
-    // Pull and process all complete events
-    ik_sse_event_t *event;
-    while ((event = ik_sse_parser_next(stream_ctx->sse_parser, stream_ctx)) != NULL) {
-        // Process the event
-        const char *event_type = event->event ? event->event : "";
-        const char *event_data = event->data ? event->data : "";
-
-        ik_anthropic_stream_process_event(stream_ctx, event_type, event_data);
-
-        // Event is allocated on stream_ctx, will be cleaned up automatically
-        talloc_free(event);
-    }
-
-    // Return len to indicate all bytes consumed
-    return len;
 }
