@@ -136,7 +136,7 @@ VCR_STUBS_OBJ = $(BUILDDIR)/tests/helpers/vcr_stubs.o
 REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_test_common.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 EQUIVALENCE_FIXTURES_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures.o
-EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare.o
+EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_basic.o $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex.o
 
 .PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
@@ -226,7 +226,11 @@ $(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures.o: tests/unit/provi
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(BUILDDIR)/tests/unit/providers/openai/equivalence_compare.o: tests/unit/providers/openai/equivalence_compare.c tests/unit/providers/openai/equivalence_compare.h
+$(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_basic.o: tests/unit/providers/openai/equivalence_compare_basic.c tests/unit/providers/openai/equivalence_compare.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex.o: tests/unit/providers/openai/equivalence_compare_complex.c tests/unit/providers/openai/equivalence_compare.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
