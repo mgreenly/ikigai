@@ -1,8 +1,8 @@
 /**
- * @file google_streaming_parser_basic_test.c
- * @brief Unit tests for Google provider basic streaming
+ * @file google_streaming_parser_thinking_test.c
+ * @brief Unit tests for Google provider thinking detection and event normalization
  *
- * Tests verify basic streaming functionality.
+ * Tests verify thought detection and event normalization.
  */
 
 #include <check.h>
@@ -149,103 +149,159 @@ static size_t count_events(ik_stream_event_type_t type)
 }
 
 /* ================================================================
- * Basic Streaming Tests
+ * Thought Part Detection Tests
  * ================================================================ */
 
-START_TEST(test_parse_single_text_part_chunk) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process chunk with single text part */
-    const char *chunk =
-        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
-    process_chunk(sctx, chunk);
-
-    /* Verify START event emitted */
-    ck_assert_int_ge((int)captured_count, 1);
-    ck_assert_int_eq(captured_events[0].type, IK_STREAM_START);
-    ck_assert_str_eq(captured_events[0].data.start.model, "gemini-2.5-flash");
-
-    /* Verify TEXT_DELTA event emitted */
-    const ik_stream_event_t *text_event = find_event(IK_STREAM_TEXT_DELTA);
-    ck_assert_ptr_nonnull(text_event);
-    ck_assert_str_eq(text_event->data.delta.text, "Hello");
-}
-END_TEST
-
-START_TEST(test_parse_multiple_text_parts_in_one_chunk)
+START_TEST(test_parse_part_with_thought_true_flag)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
-    /* Process chunk with multiple text parts */
+    /* Process chunk with thought=true */
     const char *chunk =
-        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"},{\"text\":\" world\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Let me think...\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
     process_chunk(sctx, chunk);
 
-    /* Verify multiple TEXT_DELTA events */
+    /* Verify THINKING_DELTA event emitted */
+    const ik_stream_event_t *thinking_event = find_event(IK_STREAM_THINKING_DELTA);
+    ck_assert_ptr_nonnull(thinking_event);
+    ck_assert_str_eq(thinking_event->data.delta.text, "Let me think...");
+}
+
+END_TEST
+
+START_TEST(test_parse_part_without_thought_flag)
+{
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Process chunk without thought flag (defaults to false) */
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Regular text\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+    process_chunk(sctx, chunk);
+
+    /* Verify TEXT_DELTA event emitted (not THINKING_DELTA) */
+    const ik_stream_event_t *text_event = find_event(IK_STREAM_TEXT_DELTA);
+    ck_assert_ptr_nonnull(text_event);
+
+    /* Verify no THINKING_DELTA event */
+    const ik_stream_event_t *thinking_event = find_event(IK_STREAM_THINKING_DELTA);
+    ck_assert_ptr_null(thinking_event);
+}
+
+END_TEST
+
+START_TEST(test_distinguish_thought_content_from_regular_content)
+{
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Process chunk with both thought and regular text */
+    process_chunk(sctx,
+                  "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Thinking...\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
+    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Answer\"}]}}]}");
+
+    /* Verify THINKING_DELTA and TEXT_DELTA events */
+    size_t thinking_count = count_events(IK_STREAM_THINKING_DELTA);
     size_t text_count = count_events(IK_STREAM_TEXT_DELTA);
+
+    ck_assert_int_eq((int)thinking_count, 1);
+    ck_assert_int_eq((int)text_count, 1);
+}
+
+END_TEST
+
+START_TEST(test_interleaved_thinking_and_content_parts)
+{
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Process chunks with interleaved thinking and content */
+    process_chunk(sctx,
+                  "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Thought 1\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
+    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Content 1\"}]}}]}");
+    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Thought 2\",\"thought\":true}]}}]}");
+    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Content 2\"}]}}]}");
+
+    /* Verify event sequence */
+    size_t thinking_count = count_events(IK_STREAM_THINKING_DELTA);
+    size_t text_count = count_events(IK_STREAM_TEXT_DELTA);
+
+    ck_assert_int_eq((int)thinking_count, 2);
     ck_assert_int_eq((int)text_count, 2);
 }
 
 END_TEST
 
-START_TEST(test_parse_finish_reason_chunk)
+/* ================================================================
+ * Event Normalization Tests
+ * ================================================================ */
+
+START_TEST(test_normalize_text_part_to_text_delta)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
-    /* Process START chunk first */
-    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
-
-    /* Process chunk with finishReason and usageMetadata */
+    /* Process text part */
     const char *chunk =
-        "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"!\"}]}}],\"usageMetadata\":{\"promptTokenCount\":10,\"candidatesTokenCount\":5,\"totalTokenCount\":15}}";
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
     process_chunk(sctx, chunk);
 
-    /* Verify DONE event emitted */
-    const ik_stream_event_t *done_event = find_event(IK_STREAM_DONE);
-    ck_assert_ptr_nonnull(done_event);
-    ck_assert_int_eq(done_event->data.done.finish_reason, IK_FINISH_STOP);
-    ck_assert_int_eq(done_event->data.done.usage.input_tokens, 10);
-    ck_assert_int_eq(done_event->data.done.usage.output_tokens, 5);
+    /* Verify normalized to IK_STREAM_TEXT_DELTA */
+    const ik_stream_event_t *event = find_event(IK_STREAM_TEXT_DELTA);
+    ck_assert_ptr_nonnull(event);
+    ck_assert_int_eq(event->type, IK_STREAM_TEXT_DELTA);
 }
 
 END_TEST
 
-START_TEST(test_accumulate_text_across_multiple_chunks)
+START_TEST(test_normalize_thought_part_to_thinking_delta)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
-    /* Process multiple chunks */
-    process_chunk(sctx,
-                  "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
-    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" world\"}]}}]}");
-    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"!\"}]}}]}");
+    /* Process thought part */
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Thinking\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+    process_chunk(sctx, chunk);
 
-    /* Verify multiple TEXT_DELTA events */
-    size_t text_count = count_events(IK_STREAM_TEXT_DELTA);
-    ck_assert_int_eq((int)text_count, 3);
+    /* Verify normalized to IK_STREAM_THINKING_DELTA */
+    const ik_stream_event_t *event = find_event(IK_STREAM_THINKING_DELTA);
+    ck_assert_ptr_nonnull(event);
+    ck_assert_int_eq(event->type, IK_STREAM_THINKING_DELTA);
+}
 
-    /* Verify each text delta */
-    size_t text_idx = 0;
-    for (size_t i = 0; i < captured_count && text_idx < 3; i++) {
-        if (captured_events[i].type == IK_STREAM_TEXT_DELTA) {
-            if (text_idx == 0) {
-                ck_assert_str_eq(captured_events[i].data.delta.text, "Hello");
-            } else if (text_idx == 1) {
-                ck_assert_str_eq(captured_events[i].data.delta.text, " world");
-            } else if (text_idx == 2) {
-                ck_assert_str_eq(captured_events[i].data.delta.text, "!");
-            }
-            text_idx++;
-        }
-    }
+END_TEST
+
+START_TEST(test_normalize_finish_reason_to_done_with_usage)
+{
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Process START first */
+    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
+
+    /* Process finish chunk with usage */
+    const char *chunk =
+        "{\"candidates\":[{\"finishReason\":\"MAX_TOKENS\"}],\"usageMetadata\":{\"promptTokenCount\":100,\"candidatesTokenCount\":200,\"thoughtsTokenCount\":50,\"totalTokenCount\":300}}";
+    process_chunk(sctx, chunk);
+
+    /* Verify normalized to IK_STREAM_DONE with usage */
+    const ik_stream_event_t *event = find_event(IK_STREAM_DONE);
+    ck_assert_ptr_nonnull(event);
+    ck_assert_int_eq(event->type, IK_STREAM_DONE);
+    ck_assert_int_eq(event->data.done.finish_reason, IK_FINISH_LENGTH);
+    ck_assert_int_eq(event->data.done.usage.input_tokens, 100);
+    ck_assert_int_eq(event->data.done.usage.output_tokens, 150); /* 200 - 50 */
+    ck_assert_int_eq(event->data.done.usage.thinking_tokens, 50);
+    ck_assert_int_eq(event->data.done.usage.total_tokens, 300);
 }
 
 END_TEST
@@ -254,24 +310,31 @@ END_TEST
  * Test Suite Setup
  * ================================================================ */
 
-static Suite *google_streaming_parser_basic_suite(void)
+static Suite *google_streaming_parser_thinking_suite(void)
 {
-    Suite *s = suite_create("Google Streaming Parser - Basic");
+    Suite *s = suite_create("Google Streaming Parser - Thinking");
 
-    TCase *tc_basic = tcase_create("Basic Streaming");
-    tcase_add_checked_fixture(tc_basic, setup, teardown);
-    tcase_add_test(tc_basic, test_parse_single_text_part_chunk);
-    tcase_add_test(tc_basic, test_parse_multiple_text_parts_in_one_chunk);
-    tcase_add_test(tc_basic, test_parse_finish_reason_chunk);
-    tcase_add_test(tc_basic, test_accumulate_text_across_multiple_chunks);
-    suite_add_tcase(s, tc_basic);
+    TCase *tc_thinking = tcase_create("Thought Part Detection");
+    tcase_add_checked_fixture(tc_thinking, setup, teardown);
+    tcase_add_test(tc_thinking, test_parse_part_with_thought_true_flag);
+    tcase_add_test(tc_thinking, test_parse_part_without_thought_flag);
+    tcase_add_test(tc_thinking, test_distinguish_thought_content_from_regular_content);
+    tcase_add_test(tc_thinking, test_interleaved_thinking_and_content_parts);
+    suite_add_tcase(s, tc_thinking);
+
+    TCase *tc_normalize = tcase_create("Event Normalization");
+    tcase_add_checked_fixture(tc_normalize, setup, teardown);
+    tcase_add_test(tc_normalize, test_normalize_text_part_to_text_delta);
+    tcase_add_test(tc_normalize, test_normalize_thought_part_to_thinking_delta);
+    tcase_add_test(tc_normalize, test_normalize_finish_reason_to_done_with_usage);
+    suite_add_tcase(s, tc_normalize);
 
     return s;
 }
 
 int main(void)
 {
-    Suite *s = google_streaming_parser_basic_suite();
+    Suite *s = google_streaming_parser_thinking_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);
