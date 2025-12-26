@@ -1,16 +1,14 @@
 /**
- * @file test_openai_streaming.c
- * @brief Unit tests for OpenAI Chat Completions async streaming
+ * @file test_openai_streaming_parser.c
+ * @brief Unit tests for OpenAI Chat Completions SSE parsing
  *
  * Tests SSE parsing, delta accumulation, tool call streaming, and event normalization.
  * Uses ik_openai_chat_stream_ctx_t to process SSE data events and verify emitted events.
- * Also includes async vtable integration tests that verify the provider's streaming vtable.
  */
 
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
-#include <sys/select.h>
 #include "providers/openai/streaming.h"
 #include "providers/openai/openai.h"
 #include "providers/provider.h"
@@ -142,7 +140,9 @@ START_TEST(test_parse_initial_role_delta) {
     /* First delta with role should not emit START yet (waits for content) */
     ck_assert_int_eq((int)events->count, 0);
 }
-END_TEST START_TEST(test_parse_content_delta)
+END_TEST
+
+START_TEST(test_parse_content_delta)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -164,7 +164,9 @@ END_TEST START_TEST(test_parse_content_delta)
     ck_assert_str_eq(events->items[1].data.delta.text, "Hello");
 }
 
-END_TEST START_TEST(test_parse_finish_reason)
+END_TEST
+
+START_TEST(test_parse_finish_reason)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -182,7 +184,9 @@ END_TEST START_TEST(test_parse_finish_reason)
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
 
-END_TEST START_TEST(test_handle_done_marker)
+END_TEST
+
+START_TEST(test_handle_done_marker)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -204,6 +208,7 @@ END_TEST START_TEST(test_handle_done_marker)
 }
 
 END_TEST
+
 /* ================================================================
  * Content Accumulation Tests
  * ================================================================ */
@@ -233,7 +238,9 @@ START_TEST(test_accumulate_multiple_deltas)
     ck_assert_str_eq(events->items[3].data.delta.text, "world");
 }
 
-END_TEST START_TEST(test_handle_empty_content_delta)
+END_TEST
+
+START_TEST(test_handle_empty_content_delta)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -249,7 +256,9 @@ END_TEST START_TEST(test_handle_empty_content_delta)
     ck_assert_int_eq((int)events->count, 0);
 }
 
-END_TEST START_TEST(test_preserve_text_order)
+END_TEST
+
+START_TEST(test_preserve_text_order)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -271,6 +280,7 @@ END_TEST START_TEST(test_preserve_text_order)
 }
 
 END_TEST
+
 /* ================================================================
  * Tool Call Streaming Tests
  * ================================================================ */
@@ -302,7 +312,9 @@ START_TEST(test_parse_tool_call_start)
     ck_assert_str_eq(events->items[2].data.tool_delta.arguments, "");
 }
 
-END_TEST START_TEST(test_parse_tool_call_arguments_delta)
+END_TEST
+
+START_TEST(test_parse_tool_call_arguments_delta)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -331,7 +343,9 @@ END_TEST START_TEST(test_parse_tool_call_arguments_delta)
     ck_assert_str_eq(events->items[3].data.tool_delta.arguments, "{\"lo");
 }
 
-END_TEST START_TEST(test_accumulate_tool_arguments)
+END_TEST
+
+START_TEST(test_accumulate_tool_arguments)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -362,7 +376,9 @@ END_TEST START_TEST(test_accumulate_tool_arguments)
     ck_assert_str_eq(events->items[5].data.tool_delta.arguments, ":\"NYC\"}");
 }
 
-END_TEST START_TEST(test_handle_multiple_tool_calls)
+END_TEST
+
+START_TEST(test_handle_multiple_tool_calls)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -406,7 +422,9 @@ END_TEST START_TEST(test_handle_multiple_tool_calls)
     ck_assert_int_eq(events->items[5].index, 1);
 }
 
-END_TEST START_TEST(test_emit_tool_call_done)
+END_TEST
+
+START_TEST(test_emit_tool_call_done)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -433,6 +451,7 @@ END_TEST START_TEST(test_emit_tool_call_done)
 }
 
 END_TEST
+
 /* ================================================================
  * Event Normalization Tests
  * ================================================================ */
@@ -454,7 +473,9 @@ START_TEST(test_normalize_content_to_text_delta)
     ck_assert_int_eq(events->items[1].type, IK_STREAM_TEXT_DELTA);
 }
 
-END_TEST START_TEST(test_normalize_tool_calls_to_deltas)
+END_TEST
+
+START_TEST(test_normalize_tool_calls_to_deltas)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -478,7 +499,9 @@ END_TEST START_TEST(test_normalize_tool_calls_to_deltas)
     ck_assert_int_eq(events->items[2].type, IK_STREAM_TOOL_CALL_DELTA);
 }
 
-END_TEST START_TEST(test_normalize_finish_reason_to_done)
+END_TEST
+
+START_TEST(test_normalize_finish_reason_to_done)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -498,6 +521,7 @@ END_TEST START_TEST(test_normalize_finish_reason_to_done)
 }
 
 END_TEST
+
 /* ================================================================
  * Error Handling Tests
  * ================================================================ */
@@ -514,7 +538,9 @@ START_TEST(test_handle_malformed_json)
     ck_assert_int_eq((int)events->count, 0);
 }
 
-END_TEST START_TEST(test_handle_error_response)
+END_TEST
+
+START_TEST(test_handle_error_response)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -530,7 +556,9 @@ END_TEST START_TEST(test_handle_error_response)
     ck_assert_str_eq(events->items[0].data.error.message, "Invalid API key");
 }
 
-END_TEST START_TEST(test_handle_stream_with_usage)
+END_TEST
+
+START_TEST(test_handle_stream_with_usage)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -558,117 +586,12 @@ END_TEST START_TEST(test_handle_stream_with_usage)
 END_TEST
 
 /* ================================================================
- * Async Vtable Integration Tests
- * ================================================================ */
-
-/* Dummy completion callback for tests that need to call start_stream */
-static res_t dummy_completion_cb(const ik_provider_completion_t *completion, void *ctx)
-{
-    (void)completion;
-    (void)ctx;
-    return OK(NULL);
-}
-
-START_TEST(test_start_stream_returns_immediately) {
-    /* Create provider instance */
-    ik_provider_t *provider = NULL;
-    res_t r = ik_openai_create(test_ctx, "sk-test-key-12345", &provider);
-    ck_assert(!is_err(&r));
-    ck_assert_ptr_nonnull(provider);
-
-    /* Build minimal request */
-    ik_message_t msg = {
-        .role = IK_ROLE_USER,
-        .content_blocks = NULL,
-        .content_count = 0,
-        .provider_metadata = NULL
-    };
-
-    char *model_name = talloc_strdup(test_ctx, "gpt-4");
-
-    ik_request_t req = {
-        .system_prompt = NULL,
-        .messages = &msg,
-        .message_count = 1,
-        .model = model_name,
-        .thinking = { .level = IK_THINKING_NONE, .include_summary = false },
-        .tools = NULL,
-        .tool_count = 0,
-        .max_output_tokens = 100,
-        .tool_choice_mode = 0,
-        .tool_choice_name = NULL
-    };
-
-    /* Test that start_stream returns immediately (non-blocking) */
-    bool completion_called = false;
-    r = provider->vt->start_stream(provider->ctx, &req, stream_cb, events,
-                                   dummy_completion_cb, &completion_called);
-
-    /* Should return OK (request queued successfully) */
-    ck_assert(!is_err(&r));
-
-    /* Cleanup */
-    talloc_free(provider);
-}
-END_TEST START_TEST(test_fdset_returns_valid_fds)
-{
-    /* Create provider instance */
-    ik_provider_t *provider = NULL;
-    res_t r = ik_openai_create(test_ctx, "sk-test-key-12345", &provider);
-    ck_assert(!is_err(&r));
-
-    /* Test fdset before any requests */
-    fd_set read_fds, write_fds, exc_fds;
-    int max_fd = 0;
-    FD_ZERO(&read_fds);
-    FD_ZERO(&write_fds);
-    FD_ZERO(&exc_fds);
-
-    r = provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-
-    /* Should return OK even with no active requests */
-    ck_assert(!is_err(&r));
-    /* max_fd should be -1 when no active transfers */
-    ck_assert_int_eq(max_fd, -1);
-
-    /* Cleanup */
-    talloc_free(provider);
-}
-
-END_TEST START_TEST(test_perform_info_read_no_crash)
-{
-    /* Create provider instance */
-    ik_provider_t *provider = NULL;
-    res_t r = ik_openai_create(test_ctx, "sk-test-key-12345", &provider);
-    ck_assert(!is_err(&r));
-
-    /* Test perform with no active requests */
-    int running = 0;
-    r = provider->vt->perform(provider->ctx, &running);
-
-    /* Should return OK */
-    ck_assert(!is_err(&r));
-    /* No active requests */
-    ck_assert_int_eq(running, 0);
-
-    /* Test info_read with no completed transfers */
-    provider->vt->info_read(provider->ctx, NULL);
-
-    /* Should not crash - success means test passes */
-
-    /* Cleanup */
-    talloc_free(provider);
-}
-
-END_TEST
-
-/* ================================================================
  * Test Suite
  * ================================================================ */
 
-static Suite *openai_streaming_suite(void)
+static Suite *openai_streaming_parser_suite(void)
 {
-    Suite *s = suite_create("OpenAI Streaming");
+    Suite *s = suite_create("OpenAI Streaming Parser");
 
     /* Basic Streaming */
     TCase *tc_basic = tcase_create("Basic");
@@ -713,20 +636,12 @@ static Suite *openai_streaming_suite(void)
     tcase_add_test(tc_errors, test_handle_stream_with_usage);
     suite_add_tcase(s, tc_errors);
 
-    /* Async Vtable Integration */
-    TCase *tc_async = tcase_create("AsyncVtable");
-    tcase_add_checked_fixture(tc_async, setup, teardown);
-    tcase_add_test(tc_async, test_start_stream_returns_immediately);
-    tcase_add_test(tc_async, test_fdset_returns_valid_fds);
-    tcase_add_test(tc_async, test_perform_info_read_no_crash);
-    suite_add_tcase(s, tc_async);
-
     return s;
 }
 
 int main(void)
 {
-    Suite *s = openai_streaming_suite();
+    Suite *s = openai_streaming_parser_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);

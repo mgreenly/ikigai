@@ -1,17 +1,17 @@
 /**
- * @file test_google_streaming.c
- * @brief Unit tests for Google streaming through provider vtable
+ * @file test_anthropic_streaming_content.c
+ * @brief Unit tests for Anthropic streaming content events
  *
- * Tests async streaming using VCR fixtures in JSONL format.
- * Verifies fdset/perform/info_read pattern and event processing.
+ * Tests content accumulation, thinking deltas, and tool call streaming
+ * using VCR fixtures in JSONL format.
  */
 
 #include <check.h>
 #include <talloc.h>
 #include <sys/select.h>
 #include <string.h>
-#include "providers/google/google.h"
-#include "providers/google/streaming.h"
+#include "providers/anthropic/anthropic.h"
+#include "providers/anthropic/streaming.h"
 #include "providers/provider.h"
 #include "providers/request.h"
 #include "logger.h"
@@ -106,12 +106,12 @@ static void setup(void)
     test_ctx = talloc_new(NULL);
 
     /* Create provider */
-    res_t r = ik_google_create(test_ctx, "test-api-key", &provider);
+    res_t r = ik_anthropic_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&r));
 
     /* Create basic request */
     request = talloc_zero(test_ctx, ik_request_t);
-    request->model = talloc_strdup(request, "gemini-2.5-flash");
+    request->model = talloc_strdup(request, "claude-sonnet-4-5-20250929");
     request->max_output_tokens = 1024;
 
     /* Add user message */
@@ -136,145 +136,12 @@ static void teardown(void)
 }
 
 /* ================================================================
- * Async Event Loop Tests
- * ================================================================ */
-
-START_TEST(test_start_stream_returns_immediately) {
-    vcr_init("stream_basic", "google");
-
-    /* start_stream should return immediately without blocking */
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-
-    vcr_ck_assert(!is_err(&r));
-
-    /* Stream should not be complete yet */
-    vcr_ck_assert(!completion_called);
-
-    vcr_finish();
-}
-END_TEST START_TEST(test_fdset_returns_mock_fds)
-{
-    vcr_init("stream_basic", "google");
-
-    /* Start stream */
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* fdset should populate FD sets */
-    fd_set read_fds, write_fds, exc_fds;
-    int max_fd = 0;
-    FD_ZERO(&read_fds);
-    FD_ZERO(&write_fds);
-    FD_ZERO(&exc_fds);
-
-    r = provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-    vcr_ck_assert(!is_err(&r));
-
-    vcr_finish();
-}
-
-END_TEST START_TEST(test_perform_delivers_events_incrementally)
-{
-    vcr_init("stream_basic", "google");
-
-    /* Start stream */
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    size_t prev_count = 0;
-
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-
-        /* Events should be delivered during perform() */
-        if (captured_count > prev_count) {
-            prev_count = captured_count;
-        }
-    }
-
-    /* Should have received events */
-    vcr_ck_assert(captured_count > 0);
-
-    vcr_finish();
-}
-
-END_TEST START_TEST(test_timeout_returns_value)
-{
-    vcr_init("stream_basic", "google");
-
-    /* Start stream */
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* timeout should return a valid timeout value */
-    long timeout_ms = 0;
-    r = provider->vt->timeout(provider->ctx, &timeout_ms);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Timeout should be a reasonable value (not less than -1) */
-    vcr_ck_assert(timeout_ms >= -1);
-
-    vcr_finish();
-}
-
-END_TEST START_TEST(test_info_read_invokes_completion_callback)
-{
-    vcr_init("stream_basic", "google");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* Check for completion via info_read */
-    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
-    provider->vt->info_read(provider->ctx, logger);
-
-    /* Completion callback should have been invoked */
-    vcr_ck_assert(completion_called);
-    vcr_ck_assert(captured_completion.success);
-
-    vcr_finish();
-}
-
-END_TEST
-/* ================================================================
  * Basic Streaming Tests
  * ================================================================ */
 
 START_TEST(test_stream_start_event)
 {
-    vcr_init("stream_basic", "google");
+    vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -302,9 +169,11 @@ START_TEST(test_stream_start_event)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_text_delta_events)
+END_TEST
+
+START_TEST(test_text_delta_events)
 {
-    vcr_init("stream_basic", "google");
+    vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -338,9 +207,11 @@ END_TEST START_TEST(test_text_delta_events)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_stream_done_event)
+END_TEST
+
+START_TEST(test_stream_done_event)
 {
-    vcr_init("stream_basic", "google");
+    vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -370,9 +241,11 @@ END_TEST START_TEST(test_stream_done_event)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_completion_callback_invoked)
+END_TEST
+
+START_TEST(test_completion_callback_invoked)
 {
-    vcr_init("stream_basic", "google");
+    vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -404,13 +277,14 @@ END_TEST START_TEST(test_completion_callback_invoked)
 }
 
 END_TEST
+
 /* ================================================================
  * Content Accumulation Tests
  * ================================================================ */
 
 START_TEST(test_multiple_text_deltas)
 {
-    vcr_init("stream_basic", "google");
+    vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -444,9 +318,11 @@ START_TEST(test_multiple_text_deltas)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_delta_content_preserved)
+END_TEST
+
+START_TEST(test_delta_content_preserved)
 {
-    vcr_init("stream_basic", "google");
+    vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -477,9 +353,11 @@ END_TEST START_TEST(test_delta_content_preserved)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_event_order_preserved)
+END_TEST
+
+START_TEST(test_event_order_preserved)
 {
-    vcr_init("stream_basic", "google");
+    vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -508,13 +386,14 @@ END_TEST START_TEST(test_event_order_preserved)
 }
 
 END_TEST
+
 /* ================================================================
  * Thinking Content Tests
  * ================================================================ */
 
 START_TEST(test_thinking_delta_event_type)
 {
-    vcr_init("stream_thinking", "google");
+    vcr_init("stream_thinking", "anthropic");
 
     /* Configure thinking request */
     request->thinking.level = IK_THINKING_HIGH;
@@ -551,9 +430,11 @@ START_TEST(test_thinking_delta_event_type)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_thinking_delta_content)
+END_TEST
+
+START_TEST(test_thinking_delta_content)
 {
-    vcr_init("stream_thinking", "google");
+    vcr_init("stream_thinking", "anthropic");
 
     request->thinking.level = IK_THINKING_HIGH;
 
@@ -586,9 +467,11 @@ END_TEST START_TEST(test_thinking_delta_content)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_usage_includes_thinking_tokens)
+END_TEST
+
+START_TEST(test_usage_includes_thinking_tokens)
 {
-    vcr_init("stream_thinking", "google");
+    vcr_init("stream_thinking", "anthropic");
 
     request->thinking.level = IK_THINKING_HIGH;
 
@@ -620,13 +503,14 @@ END_TEST START_TEST(test_usage_includes_thinking_tokens)
 }
 
 END_TEST
+
 /* ================================================================
  * Tool Call Streaming Tests
  * ================================================================ */
 
 START_TEST(test_tool_call_start_event)
 {
-    vcr_init("stream_tool_call", "google");
+    vcr_init("stream_tool_call", "anthropic");
 
     /* Add tool definition */
     request->tools = talloc_zero_array(request, ik_tool_def_t, 1);
@@ -669,9 +553,11 @@ START_TEST(test_tool_call_start_event)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_tool_call_delta_events)
+END_TEST
+
+START_TEST(test_tool_call_delta_events)
 {
-    vcr_init("stream_tool_call", "google");
+    vcr_init("stream_tool_call", "anthropic");
 
     request->tools = talloc_zero_array(request, ik_tool_def_t, 1);
     request->tool_count = 1;
@@ -712,9 +598,11 @@ END_TEST START_TEST(test_tool_call_delta_events)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_tool_call_done_event)
+END_TEST
+
+START_TEST(test_tool_call_done_event)
 {
-    vcr_init("stream_tool_call", "google");
+    vcr_init("stream_tool_call", "anthropic");
 
     request->tools = talloc_zero_array(request, ik_tool_def_t, 1);
     request->tool_count = 1;
@@ -755,13 +643,16 @@ END_TEST START_TEST(test_tool_call_done_event)
 }
 
 END_TEST
-/* ================================================================
- * Error Handling Tests
- * ================================================================ */
 
-START_TEST(test_http_error_calls_completion_cb)
+START_TEST(test_tool_call_arguments_accumulated)
 {
-    vcr_init("error_auth_stream", "google");
+    vcr_init("stream_tool_call", "anthropic");
+
+    request->tools = talloc_zero_array(request, ik_tool_def_t, 1);
+    request->tool_count = 1;
+    request->tools[0].name = talloc_strdup(request, "get_weather");
+    request->tools[0].description = talloc_strdup(request, "Get weather");
+    request->tools[0].parameters = talloc_strdup(request, "{}");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -781,29 +672,19 @@ START_TEST(test_http_error_calls_completion_cb)
         provider->vt->perform(provider->ctx, &running);
     }
 
-    /* Check completion */
-    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
-    provider->vt->info_read(provider->ctx, logger);
+    /* Accumulate tool call arguments */
+    char *accumulated = talloc_strdup(test_ctx, "");
+    for (size_t i = 0; i < captured_count; i++) {
+        if (captured_events[i].type == IK_STREAM_TOOL_CALL_DELTA) {
+            accumulated = talloc_asprintf_append_buffer(accumulated, "%s",
+                                                        captured_events[i].data.tool_delta.arguments);
+        }
+    }
 
-    vcr_ck_assert(completion_called);
-    vcr_ck_assert(!captured_completion.success);
-    vcr_ck_assert_int_eq(captured_completion.http_status, 401);
+    /* Should have some JSON content */
+    vcr_ck_assert(strlen(accumulated) > 0);
 
     vcr_finish();
-}
-
-END_TEST START_TEST(test_malformed_response_handled)
-{
-    /* This test would require a fixture with malformed response data */
-    /* Skipping for now as VCR may not support this scenario */
-    ck_assert(1);
-}
-
-END_TEST START_TEST(test_incomplete_stream_detected)
-{
-    /* This test would require a fixture with incomplete stream */
-    /* Skipping for now as VCR may not support this scenario */
-    ck_assert(1);
 }
 
 END_TEST
@@ -812,18 +693,9 @@ END_TEST
  * Test Suite Setup
  * ================================================================ */
 
-static Suite *google_streaming_suite(void)
+static Suite *anthropic_streaming_content_suite(void)
 {
-    Suite *s = suite_create("Google Streaming");
-
-    TCase *tc_async = tcase_create("Async Event Loop");
-    tcase_add_unchecked_fixture(tc_async, setup, teardown);
-    tcase_add_test(tc_async, test_start_stream_returns_immediately);
-    tcase_add_test(tc_async, test_fdset_returns_mock_fds);
-    tcase_add_test(tc_async, test_perform_delivers_events_incrementally);
-    tcase_add_test(tc_async, test_timeout_returns_value);
-    tcase_add_test(tc_async, test_info_read_invokes_completion_callback);
-    suite_add_tcase(s, tc_async);
+    Suite *s = suite_create("Anthropic Streaming Content");
 
     TCase *tc_basic = tcase_create("Basic Streaming");
     tcase_add_unchecked_fixture(tc_basic, setup, teardown);
@@ -852,21 +724,15 @@ static Suite *google_streaming_suite(void)
     tcase_add_test(tc_tools, test_tool_call_start_event);
     tcase_add_test(tc_tools, test_tool_call_delta_events);
     tcase_add_test(tc_tools, test_tool_call_done_event);
+    tcase_add_test(tc_tools, test_tool_call_arguments_accumulated);
     suite_add_tcase(s, tc_tools);
-
-    TCase *tc_errors = tcase_create("Error Handling");
-    tcase_add_unchecked_fixture(tc_errors, setup, teardown);
-    tcase_add_test(tc_errors, test_http_error_calls_completion_cb);
-    tcase_add_test(tc_errors, test_malformed_response_handled);
-    tcase_add_test(tc_errors, test_incomplete_stream_detected);
-    suite_add_tcase(s, tc_errors);
 
     return s;
 }
 
 int main(void)
 {
-    Suite *s = google_streaming_suite();
+    Suite *s = anthropic_streaming_content_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);
