@@ -8,7 +8,7 @@ Abstract support for multiple AI providers and models, enabling ikigai to work s
 
 **Core 3 Providers (In-Scope):**
 - Anthropic (claude-haiku-4-5, claude-sonnet-4-5, claude-opus-4-5)
-- Google (gemini-2.5-flash-lite, gemini-3-flash, gemini-3-pro)
+- Google (gemini-2.5-flash-lite, gemini-2.5-flash, gemini-2.5-pro, gemini-3.0-flash, gemini-3.0-pro)
 - OpenAI (gpt-5-nano, gpt-5-mini, gpt-5)
 
 **Implementation Order:**
@@ -29,7 +29,7 @@ Switch models and thinking levels with a single command:
 
 ```
 /model claude-sonnet-4-5/med
-/model gemini-3-flash/high
+/model gemini-3.0-flash/high
 /model gpt-5-mini/low
 ```
 
@@ -69,14 +69,14 @@ Create child agents with different providers/models:
 - **Specialized models for subtasks:**
   ```
   # Parent doing general work with Claude
-  > /fork --model gemini-3-pro/high "Use Google for this research task"
+  > /fork --model gemini-3.0-pro/high "Use Google for this research task"
   ```
 
 - **Testing across providers:**
   ```
   > /fork --model claude-sonnet-4-5/high "Solve this problem"
   > /fork --model gpt-5-mini/high "Solve this problem"
-  > /fork --model gemini-3-flash/high "Solve this problem"
+  > /fork --model gemini-3.0-flash/high "Solve this problem"
   ```
 
 ### Configuration
@@ -91,7 +91,7 @@ Create child agents with different providers/models:
   "default_provider": "anthropic",
   "providers": {
     "anthropic": { "default_model": "claude-sonnet-4-5", "default_thinking": "med" },
-    "google": { "default_model": "gemini-3-flash", "default_thinking": "med" },
+    "google": { "default_model": "gemini-3.0-flash", "default_thinking": "med" },
     "openai": { "default_model": "gpt-5-mini", "default_thinking": "med" }
   }
 }

@@ -19,8 +19,10 @@ static const ik_model_capability_t MODEL_CAPABILITIES[] = {
     {"gpt-5-nano", "openai", true, 0},
 
     // Google models (mixed: level-based for 3.x, budget for 2.5)
-    {"gemini-3.0-flash", "google", true, 0},  // Level-based (LOW/HIGH)
-    {"gemini-3.0-pro", "google", true, 0},    // Level-based (LOW/HIGH)
+    {"gemini-3.0-flash", "google", true, 0},       // Level-based (LOW/HIGH)
+    {"gemini-3.0-pro", "google", true, 0},         // Level-based (LOW/HIGH)
+    {"gemini-2.5-pro", "google", true, 32768},     // Budget-based
+    {"gemini-2.5-flash", "google", true, 24576},   // Budget-based
     {"gemini-2.5-flash-lite", "google", true, 24576},  // Budget-based
 
     // Legacy non-thinking OpenAI models
