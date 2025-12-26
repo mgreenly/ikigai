@@ -103,72 +103,96 @@ typedef struct {
     size_t data_capacity;
 } sse_parser_t;
 
+/* Helper: Process empty line (end of event) */
+static void process_empty_line(sse_parser_t *parser)
+{
+    if (parser->data_len > 0) {
+        /* Null-terminate data */
+        parser->data_buffer[parser->data_len] = '\0';
+
+        /* Add complete event */
+        add_sse_event(parser->acc, parser->data_buffer);
+
+        /* Reset for next event */
+        parser->data_len = 0;
+        if (parser->event_type) {
+            talloc_free(parser->event_type);
+            parser->event_type = NULL;
+        }
+    }
+}
+
+/* Helper: Process data line */
+static void process_data_line(sse_parser_t *parser, const char *line_start, const char *line_end)
+{
+    /* Skip "data:" prefix */
+    const char *data_start = line_start + 5;
+    while (data_start < line_end && (*data_start == ' ' || *data_start == '\t')) {
+        data_start++;
+    }
+    size_t data_chunk_len = (size_t)(line_end - data_start);
+
+    /* Ensure buffer has space */
+    size_t needed = parser->data_len + data_chunk_len + 1;
+    if (needed > parser->data_capacity) {
+        parser->data_capacity = needed * 2;
+        parser->data_buffer = talloc_realloc_size(parser, parser->data_buffer,
+                                                  parser->data_capacity);
+    }
+
+    /* Append data */
+    memcpy(parser->data_buffer + parser->data_len, data_start, data_chunk_len);
+    parser->data_len += data_chunk_len;
+}
+
+/* Helper: Process a single SSE line */
+static void process_sse_line(sse_parser_t *parser, const char *line_start, const char *line_end)
+{
+    size_t line_len = (size_t)(line_end - line_start);
+
+    /* Skip \r if present */
+    if (line_len > 0 && line_start[line_len - 1] == '\r') {
+        line_len--;
+        line_end--;
+    }
+
+    /* Empty line = end of event */
+    if (line_len == 0) {
+        process_empty_line(parser);
+        return;
+    }
+
+    /* Parse event type */
+    if (line_len > 6 && strncmp(line_start, "event:", 6) == 0) {
+        const char *event_start = line_start + 6;
+        while (event_start < line_end && (*event_start == ' ' || *event_start == '\t')) {
+            event_start++;
+        }
+        size_t event_len = (size_t)(line_end - event_start);
+        if (parser->event_type) {
+            talloc_free(parser->event_type);
+        }
+        parser->event_type = talloc_strndup(parser, event_start, event_len);
+        return;
+    }
+
+    /* Parse data */
+    if (line_len > 5 && strncmp(line_start, "data:", 5) == 0) {
+        process_data_line(parser, line_start, line_end);
+    }
+}
+
 /* Helper: Parse SSE stream */
 static size_t sse_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
     sse_parser_t *parser = (sse_parser_t *)userdata;
     size_t total = size * nmemb;
     char *line_start = ptr;
-    char *line_end;
 
     for (size_t i = 0; i < total; i++) {
         if (ptr[i] == '\n') {
-            line_end = &ptr[i];
-            size_t line_len = (size_t)(line_end - line_start);
-
-            /* Skip \r if present */
-            if (line_len > 0 && line_start[line_len - 1] == '\r') {
-                line_len--;
-            }
-
-            /* Empty line = end of event */
-            if (line_len == 0) {
-                if (parser->data_len > 0) {
-                    /* Null-terminate data */
-                    parser->data_buffer[parser->data_len] = '\0';
-
-                    /* Add complete event */
-                    add_sse_event(parser->acc, parser->data_buffer);
-
-                    /* Reset for next event */
-                    parser->data_len = 0;
-                    if (parser->event_type) {
-                        talloc_free(parser->event_type);
-                        parser->event_type = NULL;
-                    }
-                }
-            } else if (line_len > 6 && strncmp(line_start, "event:", 6) == 0) {
-                /* Parse event type */
-                const char *event_start = line_start + 6;
-                while (event_start < line_end && (*event_start == ' ' || *event_start == '\t')) {
-                    event_start++;
-                }
-                size_t event_len = (size_t)(line_end - event_start);
-                if (parser->event_type) {
-                    talloc_free(parser->event_type);
-                }
-                parser->event_type = talloc_strndup(parser, event_start, event_len);
-            } else if (line_len > 5 && strncmp(line_start, "data:", 5) == 0) {
-                /* Parse data */
-                const char *data_start = line_start + 5;
-                while (data_start < line_end && (*data_start == ' ' || *data_start == '\t')) {
-                    data_start++;
-                }
-                size_t data_chunk_len = (size_t)(line_end - data_start);
-
-                /* Ensure buffer has space */
-                size_t needed = parser->data_len + data_chunk_len + 1;
-                if (needed > parser->data_capacity) {
-                    parser->data_capacity = needed * 2;
-                    parser->data_buffer = talloc_realloc_size(parser, parser->data_buffer,
-                                                              parser->data_capacity);
-                }
-
-                /* Append data */
-                memcpy(parser->data_buffer + parser->data_len, data_start, data_chunk_len);
-                parser->data_len += data_chunk_len;
-            }
-
+            char *line_end = &ptr[i];
+            process_sse_line(parser, line_start, line_end);
             line_start = &ptr[i + 1];
         }
     }

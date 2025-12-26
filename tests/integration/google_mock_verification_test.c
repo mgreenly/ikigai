@@ -267,6 +267,49 @@ static void capture_fixture(const char *name, sse_accumulator_t *acc)
     fprintf(stderr, "Captured fixture: %s\n", path);
 }
 
+/* Helper: Process a single streaming chunk for text verification */
+static void process_text_chunk(yyjson_val *root, bool *seen_text, bool *seen_finish_reason, bool *seen_usage)
+{
+    yyjson_val *candidates = yyjson_obj_get(root, "candidates");
+    ck_assert_ptr_nonnull(candidates);
+    ck_assert(yyjson_is_arr(candidates));
+
+    yyjson_val *candidate = yyjson_arr_get_first(candidates);
+    ck_assert_ptr_nonnull(candidate);
+
+    /* Check for content */
+    yyjson_val *content = yyjson_obj_get(candidate, "content");
+    if (content) {
+        yyjson_val *parts = yyjson_obj_get(content, "parts");
+        if (parts && yyjson_is_arr(parts)) {
+            yyjson_val *part = yyjson_arr_get_first(parts);
+            if (part) {
+                yyjson_val *text = yyjson_obj_get(part, "text");
+                if (text) {
+                    *seen_text = true;
+                }
+            }
+        }
+    }
+
+    /* Check for finish reason */
+    yyjson_val *finish_reason = yyjson_obj_get(candidate, "finishReason");
+    if (finish_reason) {
+        *seen_finish_reason = true;
+        const char *reason = yyjson_get_str(finish_reason);
+        ck_assert_ptr_nonnull(reason);
+    }
+
+    /* Check for usage metadata */
+    yyjson_val *usage = yyjson_obj_get(root, "usageMetadata");
+    if (usage) {
+        *seen_usage = true;
+        ck_assert_ptr_nonnull(yyjson_obj_get(usage, "promptTokenCount"));
+        ck_assert_ptr_nonnull(yyjson_obj_get(usage, "candidatesTokenCount"));
+        ck_assert_ptr_nonnull(yyjson_obj_get(usage, "totalTokenCount"));
+    }
+}
+
 START_TEST(verify_google_streaming_text) {
     /* Skip if not in verification mode */
     if (!should_verify_mocks()) {
@@ -314,44 +357,7 @@ START_TEST(verify_google_streaming_text) {
         ck_assert_ptr_nonnull(doc);
 
         yyjson_val *root = yyjson_doc_get_root(doc);
-        yyjson_val *candidates = yyjson_obj_get(root, "candidates");
-        ck_assert_ptr_nonnull(candidates);
-        ck_assert(yyjson_is_arr(candidates));
-
-        yyjson_val *candidate = yyjson_arr_get_first(candidates);
-        ck_assert_ptr_nonnull(candidate);
-
-        /* Check for content */
-        yyjson_val *content = yyjson_obj_get(candidate, "content");
-        if (content) {
-            yyjson_val *parts = yyjson_obj_get(content, "parts");
-            if (parts && yyjson_is_arr(parts)) {
-                yyjson_val *part = yyjson_arr_get_first(parts);
-                if (part) {
-                    yyjson_val *text = yyjson_obj_get(part, "text");
-                    if (text) {
-                        seen_text = true;
-                    }
-                }
-            }
-        }
-
-        /* Check for finish reason */
-        yyjson_val *finish_reason = yyjson_obj_get(candidate, "finishReason");
-        if (finish_reason) {
-            seen_finish_reason = true;
-            const char *reason = yyjson_get_str(finish_reason);
-            ck_assert_ptr_nonnull(reason);
-        }
-
-        /* Check for usage metadata */
-        yyjson_val *usage = yyjson_obj_get(root, "usageMetadata");
-        if (usage) {
-            seen_usage = true;
-            ck_assert_ptr_nonnull(yyjson_obj_get(usage, "promptTokenCount"));
-            ck_assert_ptr_nonnull(yyjson_obj_get(usage, "candidatesTokenCount"));
-            ck_assert_ptr_nonnull(yyjson_obj_get(usage, "totalTokenCount"));
-        }
+        process_text_chunk(root, &seen_text, &seen_finish_reason, &seen_usage);
 
         yyjson_doc_free(doc);
     }
@@ -366,6 +372,45 @@ START_TEST(verify_google_streaming_text) {
 
     talloc_free(ctx);
 }
+/* Helper: Process a single streaming chunk for thinking verification */
+static void process_thinking_chunk(yyjson_val *root, bool *seen_thinking, bool *seen_regular_text)
+{
+    yyjson_val *candidates = yyjson_obj_get(root, "candidates");
+    if (!candidates) {
+        return;
+    }
+
+    yyjson_val *candidate = yyjson_arr_get_first(candidates);
+    if (!candidate) {
+        return;
+    }
+
+    yyjson_val *content = yyjson_obj_get(candidate, "content");
+    if (!content) {
+        return;
+    }
+
+    yyjson_val *parts = yyjson_obj_get(content, "parts");
+    if (!parts || !yyjson_is_arr(parts)) {
+        return;
+    }
+
+    size_t idx, max;
+    yyjson_val *part;
+    yyjson_arr_foreach(parts, idx, max, part) {
+        yyjson_val *text = yyjson_obj_get(part, "text");
+        yyjson_val *thought = yyjson_obj_get(part, "thought");
+
+        if (text) {
+            if (thought && yyjson_get_bool(thought)) {
+                *seen_thinking = true;
+            } else {
+                *seen_regular_text = true;
+            }
+        }
+    }
+}
+
 END_TEST START_TEST(verify_google_streaming_thinking)
 {
     /* Skip if not in verification mode */
@@ -416,38 +461,7 @@ END_TEST START_TEST(verify_google_streaming_thinking)
         ck_assert_ptr_nonnull(doc);
 
         yyjson_val *root = yyjson_doc_get_root(doc);
-        yyjson_val *candidates = yyjson_obj_get(root, "candidates");
-        if (!candidates) {
-            yyjson_doc_free(doc);
-            continue;
-        }
-
-        yyjson_val *candidate = yyjson_arr_get_first(candidates);
-        if (!candidate) {
-            yyjson_doc_free(doc);
-            continue;
-        }
-
-        yyjson_val *content = yyjson_obj_get(candidate, "content");
-        if (content) {
-            yyjson_val *parts = yyjson_obj_get(content, "parts");
-            if (parts && yyjson_is_arr(parts)) {
-                size_t idx, max;
-                yyjson_val *part;
-                yyjson_arr_foreach(parts, idx, max, part) {
-                    yyjson_val *text = yyjson_obj_get(part, "text");
-                    yyjson_val *thought = yyjson_obj_get(part, "thought");
-
-                    if (text) {
-                        if (thought && yyjson_get_bool(thought)) {
-                            seen_thinking = true;
-                        } else {
-                            seen_regular_text = true;
-                        }
-                    }
-                }
-            }
-        }
+        process_thinking_chunk(root, &seen_thinking, &seen_regular_text);
 
         yyjson_doc_free(doc);
     }
@@ -460,6 +474,43 @@ END_TEST START_TEST(verify_google_streaming_thinking)
     capture_fixture("stream_text_thinking", acc);
 
     talloc_free(ctx);
+}
+
+/* Helper: Process a single streaming chunk for tool call verification */
+static void process_tool_call_chunk(yyjson_val *root, bool *seen_function_call, const char **function_name)
+{
+    yyjson_val *candidates = yyjson_obj_get(root, "candidates");
+    if (!candidates) {
+        return;
+    }
+
+    yyjson_val *candidate = yyjson_arr_get_first(candidates);
+    if (!candidate) {
+        return;
+    }
+
+    yyjson_val *content = yyjson_obj_get(candidate, "content");
+    if (!content) {
+        return;
+    }
+
+    yyjson_val *parts = yyjson_obj_get(content, "parts");
+    if (!parts || !yyjson_is_arr(parts)) {
+        return;
+    }
+
+    size_t idx, max;
+    yyjson_val *part;
+    yyjson_arr_foreach(parts, idx, max, part) {
+        yyjson_val *function_call = yyjson_obj_get(part, "functionCall");
+        if (function_call) {
+            *seen_function_call = true;
+            yyjson_val *name = yyjson_obj_get(function_call, "name");
+            *function_name = yyjson_get_str(name);
+            yyjson_val *args = yyjson_obj_get(function_call, "args");
+            ck_assert_ptr_nonnull(args);
+        }
+    }
 }
 
 END_TEST START_TEST(verify_google_tool_call)
@@ -519,36 +570,7 @@ END_TEST START_TEST(verify_google_tool_call)
         ck_assert_ptr_nonnull(doc);
 
         yyjson_val *root = yyjson_doc_get_root(doc);
-        yyjson_val *candidates = yyjson_obj_get(root, "candidates");
-        if (!candidates) {
-            yyjson_doc_free(doc);
-            continue;
-        }
-
-        yyjson_val *candidate = yyjson_arr_get_first(candidates);
-        if (!candidate) {
-            yyjson_doc_free(doc);
-            continue;
-        }
-
-        yyjson_val *content = yyjson_obj_get(candidate, "content");
-        if (content) {
-            yyjson_val *parts = yyjson_obj_get(content, "parts");
-            if (parts && yyjson_is_arr(parts)) {
-                size_t idx, max;
-                yyjson_val *part;
-                yyjson_arr_foreach(parts, idx, max, part) {
-                    yyjson_val *function_call = yyjson_obj_get(part, "functionCall");
-                    if (function_call) {
-                        seen_function_call = true;
-                        yyjson_val *name = yyjson_obj_get(function_call, "name");
-                        function_name = yyjson_get_str(name);
-                        yyjson_val *args = yyjson_obj_get(function_call, "args");
-                        ck_assert_ptr_nonnull(args);
-                    }
-                }
-            }
-        }
+        process_tool_call_chunk(root, &seen_function_call, &function_name);
 
         yyjson_doc_free(doc);
     }

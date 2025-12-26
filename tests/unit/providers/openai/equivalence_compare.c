@@ -182,6 +182,77 @@ ik_compare_result_t *ik_compare_json_equivalent(TALLOC_CTX *ctx,
  * Response Comparison
  * ================================================================ */
 
+/**
+ * Compare a single content block
+ *
+ * @return NULL if blocks match, error message otherwise
+ */
+static const char *compare_content_block(TALLOC_CTX *ctx,
+                                         const ik_content_block_t *block_a,
+                                         const ik_content_block_t *block_b,
+                                         size_t index)
+{
+    /* Type must match */
+    if (block_a->type != block_b->type) {
+        return talloc_asprintf(ctx, "Content block %zu type mismatch: %d vs %d",
+                               index, block_a->type, block_b->type);
+    }
+
+    /* Compare based on type */
+    switch (block_a->type) {
+        case IK_CONTENT_TEXT: {
+            const char *text_a = block_a->data.text.text;
+            const char *text_b = block_b->data.text.text;
+
+            if (strcmp(text_a, text_b) != 0) {
+                return talloc_asprintf(ctx, "Text content mismatch at block %zu:\nA: %s\nB: %s",
+                                       index, text_a, text_b);
+            }
+            break;
+        }
+
+        case IK_CONTENT_TOOL_CALL: {
+            /* Tool name must match exactly */
+            const char *name_a = block_a->data.tool_call.name;
+            const char *name_b = block_b->data.tool_call.name;
+
+            if (strcmp(name_a, name_b) != 0) {
+                return talloc_asprintf(ctx, "Tool call name mismatch at block %zu: %s vs %s",
+                                       index, name_a, name_b);
+            }
+
+            /* Tool arguments must be JSON-equivalent */
+            const char *args_a = block_a->data.tool_call.arguments;
+            const char *args_b = block_b->data.tool_call.arguments;
+
+            ik_compare_result_t *json_cmp = ik_compare_json_equivalent(ctx, args_a, args_b);
+            if (!json_cmp->matches) {
+                return talloc_asprintf(ctx, "Tool call arguments mismatch at block %zu: %s",
+                                       index, json_cmp->diff_message);
+            }
+
+            /* Tool call ID pattern may differ - don't compare IDs */
+            break;
+        }
+
+        case IK_CONTENT_THINKING: {
+            const char *text_a = block_a->data.thinking.text;
+            const char *text_b = block_b->data.thinking.text;
+
+            if (strcmp(text_a, text_b) != 0) {
+                return talloc_asprintf(ctx, "Thinking content mismatch at block %zu", index);
+            }
+            break;
+        }
+
+        case IK_CONTENT_TOOL_RESULT:
+            /* Tool results shouldn't appear in responses (only in requests) */
+            return talloc_asprintf(ctx, "Unexpected tool result in response at block %zu", index);
+    }
+
+    return NULL;  /* Blocks match */
+}
+
 ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
                                           const ik_response_t *resp_a,
                                           const ik_response_t *resp_b)
@@ -207,81 +278,11 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
         const ik_content_block_t *block_a = &resp_a->content_blocks[i];
         const ik_content_block_t *block_b = &resp_b->content_blocks[i];
 
-        /* Type must match */
-        if (block_a->type != block_b->type) {
+        const char *error = compare_content_block(result, block_a, block_b, i);
+        if (error != NULL) {
             result->matches = false;
-            result->diff_message = talloc_asprintf(result,
-                                                   "Content block %zu type mismatch: %d vs %d",
-                                                   i, block_a->type, block_b->type);
+            result->diff_message = error;
             return result;
-        }
-
-        /* Compare based on type */
-        switch (block_a->type) {
-            case IK_CONTENT_TEXT: {
-                const char *text_a = block_a->data.text.text;
-                const char *text_b = block_b->data.text.text;
-
-                if (strcmp(text_a, text_b) != 0) {
-                    result->matches = false;
-                    result->diff_message = talloc_asprintf(result,
-                                                           "Text content mismatch at block %zu:\nA: %s\nB: %s",
-                                                           i, text_a, text_b);
-                    return result;
-                }
-                break;
-            }
-
-            case IK_CONTENT_TOOL_CALL: {
-                /* Tool name must match exactly */
-                const char *name_a = block_a->data.tool_call.name;
-                const char *name_b = block_b->data.tool_call.name;
-
-                if (strcmp(name_a, name_b) != 0) {
-                    result->matches = false;
-                    result->diff_message = talloc_asprintf(result,
-                                                           "Tool call name mismatch at block %zu: %s vs %s",
-                                                           i, name_a, name_b);
-                    return result;
-                }
-
-                /* Tool arguments must be JSON-equivalent */
-                const char *args_a = block_a->data.tool_call.arguments;
-                const char *args_b = block_b->data.tool_call.arguments;
-
-                ik_compare_result_t *json_cmp = ik_compare_json_equivalent(result, args_a, args_b);
-                if (!json_cmp->matches) {
-                    result->matches = false;
-                    result->diff_message = talloc_asprintf(result,
-                                                           "Tool call arguments mismatch at block %zu: %s",
-                                                           i, json_cmp->diff_message);
-                    return result;
-                }
-
-                /* Tool call ID pattern may differ - don't compare IDs */
-                break;
-            }
-
-            case IK_CONTENT_THINKING: {
-                const char *text_a = block_a->data.thinking.text;
-                const char *text_b = block_b->data.thinking.text;
-
-                if (strcmp(text_a, text_b) != 0) {
-                    result->matches = false;
-                    result->diff_message = talloc_asprintf(result,
-                                                           "Thinking content mismatch at block %zu",
-                                                           i);
-                    return result;
-                }
-                break;
-            }
-
-            case IK_CONTENT_TOOL_RESULT:
-                /* Tool results shouldn't appear in responses (only in requests) */
-                result->matches = false;
-                result->diff_message = talloc_asprintf(result,
-                                                       "Unexpected tool result in response at block %zu", i);
-                return result;
         }
     }
 
@@ -335,6 +336,97 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
  * Stream Event Comparison
  * ================================================================ */
 
+/**
+ * Compare a single stream event
+ *
+ * @return NULL if events match, error message otherwise
+ */
+static const char *compare_stream_event(TALLOC_CTX *ctx,
+                                        const ik_stream_event_t *event_a,
+                                        const ik_stream_event_t *event_b,
+                                        size_t index)
+{
+    /* Event type must match */
+    if (event_a->type != event_b->type) {
+        return talloc_asprintf(ctx, "Event %zu type mismatch: %d vs %d",
+                               index, event_a->type, event_b->type);
+    }
+
+    /* Compare event-specific data */
+    switch (event_a->type) {
+        case IK_STREAM_START:
+            /* Model should match if both set */
+            if (event_a->data.start.model != NULL && event_b->data.start.model != NULL) {
+                if (strcmp(event_a->data.start.model, event_b->data.start.model) != 0) {
+                    return talloc_asprintf(ctx,
+                                           "START event model mismatch at %zu: %s vs %s",
+                                           index, event_a->data.start.model, event_b->data.start.model);
+                }
+            }
+            break;
+
+        case IK_STREAM_TEXT_DELTA:
+        case IK_STREAM_THINKING_DELTA:
+            /* Text deltas should match exactly */
+            if (strcmp(event_a->data.delta.text, event_b->data.delta.text) != 0) {
+                return talloc_asprintf(ctx, "Delta text mismatch at event %zu", index);
+            }
+            break;
+
+        case IK_STREAM_TOOL_CALL_START:
+            /* Tool name should match */
+            if (strcmp(event_a->data.tool_start.name, event_b->data.tool_start.name) != 0) {
+                return talloc_asprintf(ctx,
+                                       "Tool call name mismatch at event %zu: %s vs %s",
+                                       index,
+                                       event_a->data.tool_start.name,
+                                       event_b->data.tool_start.name);
+            }
+            /* ID may differ - don't compare */
+            break;
+
+        case IK_STREAM_TOOL_CALL_DELTA:
+            /* Argument deltas should match exactly */
+            if (strcmp(event_a->data.tool_delta.arguments, event_b->data.tool_delta.arguments) != 0) {
+                return talloc_asprintf(ctx, "Tool call delta mismatch at event %zu", index);
+            }
+            break;
+
+        case IK_STREAM_TOOL_CALL_DONE:
+            /* No data to compare */
+            break;
+
+        case IK_STREAM_DONE:
+            /* Finish reason should match */
+            if (event_a->data.done.finish_reason != event_b->data.done.finish_reason) {
+                return talloc_asprintf(ctx,
+                                       "DONE event finish_reason mismatch at %zu: %d vs %d",
+                                       index,
+                                       event_a->data.done.finish_reason,
+                                       event_b->data.done.finish_reason);
+            }
+
+            /* Token usage with tolerance */
+            if (!ik_compare_token_usage_tolerant(event_a->data.done.usage.input_tokens,
+                                                 event_b->data.done.usage.input_tokens)) {
+                return talloc_asprintf(ctx, "DONE event input_tokens mismatch at %zu", index);
+            }
+            break;
+
+        case IK_STREAM_ERROR:
+            /* Error category should match */
+            if (event_a->data.error.category != event_b->data.error.category) {
+                return talloc_asprintf(ctx,
+                                       "ERROR event category mismatch at %zu: %d vs %d",
+                                       index, event_a->data.error.category,
+                                       event_b->data.error.category);
+            }
+            break;
+    }
+
+    return NULL;  /* Events match */
+}
+
 ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
                                               const ik_stream_event_array_t *events_a,
                                               const ik_stream_event_array_t *events_b)
@@ -360,104 +452,11 @@ ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
         const ik_stream_event_t *event_a = &events_a->events[i];
         const ik_stream_event_t *event_b = &events_b->events[i];
 
-        /* Event type must match */
-        if (event_a->type != event_b->type) {
+        const char *error = compare_stream_event(result, event_a, event_b, i);
+        if (error != NULL) {
             result->matches = false;
-            result->diff_message = talloc_asprintf(result,
-                                                   "Event %zu type mismatch: %d vs %d",
-                                                   i,
-                                                   event_a->type,
-                                                   event_b->type);
+            result->diff_message = error;
             return result;
-        }
-
-        /* Compare event-specific data */
-        switch (event_a->type) {
-            case IK_STREAM_START:
-                /* Model should match if both set */
-                if (event_a->data.start.model != NULL && event_b->data.start.model != NULL) {
-                    if (strcmp(event_a->data.start.model, event_b->data.start.model) != 0) {
-                        result->matches = false;
-                        result->diff_message = talloc_asprintf(result,
-                                                               "START event model mismatch at %zu: %s vs %s",
-                                                               i, event_a->data.start.model, event_b->data.start.model);
-                        return result;
-                    }
-                }
-                break;
-
-            case IK_STREAM_TEXT_DELTA:
-            case IK_STREAM_THINKING_DELTA:
-                /* Text deltas should match exactly */
-                if (strcmp(event_a->data.delta.text, event_b->data.delta.text) != 0) {
-                    result->matches = false;
-                    result->diff_message = talloc_asprintf(result,
-                                                           "Delta text mismatch at event %zu", i);
-                    return result;
-                }
-                break;
-
-            case IK_STREAM_TOOL_CALL_START:
-                /* Tool name should match */
-                if (strcmp(event_a->data.tool_start.name, event_b->data.tool_start.name) != 0) {
-                    result->matches = false;
-                    result->diff_message = talloc_asprintf(result,
-                                                           "Tool call name mismatch at event %zu: %s vs %s",
-                                                           i,
-                                                           event_a->data.tool_start.name,
-                                                           event_b->data.tool_start.name);
-                    return result;
-                }
-                /* ID may differ - don't compare */
-                break;
-
-            case IK_STREAM_TOOL_CALL_DELTA:
-                /* Argument deltas should match exactly */
-                if (strcmp(event_a->data.tool_delta.arguments, event_b->data.tool_delta.arguments) != 0) {
-                    result->matches = false;
-                    result->diff_message = talloc_asprintf(result,
-                                                           "Tool call delta mismatch at event %zu", i);
-                    return result;
-                }
-                break;
-
-            case IK_STREAM_TOOL_CALL_DONE:
-                /* No data to compare */
-                break;
-
-            case IK_STREAM_DONE:
-                /* Finish reason should match */
-                if (event_a->data.done.finish_reason != event_b->data.done.finish_reason) {
-                    result->matches = false;
-                    result->diff_message = talloc_asprintf(result,
-                                                           "DONE event finish_reason mismatch at %zu: %d vs %d",
-                                                           i,
-                                                           event_a->data.done.finish_reason,
-                                                           event_b->data.done.finish_reason);
-                    return result;
-                }
-
-                /* Token usage with tolerance */
-                if (!ik_compare_token_usage_tolerant(event_a->data.done.usage.input_tokens,
-                                                     event_b->data.done.usage.input_tokens)) {
-                    result->matches = false;
-                    result->diff_message = talloc_asprintf(result,
-                                                           "DONE event input_tokens mismatch at %zu", i);
-                    return result;
-                }
-                break;
-
-            case IK_STREAM_ERROR:
-                /* Error category should match */
-                if (event_a->data.error.category != event_b->data.error.category) {
-                    result->matches = false;
-                    result->diff_message = talloc_asprintf(result,
-                                                           "ERROR event category mismatch at %zu: %d vs %d",
-                                                           i, event_a->data.error.category,
-                                                           event_b->data.error.category);
-                    return result;
-                }
-                break;
         }
     }
 
