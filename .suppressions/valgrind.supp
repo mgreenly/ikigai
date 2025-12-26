@@ -94,6 +94,15 @@
 }
 
 {
+   Curl - possibly lost in test cleanup
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   obj:*/libcurl*
+   ...
+}
+
+{
    Curl - indirectly lost strdup
    Memcheck:Leak
    match-leak-kinds: indirect
@@ -121,5 +130,32 @@
    fun:realloc
    ...
    obj:*/libcurl*
+   ...
+}
+
+{
+   PostgreSQL - possibly lost memory from libpq
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   obj:*/libpq.so*
+   ...
+}
+
+{
+   OpenSSL - possibly lost memory from libcrypto
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   obj:*/libcrypto.so*
+   ...
+}
+
+{
+   OpenSSL - possibly lost memory from libssl
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   obj:*/libssl.so*
    ...
 }
