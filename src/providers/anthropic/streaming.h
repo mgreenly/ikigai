@@ -15,11 +15,24 @@
 #include "providers/common/sse_parser.h"
 
 /**
- * Anthropic streaming context
+ * Anthropic streaming context structure
  *
  * Tracks streaming state, accumulated metadata, and user callbacks.
  * Created per streaming request.
  */
+struct ik_anthropic_stream_ctx {
+    ik_stream_cb_t stream_cb;          /* User's stream callback */
+    void *stream_ctx;                  /* User's stream context */
+    ik_sse_parser_t *sse_parser;       /* SSE parser instance */
+    char *model;                       /* Model name from message_start */
+    ik_finish_reason_t finish_reason;  /* Finish reason from message_delta */
+    ik_usage_t usage;                  /* Accumulated usage statistics */
+    int32_t current_block_index;       /* Current content block index */
+    ik_content_type_t current_block_type; /* Current block type */
+    char *current_tool_id;             /* Current tool call ID */
+    char *current_tool_name;           /* Current tool call name */
+};
+
 typedef struct ik_anthropic_stream_ctx ik_anthropic_stream_ctx_t;
 
 /**
