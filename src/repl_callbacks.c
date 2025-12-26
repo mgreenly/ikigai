@@ -14,6 +14,71 @@
 #include <string.h>
 
 /**
+ * Helper to flush a complete line to scrollback
+ */
+static void flush_line_to_scrollback(ik_agent_ctx_t *agent, const char *chunk,
+                                     size_t start, size_t prefix_len)
+{
+    if (agent->streaming_line_buffer != NULL) {
+        // Append prefix to buffer
+        size_t buffer_len = strlen(agent->streaming_line_buffer);
+        size_t total_len = buffer_len + prefix_len;
+        char *line = talloc_size(agent, total_len + 1);
+        if (line == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        memcpy(line, agent->streaming_line_buffer, buffer_len);
+        memcpy(line + buffer_len, chunk + start, prefix_len);
+        line[total_len] = '\0';
+
+        ik_scrollback_append_line(agent->scrollback, line, total_len);
+        talloc_free(line);
+        talloc_free(agent->streaming_line_buffer);
+        agent->streaming_line_buffer = NULL;
+    } else if (prefix_len > 0) {
+        // No buffer, just flush the prefix
+        ik_scrollback_append_line(agent->scrollback, chunk + start, prefix_len);
+    } else {
+        // Empty line (just a newline)
+        ik_scrollback_append_line(agent->scrollback, "", 0);
+    }
+}
+
+/**
+ * Helper to handle text delta streaming with line buffering
+ */
+static void handle_text_delta(ik_agent_ctx_t *agent, const char *chunk, size_t chunk_len)
+{
+    // Accumulate complete response for adding to conversation later
+    if (agent->assistant_response == NULL) {
+        agent->assistant_response = talloc_strdup(agent, chunk);
+    } else {
+        agent->assistant_response = talloc_strdup_append(agent->assistant_response, chunk);
+    }
+    if (agent->assistant_response == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Handle streaming display with line buffering
+    size_t start = 0;
+    for (size_t i = 0; i < chunk_len; i++) {
+        if (chunk[i] == '\n') {
+            flush_line_to_scrollback(agent, chunk, start, i - start);
+            start = i + 1;
+        }
+    }
+
+    // Buffer any remaining characters (no newline found)
+    if (start < chunk_len) {
+        size_t remaining_len = chunk_len - start;
+        if (agent->streaming_line_buffer == NULL) {
+            agent->streaming_line_buffer = talloc_strndup(agent, chunk + start, remaining_len);
+        } else {
+            agent->streaming_line_buffer = talloc_strndup_append_buffer(agent->streaming_line_buffer,
+                                                                        chunk + start,
+                                                                        remaining_len);
+        }
+        if (agent->streaming_line_buffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+}
+
+/**
  * @brief Stream callback for provider API responses
  *
  * Called during perform() as data arrives from the network.
@@ -33,7 +98,6 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
 
     switch (event->type) {
         case IK_STREAM_START:
-            // Initialize streaming response (clear previous state if any)
             if (agent->assistant_response != NULL) {
                 talloc_free(agent->assistant_response);
                 agent->assistant_response = NULL;
@@ -42,97 +106,28 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
 
         case IK_STREAM_TEXT_DELTA:
             if (event->data.delta.text != NULL) {
-                const char *chunk = event->data.delta.text;
-                size_t chunk_len = strlen(chunk);
-
-                // Accumulate complete response for adding to conversation later
-                if (agent->assistant_response == NULL) {
-                    agent->assistant_response = talloc_strdup(agent, chunk);
-                } else {
-                    agent->assistant_response = talloc_strdup_append(agent->assistant_response, chunk);
-                }
-                if (agent->assistant_response == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-                // Handle streaming display with line buffering
-                // Accumulate chunks until we hit a newline, then flush to scrollback
-                size_t start = 0;
-                for (size_t i = 0; i < chunk_len; i++) {
-                    if (chunk[i] == '\n') {
-                        // Flush buffered line (if any) plus characters up to newline
-                        size_t prefix_len = i - start;  // Characters before newline in this segment
-                        if (agent->streaming_line_buffer != NULL) {
-                            // Append prefix to buffer
-                            size_t buffer_len = strlen(agent->streaming_line_buffer);
-                            size_t total_len = buffer_len + prefix_len;
-                            char *line = talloc_size(agent, total_len + 1);
-                            if (line == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-                            memcpy(line, agent->streaming_line_buffer, buffer_len);
-                            memcpy(line + buffer_len, chunk + start, prefix_len);
-                            line[total_len] = '\0';
-
-                            ik_scrollback_append_line(agent->scrollback, line, total_len);
-                            talloc_free(line);
-                            talloc_free(agent->streaming_line_buffer);
-                            agent->streaming_line_buffer = NULL;
-                        } else if (prefix_len > 0) {
-                            // No buffer, just flush the prefix
-                            ik_scrollback_append_line(agent->scrollback, chunk + start, prefix_len);
-                        } else {
-                            // Empty line (just a newline)
-                            ik_scrollback_append_line(agent->scrollback, "", 0);
-                        }
-
-                        // Start next segment after newline
-                        start = i + 1;
-                    }
-                }
-
-                // Buffer any remaining characters (no newline found)
-                if (start < chunk_len) {
-                    size_t remaining_len = chunk_len - start;
-                    if (agent->streaming_line_buffer == NULL) {
-                        agent->streaming_line_buffer = talloc_strndup(agent, chunk + start, remaining_len);
-                    } else {
-                        agent->streaming_line_buffer = talloc_strndup_append_buffer(agent->streaming_line_buffer,
-                                                                                    chunk + start,
-                                                                                    remaining_len);
-                    }
-                    if (agent->streaming_line_buffer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-                }
+                handle_text_delta(agent, event->data.delta.text, strlen(event->data.delta.text));
             }
             break;
 
         case IK_STREAM_THINKING_DELTA:
             // Accumulate thinking content (not displayed in scrollback during streaming)
-            // Will be stored in database on completion
-            // For now, we skip thinking display during streaming
             break;
 
         case IK_STREAM_TOOL_CALL_START:
-            // Tool call started - for now we don't handle streaming tool calls
-            // The old code accumulated tool calls in completion callback
-            // We'll maintain that behavior for now
-            break;
-
         case IK_STREAM_TOOL_CALL_DELTA:
-            // Tool call argument accumulation - not implemented yet
-            break;
-
         case IK_STREAM_TOOL_CALL_DONE:
-            // Tool call finalized - not implemented yet
+            // Tool call handling not implemented yet
             break;
 
         case IK_STREAM_DONE:
-            // Capture usage for later rendering/persistence
             agent->response_input_tokens = event->data.done.usage.input_tokens;
             agent->response_output_tokens = event->data.done.usage.output_tokens;
             agent->response_thinking_tokens = event->data.done.usage.thinking_tokens;
             break;
 
         case IK_STREAM_ERROR:
-            // Error during streaming
             if (event->data.error.message != NULL) {
-                // Store error for display in completion handler
                 if (agent->http_error_message != NULL) {
                     talloc_free(agent->http_error_message);
                 }
@@ -142,12 +137,92 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
             break;
 
         default:
-            // Unknown event type - ignore
             break;
     }
 
-    // NOTE: No render call - event loop handles rendering
     return OK(NULL);
+}
+
+/**
+ * Helper to render usage event with token counts
+ */
+static void render_usage_event(ik_agent_ctx_t *agent)
+{
+    int32_t total = agent->response_input_tokens + agent->response_output_tokens +
+                    agent->response_thinking_tokens;
+    if (total > 0) {
+        char data_json[256];
+        snprintf(data_json, sizeof(data_json),
+                 "{\"input_tokens\":%d,\"output_tokens\":%d,\"thinking_tokens\":%d}",
+                 agent->response_input_tokens, agent->response_output_tokens,
+                 agent->response_thinking_tokens);
+        ik_event_render(agent->scrollback, "usage", NULL, data_json);
+    } else {
+        ik_scrollback_append_line(agent->scrollback, "", 0);
+    }
+}
+
+/**
+ * Helper to store response metadata
+ */
+static void store_response_metadata(ik_agent_ctx_t *agent, const ik_response_t *response)
+{
+    // Clear previous metadata
+    if (agent->response_model != NULL) {
+        talloc_free(agent->response_model);
+        agent->response_model = NULL;
+    }
+    if (agent->response_finish_reason != NULL) {
+        talloc_free(agent->response_finish_reason);
+        agent->response_finish_reason = NULL;
+    }
+
+    // Store model
+    if (response->model != NULL) {
+        agent->response_model = talloc_strdup(agent, response->model);
+        if (agent->response_model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    // Map finish reason to string
+    const char *finish_reason_str = "unknown";
+    switch (response->finish_reason) {
+        case IK_FINISH_STOP: finish_reason_str = "stop"; break;
+        case IK_FINISH_LENGTH: finish_reason_str = "length"; break;
+        case IK_FINISH_TOOL_USE: finish_reason_str = "tool_use"; break;
+        case IK_FINISH_CONTENT_FILTER: finish_reason_str = "content_filter"; break;
+        case IK_FINISH_ERROR: finish_reason_str = "error"; break;
+        case IK_FINISH_UNKNOWN: finish_reason_str = "unknown"; break;
+    }
+    agent->response_finish_reason = talloc_strdup(agent, finish_reason_str);
+    if (agent->response_finish_reason == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Store token counts
+    agent->response_input_tokens = response->usage.input_tokens;
+    agent->response_output_tokens = response->usage.output_tokens;
+    agent->response_thinking_tokens = response->usage.thinking_tokens;
+}
+
+/**
+ * Helper to extract tool calls from response
+ */
+static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *response)
+{
+    if (agent->pending_tool_call != NULL) {
+        talloc_free(agent->pending_tool_call);
+        agent->pending_tool_call = NULL;
+    }
+
+    for (size_t i = 0; i < response->content_count; i++) {
+        ik_content_block_t *block = &response->content_blocks[i];
+        if (block->type == IK_CONTENT_TOOL_CALL) {
+            agent->pending_tool_call = ik_tool_call_create(agent,
+                                                           block->data.tool_call.id,
+                                                           block->data.tool_call.name,
+                                                           block->data.tool_call.arguments);
+            if (agent->pending_tool_call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            break;  // Only handle first tool call
+        }
+    }
 }
 
 /**
@@ -184,11 +259,10 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
             yyjson_mut_obj_add_int(doc, root, "total_tokens", completion->response->usage.total_tokens);  // LCOV_EXCL_LINE
         }  // LCOV_EXCL_LINE
 
-        // DI pattern: use explicit logger from shared context
         ik_logger_debug_json(agent->shared->logger, doc);  // LCOV_EXCL_LINE
     }
 
-    // Flush any remaining buffered line content (streaming ended without final newline)
+    // Flush any remaining buffered line content
     if (agent->streaming_line_buffer != NULL) {
         size_t buffer_len = strlen(agent->streaming_line_buffer);
         ik_scrollback_append_line(agent->scrollback, agent->streaming_line_buffer, buffer_len);
@@ -196,21 +270,9 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
         agent->streaming_line_buffer = NULL;
     }
 
-    // For streaming (response == NULL), render usage event from stored token counts
+    // For streaming (response == NULL), render usage from stored token counts
     if (completion->success && completion->response == NULL) {
-        int32_t total = agent->response_input_tokens + agent->response_output_tokens +
-                        agent->response_thinking_tokens;
-        if (total > 0) {
-            char data_json[256];
-            snprintf(data_json, sizeof(data_json),
-                     "{\"input_tokens\":%d,\"output_tokens\":%d,\"thinking_tokens\":%d}",
-                     agent->response_input_tokens, agent->response_output_tokens,
-                     agent->response_thinking_tokens);
-            ik_event_render(agent->scrollback, "usage", NULL, data_json);
-        } else {
-            // No tokens - just add blank line for spacing
-            ik_scrollback_append_line(agent->scrollback, "", 0);
-        }
+        render_usage_event(agent);
     }
 
     // Clear any previous error
@@ -227,77 +289,9 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
 
     // Store response metadata for database persistence (on success only)
     if (completion->success && completion->response != NULL) {
-        // Clear previous metadata
-        if (agent->response_model != NULL) {
-            talloc_free(agent->response_model);
-            agent->response_model = NULL;
-        }
-        if (agent->response_finish_reason != NULL) {
-            talloc_free(agent->response_finish_reason);
-            agent->response_finish_reason = NULL;
-        }
-        agent->response_input_tokens = 0;
-        agent->response_output_tokens = 0;
-        agent->response_thinking_tokens = 0;
-
-        // Store new metadata
-        if (completion->response->model != NULL) {
-            agent->response_model = talloc_strdup(agent, completion->response->model);
-            if (agent->response_model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        }
-
-        // Map finish reason to string
-        const char *finish_reason_str = "unknown";
-        switch (completion->response->finish_reason) {
-            case IK_FINISH_STOP: finish_reason_str = "stop"; break;
-            case IK_FINISH_LENGTH: finish_reason_str = "length"; break;
-            case IK_FINISH_TOOL_USE: finish_reason_str = "tool_use"; break;
-            case IK_FINISH_CONTENT_FILTER: finish_reason_str = "content_filter"; break;
-            case IK_FINISH_ERROR: finish_reason_str = "error"; break;
-            case IK_FINISH_UNKNOWN: finish_reason_str = "unknown"; break;
-        }
-        agent->response_finish_reason = talloc_strdup(agent, finish_reason_str);
-        if (agent->response_finish_reason == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        // Store token counts
-        agent->response_input_tokens = completion->response->usage.input_tokens;
-        agent->response_output_tokens = completion->response->usage.output_tokens;
-        agent->response_thinking_tokens = completion->response->usage.thinking_tokens;
-
-        // Render usage event
-        int32_t total = agent->response_input_tokens + agent->response_output_tokens +
-                        agent->response_thinking_tokens;
-        if (total > 0) {
-            char data_json[256];
-            snprintf(data_json, sizeof(data_json),
-                     "{\"input_tokens\":%d,\"output_tokens\":%d,\"thinking_tokens\":%d}",
-                     agent->response_input_tokens, agent->response_output_tokens,
-                     agent->response_thinking_tokens);
-            ik_event_render(agent->scrollback, "usage", NULL, data_json);
-        } else {
-            ik_scrollback_append_line(agent->scrollback, "", 0);
-        }
-
-        // Handle tool calls from response content blocks
-        if (agent->pending_tool_call != NULL) {
-            talloc_free(agent->pending_tool_call);
-            agent->pending_tool_call = NULL;
-        }
-
-        // Look for tool call in content blocks
-        for (size_t i = 0; i < completion->response->content_count; i++) {
-            ik_content_block_t *block = &completion->response->content_blocks[i];
-            if (block->type == IK_CONTENT_TOOL_CALL) {
-                // Found a tool call - store it for execution
-                agent->pending_tool_call = ik_tool_call_create(agent,
-                                                               block->data.tool_call.id,
-                                                               block->data.tool_call.name,
-                                                               block->data.tool_call.arguments);
-                if (agent->pending_tool_call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-                // Only handle first tool call for now
-                break;
-            }
-        }
+        store_response_metadata(agent, completion->response);
+        render_usage_event(agent);
+        extract_tool_calls(agent, completion->response);
     }
 
     return OK(NULL);

@@ -160,6 +160,58 @@ res_t ik_cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args)
     return OK(NULL);
 }
 
+/**
+ * Helper to calculate thinking budget for a given level
+ */
+static int32_t calculate_thinking_budget(ik_thinking_level_t level, int32_t min_budget,
+                                         int32_t max_budget)
+{
+    if (level == IK_THINKING_LOW) {
+        return min_budget + (max_budget - min_budget) / 3;
+    } else if (level == IK_THINKING_MED) {
+        return min_budget + (2 * (max_budget - min_budget)) / 3;
+    } else {
+        return max_budget;
+    }
+}
+
+/**
+ * Helper to build feedback message for model switch
+ */
+static char *cmd_model_build_feedback(TALLOC_CTX *ctx, const char *provider,
+                                      const char *model_name, ik_thinking_level_t thinking_level)
+{
+    int32_t thinking_budget = 0;
+    ik_model_get_thinking_budget(model_name, &thinking_budget);
+
+    if (thinking_level == IK_THINKING_NONE) {
+        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: disabled",
+                              provider, model_name);
+    }
+
+    const char *level_name = (thinking_level == IK_THINKING_LOW) ? "low" :
+                             (thinking_level == IK_THINKING_MED) ? "medium" : "high";
+
+    if (strcmp(provider, "anthropic") == 0 && thinking_budget > 0) {
+        int32_t budget = calculate_thinking_budget(thinking_level, 1024, thinking_budget);
+        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
+                              provider, model_name, level_name, budget);
+    } else if (strcmp(provider, "google") == 0 && thinking_budget > 0) {
+        int32_t budget = calculate_thinking_budget(thinking_level, 512, thinking_budget);
+        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
+                              provider, model_name, level_name, budget);
+    } else if (strcmp(provider, "openai") == 0) {
+        const char *effort = (thinking_level == IK_THINKING_NONE) ? "none" :
+                             (thinking_level == IK_THINKING_LOW) ? "low" :
+                             (thinking_level == IK_THINKING_MED) ? "medium" : "high";
+        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s effort",
+                              provider, model_name, effort);
+    } else {
+        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s level",
+                              provider, model_name, level_name);
+    }
+}
+
 res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
@@ -279,68 +331,7 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Build user feedback message
-    char *feedback = NULL;
-
-    // Check if model supports thinking
-    bool supports_thinking = false;
-    ik_model_supports_thinking(model_name, &supports_thinking);
-
-    // Get thinking budget for feedback
-    int32_t thinking_budget = 0;
-    ik_model_get_thinking_budget(model_name, &thinking_budget);
-
-    // Build thinking level description
-    if (thinking_level == IK_THINKING_NONE) {
-        feedback = talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: disabled",
-                                   provider, model_name);
-    } else if (strcmp(provider, "anthropic") == 0 && thinking_budget > 0) {
-        // Anthropic: show concrete budget value
-        const char *level_name = (thinking_level == IK_THINKING_LOW) ? "low" :
-                                 (thinking_level == IK_THINKING_MED) ? "medium" : "high";
-        // Calculate budget based on level (from 03-provider-types.md)
-        int32_t min_budget = 1024;
-        int32_t max_budget = thinking_budget;
-        int32_t calculated_budget;
-        if (thinking_level == IK_THINKING_LOW) {
-            calculated_budget = min_budget + (max_budget - min_budget) / 3;
-        } else if (thinking_level == IK_THINKING_MED) {
-            calculated_budget = min_budget + (2 * (max_budget - min_budget)) / 3;
-        } else {
-            calculated_budget = max_budget;
-        }
-        feedback = talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
-                                   provider, model_name, level_name, calculated_budget);
-    } else if (strcmp(provider, "google") == 0 && thinking_budget > 0) {
-        // Google 2.5 series: show budget
-        const char *level_name = (thinking_level == IK_THINKING_LOW) ? "low" :
-                                 (thinking_level == IK_THINKING_MED) ? "medium" : "high";
-        int32_t min_budget = 512;
-        int32_t max_budget = thinking_budget;
-        int32_t calculated_budget;
-        if (thinking_level == IK_THINKING_LOW) {
-            calculated_budget = min_budget + (max_budget - min_budget) / 3;
-        } else if (thinking_level == IK_THINKING_MED) {
-            calculated_budget = min_budget + (2 * (max_budget - min_budget)) / 3;
-        } else {
-            calculated_budget = max_budget;
-        }
-        feedback = talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
-                                   provider, model_name, level_name, calculated_budget);
-    } else if (strcmp(provider, "openai") == 0) {
-        // OpenAI: effort-based
-        const char *effort = (thinking_level == IK_THINKING_NONE) ? "none" :
-                             (thinking_level == IK_THINKING_LOW) ? "low" :
-                             (thinking_level == IK_THINKING_MED) ? "medium" : "high";
-        feedback = talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s effort",
-                                   provider, model_name, effort);
-    } else {
-        // Generic or Google 3.x (level-based)
-        const char *level_name = (thinking_level == IK_THINKING_LOW) ? "low" :
-                                 (thinking_level == IK_THINKING_MED) ? "medium" : "high";
-        feedback = talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s level",
-                                   provider, model_name, level_name);
-    }
-
+    char *feedback = cmd_model_build_feedback(ctx, provider, model_name, thinking_level);
     if (!feedback) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
@@ -348,6 +339,8 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
     ik_scrollback_append_line(repl->current->scrollback, feedback, strlen(feedback));
 
     // Warn if user requested thinking on non-thinking model
+    bool supports_thinking = false;
+    ik_model_supports_thinking(model_name, &supports_thinking);
     if (!supports_thinking && thinking_level != IK_THINKING_NONE) {
         char *warning = talloc_asprintf(ctx, "Warning: Model '%s' does not support thinking/reasoning", model_name);
         if (!warning) {     // LCOV_EXCL_BR_LINE

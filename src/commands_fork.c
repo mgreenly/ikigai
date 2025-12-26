@@ -324,6 +324,87 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
     }
 }
 
+/**
+ * Helper to convert thinking level enum to string
+ */
+static const char *thinking_level_to_string(ik_thinking_level_t level)
+{
+    switch (level) {
+        case IK_THINKING_NONE: return "none";
+        case IK_THINKING_LOW:  return "low";
+        case IK_THINKING_MED:  return "medium";
+        case IK_THINKING_HIGH: return "high";
+        default: return "unknown";
+    }
+}
+
+/**
+ * Helper to build fork feedback message
+ */
+static char *build_fork_feedback(TALLOC_CTX *ctx, const ik_agent_ctx_t *child,
+                                 bool is_override)
+{
+    const char *thinking_level_str = thinking_level_to_string(child->thinking_level);
+
+    if (is_override) {
+        return talloc_asprintf(ctx, "Forked child with %s/%s/%s",
+                              child->provider, child->model, thinking_level_str);
+    } else {
+        return talloc_asprintf(ctx, "Forked child with parent's model (%s/%s/%s)",
+                              child->provider, child->model, thinking_level_str);
+    }
+}
+
+/**
+ * Helper to insert fork events into database
+ */
+static res_t insert_fork_events(TALLOC_CTX *ctx, ik_repl_ctx_t *repl,
+                                ik_agent_ctx_t *parent, ik_agent_ctx_t *child,
+                                int64_t fork_message_id)
+{
+    if (repl->shared->session_id <= 0) {
+        return OK(NULL);
+    }
+
+    // Insert parent-side fork event
+    char *parent_content = talloc_asprintf(ctx, "Forked child %.22s", child->uuid);
+    if (parent_content == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+    char *parent_data = talloc_asprintf(ctx,
+                                        "{\"child_uuid\":\"%s\",\"fork_message_id\":%" PRId64
+                                        ",\"role\":\"parent\"}",
+                                        child->uuid, fork_message_id);
+    if (parent_data == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+    res_t res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
+                                     parent->uuid, "fork", parent_content, parent_data);
+    talloc_free(parent_content);
+    talloc_free(parent_data);
+    if (is_err(&res)) {
+        return res;
+    }
+
+    // Insert child-side fork event
+    char *child_content = talloc_asprintf(ctx, "Forked from %.22s", parent->uuid);
+    if (child_content == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+    char *child_data = talloc_asprintf(ctx,
+                                       "{\"parent_uuid\":\"%s\",\"fork_message_id\":%" PRId64 ",\"role\":\"child\"}",
+                                       parent->uuid, fork_message_id);
+    if (child_data == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+    res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
+                               child->uuid, "fork", child_content, child_data);
+    talloc_free(child_content);
+    talloc_free(child_data);
+
+    return res;
+}
+
 res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
@@ -453,51 +534,12 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
-    // Insert parent-side fork event (only if session exists)
-    if (repl->shared->session_id > 0) {
-        char *parent_content = talloc_asprintf(ctx, "Forked child %.22s", child->uuid);
-        if (parent_content == NULL) {     // LCOV_EXCL_BR_LINE
-            PANIC("Out of memory");     // LCOV_EXCL_LINE
-        }
-        char *parent_data = talloc_asprintf(ctx,
-                                            "{\"child_uuid\":\"%s\",\"fork_message_id\":%" PRId64
-                                            ",\"role\":\"parent\"}",
-                                            child->uuid,
-                                            fork_message_id);
-        if (parent_data == NULL) {     // LCOV_EXCL_BR_LINE
-            PANIC("Out of memory");     // LCOV_EXCL_LINE
-        }
-        res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                   parent->uuid, "fork", parent_content, parent_data);
-        talloc_free(parent_content);
-        talloc_free(parent_data);
-        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-            ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
-            atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
-            return res;     // LCOV_EXCL_LINE
-        }
-
-        // Insert child-side fork event
-        char *child_content = talloc_asprintf(ctx, "Forked from %.22s", parent->uuid);
-        if (child_content == NULL) {     // LCOV_EXCL_BR_LINE
-            PANIC("Out of memory");     // LCOV_EXCL_LINE
-        }
-        char *child_data = talloc_asprintf(ctx,
-                                           "{\"parent_uuid\":\"%s\",\"fork_message_id\":%" PRId64 ",\"role\":\"child\"}",
-                                           parent->uuid,
-                                           fork_message_id);
-        if (child_data == NULL) {     // LCOV_EXCL_BR_LINE
-            PANIC("Out of memory");     // LCOV_EXCL_LINE
-        }
-        res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                   child->uuid, "fork", child_content, child_data);
-        talloc_free(child_content);
-        talloc_free(child_data);
-        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-            ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
-            atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
-            return res;     // LCOV_EXCL_LINE
-        }
+    // Insert fork events into database
+    res = insert_fork_events(ctx, repl, parent, child, fork_message_id);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
+        atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
+        return res;     // LCOV_EXCL_LINE
     }
 
     // Commit transaction
@@ -516,30 +558,7 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     atomic_store(&repl->shared->fork_pending, false);
 
     // Display confirmation with model information
-    char *feedback = NULL;
-    if (model_spec != NULL) {
-        // Override: show what child is using
-        const char *thinking_level_str = NULL;
-        switch (child->thinking_level) {
-            case IK_THINKING_NONE: thinking_level_str = "none"; break;
-            case IK_THINKING_LOW:  thinking_level_str = "low";  break;
-            case IK_THINKING_MED:  thinking_level_str = "medium"; break;
-            case IK_THINKING_HIGH: thinking_level_str = "high"; break;
-        }
-        feedback = talloc_asprintf(ctx, "Forked child with %s/%s/%s",
-                                   child->provider, child->model, thinking_level_str);
-    } else {
-        // Inheritance: show that child inherited parent's config
-        const char *thinking_level_str = NULL;
-        switch (child->thinking_level) {
-            case IK_THINKING_NONE: thinking_level_str = "none"; break;
-            case IK_THINKING_LOW:  thinking_level_str = "low";  break;
-            case IK_THINKING_MED:  thinking_level_str = "medium"; break;
-            case IK_THINKING_HIGH: thinking_level_str = "high"; break;
-        }
-        feedback = talloc_asprintf(ctx, "Forked child with parent's model (%s/%s/%s)",
-                                   child->provider, child->model, thinking_level_str);
-    }
+    char *feedback = build_fork_feedback(ctx, child, model_spec != NULL);
     if (feedback == NULL) {  // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");  // LCOV_EXCL_LINE
     }
