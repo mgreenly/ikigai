@@ -1,6 +1,6 @@
 /**
  * @file vcr_test.c
- * @brief Unit tests for VCR HTTP recording/replay infrastructure
+ * @brief Unit tests for VCR HTTP recording/replay basic operations
  */
 
 #include <check.h>
@@ -33,6 +33,22 @@ static void cleanup_test_fixtures(void)
     unlink(path);
     snprintf(path, sizeof(path), "%s/%s.jsonl", TEST_FIXTURE_DIR, TEST_FIXTURE_BODY);
     unlink(path);
+    snprintf(path, sizeof(path), "%s/test_mode.jsonl", TEST_FIXTURE_DIR);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/test_lifecycle.jsonl", TEST_FIXTURE_DIR);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/test_cycles.jsonl", TEST_FIXTURE_DIR);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/test_record_request.jsonl", TEST_FIXTURE_DIR);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/test_record_response.jsonl", TEST_FIXTURE_DIR);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/test_record_chunk.jsonl", TEST_FIXTURE_DIR);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/test_record_body.jsonl", TEST_FIXTURE_DIR);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/test_record_multi.jsonl", TEST_FIXTURE_DIR);
+    unlink(path);
     rmdir(TEST_FIXTURE_DIR);
 }
 
@@ -60,7 +76,9 @@ START_TEST(test_vcr_mode_detection_recording) {
     unsetenv("VCR_RECORD");
     cleanup_test_fixtures();
 }
-END_TEST START_TEST(test_vcr_mode_detection_playback)
+END_TEST
+
+START_TEST(test_vcr_mode_detection_playback)
 {
     unsetenv("VCR_RECORD");
     setup_fixture_dir();
@@ -75,7 +93,9 @@ END_TEST START_TEST(test_vcr_mode_detection_playback)
     cleanup_test_fixtures();
 }
 
-END_TEST START_TEST(test_vcr_lifecycle_single)
+END_TEST
+
+START_TEST(test_vcr_lifecycle_single)
 {
     setup_fixture_dir();
     create_test_fixture("test_lifecycle", "{\"_chunk\": \"test\"}\n");
@@ -91,7 +111,9 @@ END_TEST START_TEST(test_vcr_lifecycle_single)
     cleanup_test_fixtures();
 }
 
-END_TEST START_TEST(test_vcr_lifecycle_multiple_cycles)
+END_TEST
+
+START_TEST(test_vcr_lifecycle_multiple_cycles)
 {
     setup_fixture_dir();
     create_test_fixture("test_cycles", "{\"_chunk\": \"test\"}\n");
@@ -111,7 +133,9 @@ END_TEST START_TEST(test_vcr_lifecycle_multiple_cycles)
     cleanup_test_fixtures();
 }
 
-END_TEST START_TEST(test_vcr_playback_single_chunk)
+END_TEST
+
+START_TEST(test_vcr_playback_single_chunk)
 {
     setup_fixture_dir();
     const char *fixture = "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com\", \"headers\": \"\"}}\n"
@@ -134,7 +158,9 @@ END_TEST START_TEST(test_vcr_playback_single_chunk)
     cleanup_test_fixtures();
 }
 
-END_TEST START_TEST(test_vcr_playback_multiple_chunks)
+END_TEST
+
+START_TEST(test_vcr_playback_multiple_chunks)
 {
     setup_fixture_dir();
     const char *fixture =
@@ -169,7 +195,9 @@ END_TEST START_TEST(test_vcr_playback_multiple_chunks)
     cleanup_test_fixtures();
 }
 
-END_TEST START_TEST(test_vcr_playback_body)
+END_TEST
+
+START_TEST(test_vcr_playback_body)
 {
     setup_fixture_dir();
     const char *fixture = "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com\", \"headers\": \"\"}}\n"
@@ -188,7 +216,9 @@ END_TEST START_TEST(test_vcr_playback_body)
     cleanup_test_fixtures();
 }
 
-END_TEST START_TEST(test_vcr_playback_missing_fixture)
+END_TEST
+
+START_TEST(test_vcr_playback_missing_fixture)
 {
     setup_fixture_dir();
 
@@ -205,7 +235,9 @@ END_TEST START_TEST(test_vcr_playback_missing_fixture)
     cleanup_test_fixtures();
 }
 
-END_TEST START_TEST(test_vcr_record_request)
+END_TEST
+
+START_TEST(test_vcr_record_request)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -235,7 +267,9 @@ END_TEST START_TEST(test_vcr_record_request)
     cleanup_test_fixtures();
 }
 
-END_TEST START_TEST(test_vcr_record_response)
+END_TEST
+
+START_TEST(test_vcr_record_response)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -261,7 +295,9 @@ END_TEST START_TEST(test_vcr_record_response)
     cleanup_test_fixtures();
 }
 
-END_TEST START_TEST(test_vcr_record_chunk)
+END_TEST
+
+START_TEST(test_vcr_record_chunk)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -287,7 +323,9 @@ END_TEST START_TEST(test_vcr_record_chunk)
     cleanup_test_fixtures();
 }
 
-END_TEST START_TEST(test_vcr_record_body)
+END_TEST
+
+START_TEST(test_vcr_record_body)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -313,7 +351,9 @@ END_TEST START_TEST(test_vcr_record_body)
     cleanup_test_fixtures();
 }
 
-END_TEST START_TEST(test_vcr_record_multiple_chunks)
+END_TEST
+
+START_TEST(test_vcr_record_multiple_chunks)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -340,181 +380,6 @@ END_TEST START_TEST(test_vcr_record_multiple_chunks)
     ck_assert_int_eq(count, 3);
 
     fclose(fp);
-    cleanup_test_fixtures();
-}
-
-END_TEST START_TEST(test_vcr_credential_redaction_authorization_bearer)
-{
-    setup_fixture_dir();
-    setenv("VCR_RECORD", "1", 1);
-
-    vcr_init("test_redact_bearer", "test");
-    vcr_record_request("POST", "http://test.com",
-                       "Authorization: Bearer sk-proj-test123", NULL);
-    vcr_finish();
-
-    unsetenv("VCR_RECORD");
-
-    char path[256];
-    snprintf(path, sizeof(path), "%s/test_redact_bearer.jsonl", TEST_FIXTURE_DIR);
-    FILE *fp = fopen(path, "r");
-    ck_assert_ptr_nonnull(fp);
-
-    char line[1024];
-    fgets(line, sizeof(line), fp);
-    ck_assert(strstr(line, "Bearer REDACTED") != NULL);
-    ck_assert(strstr(line, "sk-proj-test123") == NULL);
-
-    fclose(fp);
-    cleanup_test_fixtures();
-}
-
-END_TEST START_TEST(test_vcr_credential_redaction_x_api_key)
-{
-    setup_fixture_dir();
-    setenv("VCR_RECORD", "1", 1);
-
-    vcr_init("test_redact_apikey", "test");
-    vcr_record_request("POST", "http://test.com",
-                       "x-api-key: sk-ant-secret123", NULL);
-    vcr_finish();
-
-    unsetenv("VCR_RECORD");
-
-    char path[256];
-    snprintf(path, sizeof(path), "%s/test_redact_apikey.jsonl", TEST_FIXTURE_DIR);
-    FILE *fp = fopen(path, "r");
-    ck_assert_ptr_nonnull(fp);
-
-    char line[1024];
-    fgets(line, sizeof(line), fp);
-    ck_assert(strstr(line, "REDACTED") != NULL);
-    ck_assert(strstr(line, "sk-ant-secret123") == NULL);
-
-    fclose(fp);
-    cleanup_test_fixtures();
-}
-
-END_TEST START_TEST(test_vcr_credential_redaction_case_insensitive)
-{
-    setup_fixture_dir();
-    setenv("VCR_RECORD", "1", 1);
-
-    vcr_init("test_redact_case", "test");
-    vcr_record_request("POST", "http://test.com",
-                       "X-API-KEY: secret123", NULL);
-    vcr_finish();
-
-    unsetenv("VCR_RECORD");
-
-    char path[256];
-    snprintf(path, sizeof(path), "%s/test_redact_case.jsonl", TEST_FIXTURE_DIR);
-    FILE *fp = fopen(path, "r");
-    ck_assert_ptr_nonnull(fp);
-
-    char line[1024];
-    fgets(line, sizeof(line), fp);
-    ck_assert(strstr(line, "REDACTED") != NULL);
-    ck_assert(strstr(line, "secret123") == NULL);
-
-    fclose(fp);
-    cleanup_test_fixtures();
-}
-
-END_TEST START_TEST(test_vcr_credential_redaction_other_headers)
-{
-    setup_fixture_dir();
-    setenv("VCR_RECORD", "1", 1);
-
-    vcr_init("test_redact_other", "test");
-    vcr_record_request("POST", "http://test.com",
-                       "content-type: application/json\nuser-agent: test", NULL);
-    vcr_finish();
-
-    unsetenv("VCR_RECORD");
-
-    char path[256];
-    snprintf(path, sizeof(path), "%s/test_redact_other.jsonl", TEST_FIXTURE_DIR);
-    FILE *fp = fopen(path, "r");
-    ck_assert_ptr_nonnull(fp);
-
-    char line[1024];
-    fgets(line, sizeof(line), fp);
-    ck_assert(strstr(line, "content-type: application/json") != NULL);
-    ck_assert(strstr(line, "user-agent: test") != NULL);
-
-    fclose(fp);
-    cleanup_test_fixtures();
-}
-
-END_TEST START_TEST(test_vcr_assertion_macros_playback)
-{
-    setup_fixture_dir();
-    create_test_fixture("test_assert_playback", "{\"_chunk\": \"test\"}\n");
-
-    vcr_init("test_assert_playback", "test");
-
-    // In playback mode, assertions should work normally
-    vcr_ck_assert(1 == 1);
-    vcr_ck_assert_int_eq(42, 42);
-    vcr_ck_assert_str_eq("test", "test");
-    vcr_ck_assert_ptr_nonnull("not null");
-    vcr_ck_assert_ptr_null(NULL);
-
-    vcr_finish();
-    cleanup_test_fixtures();
-}
-
-END_TEST START_TEST(test_vcr_assertion_macros_recording)
-{
-    setup_fixture_dir();
-    setenv("VCR_RECORD", "1", 1);
-
-    vcr_init("test_assert_recording", "test");
-
-    // In record mode, these should be no-ops (test passes even with false conditions)
-    vcr_ck_assert(1 == 1);  // Still works
-    vcr_ck_assert_int_eq(42, 42);  // Still works
-    vcr_ck_assert_str_eq("a", "a");  // Still works
-
-    vcr_finish();
-    unsetenv("VCR_RECORD");
-    cleanup_test_fixtures();
-}
-
-END_TEST START_TEST(test_vcr_request_verification_match)
-{
-    setup_fixture_dir();
-    const char *fixture =
-        "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com/api\", \"headers\": \"\", \"body\": \"{\\\"key\\\":\\\"value\\\"}\"}}\n"
-        "{\"_response\": {\"status\": 200, \"headers\": \"\"}}\n"
-        "{\"_chunk\": \"result\"}\n";
-    create_test_fixture("test_verify_match", fixture);
-
-    vcr_init("test_verify_match", "test");
-
-    // Should not print warnings for matching request
-    vcr_verify_request("GET", "http://test.com/api", "{\"key\":\"value\"}");
-
-    vcr_finish();
-    cleanup_test_fixtures();
-}
-
-END_TEST START_TEST(test_vcr_skip_verification)
-{
-    setup_fixture_dir();
-    const char *fixture = "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com\", \"headers\": \"\"}}\n"
-                          "{\"_response\": {\"status\": 200, \"headers\": \"\"}}\n"
-                          "{\"_chunk\": \"result\"}\n";
-    create_test_fixture("test_skip_verify", fixture);
-
-    vcr_init("test_skip_verify", "test");
-    vcr_skip_request_verification();
-
-    // Should not print warnings even for mismatched request
-    vcr_verify_request("POST", "http://different.com", NULL);
-
-    vcr_finish();
     cleanup_test_fixtures();
 }
 
@@ -548,23 +413,6 @@ static Suite *vcr_suite(void)
     tcase_add_test(tc_record, test_vcr_record_body);
     tcase_add_test(tc_record, test_vcr_record_multiple_chunks);
     suite_add_tcase(s, tc_record);
-
-    TCase *tc_redact = tcase_create("Credential Redaction");
-    tcase_add_test(tc_redact, test_vcr_credential_redaction_authorization_bearer);
-    tcase_add_test(tc_redact, test_vcr_credential_redaction_x_api_key);
-    tcase_add_test(tc_redact, test_vcr_credential_redaction_case_insensitive);
-    tcase_add_test(tc_redact, test_vcr_credential_redaction_other_headers);
-    suite_add_tcase(s, tc_redact);
-
-    TCase *tc_assert = tcase_create("Assertion Macros");
-    tcase_add_test(tc_assert, test_vcr_assertion_macros_playback);
-    tcase_add_test(tc_assert, test_vcr_assertion_macros_recording);
-    suite_add_tcase(s, tc_assert);
-
-    TCase *tc_verify = tcase_create("Request Verification");
-    tcase_add_test(tc_verify, test_vcr_request_verification_match);
-    tcase_add_test(tc_verify, test_vcr_skip_verification);
-    suite_add_tcase(s, tc_verify);
 
     return s;
 }

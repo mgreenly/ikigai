@@ -1,1 +1,0 @@
-{"_request": {"method": "POST", "url": "https://api.example.com/v1/messages", "headers": "x-api-key: REDACTED\ncontent-type: application/json", "body": "{\"test\":\"data\"}"}}

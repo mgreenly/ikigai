@@ -317,6 +317,11 @@ $(BUILDDIR)/tests/unit/helpers/vcr_test: $(BUILDDIR)/tests/unit/helpers/vcr_test
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit
 
+# Special rule for vcr_advanced_test (needs vcr helper, no module objects needed)
+$(BUILDDIR)/tests/unit/helpers/vcr_advanced_test: $(BUILDDIR)/tests/unit/helpers/vcr_advanced_test.o $(VCR_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit
+
 # Special rule for vcr_mock_integration_test (needs vcr helper and module objects)
 $(BUILDDIR)/tests/unit/helpers/vcr_mock_integration_test: $(BUILDDIR)/tests/unit/helpers/vcr_mock_integration_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)

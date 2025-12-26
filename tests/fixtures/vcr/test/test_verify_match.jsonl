@@ -1,3 +1,0 @@
-{"_request": {"method": "GET", "url": "http://test.com/api", "headers": "", "body": "{\"key\":\"value\"}"}}
-{"_response": {"status": 200, "headers": ""}}
-{"_chunk": "result"}
