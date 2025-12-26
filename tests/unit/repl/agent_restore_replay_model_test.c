@@ -320,7 +320,7 @@ START_TEST(test_command_with_null_data_json)
 }
 END_TEST
 
-// Test: command with invalid JSON is skipped
+// Test: command with invalid JSON cannot be inserted into JSONB column
 START_TEST(test_command_with_invalid_json)
 {
     SKIP_IF_NO_DB();
@@ -328,26 +328,14 @@ START_TEST(test_command_with_invalid_json)
     const char *agent_uuid = "test-invalid-json-1";
     insert_agent(agent_uuid);
 
-    // Insert a command with invalid JSON
+    // Try to insert a command with invalid JSON
+    // This should fail because PostgreSQL JSONB column validates JSON
     const char *data_json = "{invalid json}";
-    insert_message(agent_uuid, "command", NULL, data_json);
+    res_t res = ik_db_message_insert(db, session_id, agent_uuid, "command",
+                                     NULL, data_json);
 
-    // Create agent
-    ik_agent_ctx_t *agent = create_test_agent(agent_uuid);
-
-    // Load replay context
-    ik_replay_context_t *replay_ctx = NULL;
-    res_t res = ik_agent_replay_history(db, test_ctx, agent_uuid, &replay_ctx);
-    ck_assert(is_ok(&res));
-
-    // Populate scrollback - should not crash
-    ik_agent_restore_populate_scrollback(agent, replay_ctx,
-                                         agent->shared->logger);
-
-    // Agent state should be unchanged
-    ck_assert_ptr_null(agent->provider);
-    ck_assert_ptr_null(agent->model);
-
+    // PostgreSQL JSONB validation should reject invalid JSON
+    ck_assert(is_err(&res));
 }
 END_TEST
 
