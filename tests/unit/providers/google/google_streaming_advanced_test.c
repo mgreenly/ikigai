@@ -1,9 +1,6 @@
 /**
- * @file test_google_streaming_content.c
- * @brief Unit tests for Google streaming content events
- *
- * Tests content accumulation, thinking deltas, and tool call streaming
- * using VCR fixtures in JSONL format.
+ * @file google_streaming_advanced_test.c
+ * @brief Unit tests for Google streaming thinking and tool call events
  */
 
 #include <check.h>
@@ -136,12 +133,15 @@ static void teardown(void)
 }
 
 /* ================================================================
- * Basic Streaming Tests
+ * Thinking Content Tests
  * ================================================================ */
 
-START_TEST(test_stream_start_event)
+START_TEST(test_thinking_delta_event_type)
 {
-    vcr_init("stream_basic", "google");
+    vcr_init("stream_thinking", "google");
+
+    /* Configure thinking request */
+    request->thinking.level = IK_THINKING_HIGH;
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -161,57 +161,27 @@ START_TEST(test_stream_start_event)
         provider->vt->perform(provider->ctx, &running);
     }
 
-    /* First event should be IK_STREAM_START */
-    vcr_ck_assert(captured_count > 0);
-    vcr_ck_assert_int_eq(captured_events[0].type, IK_STREAM_START);
-    vcr_ck_assert_ptr_nonnull(captured_events[0].data.start.model);
-
-    vcr_finish();
-}
-
-END_TEST
-
-START_TEST(test_text_delta_events)
-{
-    vcr_init("stream_basic", "google");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* Should have text delta events */
-    bool found_text_delta = false;
+    /* Should have thinking delta events */
+    bool found_thinking = false;
     for (size_t i = 0; i < captured_count; i++) {
-        if (captured_events[i].type == IK_STREAM_TEXT_DELTA) {
-            found_text_delta = true;
-            vcr_ck_assert_ptr_nonnull(captured_events[i].data.delta.text);
+        if (captured_events[i].type == IK_STREAM_THINKING_DELTA) {
+            found_thinking = true;
+            break;
         }
     }
 
-    vcr_ck_assert(found_text_delta);
+    vcr_ck_assert(found_thinking);
 
     vcr_finish();
 }
 
 END_TEST
 
-START_TEST(test_stream_done_event)
+START_TEST(test_thinking_delta_content)
 {
-    vcr_init("stream_basic", "google");
+    vcr_init("stream_thinking", "google");
+
+    request->thinking.level = IK_THINKING_HIGH;
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -231,120 +201,9 @@ START_TEST(test_stream_done_event)
         provider->vt->perform(provider->ctx, &running);
     }
 
-    /* Last event should be IK_STREAM_DONE */
-    vcr_ck_assert(captured_count > 0);
-    vcr_ck_assert_int_eq(captured_events[captured_count - 1].type, IK_STREAM_DONE);
-
-    /* Should have usage info */
-    vcr_ck_assert(captured_events[captured_count - 1].data.done.usage.total_tokens > 0);
-
-    vcr_finish();
-}
-
-END_TEST
-
-START_TEST(test_completion_callback_invoked)
-{
-    vcr_init("stream_basic", "google");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* Check for completion via info_read */
-    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
-    provider->vt->info_read(provider->ctx, logger);
-
-    /* Completion callback should have been invoked */
-    vcr_ck_assert(completion_called);
-    vcr_ck_assert(captured_completion.success);
-
-    vcr_finish();
-}
-
-END_TEST
-
-/* ================================================================
- * Content Accumulation Tests
- * ================================================================ */
-
-START_TEST(test_multiple_text_deltas)
-{
-    vcr_init("stream_basic", "google");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* Count text delta events */
-    size_t delta_count = 0;
+    /* Verify thinking content */
     for (size_t i = 0; i < captured_count; i++) {
-        if (captured_events[i].type == IK_STREAM_TEXT_DELTA) {
-            delta_count++;
-        }
-    }
-
-    /* Should have multiple deltas */
-    vcr_ck_assert(delta_count > 1);
-
-    vcr_finish();
-}
-
-END_TEST
-
-START_TEST(test_delta_content_preserved)
-{
-    vcr_init("stream_basic", "google");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* Verify text deltas contain data */
-    for (size_t i = 0; i < captured_count; i++) {
-        if (captured_events[i].type == IK_STREAM_TEXT_DELTA) {
+        if (captured_events[i].type == IK_STREAM_THINKING_DELTA) {
             vcr_ck_assert_ptr_nonnull(captured_events[i].data.delta.text);
             vcr_ck_assert(strlen(captured_events[i].data.delta.text) > 0);
         }
@@ -355,9 +214,11 @@ START_TEST(test_delta_content_preserved)
 
 END_TEST
 
-START_TEST(test_event_order_preserved)
+START_TEST(test_usage_includes_thinking_tokens)
 {
-    vcr_init("stream_basic", "google");
+    vcr_init("stream_thinking", "google");
+
+    request->thinking.level = IK_THINKING_HIGH;
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
                                          test_stream_cb, NULL,
@@ -377,10 +238,151 @@ START_TEST(test_event_order_preserved)
         provider->vt->perform(provider->ctx, &running);
     }
 
-    /* Verify ordering: START -> deltas -> DONE */
-    vcr_ck_assert(captured_count >= 2);
-    vcr_ck_assert_int_eq(captured_events[0].type, IK_STREAM_START);
-    vcr_ck_assert_int_eq(captured_events[captured_count - 1].type, IK_STREAM_DONE);
+    /* Check usage in DONE event */
+    vcr_ck_assert(captured_count > 0);
+    ik_stream_event_t *done_event = &captured_events[captured_count - 1];
+    vcr_ck_assert_int_eq(done_event->type, IK_STREAM_DONE);
+    vcr_ck_assert(done_event->data.done.usage.thinking_tokens > 0);
+
+    vcr_finish();
+}
+
+END_TEST
+
+/* ================================================================
+ * Tool Call Streaming Tests
+ * ================================================================ */
+
+START_TEST(test_tool_call_start_event)
+{
+    vcr_init("stream_tool_call", "google");
+
+    /* Add tool definition */
+    request->tools = talloc_zero_array(request, ik_tool_def_t, 1);
+    request->tool_count = 1;
+    request->tools[0].name = talloc_strdup(request, "get_weather");
+    request->tools[0].description = talloc_strdup(request, "Get weather");
+    request->tools[0].parameters = talloc_strdup(request, "{}");
+
+    res_t r = provider->vt->start_stream(provider->ctx, request,
+                                         test_stream_cb, NULL,
+                                         test_completion_cb, NULL);
+    vcr_ck_assert(!is_err(&r));
+
+    /* Drive event loop */
+    int running = 1;
+    while (running > 0) {
+        fd_set read_fds, write_fds, exc_fds;
+        int max_fd = 0;
+        FD_ZERO(&read_fds);
+        FD_ZERO(&write_fds);
+        FD_ZERO(&exc_fds);
+
+        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
+        provider->vt->perform(provider->ctx, &running);
+    }
+
+    /* Should have tool call start event */
+    bool found_tool_start = false;
+    for (size_t i = 0; i < captured_count; i++) {
+        if (captured_events[i].type == IK_STREAM_TOOL_CALL_START) {
+            found_tool_start = true;
+            vcr_ck_assert_ptr_nonnull(captured_events[i].data.tool_start.id);
+            vcr_ck_assert_ptr_nonnull(captured_events[i].data.tool_start.name);
+            break;
+        }
+    }
+
+    vcr_ck_assert(found_tool_start);
+
+    vcr_finish();
+}
+
+END_TEST
+
+START_TEST(test_tool_call_delta_events)
+{
+    vcr_init("stream_tool_call", "google");
+
+    request->tools = talloc_zero_array(request, ik_tool_def_t, 1);
+    request->tool_count = 1;
+    request->tools[0].name = talloc_strdup(request, "get_weather");
+    request->tools[0].description = talloc_strdup(request, "Get weather");
+    request->tools[0].parameters = talloc_strdup(request, "{}");
+
+    res_t r = provider->vt->start_stream(provider->ctx, request,
+                                         test_stream_cb, NULL,
+                                         test_completion_cb, NULL);
+    vcr_ck_assert(!is_err(&r));
+
+    /* Drive event loop */
+    int running = 1;
+    while (running > 0) {
+        fd_set read_fds, write_fds, exc_fds;
+        int max_fd = 0;
+        FD_ZERO(&read_fds);
+        FD_ZERO(&write_fds);
+        FD_ZERO(&exc_fds);
+
+        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
+        provider->vt->perform(provider->ctx, &running);
+    }
+
+    /* Should have tool call delta events */
+    bool found_tool_delta = false;
+    for (size_t i = 0; i < captured_count; i++) {
+        if (captured_events[i].type == IK_STREAM_TOOL_CALL_DELTA) {
+            found_tool_delta = true;
+            vcr_ck_assert_ptr_nonnull(captured_events[i].data.tool_delta.arguments);
+            break;
+        }
+    }
+
+    vcr_ck_assert(found_tool_delta);
+
+    vcr_finish();
+}
+
+END_TEST
+
+START_TEST(test_tool_call_done_event)
+{
+    vcr_init("stream_tool_call", "google");
+
+    request->tools = talloc_zero_array(request, ik_tool_def_t, 1);
+    request->tool_count = 1;
+    request->tools[0].name = talloc_strdup(request, "get_weather");
+    request->tools[0].description = talloc_strdup(request, "Get weather");
+    request->tools[0].parameters = talloc_strdup(request, "{}");
+
+    res_t r = provider->vt->start_stream(provider->ctx, request,
+                                         test_stream_cb, NULL,
+                                         test_completion_cb, NULL);
+    vcr_ck_assert(!is_err(&r));
+
+    /* Drive event loop */
+    int running = 1;
+    while (running > 0) {
+        fd_set read_fds, write_fds, exc_fds;
+        int max_fd = 0;
+        FD_ZERO(&read_fds);
+        FD_ZERO(&write_fds);
+        FD_ZERO(&exc_fds);
+
+        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
+        provider->vt->perform(provider->ctx, &running);
+    }
+
+    /* Should have tool call done event */
+    bool found_tool_done = false;
+    for (size_t i = 0; i < captured_count; i++) {
+        if (captured_events[i].type == IK_STREAM_TOOL_CALL_DONE) {
+            found_tool_done = true;
+            break;
+        }
+    }
+
+    vcr_ck_assert(found_tool_done);
 
     vcr_finish();
 }
@@ -391,31 +393,30 @@ END_TEST
  * Test Suite Setup
  * ================================================================ */
 
-static Suite *google_streaming_content_suite(void)
+static Suite *google_streaming_advanced_suite(void)
 {
-    Suite *s = suite_create("Google Streaming Content");
+    Suite *s = suite_create("Google Streaming Advanced");
 
-    TCase *tc_basic = tcase_create("Basic Streaming");
-    tcase_add_unchecked_fixture(tc_basic, setup, teardown);
-    tcase_add_test(tc_basic, test_stream_start_event);
-    tcase_add_test(tc_basic, test_text_delta_events);
-    tcase_add_test(tc_basic, test_stream_done_event);
-    tcase_add_test(tc_basic, test_completion_callback_invoked);
-    suite_add_tcase(s, tc_basic);
+    TCase *tc_thinking = tcase_create("Thinking Content");
+    tcase_add_unchecked_fixture(tc_thinking, setup, teardown);
+    tcase_add_test(tc_thinking, test_thinking_delta_event_type);
+    tcase_add_test(tc_thinking, test_thinking_delta_content);
+    tcase_add_test(tc_thinking, test_usage_includes_thinking_tokens);
+    suite_add_tcase(s, tc_thinking);
 
-    TCase *tc_content = tcase_create("Content Accumulation");
-    tcase_add_unchecked_fixture(tc_content, setup, teardown);
-    tcase_add_test(tc_content, test_multiple_text_deltas);
-    tcase_add_test(tc_content, test_delta_content_preserved);
-    tcase_add_test(tc_content, test_event_order_preserved);
-    suite_add_tcase(s, tc_content);
+    TCase *tc_tools = tcase_create("Tool Call Streaming");
+    tcase_add_unchecked_fixture(tc_tools, setup, teardown);
+    tcase_add_test(tc_tools, test_tool_call_start_event);
+    tcase_add_test(tc_tools, test_tool_call_delta_events);
+    tcase_add_test(tc_tools, test_tool_call_done_event);
+    suite_add_tcase(s, tc_tools);
 
     return s;
 }
 
 int main(void)
 {
-    Suite *s = google_streaming_content_suite();
+    Suite *s = google_streaming_advanced_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);
