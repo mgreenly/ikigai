@@ -1,6 +1,14 @@
 /**
  * @file request.c
  * @brief Google request serialization implementation
+ *
+ * Transforms the canonical ik_request_t format to Google Gemini's native API format.
+ * The canonical format is a superset containing all details any provider might need.
+ * This serializer is responsible for:
+ * - Converting to Gemini's contents/parts structure
+ * - Using functionDeclarations for tools (not OpenAI's function format)
+ * - Removing unsupported schema fields (e.g., additionalProperties)
+ * - Mapping thinking levels to Gemini's thinkingConfig format
  */
 
 #include "request.h"
@@ -395,6 +403,9 @@ static bool serialize_tools(yyjson_mut_doc *doc, yyjson_mut_val *root,
         yyjson_mut_val *params_mut = yyjson_val_mut_copy(doc, yyjson_doc_get_root(params_doc));
         yyjson_doc_free(params_doc);
         if (!params_mut) return false; // LCOV_EXCL_BR_LINE
+
+        // Remove additionalProperties - Gemini doesn't support it
+        yyjson_mut_obj_remove_key(params_mut, "additionalProperties");
 
         if (!yyjson_mut_obj_add_val(doc, func_obj, "parameters", params_mut)) {
             return false; // LCOV_EXCL_BR_LINE

@@ -74,14 +74,23 @@ ik_sse_event_t *ik_sse_parser_next(ik_sse_parser_t *parser, TALLOC_CTX *ctx) {
     assert(parser != NULL); // LCOV_EXCL_BR_LINE
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
 
-    /* Look for \n\n delimiter */
+    /* Look for event delimiter: \n\n or \r\n\r\n */
     const char *delimiter = strstr(parser->buffer, "\n\n");
+    const char *crlf_delimiter = strstr(parser->buffer, "\r\n\r\n");
+    size_t delimiter_len = 2; /* Default for \n\n */
+
+    /* Use whichever delimiter comes first */
+    if (crlf_delimiter != NULL && (delimiter == NULL || crlf_delimiter < delimiter)) {
+        delimiter = crlf_delimiter;
+        delimiter_len = 4; /* \r\n\r\n */
+    }
+
     if (!delimiter) {
         /* No complete event yet */
         return NULL;
     }
 
-    /* Calculate event length (excluding the \n\n) */
+    /* Calculate event length (excluding the delimiter) */
     size_t event_len = (size_t)(delimiter - parser->buffer);
 
     /* Extract event text */
@@ -91,7 +100,7 @@ ik_sse_event_t *ik_sse_parser_next(ik_sse_parser_t *parser, TALLOC_CTX *ctx) {
     }
 
     /* Remove event and delimiter from buffer */
-    size_t consumed = event_len + 2; /* +2 for \n\n */
+    size_t consumed = event_len + delimiter_len;
     size_t remaining = parser->len - consumed;
 
     if (remaining > 0) {

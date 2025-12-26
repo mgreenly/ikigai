@@ -1,6 +1,14 @@
 /**
  * @file request.c
  * @brief Anthropic request serialization implementation
+ *
+ * Transforms the canonical ik_request_t format to Anthropic's Messages API format.
+ * The canonical format is a superset containing all details any provider might need.
+ * This serializer is responsible for:
+ * - Converting to Anthropic's messages/content structure
+ * - Using input_schema for tool definitions (not OpenAI's parameters format)
+ * - Mapping thinking levels to Anthropic's extended thinking format
+ * - Handling tool_use and tool_result content blocks
  */
 
 #include "request.h"

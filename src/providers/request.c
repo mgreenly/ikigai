@@ -373,15 +373,17 @@ static char *build_tool_parameters_json(TALLOC_CTX *ctx, const ik_tool_schema_de
     if (!required) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (size_t i = 0; i < def->param_count; i++) {
-        if (def->params[i].required) {
-            if (!yyjson_mut_arr_add_str(doc, required, def->params[i].name)) {  // LCOV_EXCL_BR_LINE
-                PANIC("Failed to add required parameter");  // LCOV_EXCL_LINE
-            }
+        if (!yyjson_mut_arr_add_str(doc, required, def->params[i].name)) {  // LCOV_EXCL_BR_LINE
+            PANIC("Failed to add required parameter");  // LCOV_EXCL_LINE
         }
     }
 
     if (!yyjson_mut_obj_add_val(doc, parameters, "required", required)) {  // LCOV_EXCL_BR_LINE
         PANIC("Failed to add required array");  // LCOV_EXCL_LINE
+    }
+
+    if (!yyjson_mut_obj_add_bool(doc, parameters, "additionalProperties", false)) {  // LCOV_EXCL_BR_LINE
+        PANIC("Failed to add additionalProperties field");  // LCOV_EXCL_LINE
     }
 
     /* Set parameters as document root */

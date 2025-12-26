@@ -1,6 +1,14 @@
 /**
  * @file request_chat.c
  * @brief OpenAI Chat Completions request serialization implementation
+ *
+ * Transforms the canonical ik_request_t format to OpenAI's Chat Completions API format.
+ * The canonical format is a superset containing all details any provider might need.
+ * This serializer is responsible for:
+ * - Converting to OpenAI's messages array structure
+ * - Setting strict:true on tools (requires additionalProperties:false in schema)
+ * - Mapping tool calls to OpenAI's function calling format
+ * - Handling reasoning_effort for o-series models
  */
 
 #include "request.h"
