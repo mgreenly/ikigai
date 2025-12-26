@@ -5,119 +5,92 @@ description: Makefile skill for the ikigai project
 
 # Makefile
 
-## Description
-
-Build system for ikigai multi-model coding agent with comprehensive testing, quality assurance, and distribution support.
+Build system for ikigai with testing, coverage enforcement, and multi-distro packaging.
 
 ## Build
 
-- `make all` - Build the ikigai client binary with default debug configuration.
-- `make release` - Clean and build the client in release mode with optimizations.
-- `make clean` - Remove all build artifacts, coverage data, generated files, and distribution packages.
-- `make build-tests` - Build all test binaries without running them.
+- `make all` - Build client binary (default: debug mode)
+- `make release` - Rebuild with optimizations and hardening
+- `make clean` - Remove all build artifacts
+- `make build-tests` - Compile tests without running
 
 ## Installation
 
-- `make install` - Install the ikigai binary and configuration files to the system.
-- `make uninstall` - Remove installed binary and configuration files from the system.
-- `make install-deps` - Install build dependencies using the system package manager.
+- `make install` - Install to PREFIX (default: /usr/local)
+- `make uninstall` - Remove installed files
+- `make install-deps` - Install build deps (Debian/Ubuntu)
 
 ## Testing
 
-- `make check` - Build and run all tests (unit and integration tests).
-- `make check-unit` - Build and run only unit tests in parallel.
-- `make check-integration` - Build and run only integration and database tests.
-- `make verify-mocks` - Verify OpenAI mock fixtures against real API responses.
+- `make check` - Run all tests (unit + integration)
+- `make check-unit` - Run unit tests with parallel support
+- `make check-integration` - Run integration tests
+- `make clean-test-runs` - Remove .run sentinel files
+
+## Mock Verification
+
+- `make verify-mocks` - Verify OpenAI fixtures (OPENAI_API_KEY)
+- `make verify-mocks-anthropic` - Verify Anthropic fixtures
+- `make verify-mocks-google` - Verify Google fixtures
+- `make verify-mocks-all` - Verify all provider fixtures
+- `make verify-credentials` - Validate API keys
+
+## VCR Recording
+
+- `make vcr-record-openai` - Re-record OpenAI fixtures
+- `make vcr-record-anthropic` - Re-record Anthropic fixtures
+- `make vcr-record-google` - Re-record Google fixtures
+- `make vcr-record-all` - Re-record all fixtures
 
 ## Dynamic Analysis
 
-- `make check-sanitize` - Run all tests with AddressSanitizer and UndefinedBehaviorSanitizer.
-- `make check-valgrind` - Run all tests under Valgrind Memcheck for memory leak detection.
-- `make check-helgrind` - Run all tests under Valgrind Helgrind for thread error detection.
-- `make check-tsan` - Run all tests with ThreadSanitizer for race condition detection.
-- `make check-dynamic` - Run all dynamic analysis checks sequentially or in parallel.
+- `make check-sanitize` - Run with ASan and UBSan
+- `make check-valgrind` - Run with Valgrind Memcheck
+- `make check-helgrind` - Run with Valgrind Helgrind
+- `make check-tsan` - Run with ThreadSanitizer
+- `make check-dynamic` - Run all dynamic analysis
 
 ## Quality Assurance
 
-- `make coverage` - Generate code coverage report and enforce coverage thresholds.
-- `make lint` - Run all lint checks (complexity and filesize).
-- `make complexity` - Check cyclomatic complexity and nesting depth against thresholds.
-- `make filesize` - Verify all source and documentation files are below size limits.
-- `make ci` - Run complete CI pipeline (lint, coverage, all tests, all dynamic analysis).
+- `make coverage` - Enforce 100% line/function/branch coverage
+- `make lint` - Run all lint checks
+- `make complexity` - Check complexity (15) and nesting (5)
+- `make filesize` - Verify files under 16KB
+- `make ci` - Run complete CI pipeline
 
-## Code Formatting
+## Code Quality
 
-- `make fmt` - Format all source code using uncrustify with project style guide.
-- `make tags` - Generate ctags index for source code navigation.
-- `make cloc` - Count lines of code in source, tests, and Makefile.
+- `make fmt` - Format with uncrustify (K&R, 120 cols)
+- `make tags` - Generate ctags for src/
+- `make cloc` - Count lines of code
 
 ## Distribution
 
-- `make dist` - Create source distribution tarball for packaging.
-- `make distro-images` - Build Docker images for all supported distributions.
-- `make distro-images-clean` - Remove all Docker images for supported distributions.
-- `make distro-clean` - Clean build artifacts using Docker container.
-- `make distro-check` - Run full CI checks on all supported distributions via Docker.
-- `make distro-package` - Build distribution packages (deb, rpm) for all supported distributions.
+- `make dist` - Create source tarball
+- `make distro-images` - Build Docker images
+- `make distro-images-clean` - Remove Docker images
+- `make distro-clean` - Clean via Docker
+- `make distro-check` - CI checks on all distros
+- `make distro-package` - Build .deb and .rpm packages
 
 ## Utility
 
-- `make help` - Display detailed help for all available targets and build modes.
-- `make clean-test-runs` - Remove test run sentinel files used for parallel execution.
+- `make help` - Display detailed help
 
 ## Build Modes
 
 | Mode | Flags | Purpose |
 |------|-------|---------|
-| `BUILD=debug` | `-O0 -g3 -DDEBUG` | Default build with full debug symbols and no optimization |
+| `BUILD=debug` | `-O0 -g3 -DDEBUG` | Default build with full debug symbols |
 | `BUILD=release` | `-O2 -g -DNDEBUG -D_FORTIFY_SOURCE=2` | Optimized production build with hardening |
-| `BUILD=sanitize` | `-O0 -g3 -fsanitize=address,undefined` | Debug build with address and undefined behavior sanitizers |
-| `BUILD=tsan` | `-O0 -g3 -fsanitize=thread` | Debug build with thread sanitizer for race detection |
-| `BUILD=valgrind` | `-O0 -g3 -fno-omit-frame-pointer` | Debug build optimized for Valgrind analysis |
-
-## Common Workflows
-
-```bash
-# Development workflow
-make clean && make all               # Clean build in debug mode
-make check                           # Run all tests
-make fmt                             # Format code before commit
-
-# Quality assurance
-make lint                            # Check complexity and file sizes
-make coverage                        # Generate coverage report
-make check-dynamic                   # Run all sanitizers and Valgrind
-
-# Release workflow
-make release                         # Build optimized release binary
-make ci                              # Run full CI pipeline
-
-# Distribution workflow
-make dist                            # Create source tarball
-make distro-images                   # Build Docker images
-make distro-package                  # Build deb/rpm packages
-
-# Custom builds
-make all BUILD=release               # Build in release mode
-make check BUILD=sanitize            # Run tests with sanitizers
-make coverage COVERAGE_THRESHOLD=95  # Require 95% coverage
-
-# Distribution testing
-make distro-check DISTROS="debian"   # Test only on Debian
-make distro-package DISTROS="fedora ubuntu"  # Build packages for specific distros
-
-# Parallel execution
-make -j8 check                       # Run tests with 8 parallel jobs
-make check-dynamic PARALLEL=1        # Run sanitizers in parallel
-```
+| `BUILD=sanitize` | `-O0 -g3 -fsanitize=address,undefined` | Debug build with ASan and UBSan |
+| `BUILD=tsan` | `-O0 -g3 -fsanitize=thread` | Debug build with ThreadSanitizer |
+| `BUILD=valgrind` | `-O0 -g3 -fno-omit-frame-pointer` | Debug build optimized for Valgrind |
 
 ## Important Notes
 
-- Never run parallel make with different targets - different BUILD modes use incompatible flags.
-- Always stay in project root - use relative paths instead of changing directories.
-- Default BUILD mode is debug; specify BUILD=release for optimized builds.
-- Coverage requires 100% line, function, and branch coverage by default.
-- Maximum file size is 24000 bytes for all source and documentation files.
-- Cyclomatic complexity threshold is 15, nesting depth threshold is 5.
-- Vendor files (yyjson, fzy) compile with relaxed warnings.
-- Test binaries support parallel execution using .run sentinel files.
+- Never run parallel make with different targets (incompatible BUILD flags)
+- Coverage requires 100% on all metrics
+- Max file size: 16KB; complexity: 15; nesting: 5
+- Use SKIP_SIGNAL_TESTS=1 under sanitizers
+- Vendor files (yyjson, fzy) use relaxed warnings

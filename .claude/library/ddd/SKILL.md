@@ -7,109 +7,79 @@ description: Domain-Driven Design (DDD) skill for the ikigai project
 
 ## Ubiquitous Language
 
-Use these domain terms consistently in code, docs, and conversation.
+### Core Domain: Terminal AI Coding Agent
 
-### Core Domain: Terminal-based AI Coding Agent
+- **REPL** - Main interactive loop (`ik_repl_ctx_t`). Reads input, processes, displays results.
+- **Scrollback** - Immutable conversation history. CRITICAL: Scrollback IS the context window (WYSIWYG).
+- **Input Buffer** - Editable multi-line user input. Supports readline shortcuts and UTF-8.
+- **Viewport** - Visible scrollback portion. Scrollable via Page Up/Down.
+- **Layer** - Independent rendering component (scrollback, separator, input, spinner).
+- **Session** - Conversation instance. Maps to database record. Contains active message array.
+- **Message** - Conversation unit with role (user/assistant/system/mark/rewind), content, timestamp, tokens, model.
+- **Context Window** - Messages sent to LLM. ALWAYS equals scrollback messages.
+- **Mark** - Checkpoint via /mark. Enables /rewind to restore context.
+- **Streaming** - Progressive LLM response delivery via HTTP streaming.
+- **Provider** - LLM service (OpenAI, Anthropic, Google, X.AI). Unified superset API.
+- **Archive** - Database storage. Permanent, never auto-loaded. User searches and selectively loads.
 
-**REPL** - Read-Eval-Print Loop. The main interactive loop that reads user input, processes it, and displays results. The top-level orchestrator (`ik_repl_ctx_t`).
+### Memory Management
 
-**Scrollback** - Immutable conversation history displayed above the separator. CRITICAL: Scrollback IS the context window - what you see is what the LLM sees (WYSIWYG). NOT just a display buffer.
-
-**Input Buffer** - Editable multi-line user input area below the separator. Supports readline-style shortcuts and UTF-8.
-
-**Viewport** - The visible portion of scrollback within terminal dimensions. Scrollable via Page Up/Down.
-
-**Layer** - Independent rendering component in the layer cake architecture (scrollback layer, separator layer, input layer, spinner layer).
-
-**Session** - A conversation instance. Created on startup or after /clear. Maps to database session record. Contains the active message array.
-
-**Message** - Structured conversation unit with role (user/assistant/system/mark/rewind), content, timestamp, tokens, model. The fundamental unit of conversation history.
-
-**Context Window** - The messages sent to the LLM. ALWAYS equals messages in scrollback. User controls this explicitly via /clear and message visibility.
-
-**Mark** - Checkpoint in conversation history created by /mark command. Enables /rewind to restore context to earlier state.
-
-**Streaming** - Progressive delivery of LLM response chunks. Displayed in real-time as they arrive via HTTP streaming.
-
-**Provider** - LLM service (OpenAI, Anthropic, Google, X.AI). Abstracted behind unified interface using superset API approach.
-
-**Archive** - Database storage of all messages. Permanent record, never auto-loaded into context. User searches and selectively loads.
-
-### Memory Management Domain
-
-**talloc Context** - Hierarchical memory arena. Parent owns children. Free parent, free entire subtree. Root context owns everything.
-
-**Ownership** - Clear parent-child relationships. Each allocation has exactly one owner responsible for cleanup.
-
-**Result Type** - Return value carrying OK/ERR status with optional error context. Use `CHECK()` and `TRY()` macros for propagation.
-
-**PANIC** - Unrecoverable error (OOM, data corruption). Immediately terminates process. NOT for recoverable errors.
+- **talloc Context** - Hierarchical memory arena. Free parent = free subtree.
+- **Ownership** - Each allocation has exactly one owner responsible for cleanup.
+- **Result Type** - OK/ERR with optional error context. Use `CHECK()` and `TRY()` macros.
+- **PANIC** - Unrecoverable only (OOM, corruption). Terminates immediately.
 
 ### Architectural Concepts
 
 **Three-Layer Separation**:
-1. **Display Layer** (scrollback) - Decorated, formatted, ephemeral. ANSI codes, colors, syntax highlighting applied at render time.
-2. **Active Context** (session messages) - Structured `ik_message_t[]` array sent to LLM API.
-3. **Permanent Archive** (database) - All messages ever, searchable, never auto-injected.
+1. **Display** (scrollback) - Decorated, formatted, ephemeral. ANSI/colors at render time.
+2. **Active Context** (session messages) - `ik_message_t[]` sent to LLM API.
+3. **Archive** (database) - All messages, searchable, never auto-injected.
 
-**Scrollback-as-Context-Window Principle** - The revolutionary insight: scrollback visibility = LLM context. User has explicit control. /clear = fresh context without data loss.
-
-**Single-threaded Event Loop** - Sequential processing. No concurrency complexity. Terminal input → parse → mutate → render.
-
-**Direct Terminal Control** - Raw mode ANSI escape sequences. No curses library. Single framebuffer write per frame.
-
-**Graceful Degradation** - Never crash REPL for recoverable errors. Display errors inline. Continue accepting input.
+**Core Principles**:
+- Scrollback visibility = LLM context (explicit user control)
+- Single-threaded event loop (input → parse → mutate → render)
+- Direct terminal control (raw ANSI, no curses, single framebuffer write)
+- Graceful degradation (never crash for recoverable errors)
 
 ## Core Entities
 
-**`ik_repl_ctx_t`** - Root aggregate. Owns all subsystems (terminal, scrollback, input, session messages, marks, LLM client, database).
-
-**`ik_message_t`** - Value object. Immutable once created. Primary entity in conversation domain.
-
-**`ik_scrollback_t`** - Entity managing display lines. Append-only buffer with O(1) arithmetic reflow.
-
-**`ik_input_buffer_t`** - Entity managing user input. Mutable, supports multi-line editing.
-
-**`ik_term_ctx_t`** - Entity for terminal state (raw mode, dimensions, capabilities).
+- **`ik_repl_ctx_t`** - Root aggregate. Owns all subsystems.
+- **`ik_message_t`** - Immutable value object. Primary conversation entity.
+- **`ik_scrollback_t`** - Display line manager. Append-only with O(1) reflow.
+- **`ik_input_buffer_t`** - User input manager. Mutable, multi-line.
+- **`ik_term_ctx_t`** - Terminal state (raw mode, dimensions, capabilities).
 
 ## Core Services
 
-**Rendering Service** (`render.c`) - Builds framebuffer from layers, writes to terminal atomically.
-
-**LLM Client Service** (`openai.c`, future: `anthropic.c`) - HTTP streaming to LLM providers. Abstracts API differences.
-
-**Database Service** (`db.c` - future) - PostgreSQL persistence. Synchronous writes. Session and message management.
-
-**Config Service** (`config.c`) - Loads `~/.config/ikigai/config.json`. Provides API keys, model settings.
-
-**Command Service** (`commands.c`) - Slash command dispatch (/clear, /mark, /rewind, /help, /model, /system).
+- **Rendering** (`render.c`) - Builds framebuffer from layers, atomic write.
+- **LLM Client** (`openai.c`) - HTTP streaming. Abstracts provider differences.
+- **Database** (`db.c`) - PostgreSQL persistence. Synchronous writes.
+- **Config** (`config.c`) - Loads `~/.config/ikigai/config.json`.
+- **Command** (`commands.c`) - Slash command dispatch.
 
 ## Bounded Contexts
 
-**Terminal UI Context** - REPL, scrollback, input, rendering, viewport, layers. Concerned with user interaction and display.
-
-**Conversation Context** - Sessions, messages, marks, context window. Concerned with conversation structure and history.
-
-**LLM Integration Context** - Providers, streaming, API requests, token management. Concerned with external AI services.
-
-**Persistence Context** - Database, sessions table, messages table, full-text search. Concerned with permanent storage.
-
-**Memory Management Context** - talloc contexts, ownership, Result types, error propagation. Cross-cutting concern.
+- **Terminal UI** - REPL, scrollback, input, rendering, viewport, layers.
+- **Conversation** - Sessions, messages, marks, context window.
+- **LLM Integration** - Providers, streaming, API requests, tokens.
+- **Persistence** - Database, sessions, messages, full-text search.
+- **Memory Management** - talloc, ownership, Result types (cross-cutting).
 
 ## Key Invariants
 
-- Scrollback messages MUST match session_messages array (same content, same order)
-- Session messages array MUST equal what gets sent to LLM
-- Database writes MUST succeed before updating in-memory state
+- Scrollback MUST match session_messages (same content, same order)
+- Session messages = what gets sent to LLM
+- Database writes succeed before updating in-memory state
 - Exactly one owner per allocation (talloc parent-child)
-- 100% test coverage MUST be maintained
-- Never run multiple make commands simultaneously
+- 100% test coverage maintained
+- Never run parallel make commands
 
-## Anti-Patterns to Avoid
+## Anti-Patterns
 
-- Auto-loading messages from database into context (breaks explicit control)
-- Hidden context injection (violates WYSIWYG principle)
-- Using malloc/free instead of talloc (breaks hierarchical ownership)
-- Recoverable errors that PANIC (PANIC is only for unrecoverable)
-- Creating new files when editing existing ones works
-- Over-engineering (KISS/YAGNI - build what's needed now)
+- Auto-loading from database (breaks explicit control)
+- Hidden context injection (violates WYSIWYG)
+- malloc/free instead of talloc (breaks ownership)
+- PANIC for recoverable errors
+- Creating files when editing existing ones works
+- Over-engineering (KISS/YAGNI)
