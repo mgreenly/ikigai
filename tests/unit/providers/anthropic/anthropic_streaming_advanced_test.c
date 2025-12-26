@@ -1,8 +1,8 @@
 /**
- * @file test_anthropic_streaming_content.c
- * @brief Unit tests for Anthropic streaming content events
+ * @file anthropic_streaming_advanced_test.c
+ * @brief Unit tests for Anthropic advanced streaming features
  *
- * Tests content accumulation, thinking deltas, and tool call streaming
+ * Tests thinking content and tool call streaming
  * using VCR fixtures in JSONL format.
  */
 
@@ -134,258 +134,6 @@ static void teardown(void)
 {
     talloc_free(test_ctx);
 }
-
-/* ================================================================
- * Basic Streaming Tests
- * ================================================================ */
-
-START_TEST(test_stream_start_event)
-{
-    vcr_init("stream_basic", "anthropic");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* First event should be IK_STREAM_START */
-    vcr_ck_assert(captured_count > 0);
-    vcr_ck_assert_int_eq(captured_events[0].type, IK_STREAM_START);
-    vcr_ck_assert_ptr_nonnull(captured_events[0].data.start.model);
-
-    vcr_finish();
-}
-
-END_TEST
-
-START_TEST(test_text_delta_events)
-{
-    vcr_init("stream_basic", "anthropic");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* Should have text delta events */
-    bool found_text_delta = false;
-    for (size_t i = 0; i < captured_count; i++) {
-        if (captured_events[i].type == IK_STREAM_TEXT_DELTA) {
-            found_text_delta = true;
-            vcr_ck_assert_ptr_nonnull(captured_events[i].data.delta.text);
-        }
-    }
-
-    vcr_ck_assert(found_text_delta);
-
-    vcr_finish();
-}
-
-END_TEST
-
-START_TEST(test_stream_done_event)
-{
-    vcr_init("stream_basic", "anthropic");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* Last event should be IK_STREAM_DONE */
-    vcr_ck_assert(captured_count > 0);
-    vcr_ck_assert_int_eq(captured_events[captured_count - 1].type, IK_STREAM_DONE);
-
-    /* Should have usage info */
-    vcr_ck_assert(captured_events[captured_count - 1].data.done.usage.total_tokens > 0);
-
-    vcr_finish();
-}
-
-END_TEST
-
-START_TEST(test_completion_callback_invoked)
-{
-    vcr_init("stream_basic", "anthropic");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* Check for completion via info_read */
-    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
-    provider->vt->info_read(provider->ctx, logger);
-
-    /* Completion callback should have been invoked */
-    vcr_ck_assert(completion_called);
-    vcr_ck_assert(captured_completion.success);
-
-    vcr_finish();
-}
-
-END_TEST
-
-/* ================================================================
- * Content Accumulation Tests
- * ================================================================ */
-
-START_TEST(test_multiple_text_deltas)
-{
-    vcr_init("stream_basic", "anthropic");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* Count text delta events */
-    size_t delta_count = 0;
-    for (size_t i = 0; i < captured_count; i++) {
-        if (captured_events[i].type == IK_STREAM_TEXT_DELTA) {
-            delta_count++;
-        }
-    }
-
-    /* Should have multiple deltas */
-    vcr_ck_assert(delta_count > 1);
-
-    vcr_finish();
-}
-
-END_TEST
-
-START_TEST(test_delta_content_preserved)
-{
-    vcr_init("stream_basic", "anthropic");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* Verify text deltas contain data */
-    for (size_t i = 0; i < captured_count; i++) {
-        if (captured_events[i].type == IK_STREAM_TEXT_DELTA) {
-            vcr_ck_assert_ptr_nonnull(captured_events[i].data.delta.text);
-            vcr_ck_assert(strlen(captured_events[i].data.delta.text) > 0);
-        }
-    }
-
-    vcr_finish();
-}
-
-END_TEST
-
-START_TEST(test_event_order_preserved)
-{
-    vcr_init("stream_basic", "anthropic");
-
-    res_t r = provider->vt->start_stream(provider->ctx, request,
-                                         test_stream_cb, NULL,
-                                         test_completion_cb, NULL);
-    vcr_ck_assert(!is_err(&r));
-
-    /* Drive event loop */
-    int running = 1;
-    while (running > 0) {
-        fd_set read_fds, write_fds, exc_fds;
-        int max_fd = 0;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-        FD_ZERO(&exc_fds);
-
-        provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
-        provider->vt->perform(provider->ctx, &running);
-    }
-
-    /* Verify ordering: START -> deltas -> DONE */
-    vcr_ck_assert(captured_count >= 2);
-    vcr_ck_assert_int_eq(captured_events[0].type, IK_STREAM_START);
-    vcr_ck_assert_int_eq(captured_events[captured_count - 1].type, IK_STREAM_DONE);
-
-    vcr_finish();
-}
-
-END_TEST
 
 /* ================================================================
  * Thinking Content Tests
@@ -693,24 +441,9 @@ END_TEST
  * Test Suite Setup
  * ================================================================ */
 
-static Suite *anthropic_streaming_content_suite(void)
+static Suite *anthropic_streaming_advanced_suite(void)
 {
-    Suite *s = suite_create("Anthropic Streaming Content");
-
-    TCase *tc_basic = tcase_create("Basic Streaming");
-    tcase_add_unchecked_fixture(tc_basic, setup, teardown);
-    tcase_add_test(tc_basic, test_stream_start_event);
-    tcase_add_test(tc_basic, test_text_delta_events);
-    tcase_add_test(tc_basic, test_stream_done_event);
-    tcase_add_test(tc_basic, test_completion_callback_invoked);
-    suite_add_tcase(s, tc_basic);
-
-    TCase *tc_content = tcase_create("Content Accumulation");
-    tcase_add_unchecked_fixture(tc_content, setup, teardown);
-    tcase_add_test(tc_content, test_multiple_text_deltas);
-    tcase_add_test(tc_content, test_delta_content_preserved);
-    tcase_add_test(tc_content, test_event_order_preserved);
-    suite_add_tcase(s, tc_content);
+    Suite *s = suite_create("Anthropic Streaming Advanced");
 
     TCase *tc_thinking = tcase_create("Thinking Content");
     tcase_add_unchecked_fixture(tc_thinking, setup, teardown);
@@ -732,7 +465,7 @@ static Suite *anthropic_streaming_content_suite(void)
 
 int main(void)
 {
-    Suite *s = anthropic_streaming_content_suite();
+    Suite *s = anthropic_streaming_advanced_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);

@@ -14,6 +14,19 @@
 #include "error.h"
 #include "providers/provider.h"
 
+/* Forward declaration */
+typedef struct ik_http_multi ik_http_multi_t;
+
+/**
+ * OpenAI provider implementation context
+ */
+typedef struct {
+    char *api_key;
+    char *base_url;
+    bool use_responses_api;
+    ik_http_multi_t *http_multi;
+} ik_openai_ctx_t;
+
 /**
  * Base URL for OpenAI API
  */
