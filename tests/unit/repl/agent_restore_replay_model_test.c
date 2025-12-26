@@ -1,9 +1,9 @@
 /**
- * @file agent_restore_replay_test.c
- * @brief Tests for agent restore replay helpers
+ * @file agent_restore_replay_model_test.c
+ * @brief Tests for agent restore replay helpers - model command replay
  *
  * Tests for replay-specific helpers that populate agent state
- * during restoration from database.
+ * during restoration from database - model command focus.
  */
 
 #include "../../../src/repl/agent_restore_replay.h"
@@ -444,100 +444,11 @@ START_TEST(test_model_command_with_null_args)
 }
 END_TEST
 
-// Test: populate_conversation adds user and assistant messages
-START_TEST(test_populate_conversation_adds_messages)
-{
-    SKIP_IF_NO_DB();
-
-    const char *agent_uuid = "test-conv-msgs-1";
-    insert_agent(agent_uuid);
-
-    // Insert conversation messages
-    insert_message(agent_uuid, "user", "Hello", "{}");
-    insert_message(agent_uuid, "assistant", "Hi there", "{}");
-
-    // Create agent
-    ik_agent_ctx_t *agent = create_test_agent(agent_uuid);
-
-    // Load replay context
-    ik_replay_context_t *replay_ctx = NULL;
-    res_t res = ik_agent_replay_history(db, test_ctx, agent_uuid, &replay_ctx);
-    ck_assert(is_ok(&res));
-
-    // Populate conversation
-    ik_agent_restore_populate_conversation(agent, replay_ctx,
-                                           agent->shared->logger);
-
-    // Verify messages were added
-    ck_assert_uint_ge(agent->message_count, 2);
-
-}
-END_TEST
-
-// Test: populate_conversation skips non-conversation messages
-START_TEST(test_populate_conversation_skips_commands)
-{
-    SKIP_IF_NO_DB();
-
-    const char *agent_uuid = "test-conv-skip-1";
-    insert_agent(agent_uuid);
-
-    // Insert mix of messages
-    insert_message(agent_uuid, "command", NULL, "{\"command\":\"clear\"}");
-    insert_message(agent_uuid, "user", "Hello", "{}");
-    insert_message(agent_uuid, "usage", NULL, "{}");
-
-    // Create agent
-    ik_agent_ctx_t *agent = create_test_agent(agent_uuid);
-
-    // Load replay context
-    ik_replay_context_t *replay_ctx = NULL;
-    res_t res = ik_agent_replay_history(db, test_ctx, agent_uuid, &replay_ctx);
-    ck_assert(is_ok(&res));
-
-    // Populate conversation
-    ik_agent_restore_populate_conversation(agent, replay_ctx,
-                                           agent->shared->logger);
-
-    // Only conversation messages should be added (1 user message)
-    ck_assert_uint_ge(agent->message_count, 1);
-
-}
-END_TEST
-
-// Test: restore_marks with empty mark stack
-START_TEST(test_restore_marks_empty_stack)
-{
-    SKIP_IF_NO_DB();
-
-    const char *agent_uuid = "test-marks-empty-1";
-    insert_agent(agent_uuid);
-
-    // Create agent
-    ik_agent_ctx_t *agent = create_test_agent(agent_uuid);
-
-    // Load replay context (no marks)
-    ik_replay_context_t *replay_ctx = NULL;
-    res_t res = ik_agent_replay_history(db, test_ctx, agent_uuid, &replay_ctx);
-    ck_assert(is_ok(&res));
-
-    // Verify mark stack is empty
-    ck_assert_uint_eq(replay_ctx->mark_stack.count, 0);
-
-    // Restore marks - should do nothing
-    ik_agent_restore_marks(agent, replay_ctx);
-
-    // Verify agent marks are unchanged
-    ck_assert_uint_eq(agent->mark_count, 0);
-
-}
-END_TEST
-
 // ========== Suite Configuration ==========
 
-static Suite *agent_restore_replay_suite(void)
+static Suite *agent_restore_replay_model_suite(void)
 {
-    Suite *s = suite_create("Agent Restore Replay");
+    Suite *s = suite_create("Agent Restore Replay - Model Commands");
 
     TCase *tc_core = tcase_create("Core");
 
@@ -555,9 +466,6 @@ static Suite *agent_restore_replay_suite(void)
     tcase_add_test(tc_core, test_command_with_null_command_name);
     tcase_add_test(tc_core, test_non_model_command_ignored);
     tcase_add_test(tc_core, test_model_command_with_null_args);
-    tcase_add_test(tc_core, test_populate_conversation_adds_messages);
-    tcase_add_test(tc_core, test_populate_conversation_skips_commands);
-    tcase_add_test(tc_core, test_restore_marks_empty_stack);
 
     suite_add_tcase(s, tc_core);
     return s;
@@ -565,7 +473,7 @@ static Suite *agent_restore_replay_suite(void)
 
 int main(void)
 {
-    Suite *s = agent_restore_replay_suite();
+    Suite *s = agent_restore_replay_model_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);
