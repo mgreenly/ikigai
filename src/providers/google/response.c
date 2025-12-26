@@ -145,9 +145,13 @@ res_t ik_google_parse_response(TALLOC_CTX *ctx, const char *json, size_t json_le
     yyjson_val *error_obj = yyjson_obj_get(root, "error");
     if (error_obj != NULL) {
         yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
-        const char *msg = msg_val ? yyjson_get_str(msg_val) : "Unknown error";
+        const char *msg = msg_val ? yyjson_get_str(msg_val) : NULL;
+        char *msg_copy = talloc_strdup(ctx, msg ? msg : "Unknown error");
         yyjson_doc_free(doc);
-        return ERR(ctx, PROVIDER, "API error: %s", msg ? msg : "Unknown error");
+        if (msg_copy == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        res_t result = ERR(ctx, PROVIDER, "API error: %s", msg_copy);
+        talloc_free(msg_copy);
+        return result;
     }
 
     // Check for blocked prompt
@@ -156,8 +160,12 @@ res_t ik_google_parse_response(TALLOC_CTX *ctx, const char *json, size_t json_le
         yyjson_val *block_reason = yyjson_obj_get(feedback, "blockReason");
         if (block_reason != NULL) {
             const char *reason = yyjson_get_str(block_reason);
+            char *reason_copy = talloc_strdup(ctx, reason ? reason : "Unknown reason");
             yyjson_doc_free(doc);
-            return ERR(ctx, PROVIDER, "Prompt blocked: %s", reason ? reason : "Unknown reason");
+            if (reason_copy == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            res_t result = ERR(ctx, PROVIDER, "Prompt blocked: %s", reason_copy);
+            talloc_free(reason_copy);
+            return result;
         }
     }
 

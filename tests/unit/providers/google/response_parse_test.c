@@ -145,6 +145,7 @@ END_TEST START_TEST(test_parse_error_response)
 
     ck_assert(is_err(&result));
     ck_assert_ptr_nonnull(strstr(result.err->msg, "API key invalid"));
+    talloc_free(result.err);
 }
 
 END_TEST START_TEST(test_parse_blocked_prompt)
@@ -160,6 +161,7 @@ END_TEST START_TEST(test_parse_blocked_prompt)
 
     ck_assert(is_err(&result));
     ck_assert_ptr_nonnull(strstr(result.err->msg, "SAFETY"));
+    talloc_free(result.err);
 }
 
 END_TEST START_TEST(test_parse_empty_candidates)
@@ -202,6 +204,7 @@ END_TEST START_TEST(test_parse_invalid_json)
     res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
 
     ck_assert(is_err(&result));
+    talloc_free(result.err);
 }
 
 END_TEST START_TEST(test_parse_thought_signature)
