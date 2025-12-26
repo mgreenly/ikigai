@@ -241,7 +241,7 @@ static Suite *anthropic_streaming_unit_suite(void)
     suite_add_tcase(s, tc_getters);
 
     TCase *tc_edge_cases = tcase_create("Event Processing Edge Cases");
-    tcase_add_unchecked_fixture(tc_edge_cases, setup, teardown);
+    tcase_add_checked_fixture(tc_edge_cases, setup, teardown);
     tcase_add_test(tc_edge_cases, test_process_ping_event);
     tcase_add_test(tc_edge_cases, test_process_invalid_json);
     tcase_add_test(tc_edge_cases, test_process_non_object_json);
