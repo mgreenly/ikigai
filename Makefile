@@ -178,6 +178,19 @@ $(BUILDDIR)/tests/integration/%_test.o: tests/integration/%_test.c | $(BUILDDIR)
 $(BUILDDIR)/tests/integration/%_test: $(BUILDDIR)/tests/integration/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
+# Mock verification helper compilation
+$(BUILDDIR)/tests/integration/google_mock_verification_helpers.o: tests/integration/google_mock_verification_helpers.c tests/integration/google_mock_verification_helpers.h | $(BUILDDIR)/tests/integration
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILDDIR)/tests/integration/google_mock_verification_test: $(BUILDDIR)/tests/integration/google_mock_verification_test.o $(BUILDDIR)/tests/integration/google_mock_verification_helpers.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+$(BUILDDIR)/tests/integration/anthropic_mock_verification_helpers.o: tests/integration/anthropic_mock_verification_helpers.c tests/integration/anthropic_mock_verification_helpers.h | $(BUILDDIR)/tests/integration
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILDDIR)/tests/integration/anthropic_mock_verification_test: $(BUILDDIR)/tests/integration/anthropic_mock_verification_test.o $(BUILDDIR)/tests/integration/anthropic_mock_verification_helpers.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
 # DB integration test compilation
 $(BUILDDIR)/tests/integration/db/%_test.o: tests/integration/db/%_test.c | $(BUILDDIR)/tests/integration/db
 	$(CC) $(CFLAGS) -c -o $@ $<
