@@ -23,20 +23,11 @@ res_t ik_repl_handle_curl_events(ik_repl_ctx_t *repl, int ready);
 // Handle request success (LLM response complete)
 void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 
-// Handle tool thread completion (legacy - uses repl->current)
-void ik_repl_handle_tool_completion(ik_repl_ctx_t *repl);
-
-// Handle tool thread completion for specific agent
-void ik_repl_handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
-
 // Calculate minimum curl timeout across all agents
 res_t ik_repl_calculate_curl_min_timeout(ik_repl_ctx_t *repl, long *timeout_out);
 
 // Handle select() timeout - spinner animation and scroll detector
 res_t ik_repl_handle_select_timeout(ik_repl_ctx_t *repl);
-
-// Poll for tool thread completion across all agents
-res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl);
 
 // Temporary adapter callbacks for provider abstraction (will be replaced in repl-streaming-updates.md)
 struct ik_stream_event;

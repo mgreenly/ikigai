@@ -1,6 +1,6 @@
 #include "repl.h"
-#include "agent.h"
 
+#include "agent.h"
 #include "event_render.h"
 #include "history_io.h"
 #include "input_buffer/core.h"
@@ -11,6 +11,7 @@
 #include "repl_actions.h"
 #include "repl_actions_internal.h"
 #include "repl_event_handlers.h"
+#include "repl_tool_completion.h"
 #include "shared.h"
 #include "signal_handler.h"
 #include "wrapper.h"
