@@ -31,8 +31,7 @@ static void teardown(void)
  * Error Handling Tests
  * ================================================================ */
 
-START_TEST(test_serialize_null_model)
-{
+START_TEST(test_serialize_null_model) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));

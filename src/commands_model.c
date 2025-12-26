@@ -49,7 +49,7 @@ static char *cmd_model_build_feedback(TALLOC_CTX *ctx, const char *provider,
 
     if (thinking_level == IK_THINKING_NONE) {
         return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: disabled",
-                              provider, model_name);
+                               provider, model_name);
     }
 
     const char *level_name = (thinking_level == IK_THINKING_LOW) ? "low" :
@@ -58,20 +58,20 @@ static char *cmd_model_build_feedback(TALLOC_CTX *ctx, const char *provider,
     if (strcmp(provider, "anthropic") == 0 && thinking_budget > 0) {
         int32_t budget = calculate_thinking_budget(thinking_level, 1024, thinking_budget);
         return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
-                              provider, model_name, level_name, budget);
+                               provider, model_name, level_name, budget);
     } else if (strcmp(provider, "google") == 0 && thinking_budget > 0) {
         int32_t budget = calculate_thinking_budget(thinking_level, 512, thinking_budget);
         return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
-                              provider, model_name, level_name, budget);
+                               provider, model_name, level_name, budget);
     } else if (strcmp(provider, "openai") == 0) {
         const char *effort = (thinking_level == IK_THINKING_NONE) ? "none" :
                              (thinking_level == IK_THINKING_LOW) ? "low" :
                              (thinking_level == IK_THINKING_MED) ? "medium" : "high";
         return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s effort",
-                              provider, model_name, effort);
+                               provider, model_name, effort);
     } else {
         return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s level",
-                              provider, model_name, level_name);
+                               provider, model_name, level_name);
     }
 }
 

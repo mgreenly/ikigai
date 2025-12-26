@@ -29,8 +29,7 @@ static void teardown(void)
  * Error Response Tests
  * ================================================================ */
 
-START_TEST(test_parse_error_response)
-{
+START_TEST(test_parse_error_response) {
     const char *json = "{"
                        "\"error\":{"
                        "\"message\":\"Incorrect API key provided\","
@@ -69,7 +68,6 @@ END_TEST START_TEST(test_parse_not_object)
 }
 
 END_TEST
-
 /* ================================================================
  * Error Parsing Tests
  * ================================================================ */

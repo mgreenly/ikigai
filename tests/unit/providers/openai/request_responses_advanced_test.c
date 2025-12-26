@@ -31,8 +31,7 @@ static void teardown(void)
  * Reasoning Configuration Tests
  * ================================================================ */
 
-START_TEST(test_serialize_reasoning_low)
-{
+START_TEST(test_serialize_reasoning_low) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));

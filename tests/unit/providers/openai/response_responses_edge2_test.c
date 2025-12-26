@@ -29,8 +29,7 @@ static void teardown(void)
  * Edge Cases - Invalid Types
  * ================================================================ */
 
-START_TEST(test_parse_response_skip_content_no_type)
-{
+START_TEST(test_parse_response_skip_content_no_type) {
     const char *json = "{"
                        "\"id\":\"resp-skiptype\","
                        "\"model\":\"gpt-4o\","
@@ -59,9 +58,7 @@ START_TEST(test_parse_response_skip_content_no_type)
     ck_assert_int_eq((int)resp->content_count, 1);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_skip_content_type_not_string)
+END_TEST START_TEST(test_parse_response_skip_content_type_not_string)
 {
     const char *json = "{"
                        "\"id\":\"resp-typenotstr\","
@@ -92,9 +89,7 @@ START_TEST(test_parse_response_skip_content_type_not_string)
     ck_assert_int_eq((int)resp->content_count, 1);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_skip_unknown_content_type)
+END_TEST START_TEST(test_parse_response_skip_unknown_content_type)
 {
     const char *json = "{"
                        "\"id\":\"resp-unknownc\","
@@ -125,9 +120,7 @@ START_TEST(test_parse_response_skip_unknown_content_type)
     ck_assert_int_eq((int)resp->content_count, 1);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_output_text_no_text_field)
+END_TEST START_TEST(test_parse_response_output_text_no_text_field)
 {
     const char *json = "{"
                        "\"id\":\"resp-notext\","
@@ -154,9 +147,7 @@ START_TEST(test_parse_response_output_text_no_text_field)
     ck_assert_int_eq((int)resp->content_count, 0);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_output_text_text_not_string)
+END_TEST START_TEST(test_parse_response_output_text_text_not_string)
 {
     const char *json = "{"
                        "\"id\":\"resp-textnotstr\","
@@ -184,9 +175,7 @@ START_TEST(test_parse_response_output_text_text_not_string)
     ck_assert_int_eq((int)resp->content_count, 0);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_refusal_no_field)
+END_TEST START_TEST(test_parse_response_refusal_no_field)
 {
     const char *json = "{"
                        "\"id\":\"resp-norefusal\","
@@ -213,9 +202,7 @@ START_TEST(test_parse_response_refusal_no_field)
     ck_assert_int_eq((int)resp->content_count, 0);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_refusal_not_string)
+END_TEST START_TEST(test_parse_response_refusal_not_string)
 {
     const char *json = "{"
                        "\"id\":\"resp-refusalnotstr\","
@@ -243,9 +230,7 @@ START_TEST(test_parse_response_refusal_not_string)
     ck_assert_int_eq((int)resp->content_count, 0);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_usage_non_int_values)
+END_TEST START_TEST(test_parse_response_usage_non_int_values)
 {
     const char *json = "{"
                        "\"id\":\"resp-badusage\","
@@ -279,9 +264,7 @@ START_TEST(test_parse_response_usage_non_int_values)
     ck_assert_int_eq(resp->usage.thinking_tokens, 0);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_model_not_string)
+END_TEST START_TEST(test_parse_response_model_not_string)
 {
     const char *json = "{"
                        "\"id\":\"resp-modelnum\","
@@ -309,9 +292,7 @@ START_TEST(test_parse_response_model_not_string)
     ck_assert_ptr_null(resp->model);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_status_not_string)
+END_TEST START_TEST(test_parse_response_status_not_string)
 {
     const char *json = "{"
                        "\"id\":\"resp-statusnum\","
@@ -339,9 +320,7 @@ START_TEST(test_parse_response_status_not_string)
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_incomplete_reason_not_string)
+END_TEST START_TEST(test_parse_response_incomplete_reason_not_string)
 {
     const char *json = "{"
                        "\"id\":\"resp-reasonnum\","
@@ -372,9 +351,7 @@ START_TEST(test_parse_response_incomplete_reason_not_string)
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_LENGTH);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_function_call_call_id_not_string)
+END_TEST START_TEST(test_parse_response_function_call_call_id_not_string)
 {
     const char *json = "{"
                        "\"id\":\"resp-callidnotstr\","

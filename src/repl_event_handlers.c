@@ -236,7 +236,6 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
     }
 }
 
-
 static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     if (agent->curl_still_running > 0 && agent->provider_instance != NULL) {

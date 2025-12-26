@@ -85,9 +85,7 @@ START_TEST(test_start_stream_returns_immediately) {
     /* Cleanup */
     talloc_free(provider);
 }
-END_TEST
-
-START_TEST(test_fdset_returns_valid_fds)
+END_TEST START_TEST(test_fdset_returns_valid_fds)
 {
     /* Create provider instance */
     ik_provider_t *provider = NULL;
@@ -112,9 +110,7 @@ START_TEST(test_fdset_returns_valid_fds)
     talloc_free(provider);
 }
 
-END_TEST
-
-START_TEST(test_perform_info_read_no_crash)
+END_TEST START_TEST(test_perform_info_read_no_crash)
 {
     /* Create provider instance */
     ik_provider_t *provider = NULL;

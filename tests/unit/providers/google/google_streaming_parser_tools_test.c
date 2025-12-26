@@ -118,8 +118,7 @@ static const ik_stream_event_t *find_event(ik_stream_event_type_t type)
  * Function Call Streaming Tests
  * ================================================================ */
 
-START_TEST(test_parse_function_call_part)
-{
+START_TEST(test_parse_function_call_part) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
@@ -142,9 +141,7 @@ START_TEST(test_parse_function_call_part)
     ck_assert_ptr_nonnull(strstr(delta_event->data.tool_delta.arguments, "London"));
 }
 
-END_TEST
-
-START_TEST(test_generate_22_char_base64url_uuid)
+END_TEST START_TEST(test_generate_22_char_base64url_uuid)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
@@ -173,9 +170,7 @@ START_TEST(test_generate_22_char_base64url_uuid)
     }
 }
 
-END_TEST
-
-START_TEST(test_parse_function_arguments_from_function_call)
+END_TEST START_TEST(test_parse_function_arguments_from_function_call)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
@@ -195,7 +190,6 @@ START_TEST(test_parse_function_arguments_from_function_call)
 }
 
 END_TEST
-
 /* ================================================================
  * Tool Call State Transition Tests
  * ================================================================ */
@@ -230,9 +224,7 @@ START_TEST(test_tool_call_followed_by_text_ends_tool_call)
     ck_assert(text_idx > done_idx);
 }
 
-END_TEST
-
-START_TEST(test_usage_metadata_ends_tool_call)
+END_TEST START_TEST(test_usage_metadata_ends_tool_call)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);

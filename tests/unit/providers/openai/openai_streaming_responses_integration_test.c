@@ -126,8 +126,7 @@ static void teardown(void)
  * Integration Tests with process_event
  * ================================================================ */
 
-START_TEST(test_write_callback_with_thinking_delta)
-{
+START_TEST(test_write_callback_with_thinking_delta) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -146,9 +145,7 @@ START_TEST(test_write_callback_with_thinking_delta)
     ck_assert_int_eq(events->items[1].type, IK_STREAM_THINKING_DELTA);
     ck_assert_str_eq(events->items[1].data.delta.text, "Let me think");
 }
-END_TEST
-
-START_TEST(test_write_callback_with_tool_call)
+END_TEST START_TEST(test_write_callback_with_tool_call)
 {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -182,9 +179,8 @@ START_TEST(test_write_callback_with_tool_call)
     ck_assert_str_eq(events->items[2].data.tool_delta.arguments, "{\"city\"");
     ck_assert_int_eq(events->items[3].type, IK_STREAM_TOOL_CALL_DONE);
 }
-END_TEST
 
-START_TEST(test_write_callback_with_completion)
+END_TEST START_TEST(test_write_callback_with_completion)
 {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -216,9 +212,8 @@ START_TEST(test_write_callback_with_completion)
     ik_finish_reason_t reason = ik_openai_responses_stream_get_finish_reason(ctx);
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
-END_TEST
 
-START_TEST(test_write_callback_with_error_event)
+END_TEST START_TEST(test_write_callback_with_error_event)
 {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -234,6 +229,7 @@ START_TEST(test_write_callback_with_error_event)
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_RATE_LIMIT);
     ck_assert_str_eq(events->items[0].data.error.message, "Rate limit exceeded");
 }
+
 END_TEST
 
 /* ================================================================

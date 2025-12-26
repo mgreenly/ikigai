@@ -76,9 +76,7 @@ START_TEST(test_vcr_mode_detection_recording) {
     unsetenv("VCR_RECORD");
     cleanup_test_fixtures();
 }
-END_TEST
-
-START_TEST(test_vcr_mode_detection_playback)
+END_TEST START_TEST(test_vcr_mode_detection_playback)
 {
     unsetenv("VCR_RECORD");
     setup_fixture_dir();
@@ -93,9 +91,7 @@ START_TEST(test_vcr_mode_detection_playback)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_lifecycle_single)
+END_TEST START_TEST(test_vcr_lifecycle_single)
 {
     setup_fixture_dir();
     create_test_fixture("test_lifecycle", "{\"_chunk\": \"test\"}\n");
@@ -111,9 +107,7 @@ START_TEST(test_vcr_lifecycle_single)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_lifecycle_multiple_cycles)
+END_TEST START_TEST(test_vcr_lifecycle_multiple_cycles)
 {
     setup_fixture_dir();
     create_test_fixture("test_cycles", "{\"_chunk\": \"test\"}\n");
@@ -133,9 +127,7 @@ START_TEST(test_vcr_lifecycle_multiple_cycles)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_playback_single_chunk)
+END_TEST START_TEST(test_vcr_playback_single_chunk)
 {
     setup_fixture_dir();
     const char *fixture = "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com\", \"headers\": \"\"}}\n"
@@ -158,9 +150,7 @@ START_TEST(test_vcr_playback_single_chunk)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_playback_multiple_chunks)
+END_TEST START_TEST(test_vcr_playback_multiple_chunks)
 {
     setup_fixture_dir();
     const char *fixture =
@@ -195,9 +185,7 @@ START_TEST(test_vcr_playback_multiple_chunks)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_playback_body)
+END_TEST START_TEST(test_vcr_playback_body)
 {
     setup_fixture_dir();
     const char *fixture = "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com\", \"headers\": \"\"}}\n"
@@ -216,9 +204,7 @@ START_TEST(test_vcr_playback_body)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_playback_missing_fixture)
+END_TEST START_TEST(test_vcr_playback_missing_fixture)
 {
     setup_fixture_dir();
 
@@ -235,9 +221,7 @@ START_TEST(test_vcr_playback_missing_fixture)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_record_request)
+END_TEST START_TEST(test_vcr_record_request)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -267,9 +251,7 @@ START_TEST(test_vcr_record_request)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_record_response)
+END_TEST START_TEST(test_vcr_record_response)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -295,9 +277,7 @@ START_TEST(test_vcr_record_response)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_record_chunk)
+END_TEST START_TEST(test_vcr_record_chunk)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -323,9 +303,7 @@ START_TEST(test_vcr_record_chunk)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_record_body)
+END_TEST START_TEST(test_vcr_record_body)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -351,9 +329,7 @@ START_TEST(test_vcr_record_body)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_record_multiple_chunks)
+END_TEST START_TEST(test_vcr_record_multiple_chunks)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);

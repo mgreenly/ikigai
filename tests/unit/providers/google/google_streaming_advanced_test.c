@@ -136,8 +136,7 @@ static void teardown(void)
  * Thinking Content Tests
  * ================================================================ */
 
-START_TEST(test_thinking_delta_event_type)
-{
+START_TEST(test_thinking_delta_event_type) {
     vcr_init("stream_thinking", "google");
 
     /* Configure thinking request */
@@ -175,9 +174,7 @@ START_TEST(test_thinking_delta_event_type)
     vcr_finish();
 }
 
-END_TEST
-
-START_TEST(test_thinking_delta_content)
+END_TEST START_TEST(test_thinking_delta_content)
 {
     vcr_init("stream_thinking", "google");
 
@@ -212,9 +209,7 @@ START_TEST(test_thinking_delta_content)
     vcr_finish();
 }
 
-END_TEST
-
-START_TEST(test_usage_includes_thinking_tokens)
+END_TEST START_TEST(test_usage_includes_thinking_tokens)
 {
     vcr_init("stream_thinking", "google");
 
@@ -248,7 +243,6 @@ START_TEST(test_usage_includes_thinking_tokens)
 }
 
 END_TEST
-
 /* ================================================================
  * Tool Call Streaming Tests
  * ================================================================ */
@@ -298,9 +292,7 @@ START_TEST(test_tool_call_start_event)
     vcr_finish();
 }
 
-END_TEST
-
-START_TEST(test_tool_call_delta_events)
+END_TEST START_TEST(test_tool_call_delta_events)
 {
     vcr_init("stream_tool_call", "google");
 
@@ -343,9 +335,7 @@ START_TEST(test_tool_call_delta_events)
     vcr_finish();
 }
 
-END_TEST
-
-START_TEST(test_tool_call_done_event)
+END_TEST START_TEST(test_tool_call_done_event)
 {
     vcr_init("stream_tool_call", "google");
 

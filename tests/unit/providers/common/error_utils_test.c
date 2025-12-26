@@ -126,9 +126,7 @@ END_TEST START_TEST(test_not_retryable_unknown)
     ck_assert(!ik_error_is_retryable(IK_ERR_CAT_UNKNOWN));
 }
 
-END_TEST
-
-START_TEST(test_not_retryable_invalid_category)
+END_TEST START_TEST(test_not_retryable_invalid_category)
 {
     /* Test with invalid category value (999) */
     ck_assert(!ik_error_is_retryable((ik_error_category_t)999));

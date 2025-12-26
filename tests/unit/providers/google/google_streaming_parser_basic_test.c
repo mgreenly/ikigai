@@ -172,9 +172,7 @@ START_TEST(test_parse_single_text_part_chunk) {
     ck_assert_ptr_nonnull(text_event);
     ck_assert_str_eq(text_event->data.delta.text, "Hello");
 }
-END_TEST
-
-START_TEST(test_parse_multiple_text_parts_in_one_chunk)
+END_TEST START_TEST(test_parse_multiple_text_parts_in_one_chunk)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
@@ -190,9 +188,7 @@ START_TEST(test_parse_multiple_text_parts_in_one_chunk)
     ck_assert_int_eq((int)text_count, 2);
 }
 
-END_TEST
-
-START_TEST(test_parse_finish_reason_chunk)
+END_TEST START_TEST(test_parse_finish_reason_chunk)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
@@ -214,9 +210,7 @@ START_TEST(test_parse_finish_reason_chunk)
     ck_assert_int_eq(done_event->data.done.usage.output_tokens, 5);
 }
 
-END_TEST
-
-START_TEST(test_accumulate_text_across_multiple_chunks)
+END_TEST START_TEST(test_accumulate_text_across_multiple_chunks)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);

@@ -172,9 +172,7 @@ static void process_thinking_chunk(yyjson_val *root, bool *seen_thinking, bool *
     }
 }
 
-END_TEST
-
-START_TEST(verify_google_streaming_thinking)
+END_TEST START_TEST(verify_google_streaming_thinking)
 {
     // Skip if not in verification mode
     if (!should_verify_mocks()) {
@@ -276,9 +274,7 @@ static void process_tool_call_chunk(yyjson_val *root, bool *seen_function_call, 
     }
 }
 
-END_TEST
-
-START_TEST(verify_google_tool_call)
+END_TEST START_TEST(verify_google_tool_call)
 {
     // Skip if not in verification mode
     if (!should_verify_mocks()) {
@@ -350,9 +346,7 @@ START_TEST(verify_google_tool_call)
     talloc_free(ctx);
 }
 
-END_TEST
-
-START_TEST(verify_google_error_auth)
+END_TEST START_TEST(verify_google_error_auth)
 {
     // Skip if not in verification mode
     if (!should_verify_mocks()) {
@@ -414,9 +408,7 @@ START_TEST(verify_google_error_auth)
     talloc_free(ctx);
 }
 
-END_TEST
-
-START_TEST(validate_fixture_structure)
+END_TEST START_TEST(validate_fixture_structure)
 {
     // This test runs even without VERIFY_MOCKS to validate fixture files
     TALLOC_CTX *ctx = talloc_new(NULL);

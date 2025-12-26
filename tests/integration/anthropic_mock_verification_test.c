@@ -54,7 +54,7 @@ START_TEST(verify_anthropic_streaming_text) {
     // Make API call
     sse_event_accumulator_t *acc = create_sse_event_accumulator(ctx);
     int status = http_post_sse_anthropic(ctx, "https://api.anthropic.com/v1/messages",
-                               api_key, request_body, acc);
+                                         api_key, request_body, acc);
 
     // Verify HTTP status
     ck_assert_int_eq(status, 200);
@@ -129,9 +129,7 @@ START_TEST(verify_anthropic_streaming_text) {
     talloc_free(ctx);
 }
 
-END_TEST
-
-START_TEST(verify_anthropic_streaming_thinking)
+END_TEST START_TEST(verify_anthropic_streaming_thinking)
 {
     // Skip if not in verification mode
     if (!should_verify_mocks_anthropic()) {
@@ -160,7 +158,7 @@ START_TEST(verify_anthropic_streaming_thinking)
     // Make API call
     sse_event_accumulator_t *acc = create_sse_event_accumulator(ctx);
     int status = http_post_sse_anthropic(ctx, "https://api.anthropic.com/v1/messages",
-                               api_key, request_body, acc);
+                                         api_key, request_body, acc);
 
     // Verify HTTP status
     ck_assert_int_eq(status, 200);
@@ -221,9 +219,7 @@ START_TEST(verify_anthropic_streaming_thinking)
     talloc_free(ctx);
 }
 
-END_TEST
-
-START_TEST(verify_anthropic_tool_call)
+END_TEST START_TEST(verify_anthropic_tool_call)
 {
     // Skip if not in verification mode
     if (!should_verify_mocks_anthropic()) {
@@ -260,7 +256,7 @@ START_TEST(verify_anthropic_tool_call)
     // Make API call
     sse_event_accumulator_t *acc = create_sse_event_accumulator(ctx);
     int status = http_post_sse_anthropic(ctx, "https://api.anthropic.com/v1/messages",
-                               api_key, request_body, acc);
+                                         api_key, request_body, acc);
 
     // Verify HTTP status
     ck_assert_int_eq(status, 200);
@@ -324,9 +320,7 @@ START_TEST(verify_anthropic_tool_call)
     talloc_free(ctx);
 }
 
-END_TEST
-
-START_TEST(verify_anthropic_error_auth)
+END_TEST START_TEST(verify_anthropic_error_auth)
 {
     // Skip if not in verification mode
     if (!should_verify_mocks_anthropic()) {
@@ -350,7 +344,7 @@ START_TEST(verify_anthropic_error_auth)
     // Make API call (should fail)
     char *response = NULL;
     int status = http_post_json_anthropic(ctx, "https://api.anthropic.com/v1/messages",
-                                invalid_key, request_body, &response);
+                                          invalid_key, request_body, &response);
 
     // Verify HTTP status 401
     ck_assert_int_eq(status, 401);
@@ -389,9 +383,7 @@ START_TEST(verify_anthropic_error_auth)
     talloc_free(ctx);
 }
 
-END_TEST
-
-START_TEST(validate_fixture_structure)
+END_TEST START_TEST(validate_fixture_structure)
 {
     // This test runs even without VERIFY_MOCKS to validate fixture files
     TALLOC_CTX *ctx = talloc_new(NULL);

@@ -33,16 +33,16 @@ const char *thinking_level_to_string(ik_thinking_level_t level)
  * Helper to build fork feedback message
  */
 char *build_fork_feedback(TALLOC_CTX *ctx, const ik_agent_ctx_t *child,
-                                 bool is_override)
+                          bool is_override)
 {
     const char *thinking_level_str = thinking_level_to_string(child->thinking_level);
 
     if (is_override) {
         return talloc_asprintf(ctx, "Forked child with %s/%s/%s",
-                              child->provider, child->model, thinking_level_str);
+                               child->provider, child->model, thinking_level_str);
     } else {
         return talloc_asprintf(ctx, "Forked child with parent's model (%s/%s/%s)",
-                              child->provider, child->model, thinking_level_str);
+                               child->provider, child->model, thinking_level_str);
     }
 }
 
@@ -50,8 +50,8 @@ char *build_fork_feedback(TALLOC_CTX *ctx, const ik_agent_ctx_t *child,
  * Helper to insert fork events into database
  */
 res_t insert_fork_events(TALLOC_CTX *ctx, ik_repl_ctx_t *repl,
-                                ik_agent_ctx_t *parent, ik_agent_ctx_t *child,
-                                int64_t fork_message_id)
+                         ik_agent_ctx_t *parent, ik_agent_ctx_t *child,
+                         int64_t fork_message_id)
 {
     if (repl->shared->session_id <= 0) {
         return OK(NULL);

@@ -228,8 +228,7 @@ static void reset_mock_state(void)
 }
 
 /* Fork Inheritance Tests */
-START_TEST(test_fork_inherits_parent_provider)
-{
+START_TEST(test_fork_inherits_parent_provider) {
     setup_test_env(); reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);

@@ -29,8 +29,7 @@ static void teardown(void)
  * Error Cases
  * ================================================================ */
 
-START_TEST(test_parse_response_invalid_json)
-{
+START_TEST(test_parse_response_invalid_json) {
     const char *json = "{invalid json}";
 
     ik_response_t *resp = NULL;
@@ -40,9 +39,7 @@ START_TEST(test_parse_response_invalid_json)
     ck_assert_ptr_null(resp);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_not_object)
+END_TEST START_TEST(test_parse_response_not_object)
 {
     const char *json = "[\"array\", \"not\", \"object\"]";
 
@@ -53,9 +50,7 @@ START_TEST(test_parse_response_not_object)
     ck_assert_ptr_null(resp);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_error_response)
+END_TEST START_TEST(test_parse_response_error_response)
 {
     const char *json = "{"
                        "\"error\":{"
@@ -72,9 +67,7 @@ START_TEST(test_parse_response_error_response)
     ck_assert_ptr_null(resp);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_error_no_message)
+END_TEST START_TEST(test_parse_response_error_no_message)
 {
     const char *json = "{"
                        "\"error\":{"
@@ -89,9 +82,7 @@ START_TEST(test_parse_response_error_no_message)
     ck_assert_ptr_null(resp);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_error_message_not_string)
+END_TEST START_TEST(test_parse_response_error_message_not_string)
 {
     const char *json = "{"
                        "\"error\":{"
@@ -106,9 +97,7 @@ START_TEST(test_parse_response_error_message_not_string)
     ck_assert_ptr_null(resp);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_function_call_no_id)
+END_TEST START_TEST(test_parse_response_function_call_no_id)
 {
     const char *json = "{"
                        "\"id\":\"resp-noid\","
@@ -132,9 +121,7 @@ START_TEST(test_parse_response_function_call_no_id)
     ck_assert(is_err(&result));
 }
 
-END_TEST
-
-START_TEST(test_parse_response_function_call_id_not_string)
+END_TEST START_TEST(test_parse_response_function_call_id_not_string)
 {
     const char *json = "{"
                        "\"id\":\"resp-idnotstr\","
@@ -159,9 +146,7 @@ START_TEST(test_parse_response_function_call_id_not_string)
     ck_assert(is_err(&result));
 }
 
-END_TEST
-
-START_TEST(test_parse_response_function_call_no_name)
+END_TEST START_TEST(test_parse_response_function_call_no_name)
 {
     const char *json = "{"
                        "\"id\":\"resp-noname\","
@@ -185,9 +170,7 @@ START_TEST(test_parse_response_function_call_no_name)
     ck_assert(is_err(&result));
 }
 
-END_TEST
-
-START_TEST(test_parse_response_function_call_name_not_string)
+END_TEST START_TEST(test_parse_response_function_call_name_not_string)
 {
     const char *json = "{"
                        "\"id\":\"resp-namenotstr\","
@@ -212,9 +195,7 @@ START_TEST(test_parse_response_function_call_name_not_string)
     ck_assert(is_err(&result));
 }
 
-END_TEST
-
-START_TEST(test_parse_response_function_call_no_arguments)
+END_TEST START_TEST(test_parse_response_function_call_no_arguments)
 {
     const char *json = "{"
                        "\"id\":\"resp-noargs\","
@@ -238,9 +219,7 @@ START_TEST(test_parse_response_function_call_no_arguments)
     ck_assert(is_err(&result));
 }
 
-END_TEST
-
-START_TEST(test_parse_response_function_call_arguments_not_string)
+END_TEST START_TEST(test_parse_response_function_call_arguments_not_string)
 {
     const char *json = "{"
                        "\"id\":\"resp-argsnotstr\","

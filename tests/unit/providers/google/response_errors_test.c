@@ -25,8 +25,7 @@ static void teardown(void)
  * Finish Reason Mapping Tests
  * ================================================================ */
 
-START_TEST(test_map_finish_reason_stop)
-{
+START_TEST(test_map_finish_reason_stop) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("STOP");
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }

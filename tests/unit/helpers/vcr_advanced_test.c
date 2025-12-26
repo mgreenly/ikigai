@@ -55,8 +55,7 @@ static void create_test_fixture(const char *name, const char *content)
     }
 }
 
-START_TEST(test_vcr_credential_redaction_authorization_bearer)
-{
+START_TEST(test_vcr_credential_redaction_authorization_bearer) {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
 
@@ -81,9 +80,7 @@ START_TEST(test_vcr_credential_redaction_authorization_bearer)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_credential_redaction_x_api_key)
+END_TEST START_TEST(test_vcr_credential_redaction_x_api_key)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -109,9 +106,7 @@ START_TEST(test_vcr_credential_redaction_x_api_key)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_credential_redaction_case_insensitive)
+END_TEST START_TEST(test_vcr_credential_redaction_case_insensitive)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -137,9 +132,7 @@ START_TEST(test_vcr_credential_redaction_case_insensitive)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_credential_redaction_other_headers)
+END_TEST START_TEST(test_vcr_credential_redaction_other_headers)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -165,9 +158,7 @@ START_TEST(test_vcr_credential_redaction_other_headers)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_assertion_macros_playback)
+END_TEST START_TEST(test_vcr_assertion_macros_playback)
 {
     setup_fixture_dir();
     create_test_fixture("test_assert_playback", "{\"_chunk\": \"test\"}\n");
@@ -185,9 +176,7 @@ START_TEST(test_vcr_assertion_macros_playback)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_assertion_macros_recording)
+END_TEST START_TEST(test_vcr_assertion_macros_recording)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -204,9 +193,7 @@ START_TEST(test_vcr_assertion_macros_recording)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_request_verification_match)
+END_TEST START_TEST(test_vcr_request_verification_match)
 {
     setup_fixture_dir();
     const char *fixture =
@@ -224,9 +211,7 @@ START_TEST(test_vcr_request_verification_match)
     cleanup_test_fixtures();
 }
 
-END_TEST
-
-START_TEST(test_vcr_skip_verification)
+END_TEST START_TEST(test_vcr_skip_verification)
 {
     setup_fixture_dir();
     const char *fixture = "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com\", \"headers\": \"\"}}\n"

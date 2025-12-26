@@ -24,8 +24,8 @@ static void teardown(void)
 {
     talloc_free(test_ctx);
 }
-START_TEST(test_parse_tool_call_response)
-{
+
+START_TEST(test_parse_tool_call_response) {
     const char *json = "{"
                        "\"id\":\"chatcmpl-789\","
                        "\"model\":\"gpt-4\","

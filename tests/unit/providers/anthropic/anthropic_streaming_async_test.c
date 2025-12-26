@@ -154,9 +154,7 @@ START_TEST(test_start_stream_returns_immediately) {
 
     vcr_finish();
 }
-END_TEST
-
-START_TEST(test_fdset_returns_mock_fds)
+END_TEST START_TEST(test_fdset_returns_mock_fds)
 {
     vcr_init("stream_basic", "anthropic");
 
@@ -179,9 +177,7 @@ START_TEST(test_fdset_returns_mock_fds)
     vcr_finish();
 }
 
-END_TEST
-
-START_TEST(test_perform_delivers_events_incrementally)
+END_TEST START_TEST(test_perform_delivers_events_incrementally)
 {
     vcr_init("stream_basic", "anthropic");
 
@@ -218,7 +214,6 @@ START_TEST(test_perform_delivers_events_incrementally)
 }
 
 END_TEST
-
 /* ================================================================
  * Error Handling Tests
  * ================================================================ */
@@ -256,18 +251,14 @@ START_TEST(test_http_error_calls_completion_cb)
     vcr_finish();
 }
 
-END_TEST
-
-START_TEST(test_malformed_sse_handled)
+END_TEST START_TEST(test_malformed_sse_handled)
 {
     /* This test would require a fixture with malformed SSE data */
     /* Skipping for now as VCR may not support this scenario */
     ck_assert(1);
 }
 
-END_TEST
-
-START_TEST(test_incomplete_stream_detected)
+END_TEST START_TEST(test_incomplete_stream_detected)
 {
     /* This test would require a fixture with incomplete stream */
     /* Skipping for now as VCR may not support this scenario */

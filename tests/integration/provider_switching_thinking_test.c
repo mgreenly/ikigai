@@ -225,8 +225,7 @@ static void reset_mock_state(void)
 }
 
 /* Thinking Level Tests */
-START_TEST(test_thinking_level_enum_values)
-{
+START_TEST(test_thinking_level_enum_values) {
     ck_assert_int_eq(IK_THINKING_NONE, 0);
     ck_assert_int_eq(IK_THINKING_LOW, 1);
     ck_assert_int_eq(IK_THINKING_MED, 2);
