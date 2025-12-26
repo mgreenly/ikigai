@@ -27,8 +27,7 @@ static ik_db_agent_row_t *create_test_row(TALLOC_CTX *ctx, const char *thinking_
 }
 
 // Test ik_agent_apply_defaults() with NULL config
-START_TEST(test_apply_defaults_null_config)
-{
+START_TEST(test_apply_defaults_null_config) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -42,7 +41,6 @@ START_TEST(test_apply_defaults_null_config)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test ik_agent_apply_defaults() success
 START_TEST(test_apply_defaults_success)
 {
@@ -68,8 +66,8 @@ START_TEST(test_apply_defaults_success)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_agent_restore_from_row() with NULL row
 START_TEST(test_restore_from_row_null)
 {
@@ -85,8 +83,8 @@ START_TEST(test_restore_from_row_null)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_agent_restore_from_row() with all NULL provider fields
 START_TEST(test_restore_from_row_null_fields)
 {
@@ -117,8 +115,8 @@ START_TEST(test_restore_from_row_null_fields)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_agent_restore_from_row() with all provider fields set
 START_TEST(test_restore_from_row_with_fields)
 {
@@ -151,8 +149,8 @@ START_TEST(test_restore_from_row_with_fields)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test parse_thinking_level with NULL thinking level
 START_TEST(test_thinking_level_null)
 {
@@ -170,8 +168,8 @@ START_TEST(test_thinking_level_null)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test parse_thinking_level through ik_agent_restore_from_row
 START_TEST(test_thinking_level_none)
 {
@@ -189,8 +187,8 @@ START_TEST(test_thinking_level_none)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test parse_thinking_level with "low"
 START_TEST(test_thinking_level_low)
 {
@@ -208,8 +206,8 @@ START_TEST(test_thinking_level_low)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test parse_thinking_level with "med"
 START_TEST(test_thinking_level_med)
 {
@@ -227,8 +225,8 @@ START_TEST(test_thinking_level_med)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test parse_thinking_level with "medium"
 START_TEST(test_thinking_level_medium)
 {
@@ -246,8 +244,8 @@ START_TEST(test_thinking_level_medium)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test parse_thinking_level with unknown value defaults to none
 START_TEST(test_thinking_level_unknown)
 {
@@ -265,8 +263,8 @@ START_TEST(test_thinking_level_unknown)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_agent_get_provider() with cached provider
 START_TEST(test_get_provider_cached)
 {
@@ -289,8 +287,8 @@ START_TEST(test_get_provider_cached)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_agent_get_provider() with NULL provider
 START_TEST(test_get_provider_null)
 {
@@ -308,8 +306,8 @@ START_TEST(test_get_provider_null)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_agent_get_provider() with empty provider
 START_TEST(test_get_provider_empty)
 {
@@ -327,8 +325,8 @@ START_TEST(test_get_provider_empty)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_agent_get_provider() when provider creation fails
 // Note: This test requires actual provider creation to fail, which happens
 // when credentials are missing. We test the error handling path here.
@@ -349,8 +347,8 @@ START_TEST(test_get_provider_creation_fails)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_agent_get_provider() success path when provider creation succeeds
 START_TEST(test_get_provider_success)
 {
@@ -375,8 +373,8 @@ START_TEST(test_get_provider_success)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_agent_invalidate_provider() with NULL cached provider
 START_TEST(test_invalidate_provider_null)
 {
@@ -393,8 +391,8 @@ START_TEST(test_invalidate_provider_null)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test ik_agent_invalidate_provider() with cached provider
 START_TEST(test_invalidate_provider_cached)
 {
@@ -418,6 +416,7 @@ START_TEST(test_invalidate_provider_cached)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *agent_provider_suite(void)

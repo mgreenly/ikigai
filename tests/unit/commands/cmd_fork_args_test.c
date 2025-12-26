@@ -30,8 +30,7 @@ static void teardown(void)
 }
 
 // Test: Parse empty input
-START_TEST(test_parse_args_empty_input)
-{
+START_TEST(test_parse_args_empty_input) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -46,7 +45,6 @@ START_TEST(test_parse_args_empty_input)
     ck_assert_ptr_null(prompt);
 }
 END_TEST
-
 // Test: Parse quoted prompt only
 START_TEST(test_parse_args_quoted_prompt)
 {
@@ -59,8 +57,8 @@ START_TEST(test_parse_args_quoted_prompt)
     ck_assert_ptr_nonnull(prompt);
     ck_assert_str_eq(prompt, "Hello World");
 }
-END_TEST
 
+END_TEST
 // Test: Parse --model only
 START_TEST(test_parse_args_model_only)
 {
@@ -73,8 +71,8 @@ START_TEST(test_parse_args_model_only)
     ck_assert_str_eq(model, "gpt-4o");
     ck_assert_ptr_null(prompt);
 }
-END_TEST
 
+END_TEST
 // Test: Parse --model followed by prompt
 START_TEST(test_parse_args_model_then_prompt)
 {
@@ -88,8 +86,8 @@ START_TEST(test_parse_args_model_then_prompt)
     ck_assert_ptr_nonnull(prompt);
     ck_assert_str_eq(prompt, "Test prompt");
 }
-END_TEST
 
+END_TEST
 // Test: Parse prompt followed by --model
 START_TEST(test_parse_args_prompt_then_model)
 {
@@ -103,8 +101,8 @@ START_TEST(test_parse_args_prompt_then_model)
     ck_assert_ptr_nonnull(prompt);
     ck_assert_str_eq(prompt, "Test prompt");
 }
-END_TEST
 
+END_TEST
 // Test: Parse --model with no argument
 START_TEST(test_parse_args_model_no_arg)
 {
@@ -114,8 +112,8 @@ START_TEST(test_parse_args_model_no_arg)
     res_t res = cmd_fork_parse_args(test_ctx, "--model", &model, &prompt);
     ck_assert(is_err(&res));
 }
-END_TEST
 
+END_TEST
 // Test: Parse --model with only whitespace
 START_TEST(test_parse_args_model_whitespace_only)
 {
@@ -125,8 +123,8 @@ START_TEST(test_parse_args_model_whitespace_only)
     res_t res = cmd_fork_parse_args(test_ctx, "--model   ", &model, &prompt);
     ck_assert(is_err(&res));
 }
-END_TEST
 
+END_TEST
 // Test: Parse unterminated quote
 START_TEST(test_parse_args_unterminated_quote)
 {
@@ -136,8 +134,8 @@ START_TEST(test_parse_args_unterminated_quote)
     res_t res = cmd_fork_parse_args(test_ctx, "\"unterminated", &model, &prompt);
     ck_assert(is_err(&res));
 }
-END_TEST
 
+END_TEST
 // Test: Parse unquoted text
 START_TEST(test_parse_args_unquoted_text)
 {
@@ -147,8 +145,8 @@ START_TEST(test_parse_args_unquoted_text)
     res_t res = cmd_fork_parse_args(test_ctx, "unquoted", &model, &prompt);
     ck_assert(is_err(&res));
 }
-END_TEST
 
+END_TEST
 // Test: Parse with leading whitespace
 START_TEST(test_parse_args_leading_whitespace)
 {
@@ -161,8 +159,8 @@ START_TEST(test_parse_args_leading_whitespace)
     ck_assert_ptr_nonnull(prompt);
     ck_assert_str_eq(prompt, "prompt");
 }
-END_TEST
 
+END_TEST
 // Test: Parse with tabs
 START_TEST(test_parse_args_with_tabs)
 {
@@ -176,8 +174,8 @@ START_TEST(test_parse_args_with_tabs)
     ck_assert_ptr_nonnull(prompt);
     ck_assert_str_eq(prompt, "prompt");
 }
-END_TEST
 
+END_TEST
 // Test: Parse empty quoted string
 START_TEST(test_parse_args_empty_quoted)
 {
@@ -190,8 +188,8 @@ START_TEST(test_parse_args_empty_quoted)
     ck_assert_ptr_nonnull(prompt);
     ck_assert_str_eq(prompt, "");
 }
-END_TEST
 
+END_TEST
 // Test: Parse --model with slash syntax
 START_TEST(test_parse_args_model_with_slash)
 {
@@ -204,8 +202,8 @@ START_TEST(test_parse_args_model_with_slash)
     ck_assert_str_eq(model, "gpt-4o/high");
     ck_assert_ptr_null(prompt);
 }
-END_TEST
 
+END_TEST
 // Test: Parse --model followed by quote (edge case for model_len == 0 check)
 START_TEST(test_parse_args_model_followed_by_quote)
 {
@@ -217,6 +215,7 @@ START_TEST(test_parse_args_model_followed_by_quote)
     res_t res = cmd_fork_parse_args(test_ctx, "--model \"prompt\"", &model, &prompt);
     ck_assert(is_err(&res));
 }
+
 END_TEST
 
 static Suite *cmd_fork_args_suite(void)

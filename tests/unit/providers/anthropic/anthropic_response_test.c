@@ -25,62 +25,48 @@ static void teardown(void)
  * Finish Reason Mapping Tests
  * ================================================================ */
 
-START_TEST(test_map_finish_reason_null)
-{
+START_TEST(test_map_finish_reason_null) {
     ik_finish_reason_t reason = ik_anthropic_map_finish_reason(NULL);
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST
-
-START_TEST(test_map_finish_reason_end_turn)
+END_TEST START_TEST(test_map_finish_reason_end_turn)
 {
     ik_finish_reason_t reason = ik_anthropic_map_finish_reason("end_turn");
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
 
-END_TEST
-
-START_TEST(test_map_finish_reason_max_tokens)
+END_TEST START_TEST(test_map_finish_reason_max_tokens)
 {
     ik_finish_reason_t reason = ik_anthropic_map_finish_reason("max_tokens");
     ck_assert_int_eq(reason, IK_FINISH_LENGTH);
 }
 
-END_TEST
-
-START_TEST(test_map_finish_reason_tool_use)
+END_TEST START_TEST(test_map_finish_reason_tool_use)
 {
     ik_finish_reason_t reason = ik_anthropic_map_finish_reason("tool_use");
     ck_assert_int_eq(reason, IK_FINISH_TOOL_USE);
 }
 
-END_TEST
-
-START_TEST(test_map_finish_reason_stop_sequence)
+END_TEST START_TEST(test_map_finish_reason_stop_sequence)
 {
     ik_finish_reason_t reason = ik_anthropic_map_finish_reason("stop_sequence");
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
 
-END_TEST
-
-START_TEST(test_map_finish_reason_refusal)
+END_TEST START_TEST(test_map_finish_reason_refusal)
 {
     ik_finish_reason_t reason = ik_anthropic_map_finish_reason("refusal");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
 
-END_TEST
-
-START_TEST(test_map_finish_reason_unknown)
+END_TEST START_TEST(test_map_finish_reason_unknown)
 {
     ik_finish_reason_t reason = ik_anthropic_map_finish_reason("unknown_reason");
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
 
 END_TEST
-
 /* ================================================================
  * Response Parsing Tests
  * ================================================================ */
@@ -105,9 +91,7 @@ START_TEST(test_parse_response_basic)
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_STOP);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_invalid_json)
+END_TEST START_TEST(test_parse_response_invalid_json)
 {
     const char *json = "not valid json";
 
@@ -117,9 +101,7 @@ START_TEST(test_parse_response_invalid_json)
     ck_assert(is_err(&r));
 }
 
-END_TEST
-
-START_TEST(test_parse_response_not_object)
+END_TEST START_TEST(test_parse_response_not_object)
 {
     const char *json = "[1, 2, 3]";
 
@@ -129,9 +111,7 @@ START_TEST(test_parse_response_not_object)
     ck_assert(is_err(&r));
 }
 
-END_TEST
-
-START_TEST(test_parse_response_error_type)
+END_TEST START_TEST(test_parse_response_error_type)
 {
     const char *json =
         "{"
@@ -148,9 +128,7 @@ START_TEST(test_parse_response_error_type)
     ck_assert(is_err(&r));
 }
 
-END_TEST
-
-START_TEST(test_parse_response_no_model)
+END_TEST START_TEST(test_parse_response_no_model)
 {
     const char *json =
         "{"
@@ -167,9 +145,7 @@ START_TEST(test_parse_response_no_model)
     ck_assert_ptr_nonnull(resp);
 }
 
-END_TEST
-
-START_TEST(test_parse_response_no_content)
+END_TEST START_TEST(test_parse_response_no_content)
 {
     const char *json =
         "{"
@@ -188,7 +164,6 @@ START_TEST(test_parse_response_no_content)
 }
 
 END_TEST
-
 /* ================================================================
  * Error Parsing Tests
  * ================================================================ */
@@ -213,9 +188,7 @@ START_TEST(test_parse_error_400)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_401)
+END_TEST START_TEST(test_parse_error_401)
 {
     ik_error_category_t category;
     char *message = NULL;
@@ -226,9 +199,7 @@ START_TEST(test_parse_error_401)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_403)
+END_TEST START_TEST(test_parse_error_403)
 {
     ik_error_category_t category;
     char *message = NULL;
@@ -238,9 +209,7 @@ START_TEST(test_parse_error_403)
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_404)
+END_TEST START_TEST(test_parse_error_404)
 {
     ik_error_category_t category;
     char *message = NULL;
@@ -250,9 +219,7 @@ START_TEST(test_parse_error_404)
     ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_429)
+END_TEST START_TEST(test_parse_error_429)
 {
     ik_error_category_t category;
     char *message = NULL;
@@ -262,9 +229,7 @@ START_TEST(test_parse_error_429)
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_500)
+END_TEST START_TEST(test_parse_error_500)
 {
     ik_error_category_t category;
     char *message = NULL;
@@ -274,9 +239,7 @@ START_TEST(test_parse_error_500)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_502)
+END_TEST START_TEST(test_parse_error_502)
 {
     ik_error_category_t category;
     char *message = NULL;
@@ -286,9 +249,7 @@ START_TEST(test_parse_error_502)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_503)
+END_TEST START_TEST(test_parse_error_503)
 {
     ik_error_category_t category;
     char *message = NULL;
@@ -298,9 +259,7 @@ START_TEST(test_parse_error_503)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_529)
+END_TEST START_TEST(test_parse_error_529)
 {
     ik_error_category_t category;
     char *message = NULL;
@@ -310,9 +269,7 @@ START_TEST(test_parse_error_529)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_unknown_status)
+END_TEST START_TEST(test_parse_error_unknown_status)
 {
     ik_error_category_t category;
     char *message = NULL;
@@ -322,9 +279,7 @@ START_TEST(test_parse_error_unknown_status)
     ck_assert_int_eq(category, IK_ERR_CAT_UNKNOWN);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_with_message_only)
+END_TEST START_TEST(test_parse_error_with_message_only)
 {
     const char *json =
         "{"
@@ -343,9 +298,7 @@ START_TEST(test_parse_error_with_message_only)
     ck_assert(strstr(message, "Something went wrong") != NULL);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_with_type_only)
+END_TEST START_TEST(test_parse_error_with_type_only)
 {
     const char *json =
         "{"
@@ -363,9 +316,7 @@ START_TEST(test_parse_error_with_type_only)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST
-
-START_TEST(test_parse_error_empty_error_obj)
+END_TEST START_TEST(test_parse_error_empty_error_obj)
 {
     const char *json =
         "{"

@@ -26,8 +26,7 @@ static void teardown(void)
  * Content Block Parsing Tests
  * ================================================================ */
 
-START_TEST(test_parse_content_blocks_empty_array)
-{
+START_TEST(test_parse_content_blocks_empty_array) {
     const char *json = "[]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -44,9 +43,7 @@ START_TEST(test_parse_content_blocks_empty_array)
 
     yyjson_doc_free(doc);
 }
-END_TEST
-
-START_TEST(test_parse_content_blocks_text)
+END_TEST START_TEST(test_parse_content_blocks_text)
 {
     const char *json = "[{\"type\": \"text\", \"text\": \"Hello world\"}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -66,9 +63,8 @@ START_TEST(test_parse_content_blocks_text)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_missing_type)
+END_TEST START_TEST(test_parse_content_blocks_missing_type)
 {
     const char *json = "[{\"text\": \"Hello\"}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -84,9 +80,8 @@ START_TEST(test_parse_content_blocks_missing_type)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_type_not_string)
+END_TEST START_TEST(test_parse_content_blocks_type_not_string)
 {
     const char *json = "[{\"type\": 123, \"text\": \"Hello\"}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -102,9 +97,8 @@ START_TEST(test_parse_content_blocks_type_not_string)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_text_missing_field)
+END_TEST START_TEST(test_parse_content_blocks_text_missing_field)
 {
     const char *json = "[{\"type\": \"text\"}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -120,9 +114,8 @@ START_TEST(test_parse_content_blocks_text_missing_field)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_text_not_string)
+END_TEST START_TEST(test_parse_content_blocks_text_not_string)
 {
     const char *json = "[{\"type\": \"text\", \"text\": 123}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -138,9 +131,8 @@ START_TEST(test_parse_content_blocks_text_not_string)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_thinking)
+END_TEST START_TEST(test_parse_content_blocks_thinking)
 {
     const char *json = "[{\"type\": \"thinking\", \"thinking\": \"Let me think...\"}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -160,9 +152,8 @@ START_TEST(test_parse_content_blocks_thinking)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_thinking_missing_field)
+END_TEST START_TEST(test_parse_content_blocks_thinking_missing_field)
 {
     const char *json = "[{\"type\": \"thinking\"}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -178,9 +169,8 @@ START_TEST(test_parse_content_blocks_thinking_missing_field)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_thinking_not_string)
+END_TEST START_TEST(test_parse_content_blocks_thinking_not_string)
 {
     const char *json = "[{\"type\": \"thinking\", \"thinking\": 456}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -196,9 +186,8 @@ START_TEST(test_parse_content_blocks_thinking_not_string)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_redacted_thinking)
+END_TEST START_TEST(test_parse_content_blocks_redacted_thinking)
 {
     const char *json = "[{\"type\": \"redacted_thinking\"}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -218,11 +207,11 @@ START_TEST(test_parse_content_blocks_redacted_thinking)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_tool_use)
+END_TEST START_TEST(test_parse_content_blocks_tool_use)
 {
-    const char *json = "[{\"type\": \"tool_use\", \"id\": \"call_123\", \"name\": \"get_weather\", \"input\": {\"location\": \"NYC\"}}]";
+    const char *json =
+        "[{\"type\": \"tool_use\", \"id\": \"call_123\", \"name\": \"get_weather\", \"input\": {\"location\": \"NYC\"}}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
 
@@ -242,9 +231,8 @@ START_TEST(test_parse_content_blocks_tool_use)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_tool_use_missing_id)
+END_TEST START_TEST(test_parse_content_blocks_tool_use_missing_id)
 {
     const char *json = "[{\"type\": \"tool_use\", \"name\": \"get_weather\", \"input\": {}}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -260,9 +248,8 @@ START_TEST(test_parse_content_blocks_tool_use_missing_id)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_tool_use_id_not_string)
+END_TEST START_TEST(test_parse_content_blocks_tool_use_id_not_string)
 {
     const char *json = "[{\"type\": \"tool_use\", \"id\": 123, \"name\": \"get_weather\", \"input\": {}}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -278,9 +265,8 @@ START_TEST(test_parse_content_blocks_tool_use_id_not_string)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_tool_use_missing_name)
+END_TEST START_TEST(test_parse_content_blocks_tool_use_missing_name)
 {
     const char *json = "[{\"type\": \"tool_use\", \"id\": \"call_123\", \"input\": {}}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -296,9 +282,8 @@ START_TEST(test_parse_content_blocks_tool_use_missing_name)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_tool_use_name_not_string)
+END_TEST START_TEST(test_parse_content_blocks_tool_use_name_not_string)
 {
     const char *json = "[{\"type\": \"tool_use\", \"id\": \"call_123\", \"name\": 456, \"input\": {}}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -314,9 +299,8 @@ START_TEST(test_parse_content_blocks_tool_use_name_not_string)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_tool_use_missing_input)
+END_TEST START_TEST(test_parse_content_blocks_tool_use_missing_input)
 {
     const char *json = "[{\"type\": \"tool_use\", \"id\": \"call_123\", \"name\": \"get_weather\"}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -332,9 +316,8 @@ START_TEST(test_parse_content_blocks_tool_use_missing_input)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_unknown_type)
+END_TEST START_TEST(test_parse_content_blocks_unknown_type)
 {
     const char *json = "[{\"type\": \"unknown_type\"}]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -354,16 +337,15 @@ START_TEST(test_parse_content_blocks_unknown_type)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_content_blocks_multiple_types)
+END_TEST START_TEST(test_parse_content_blocks_multiple_types)
 {
     const char *json = "["
-        "{\"type\": \"text\", \"text\": \"Hello\"},"
-        "{\"type\": \"thinking\", \"thinking\": \"Hmm...\"},"
-        "{\"type\": \"tool_use\", \"id\": \"call_1\", \"name\": \"func\", \"input\": {}},"
-        "{\"type\": \"redacted_thinking\"}"
-    "]";
+                       "{\"type\": \"text\", \"text\": \"Hello\"},"
+                       "{\"type\": \"thinking\", \"thinking\": \"Hmm...\"},"
+                       "{\"type\": \"tool_use\", \"id\": \"call_1\", \"name\": \"func\", \"input\": {}},"
+                       "{\"type\": \"redacted_thinking\"}"
+                       "]";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
 
@@ -391,6 +373,7 @@ START_TEST(test_parse_content_blocks_multiple_types)
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 /* ================================================================

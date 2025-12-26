@@ -26,8 +26,7 @@ static void teardown(void)
  * Usage Parsing Tests
  * ================================================================ */
 
-START_TEST(test_parse_usage_null)
-{
+START_TEST(test_parse_usage_null) {
     ik_usage_t usage;
     memset(&usage, 0xFF, sizeof(usage)); // Fill with garbage
 
@@ -39,9 +38,7 @@ START_TEST(test_parse_usage_null)
     ck_assert_int_eq(usage.cached_tokens, 0);
     ck_assert_int_eq(usage.total_tokens, 0);
 }
-END_TEST
-
-START_TEST(test_parse_usage_basic)
+END_TEST START_TEST(test_parse_usage_basic)
 {
     const char *json = "{\"input_tokens\": 100, \"output_tokens\": 50}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -60,9 +57,8 @@ START_TEST(test_parse_usage_basic)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_usage_with_thinking)
+END_TEST START_TEST(test_parse_usage_with_thinking)
 {
     const char *json = "{\"input_tokens\": 100, \"output_tokens\": 50, \"thinking_tokens\": 25}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -81,9 +77,8 @@ START_TEST(test_parse_usage_with_thinking)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_usage_with_cached)
+END_TEST START_TEST(test_parse_usage_with_cached)
 {
     const char *json = "{\"input_tokens\": 100, \"output_tokens\": 50, \"cache_read_input_tokens\": 200}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -102,16 +97,15 @@ START_TEST(test_parse_usage_with_cached)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_usage_all_fields)
+END_TEST START_TEST(test_parse_usage_all_fields)
 {
     const char *json = "{"
-        "\"input_tokens\": 100,"
-        "\"output_tokens\": 50,"
-        "\"thinking_tokens\": 25,"
-        "\"cache_read_input_tokens\": 200"
-    "}";
+                       "\"input_tokens\": 100,"
+                       "\"output_tokens\": 50,"
+                       "\"thinking_tokens\": 25,"
+                       "\"cache_read_input_tokens\": 200"
+                       "}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
 
@@ -128,9 +122,8 @@ START_TEST(test_parse_usage_all_fields)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_usage_empty_object)
+END_TEST START_TEST(test_parse_usage_empty_object)
 {
     const char *json = "{}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -149,15 +142,14 @@ START_TEST(test_parse_usage_empty_object)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_parse_usage_non_int_values)
+END_TEST START_TEST(test_parse_usage_non_int_values)
 {
     // Non-integer values should be ignored
     const char *json = "{"
-        "\"input_tokens\": \"not a number\","
-        "\"output_tokens\": 50"
-    "}";
+                       "\"input_tokens\": \"not a number\","
+                       "\"output_tokens\": 50"
+                       "}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
 
@@ -172,6 +164,7 @@ START_TEST(test_parse_usage_non_int_values)
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 /* ================================================================

@@ -171,8 +171,7 @@ static void insert_message(const char *agent_uuid, const char *kind,
 // ========== Test Cases ==========
 
 // Test: populate_conversation adds user and assistant messages
-START_TEST(test_populate_conversation_adds_messages)
-{
+START_TEST(test_populate_conversation_adds_messages) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-conv-msgs-1";
@@ -199,7 +198,6 @@ START_TEST(test_populate_conversation_adds_messages)
 
 }
 END_TEST
-
 // Test: populate_conversation skips non-conversation messages
 START_TEST(test_populate_conversation_skips_commands)
 {
@@ -229,8 +227,8 @@ START_TEST(test_populate_conversation_skips_commands)
     ck_assert_uint_ge(agent->message_count, 1);
 
 }
-END_TEST
 
+END_TEST
 // Test: restore_marks with empty mark stack
 START_TEST(test_restore_marks_empty_stack)
 {
@@ -257,6 +255,7 @@ START_TEST(test_restore_marks_empty_stack)
     ck_assert_uint_eq(agent->mark_count, 0);
 
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

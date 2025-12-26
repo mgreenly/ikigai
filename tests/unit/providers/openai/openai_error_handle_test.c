@@ -24,18 +24,16 @@ static void teardown(void)
  * ik_openai_handle_error Tests
  * ================================================================ */
 
-START_TEST(test_handle_error_401_auth)
-{
-    const char *json = "{\"error\": {\"message\": \"Invalid API key\", \"type\": \"auth_error\", \"code\": \"invalid_api_key\"}}";
+START_TEST(test_handle_error_401_auth) {
+    const char *json =
+        "{\"error\": {\"message\": \"Invalid API key\", \"type\": \"auth_error\", \"code\": \"invalid_api_key\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 401, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
 }
-END_TEST
-
-START_TEST(test_handle_error_403_auth)
+END_TEST START_TEST(test_handle_error_403_auth)
 {
     const char *json = "{\"error\": {\"message\": \"Forbidden\", \"type\": \"auth_error\", \"code\": \"forbidden\"}}";
     ik_error_category_t category;
@@ -44,31 +42,30 @@ START_TEST(test_handle_error_403_auth)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
 }
-END_TEST
 
-START_TEST(test_handle_error_429_rate_limit)
+END_TEST START_TEST(test_handle_error_429_rate_limit)
 {
-    const char *json = "{\"error\": {\"message\": \"Rate limit exceeded\", \"type\": \"rate_limit\", \"code\": \"rate_limit_exceeded\"}}";
+    const char *json =
+        "{\"error\": {\"message\": \"Rate limit exceeded\", \"type\": \"rate_limit\", \"code\": \"rate_limit_exceeded\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 429, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
 }
-END_TEST
 
-START_TEST(test_handle_error_400_invalid_arg)
+END_TEST START_TEST(test_handle_error_400_invalid_arg)
 {
-    const char *json = "{\"error\": {\"message\": \"Bad request\", \"type\": \"invalid_request\", \"code\": \"bad_request\"}}";
+    const char *json =
+        "{\"error\": {\"message\": \"Bad request\", \"type\": \"invalid_request\", \"code\": \"bad_request\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 400, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
 }
-END_TEST
 
-START_TEST(test_handle_error_404_not_found)
+END_TEST START_TEST(test_handle_error_404_not_found)
 {
     const char *json = "{\"error\": {\"message\": \"Not found\", \"type\": \"not_found\", \"code\": \"not_found\"}}";
     ik_error_category_t category;
@@ -77,42 +74,41 @@ START_TEST(test_handle_error_404_not_found)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
 }
-END_TEST
 
-START_TEST(test_handle_error_500_server)
+END_TEST START_TEST(test_handle_error_500_server)
 {
-    const char *json = "{\"error\": {\"message\": \"Server error\", \"type\": \"server_error\", \"code\": \"server_error\"}}";
+    const char *json =
+        "{\"error\": {\"message\": \"Server error\", \"type\": \"server_error\", \"code\": \"server_error\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 500, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_502_server)
+END_TEST START_TEST(test_handle_error_502_server)
 {
-    const char *json = "{\"error\": {\"message\": \"Bad gateway\", \"type\": \"server_error\", \"code\": \"bad_gateway\"}}";
+    const char *json =
+        "{\"error\": {\"message\": \"Bad gateway\", \"type\": \"server_error\", \"code\": \"bad_gateway\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 502, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_503_server)
+END_TEST START_TEST(test_handle_error_503_server)
 {
-    const char *json = "{\"error\": {\"message\": \"Service unavailable\", \"type\": \"server_error\", \"code\": \"service_unavailable\"}}";
+    const char *json =
+        "{\"error\": {\"message\": \"Service unavailable\", \"type\": \"server_error\", \"code\": \"service_unavailable\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 503, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_unknown_status)
+END_TEST START_TEST(test_handle_error_unknown_status)
 {
     const char *json = "{\"error\": {\"message\": \"Unknown\", \"type\": \"unknown\", \"code\": \"unknown\"}}";
     ik_error_category_t category;
@@ -121,31 +117,30 @@ START_TEST(test_handle_error_unknown_status)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_UNKNOWN);
 }
-END_TEST
 
-START_TEST(test_handle_error_content_filter_code)
+END_TEST START_TEST(test_handle_error_content_filter_code)
 {
-    const char *json = "{\"error\": {\"message\": \"Content filtered\", \"type\": \"invalid_request\", \"code\": \"content_filter\"}}";
+    const char *json =
+        "{\"error\": {\"message\": \"Content filtered\", \"type\": \"invalid_request\", \"code\": \"content_filter\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 400, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_CONTENT_FILTER);
 }
-END_TEST
 
-START_TEST(test_handle_error_content_filter_type)
+END_TEST START_TEST(test_handle_error_content_filter_type)
 {
-    const char *json = "{\"error\": {\"message\": \"Content filtered\", \"type\": \"content_filter\", \"code\": \"blocked\"}}";
+    const char *json =
+        "{\"error\": {\"message\": \"Content filtered\", \"type\": \"content_filter\", \"code\": \"blocked\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 400, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_CONTENT_FILTER);
 }
-END_TEST
 
-START_TEST(test_handle_error_invalid_api_key_code)
+END_TEST START_TEST(test_handle_error_invalid_api_key_code)
 {
     const char *json = "{\"error\": {\"message\": \"Invalid key\", \"type\": \"auth\", \"code\": \"invalid_api_key\"}}";
     ik_error_category_t category;
@@ -154,9 +149,8 @@ START_TEST(test_handle_error_invalid_api_key_code)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
 }
-END_TEST
 
-START_TEST(test_handle_error_invalid_org_code)
+END_TEST START_TEST(test_handle_error_invalid_org_code)
 {
     const char *json = "{\"error\": {\"message\": \"Invalid org\", \"type\": \"auth\", \"code\": \"invalid_org\"}}";
     ik_error_category_t category;
@@ -165,31 +159,30 @@ START_TEST(test_handle_error_invalid_org_code)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
 }
-END_TEST
 
-START_TEST(test_handle_error_quota_exceeded_code)
+END_TEST START_TEST(test_handle_error_quota_exceeded_code)
 {
-    const char *json = "{\"error\": {\"message\": \"Quota exceeded\", \"type\": \"rate_limit\", \"code\": \"quota_exceeded\"}}";
+    const char *json =
+        "{\"error\": {\"message\": \"Quota exceeded\", \"type\": \"rate_limit\", \"code\": \"quota_exceeded\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 429, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
 }
-END_TEST
 
-START_TEST(test_handle_error_model_not_found_code)
+END_TEST START_TEST(test_handle_error_model_not_found_code)
 {
-    const char *json = "{\"error\": {\"message\": \"Model not found\", \"type\": \"not_found\", \"code\": \"model_not_found\"}}";
+    const char *json =
+        "{\"error\": {\"message\": \"Model not found\", \"type\": \"not_found\", \"code\": \"model_not_found\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 404, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
 }
-END_TEST
 
-START_TEST(test_handle_error_no_error_object)
+END_TEST START_TEST(test_handle_error_no_error_object)
 {
     const char *json = "{\"message\": \"Error without error object\"}";
     ik_error_category_t category;
@@ -198,9 +191,8 @@ START_TEST(test_handle_error_no_error_object)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_invalid_json)
+END_TEST START_TEST(test_handle_error_invalid_json)
 {
     const char *json = "not valid json";
     ik_error_category_t category;
@@ -208,9 +200,8 @@ START_TEST(test_handle_error_invalid_json)
     res_t r = ik_openai_handle_error(test_ctx, 500, json, &category);
     ck_assert(is_err(&r));
 }
-END_TEST
 
-START_TEST(test_handle_error_empty_json)
+END_TEST START_TEST(test_handle_error_empty_json)
 {
     const char *json = "{}";
     ik_error_category_t category;
@@ -219,9 +210,8 @@ START_TEST(test_handle_error_empty_json)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_null_root)
+END_TEST START_TEST(test_handle_error_null_root)
 {
     const char *json = "null";
     ik_error_category_t category;
@@ -232,9 +222,8 @@ START_TEST(test_handle_error_null_root)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_error_object_not_object)
+END_TEST START_TEST(test_handle_error_error_object_not_object)
 {
     const char *json = "{\"error\": \"string not object\"}";
     ik_error_category_t category;
@@ -243,9 +232,8 @@ START_TEST(test_handle_error_error_object_not_object)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_code_not_string)
+END_TEST START_TEST(test_handle_error_code_not_string)
 {
     const char *json = "{\"error\": {\"message\": \"Test\", \"type\": \"error\", \"code\": 123}}";
     ik_error_category_t category;
@@ -254,9 +242,8 @@ START_TEST(test_handle_error_code_not_string)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_type_not_string)
+END_TEST START_TEST(test_handle_error_type_not_string)
 {
     const char *json = "{\"error\": {\"message\": \"Test\", \"type\": 123, \"code\": \"test\"}}";
     ik_error_category_t category;
@@ -265,9 +252,8 @@ START_TEST(test_handle_error_type_not_string)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_null_code)
+END_TEST START_TEST(test_handle_error_null_code)
 {
     const char *json = "{\"error\": {\"message\": \"Test\", \"type\": \"error\", \"code\": null}}";
     ik_error_category_t category;
@@ -276,9 +262,8 @@ START_TEST(test_handle_error_null_code)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_null_type)
+END_TEST START_TEST(test_handle_error_null_type)
 {
     const char *json = "{\"error\": {\"message\": \"Test\", \"type\": null, \"code\": \"test\"}}";
     ik_error_category_t category;
@@ -287,28 +272,29 @@ START_TEST(test_handle_error_null_type)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_content_filter_in_code_substring)
+END_TEST START_TEST(test_handle_error_content_filter_in_code_substring)
 {
-    const char *json = "{\"error\": {\"message\": \"Filtered\", \"type\": \"error\", \"code\": \"test_content_filter_test\"}}";
+    const char *json =
+        "{\"error\": {\"message\": \"Filtered\", \"type\": \"error\", \"code\": \"test_content_filter_test\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 400, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_CONTENT_FILTER);
 }
-END_TEST
 
-START_TEST(test_handle_error_content_filter_in_type_substring)
+END_TEST START_TEST(test_handle_error_content_filter_in_type_substring)
 {
-    const char *json = "{\"error\": {\"message\": \"Filtered\", \"type\": \"prefix_content_filter_suffix\", \"code\": \"test\"}}";
+    const char *json =
+        "{\"error\": {\"message\": \"Filtered\", \"type\": \"prefix_content_filter_suffix\", \"code\": \"test\"}}";
     ik_error_category_t category;
 
     res_t r = ik_openai_handle_error(test_ctx, 400, json, &category);
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_CONTENT_FILTER);
 }
+
 END_TEST
 
 /* ================================================================

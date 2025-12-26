@@ -30,8 +30,7 @@ static void teardown(void)
 }
 
 // Test: Apply override with basic model
-START_TEST(test_apply_override_basic_model)
-{
+START_TEST(test_apply_override_basic_model) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
@@ -43,7 +42,6 @@ START_TEST(test_apply_override_basic_model)
     ck_assert_str_eq(child->model, "gpt-4o");
 }
 END_TEST
-
 // Test: Apply override with thinking level none
 START_TEST(test_apply_override_thinking_none)
 {
@@ -55,8 +53,8 @@ START_TEST(test_apply_override_thinking_none)
     ck_assert(is_ok(&res));
     ck_assert_int_eq(child->thinking_level, IK_THINKING_NONE);
 }
-END_TEST
 
+END_TEST
 // Test: Apply override with thinking level low
 START_TEST(test_apply_override_thinking_low)
 {
@@ -67,8 +65,8 @@ START_TEST(test_apply_override_thinking_low)
     ck_assert(is_ok(&res));
     ck_assert_int_eq(child->thinking_level, IK_THINKING_LOW);
 }
-END_TEST
 
+END_TEST
 // Test: Apply override with thinking level med
 START_TEST(test_apply_override_thinking_med)
 {
@@ -79,8 +77,8 @@ START_TEST(test_apply_override_thinking_med)
     ck_assert(is_ok(&res));
     ck_assert_int_eq(child->thinking_level, IK_THINKING_MED);
 }
-END_TEST
 
+END_TEST
 // Test: Apply override with thinking level high
 START_TEST(test_apply_override_thinking_high)
 {
@@ -91,8 +89,8 @@ START_TEST(test_apply_override_thinking_high)
     ck_assert(is_ok(&res));
     ck_assert_int_eq(child->thinking_level, IK_THINKING_HIGH);
 }
-END_TEST
 
+END_TEST
 // Test: Apply override with invalid thinking level
 START_TEST(test_apply_override_invalid_thinking)
 {
@@ -102,8 +100,8 @@ START_TEST(test_apply_override_invalid_thinking)
     res_t res = cmd_fork_apply_override(child, "gpt-4o/invalid");
     ck_assert(is_err(&res));
 }
-END_TEST
 
+END_TEST
 // Test: Apply override with unknown model
 START_TEST(test_apply_override_unknown_model)
 {
@@ -113,8 +111,8 @@ START_TEST(test_apply_override_unknown_model)
     res_t res = cmd_fork_apply_override(child, "unknown-model-xyz");
     ck_assert(is_err(&res));
 }
-END_TEST
 
+END_TEST
 // Test: Apply override replaces existing provider
 START_TEST(test_apply_override_replaces_provider)
 {
@@ -130,8 +128,8 @@ START_TEST(test_apply_override_replaces_provider)
     ck_assert_ptr_nonnull(child->model);
     ck_assert_str_eq(child->model, "gpt-4o");
 }
-END_TEST
 
+END_TEST
 // Test: Apply override with Anthropic model
 START_TEST(test_apply_override_anthropic_model)
 {
@@ -145,8 +143,8 @@ START_TEST(test_apply_override_anthropic_model)
     ck_assert_ptr_nonnull(child->model);
     ck_assert_str_eq(child->model, "claude-3-5-sonnet-20241022");
 }
-END_TEST
 
+END_TEST
 // Test: Apply override with Google model
 START_TEST(test_apply_override_google_model)
 {
@@ -160,8 +158,8 @@ START_TEST(test_apply_override_google_model)
     ck_assert_ptr_nonnull(child->model);
     ck_assert_str_eq(child->model, "gemini-2.0-flash-exp");
 }
-END_TEST
 
+END_TEST
 // Test: Apply override with invalid model parse (malformed MODEL/THINKING syntax)
 START_TEST(test_apply_override_invalid_parse)
 {
@@ -172,8 +170,8 @@ START_TEST(test_apply_override_invalid_parse)
     res_t res = cmd_fork_apply_override(child, "gpt-4o/");
     ck_assert(is_err(&res));
 }
-END_TEST
 
+END_TEST
 // Test: Inherit config from parent
 START_TEST(test_inherit_config_basic)
 {
@@ -194,8 +192,8 @@ START_TEST(test_inherit_config_basic)
     ck_assert_str_eq(child->model, "gpt-4o");
     ck_assert_int_eq(child->thinking_level, IK_THINKING_MED);
 }
-END_TEST
 
+END_TEST
 // Test: Inherit config replaces existing child config
 START_TEST(test_inherit_config_replaces_existing)
 {
@@ -219,8 +217,8 @@ START_TEST(test_inherit_config_replaces_existing)
     ck_assert_str_eq(child->model, "gpt-4o");
     ck_assert_int_eq(child->thinking_level, IK_THINKING_LOW);
 }
-END_TEST
 
+END_TEST
 // Test: Inherit config with NULL parent provider
 START_TEST(test_inherit_config_null_parent_provider)
 {
@@ -240,8 +238,8 @@ START_TEST(test_inherit_config_null_parent_provider)
     ck_assert_str_eq(child->model, "gpt-4o");
     ck_assert_int_eq(child->thinking_level, IK_THINKING_MED);
 }
-END_TEST
 
+END_TEST
 // Test: Inherit config with NULL parent model
 START_TEST(test_inherit_config_null_parent_model)
 {
@@ -261,6 +259,7 @@ START_TEST(test_inherit_config_null_parent_model)
     ck_assert_ptr_null(child->model);
     ck_assert_int_eq(child->thinking_level, IK_THINKING_HIGH);
 }
+
 END_TEST
 
 static Suite *cmd_fork_args_override_suite(void)

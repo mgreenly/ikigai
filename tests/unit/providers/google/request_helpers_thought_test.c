@@ -31,70 +31,61 @@ static void teardown(void)
  * Thought Signature Extraction Tests
  * ================================================================ */
 
-START_TEST(test_extract_thought_signature_null)
-{
+START_TEST(test_extract_thought_signature_null) {
     yyjson_doc *doc = NULL;
     const char *sig = ik_google_extract_thought_signature(NULL, &doc);
     ck_assert(sig == NULL);
     ck_assert(doc == NULL);
 }
-END_TEST
-
-START_TEST(test_extract_thought_signature_empty)
+END_TEST START_TEST(test_extract_thought_signature_empty)
 {
     yyjson_doc *doc = NULL;
     const char *sig = ik_google_extract_thought_signature("", &doc);
     ck_assert(sig == NULL);
     ck_assert(doc == NULL);
 }
-END_TEST
 
-START_TEST(test_extract_thought_signature_invalid_json)
+END_TEST START_TEST(test_extract_thought_signature_invalid_json)
 {
     yyjson_doc *doc = NULL;
     const char *sig = ik_google_extract_thought_signature("not json", &doc);
     ck_assert(sig == NULL);
     ck_assert(doc == NULL);
 }
-END_TEST
 
-START_TEST(test_extract_thought_signature_not_object)
+END_TEST START_TEST(test_extract_thought_signature_not_object)
 {
     yyjson_doc *doc = NULL;
     const char *sig = ik_google_extract_thought_signature("[]", &doc);
     ck_assert(sig == NULL);
     ck_assert(doc == NULL);
 }
-END_TEST
 
-START_TEST(test_extract_thought_signature_missing_field)
+END_TEST START_TEST(test_extract_thought_signature_missing_field)
 {
     yyjson_doc *doc = NULL;
     const char *sig = ik_google_extract_thought_signature("{\"other\":\"value\"}", &doc);
     ck_assert(sig == NULL);
     ck_assert(doc == NULL);
 }
-END_TEST
 
-START_TEST(test_extract_thought_signature_not_string)
+END_TEST START_TEST(test_extract_thought_signature_not_string)
 {
     yyjson_doc *doc = NULL;
     const char *sig = ik_google_extract_thought_signature("{\"thought_signature\":123}", &doc);
     ck_assert(sig == NULL);
     ck_assert(doc == NULL);
 }
-END_TEST
 
-START_TEST(test_extract_thought_signature_empty_string)
+END_TEST START_TEST(test_extract_thought_signature_empty_string)
 {
     yyjson_doc *doc = NULL;
     const char *sig = ik_google_extract_thought_signature("{\"thought_signature\":\"\"}", &doc);
     ck_assert(sig == NULL);
     ck_assert(doc == NULL);
 }
-END_TEST
 
-START_TEST(test_extract_thought_signature_valid)
+END_TEST START_TEST(test_extract_thought_signature_valid)
 {
     yyjson_doc *doc = NULL;
     const char *sig = ik_google_extract_thought_signature("{\"thought_signature\":\"sig-123\"}", &doc);
@@ -102,8 +93,8 @@ START_TEST(test_extract_thought_signature_valid)
     ck_assert(doc != NULL);
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Find Latest Thought Signature Tests
  * ================================================================ */
@@ -124,9 +115,8 @@ START_TEST(test_find_latest_thought_signature_not_gemini_3)
     ck_assert(sig == NULL);
     ck_assert(doc == NULL);
 }
-END_TEST
 
-START_TEST(test_find_latest_thought_signature_no_assistant)
+END_TEST START_TEST(test_find_latest_thought_signature_no_assistant)
 {
     ik_message_t msg = {0};
     msg.role = IK_ROLE_USER;
@@ -142,9 +132,8 @@ START_TEST(test_find_latest_thought_signature_no_assistant)
     ck_assert(sig == NULL);
     ck_assert(doc == NULL);
 }
-END_TEST
 
-START_TEST(test_find_latest_thought_signature_valid)
+END_TEST START_TEST(test_find_latest_thought_signature_valid)
 {
     ik_message_t messages[4];
     memset(messages, 0, sizeof(messages));
@@ -167,6 +156,7 @@ START_TEST(test_find_latest_thought_signature_valid)
     ck_assert(doc != NULL);
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 /* ================================================================

@@ -171,8 +171,7 @@ static void insert_message(const char *agent_uuid, const char *kind,
 // ========== Test Cases ==========
 
 // Test: populate_scrollback with command replays model command
-START_TEST(test_populate_scrollback_replays_model_command)
-{
+START_TEST(test_populate_scrollback_replays_model_command) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-model-replay-1";
@@ -206,7 +205,6 @@ START_TEST(test_populate_scrollback_replays_model_command)
     ck_assert_str_eq(agent->model, "gpt-4o");
 }
 END_TEST
-
 // Test: model command with slash syntax (model/thinking)
 START_TEST(test_model_command_with_slash_thinking)
 {
@@ -238,8 +236,8 @@ START_TEST(test_model_command_with_slash_thinking)
     ck_assert_str_eq(agent->model, "claude-opus-4");
 
 }
-END_TEST
 
+END_TEST
 // Test: model command updates provider instance
 START_TEST(test_model_command_invalidates_provider_instance)
 {
@@ -283,8 +281,8 @@ START_TEST(test_model_command_invalidates_provider_instance)
     ck_assert_ptr_null(agent->provider_instance);
 
 }
-END_TEST
 
+END_TEST
 // Test: command with NULL data_json is skipped
 START_TEST(test_command_with_null_data_json)
 {
@@ -318,8 +316,8 @@ START_TEST(test_command_with_null_data_json)
     ck_assert_ptr_null(agent->model);
 
 }
-END_TEST
 
+END_TEST
 // Test: command with invalid JSON cannot be inserted into JSONB column
 START_TEST(test_command_with_invalid_json)
 {
@@ -337,8 +335,8 @@ START_TEST(test_command_with_invalid_json)
     // PostgreSQL JSONB validation should reject invalid JSON
     ck_assert(is_err(&res));
 }
-END_TEST
 
+END_TEST
 // Test: command with NULL command name is skipped
 START_TEST(test_command_with_null_command_name)
 {
@@ -368,8 +366,8 @@ START_TEST(test_command_with_null_command_name)
     ck_assert_ptr_null(agent->model);
 
 }
-END_TEST
 
+END_TEST
 // Test: non-model command is ignored
 START_TEST(test_non_model_command_ignored)
 {
@@ -399,8 +397,8 @@ START_TEST(test_non_model_command_ignored)
     ck_assert_ptr_null(agent->model);
 
 }
-END_TEST
 
+END_TEST
 // Test: model command with NULL args is skipped
 START_TEST(test_model_command_with_null_args)
 {
@@ -430,6 +428,7 @@ START_TEST(test_model_command_with_null_args)
     ck_assert_ptr_null(agent->model);
 
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========

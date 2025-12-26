@@ -26,8 +26,7 @@ static void teardown(void)
  * User Message Tests
  * ================================================================ */
 
-START_TEST(test_serialize_user_message_single_text)
-{
+START_TEST(test_serialize_user_message_single_text) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_USER;
     msg->content_count = 1;
@@ -51,9 +50,7 @@ START_TEST(test_serialize_user_message_single_text)
 
     yyjson_mut_doc_free(doc);
 }
-END_TEST
-
-START_TEST(test_serialize_user_message_multiple_text_blocks)
+END_TEST START_TEST(test_serialize_user_message_multiple_text_blocks)
 {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_USER;
@@ -80,9 +77,8 @@ START_TEST(test_serialize_user_message_multiple_text_blocks)
 
     yyjson_mut_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_serialize_user_message_empty_content)
+END_TEST START_TEST(test_serialize_user_message_empty_content)
 {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_USER;
@@ -100,8 +96,8 @@ START_TEST(test_serialize_user_message_empty_content)
 
     yyjson_mut_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Assistant Message Tests
  * ================================================================ */
@@ -130,9 +126,8 @@ START_TEST(test_serialize_assistant_message_text)
 
     yyjson_mut_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_serialize_assistant_message_with_tool_calls)
+END_TEST START_TEST(test_serialize_assistant_message_with_tool_calls)
 {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_ASSISTANT;
@@ -177,9 +172,8 @@ START_TEST(test_serialize_assistant_message_with_tool_calls)
 
     yyjson_mut_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_serialize_assistant_message_multiple_tool_calls)
+END_TEST START_TEST(test_serialize_assistant_message_multiple_tool_calls)
 {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_ASSISTANT;
@@ -207,9 +201,8 @@ START_TEST(test_serialize_assistant_message_multiple_tool_calls)
 
     yyjson_mut_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_serialize_assistant_message_mixed_content_and_tool_calls)
+END_TEST START_TEST(test_serialize_assistant_message_mixed_content_and_tool_calls)
 {
     // If there are any tool calls, content should be null even if text blocks exist
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
@@ -241,8 +234,8 @@ START_TEST(test_serialize_assistant_message_mixed_content_and_tool_calls)
 
     yyjson_mut_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Tool Message Tests
  * ================================================================ */
@@ -276,9 +269,8 @@ START_TEST(test_serialize_tool_message)
 
     yyjson_mut_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_serialize_tool_message_empty_content)
+END_TEST START_TEST(test_serialize_tool_message_empty_content)
 {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_TOOL;
@@ -300,9 +292,8 @@ START_TEST(test_serialize_tool_message_empty_content)
 
     yyjson_mut_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_serialize_tool_message_wrong_block_type)
+END_TEST START_TEST(test_serialize_tool_message_wrong_block_type)
 {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_TOOL;
@@ -326,6 +317,7 @@ START_TEST(test_serialize_tool_message_wrong_block_type)
 
     yyjson_mut_doc_free(doc);
 }
+
 END_TEST
 
 /* ================================================================

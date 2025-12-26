@@ -98,8 +98,7 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-START_TEST(test_error_event_edge_cases)
-{
+START_TEST(test_error_event_edge_cases) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -114,38 +113,40 @@ START_TEST(test_error_event_edge_cases)
     ck_assert_str_eq(events->items[0].data.error.message, "Unknown error");
 
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "error", "{\"error\":{\"message\":\"Something went wrong\",\"type\":null}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "error",
+                                             "{\"error\":{\"message\":\"Something went wrong\",\"type\":null}}");
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_UNKNOWN);
 }
-END_TEST
-
-START_TEST(test_error_event_categories)
+END_TEST START_TEST(test_error_event_categories)
 {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
-    ik_openai_responses_stream_process_event(ctx, "error",
-        "{\"error\":{\"message\":\"Invalid API key\",\"type\":\"authentication_error\"}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "error",
+                                             "{\"error\":{\"message\":\"Invalid API key\",\"type\":\"authentication_error\"}}");
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_AUTH);
 
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "error",
-        "{\"error\":{\"message\":\"Rate limit exceeded\",\"type\":\"rate_limit_error\"}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "error",
+                                             "{\"error\":{\"message\":\"Rate limit exceeded\",\"type\":\"rate_limit_error\"}}");
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_RATE_LIMIT);
 
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "error",
-        "{\"error\":{\"message\":\"Invalid request\",\"type\":\"invalid_request_error\"}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "error",
+                                             "{\"error\":{\"message\":\"Invalid request\",\"type\":\"invalid_request_error\"}}");
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_INVALID_ARG);
 
     events->count = 0;
     ik_openai_responses_stream_process_event(ctx, "error",
-        "{\"error\":{\"message\":\"Server error\",\"type\":\"server_error\"}}");
+                                             "{\"error\":{\"message\":\"Server error\",\"type\":\"server_error\"}}");
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_unknown_event_is_ignored)
+END_TEST START_TEST(test_unknown_event_is_ignored)
 {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -153,6 +154,7 @@ START_TEST(test_unknown_event_is_ignored)
     ik_openai_responses_stream_process_event(ctx, "unknown.event", "{\"some\":\"data\"}");
     ck_assert_int_eq((int)events->count, 0);
 }
+
 END_TEST
 
 static Suite *openai_streaming_responses_errors_suite(void)
