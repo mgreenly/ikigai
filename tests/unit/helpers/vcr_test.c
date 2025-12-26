@@ -48,8 +48,7 @@ static void create_test_fixture(const char *name, const char *content)
     }
 }
 
-START_TEST(test_vcr_mode_detection_recording)
-{
+START_TEST(test_vcr_mode_detection_recording) {
     setenv("VCR_RECORD", "1", 1);
     setup_fixture_dir();
 
@@ -61,13 +60,12 @@ START_TEST(test_vcr_mode_detection_recording)
     unsetenv("VCR_RECORD");
     cleanup_test_fixtures();
 }
-END_TEST
-
-START_TEST(test_vcr_mode_detection_playback)
+END_TEST START_TEST(test_vcr_mode_detection_playback)
 {
     unsetenv("VCR_RECORD");
     setup_fixture_dir();
-    create_test_fixture("test_mode", "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com\", \"headers\": \"\"}}\n");
+    create_test_fixture("test_mode",
+                        "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com\", \"headers\": \"\"}}\n");
 
     vcr_init("test_mode", "test");
     ck_assert(vcr_is_recording() == false);
@@ -76,9 +74,8 @@ START_TEST(test_vcr_mode_detection_playback)
 
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_lifecycle_single)
+END_TEST START_TEST(test_vcr_lifecycle_single)
 {
     setup_fixture_dir();
     create_test_fixture("test_lifecycle", "{\"_chunk\": \"test\"}\n");
@@ -93,9 +90,8 @@ START_TEST(test_vcr_lifecycle_single)
 
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_lifecycle_multiple_cycles)
+END_TEST START_TEST(test_vcr_lifecycle_multiple_cycles)
 {
     setup_fixture_dir();
     create_test_fixture("test_cycles", "{\"_chunk\": \"test\"}\n");
@@ -114,14 +110,13 @@ START_TEST(test_vcr_lifecycle_multiple_cycles)
 
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_playback_single_chunk)
+END_TEST START_TEST(test_vcr_playback_single_chunk)
 {
     setup_fixture_dir();
     const char *fixture = "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com\", \"headers\": \"\"}}\n"
-                         "{\"_response\": {\"status\": 200, \"headers\": \"content-type: text/plain\"}}\n"
-                         "{\"_chunk\": \"Hello world\"}\n";
+                          "{\"_response\": {\"status\": 200, \"headers\": \"content-type: text/plain\"}}\n"
+                          "{\"_chunk\": \"Hello world\"}\n";
     create_test_fixture(TEST_FIXTURE_SINGLE, fixture);
 
     vcr_init(TEST_FIXTURE_SINGLE, "test");
@@ -138,16 +133,16 @@ START_TEST(test_vcr_playback_single_chunk)
     vcr_finish();
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_playback_multiple_chunks)
+END_TEST START_TEST(test_vcr_playback_multiple_chunks)
 {
     setup_fixture_dir();
-    const char *fixture = "{\"_request\": {\"method\": \"POST\", \"url\": \"http://api.test.com\", \"headers\": \"\"}}\n"
-                         "{\"_response\": {\"status\": 200, \"headers\": \"\"}}\n"
-                         "{\"_chunk\": \"First\"}\n"
-                         "{\"_chunk\": \"Second\"}\n"
-                         "{\"_chunk\": \"Third\"}\n";
+    const char *fixture =
+        "{\"_request\": {\"method\": \"POST\", \"url\": \"http://api.test.com\", \"headers\": \"\"}}\n"
+        "{\"_response\": {\"status\": 200, \"headers\": \"\"}}\n"
+        "{\"_chunk\": \"First\"}\n"
+        "{\"_chunk\": \"Second\"}\n"
+        "{\"_chunk\": \"Third\"}\n";
     create_test_fixture(TEST_FIXTURE_MULTI, fixture);
 
     vcr_init(TEST_FIXTURE_MULTI, "test");
@@ -173,14 +168,13 @@ START_TEST(test_vcr_playback_multiple_chunks)
     vcr_finish();
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_playback_body)
+END_TEST START_TEST(test_vcr_playback_body)
 {
     setup_fixture_dir();
     const char *fixture = "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com\", \"headers\": \"\"}}\n"
-                         "{\"_response\": {\"status\": 200, \"headers\": \"\"}}\n"
-                         "{\"_body\": \"{\\\"result\\\":\\\"success\\\"}\"}\n";
+                          "{\"_response\": {\"status\": 200, \"headers\": \"\"}}\n"
+                          "{\"_body\": \"{\\\"result\\\":\\\"success\\\"}\"}\n";
     create_test_fixture(TEST_FIXTURE_BODY, fixture);
 
     vcr_init(TEST_FIXTURE_BODY, "test");
@@ -193,9 +187,8 @@ START_TEST(test_vcr_playback_body)
     vcr_finish();
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_playback_missing_fixture)
+END_TEST START_TEST(test_vcr_playback_missing_fixture)
 {
     setup_fixture_dir();
 
@@ -211,17 +204,16 @@ START_TEST(test_vcr_playback_missing_fixture)
     vcr_finish();
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_record_request)
+END_TEST START_TEST(test_vcr_record_request)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
 
     vcr_init("test_record_request", "test");
     vcr_record_request("POST", "https://api.example.com/v1/messages",
-                      "x-api-key: sk-ant-test123\ncontent-type: application/json",
-                      "{\"test\":\"data\"}");
+                       "x-api-key: sk-ant-test123\ncontent-type: application/json",
+                       "{\"test\":\"data\"}");
     vcr_finish();
 
     unsetenv("VCR_RECORD");
@@ -242,9 +234,8 @@ START_TEST(test_vcr_record_request)
     fclose(fp);
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_record_response)
+END_TEST START_TEST(test_vcr_record_response)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -269,9 +260,8 @@ START_TEST(test_vcr_record_response)
     fclose(fp);
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_record_chunk)
+END_TEST START_TEST(test_vcr_record_chunk)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -296,9 +286,8 @@ START_TEST(test_vcr_record_chunk)
     fclose(fp);
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_record_body)
+END_TEST START_TEST(test_vcr_record_body)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -323,9 +312,8 @@ START_TEST(test_vcr_record_body)
     fclose(fp);
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_record_multiple_chunks)
+END_TEST START_TEST(test_vcr_record_multiple_chunks)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -354,16 +342,15 @@ START_TEST(test_vcr_record_multiple_chunks)
     fclose(fp);
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_credential_redaction_authorization_bearer)
+END_TEST START_TEST(test_vcr_credential_redaction_authorization_bearer)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
 
     vcr_init("test_redact_bearer", "test");
     vcr_record_request("POST", "http://test.com",
-                      "Authorization: Bearer sk-proj-test123", NULL);
+                       "Authorization: Bearer sk-proj-test123", NULL);
     vcr_finish();
 
     unsetenv("VCR_RECORD");
@@ -381,16 +368,15 @@ START_TEST(test_vcr_credential_redaction_authorization_bearer)
     fclose(fp);
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_credential_redaction_x_api_key)
+END_TEST START_TEST(test_vcr_credential_redaction_x_api_key)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
 
     vcr_init("test_redact_apikey", "test");
     vcr_record_request("POST", "http://test.com",
-                      "x-api-key: sk-ant-secret123", NULL);
+                       "x-api-key: sk-ant-secret123", NULL);
     vcr_finish();
 
     unsetenv("VCR_RECORD");
@@ -408,16 +394,15 @@ START_TEST(test_vcr_credential_redaction_x_api_key)
     fclose(fp);
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_credential_redaction_case_insensitive)
+END_TEST START_TEST(test_vcr_credential_redaction_case_insensitive)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
 
     vcr_init("test_redact_case", "test");
     vcr_record_request("POST", "http://test.com",
-                      "X-API-KEY: secret123", NULL);
+                       "X-API-KEY: secret123", NULL);
     vcr_finish();
 
     unsetenv("VCR_RECORD");
@@ -435,16 +420,15 @@ START_TEST(test_vcr_credential_redaction_case_insensitive)
     fclose(fp);
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_credential_redaction_other_headers)
+END_TEST START_TEST(test_vcr_credential_redaction_other_headers)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
 
     vcr_init("test_redact_other", "test");
     vcr_record_request("POST", "http://test.com",
-                      "content-type: application/json\nuser-agent: test", NULL);
+                       "content-type: application/json\nuser-agent: test", NULL);
     vcr_finish();
 
     unsetenv("VCR_RECORD");
@@ -462,9 +446,8 @@ START_TEST(test_vcr_credential_redaction_other_headers)
     fclose(fp);
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_assertion_macros_playback)
+END_TEST START_TEST(test_vcr_assertion_macros_playback)
 {
     setup_fixture_dir();
     create_test_fixture("test_assert_playback", "{\"_chunk\": \"test\"}\n");
@@ -481,9 +464,8 @@ START_TEST(test_vcr_assertion_macros_playback)
     vcr_finish();
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_assertion_macros_recording)
+END_TEST START_TEST(test_vcr_assertion_macros_recording)
 {
     setup_fixture_dir();
     setenv("VCR_RECORD", "1", 1);
@@ -499,14 +481,14 @@ START_TEST(test_vcr_assertion_macros_recording)
     unsetenv("VCR_RECORD");
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_request_verification_match)
+END_TEST START_TEST(test_vcr_request_verification_match)
 {
     setup_fixture_dir();
-    const char *fixture = "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com/api\", \"headers\": \"\", \"body\": \"{\\\"key\\\":\\\"value\\\"}\"}}\n"
-                         "{\"_response\": {\"status\": 200, \"headers\": \"\"}}\n"
-                         "{\"_chunk\": \"result\"}\n";
+    const char *fixture =
+        "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com/api\", \"headers\": \"\", \"body\": \"{\\\"key\\\":\\\"value\\\"}\"}}\n"
+        "{\"_response\": {\"status\": 200, \"headers\": \"\"}}\n"
+        "{\"_chunk\": \"result\"}\n";
     create_test_fixture("test_verify_match", fixture);
 
     vcr_init("test_verify_match", "test");
@@ -517,14 +499,13 @@ START_TEST(test_vcr_request_verification_match)
     vcr_finish();
     cleanup_test_fixtures();
 }
-END_TEST
 
-START_TEST(test_vcr_skip_verification)
+END_TEST START_TEST(test_vcr_skip_verification)
 {
     setup_fixture_dir();
     const char *fixture = "{\"_request\": {\"method\": \"GET\", \"url\": \"http://test.com\", \"headers\": \"\"}}\n"
-                         "{\"_response\": {\"status\": 200, \"headers\": \"\"}}\n"
-                         "{\"_chunk\": \"result\"}\n";
+                          "{\"_response\": {\"status\": 200, \"headers\": \"\"}}\n"
+                          "{\"_chunk\": \"result\"}\n";
     create_test_fixture("test_skip_verify", fixture);
 
     vcr_init("test_skip_verify", "test");
@@ -536,6 +517,7 @@ START_TEST(test_vcr_skip_verification)
     vcr_finish();
     cleanup_test_fixtures();
 }
+
 END_TEST
 
 static Suite *vcr_suite(void)

@@ -18,8 +18,7 @@
  * Error Category Name Tests
  */
 
-START_TEST(test_error_category_names)
-{
+START_TEST(test_error_category_names) {
     ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_AUTH), "authentication");
     ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_RATE_LIMIT), "rate_limit");
     ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_SERVER), "server_error");
@@ -27,7 +26,6 @@ START_TEST(test_error_category_names)
     ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_INVALID_ARG), "invalid_argument");
 }
 END_TEST
-
 /**
  * Retryability Tests
  */
@@ -46,8 +44,8 @@ START_TEST(test_error_is_retryable)
     ck_assert(!ik_error_is_retryable(IK_ERR_CAT_NOT_FOUND));
     ck_assert(!ik_error_is_retryable(IK_ERR_CAT_CONTENT_FILTER));
 }
-END_TEST
 
+END_TEST
 /**
  * User Message Tests
  *
@@ -75,8 +73,8 @@ START_TEST(test_error_user_message)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /**
  * Retry Delay Calculation Tests
  *
@@ -105,13 +103,15 @@ START_TEST(test_retry_delay_calculation)
     ck_assert(delay >= 4000);
     ck_assert(delay <= 5000);
 }
+
 END_TEST
 
 /**
  * Test Suite Configuration
  */
 
-static Suite *error_handling_suite(void) {
+static Suite *error_handling_suite(void)
+{
     Suite *s = suite_create("Provider Error Handling");
 
     TCase *tc_core = tcase_create("Core");
@@ -124,7 +124,8 @@ static Suite *error_handling_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     Suite *s = error_handling_suite();
     SRunner *sr = srunner_create(s);
 

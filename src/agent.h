@@ -107,7 +107,9 @@ typedef struct ik_agent_ctx {
     char *http_error_message;
     char *response_model;
     char *response_finish_reason;
-    int32_t response_completion_tokens;
+    int32_t response_input_tokens;
+    int32_t response_output_tokens;
+    int32_t response_thinking_tokens;
 
     // Layer reference fields (updated before each render)
     bool separator_visible;

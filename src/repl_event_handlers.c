@@ -86,7 +86,7 @@ res_t ik_repl_setup_fd_sets(ik_repl_ctx_t *repl,
         if (agent->provider_instance != NULL) {
             int agent_max_fd = -1;
             res_t result = agent->provider_instance->vt->fdset(agent->provider_instance->ctx,
-                                                                read_fds, write_fds, exc_fds, &agent_max_fd);
+                                                               read_fds, write_fds, exc_fds, &agent_max_fd);
             if (is_err(&result)) return result;
             if (agent_max_fd > max_fd) {
                 max_fd = agent_max_fd;
@@ -159,13 +159,6 @@ static void persist_assistant_msg(ik_repl_ctx_t *repl)
         first = false;
     }
 
-    // Store token counts (output_tokens is stored as "tokens" for backward compatibility)
-    if (repl->current->response_completion_tokens > 0) {
-        data_json = talloc_asprintf_append(data_json, "%s\"output_tokens\":%d",
-                                           first ? "" : ",", repl->current->response_completion_tokens);
-        first = false;
-    }
-
     // Store finish reason
     if (repl->current->response_finish_reason != NULL) {
         data_json = talloc_asprintf_append(data_json, "%s\"finish_reason\":\"%s\"",
@@ -181,6 +174,24 @@ static void persist_assistant_msg(ik_repl_ctx_t *repl)
         talloc_free(db_res.err);  // LCOV_EXCL_LINE
     }
     talloc_free(data_json);
+
+    // Persist usage event separately (for token display on replay)
+    int32_t total = repl->current->response_input_tokens +
+                    repl->current->response_output_tokens +
+                    repl->current->response_thinking_tokens;
+    if (total > 0) {
+        char *usage_json = talloc_asprintf(repl,
+                                           "{\"input_tokens\":%d,\"output_tokens\":%d,\"thinking_tokens\":%d}",
+                                           repl->current->response_input_tokens,
+                                           repl->current->response_output_tokens,
+                                           repl->current->response_thinking_tokens);
+        db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
+                                       repl->current->uuid, "usage", NULL, usage_json);
+        if (is_err(&db_res)) {  // LCOV_EXCL_BR_LINE
+            talloc_free(db_res.err);  // LCOV_EXCL_LINE
+        }
+        talloc_free(usage_json);
+    }
 }
 
 static void handle_agent_request_error(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
@@ -224,7 +235,6 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
         submit_tool_loop_continuation(repl, agent);
     }
 }
-
 
 static void submit_tool_loop_continuation(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
@@ -346,7 +356,8 @@ res_t ik_repl_calculate_curl_min_timeout(ik_repl_ctx_t *repl, long *timeout_out)
     for (size_t i = 0; i < repl->agent_count; i++) {
         if (repl->agents[i]->provider_instance != NULL) {
             long agent_timeout = -1;
-            CHECK(repl->agents[i]->provider_instance->vt->timeout(repl->agents[i]->provider_instance->ctx, &agent_timeout));
+            CHECK(repl->agents[i]->provider_instance->vt->timeout(repl->agents[i]->provider_instance->ctx,
+                                                                  &agent_timeout));
             if (agent_timeout >= 0) {
                 if (curl_timeout_ms < 0 || agent_timeout < curl_timeout_ms) {  // LCOV_EXCL_BR_LINE
                     curl_timeout_ms = agent_timeout;

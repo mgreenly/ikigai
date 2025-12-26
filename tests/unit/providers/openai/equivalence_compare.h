@@ -35,9 +35,7 @@ typedef struct {
  * @param resp_b  Second response
  * @return        Comparison result (allocated on ctx)
  */
-ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
-                                          const ik_response_t *resp_a,
-                                          const ik_response_t *resp_b);
+ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx, const ik_response_t *resp_a, const ik_response_t *resp_b);
 
 /**
  * Stream event array for comparison
@@ -62,8 +60,8 @@ typedef struct {
  * @return          Comparison result (allocated on ctx)
  */
 ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
-                                               const ik_stream_event_array_t *events_a,
-                                               const ik_stream_event_array_t *events_b);
+                                              const ik_stream_event_array_t *events_a,
+                                              const ik_stream_event_array_t *events_b);
 
 /**
  * Check if token usage values are within tolerance
@@ -87,8 +85,6 @@ bool ik_compare_token_usage_tolerant(int32_t a, int32_t b);
  * @param json_b  Second JSON string
  * @return        Comparison result (allocated on ctx)
  */
-ik_compare_result_t *ik_compare_json_equivalent(TALLOC_CTX *ctx,
-                                                 const char *json_a,
-                                                 const char *json_b);
+ik_compare_result_t *ik_compare_json_equivalent(TALLOC_CTX *ctx, const char *json_a, const char *json_b);
 
 #endif /* IK_TESTS_OPENAI_EQUIVALENCE_COMPARE_H */

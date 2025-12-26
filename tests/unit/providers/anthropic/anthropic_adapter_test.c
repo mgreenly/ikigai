@@ -25,8 +25,7 @@ static void teardown(void)
  * Provider Creation Tests
  * ================================================================ */
 
-START_TEST(test_create_adapter_with_valid_credentials)
-{
+START_TEST(test_create_adapter_with_valid_credentials) {
     ik_provider_t *provider = NULL;
     res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
 
@@ -36,9 +35,7 @@ START_TEST(test_create_adapter_with_valid_credentials)
     ck_assert_ptr_nonnull(provider->vt);
     ck_assert_ptr_nonnull(provider->ctx);
 }
-END_TEST
-
-START_TEST(test_destroy_adapter_cleans_up_resources)
+END_TEST START_TEST(test_destroy_adapter_cleans_up_resources)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
@@ -49,9 +46,8 @@ START_TEST(test_destroy_adapter_cleans_up_resources)
     // (Valgrind will catch any leaks)
     talloc_free(provider);
 }
-END_TEST
 
-START_TEST(test_all_vtable_functions_non_null)
+END_TEST START_TEST(test_all_vtable_functions_non_null)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
@@ -66,8 +62,8 @@ START_TEST(test_all_vtable_functions_non_null)
     ck_assert_ptr_nonnull(provider->vt->cleanup);
     ck_assert_ptr_nonnull(provider->vt->cancel);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Async Pattern Tests
  * ================================================================ */
@@ -87,9 +83,8 @@ START_TEST(test_fdset_returns_ok)
     res_t r = provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
     ck_assert(!is_err(&r));
 }
-END_TEST
 
-START_TEST(test_perform_returns_ok)
+END_TEST START_TEST(test_perform_returns_ok)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
@@ -100,9 +95,8 @@ START_TEST(test_perform_returns_ok)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(running, 0); // No requests started yet
 }
-END_TEST
 
-START_TEST(test_timeout_returns_ok)
+END_TEST START_TEST(test_timeout_returns_ok)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
@@ -112,6 +106,7 @@ START_TEST(test_timeout_returns_ok)
     res_t r = provider->vt->timeout(provider->ctx, &timeout_ms);
     ck_assert(!is_err(&r));
 }
+
 END_TEST
 
 /* ================================================================

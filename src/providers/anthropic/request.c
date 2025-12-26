@@ -327,11 +327,23 @@ static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req
         return ERR(ctx, PARSE, "Failed to add model field"); // LCOV_EXCL_LINE
     }
 
-    // Add max_tokens (default to 4096 if not set)
+    // Add max_tokens
+    // API requires: budget_tokens < max_tokens
+    // So max_tokens must be at least thinking_budget + 1
     int32_t max_tokens = req->max_output_tokens;
     if (max_tokens <= 0) {
         max_tokens = 4096;
     }
+
+    // Ensure max_tokens > thinking budget when thinking is enabled
+    if (req->thinking.level != IK_THINKING_NONE) {
+        int32_t budget = ik_anthropic_thinking_budget(req->model, req->thinking.level);
+        if (budget > 0 && max_tokens <= budget) {
+            // Set max_tokens to budget + reasonable response buffer
+            max_tokens = budget + 4096;
+        }
+    }
+
     if (!yyjson_mut_obj_add_int(doc, root, "max_tokens", max_tokens)) { // LCOV_EXCL_BR_LINE
         yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
         return ERR(ctx, PARSE, "Failed to add max_tokens field"); // LCOV_EXCL_LINE

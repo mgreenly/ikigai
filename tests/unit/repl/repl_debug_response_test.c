@@ -59,7 +59,9 @@ static void setup(void)
     repl->current->http_error_message = NULL;
     repl->current->response_model = NULL;
     repl->current->response_finish_reason = NULL;
-    repl->current->response_completion_tokens = 0;
+    repl->current->response_input_tokens = 0;
+    repl->current->response_output_tokens = 0;
+    repl->current->response_thinking_tokens = 0;
     repl->current->pending_tool_call = NULL;
 }
 

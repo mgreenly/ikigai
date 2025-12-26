@@ -171,14 +171,14 @@ static size_t count_events(ik_stream_event_type_t type)
  * Basic Streaming Tests
  * ================================================================ */
 
-START_TEST(test_parse_single_text_part_chunk)
-{
+START_TEST(test_parse_single_text_part_chunk) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
     /* Process chunk with single text part */
-    const char *chunk = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
     process_chunk(sctx, chunk);
 
     /* Verify START event emitted */
@@ -191,25 +191,23 @@ START_TEST(test_parse_single_text_part_chunk)
     ck_assert_ptr_nonnull(text_event);
     ck_assert_str_eq(text_event->data.delta.text, "Hello");
 }
-END_TEST
-
-START_TEST(test_parse_multiple_text_parts_in_one_chunk)
+END_TEST START_TEST(test_parse_multiple_text_parts_in_one_chunk)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
     /* Process chunk with multiple text parts */
-    const char *chunk = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"},{\"text\":\" world\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"},{\"text\":\" world\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
     process_chunk(sctx, chunk);
 
     /* Verify multiple TEXT_DELTA events */
     size_t text_count = count_events(IK_STREAM_TEXT_DELTA);
     ck_assert_int_eq((int)text_count, 2);
 }
-END_TEST
 
-START_TEST(test_parse_finish_reason_chunk)
+END_TEST START_TEST(test_parse_finish_reason_chunk)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
@@ -219,7 +217,8 @@ START_TEST(test_parse_finish_reason_chunk)
     process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
 
     /* Process chunk with finishReason and usageMetadata */
-    const char *chunk = "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"!\"}]}}],\"usageMetadata\":{\"promptTokenCount\":10,\"candidatesTokenCount\":5,\"totalTokenCount\":15}}";
+    const char *chunk =
+        "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"!\"}]}}],\"usageMetadata\":{\"promptTokenCount\":10,\"candidatesTokenCount\":5,\"totalTokenCount\":15}}";
     process_chunk(sctx, chunk);
 
     /* Verify DONE event emitted */
@@ -229,16 +228,16 @@ START_TEST(test_parse_finish_reason_chunk)
     ck_assert_int_eq(done_event->data.done.usage.input_tokens, 10);
     ck_assert_int_eq(done_event->data.done.usage.output_tokens, 5);
 }
-END_TEST
 
-START_TEST(test_accumulate_text_across_multiple_chunks)
+END_TEST START_TEST(test_accumulate_text_across_multiple_chunks)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
     /* Process multiple chunks */
-    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
+    process_chunk(sctx,
+                  "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
     process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" world\"}]}}]}");
     process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"!\"}]}}]}");
 
@@ -261,8 +260,8 @@ START_TEST(test_accumulate_text_across_multiple_chunks)
         }
     }
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Thought Part Detection Tests
  * ================================================================ */
@@ -274,7 +273,8 @@ START_TEST(test_parse_part_with_thought_true_flag)
     ck_assert(!is_err(&r));
 
     /* Process chunk with thought=true */
-    const char *chunk = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Let me think...\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Let me think...\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
     process_chunk(sctx, chunk);
 
     /* Verify THINKING_DELTA event emitted */
@@ -282,16 +282,16 @@ START_TEST(test_parse_part_with_thought_true_flag)
     ck_assert_ptr_nonnull(thinking_event);
     ck_assert_str_eq(thinking_event->data.delta.text, "Let me think...");
 }
-END_TEST
 
-START_TEST(test_parse_part_without_thought_flag)
+END_TEST START_TEST(test_parse_part_without_thought_flag)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
     /* Process chunk without thought flag (defaults to false) */
-    const char *chunk = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Regular text\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Regular text\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
     process_chunk(sctx, chunk);
 
     /* Verify TEXT_DELTA event emitted (not THINKING_DELTA) */
@@ -302,16 +302,16 @@ START_TEST(test_parse_part_without_thought_flag)
     const ik_stream_event_t *thinking_event = find_event(IK_STREAM_THINKING_DELTA);
     ck_assert_ptr_null(thinking_event);
 }
-END_TEST
 
-START_TEST(test_distinguish_thought_content_from_regular_content)
+END_TEST START_TEST(test_distinguish_thought_content_from_regular_content)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
     /* Process chunk with both thought and regular text */
-    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Thinking...\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
+    process_chunk(sctx,
+                  "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Thinking...\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
     process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Answer\"}]}}]}");
 
     /* Verify THINKING_DELTA and TEXT_DELTA events */
@@ -321,16 +321,16 @@ START_TEST(test_distinguish_thought_content_from_regular_content)
     ck_assert_int_eq((int)thinking_count, 1);
     ck_assert_int_eq((int)text_count, 1);
 }
-END_TEST
 
-START_TEST(test_interleaved_thinking_and_content_parts)
+END_TEST START_TEST(test_interleaved_thinking_and_content_parts)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
     /* Process chunks with interleaved thinking and content */
-    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Thought 1\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
+    process_chunk(sctx,
+                  "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Thought 1\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
     process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Content 1\"}]}}]}");
     process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Thought 2\",\"thought\":true}]}}]}");
     process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Content 2\"}]}}]}");
@@ -342,8 +342,8 @@ START_TEST(test_interleaved_thinking_and_content_parts)
     ck_assert_int_eq((int)thinking_count, 2);
     ck_assert_int_eq((int)text_count, 2);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Function Call Streaming Tests
  * ================================================================ */
@@ -355,7 +355,8 @@ START_TEST(test_parse_function_call_part)
     ck_assert(!is_err(&r));
 
     /* Process chunk with functionCall */
-    const char *chunk = "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"get_weather\",\"args\":{\"location\":\"London\"}}}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"get_weather\",\"args\":{\"location\":\"London\"}}}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
     process_chunk(sctx, chunk);
 
     /* Verify TOOL_CALL_START event */
@@ -370,16 +371,16 @@ START_TEST(test_parse_function_call_part)
     ck_assert_ptr_nonnull(strstr(delta_event->data.tool_delta.arguments, "location"));
     ck_assert_ptr_nonnull(strstr(delta_event->data.tool_delta.arguments, "London"));
 }
-END_TEST
 
-START_TEST(test_generate_22_char_base64url_uuid)
+END_TEST START_TEST(test_generate_22_char_base64url_uuid)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
     /* Process chunk with functionCall */
-    const char *chunk = "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"test_func\",\"args\":{}}}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"test_func\",\"args\":{}}}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
     process_chunk(sctx, chunk);
 
     /* Verify generated ID is 22 characters */
@@ -399,16 +400,16 @@ START_TEST(test_generate_22_char_base64url_uuid)
         ck_assert(valid);
     }
 }
-END_TEST
 
-START_TEST(test_parse_function_arguments_from_function_call)
+END_TEST START_TEST(test_parse_function_arguments_from_function_call)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
     /* Process chunk with functionCall with complex args */
-    const char *chunk = "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"calc\",\"args\":{\"operation\":\"add\",\"values\":[1,2,3]}}}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"calc\",\"args\":{\"operation\":\"add\",\"values\":[1,2,3]}}}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
     process_chunk(sctx, chunk);
 
     /* Verify TOOL_CALL_DELTA contains serialized args */
@@ -418,8 +419,8 @@ START_TEST(test_parse_function_arguments_from_function_call)
     ck_assert_ptr_nonnull(strstr(delta_event->data.tool_delta.arguments, "add"));
     ck_assert_ptr_nonnull(strstr(delta_event->data.tool_delta.arguments, "values"));
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Event Normalization Tests
  * ================================================================ */
@@ -431,7 +432,8 @@ START_TEST(test_normalize_text_part_to_text_delta)
     ck_assert(!is_err(&r));
 
     /* Process text part */
-    const char *chunk = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
     process_chunk(sctx, chunk);
 
     /* Verify normalized to IK_STREAM_TEXT_DELTA */
@@ -439,16 +441,16 @@ START_TEST(test_normalize_text_part_to_text_delta)
     ck_assert_ptr_nonnull(event);
     ck_assert_int_eq(event->type, IK_STREAM_TEXT_DELTA);
 }
-END_TEST
 
-START_TEST(test_normalize_thought_part_to_thinking_delta)
+END_TEST START_TEST(test_normalize_thought_part_to_thinking_delta)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
     /* Process thought part */
-    const char *chunk = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Thinking\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Thinking\",\"thought\":true}]}}],\"modelVersion\":\"gemini-2.5-flash\"}";
     process_chunk(sctx, chunk);
 
     /* Verify normalized to IK_STREAM_THINKING_DELTA */
@@ -456,9 +458,8 @@ START_TEST(test_normalize_thought_part_to_thinking_delta)
     ck_assert_ptr_nonnull(event);
     ck_assert_int_eq(event->type, IK_STREAM_THINKING_DELTA);
 }
-END_TEST
 
-START_TEST(test_normalize_finish_reason_to_done_with_usage)
+END_TEST START_TEST(test_normalize_finish_reason_to_done_with_usage)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
@@ -468,7 +469,8 @@ START_TEST(test_normalize_finish_reason_to_done_with_usage)
     process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
 
     /* Process finish chunk with usage */
-    const char *chunk = "{\"candidates\":[{\"finishReason\":\"MAX_TOKENS\"}],\"usageMetadata\":{\"promptTokenCount\":100,\"candidatesTokenCount\":200,\"thoughtsTokenCount\":50,\"totalTokenCount\":300}}";
+    const char *chunk =
+        "{\"candidates\":[{\"finishReason\":\"MAX_TOKENS\"}],\"usageMetadata\":{\"promptTokenCount\":100,\"candidatesTokenCount\":200,\"thoughtsTokenCount\":50,\"totalTokenCount\":300}}";
     process_chunk(sctx, chunk);
 
     /* Verify normalized to IK_STREAM_DONE with usage */
@@ -481,8 +483,8 @@ START_TEST(test_normalize_finish_reason_to_done_with_usage)
     ck_assert_int_eq(event->data.done.usage.thinking_tokens, 50);
     ck_assert_int_eq(event->data.done.usage.total_tokens, 300);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Error Handling Tests
  * ================================================================ */
@@ -500,9 +502,8 @@ START_TEST(test_handle_malformed_json_chunk)
     /* Verify no events emitted (malformed JSON ignored) */
     ck_assert_int_eq((int)captured_count, 0);
 }
-END_TEST
 
-START_TEST(test_handle_empty_data_chunk)
+END_TEST START_TEST(test_handle_empty_data_chunk)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
@@ -515,9 +516,8 @@ START_TEST(test_handle_empty_data_chunk)
     /* Verify no events emitted */
     ck_assert_int_eq((int)captured_count, 0);
 }
-END_TEST
 
-START_TEST(test_handle_error_object_in_chunk)
+END_TEST START_TEST(test_handle_error_object_in_chunk)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
@@ -533,8 +533,8 @@ START_TEST(test_handle_error_object_in_chunk)
     ck_assert_int_eq(event->data.error.category, IK_ERR_CAT_AUTH);
     ck_assert_str_eq(event->data.error.message, "API key invalid");
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Usage Statistics Tests
  * ================================================================ */
@@ -549,7 +549,8 @@ START_TEST(test_usage_excludes_thinking_from_output_tokens)
     process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
 
     /* Process usage chunk */
-    const char *chunk = "{\"usageMetadata\":{\"promptTokenCount\":100,\"candidatesTokenCount\":200,\"thoughtsTokenCount\":50,\"totalTokenCount\":300}}";
+    const char *chunk =
+        "{\"usageMetadata\":{\"promptTokenCount\":100,\"candidatesTokenCount\":200,\"thoughtsTokenCount\":50,\"totalTokenCount\":300}}";
     process_chunk(sctx, chunk);
 
     /* Verify usage calculation */
@@ -559,9 +560,8 @@ START_TEST(test_usage_excludes_thinking_from_output_tokens)
     ck_assert_int_eq(usage.thinking_tokens, 50);
     ck_assert_int_eq(usage.total_tokens, 300);
 }
-END_TEST
 
-START_TEST(test_usage_handles_missing_thoughts_token_count)
+END_TEST START_TEST(test_usage_handles_missing_thoughts_token_count)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
@@ -571,7 +571,8 @@ START_TEST(test_usage_handles_missing_thoughts_token_count)
     process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
 
     /* Process usage chunk without thoughtsTokenCount */
-    const char *chunk = "{\"usageMetadata\":{\"promptTokenCount\":100,\"candidatesTokenCount\":200,\"totalTokenCount\":300}}";
+    const char *chunk =
+        "{\"usageMetadata\":{\"promptTokenCount\":100,\"candidatesTokenCount\":200,\"totalTokenCount\":300}}";
     process_chunk(sctx, chunk);
 
     /* Verify usage calculation */
@@ -581,8 +582,8 @@ START_TEST(test_usage_handles_missing_thoughts_token_count)
     ck_assert_int_eq(usage.thinking_tokens, 0);
     ck_assert_int_eq(usage.total_tokens, 300);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Finish Reason Tests
  * ================================================================ */
@@ -592,36 +593,32 @@ START_TEST(test_map_stop_finish_reason)
     ik_finish_reason_t reason = ik_google_map_finish_reason("STOP");
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
-END_TEST
 
-START_TEST(test_map_max_tokens_finish_reason)
+END_TEST START_TEST(test_map_max_tokens_finish_reason)
 {
     ik_finish_reason_t reason = ik_google_map_finish_reason("MAX_TOKENS");
     ck_assert_int_eq(reason, IK_FINISH_LENGTH);
 }
-END_TEST
 
-START_TEST(test_map_safety_finish_reason)
+END_TEST START_TEST(test_map_safety_finish_reason)
 {
     ik_finish_reason_t reason = ik_google_map_finish_reason("SAFETY");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
-END_TEST
 
-START_TEST(test_map_unknown_finish_reason)
+END_TEST START_TEST(test_map_unknown_finish_reason)
 {
     ik_finish_reason_t reason = ik_google_map_finish_reason("UNKNOWN_REASON");
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
-END_TEST
 
-START_TEST(test_map_null_finish_reason)
+END_TEST START_TEST(test_map_null_finish_reason)
 {
     ik_finish_reason_t reason = ik_google_map_finish_reason(NULL);
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Stream Context Tests
  * ================================================================ */
@@ -644,8 +641,8 @@ START_TEST(test_stream_ctx_create_initializes_state)
     ik_finish_reason_t reason = ik_google_stream_get_finish_reason(sctx);
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Tool Call State Transition Tests
  * ================================================================ */
@@ -657,7 +654,8 @@ START_TEST(test_tool_call_followed_by_text_ends_tool_call)
     ck_assert(!is_err(&r));
 
     /* Process tool call */
-    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"test\",\"args\":{}}}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
+    process_chunk(sctx,
+                  "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"test\",\"args\":{}}}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
 
     /* Process text part (should end tool call) */
     process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Done\"}]}}]}");
@@ -678,19 +676,20 @@ START_TEST(test_tool_call_followed_by_text_ends_tool_call)
     ck_assert(done_idx > 0);
     ck_assert(text_idx > done_idx);
 }
-END_TEST
 
-START_TEST(test_usage_metadata_ends_tool_call)
+END_TEST START_TEST(test_usage_metadata_ends_tool_call)
 {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
 
     /* Process tool call */
-    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"test\",\"args\":{}}}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
+    process_chunk(sctx,
+                  "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"test\",\"args\":{}}}]}}],\"modelVersion\":\"gemini-2.5-flash\"}");
 
     /* Process usage metadata (should end tool call) */
-    process_chunk(sctx, "{\"usageMetadata\":{\"promptTokenCount\":10,\"candidatesTokenCount\":5,\"totalTokenCount\":15}}");
+    process_chunk(sctx,
+                  "{\"usageMetadata\":{\"promptTokenCount\":10,\"candidatesTokenCount\":5,\"totalTokenCount\":15}}");
 
     /* Verify TOOL_CALL_DONE emitted before STREAM_DONE */
     const ik_stream_event_t *done_event = find_event(IK_STREAM_TOOL_CALL_DONE);
@@ -699,6 +698,7 @@ START_TEST(test_usage_metadata_ends_tool_call)
     const ik_stream_event_t *stream_done = find_event(IK_STREAM_DONE);
     ck_assert_ptr_nonnull(stream_done);
 }
+
 END_TEST
 
 /* ================================================================

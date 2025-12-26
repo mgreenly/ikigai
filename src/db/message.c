@@ -27,6 +27,7 @@ static const char *VALID_KINDS[] = {
     "agent_killed",
     "command",
     "fork",
+    "usage",
     NULL
 };
 

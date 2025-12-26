@@ -25,8 +25,7 @@ static void teardown(void)
  * Response Builder Tests
  * ================================================================ */
 
-START_TEST(test_response_create)
-{
+START_TEST(test_response_create) {
     ik_response_t *resp = NULL;
     res_t result = ik_response_create(test_ctx, &resp);
 
@@ -43,9 +42,7 @@ START_TEST(test_response_create)
     ck_assert_ptr_null(resp->model);
     ck_assert_ptr_null(resp->provider_data);
 }
-END_TEST
-
-START_TEST(test_response_add_content)
+END_TEST START_TEST(test_response_add_content)
 {
     ik_response_t *resp = NULL;
     ik_response_create(test_ctx, &resp);
@@ -58,9 +55,8 @@ START_TEST(test_response_add_content)
     ck_assert_int_eq(resp->content_blocks[0].type, IK_CONTENT_TEXT);
     ck_assert_str_eq(resp->content_blocks[0].data.text.text, "Hello");
 }
-END_TEST
 
-START_TEST(test_response_add_multiple_content)
+END_TEST START_TEST(test_response_add_multiple_content)
 {
     ik_response_t *resp = NULL;
     ik_response_create(test_ctx, &resp);
@@ -68,7 +64,7 @@ START_TEST(test_response_add_multiple_content)
     ik_content_block_t *block1 = ik_content_block_thinking(test_ctx, "Thinking...");
     ik_content_block_t *block2 = ik_content_block_text(test_ctx, "Answer");
     ik_content_block_t *block3 = ik_content_block_tool_call(test_ctx,
-        "call_1", "read_file", "{\"path\":\"/tmp/file\"}");
+                                                            "call_1", "read_file", "{\"path\":\"/tmp/file\"}");
 
     ik_response_add_content(resp, block1);
     ik_response_add_content(resp, block2);
@@ -82,9 +78,8 @@ START_TEST(test_response_add_multiple_content)
     ck_assert_int_eq(resp->content_blocks[2].type, IK_CONTENT_TOOL_CALL);
     ck_assert_str_eq(resp->content_blocks[2].data.tool_call.id, "call_1");
 }
-END_TEST
 
-START_TEST(test_response_memory_lifecycle)
+END_TEST START_TEST(test_response_memory_lifecycle)
 {
     /* Test that freeing response frees all child allocations */
     TALLOC_CTX *temp_ctx = talloc_new(NULL);
@@ -105,6 +100,7 @@ START_TEST(test_response_memory_lifecycle)
 
     ck_assert(1); /* If we get here, no crash */
 }
+
 END_TEST
 
 /* ================================================================

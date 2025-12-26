@@ -208,7 +208,7 @@ START_TEST(test_all_metadata_fields)
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->current->response_completion_tokens = 10;
+    repl->current->response_output_tokens = 10;
     repl->current->response_finish_reason = talloc_strdup(test_ctx, "stop");
 
     ik_repl_handle_agent_request_success(repl, repl->current);
@@ -226,7 +226,7 @@ START_TEST(test_only_model_metadata)
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->current->response_completion_tokens = 0;
+    repl->current->response_output_tokens = 0;
     repl->current->response_finish_reason = NULL;
 
     ik_repl_handle_agent_request_success(repl, repl->current);
@@ -243,7 +243,7 @@ START_TEST(test_only_tokens_metadata)
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = NULL;
-    repl->current->response_completion_tokens = 10;
+    repl->current->response_output_tokens = 10;
     repl->current->response_finish_reason = NULL;
 
     ik_repl_handle_agent_request_success(repl, repl->current);
@@ -260,7 +260,7 @@ START_TEST(test_only_finish_reason_metadata)
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = NULL;
-    repl->current->response_completion_tokens = 0;
+    repl->current->response_output_tokens = 0;
     repl->current->response_finish_reason = talloc_strdup(test_ctx, "stop");
 
     ik_repl_handle_agent_request_success(repl, repl->current);
@@ -277,7 +277,7 @@ START_TEST(test_model_tokens_metadata)
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->current->response_completion_tokens = 10;
+    repl->current->response_output_tokens = 10;
     repl->current->response_finish_reason = NULL;
 
     ik_repl_handle_agent_request_success(repl, repl->current);
@@ -294,7 +294,7 @@ START_TEST(test_model_finish_reason_metadata)
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->current->response_completion_tokens = 0;
+    repl->current->response_output_tokens = 0;
     repl->current->response_finish_reason = talloc_strdup(test_ctx, "stop");
 
     ik_repl_handle_agent_request_success(repl, repl->current);
@@ -311,7 +311,7 @@ START_TEST(test_tokens_finish_reason_metadata)
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = NULL;
-    repl->current->response_completion_tokens = 10;
+    repl->current->response_output_tokens = 10;
     repl->current->response_finish_reason = talloc_strdup(test_ctx, "stop");
 
     ik_repl_handle_agent_request_success(repl, repl->current);
@@ -328,7 +328,7 @@ START_TEST(test_no_metadata)
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = NULL;
-    repl->current->response_completion_tokens = 0;
+    repl->current->response_output_tokens = 0;
     repl->current->response_finish_reason = NULL;
 
     ik_repl_handle_agent_request_success(repl, repl->current);

@@ -46,8 +46,7 @@ static void set_file_permissions(const char *path, mode_t mode)
 }
 
 // Test: Empty credentials (no file, no env)
-START_TEST(test_empty_credentials)
-{
+START_TEST(test_empty_credentials) {
     // Ensure env vars are not set
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
@@ -63,7 +62,6 @@ START_TEST(test_empty_credentials)
     ck_assert_ptr_null(creds->google_api_key);
 }
 END_TEST
-
 // Test: Load from environment variables
 START_TEST(test_load_from_environment)
 {
@@ -84,8 +82,8 @@ START_TEST(test_load_from_environment)
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
 }
-END_TEST
 
+END_TEST
 // Test: Load from file
 START_TEST(test_load_from_file)
 {
@@ -111,8 +109,8 @@ START_TEST(test_load_from_file)
 
     unlink(path);
 }
-END_TEST
 
+END_TEST
 // Test: Environment precedence over file
 START_TEST(test_environment_precedence)
 {
@@ -141,8 +139,8 @@ START_TEST(test_environment_precedence)
     unsetenv("ANTHROPIC_API_KEY");
     unlink(path);
 }
-END_TEST
 
+END_TEST
 // Test: Provider lookup via ik_credentials_get
 START_TEST(test_provider_lookup)
 {
@@ -166,8 +164,8 @@ START_TEST(test_provider_lookup)
 
     unlink(path);
 }
-END_TEST
 
+END_TEST
 // Test: Invalid JSON returns error
 START_TEST(test_invalid_json)
 {
@@ -185,8 +183,8 @@ START_TEST(test_invalid_json)
 
     unlink(path);
 }
-END_TEST
 
+END_TEST
 // Test: Insecure permissions (0644)
 START_TEST(test_insecure_permissions)
 {
@@ -199,8 +197,8 @@ START_TEST(test_insecure_permissions)
 
     unlink(path);
 }
-END_TEST
 
+END_TEST
 // Test: Secure permissions (0600)
 START_TEST(test_secure_permissions)
 {
@@ -213,8 +211,8 @@ START_TEST(test_secure_permissions)
 
     unlink(path);
 }
-END_TEST
 
+END_TEST
 // Test: All providers from file
 START_TEST(test_all_providers_from_file)
 {
@@ -239,8 +237,8 @@ START_TEST(test_all_providers_from_file)
 
     unlink(path);
 }
-END_TEST
 
+END_TEST
 // Test: Empty env var ignored
 START_TEST(test_empty_env_ignored)
 {
@@ -259,8 +257,8 @@ START_TEST(test_empty_env_ignored)
     unsetenv("OPENAI_API_KEY");
     unlink(path);
 }
-END_TEST
 
+END_TEST
 // Test: Unknown provider returns NULL
 START_TEST(test_unknown_provider)
 {
@@ -277,8 +275,8 @@ START_TEST(test_unknown_provider)
 
     unlink(path);
 }
-END_TEST
 
+END_TEST
 // Test: Partial providers in file
 START_TEST(test_partial_providers)
 {
@@ -299,15 +297,15 @@ START_TEST(test_partial_providers)
 
     unlink(path);
 }
-END_TEST
 
+END_TEST
 // Test: Non-existent file returns false for insecure permissions
 START_TEST(test_nonexistent_file_permissions)
 {
     ck_assert(!ik_credentials_insecure_permissions("/nonexistent/file.json"));
 }
-END_TEST
 
+END_TEST
 // Test: JSON not an object
 START_TEST(test_json_not_object)
 {
@@ -320,8 +318,8 @@ START_TEST(test_json_not_object)
 
     unlink(path);
 }
-END_TEST
 
+END_TEST
 // Test: Empty API keys in file are ignored
 START_TEST(test_empty_api_keys_in_file)
 {
@@ -344,6 +342,7 @@ START_TEST(test_empty_api_keys_in_file)
 
     unlink(path);
 }
+
 END_TEST
 
 static Suite *credentials_suite(void)

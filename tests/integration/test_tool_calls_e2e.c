@@ -87,8 +87,13 @@ static ik_error_category_t captured_error_category;
 static char captured_error_message[256];
 
 /* Mock implementations */
-int posix_open_(const char *p, int f) { (void)p; (void)f; return mock_tty_fd; }
-int posix_tcgetattr_(int fd, struct termios *t) {
+int posix_open_(const char *p, int f)
+{
+    (void)p; (void)f; return mock_tty_fd;
+}
+
+int posix_tcgetattr_(int fd, struct termios *t)
+{
     (void)fd;
     t->c_iflag = ICRNL | IXON;
     t->c_oflag = OPOST;
@@ -98,64 +103,164 @@ int posix_tcgetattr_(int fd, struct termios *t) {
     t->c_cc[VTIME] = 0;
     return 0;
 }
-int posix_tcsetattr_(int fd, int a, const struct termios *t) { (void)fd; (void)a; (void)t; return 0; }
-int posix_tcflush_(int fd, int q) { (void)fd; (void)q; return 0; }
-ssize_t posix_write_(int fd, const void *b, size_t c) { (void)fd; (void)b; return (ssize_t)c; }
-ssize_t posix_read_(int fd, void *b, size_t c) { (void)fd; (void)b; (void)c; return 0; }
-int posix_ioctl_(int fd, unsigned long r, void *a) {
+
+int posix_tcsetattr_(int fd, int a, const struct termios *t)
+{
+    (void)fd; (void)a; (void)t; return 0;
+}
+
+int posix_tcflush_(int fd, int q)
+{
+    (void)fd; (void)q; return 0;
+}
+
+ssize_t posix_write_(int fd, const void *b, size_t c)
+{
+    (void)fd; (void)b; return (ssize_t)c;
+}
+
+ssize_t posix_read_(int fd, void *b, size_t c)
+{
+    (void)fd; (void)b; (void)c; return 0;
+}
+
+int posix_ioctl_(int fd, unsigned long r, void *a)
+{
     (void)fd; (void)r;
     struct winsize *w = a;
     w->ws_row = 24;
     w->ws_col = 80;
     return 0;
 }
-int posix_close_(int fd) { (void)fd; return 0; }
-CURLM *curl_multi_init_(void) { return (CURLM *)&mock_multi_storage; }
-CURLMcode curl_multi_cleanup_(CURLM *m) { (void)m; return CURLM_OK; }
-CURLMcode curl_multi_fdset_(CURLM *m, fd_set *r, fd_set *w, fd_set *e, int *x) {
+
+int posix_close_(int fd)
+{
+    (void)fd; return 0;
+}
+
+CURLM *curl_multi_init_(void)
+{
+    return (CURLM *)&mock_multi_storage;
+}
+
+CURLMcode curl_multi_cleanup_(CURLM *m)
+{
+    (void)m; return CURLM_OK;
+}
+
+CURLMcode curl_multi_fdset_(CURLM *m, fd_set *r, fd_set *w, fd_set *e, int *x)
+{
     (void)m; (void)r; (void)w; (void)e;
     *x = -1;
     return CURLM_OK;
 }
-CURLMcode curl_multi_timeout_(CURLM *m, long *t) { (void)m; *t = 0; return CURLM_OK; }
-CURLMcode curl_multi_perform_(CURLM *m, int *r) {
+
+CURLMcode curl_multi_timeout_(CURLM *m, long *t)
+{
+    (void)m; *t = 0; return CURLM_OK;
+}
+
+CURLMcode curl_multi_perform_(CURLM *m, int *r)
+{
     (void)m;
     mock_perform_calls++;
     *r = mock_perform_calls >= 1 ? 0 : mock_running_handles;
     return CURLM_OK;
 }
-CURLMsg *curl_multi_info_read_(CURLM *m, int *q) { (void)m; *q = 0; return NULL; }
-CURLMcode curl_multi_add_handle_(CURLM *m, CURL *e) {
+
+CURLMsg *curl_multi_info_read_(CURLM *m, int *q)
+{
+    (void)m; *q = 0; return NULL;
+}
+
+CURLMcode curl_multi_add_handle_(CURLM *m, CURL *e)
+{
     (void)m; (void)e;
     mock_running_handles = 1;
     return CURLM_OK;
 }
-CURLMcode curl_multi_remove_handle_(CURLM *m, CURL *e) { (void)m; (void)e; return CURLM_OK; }
-const char *curl_multi_strerror_(CURLMcode c) { return curl_multi_strerror(c); }
-CURL *curl_easy_init_(void) { return (CURL *)&mock_easy_storage; }
-void curl_easy_cleanup_(CURL *c) { (void)c; }
-CURLcode curl_easy_setopt_(CURL *c, CURLoption o, const void *v) { (void)c; (void)o; (void)v; return CURLE_OK; }
-CURLcode curl_easy_getinfo_(CURL *c, CURLINFO i, ...) { (void)c; (void)i; return CURLE_OK; }
-struct curl_slist *curl_slist_append_(struct curl_slist *l, const char *s) { (void)s; return l; }
-void curl_slist_free_all_(struct curl_slist *l) { (void)l; }
-int pthread_mutex_init_(pthread_mutex_t *m, const pthread_mutexattr_t *a) { return pthread_mutex_init(m, a); }
-int pthread_mutex_destroy_(pthread_mutex_t *m) { return pthread_mutex_destroy(m); }
-int pthread_mutex_lock_(pthread_mutex_t *m) { return pthread_mutex_lock(m); }
-int pthread_mutex_unlock_(pthread_mutex_t *m) { return pthread_mutex_unlock(m); }
-int pthread_create_(pthread_t *t, const pthread_attr_t *a, void *(*s)(void *), void *g) {
+
+CURLMcode curl_multi_remove_handle_(CURLM *m, CURL *e)
+{
+    (void)m; (void)e; return CURLM_OK;
+}
+
+const char *curl_multi_strerror_(CURLMcode c)
+{
+    return curl_multi_strerror(c);
+}
+
+CURL *curl_easy_init_(void)
+{
+    return (CURL *)&mock_easy_storage;
+}
+
+void curl_easy_cleanup_(CURL *c)
+{
+    (void)c;
+}
+
+CURLcode curl_easy_setopt_(CURL *c, CURLoption o, const void *v)
+{
+    (void)c; (void)o; (void)v; return CURLE_OK;
+}
+
+CURLcode curl_easy_getinfo_(CURL *c, CURLINFO i, ...)
+{
+    (void)c; (void)i; return CURLE_OK;
+}
+
+struct curl_slist *curl_slist_append_(struct curl_slist *l, const char *s)
+{
+    (void)s; return l;
+}
+
+void curl_slist_free_all_(struct curl_slist *l)
+{
+    (void)l;
+}
+
+int pthread_mutex_init_(pthread_mutex_t *m, const pthread_mutexattr_t *a)
+{
+    return pthread_mutex_init(m, a);
+}
+
+int pthread_mutex_destroy_(pthread_mutex_t *m)
+{
+    return pthread_mutex_destroy(m);
+}
+
+int pthread_mutex_lock_(pthread_mutex_t *m)
+{
+    return pthread_mutex_lock(m);
+}
+
+int pthread_mutex_unlock_(pthread_mutex_t *m)
+{
+    return pthread_mutex_unlock(m);
+}
+
+int pthread_create_(pthread_t *t, const pthread_attr_t *a, void *(*s)(void *), void *g)
+{
     return pthread_create(t, a, s, g);
 }
-int pthread_join_(pthread_t t, void **r) { return pthread_join(t, r); }
+
+int pthread_join_(pthread_t t, void **r)
+{
+    return pthread_join(t, r);
+}
 
 /* Test helpers */
-static void setup_test_env(void) {
+static void setup_test_env(void)
+{
     if (getcwd(orig_dir, sizeof(orig_dir)) == NULL) ck_abort_msg("getcwd failed");
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_tool_calls_test_%d", getpid());
     mkdir(test_dir, 0755);
     if (chdir(test_dir) != 0) ck_abort_msg("chdir failed");
 }
 
-static void teardown_test_env(void) {
+static void teardown_test_env(void)
+{
     if (chdir(orig_dir) != 0) ck_abort_msg("chdir failed");
     char cmd[512];
     snprintf(cmd, sizeof(cmd), "rm -rf '%s'", test_dir);
@@ -163,7 +268,8 @@ static void teardown_test_env(void) {
     (void)ret;
 }
 
-static void reset_mock_state(void) {
+static void reset_mock_state(void)
+{
     mock_perform_calls = 0;
     mock_running_handles = 0;
     captured_event_count = 0;
@@ -174,12 +280,14 @@ static void reset_mock_state(void) {
 }
 
 /* Suite setup */
-static void suite_setup(void) {
+static void suite_setup(void)
+{
     ik_test_set_log_dir(__FILE__);
     g_test_ctx = talloc_new(NULL);
 }
 
-static void suite_teardown(void) {
+static void suite_teardown(void)
+{
     talloc_free(g_test_ctx);
     g_test_ctx = NULL;
     ik_test_reset_terminal();
@@ -196,8 +304,7 @@ static void suite_teardown(void) {
  * via the async streaming pattern. Events should be:
  * IK_STREAM_TOOL_CALL_START -> IK_STREAM_TOOL_CALL_DELTA -> IK_STREAM_TOOL_CALL_DONE
  */
-START_TEST(test_anthropic_tool_call_format_async)
-{
+START_TEST(test_anthropic_tool_call_format_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -223,7 +330,6 @@ START_TEST(test_anthropic_tool_call_format_async)
     teardown_test_env();
 }
 END_TEST
-
 /**
  * Test 2: OpenAI tool call format (async)
  *
@@ -254,8 +360,8 @@ START_TEST(test_openai_tool_call_format_async)
     talloc_free(ctx);
     teardown_test_env();
 }
-END_TEST
 
+END_TEST
 /**
  * Test 3: Google tool call format (async)
  *
@@ -285,8 +391,8 @@ START_TEST(test_google_tool_call_format_async)
     talloc_free(ctx);
     teardown_test_env();
 }
-END_TEST
 
+END_TEST
 /**
  * Test 4: Tool result format per provider (async)
  *
@@ -316,8 +422,8 @@ START_TEST(test_tool_result_format_per_provider)
     talloc_free(ctx);
     teardown_test_env();
 }
-END_TEST
 
+END_TEST
 /**
  * Test 5: Multiple tool calls in one response (async)
  *
@@ -347,8 +453,8 @@ START_TEST(test_multiple_tool_calls_async)
     talloc_free(ctx);
     teardown_test_env();
 }
-END_TEST
 
+END_TEST
 /**
  * Test 6: Tool error handling (async)
  *
@@ -378,6 +484,7 @@ START_TEST(test_tool_error_handling_async)
     talloc_free(ctx);
     teardown_test_env();
 }
+
 END_TEST
 
 /* ================================================================

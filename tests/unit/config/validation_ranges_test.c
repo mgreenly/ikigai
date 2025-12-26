@@ -144,7 +144,6 @@ END_TEST START_TEST(test_config_temperature_too_low)
 
     ik_config_t *config = NULL;
 
-
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
@@ -168,7 +167,6 @@ END_TEST START_TEST(test_config_temperature_too_high)
     fclose(f);
 
     ik_config_t *config = NULL;
-
 
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
@@ -194,7 +192,6 @@ END_TEST START_TEST(test_config_max_tokens_too_low)
 
     ik_config_t *config = NULL;
 
-
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
@@ -219,7 +216,6 @@ END_TEST START_TEST(test_config_max_tokens_too_high)
 
     ik_config_t *config = NULL;
 
-
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
@@ -243,7 +239,6 @@ END_TEST START_TEST(test_config_valid_openai_system_message)
     fclose(f);
 
     ik_config_t *cfg = NULL;
-
 
     res_t result = ik_config_load(ctx, test_file, &cfg);
     ck_assert(!result.is_err);

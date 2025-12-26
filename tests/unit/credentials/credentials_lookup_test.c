@@ -18,11 +18,13 @@
 static TALLOC_CTX *test_ctx = NULL;
 
 /* Setup/teardown */
-static void setup(void) {
+static void setup(void)
+{
     test_ctx = talloc_new(NULL);
 }
 
-static void teardown(void) {
+static void teardown(void)
+{
     talloc_free(test_ctx);
     test_ctx = NULL;
 }
@@ -33,8 +35,7 @@ static void teardown(void) {
  * Test ik_credentials_get() for each provider with environment variables.
  */
 
-START_TEST(test_credentials_from_env_openai)
-{
+START_TEST(test_credentials_from_env_openai) {
     setenv("OPENAI_API_KEY", "sk-test123", 1);
 
     ik_credentials_t *creds = NULL;
@@ -49,9 +50,7 @@ START_TEST(test_credentials_from_env_openai)
 
     unsetenv("OPENAI_API_KEY");
 }
-END_TEST
-
-START_TEST(test_credentials_from_env_anthropic)
+END_TEST START_TEST(test_credentials_from_env_anthropic)
 {
     setenv("ANTHROPIC_API_KEY", "sk-ant-test", 1);
 
@@ -67,9 +66,8 @@ START_TEST(test_credentials_from_env_anthropic)
 
     unsetenv("ANTHROPIC_API_KEY");
 }
-END_TEST
 
-START_TEST(test_credentials_from_env_google)
+END_TEST START_TEST(test_credentials_from_env_google)
 {
     setenv("GOOGLE_API_KEY", "AIza-test", 1);
 
@@ -85,9 +83,8 @@ START_TEST(test_credentials_from_env_google)
 
     unsetenv("GOOGLE_API_KEY");
 }
-END_TEST
 
-START_TEST(test_credentials_missing_returns_null)
+END_TEST START_TEST(test_credentials_missing_returns_null)
 {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
@@ -107,9 +104,8 @@ START_TEST(test_credentials_missing_returns_null)
     /* Key is either NULL or a valid string pointer */
     (void)key; /* Test passes if no crash */
 }
-END_TEST
 
-START_TEST(test_credentials_unknown_provider)
+END_TEST START_TEST(test_credentials_unknown_provider)
 {
     ik_credentials_t *creds = NULL;
     res_t result = ik_credentials_load(test_ctx, NULL, &creds);
@@ -121,13 +117,15 @@ START_TEST(test_credentials_unknown_provider)
     const char *key = ik_credentials_get(creds, "unknown_provider");
     ck_assert_ptr_null(key);
 }
+
 END_TEST
 
 /**
  * Test Suite Configuration
  */
 
-static Suite *credentials_suite(void) {
+static Suite *credentials_suite(void)
+{
     Suite *s = suite_create("Credentials");
 
     TCase *tc_core = tcase_create("Core");
@@ -142,7 +140,8 @@ static Suite *credentials_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     Suite *s = credentials_suite();
     SRunner *sr = srunner_create(s);
 

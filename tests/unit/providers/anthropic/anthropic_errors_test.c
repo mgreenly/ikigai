@@ -26,8 +26,7 @@ static void teardown(void)
  * Error Handling Tests
  * ================================================================ */
 
-START_TEST(test_parse_authentication_error_401)
-{
+START_TEST(test_parse_authentication_error_401) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -41,16 +40,14 @@ START_TEST(test_parse_authentication_error_401)
     char *message = NULL;
 
     res_t r = ik_anthropic_parse_error(test_ctx, 401, error_json, strlen(error_json),
-                                        &category, &message);
+                                       &category, &message);
 
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
     ck_assert_ptr_nonnull(message);
     ck_assert(strstr(message, "authentication") != NULL || strstr(message, "invalid") != NULL);
 }
-END_TEST
-
-START_TEST(test_parse_rate_limit_error_429)
+END_TEST START_TEST(test_parse_rate_limit_error_429)
 {
     const char *error_json =
         "{"
@@ -65,15 +62,14 @@ START_TEST(test_parse_rate_limit_error_429)
     char *message = NULL;
 
     res_t r = ik_anthropic_parse_error(test_ctx, 429, error_json, strlen(error_json),
-                                        &category, &message);
+                                       &category, &message);
 
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
     ck_assert_ptr_nonnull(message);
 }
-END_TEST
 
-START_TEST(test_parse_overloaded_error_529)
+END_TEST START_TEST(test_parse_overloaded_error_529)
 {
     const char *error_json =
         "{"
@@ -88,15 +84,14 @@ START_TEST(test_parse_overloaded_error_529)
     char *message = NULL;
 
     res_t r = ik_anthropic_parse_error(test_ctx, 529, error_json, strlen(error_json),
-                                        &category, &message);
+                                       &category, &message);
 
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
     ck_assert_ptr_nonnull(message);
 }
-END_TEST
 
-START_TEST(test_parse_validation_error_400)
+END_TEST START_TEST(test_parse_validation_error_400)
 {
     const char *error_json =
         "{"
@@ -111,15 +106,14 @@ START_TEST(test_parse_validation_error_400)
     char *message = NULL;
 
     res_t r = ik_anthropic_parse_error(test_ctx, 400, error_json, strlen(error_json),
-                                        &category, &message);
+                                       &category, &message);
 
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
     ck_assert_ptr_nonnull(message);
 }
-END_TEST
 
-START_TEST(test_map_errors_to_correct_categories)
+END_TEST START_TEST(test_map_errors_to_correct_categories)
 {
     // Test various HTTP status codes map correctly
     ik_error_category_t category;
@@ -151,8 +145,8 @@ START_TEST(test_map_errors_to_correct_categories)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Retry-After Header Tests
  * ================================================================ */
@@ -169,9 +163,8 @@ START_TEST(test_extract_retry_after_header)
     int32_t retry_after = ik_anthropic_get_retry_after(headers);
     ck_assert_int_eq(retry_after, 60);
 }
-END_TEST
 
-START_TEST(test_retry_after_missing)
+END_TEST START_TEST(test_retry_after_missing)
 {
     const char *headers[] = {
         "content-type: application/json",
@@ -182,6 +175,7 @@ START_TEST(test_retry_after_missing)
     int32_t retry_after = ik_anthropic_get_retry_after(headers);
     ck_assert_int_eq(retry_after, -1);
 }
+
 END_TEST
 
 /* ================================================================

@@ -38,8 +38,7 @@ ik_message_t *ik_message_create_text(TALLOC_CTX *ctx, ik_role_t role, const char
  * @param arguments Tool arguments as JSON string (must not be NULL)
  * @return          Allocated message (never NULL, panics on OOM)
  */
-ik_message_t *ik_message_create_tool_call(TALLOC_CTX *ctx, const char *id,
-                                           const char *name, const char *arguments);
+ik_message_t *ik_message_create_tool_call(TALLOC_CTX *ctx, const char *id, const char *name, const char *arguments);
 
 /**
  * Create a tool result message
@@ -52,8 +51,10 @@ ik_message_t *ik_message_create_tool_call(TALLOC_CTX *ctx, const char *id,
  * @param is_error     true if tool execution failed
  * @return             Allocated message (never NULL, panics on OOM)
  */
-ik_message_t *ik_message_create_tool_result(TALLOC_CTX *ctx, const char *tool_call_id,
-                                             const char *content, bool is_error);
+ik_message_t *ik_message_create_tool_result(TALLOC_CTX *ctx,
+                                            const char *tool_call_id,
+                                            const char *content,
+                                            bool is_error);
 
 /**
  * Convert database message to provider message format

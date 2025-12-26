@@ -16,9 +16,9 @@ START_TEST(test_parser_create) {
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Empty buffer returns NULL */
-START_TEST(test_empty_buffer) {
+START_TEST(test_empty_buffer)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -27,10 +27,11 @@ START_TEST(test_empty_buffer) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Single event */
-START_TEST(test_single_event) {
+START_TEST(test_single_event)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -49,10 +50,11 @@ START_TEST(test_single_event) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Event with type */
-START_TEST(test_event_with_type) {
+START_TEST(test_event_with_type)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -68,10 +70,11 @@ START_TEST(test_event_with_type) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Multiple events */
-START_TEST(test_multiple_events) {
+START_TEST(test_multiple_events)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -99,10 +102,11 @@ START_TEST(test_multiple_events) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Partial feed */
-START_TEST(test_partial_feed) {
+START_TEST(test_partial_feed)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -122,10 +126,11 @@ START_TEST(test_partial_feed) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Done marker detection */
-START_TEST(test_done_marker) {
+START_TEST(test_done_marker)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -138,10 +143,11 @@ START_TEST(test_done_marker) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Not done marker */
-START_TEST(test_not_done) {
+START_TEST(test_not_done)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -154,10 +160,11 @@ START_TEST(test_not_done) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Reset parser */
-START_TEST(test_reset) {
+START_TEST(test_reset)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -184,10 +191,11 @@ START_TEST(test_reset) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Multi-line data */
-START_TEST(test_multiline_data) {
+START_TEST(test_multiline_data)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -201,10 +209,11 @@ START_TEST(test_multiline_data) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Empty data field (data: with no content) */
-START_TEST(test_empty_data_field) {
+START_TEST(test_empty_data_field)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -218,10 +227,11 @@ START_TEST(test_empty_data_field) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Event type without space after colon */
-START_TEST(test_event_type_no_space) {
+START_TEST(test_event_type_no_space)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -235,10 +245,11 @@ START_TEST(test_event_type_no_space) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Buffer growth */
-START_TEST(test_buffer_growth) {
+START_TEST(test_buffer_growth)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -260,10 +271,11 @@ START_TEST(test_buffer_growth) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Partial data remaining in buffer */
-START_TEST(test_partial_remaining) {
+START_TEST(test_partial_remaining)
+{
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -288,10 +300,12 @@ START_TEST(test_partial_remaining) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Test suite */
-static Suite *sse_parser_suite(void) {
+static Suite *sse_parser_suite(void)
+{
     Suite *s = suite_create("SSE Parser");
 
     TCase *tc_core = tcase_create("Core");
@@ -314,7 +328,8 @@ static Suite *sse_parser_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     int number_failed;
     Suite *s = sse_parser_suite();
     SRunner *sr = srunner_create(s);

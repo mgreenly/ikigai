@@ -121,7 +121,6 @@ START_TEST(test_rewind_preserves_message_order) {
     ck_assert(repl->current->messages[1]->role == IK_ROLE_ASSISTANT);
 }
 END_TEST
-
 // Test: Rewind with multiple user/assistant pairs
 START_TEST(test_rewind_with_multiple_message_pairs)
 {

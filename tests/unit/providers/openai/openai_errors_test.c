@@ -26,8 +26,7 @@ static void teardown(void)
  * Error Handling Tests
  * ================================================================ */
 
-START_TEST(test_parse_authentication_error_401)
-{
+START_TEST(test_parse_authentication_error_401) {
     const char *error_json =
         "{"
         "  \"error\": {"
@@ -42,16 +41,14 @@ START_TEST(test_parse_authentication_error_401)
     char *message = NULL;
 
     res_t r = ik_openai_parse_error(test_ctx, 401, error_json, strlen(error_json),
-                                     &category, &message);
+                                    &category, &message);
 
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
     ck_assert_ptr_nonnull(message);
     ck_assert(strstr(message, "API key") != NULL || strstr(message, "authentication") != NULL);
 }
-END_TEST
-
-START_TEST(test_parse_rate_limit_error_429)
+END_TEST START_TEST(test_parse_rate_limit_error_429)
 {
     const char *error_json =
         "{"
@@ -67,15 +64,14 @@ START_TEST(test_parse_rate_limit_error_429)
     char *message = NULL;
 
     res_t r = ik_openai_parse_error(test_ctx, 429, error_json, strlen(error_json),
-                                     &category, &message);
+                                    &category, &message);
 
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
     ck_assert_ptr_nonnull(message);
 }
-END_TEST
 
-START_TEST(test_parse_context_length_error_400)
+END_TEST START_TEST(test_parse_context_length_error_400)
 {
     const char *error_json =
         "{"
@@ -91,15 +87,14 @@ START_TEST(test_parse_context_length_error_400)
     char *message = NULL;
 
     res_t r = ik_openai_parse_error(test_ctx, 400, error_json, strlen(error_json),
-                                     &category, &message);
+                                    &category, &message);
 
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
     ck_assert_ptr_nonnull(message);
 }
-END_TEST
 
-START_TEST(test_parse_model_not_found_error_404)
+END_TEST START_TEST(test_parse_model_not_found_error_404)
 {
     const char *error_json =
         "{"
@@ -115,15 +110,14 @@ START_TEST(test_parse_model_not_found_error_404)
     char *message = NULL;
 
     res_t r = ik_openai_parse_error(test_ctx, 404, error_json, strlen(error_json),
-                                     &category, &message);
+                                    &category, &message);
 
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
     ck_assert_ptr_nonnull(message);
 }
-END_TEST
 
-START_TEST(test_map_errors_to_correct_categories)
+END_TEST START_TEST(test_map_errors_to_correct_categories)
 {
     // Test various HTTP status codes map correctly
     ik_error_category_t category;
@@ -160,9 +154,8 @@ START_TEST(test_map_errors_to_correct_categories)
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_UNKNOWN);
 }
-END_TEST
 
-START_TEST(test_parse_server_error_500)
+END_TEST START_TEST(test_parse_server_error_500)
 {
     const char *error_json =
         "{"
@@ -178,15 +171,14 @@ START_TEST(test_parse_server_error_500)
     char *message = NULL;
 
     res_t r = ik_openai_parse_error(test_ctx, 500, error_json, strlen(error_json),
-                                     &category, &message);
+                                    &category, &message);
 
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
     ck_assert_ptr_nonnull(message);
 }
-END_TEST
 
-START_TEST(test_parse_service_unavailable_503)
+END_TEST START_TEST(test_parse_service_unavailable_503)
 {
     const char *error_json =
         "{"
@@ -202,14 +194,14 @@ START_TEST(test_parse_service_unavailable_503)
     char *message = NULL;
 
     res_t r = ik_openai_parse_error(test_ctx, 503, error_json, strlen(error_json),
-                                     &category, &message);
+                                    &category, &message);
 
     ck_assert(!is_err(&r));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
     ck_assert_ptr_nonnull(message);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Retry-After Header Tests
  * ================================================================ */
@@ -226,9 +218,8 @@ START_TEST(test_extract_retry_after_from_reset_headers)
     int32_t retry_after = ik_openai_get_retry_after(headers);
     ck_assert_int_eq(retry_after, 30);
 }
-END_TEST
 
-START_TEST(test_retry_after_missing)
+END_TEST START_TEST(test_retry_after_missing)
 {
     const char *headers[] = {
         "content-type: application/json",
@@ -239,9 +230,8 @@ START_TEST(test_retry_after_missing)
     int32_t retry_after = ik_openai_get_retry_after(headers);
     ck_assert_int_eq(retry_after, -1);
 }
-END_TEST
 
-START_TEST(test_retry_after_tokens_reset)
+END_TEST START_TEST(test_retry_after_tokens_reset)
 {
     const char *headers[] = {
         "content-type: application/json",
@@ -253,6 +243,7 @@ START_TEST(test_retry_after_tokens_reset)
     int32_t retry_after = ik_openai_get_retry_after(headers);
     ck_assert_int_eq(retry_after, 360);  // 6 minutes = 360 seconds
 }
+
 END_TEST
 
 /* ================================================================

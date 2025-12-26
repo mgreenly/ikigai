@@ -41,7 +41,9 @@ static void setup(void)
     agent_a->http_error_message = NULL;
     agent_a->response_model = NULL;
     agent_a->response_finish_reason = NULL;
-    agent_a->response_completion_tokens = 0;
+    agent_a->response_input_tokens = 0;
+    agent_a->response_output_tokens = 0;
+    agent_a->response_thinking_tokens = 0;
     agent_a->assistant_response = NULL;
     agent_a->shared = shared;
 
@@ -51,7 +53,9 @@ static void setup(void)
     agent_b->http_error_message = NULL;
     agent_b->response_model = NULL;
     agent_b->response_finish_reason = NULL;
-    agent_b->response_completion_tokens = 0;
+    agent_b->response_input_tokens = 0;
+    agent_b->response_output_tokens = 0;
+    agent_b->response_thinking_tokens = 0;
     agent_b->assistant_response = NULL;
     agent_b->shared = shared;
 
@@ -77,7 +81,9 @@ START_TEST(test_streaming_callback_uses_agent_context) {
             .delta = {
                 .text = chunk
             }
+
         }
+
     };
 
     /* Call streaming callback with agent_a as context */
@@ -124,11 +130,11 @@ START_TEST(test_completion_callback_uses_agent_context)
     /* Verify agent_a was updated, not agent_b */
     ck_assert_ptr_nonnull(agent_a->response_model);
     ck_assert_str_eq(agent_a->response_model, "gpt-4");
-    ck_assert_int_eq(agent_a->response_completion_tokens, 42);
+    ck_assert_int_eq(agent_a->response_output_tokens, 42);
 
     /* Verify agent_b was NOT updated */
     ck_assert_ptr_null(agent_b->response_model);
-    ck_assert_int_eq(agent_b->response_completion_tokens, 0);
+    ck_assert_int_eq(agent_b->response_output_tokens, 0);
 }
 
 END_TEST
@@ -147,7 +153,9 @@ START_TEST(test_streaming_partial_buffer_uses_agent_context)
             .delta = {
                 .text = chunk1
             }
+
         }
+
     };
     res_t result = ik_repl_stream_callback(&event1, agent_a);
     ck_assert(is_ok(&result));
@@ -168,7 +176,9 @@ START_TEST(test_streaming_partial_buffer_uses_agent_context)
             .delta = {
                 .text = chunk2
             }
+
         }
+
     };
     result = ik_repl_stream_callback(&event2, agent_a);
     ck_assert(is_ok(&result));

@@ -373,6 +373,7 @@ static void vcr_deliver_chunk_to_callback(CURL *handle, const char *chunk_data, 
         state->user_callback((char *)chunk_data, chunk_len, 1, state->user_context);
     }
 }
+
 #pragma GCC diagnostic pop
 
 MOCKABLE CURL *curl_easy_init_(void)
@@ -439,6 +440,7 @@ MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
 
     return curl_easy_setopt(curl, opt, val);
 }
+
 #pragma GCC diagnostic pop
 
 MOCKABLE CURLcode curl_easy_getinfo_(CURL *curl, CURLINFO info, ...)

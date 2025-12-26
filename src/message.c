@@ -9,7 +9,8 @@
 #include <string.h>
 #include <talloc.h>
 
-ik_message_t *ik_message_create_text(TALLOC_CTX *ctx, ik_role_t role, const char *text) {
+ik_message_t *ik_message_create_text(TALLOC_CTX *ctx, ik_role_t role, const char *text)
+{
     assert(text != NULL); // LCOV_EXCL_BR_LINE
 
     ik_message_t *msg = talloc_zero(ctx, ik_message_t);
@@ -29,7 +30,8 @@ ik_message_t *ik_message_create_text(TALLOC_CTX *ctx, ik_role_t role, const char
 }
 
 ik_message_t *ik_message_create_tool_call(TALLOC_CTX *ctx, const char *id,
-                                           const char *name, const char *arguments) {
+                                          const char *name, const char *arguments)
+{
     assert(id != NULL);        // LCOV_EXCL_BR_LINE
     assert(name != NULL);      // LCOV_EXCL_BR_LINE
     assert(arguments != NULL); // LCOV_EXCL_BR_LINE
@@ -51,7 +53,8 @@ ik_message_t *ik_message_create_tool_call(TALLOC_CTX *ctx, const char *id,
 }
 
 ik_message_t *ik_message_create_tool_result(TALLOC_CTX *ctx, const char *tool_call_id,
-                                             const char *content, bool is_error) {
+                                            const char *content, bool is_error)
+{
     assert(tool_call_id != NULL); // LCOV_EXCL_BR_LINE
     assert(content != NULL);      // LCOV_EXCL_BR_LINE
 
@@ -71,7 +74,8 @@ ik_message_t *ik_message_create_tool_result(TALLOC_CTX *ctx, const char *tool_ca
     return msg;
 }
 
-res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message_t **out) {
+res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message_t **out)
+{
     assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
     assert(db_msg != NULL); // LCOV_EXCL_BR_LINE
     assert(out != NULL);    // LCOV_EXCL_BR_LINE

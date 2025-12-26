@@ -90,8 +90,9 @@ static char log_file_path[512];
 
 // Mock start_stream for provider - defined here so it can be referenced in static initializer
 static res_t db_basic_mock_start_stream(void *ctx, const ik_request_t *req,
-                               ik_stream_cb_t stream_cb, void *stream_ctx,
-                               ik_provider_completion_cb_t completion_cb, void *completion_ctx) {
+                                        ik_stream_cb_t stream_cb, void *stream_ctx,
+                                        ik_provider_completion_cb_t completion_cb, void *completion_ctx)
+{
     (void)ctx; (void)req; (void)stream_cb; (void)stream_ctx;
     (void)completion_cb; (void)completion_ctx;
     return OK(NULL);

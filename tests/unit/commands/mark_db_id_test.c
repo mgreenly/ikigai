@@ -127,7 +127,6 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_scrollback_t *scrollback = ik_scrollback_create(parent, 80);
     ck_assert_ptr_nonnull(scrollback);
 
-
     // Create minimal config
     ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -144,7 +143,6 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
-
 
     r->current = agent;
 

@@ -44,7 +44,9 @@ static void setup(void)
     repl->current->http_error_message = NULL;
     repl->current->response_model = NULL;
     repl->current->response_finish_reason = NULL;
-    repl->current->response_completion_tokens = 0;
+    repl->current->response_input_tokens = 0;
+    repl->current->response_output_tokens = 0;
+    repl->current->response_thinking_tokens = 0;
     repl->current->pending_tool_call = NULL;
 }
 
@@ -157,7 +159,7 @@ START_TEST(test_completion_stores_metadata_on_success)
     ck_assert_str_eq(repl->current->response_model, "gpt-4-turbo");
     ck_assert_ptr_nonnull(repl->current->response_finish_reason);
     ck_assert_str_eq(repl->current->response_finish_reason, "stop");
-    ck_assert_int_eq(repl->current->response_completion_tokens, 42);
+    ck_assert_int_eq(repl->current->response_output_tokens, 42);
 }
 
 END_TEST
@@ -167,7 +169,7 @@ START_TEST(test_completion_clears_previous_metadata)
     /* Set up previous metadata */
     repl->current->response_model = talloc_strdup(repl, "old-model");
     repl->current->response_finish_reason = talloc_strdup(repl, "old-reason");
-    repl->current->response_completion_tokens = 99;
+    repl->current->response_output_tokens = 99;
 
     /* Create response with new metadata */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
@@ -188,7 +190,7 @@ START_TEST(test_completion_clears_previous_metadata)
     /* Verify old metadata was replaced */
     ck_assert_str_eq(repl->current->response_model, "new-model");
     ck_assert_str_eq(repl->current->response_finish_reason, "stop");  // Note: finish_reason is now "stop" enum mapping
-    ck_assert_int_eq(repl->current->response_completion_tokens, 50);
+    ck_assert_int_eq(repl->current->response_output_tokens, 50);
 }
 
 END_TEST
@@ -206,7 +208,7 @@ START_TEST(test_completion_null_metadata)
     /* Verify no metadata was stored */
     ck_assert_ptr_null(repl->current->response_model);
     ck_assert_ptr_null(repl->current->response_finish_reason);
-    ck_assert_int_eq(repl->current->response_completion_tokens, 0);
+    ck_assert_int_eq(repl->current->response_output_tokens, 0);
 }
 
 END_TEST

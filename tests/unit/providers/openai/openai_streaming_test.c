@@ -42,7 +42,7 @@ static res_t stream_cb(const ik_stream_event_t *event, void *ctx)
     if (arr->count >= arr->capacity) {
         size_t new_capacity = arr->capacity == 0 ? 8 : arr->capacity * 2;
         ik_stream_event_t *new_items = talloc_realloc(test_ctx, arr->items,
-                                                       ik_stream_event_t, (unsigned int)new_capacity);
+                                                      ik_stream_event_t, (unsigned int)new_capacity);
         if (new_items == NULL) {
             return ERR(test_ctx, OUT_OF_MEMORY, "Failed to grow event array");
         }
@@ -129,8 +129,7 @@ static void teardown(void)
  * Basic Streaming Tests
  * ================================================================ */
 
-START_TEST(test_parse_initial_role_delta)
-{
+START_TEST(test_parse_initial_role_delta) {
     /* Create streaming context */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -143,9 +142,7 @@ START_TEST(test_parse_initial_role_delta)
     /* First delta with role should not emit START yet (waits for content) */
     ck_assert_int_eq((int)events->count, 0);
 }
-END_TEST
-
-START_TEST(test_parse_content_delta)
+END_TEST START_TEST(test_parse_content_delta)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -166,9 +163,8 @@ START_TEST(test_parse_content_delta)
     ck_assert_int_eq(events->items[1].type, IK_STREAM_TEXT_DELTA);
     ck_assert_str_eq(events->items[1].data.delta.text, "Hello");
 }
-END_TEST
 
-START_TEST(test_parse_finish_reason)
+END_TEST START_TEST(test_parse_finish_reason)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -185,9 +181,8 @@ START_TEST(test_parse_finish_reason)
     ik_finish_reason_t reason = ik_openai_chat_stream_get_finish_reason(sctx);
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
-END_TEST
 
-START_TEST(test_handle_done_marker)
+END_TEST START_TEST(test_handle_done_marker)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -207,8 +202,8 @@ START_TEST(test_handle_done_marker)
     ck_assert_int_eq(events->items[0].type, IK_STREAM_DONE);
     ck_assert_int_eq(events->items[0].data.done.finish_reason, IK_FINISH_STOP);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Content Accumulation Tests
  * ================================================================ */
@@ -237,9 +232,8 @@ START_TEST(test_accumulate_multiple_deltas)
     ck_assert_int_eq(events->items[3].type, IK_STREAM_TEXT_DELTA);
     ck_assert_str_eq(events->items[3].data.delta.text, "world");
 }
-END_TEST
 
-START_TEST(test_handle_empty_content_delta)
+END_TEST START_TEST(test_handle_empty_content_delta)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -254,9 +248,8 @@ START_TEST(test_handle_empty_content_delta)
     /* Empty delta should not emit any events (no START since no content yet) */
     ck_assert_int_eq((int)events->count, 0);
 }
-END_TEST
 
-START_TEST(test_preserve_text_order)
+END_TEST START_TEST(test_preserve_text_order)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -276,8 +269,8 @@ START_TEST(test_preserve_text_order)
     ck_assert_str_eq(events->items[2].data.delta.text, "B");
     ck_assert_str_eq(events->items[3].data.delta.text, "C");
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Tool Call Streaming Tests
  * ================================================================ */
@@ -293,9 +286,9 @@ START_TEST(test_parse_tool_call_start)
 
     /* Process tool call start with id and name */
     const char *tool_start = "{\"choices\":[{\"delta\":{\"tool_calls\":["
-        "{\"index\":0,\"id\":\"call_abc\",\"type\":\"function\","
-        "\"function\":{\"name\":\"get_weather\",\"arguments\":\"\"}}"
-        "]}}]}";
+                             "{\"index\":0,\"id\":\"call_abc\",\"type\":\"function\","
+                             "\"function\":{\"name\":\"get_weather\",\"arguments\":\"\"}}"
+                             "]}}]}";
     ik_openai_chat_stream_process_data(sctx, tool_start);
 
     /* Should emit START + TOOL_CALL_START + TOOL_CALL_DELTA (empty args) */
@@ -308,9 +301,8 @@ START_TEST(test_parse_tool_call_start)
     ck_assert_int_eq(events->items[2].type, IK_STREAM_TOOL_CALL_DELTA);
     ck_assert_str_eq(events->items[2].data.tool_delta.arguments, "");
 }
-END_TEST
 
-START_TEST(test_parse_tool_call_arguments_delta)
+END_TEST START_TEST(test_parse_tool_call_arguments_delta)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -321,14 +313,14 @@ START_TEST(test_parse_tool_call_arguments_delta)
 
     /* Start tool call */
     const char *tool_start = "{\"choices\":[{\"delta\":{\"tool_calls\":["
-        "{\"index\":0,\"id\":\"call_abc\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"\"}}"
-        "]}}]}";
+                             "{\"index\":0,\"id\":\"call_abc\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"\"}}"
+                             "]}}]}";
     ik_openai_chat_stream_process_data(sctx, tool_start);
 
     /* Process arguments delta */
     const char *args_delta = "{\"choices\":[{\"delta\":{\"tool_calls\":["
-        "{\"index\":0,\"function\":{\"arguments\":\"{\\\"lo\"}}"
-        "]}}]}";
+                             "{\"index\":0,\"function\":{\"arguments\":\"{\\\"lo\"}}"
+                             "]}}]}";
     ik_openai_chat_stream_process_data(sctx, args_delta);
 
     /* Should have START + TOOL_CALL_START + TOOL_CALL_DELTA (empty) + TOOL_CALL_DELTA (content) */
@@ -338,9 +330,8 @@ START_TEST(test_parse_tool_call_arguments_delta)
     ck_assert_int_eq(events->items[3].type, IK_STREAM_TOOL_CALL_DELTA);
     ck_assert_str_eq(events->items[3].data.tool_delta.arguments, "{\"lo");
 }
-END_TEST
 
-START_TEST(test_accumulate_tool_arguments)
+END_TEST START_TEST(test_accumulate_tool_arguments)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -351,17 +342,17 @@ START_TEST(test_accumulate_tool_arguments)
 
     /* Start tool call */
     const char *tool_start = "{\"choices\":[{\"delta\":{\"tool_calls\":["
-        "{\"index\":0,\"id\":\"call_abc\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"\"}}"
-        "]}}]}";
+                             "{\"index\":0,\"id\":\"call_abc\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"\"}}"
+                             "]}}]}";
     ik_openai_chat_stream_process_data(sctx, tool_start);
 
     /* Process multiple argument deltas */
     ik_openai_chat_stream_process_data(sctx,
-        "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"lo\"}}]}}]}");
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"lo\"}}]}}]}");
     ik_openai_chat_stream_process_data(sctx,
-        "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"cation\"}}]}}]}");
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"cation\"}}]}}]}");
     ik_openai_chat_stream_process_data(sctx,
-        "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\":\\\"NYC\\\"}\"}}]}}]}");
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\":\\\"NYC\\\"}\"}}]}}]}");
 
     /* Should have START + TOOL_CALL_START + 4 TOOL_CALL_DELTA events (empty + 3 content) */
     ck_assert_int_eq((int)events->count, 6);
@@ -370,9 +361,8 @@ START_TEST(test_accumulate_tool_arguments)
     ck_assert_str_eq(events->items[4].data.tool_delta.arguments, "cation");
     ck_assert_str_eq(events->items[5].data.tool_delta.arguments, ":\"NYC\"}");
 }
-END_TEST
 
-START_TEST(test_handle_multiple_tool_calls)
+END_TEST START_TEST(test_handle_multiple_tool_calls)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -383,21 +373,21 @@ START_TEST(test_handle_multiple_tool_calls)
 
     /* Start first tool call (index 0) */
     ik_openai_chat_stream_process_data(sctx,
-        "{\"choices\":[{\"delta\":{\"tool_calls\":["
-        "{\"index\":0,\"id\":\"call_1\",\"function\":{\"name\":\"tool1\",\"arguments\":\"\"}}"
-        "]}}]}");
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":["
+                                       "{\"index\":0,\"id\":\"call_1\",\"function\":{\"name\":\"tool1\",\"arguments\":\"\"}}"
+                                       "]}}]}");
 
     /* Add arguments to first tool */
     ik_openai_chat_stream_process_data(sctx,
-        "{\"choices\":[{\"delta\":{\"tool_calls\":["
-        "{\"index\":0,\"function\":{\"arguments\":\"arg1\"}}"
-        "]}}]}");
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":["
+                                       "{\"index\":0,\"function\":{\"arguments\":\"arg1\"}}"
+                                       "]}}]}");
 
     /* Start second tool call (index 1) - should end first tool */
     ik_openai_chat_stream_process_data(sctx,
-        "{\"choices\":[{\"delta\":{\"tool_calls\":["
-        "{\"index\":1,\"id\":\"call_2\",\"function\":{\"name\":\"tool2\",\"arguments\":\"\"}}"
-        "]}}]}");
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":["
+                                       "{\"index\":1,\"id\":\"call_2\",\"function\":{\"name\":\"tool2\",\"arguments\":\"\"}}"
+                                       "]}}]}");
 
     /* Should have START + TOOL_START(0) + TOOL_DELTA(0,empty) + TOOL_DELTA(0,arg1) + TOOL_DONE(0) + TOOL_START(1) + TOOL_DELTA(1,empty) */
     ck_assert_int_eq((int)events->count, 7);
@@ -415,9 +405,8 @@ START_TEST(test_handle_multiple_tool_calls)
     ck_assert_int_eq(events->items[5].type, IK_STREAM_TOOL_CALL_START);
     ck_assert_int_eq(events->items[5].index, 1);
 }
-END_TEST
 
-START_TEST(test_emit_tool_call_done)
+END_TEST START_TEST(test_emit_tool_call_done)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -428,9 +417,9 @@ START_TEST(test_emit_tool_call_done)
 
     /* Start and complete tool call */
     ik_openai_chat_stream_process_data(sctx,
-        "{\"choices\":[{\"delta\":{\"tool_calls\":["
-        "{\"index\":0,\"id\":\"call_1\",\"function\":{\"name\":\"tool1\",\"arguments\":\"\"}}"
-        "]}}]}");
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":["
+                                       "{\"index\":0,\"id\":\"call_1\",\"function\":{\"name\":\"tool1\",\"arguments\":\"\"}}"
+                                       "]}}]}");
 
     /* Process [DONE] - should end tool call before emitting DONE */
     ik_openai_chat_stream_process_data(sctx, "[DONE]");
@@ -442,8 +431,8 @@ START_TEST(test_emit_tool_call_done)
     ck_assert_int_eq(events->items[3].type, IK_STREAM_TOOL_CALL_DONE);
     ck_assert_int_eq(events->items[4].type, IK_STREAM_DONE);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Event Normalization Tests
  * ================================================================ */
@@ -464,9 +453,8 @@ START_TEST(test_normalize_content_to_text_delta)
     ck_assert_int_eq((int)events->count, 2);
     ck_assert_int_eq(events->items[1].type, IK_STREAM_TEXT_DELTA);
 }
-END_TEST
 
-START_TEST(test_normalize_tool_calls_to_deltas)
+END_TEST START_TEST(test_normalize_tool_calls_to_deltas)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -477,21 +465,20 @@ START_TEST(test_normalize_tool_calls_to_deltas)
 
     /* Process tool call with arguments */
     ik_openai_chat_stream_process_data(sctx,
-        "{\"choices\":[{\"delta\":{\"tool_calls\":["
-        "{\"index\":0,\"id\":\"call_1\",\"function\":{\"name\":\"tool1\",\"arguments\":\"\"}}"
-        "]}}]}");
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":["
+                                       "{\"index\":0,\"id\":\"call_1\",\"function\":{\"name\":\"tool1\",\"arguments\":\"\"}}"
+                                       "]}}]}");
     ik_openai_chat_stream_process_data(sctx,
-        "{\"choices\":[{\"delta\":{\"tool_calls\":["
-        "{\"index\":0,\"function\":{\"arguments\":\"args\"}}"
-        "]}}]}");
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":["
+                                       "{\"index\":0,\"function\":{\"arguments\":\"args\"}}"
+                                       "]}}]}");
 
     /* Verify normalized to TOOL_CALL events */
     ck_assert_int_eq(events->items[1].type, IK_STREAM_TOOL_CALL_START);
     ck_assert_int_eq(events->items[2].type, IK_STREAM_TOOL_CALL_DELTA);
 }
-END_TEST
 
-START_TEST(test_normalize_finish_reason_to_done)
+END_TEST START_TEST(test_normalize_finish_reason_to_done)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -509,8 +496,8 @@ START_TEST(test_normalize_finish_reason_to_done)
     ck_assert_int_eq(events->items[0].type, IK_STREAM_DONE);
     ck_assert_int_eq(events->items[0].data.done.finish_reason, IK_FINISH_LENGTH);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Error Handling Tests
  * ================================================================ */
@@ -526,9 +513,8 @@ START_TEST(test_handle_malformed_json)
     /* Malformed JSON is silently ignored (no events emitted) */
     ck_assert_int_eq((int)events->count, 0);
 }
-END_TEST
 
-START_TEST(test_handle_error_response)
+END_TEST START_TEST(test_handle_error_response)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -543,9 +529,8 @@ START_TEST(test_handle_error_response)
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_AUTH);
     ck_assert_str_eq(events->items[0].data.error.message, "Invalid API key");
 }
-END_TEST
 
-START_TEST(test_handle_stream_with_usage)
+END_TEST START_TEST(test_handle_stream_with_usage)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -569,6 +554,7 @@ START_TEST(test_handle_stream_with_usage)
     ck_assert_int_eq(events->items[0].data.done.usage.output_tokens, 20);
     ck_assert_int_eq(events->items[0].data.done.usage.total_tokens, 30);
 }
+
 END_TEST
 
 /* ================================================================
@@ -583,8 +569,7 @@ static res_t dummy_completion_cb(const ik_provider_completion_t *completion, voi
     return OK(NULL);
 }
 
-START_TEST(test_start_stream_returns_immediately)
-{
+START_TEST(test_start_stream_returns_immediately) {
     /* Create provider instance */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key-12345", &provider);
@@ -617,7 +602,7 @@ START_TEST(test_start_stream_returns_immediately)
     /* Test that start_stream returns immediately (non-blocking) */
     bool completion_called = false;
     r = provider->vt->start_stream(provider->ctx, &req, stream_cb, events,
-                                     dummy_completion_cb, &completion_called);
+                                   dummy_completion_cb, &completion_called);
 
     /* Should return OK (request queued successfully) */
     ck_assert(!is_err(&r));
@@ -625,9 +610,7 @@ START_TEST(test_start_stream_returns_immediately)
     /* Cleanup */
     talloc_free(provider);
 }
-END_TEST
-
-START_TEST(test_fdset_returns_valid_fds)
+END_TEST START_TEST(test_fdset_returns_valid_fds)
 {
     /* Create provider instance */
     ik_provider_t *provider = NULL;
@@ -651,9 +634,8 @@ START_TEST(test_fdset_returns_valid_fds)
     /* Cleanup */
     talloc_free(provider);
 }
-END_TEST
 
-START_TEST(test_perform_info_read_no_crash)
+END_TEST START_TEST(test_perform_info_read_no_crash)
 {
     /* Create provider instance */
     ik_provider_t *provider = NULL;
@@ -677,6 +659,7 @@ START_TEST(test_perform_info_read_no_crash)
     /* Cleanup */
     talloc_free(provider);
 }
+
 END_TEST
 
 /* ================================================================

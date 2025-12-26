@@ -61,7 +61,7 @@ START_TEST(test_add_tool_call_message_to_conversation) {
         "call_abc123",              /* id */
         "glob",                     /* name */
         "{\"pattern\":\"*.c\"}"     /* arguments */
-    );
+        );
 
     /* Add tool_call message to conversation */
     res = ik_agent_add_message(repl->current, tool_call_msg);
@@ -78,7 +78,6 @@ START_TEST(test_add_tool_call_message_to_conversation) {
     ck_assert_uint_ge(repl->current->messages[1]->content_count, 1);
 }
 END_TEST
-
 /*
  * Test: Execute glob tool and add tool_result message
  */
@@ -93,7 +92,7 @@ START_TEST(test_execute_tool_and_add_result_message)
         "call_abc123",
         "glob",
         "{\"pattern\":\"*.c\"}"
-    );
+        );
     ik_agent_add_message(repl->current, tool_call_msg);
 
     /* Execute the tool dispatcher */
@@ -108,7 +107,7 @@ START_TEST(test_execute_tool_and_add_result_message)
         "call_abc123",          /* tool_call_id */
         tool_output,            /* content */
         false                   /* is_error */
-    );
+        );
 
     /* Add tool_result message to conversation */
     res_t res = ik_agent_add_message(repl->current, tool_result_msg);
@@ -124,7 +123,6 @@ START_TEST(test_execute_tool_and_add_result_message)
 }
 
 END_TEST
-
 /*
  * Test: Verify message ordering is preserved
  */
@@ -142,7 +140,7 @@ START_TEST(test_message_ordering_preserved)
         "call_123",
         "glob",
         "{\"pattern\":\"*\"}"
-    );
+        );
     ik_agent_add_message(repl->current, tool_call_msg);
 
     /* 3. Tool result message */
@@ -151,7 +149,7 @@ START_TEST(test_message_ordering_preserved)
         "call_123",
         "{\"files\":[\"a.c\",\"b.c\",\"c.c\"]}",
         false
-    );
+        );
     ik_agent_add_message(repl->current, tool_result_msg);
 
     /* Verify ordering is preserved */

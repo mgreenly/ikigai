@@ -8,8 +8,7 @@
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 
-START_TEST(test_config_missing_field_listen_address)
-{
+START_TEST(test_config_missing_field_listen_address) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -77,7 +76,6 @@ END_TEST START_TEST(test_config_missing_field_openai_model)
 
     ik_config_t *config = NULL;
 
-
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
@@ -101,7 +99,6 @@ END_TEST START_TEST(test_config_missing_field_openai_temperature)
     fclose(f);
 
     ik_config_t *config = NULL;
-
 
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
@@ -127,7 +124,6 @@ END_TEST START_TEST(test_config_missing_field_openai_max_completion_tokens)
 
     ik_config_t *config = NULL;
 
-
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
@@ -152,7 +148,6 @@ END_TEST START_TEST(test_config_missing_openai_system_message)
     fclose(f);
 
     ik_config_t *cfg = NULL;
-
 
     res_t result = ik_config_load(ctx, test_file, &cfg);
     ck_assert(!result.is_err);

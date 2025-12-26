@@ -104,7 +104,7 @@ ik_request_t *ik_test_fixture_tool_call(TALLOC_CTX *ctx)
     if (tool->description == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     tool->parameters = talloc_strdup(req->tools,
-        "{\"type\":\"object\",\"properties\":{\"location\":{\"type\":\"string\",\"description\":\"City name\"}},\"required\":[\"location\"]}");
+                                     "{\"type\":\"object\",\"properties\":{\"location\":{\"type\":\"string\",\"description\":\"City name\"}},\"required\":[\"location\"]}");
     if (tool->parameters == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     tool->strict = false;

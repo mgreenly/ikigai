@@ -11,51 +11,45 @@
 
 // Helper macro to check if a string contains a substring
 #define ck_assert_str_contains(haystack, needle) \
-    ck_assert_msg(strstr(haystack, needle) != NULL, \
-                  "Expected '%s' to contain '%s'", haystack, needle)
+        ck_assert_msg(strstr(haystack, needle) != NULL, \
+                      "Expected '%s' to contain '%s'", haystack, needle)
 
 /* ================================================================
  * Environment Variable Mapping Tests
  * ================================================================ */
 
-START_TEST(test_env_var_openai)
-{
+START_TEST(test_env_var_openai) {
     const char *env_var = ik_provider_env_var("openai");
     ck_assert_ptr_nonnull(env_var);
     ck_assert_str_eq(env_var, "OPENAI_API_KEY");
 }
-END_TEST
-
-START_TEST(test_env_var_anthropic)
+END_TEST START_TEST(test_env_var_anthropic)
 {
     const char *env_var = ik_provider_env_var("anthropic");
     ck_assert_ptr_nonnull(env_var);
     ck_assert_str_eq(env_var, "ANTHROPIC_API_KEY");
 }
-END_TEST
 
-START_TEST(test_env_var_google)
+END_TEST START_TEST(test_env_var_google)
 {
     const char *env_var = ik_provider_env_var("google");
     ck_assert_ptr_nonnull(env_var);
     ck_assert_str_eq(env_var, "GOOGLE_API_KEY");
 }
-END_TEST
 
-START_TEST(test_env_var_unknown)
+END_TEST START_TEST(test_env_var_unknown)
 {
     const char *env_var = ik_provider_env_var("unknown_provider");
     ck_assert_ptr_null(env_var);
 }
-END_TEST
 
-START_TEST(test_env_var_null)
+END_TEST START_TEST(test_env_var_null)
 {
     const char *env_var = ik_provider_env_var(NULL);
     ck_assert_ptr_null(env_var);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Provider Validation Tests
  * ================================================================ */
@@ -64,40 +58,35 @@ START_TEST(test_is_valid_openai)
 {
     ck_assert(ik_provider_is_valid("openai"));
 }
-END_TEST
 
-START_TEST(test_is_valid_anthropic)
+END_TEST START_TEST(test_is_valid_anthropic)
 {
     ck_assert(ik_provider_is_valid("anthropic"));
 }
-END_TEST
 
-START_TEST(test_is_valid_google)
+END_TEST START_TEST(test_is_valid_google)
 {
     ck_assert(ik_provider_is_valid("google"));
 }
-END_TEST
 
-START_TEST(test_is_valid_unknown)
+END_TEST START_TEST(test_is_valid_unknown)
 {
     ck_assert(!ik_provider_is_valid("unknown_provider"));
 }
-END_TEST
 
-START_TEST(test_is_valid_null)
+END_TEST START_TEST(test_is_valid_null)
 {
     ck_assert(!ik_provider_is_valid(NULL));
 }
-END_TEST
 
-START_TEST(test_is_valid_case_sensitive)
+END_TEST START_TEST(test_is_valid_case_sensitive)
 {
     // Provider names are case-sensitive
     ck_assert(!ik_provider_is_valid("OpenAI"));
     ck_assert(!ik_provider_is_valid("ANTHROPIC"));
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Provider List Tests
  * ================================================================ */
@@ -133,8 +122,8 @@ START_TEST(test_provider_list)
     ck_assert(found_anthropic);
     ck_assert(found_google);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Provider Creation Tests (Error Paths)
  * ================================================================ */
@@ -152,6 +141,7 @@ START_TEST(test_create_unknown_provider)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 // Note: Testing missing credentials scenario requires integration testing

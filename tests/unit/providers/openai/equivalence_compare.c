@@ -137,8 +137,8 @@ static bool compare_json_values(yyjson_val *a, yyjson_val *b)
 }
 
 ik_compare_result_t *ik_compare_json_equivalent(TALLOC_CTX *ctx,
-                                                 const char *json_a,
-                                                 const char *json_b)
+                                                const char *json_a,
+                                                const char *json_b)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(json_a != NULL);  // LCOV_EXCL_BR_LINE
@@ -197,8 +197,8 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
     if (resp_a->content_count != resp_b->content_count) {
         result->matches = false;
         result->diff_message = talloc_asprintf(result,
-            "Content block count mismatch: %zu vs %zu",
-            resp_a->content_count, resp_b->content_count);
+                                               "Content block count mismatch: %zu vs %zu",
+                                               resp_a->content_count, resp_b->content_count);
         return result;
     }
 
@@ -211,8 +211,8 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
         if (block_a->type != block_b->type) {
             result->matches = false;
             result->diff_message = talloc_asprintf(result,
-                "Content block %zu type mismatch: %d vs %d",
-                i, block_a->type, block_b->type);
+                                                   "Content block %zu type mismatch: %d vs %d",
+                                                   i, block_a->type, block_b->type);
             return result;
         }
 
@@ -225,8 +225,8 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
                 if (strcmp(text_a, text_b) != 0) {
                     result->matches = false;
                     result->diff_message = talloc_asprintf(result,
-                        "Text content mismatch at block %zu:\nA: %s\nB: %s",
-                        i, text_a, text_b);
+                                                           "Text content mismatch at block %zu:\nA: %s\nB: %s",
+                                                           i, text_a, text_b);
                     return result;
                 }
                 break;
@@ -240,8 +240,8 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
                 if (strcmp(name_a, name_b) != 0) {
                     result->matches = false;
                     result->diff_message = talloc_asprintf(result,
-                        "Tool call name mismatch at block %zu: %s vs %s",
-                        i, name_a, name_b);
+                                                           "Tool call name mismatch at block %zu: %s vs %s",
+                                                           i, name_a, name_b);
                     return result;
                 }
 
@@ -253,8 +253,8 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
                 if (!json_cmp->matches) {
                     result->matches = false;
                     result->diff_message = talloc_asprintf(result,
-                        "Tool call arguments mismatch at block %zu: %s",
-                        i, json_cmp->diff_message);
+                                                           "Tool call arguments mismatch at block %zu: %s",
+                                                           i, json_cmp->diff_message);
                     return result;
                 }
 
@@ -269,8 +269,8 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
                 if (strcmp(text_a, text_b) != 0) {
                     result->matches = false;
                     result->diff_message = talloc_asprintf(result,
-                        "Thinking content mismatch at block %zu",
-                        i);
+                                                           "Thinking content mismatch at block %zu",
+                                                           i);
                     return result;
                 }
                 break;
@@ -280,7 +280,7 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
                 /* Tool results shouldn't appear in responses (only in requests) */
                 result->matches = false;
                 result->diff_message = talloc_asprintf(result,
-                    "Unexpected tool result in response at block %zu", i);
+                                                       "Unexpected tool result in response at block %zu", i);
                 return result;
         }
     }
@@ -289,27 +289,27 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
     if (resp_a->finish_reason != resp_b->finish_reason) {
         result->matches = false;
         result->diff_message = talloc_asprintf(result,
-            "Finish reason mismatch: %d vs %d",
-            resp_a->finish_reason, resp_b->finish_reason);
+                                               "Finish reason mismatch: %d vs %d",
+                                               resp_a->finish_reason, resp_b->finish_reason);
         return result;
     }
 
     /* Compare token usage with tolerance */
     if (!ik_compare_token_usage_tolerant(resp_a->usage.input_tokens,
-                                          resp_b->usage.input_tokens)) {
+                                         resp_b->usage.input_tokens)) {
         result->matches = false;
         result->diff_message = talloc_asprintf(result,
-            "Input token count mismatch: %d vs %d (>5%% difference)",
-            resp_a->usage.input_tokens, resp_b->usage.input_tokens);
+                                               "Input token count mismatch: %d vs %d (>5%% difference)",
+                                               resp_a->usage.input_tokens, resp_b->usage.input_tokens);
         return result;
     }
 
     if (!ik_compare_token_usage_tolerant(resp_a->usage.output_tokens,
-                                          resp_b->usage.output_tokens)) {
+                                         resp_b->usage.output_tokens)) {
         result->matches = false;
         result->diff_message = talloc_asprintf(result,
-            "Output token count mismatch: %d vs %d (>5%% difference)",
-            resp_a->usage.output_tokens, resp_b->usage.output_tokens);
+                                               "Output token count mismatch: %d vs %d (>5%% difference)",
+                                               resp_a->usage.output_tokens, resp_b->usage.output_tokens);
         return result;
     }
 
@@ -318,8 +318,8 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
         if (strcmp(resp_a->model, resp_b->model) != 0) {
             result->matches = false;
             result->diff_message = talloc_asprintf(result,
-                "Model mismatch: %s vs %s",
-                resp_a->model, resp_b->model);
+                                                   "Model mismatch: %s vs %s",
+                                                   resp_a->model, resp_b->model);
             return result;
         }
     }
@@ -336,8 +336,8 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
  * ================================================================ */
 
 ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
-                                               const ik_stream_event_array_t *events_a,
-                                               const ik_stream_event_array_t *events_b)
+                                              const ik_stream_event_array_t *events_a,
+                                              const ik_stream_event_array_t *events_b)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(events_a != NULL);  // LCOV_EXCL_BR_LINE
@@ -350,8 +350,8 @@ ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
     if (events_a->count != events_b->count) {
         result->matches = false;
         result->diff_message = talloc_asprintf(result,
-            "Event count mismatch: %zu vs %zu",
-            events_a->count, events_b->count);
+                                               "Event count mismatch: %zu vs %zu",
+                                               events_a->count, events_b->count);
         return result;
     }
 
@@ -364,8 +364,10 @@ ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
         if (event_a->type != event_b->type) {
             result->matches = false;
             result->diff_message = talloc_asprintf(result,
-                "Event %zu type mismatch: %d vs %d",
-                i, event_a->type, event_b->type);
+                                                   "Event %zu type mismatch: %d vs %d",
+                                                   i,
+                                                   event_a->type,
+                                                   event_b->type);
             return result;
         }
 
@@ -377,8 +379,8 @@ ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
                     if (strcmp(event_a->data.start.model, event_b->data.start.model) != 0) {
                         result->matches = false;
                         result->diff_message = talloc_asprintf(result,
-                            "START event model mismatch at %zu: %s vs %s",
-                            i, event_a->data.start.model, event_b->data.start.model);
+                                                               "START event model mismatch at %zu: %s vs %s",
+                                                               i, event_a->data.start.model, event_b->data.start.model);
                         return result;
                     }
                 }
@@ -390,7 +392,7 @@ ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
                 if (strcmp(event_a->data.delta.text, event_b->data.delta.text) != 0) {
                     result->matches = false;
                     result->diff_message = talloc_asprintf(result,
-                        "Delta text mismatch at event %zu", i);
+                                                           "Delta text mismatch at event %zu", i);
                     return result;
                 }
                 break;
@@ -400,8 +402,10 @@ ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
                 if (strcmp(event_a->data.tool_start.name, event_b->data.tool_start.name) != 0) {
                     result->matches = false;
                     result->diff_message = talloc_asprintf(result,
-                        "Tool call name mismatch at event %zu: %s vs %s",
-                        i, event_a->data.tool_start.name, event_b->data.tool_start.name);
+                                                           "Tool call name mismatch at event %zu: %s vs %s",
+                                                           i,
+                                                           event_a->data.tool_start.name,
+                                                           event_b->data.tool_start.name);
                     return result;
                 }
                 /* ID may differ - don't compare */
@@ -412,7 +416,7 @@ ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
                 if (strcmp(event_a->data.tool_delta.arguments, event_b->data.tool_delta.arguments) != 0) {
                     result->matches = false;
                     result->diff_message = talloc_asprintf(result,
-                        "Tool call delta mismatch at event %zu", i);
+                                                           "Tool call delta mismatch at event %zu", i);
                     return result;
                 }
                 break;
@@ -426,17 +430,19 @@ ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
                 if (event_a->data.done.finish_reason != event_b->data.done.finish_reason) {
                     result->matches = false;
                     result->diff_message = talloc_asprintf(result,
-                        "DONE event finish_reason mismatch at %zu: %d vs %d",
-                        i, event_a->data.done.finish_reason, event_b->data.done.finish_reason);
+                                                           "DONE event finish_reason mismatch at %zu: %d vs %d",
+                                                           i,
+                                                           event_a->data.done.finish_reason,
+                                                           event_b->data.done.finish_reason);
                     return result;
                 }
 
                 /* Token usage with tolerance */
                 if (!ik_compare_token_usage_tolerant(event_a->data.done.usage.input_tokens,
-                                                      event_b->data.done.usage.input_tokens)) {
+                                                     event_b->data.done.usage.input_tokens)) {
                     result->matches = false;
                     result->diff_message = talloc_asprintf(result,
-                        "DONE event input_tokens mismatch at %zu", i);
+                                                           "DONE event input_tokens mismatch at %zu", i);
                     return result;
                 }
                 break;
@@ -446,8 +452,9 @@ ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
                 if (event_a->data.error.category != event_b->data.error.category) {
                     result->matches = false;
                     result->diff_message = talloc_asprintf(result,
-                        "ERROR event category mismatch at %zu: %d vs %d",
-                        i, event_a->data.error.category, event_b->data.error.category);
+                                                           "ERROR event category mismatch at %zu: %d vs %d",
+                                                           i, event_a->data.error.category,
+                                                           event_b->data.error.category);
                     return result;
                 }
                 break;

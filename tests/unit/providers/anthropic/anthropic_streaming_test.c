@@ -139,8 +139,7 @@ static void teardown(void)
  * Async Event Loop Tests
  * ================================================================ */
 
-START_TEST(test_start_stream_returns_immediately)
-{
+START_TEST(test_start_stream_returns_immediately) {
     vcr_init("stream_basic", "anthropic");
 
     /* start_stream should return immediately without blocking */
@@ -155,9 +154,7 @@ START_TEST(test_start_stream_returns_immediately)
 
     vcr_finish();
 }
-END_TEST
-
-START_TEST(test_fdset_returns_mock_fds)
+END_TEST START_TEST(test_fdset_returns_mock_fds)
 {
     vcr_init("stream_basic", "anthropic");
 
@@ -179,9 +176,8 @@ START_TEST(test_fdset_returns_mock_fds)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_perform_delivers_events_incrementally)
+END_TEST START_TEST(test_perform_delivers_events_incrementally)
 {
     vcr_init("stream_basic", "anthropic");
 
@@ -216,8 +212,8 @@ START_TEST(test_perform_delivers_events_incrementally)
 
     vcr_finish();
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Basic Streaming Tests
  * ================================================================ */
@@ -251,9 +247,8 @@ START_TEST(test_stream_start_event)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_text_delta_events)
+END_TEST START_TEST(test_text_delta_events)
 {
     vcr_init("stream_basic", "anthropic");
 
@@ -288,9 +283,8 @@ START_TEST(test_text_delta_events)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_stream_done_event)
+END_TEST START_TEST(test_stream_done_event)
 {
     vcr_init("stream_basic", "anthropic");
 
@@ -321,9 +315,8 @@ START_TEST(test_stream_done_event)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_completion_callback_invoked)
+END_TEST START_TEST(test_completion_callback_invoked)
 {
     vcr_init("stream_basic", "anthropic");
 
@@ -355,8 +348,8 @@ START_TEST(test_completion_callback_invoked)
 
     vcr_finish();
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Content Accumulation Tests
  * ================================================================ */
@@ -396,9 +389,8 @@ START_TEST(test_multiple_text_deltas)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_delta_content_preserved)
+END_TEST START_TEST(test_delta_content_preserved)
 {
     vcr_init("stream_basic", "anthropic");
 
@@ -430,9 +422,8 @@ START_TEST(test_delta_content_preserved)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_event_order_preserved)
+END_TEST START_TEST(test_event_order_preserved)
 {
     vcr_init("stream_basic", "anthropic");
 
@@ -461,8 +452,8 @@ START_TEST(test_event_order_preserved)
 
     vcr_finish();
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Thinking Content Tests
  * ================================================================ */
@@ -505,9 +496,8 @@ START_TEST(test_thinking_delta_event_type)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_thinking_delta_content)
+END_TEST START_TEST(test_thinking_delta_content)
 {
     vcr_init("stream_thinking", "anthropic");
 
@@ -541,9 +531,8 @@ START_TEST(test_thinking_delta_content)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_usage_includes_thinking_tokens)
+END_TEST START_TEST(test_usage_includes_thinking_tokens)
 {
     vcr_init("stream_thinking", "anthropic");
 
@@ -575,8 +564,8 @@ START_TEST(test_usage_includes_thinking_tokens)
 
     vcr_finish();
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Tool Call Streaming Tests
  * ================================================================ */
@@ -625,9 +614,8 @@ START_TEST(test_tool_call_start_event)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_tool_call_delta_events)
+END_TEST START_TEST(test_tool_call_delta_events)
 {
     vcr_init("stream_tool_call", "anthropic");
 
@@ -669,9 +657,8 @@ START_TEST(test_tool_call_delta_events)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_tool_call_done_event)
+END_TEST START_TEST(test_tool_call_done_event)
 {
     vcr_init("stream_tool_call", "anthropic");
 
@@ -712,9 +699,8 @@ START_TEST(test_tool_call_done_event)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_tool_call_arguments_accumulated)
+END_TEST START_TEST(test_tool_call_arguments_accumulated)
 {
     vcr_init("stream_tool_call", "anthropic");
 
@@ -747,7 +733,7 @@ START_TEST(test_tool_call_arguments_accumulated)
     for (size_t i = 0; i < captured_count; i++) {
         if (captured_events[i].type == IK_STREAM_TOOL_CALL_DELTA) {
             accumulated = talloc_asprintf_append_buffer(accumulated, "%s",
-                captured_events[i].data.tool_delta.arguments);
+                                                        captured_events[i].data.tool_delta.arguments);
         }
     }
 
@@ -756,8 +742,8 @@ START_TEST(test_tool_call_arguments_accumulated)
 
     vcr_finish();
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Error Handling Tests
  * ================================================================ */
@@ -794,22 +780,21 @@ START_TEST(test_http_error_calls_completion_cb)
 
     vcr_finish();
 }
-END_TEST
 
-START_TEST(test_malformed_sse_handled)
+END_TEST START_TEST(test_malformed_sse_handled)
 {
     /* This test would require a fixture with malformed SSE data */
     /* Skipping for now as VCR may not support this scenario */
     ck_assert(1);
 }
-END_TEST
 
-START_TEST(test_incomplete_stream_detected)
+END_TEST START_TEST(test_incomplete_stream_detected)
 {
     /* This test would require a fixture with incomplete stream */
     /* Skipping for now as VCR may not support this scenario */
     ck_assert(1);
 }
+
 END_TEST
 
 /* ================================================================

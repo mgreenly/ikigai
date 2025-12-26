@@ -2,6 +2,8 @@
 #include "repl_callbacks.h"
 #include "repl.h"
 #include "agent.h"
+#include "ansi.h"
+#include "event_render.h"
 #include "repl_actions.h"
 #include "shared.h"
 #include "panic.h"
@@ -121,7 +123,10 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
             break;
 
         case IK_STREAM_DONE:
-            // Stream complete - handled in completion callback
+            // Capture usage for later rendering/persistence
+            agent->response_input_tokens = event->data.done.usage.input_tokens;
+            agent->response_output_tokens = event->data.done.usage.output_tokens;
+            agent->response_thinking_tokens = event->data.done.usage.thinking_tokens;
             break;
 
         case IK_STREAM_ERROR:
@@ -191,9 +196,21 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
         agent->streaming_line_buffer = NULL;
     }
 
-    // Add blank line after assistant response (spacing)
-    if (completion->success) {
-        ik_scrollback_append_line(agent->scrollback, "", 0);
+    // For streaming (response == NULL), render usage event from stored token counts
+    if (completion->success && completion->response == NULL) {
+        int32_t total = agent->response_input_tokens + agent->response_output_tokens +
+                        agent->response_thinking_tokens;
+        if (total > 0) {
+            char data_json[256];
+            snprintf(data_json, sizeof(data_json),
+                     "{\"input_tokens\":%d,\"output_tokens\":%d,\"thinking_tokens\":%d}",
+                     agent->response_input_tokens, agent->response_output_tokens,
+                     agent->response_thinking_tokens);
+            ik_event_render(agent->scrollback, "usage", NULL, data_json);
+        } else {
+            // No tokens - just add blank line for spacing
+            ik_scrollback_append_line(agent->scrollback, "", 0);
+        }
     }
 
     // Clear any previous error
@@ -219,7 +236,9 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
             talloc_free(agent->response_finish_reason);
             agent->response_finish_reason = NULL;
         }
-        agent->response_completion_tokens = 0;
+        agent->response_input_tokens = 0;
+        agent->response_output_tokens = 0;
+        agent->response_thinking_tokens = 0;
 
         // Store new metadata
         if (completion->response->model != NULL) {
@@ -240,8 +259,24 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
         agent->response_finish_reason = talloc_strdup(agent, finish_reason_str);
         if (agent->response_finish_reason == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-        // Store token counts (output_tokens for backward compatibility)
-        agent->response_completion_tokens = completion->response->usage.output_tokens;
+        // Store token counts
+        agent->response_input_tokens = completion->response->usage.input_tokens;
+        agent->response_output_tokens = completion->response->usage.output_tokens;
+        agent->response_thinking_tokens = completion->response->usage.thinking_tokens;
+
+        // Render usage event
+        int32_t total = agent->response_input_tokens + agent->response_output_tokens +
+                        agent->response_thinking_tokens;
+        if (total > 0) {
+            char data_json[256];
+            snprintf(data_json, sizeof(data_json),
+                     "{\"input_tokens\":%d,\"output_tokens\":%d,\"thinking_tokens\":%d}",
+                     agent->response_input_tokens, agent->response_output_tokens,
+                     agent->response_thinking_tokens);
+            ik_event_render(agent->scrollback, "usage", NULL, data_json);
+        } else {
+            ik_scrollback_append_line(agent->scrollback, "", 0);
+        }
 
         // Handle tool calls from response content blocks
         if (agent->pending_tool_call != NULL) {

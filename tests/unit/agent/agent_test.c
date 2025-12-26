@@ -329,8 +329,8 @@ START_TEST(test_agent_response_fields_null_initially)
 }
 
 END_TEST
-// Test agent->response_completion_tokens is 0 initially
-START_TEST(test_agent_response_completion_tokens_zero_initially)
+// Test agent token fields are 0 initially
+START_TEST(test_agent_response_tokens_zero_initially)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -343,7 +343,9 @@ START_TEST(test_agent_response_completion_tokens_zero_initially)
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(agent);
-    ck_assert_int_eq(agent->response_completion_tokens, 0);
+    ck_assert_int_eq(agent->response_input_tokens, 0);
+    ck_assert_int_eq(agent->response_output_tokens, 0);
+    ck_assert_int_eq(agent->response_thinking_tokens, 0);
 
     talloc_free(ctx);
 }
@@ -502,7 +504,7 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_agent_provider_instance_null_initially);
     tcase_add_test(tc_core, test_agent_curl_still_running_zero_initially);
     tcase_add_test(tc_core, test_agent_response_fields_null_initially);
-    tcase_add_test(tc_core, test_agent_response_completion_tokens_zero_initially);
+    tcase_add_test(tc_core, test_agent_response_tokens_zero_initially);
     tcase_add_test(tc_core, test_agent_tool_fields_initialized);
     tcase_add_test(tc_core, test_agent_spinner_state_initialized);
     tcase_add_test(tc_core, test_agent_completion_null_initially);

@@ -77,7 +77,6 @@ END_TEST START_TEST(test_config_wrong_type_openai_model)
 
     ik_config_t *config = NULL;
 
-
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
@@ -101,7 +100,6 @@ END_TEST START_TEST(test_config_wrong_type_openai_temperature)
     fclose(f);
 
     ik_config_t *config = NULL;
-
 
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
@@ -127,7 +125,6 @@ END_TEST START_TEST(test_config_wrong_type_openai_max_completion_tokens)
 
     ik_config_t *config = NULL;
 
-
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
@@ -151,7 +148,6 @@ END_TEST START_TEST(test_config_wrong_type_openai_system_message)
     fclose(f);
 
     ik_config_t *config = NULL;
-
 
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
@@ -177,7 +173,6 @@ END_TEST START_TEST(test_config_wrong_type_max_tool_turns)
 
     ik_config_t *config = NULL;
 
-
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
@@ -201,7 +196,6 @@ END_TEST START_TEST(test_config_wrong_type_max_output_size)
     fclose(f);
 
     ik_config_t *config = NULL;
-
 
     res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);

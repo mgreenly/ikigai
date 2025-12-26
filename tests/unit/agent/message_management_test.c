@@ -12,7 +12,8 @@ static TALLOC_CTX *test_ctx;
 static ik_shared_ctx_t *shared;
 static ik_agent_ctx_t *agent;
 
-static void setup(void) {
+static void setup(void)
+{
     test_ctx = talloc_new(NULL);
     shared = talloc_zero(test_ctx, ik_shared_ctx_t);
 
@@ -20,7 +21,8 @@ static void setup(void) {
     ck_assert(is_ok(&res));
 }
 
-static void teardown(void) {
+static void teardown(void)
+{
     talloc_free(test_ctx);
     test_ctx = NULL;
     shared = NULL;
@@ -36,9 +38,8 @@ START_TEST(test_agent_add_message_single) {
     ck_assert_uint_eq(agent->message_count, 1);
     ck_assert_ptr_eq(agent->messages[0], msg);
 }
-END_TEST
-
-START_TEST(test_agent_add_message_growth) {
+END_TEST START_TEST(test_agent_add_message_growth)
+{
     // Add 20 messages to test capacity growth
     for (int i = 0; i < 20; i++) {
         char text[32];
@@ -59,9 +60,9 @@ START_TEST(test_agent_add_message_growth) {
         ck_assert_str_eq(agent->messages[i]->content_blocks[0].data.text.text, expected);
     }
 }
-END_TEST
 
-START_TEST(test_agent_clear_messages) {
+END_TEST START_TEST(test_agent_clear_messages)
+{
     // Add some messages
     ik_message_t *msg1 = ik_message_create_text(test_ctx, IK_ROLE_USER, "Hello");
     ik_message_t *msg2 = ik_message_create_text(test_ctx, IK_ROLE_ASSISTANT, "World");
@@ -78,9 +79,9 @@ START_TEST(test_agent_clear_messages) {
     ck_assert_uint_eq(agent->message_capacity, 0);
     ck_assert_ptr_null(agent->messages);
 }
-END_TEST
 
-START_TEST(test_agent_clone_messages) {
+END_TEST START_TEST(test_agent_clone_messages)
+{
     // Create source agent with messages
     ik_message_t *msg1 = ik_message_create_text(test_ctx, IK_ROLE_USER, "First");
     ik_message_t *msg2 = ik_message_create_tool_call(test_ctx, "call_1", "grep", "{\"pattern\":\"test\"}");
@@ -112,9 +113,11 @@ START_TEST(test_agent_clone_messages) {
     ck_assert_str_eq(dest_agent->messages[1]->content_blocks[0].data.tool_call.name, "grep");
     ck_assert_str_eq(dest_agent->messages[2]->content_blocks[0].data.tool_result.content, "result");
 }
+
 END_TEST
 
-static Suite *message_management_suite(void) {
+static Suite *message_management_suite(void)
+{
     Suite *s = suite_create("Agent Message Management");
 
     TCase *tc = tcase_create("Core");
@@ -130,7 +133,8 @@ static Suite *message_management_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     Suite *s = message_management_suite();
     SRunner *sr = srunner_create(s);
 

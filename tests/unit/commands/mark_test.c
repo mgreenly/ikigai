@@ -54,7 +54,6 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
 
-
     r->current = agent;
 
     r->current->marks = NULL;

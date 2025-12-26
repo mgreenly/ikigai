@@ -130,7 +130,7 @@ static size_t sse_write_callback(char *ptr, size_t size, size_t nmemb, void *use
                 if (needed > parser->data_capacity) {
                     parser->data_capacity = needed * 2;
                     parser->data_buffer = talloc_realloc_size(parser, parser->data_buffer,
-                                                               parser->data_capacity);
+                                                              parser->data_capacity);
                 }
 
                 /* Copy JSON */
@@ -267,8 +267,7 @@ static void capture_fixture(const char *name, sse_accumulator_t *acc)
     fprintf(stderr, "Captured fixture: %s\n", path);
 }
 
-START_TEST(verify_google_streaming_text)
-{
+START_TEST(verify_google_streaming_text) {
     /* Skip if not in verification mode */
     if (!should_verify_mocks()) {
         ck_assert(true);
@@ -285,7 +284,8 @@ START_TEST(verify_google_streaming_text)
 
     /* Build request URL with API key */
     char url[512];
-    snprintf(url, sizeof(url),
+    snprintf(url,
+             sizeof(url),
              "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=%s",
              api_key);
 
@@ -366,9 +366,7 @@ START_TEST(verify_google_streaming_text)
 
     talloc_free(ctx);
 }
-END_TEST
-
-START_TEST(verify_google_streaming_thinking)
+END_TEST START_TEST(verify_google_streaming_thinking)
 {
     /* Skip if not in verification mode */
     if (!should_verify_mocks()) {
@@ -386,7 +384,8 @@ START_TEST(verify_google_streaming_thinking)
 
     /* Build request URL with API key */
     char url[512];
-    snprintf(url, sizeof(url),
+    snprintf(url,
+             sizeof(url),
              "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=%s",
              api_key);
 
@@ -462,9 +461,8 @@ START_TEST(verify_google_streaming_thinking)
 
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(verify_google_tool_call)
+END_TEST START_TEST(verify_google_tool_call)
 {
     /* Skip if not in verification mode */
     if (!should_verify_mocks()) {
@@ -482,7 +480,8 @@ START_TEST(verify_google_tool_call)
 
     /* Build request URL with API key */
     char url[512];
-    snprintf(url, sizeof(url),
+    snprintf(url,
+             sizeof(url),
              "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=%s",
              api_key);
 
@@ -563,9 +562,8 @@ START_TEST(verify_google_tool_call)
 
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(verify_google_error_auth)
+END_TEST START_TEST(verify_google_error_auth)
 {
     /* Skip if not in verification mode */
     if (!should_verify_mocks()) {
@@ -626,9 +624,8 @@ START_TEST(verify_google_error_auth)
 
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(validate_fixture_structure)
+END_TEST START_TEST(validate_fixture_structure)
 {
     /* This test runs even without VERIFY_MOCKS to validate fixture files */
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -680,6 +677,7 @@ START_TEST(validate_fixture_structure)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *google_mock_verification_suite(void)

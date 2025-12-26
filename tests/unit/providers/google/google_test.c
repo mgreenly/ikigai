@@ -24,8 +24,7 @@ static void teardown(void)
  * Provider Creation Tests
  * ================================================================ */
 
-START_TEST(test_google_create_success)
-{
+START_TEST(test_google_create_success) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
 
@@ -35,9 +34,7 @@ START_TEST(test_google_create_success)
     ck_assert_ptr_nonnull(provider->vt);
     ck_assert_ptr_nonnull(provider->ctx);
 }
-END_TEST
-
-START_TEST(test_google_create_has_vtable)
+END_TEST START_TEST(test_google_create_has_vtable)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
@@ -52,6 +49,7 @@ START_TEST(test_google_create_has_vtable)
     ck_assert_ptr_nonnull(provider->vt->cleanup);
     ck_assert_ptr_nonnull(provider->vt->cancel);
 }
+
 END_TEST
 
 /* ================================================================

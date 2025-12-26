@@ -32,7 +32,6 @@ START_TEST(test_config_with_valid_max_tool_turns) {
 
     ik_config_t *cfg = NULL;
 
-
     res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
@@ -65,7 +64,6 @@ END_TEST START_TEST(test_config_missing_max_tool_turns)
 
     ik_config_t *config = NULL;
 
-
     res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
@@ -96,7 +94,6 @@ END_TEST START_TEST(test_config_missing_max_output_size)
     fclose(f);
 
     ik_config_t *config = NULL;
-
 
     res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
@@ -130,7 +127,6 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_low)
 
     ik_config_t *config = NULL;
 
-
     res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
@@ -162,7 +158,6 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_high)
     fclose(f);
 
     ik_config_t *config = NULL;
-
 
     res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
@@ -196,7 +191,6 @@ END_TEST START_TEST(test_config_max_output_size_out_of_range_low)
 
     ik_config_t *config = NULL;
 
-
     res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
@@ -228,7 +222,6 @@ END_TEST START_TEST(test_config_max_output_size_out_of_range_high)
     fclose(f);
 
     ik_config_t *config = NULL;
-
 
     res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);

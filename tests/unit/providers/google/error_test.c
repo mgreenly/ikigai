@@ -24,8 +24,7 @@ static void teardown(void)
  * Error Handling Tests
  * ================================================================ */
 
-START_TEST(test_handle_error_403_auth)
-{
+START_TEST(test_handle_error_403_auth) {
     const char *body = "{\"error\":{\"code\":403,\"message\":\"API key invalid\",\"status\":\"PERMISSION_DENIED\"}}";
     ik_error_category_t category;
 
@@ -33,20 +32,18 @@ START_TEST(test_handle_error_403_auth)
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
 }
-END_TEST
-
-START_TEST(test_handle_error_429_rate_limit)
+END_TEST START_TEST(test_handle_error_429_rate_limit)
 {
-    const char *body = "{\"error\":{\"code\":429,\"message\":\"Rate limit exceeded\",\"status\":\"RESOURCE_EXHAUSTED\"}}";
+    const char *body =
+        "{\"error\":{\"code\":429,\"message\":\"Rate limit exceeded\",\"status\":\"RESOURCE_EXHAUSTED\"}}";
     ik_error_category_t category;
 
     res_t result = ik_google_handle_error(test_ctx, 429, body, &category);
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
 }
-END_TEST
 
-START_TEST(test_handle_error_504_timeout)
+END_TEST START_TEST(test_handle_error_504_timeout)
 {
     const char *body = "{\"error\":{\"code\":504,\"message\":\"Gateway timeout\",\"status\":\"DEADLINE_EXCEEDED\"}}";
     ik_error_category_t category;
@@ -55,9 +52,8 @@ START_TEST(test_handle_error_504_timeout)
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_TIMEOUT);
 }
-END_TEST
 
-START_TEST(test_handle_error_400_invalid_arg)
+END_TEST START_TEST(test_handle_error_400_invalid_arg)
 {
     const char *body = "{\"error\":{\"code\":400,\"message\":\"Invalid argument\",\"status\":\"INVALID_ARGUMENT\"}}";
     ik_error_category_t category;
@@ -66,9 +62,8 @@ START_TEST(test_handle_error_400_invalid_arg)
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
 }
-END_TEST
 
-START_TEST(test_handle_error_404_not_found)
+END_TEST START_TEST(test_handle_error_404_not_found)
 {
     const char *body = "{\"error\":{\"code\":404,\"message\":\"Model not found\",\"status\":\"NOT_FOUND\"}}";
     ik_error_category_t category;
@@ -77,9 +72,8 @@ START_TEST(test_handle_error_404_not_found)
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
 }
-END_TEST
 
-START_TEST(test_handle_error_500_server)
+END_TEST START_TEST(test_handle_error_500_server)
 {
     const char *body = "{\"error\":{\"code\":500,\"message\":\"Internal error\",\"status\":\"INTERNAL\"}}";
     ik_error_category_t category;
@@ -88,9 +82,8 @@ START_TEST(test_handle_error_500_server)
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_503_server)
+END_TEST START_TEST(test_handle_error_503_server)
 {
     const char *body = "{\"error\":{\"code\":503,\"message\":\"Service unavailable\",\"status\":\"UNAVAILABLE\"}}";
     ik_error_category_t category;
@@ -99,9 +92,8 @@ START_TEST(test_handle_error_503_server)
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
-END_TEST
 
-START_TEST(test_handle_error_invalid_json)
+END_TEST START_TEST(test_handle_error_invalid_json)
 {
     const char *body = "not valid json";
     ik_error_category_t category;
@@ -109,8 +101,8 @@ START_TEST(test_handle_error_invalid_json)
     res_t result = ik_google_handle_error(test_ctx, 500, body, &category);
     ck_assert(is_err(&result));
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Retry-After Tests
  * ================================================================ */
@@ -122,40 +114,37 @@ START_TEST(test_get_retry_after_60s)
     int32_t retry = ik_google_get_retry_after(body);
     ck_assert_int_eq(retry, 60);
 }
-END_TEST
 
-START_TEST(test_get_retry_after_30s)
+END_TEST START_TEST(test_get_retry_after_30s)
 {
     const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"},\"retryDelay\":\"30s\"}";
 
     int32_t retry = ik_google_get_retry_after(body);
     ck_assert_int_eq(retry, 30);
 }
-END_TEST
 
-START_TEST(test_get_retry_after_not_present)
+END_TEST START_TEST(test_get_retry_after_not_present)
 {
     const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"}}";
 
     int32_t retry = ik_google_get_retry_after(body);
     ck_assert_int_eq(retry, -1);
 }
-END_TEST
 
-START_TEST(test_get_retry_after_invalid_json)
+END_TEST START_TEST(test_get_retry_after_invalid_json)
 {
     const char *body = "not valid json";
 
     int32_t retry = ik_google_get_retry_after(body);
     ck_assert_int_eq(retry, -1);
 }
-END_TEST
 
-START_TEST(test_get_retry_after_null_body)
+END_TEST START_TEST(test_get_retry_after_null_body)
 {
     int32_t retry = ik_google_get_retry_after(NULL);
     ck_assert_int_eq(retry, -1);
 }
+
 END_TEST
 
 /* ================================================================

@@ -91,7 +91,9 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->http_error_message = NULL;
     agent->response_model = NULL;
     agent->response_finish_reason = NULL;
-    agent->response_completion_tokens = 0;
+    agent->response_input_tokens = 0;
+    agent->response_output_tokens = 0;
+    agent->response_thinking_tokens = 0;
 
     // Initialize spinner state (per-agent - embedded in agent struct)
     agent->spinner_state.frame_index = 0;
@@ -214,7 +216,9 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->http_error_message = NULL;
     agent->response_model = NULL;
     agent->response_finish_reason = NULL;
-    agent->response_completion_tokens = 0;
+    agent->response_input_tokens = 0;
+    agent->response_output_tokens = 0;
+    agent->response_thinking_tokens = 0;
 
     // Initialize spinner state (per-agent - embedded in agent struct)
     agent->spinner_state.frame_index = 0;
@@ -553,7 +557,8 @@ res_t ik_agent_clone_messages(ik_agent_ctx_t *dest, const ik_agent_ctx_t *src)
                 dest_block->data.tool_call.arguments = talloc_strdup(dest_msg, src_block->data.tool_call.arguments);
                 if (!dest_block->data.tool_call.arguments) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
             } else if (src_block->type == IK_CONTENT_TOOL_RESULT) {
-                dest_block->data.tool_result.tool_call_id = talloc_strdup(dest_msg, src_block->data.tool_result.tool_call_id);
+                dest_block->data.tool_result.tool_call_id = talloc_strdup(dest_msg,
+                                                                          src_block->data.tool_result.tool_call_id);
                 if (!dest_block->data.tool_result.tool_call_id) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
                 dest_block->data.tool_result.content = talloc_strdup(dest_msg, src_block->data.tool_result.content);
                 if (!dest_block->data.tool_result.content) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE

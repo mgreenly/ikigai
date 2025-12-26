@@ -7,16 +7,13 @@
  * Enum Values Verification
  * ================================================================ */
 
-START_TEST(test_thinking_level_enum_values)
-{
+START_TEST(test_thinking_level_enum_values) {
     ck_assert_int_eq(IK_THINKING_NONE, 0);
     ck_assert_int_eq(IK_THINKING_LOW, 1);
     ck_assert_int_eq(IK_THINKING_MED, 2);
     ck_assert_int_eq(IK_THINKING_HIGH, 3);
 }
-END_TEST
-
-START_TEST(test_finish_reason_enum_values)
+END_TEST START_TEST(test_finish_reason_enum_values)
 {
     ck_assert_int_eq(IK_FINISH_STOP, 0);
     ck_assert_int_eq(IK_FINISH_LENGTH, 1);
@@ -25,38 +22,36 @@ START_TEST(test_finish_reason_enum_values)
     ck_assert_int_eq(IK_FINISH_ERROR, 4);
     ck_assert_int_eq(IK_FINISH_UNKNOWN, 5);
 }
-END_TEST
 
-START_TEST(test_content_type_enum_values)
+END_TEST START_TEST(test_content_type_enum_values)
 {
     ck_assert_int_eq(IK_CONTENT_TEXT, 0);
     ck_assert_int_eq(IK_CONTENT_TOOL_CALL, 1);
     ck_assert_int_eq(IK_CONTENT_TOOL_RESULT, 2);
     ck_assert_int_eq(IK_CONTENT_THINKING, 3);
 }
-END_TEST
 
-START_TEST(test_role_enum_values)
+END_TEST START_TEST(test_role_enum_values)
 {
     ck_assert_int_eq(IK_ROLE_USER, 0);
     ck_assert_int_eq(IK_ROLE_ASSISTANT, 1);
     ck_assert_int_eq(IK_ROLE_TOOL, 2);
 }
-END_TEST
 
+END_TEST
 // TEMPORARILY DISABLED during coexistence phase
 // The IK_TOOL_* enum is commented out in provider.h to avoid conflict with openai/tool_choice.h
 // This test will be re-enabled after old OpenAI code is removed
 /*
-START_TEST(test_tool_choice_enum_values)
-{
+   START_TEST(test_tool_choice_enum_values)
+   {
     ck_assert_int_eq(IK_TOOL_AUTO, 0);
     ck_assert_int_eq(IK_TOOL_NONE, 1);
     ck_assert_int_eq(IK_TOOL_REQUIRED, 2);
     ck_assert_int_eq(IK_TOOL_SPECIFIC, 3);
-}
-END_TEST
-*/
+   }
+   END_TEST
+ */
 
 START_TEST(test_error_category_enum_values)
 {
@@ -70,9 +65,8 @@ START_TEST(test_error_category_enum_values)
     ck_assert_int_eq(IK_ERR_CAT_NETWORK, 7);
     ck_assert_int_eq(IK_ERR_CAT_UNKNOWN, 8);
 }
-END_TEST
 
-START_TEST(test_stream_event_type_enum_values)
+END_TEST START_TEST(test_stream_event_type_enum_values)
 {
     ck_assert_int_eq(IK_STREAM_START, 0);
     ck_assert_int_eq(IK_STREAM_TEXT_DELTA, 1);
@@ -83,8 +77,8 @@ START_TEST(test_stream_event_type_enum_values)
     ck_assert_int_eq(IK_STREAM_DONE, 6);
     ck_assert_int_eq(IK_STREAM_ERROR, 7);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Struct Size Validation
  * ================================================================ */
@@ -105,8 +99,8 @@ START_TEST(test_struct_sizes)
     ck_assert(sizeof(ik_provider_vtable_t) > 0);
     ck_assert(sizeof(ik_provider_t) > 0);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Talloc Allocation
  * ================================================================ */
@@ -129,9 +123,8 @@ START_TEST(test_talloc_allocation_request)
 
     talloc_free(ctx);
 }
-END_TEST
 
-START_TEST(test_talloc_allocation_response)
+END_TEST START_TEST(test_talloc_allocation_response)
 {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -151,8 +144,8 @@ START_TEST(test_talloc_allocation_response)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Error Codes
  * ================================================================ */
@@ -162,20 +155,19 @@ START_TEST(test_error_code_provider)
     ck_assert_int_eq(ERR_PROVIDER, 9);
     ck_assert_str_eq(error_code_str(ERR_PROVIDER), "Provider error");
 }
-END_TEST
 
-START_TEST(test_error_code_missing_credentials)
+END_TEST START_TEST(test_error_code_missing_credentials)
 {
     ck_assert_int_eq(ERR_MISSING_CREDENTIALS, 10);
     ck_assert_str_eq(error_code_str(ERR_MISSING_CREDENTIALS), "Missing credentials");
 }
-END_TEST
 
-START_TEST(test_error_code_not_implemented)
+END_TEST START_TEST(test_error_code_not_implemented)
 {
     ck_assert_int_eq(ERR_NOT_IMPLEMENTED, 11);
     ck_assert_str_eq(error_code_str(ERR_NOT_IMPLEMENTED), "Not implemented");
 }
+
 END_TEST
 
 /* ================================================================
@@ -197,8 +189,7 @@ static res_t test_completion_callback(const ik_provider_completion_t *completion
     return OK(NULL);
 }
 
-START_TEST(test_callback_type_assignment)
-{
+START_TEST(test_callback_type_assignment) {
     ik_stream_cb_t stream_cb = test_stream_callback;
     ik_provider_completion_cb_t completion_cb = test_completion_callback;
 
@@ -215,7 +206,6 @@ START_TEST(test_callback_type_assignment)
     ck_assert(is_ok(&r2));
 }
 END_TEST
-
 /* ================================================================
  * Provider Inference
  * ================================================================ */
@@ -226,52 +216,47 @@ START_TEST(test_infer_provider_openai_gpt)
     ck_assert_ptr_nonnull(provider);
     ck_assert_str_eq(provider, "openai");
 }
-END_TEST
 
-START_TEST(test_infer_provider_openai_o1)
+END_TEST START_TEST(test_infer_provider_openai_o1)
 {
     const char *provider = ik_infer_provider("o1-preview");
     ck_assert_ptr_nonnull(provider);
     ck_assert_str_eq(provider, "openai");
 }
-END_TEST
 
-START_TEST(test_infer_provider_openai_o3)
+END_TEST START_TEST(test_infer_provider_openai_o3)
 {
     const char *provider = ik_infer_provider("o3-mini");
     ck_assert_ptr_nonnull(provider);
     ck_assert_str_eq(provider, "openai");
 }
-END_TEST
 
-START_TEST(test_infer_provider_anthropic)
+END_TEST START_TEST(test_infer_provider_anthropic)
 {
     const char *provider = ik_infer_provider("claude-sonnet-4-5");
     ck_assert_ptr_nonnull(provider);
     ck_assert_str_eq(provider, "anthropic");
 }
-END_TEST
 
-START_TEST(test_infer_provider_google)
+END_TEST START_TEST(test_infer_provider_google)
 {
     const char *provider = ik_infer_provider("gemini-3.0-flash");
     ck_assert_ptr_nonnull(provider);
     ck_assert_str_eq(provider, "google");
 }
-END_TEST
 
-START_TEST(test_infer_provider_unknown)
+END_TEST START_TEST(test_infer_provider_unknown)
 {
     const char *provider = ik_infer_provider("unknown-model");
     ck_assert_ptr_null(provider);
 }
-END_TEST
 
-START_TEST(test_infer_provider_null)
+END_TEST START_TEST(test_infer_provider_null)
 {
     const char *provider = ik_infer_provider(NULL);
     ck_assert_ptr_null(provider);
 }
+
 END_TEST
 
 /* ================================================================

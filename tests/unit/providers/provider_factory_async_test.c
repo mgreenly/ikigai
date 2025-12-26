@@ -20,11 +20,13 @@
 static TALLOC_CTX *test_ctx = NULL;
 
 /* Setup/teardown */
-static void setup(void) {
+static void setup(void)
+{
     test_ctx = talloc_new(NULL);
 }
 
-static void teardown(void) {
+static void teardown(void)
+{
     talloc_free(test_ctx);
     test_ctx = NULL;
 }
@@ -36,8 +38,7 @@ static void teardown(void) {
  * methods required for select()-based event loop integration.
  */
 
-START_TEST(test_create_openai_provider)
-{
+START_TEST(test_create_openai_provider) {
     setenv("OPENAI_API_KEY", "test-key-openai", 1);
 
     ik_provider_t *provider = NULL;
@@ -60,9 +61,7 @@ START_TEST(test_create_openai_provider)
 
     unsetenv("OPENAI_API_KEY");
 }
-END_TEST
-
-START_TEST(test_create_anthropic_provider)
+END_TEST START_TEST(test_create_anthropic_provider)
 {
     setenv("ANTHROPIC_API_KEY", "test-key-anthropic", 1);
 
@@ -82,9 +81,8 @@ START_TEST(test_create_anthropic_provider)
 
     unsetenv("ANTHROPIC_API_KEY");
 }
-END_TEST
 
-START_TEST(test_create_google_provider)
+END_TEST START_TEST(test_create_google_provider)
 {
     setenv("GOOGLE_API_KEY", "test-key-google", 1);
 
@@ -103,9 +101,8 @@ START_TEST(test_create_google_provider)
 
     unsetenv("GOOGLE_API_KEY");
 }
-END_TEST
 
-START_TEST(test_create_unknown_provider_fails)
+END_TEST START_TEST(test_create_unknown_provider_fails)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_provider_create(test_ctx, "unknown", &provider);
@@ -113,9 +110,8 @@ START_TEST(test_create_unknown_provider_fails)
     ck_assert(is_err(&result));
     ck_assert_int_eq(error_code(result.err), ERR_INVALID_ARG);
 }
-END_TEST
 
-START_TEST(test_create_provider_missing_credentials)
+END_TEST START_TEST(test_create_provider_missing_credentials)
 {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
@@ -136,8 +132,8 @@ START_TEST(test_create_provider_missing_credentials)
         ck_assert_str_eq(provider->name, "openai");
     }
 }
-END_TEST
 
+END_TEST
 /**
  * Async Event Loop Integration Tests
  *
@@ -171,9 +167,8 @@ START_TEST(test_provider_fdset_returns_ok)
 
     unsetenv("OPENAI_API_KEY");
 }
-END_TEST
 
-START_TEST(test_provider_perform_returns_ok)
+END_TEST START_TEST(test_provider_perform_returns_ok)
 {
     setenv("OPENAI_API_KEY", "test-key", 1);
 
@@ -194,9 +189,8 @@ START_TEST(test_provider_perform_returns_ok)
 
     unsetenv("OPENAI_API_KEY");
 }
-END_TEST
 
-START_TEST(test_provider_timeout_returns_value)
+END_TEST START_TEST(test_provider_timeout_returns_value)
 {
     setenv("OPENAI_API_KEY", "test-key", 1);
 
@@ -217,9 +211,8 @@ START_TEST(test_provider_timeout_returns_value)
 
     unsetenv("OPENAI_API_KEY");
 }
-END_TEST
 
-START_TEST(test_provider_info_read_no_crash)
+END_TEST START_TEST(test_provider_info_read_no_crash)
 {
     setenv("OPENAI_API_KEY", "test-key", 1);
 
@@ -238,8 +231,8 @@ START_TEST(test_provider_info_read_no_crash)
 
     unsetenv("OPENAI_API_KEY");
 }
-END_TEST
 
+END_TEST
 /**
  * NOTE: Full async request/stream flow tests are skipped because they require:
  * - Mock curl_multi infrastructure
@@ -269,9 +262,8 @@ START_TEST(test_async_vtable_complete_after_implementation)
      */
     ck_assert(true);  /* Placeholder - always passes */
 }
-END_TEST
 
-START_TEST(test_async_pattern_documented)
+END_TEST START_TEST(test_async_pattern_documented)
 {
     /* This test documents the expected async pattern for providers:
      *
@@ -289,13 +281,15 @@ START_TEST(test_async_pattern_documented)
      */
     ck_assert(true);  /* Placeholder - documents contract */
 }
+
 END_TEST
 
 /**
  * Test Suite Configuration
  */
 
-static Suite *provider_factory_suite(void) {
+static Suite *provider_factory_suite(void)
+{
     Suite *s = suite_create("Provider Factory");
 
     /* Provider creation with vtable verification */
@@ -322,7 +316,8 @@ static Suite *provider_factory_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     Suite *s = provider_factory_suite();
     SRunner *sr = srunner_create(s);
 

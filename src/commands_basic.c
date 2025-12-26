@@ -221,7 +221,9 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
         } else if (strcmp(thinking_str, "high") == 0) {
             thinking_level = IK_THINKING_HIGH;
         } else {
-            char *msg = talloc_asprintf(ctx, "Error: Invalid thinking level '%s' (must be: none, low, med, high)", thinking_str);
+            char *msg = talloc_asprintf(ctx,
+                                        "Error: Invalid thinking level '%s' (must be: none, low, med, high)",
+                                        thinking_str);
             if (!msg) {     // LCOV_EXCL_BR_LINE
                 PANIC("OOM");   // LCOV_EXCL_LINE
             }
@@ -263,7 +265,7 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
 
         res_t db_res = ik_db_agent_update_provider(repl->shared->db_ctx, repl->current->uuid,
-                                                    provider, model_name, thinking_level_str);
+                                                   provider, model_name, thinking_level_str);
         if (is_err(&db_res)) {
             // Log error but don't crash - memory state is authoritative
             yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE

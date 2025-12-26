@@ -26,75 +26,71 @@ static void teardown(void)
  * Error Handling Tests
  * ================================================================ */
 
-START_TEST(test_parse_authentication_error_401)
-{
+START_TEST(test_parse_authentication_error_401) {
     const char *json = "{"
-        "\"error\":{"
-            "\"code\":401,"
-            "\"message\":\"API key not valid. Please pass a valid API key.\","
-            "\"status\":\"UNAUTHENTICATED\""
-        "}"
-    "}";
+                       "\"error\":{"
+                       "\"code\":401,"
+                       "\"message\":\"API key not valid. Please pass a valid API key.\","
+                       "\"status\":\"UNAUTHENTICATED\""
+                       "}"
+                       "}";
 
     ik_error_category_t category;
     char *message = NULL;
 
     res_t result = ik_google_parse_error(test_ctx, 401, json, strlen(json),
-                                          &category, &message);
+                                         &category, &message);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
     ck_assert_ptr_nonnull(message);
     ck_assert_ptr_nonnull(strstr(message, "API key"));
 }
-END_TEST
-
-START_TEST(test_parse_rate_limit_error_429)
+END_TEST START_TEST(test_parse_rate_limit_error_429)
 {
     const char *json = "{"
-        "\"error\":{"
-            "\"code\":429,"
-            "\"message\":\"Resource has been exhausted (e.g. check quota).\","
-            "\"status\":\"RESOURCE_EXHAUSTED\","
-            "\"details\":[{"
-                "\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\","
-                "\"reason\":\"RATE_LIMIT_EXCEEDED\","
-                "\"domain\":\"googleapis.com\","
-                "\"metadata\":{"
-                    "\"service\":\"generativelanguage.googleapis.com\","
-                    "\"quota_limit\":\"RequestsPerMinutePerProject\""
-                "}"
-            "}]"
-        "}"
-    "}";
+                       "\"error\":{"
+                       "\"code\":429,"
+                       "\"message\":\"Resource has been exhausted (e.g. check quota).\","
+                       "\"status\":\"RESOURCE_EXHAUSTED\","
+                       "\"details\":[{"
+                       "\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\","
+                       "\"reason\":\"RATE_LIMIT_EXCEEDED\","
+                       "\"domain\":\"googleapis.com\","
+                       "\"metadata\":{"
+                       "\"service\":\"generativelanguage.googleapis.com\","
+                       "\"quota_limit\":\"RequestsPerMinutePerProject\""
+                       "}"
+                       "}]"
+                       "}"
+                       "}";
 
     ik_error_category_t category;
     char *message = NULL;
 
     res_t result = ik_google_parse_error(test_ctx, 429, json, strlen(json),
-                                          &category, &message);
+                                         &category, &message);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
     ck_assert_ptr_nonnull(message);
 }
-END_TEST
 
-START_TEST(test_parse_quota_exceeded_error)
+END_TEST START_TEST(test_parse_quota_exceeded_error)
 {
     const char *json = "{"
-        "\"error\":{"
-            "\"code\":403,"
-            "\"message\":\"Quota exceeded for quota metric 'GenerateContent requests' and limit 'GenerateContent requests per minute'.\","
-            "\"status\":\"RESOURCE_EXHAUSTED\""
-        "}"
-    "}";
+                       "\"error\":{"
+                       "\"code\":403,"
+                       "\"message\":\"Quota exceeded for quota metric 'GenerateContent requests' and limit 'GenerateContent requests per minute'.\","
+                       "\"status\":\"RESOURCE_EXHAUSTED\""
+                       "}"
+                       "}";
 
     ik_error_category_t category;
     char *message = NULL;
 
     res_t result = ik_google_parse_error(test_ctx, 403, json, strlen(json),
-                                          &category, &message);
+                                         &category, &message);
 
     ck_assert(!is_err(&result));
     // 403 maps to AUTH (current implementation uses HTTP status only)
@@ -102,32 +98,30 @@ START_TEST(test_parse_quota_exceeded_error)
     ck_assert_ptr_nonnull(message);
     ck_assert_ptr_nonnull(strstr(message, "Quota"));
 }
-END_TEST
 
-START_TEST(test_parse_validation_error_400)
+END_TEST START_TEST(test_parse_validation_error_400)
 {
     const char *json = "{"
-        "\"error\":{"
-            "\"code\":400,"
-            "\"message\":\"Invalid argument: model name is required.\","
-            "\"status\":\"INVALID_ARGUMENT\""
-        "}"
-    "}";
+                       "\"error\":{"
+                       "\"code\":400,"
+                       "\"message\":\"Invalid argument: model name is required.\","
+                       "\"status\":\"INVALID_ARGUMENT\""
+                       "}"
+                       "}";
 
     ik_error_category_t category;
     char *message = NULL;
 
     res_t result = ik_google_parse_error(test_ctx, 400, json, strlen(json),
-                                          &category, &message);
+                                         &category, &message);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
     ck_assert_ptr_nonnull(message);
     ck_assert_ptr_nonnull(strstr(message, "Invalid argument"));
 }
-END_TEST
 
-START_TEST(test_map_errors_to_correct_categories)
+END_TEST START_TEST(test_map_errors_to_correct_categories)
 {
     // Test 401 -> AUTH
     ik_error_category_t cat1;
@@ -169,6 +163,7 @@ START_TEST(test_map_errors_to_correct_categories)
     ck_assert(!is_err(&r5));
     ck_assert_int_eq(cat5, IK_ERR_CAT_TIMEOUT);
 }
+
 END_TEST
 
 /* ================================================================

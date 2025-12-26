@@ -11,11 +11,13 @@
 
 static TALLOC_CTX *test_ctx;
 
-static void setup(void) {
+static void setup(void)
+{
     test_ctx = talloc_new(NULL);
 }
 
-static void teardown(void) {
+static void teardown(void)
+{
     talloc_free(test_ctx);
     test_ctx = NULL;
 }
@@ -31,9 +33,8 @@ START_TEST(test_message_create_text_user) {
     ck_assert_str_eq(msg->content_blocks[0].data.text.text, "Hello");
     ck_assert_ptr_null(msg->provider_metadata);
 }
-END_TEST
-
-START_TEST(test_message_create_text_assistant) {
+END_TEST START_TEST(test_message_create_text_assistant)
+{
     ik_message_t *msg = ik_message_create_text(test_ctx, IK_ROLE_ASSISTANT, "World");
 
     ck_assert_ptr_nonnull(msg);
@@ -43,9 +44,9 @@ START_TEST(test_message_create_text_assistant) {
     ck_assert_int_eq(msg->content_blocks[0].type, IK_CONTENT_TEXT);
     ck_assert_str_eq(msg->content_blocks[0].data.text.text, "World");
 }
-END_TEST
 
-START_TEST(test_message_create_tool_call) {
+END_TEST START_TEST(test_message_create_tool_call)
+{
     ik_message_t *msg = ik_message_create_tool_call(test_ctx, "call_123", "grep", "{\"pattern\":\"test\"}");
 
     ck_assert_ptr_nonnull(msg);
@@ -57,9 +58,9 @@ START_TEST(test_message_create_tool_call) {
     ck_assert_str_eq(msg->content_blocks[0].data.tool_call.name, "grep");
     ck_assert_str_eq(msg->content_blocks[0].data.tool_call.arguments, "{\"pattern\":\"test\"}");
 }
-END_TEST
 
-START_TEST(test_message_create_tool_result) {
+END_TEST START_TEST(test_message_create_tool_result)
+{
     ik_message_t *msg = ik_message_create_tool_result(test_ctx, "call_123", "result data", false);
 
     ck_assert_ptr_nonnull(msg);
@@ -71,9 +72,9 @@ START_TEST(test_message_create_tool_result) {
     ck_assert_str_eq(msg->content_blocks[0].data.tool_result.content, "result data");
     ck_assert(!msg->content_blocks[0].data.tool_result.is_error);
 }
-END_TEST
 
-START_TEST(test_message_from_db_msg_user) {
+END_TEST START_TEST(test_message_from_db_msg_user)
+{
     char kind[] = "user";
     char content[] = "Hello world";
     ik_msg_t db_msg = {
@@ -92,12 +93,13 @@ START_TEST(test_message_from_db_msg_user) {
     ck_assert_uint_eq(msg->content_count, 1);
     ck_assert_str_eq(msg->content_blocks[0].data.text.text, "Hello world");
 }
-END_TEST
 
-START_TEST(test_message_from_db_msg_tool_call) {
+END_TEST START_TEST(test_message_from_db_msg_tool_call)
+{
     char kind[] = "tool_call";
     char content[] = "grep(pattern=\"test\")";
-    char data_json[] = "{\"tool_call_id\":\"call_456\",\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"test\\\"}\"}";
+    char data_json[] =
+        "{\"tool_call_id\":\"call_456\",\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"test\\\"}\"}";
     ik_msg_t db_msg = {
         .id = 2,
         .kind = kind,
@@ -117,9 +119,9 @@ START_TEST(test_message_from_db_msg_tool_call) {
     ck_assert_str_eq(msg->content_blocks[0].data.tool_call.name, "grep");
     ck_assert_str_eq(msg->content_blocks[0].data.tool_call.arguments, "{\"pattern\":\"test\"}");
 }
-END_TEST
 
-START_TEST(test_message_from_db_msg_tool_result) {
+END_TEST START_TEST(test_message_from_db_msg_tool_result)
+{
     char kind[] = "tool_result";
     char content[] = "3 files found";
     char data_json[] = "{\"tool_call_id\":\"call_456\",\"output\":\"file1.c\\nfile2.c\\nfile3.c\",\"success\":true}";
@@ -142,9 +144,9 @@ START_TEST(test_message_from_db_msg_tool_result) {
     ck_assert_str_eq(msg->content_blocks[0].data.tool_result.content, "file1.c\nfile2.c\nfile3.c");
     ck_assert(!msg->content_blocks[0].data.tool_result.is_error);
 }
-END_TEST
 
-START_TEST(test_message_from_db_msg_system) {
+END_TEST START_TEST(test_message_from_db_msg_system)
+{
     char kind[] = "system";
     char content[] = "You are a helpful assistant";
     ik_msg_t db_msg = {
@@ -160,9 +162,9 @@ START_TEST(test_message_from_db_msg_system) {
     ck_assert(is_ok(&res));
     ck_assert_ptr_null(msg);  // System messages return NULL
 }
-END_TEST
 
-START_TEST(test_message_from_db_msg_invalid_json) {
+END_TEST START_TEST(test_message_from_db_msg_invalid_json)
+{
     char kind[] = "tool_call";
     char content[] = "invalid";
     char data_json[] = "{invalid json";
@@ -178,9 +180,11 @@ START_TEST(test_message_from_db_msg_invalid_json) {
 
     ck_assert(is_err(&res));
 }
+
 END_TEST
 
-static Suite *creation_suite(void) {
+static Suite *creation_suite(void)
+{
     Suite *s = suite_create("Message Creation");
 
     TCase *tc = tcase_create("Core");
@@ -201,7 +205,8 @@ static Suite *creation_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     Suite *s = creation_suite();
     SRunner *sr = srunner_create(s);
 

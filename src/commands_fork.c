@@ -554,7 +554,7 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
         ik_model_supports_thinking(child->model, &supports_thinking);
         if (!supports_thinking) {
             char *warning = talloc_asprintf(ctx, "Warning: Model '%s' does not support thinking/reasoning",
-                                          child->model);
+                                            child->model);
             if (warning == NULL) {  // LCOV_EXCL_BR_LINE
                 PANIC("Out of memory");  // LCOV_EXCL_LINE
             }

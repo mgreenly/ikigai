@@ -19,11 +19,13 @@
 static TALLOC_CTX *test_ctx = NULL;
 
 /* Setup/teardown */
-static void setup(void) {
+static void setup(void)
+{
     test_ctx = talloc_new(NULL);
 }
 
-static void teardown(void) {
+static void teardown(void)
+{
     talloc_free(test_ctx);
     test_ctx = NULL;
 }
@@ -40,9 +42,8 @@ START_TEST(test_multi_create_success) {
     ik_http_multi_t *multi = res.ok;
     talloc_free(multi);
 }
-END_TEST
-
-START_TEST(test_multi_cleanup_no_crash) {
+END_TEST START_TEST(test_multi_cleanup_no_crash)
+{
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -50,9 +51,9 @@ START_TEST(test_multi_cleanup_no_crash) {
     /* Destructor should clean up without crash */
     talloc_free(multi);
 }
-END_TEST
 
-START_TEST(test_fdset_empty_multi) {
+END_TEST START_TEST(test_fdset_empty_multi)
+{
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -71,9 +72,9 @@ START_TEST(test_fdset_empty_multi) {
 
     talloc_free(multi);
 }
-END_TEST
 
-START_TEST(test_perform_empty_multi) {
+END_TEST START_TEST(test_perform_empty_multi)
+{
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -86,9 +87,9 @@ START_TEST(test_perform_empty_multi) {
 
     talloc_free(multi);
 }
-END_TEST
 
-START_TEST(test_timeout_empty_multi) {
+END_TEST START_TEST(test_timeout_empty_multi)
+{
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -102,9 +103,9 @@ START_TEST(test_timeout_empty_multi) {
 
     talloc_free(multi);
 }
-END_TEST
 
-START_TEST(test_info_read_empty_multi) {
+END_TEST START_TEST(test_info_read_empty_multi)
+{
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -115,13 +116,14 @@ START_TEST(test_info_read_empty_multi) {
 
     talloc_free(multi);
 }
-END_TEST
 
+END_TEST
 /**
  * Request Configuration Tests
  */
 
-START_TEST(test_add_request_minimal) {
+START_TEST(test_add_request_minimal)
+{
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -141,9 +143,9 @@ START_TEST(test_add_request_minimal) {
 
     talloc_free(multi);
 }
-END_TEST
 
-START_TEST(test_add_request_with_headers) {
+END_TEST START_TEST(test_add_request_with_headers)
+{
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -169,9 +171,9 @@ START_TEST(test_add_request_with_headers) {
 
     talloc_free(multi);
 }
-END_TEST
 
-START_TEST(test_add_request_with_body) {
+END_TEST START_TEST(test_add_request_with_body)
+{
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -192,9 +194,9 @@ START_TEST(test_add_request_with_body) {
 
     talloc_free(multi);
 }
-END_TEST
 
-START_TEST(test_add_request_custom_method) {
+END_TEST START_TEST(test_add_request_custom_method)
+{
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -214,13 +216,14 @@ START_TEST(test_add_request_custom_method) {
 
     talloc_free(multi);
 }
-END_TEST
 
+END_TEST
 /**
  * Memory Lifecycle Tests
  */
 
-START_TEST(test_parent_context_frees_all) {
+START_TEST(test_parent_context_frees_all)
+{
     TALLOC_CTX *parent = talloc_new(NULL);
 
     res_t res = ik_http_multi_create(parent);
@@ -244,9 +247,9 @@ START_TEST(test_parent_context_frees_all) {
     talloc_free(parent);
     /* If we get here without crash, test passes */
 }
-END_TEST
 
-START_TEST(test_destructor_handles_active_requests) {
+END_TEST START_TEST(test_destructor_handles_active_requests)
+{
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -269,13 +272,15 @@ START_TEST(test_destructor_handles_active_requests) {
     /* Destructor should clean up all active requests */
     talloc_free(multi);
 }
+
 END_TEST
 
 /**
  * Test Suite Configuration
  */
 
-static Suite *http_multi_suite(void) {
+static Suite *http_multi_suite(void)
+{
     Suite *s = suite_create("HTTP Multi-Handle");
 
     /* Lifecycle tests */
@@ -307,7 +312,8 @@ static Suite *http_multi_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     Suite *s = http_multi_suite();
     SRunner *sr = srunner_create(s);
 

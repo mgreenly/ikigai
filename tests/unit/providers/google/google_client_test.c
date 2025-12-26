@@ -26,8 +26,7 @@ static void teardown(void)
  * Request Serialization Tests
  * ================================================================ */
 
-START_TEST(test_build_request_with_system_and_user_messages)
-{
+START_TEST(test_build_request_with_system_and_user_messages) {
     // Create a basic request
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gemini-2.5-flash");
@@ -57,9 +56,7 @@ START_TEST(test_build_request_with_system_and_user_messages)
     ck_assert_ptr_nonnull(strstr(json, "contents"));
     ck_assert_ptr_nonnull(strstr(json, "Hello!"));
 }
-END_TEST
-
-START_TEST(test_build_request_gemini_2_5_with_thinking_budget)
+END_TEST START_TEST(test_build_request_gemini_2_5_with_thinking_budget)
 {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gemini-2.5-pro");
@@ -88,9 +85,8 @@ START_TEST(test_build_request_gemini_2_5_with_thinking_budget)
     ck_assert_ptr_nonnull(strstr(json, "thinkingConfig"));
     ck_assert_ptr_nonnull(strstr(json, "thinkingBudget"));
 }
-END_TEST
 
-START_TEST(test_build_request_gemini_3_with_thinking_level)
+END_TEST START_TEST(test_build_request_gemini_3_with_thinking_level)
 {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gemini-3-pro");
@@ -120,9 +116,8 @@ START_TEST(test_build_request_gemini_3_with_thinking_level)
     ck_assert_ptr_nonnull(strstr(json, "thinkingLevel"));
     ck_assert_ptr_nonnull(strstr(json, "HIGH"));
 }
-END_TEST
 
-START_TEST(test_build_request_with_tool_declarations)
+END_TEST START_TEST(test_build_request_with_tool_declarations)
 {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gemini-2.5-flash");
@@ -154,9 +149,8 @@ START_TEST(test_build_request_with_tool_declarations)
     ck_assert_ptr_nonnull(strstr(json, "tools"));
     ck_assert_ptr_nonnull(strstr(json, "get_weather"));
 }
-END_TEST
 
-START_TEST(test_build_request_without_optional_fields)
+END_TEST START_TEST(test_build_request_without_optional_fields)
 {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gemini-2.5-flash");
@@ -185,13 +179,12 @@ START_TEST(test_build_request_without_optional_fields)
     ck_assert_ptr_null(strstr(json, "systemInstruction"));
     ck_assert_ptr_null(strstr(json, "tools"));
 }
-END_TEST
 
-START_TEST(test_api_key_in_url)
+END_TEST START_TEST(test_api_key_in_url)
 {
     char *url = NULL;
     res_t r = ik_google_build_url(test_ctx, "https://generativelanguage.googleapis.com/v1beta",
-                                    "gemini-2.5-flash", "test-key-12345", false, &url);
+                                  "gemini-2.5-flash", "test-key-12345", false, &url);
 
     ck_assert(!is_err(&r));
     ck_assert_ptr_nonnull(url);
@@ -200,9 +193,8 @@ START_TEST(test_api_key_in_url)
     ck_assert_ptr_nonnull(strstr(url, "models/gemini-2.5-flash:generateContent"));
     ck_assert_ptr_nonnull(strstr(url, "key=test-key-12345"));
 }
-END_TEST
 
-START_TEST(test_json_structure_matches_gemini_api)
+END_TEST START_TEST(test_json_structure_matches_gemini_api)
 {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gemini-2.5-flash");
@@ -231,6 +223,7 @@ START_TEST(test_json_structure_matches_gemini_api)
     ck_assert_ptr_nonnull(strstr(json, "text"));
     ck_assert_ptr_nonnull(strstr(json, "Hello!"));
 }
+
 END_TEST
 
 /* ================================================================

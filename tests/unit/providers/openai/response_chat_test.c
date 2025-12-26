@@ -29,55 +29,47 @@ static void teardown(void)
  * Finish Reason Mapping Tests
  * ================================================================ */
 
-START_TEST(test_map_finish_reason_stop)
-{
+START_TEST(test_map_finish_reason_stop) {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("stop");
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
-END_TEST
-
-START_TEST(test_map_finish_reason_length)
+END_TEST START_TEST(test_map_finish_reason_length)
 {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("length");
     ck_assert_int_eq(reason, IK_FINISH_LENGTH);
 }
-END_TEST
 
-START_TEST(test_map_finish_reason_tool_calls)
+END_TEST START_TEST(test_map_finish_reason_tool_calls)
 {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("tool_calls");
     ck_assert_int_eq(reason, IK_FINISH_TOOL_USE);
 }
-END_TEST
 
-START_TEST(test_map_finish_reason_content_filter)
+END_TEST START_TEST(test_map_finish_reason_content_filter)
 {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("content_filter");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
-END_TEST
 
-START_TEST(test_map_finish_reason_error)
+END_TEST START_TEST(test_map_finish_reason_error)
 {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("error");
     ck_assert_int_eq(reason, IK_FINISH_ERROR);
 }
-END_TEST
 
-START_TEST(test_map_finish_reason_null)
+END_TEST START_TEST(test_map_finish_reason_null)
 {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason(NULL);
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
-END_TEST
 
-START_TEST(test_map_finish_reason_unknown)
+END_TEST START_TEST(test_map_finish_reason_unknown)
 {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("unknown_reason");
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Simple Response Parsing Tests
  * ================================================================ */
@@ -85,23 +77,23 @@ END_TEST
 START_TEST(test_parse_simple_text_response)
 {
     const char *json = "{"
-        "\"id\":\"chatcmpl-123\","
-        "\"object\":\"chat.completion\","
-        "\"model\":\"gpt-4\","
-        "\"choices\":[{"
-            "\"index\":0,"
-            "\"message\":{"
-                "\"role\":\"assistant\","
-                "\"content\":\"Hello there, how may I assist you today?\""
-            "},"
-            "\"finish_reason\":\"stop\""
-        "}],"
-        "\"usage\":{"
-            "\"prompt_tokens\":9,"
-            "\"completion_tokens\":12,"
-            "\"total_tokens\":21"
-        "}"
-    "}";
+                       "\"id\":\"chatcmpl-123\","
+                       "\"object\":\"chat.completion\","
+                       "\"model\":\"gpt-4\","
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":\"Hello there, how may I assist you today?\""
+                       "},"
+                       "\"finish_reason\":\"stop\""
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":9,"
+                       "\"completion_tokens\":12,"
+                       "\"total_tokens\":21"
+                       "}"
+                       "}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
@@ -119,30 +111,29 @@ START_TEST(test_parse_simple_text_response)
     ck_assert_int_eq(resp->usage.total_tokens, 21);
     ck_assert_int_eq(resp->usage.thinking_tokens, 0);
 }
-END_TEST
 
-START_TEST(test_parse_response_with_reasoning_tokens)
+END_TEST START_TEST(test_parse_response_with_reasoning_tokens)
 {
     const char *json = "{"
-        "\"id\":\"chatcmpl-456\","
-        "\"model\":\"o1-preview\","
-        "\"choices\":[{"
-            "\"index\":0,"
-            "\"message\":{"
-                "\"role\":\"assistant\","
-                "\"content\":\"After careful analysis, the answer is 42.\""
-            "},"
-            "\"finish_reason\":\"stop\""
-        "}],"
-        "\"usage\":{"
-            "\"prompt_tokens\":50,"
-            "\"completion_tokens\":15,"
-            "\"total_tokens\":65,"
-            "\"completion_tokens_details\":{"
-                "\"reasoning_tokens\":25"
-            "}"
-        "}"
-    "}";
+                       "\"id\":\"chatcmpl-456\","
+                       "\"model\":\"o1-preview\","
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":\"After careful analysis, the answer is 42.\""
+                       "},"
+                       "\"finish_reason\":\"stop\""
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":50,"
+                       "\"completion_tokens\":15,"
+                       "\"total_tokens\":65,"
+                       "\"completion_tokens_details\":{"
+                       "\"reasoning_tokens\":25"
+                       "}"
+                       "}"
+                       "}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
@@ -154,8 +145,8 @@ START_TEST(test_parse_response_with_reasoning_tokens)
     ck_assert_int_eq(resp->usage.total_tokens, 65);
     ck_assert_int_eq(resp->usage.thinking_tokens, 25);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Tool Call Response Tests
  * ================================================================ */
@@ -163,30 +154,30 @@ END_TEST
 START_TEST(test_parse_tool_call_response)
 {
     const char *json = "{"
-        "\"id\":\"chatcmpl-789\","
-        "\"model\":\"gpt-4\","
-        "\"choices\":[{"
-            "\"index\":0,"
-            "\"message\":{"
-                "\"role\":\"assistant\","
-                "\"content\":null,"
-                "\"tool_calls\":[{"
-                    "\"id\":\"call_abc123\","
-                    "\"type\":\"function\","
-                    "\"function\":{"
-                        "\"name\":\"read_file\","
-                        "\"arguments\":\"{\\\"path\\\":\\\"/etc/hosts\\\"}\""
-                    "}"
-                "}]"
-            "},"
-            "\"finish_reason\":\"tool_calls\""
-        "}],"
-        "\"usage\":{"
-            "\"prompt_tokens\":100,"
-            "\"completion_tokens\":20,"
-            "\"total_tokens\":120"
-        "}"
-    "}";
+                       "\"id\":\"chatcmpl-789\","
+                       "\"model\":\"gpt-4\","
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":null,"
+                       "\"tool_calls\":[{"
+                       "\"id\":\"call_abc123\","
+                       "\"type\":\"function\","
+                       "\"function\":{"
+                       "\"name\":\"read_file\","
+                       "\"arguments\":\"{\\\"path\\\":\\\"/etc/hosts\\\"}\""
+                       "}"
+                       "}]"
+                       "},"
+                       "\"finish_reason\":\"tool_calls\""
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":100,"
+                       "\"completion_tokens\":20,"
+                       "\"total_tokens\":120"
+                       "}"
+                       "}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
@@ -201,42 +192,41 @@ START_TEST(test_parse_tool_call_response)
     ck_assert_str_eq(resp->content_blocks[0].data.tool_call.arguments,
                      "{\"path\":\"/etc/hosts\"}");
 }
-END_TEST
 
-START_TEST(test_parse_multiple_tool_calls)
+END_TEST START_TEST(test_parse_multiple_tool_calls)
 {
     const char *json = "{"
-        "\"id\":\"chatcmpl-multi\","
-        "\"model\":\"gpt-4\","
-        "\"choices\":[{"
-            "\"index\":0,"
-            "\"message\":{"
-                "\"role\":\"assistant\","
-                "\"content\":null,"
-                "\"tool_calls\":[{"
-                    "\"id\":\"call_1\","
-                    "\"type\":\"function\","
-                    "\"function\":{"
-                        "\"name\":\"read_file\","
-                        "\"arguments\":\"{\\\"path\\\":\\\"/tmp/a\\\"}\""
-                    "}"
-                "},{"
-                    "\"id\":\"call_2\","
-                    "\"type\":\"function\","
-                    "\"function\":{"
-                        "\"name\":\"grep\","
-                        "\"arguments\":\"{\\\"pattern\\\":\\\"test\\\",\\\"path\\\":\\\"/tmp/b\\\"}\""
-                    "}"
-                "}]"
-            "},"
-            "\"finish_reason\":\"tool_calls\""
-        "}],"
-        "\"usage\":{"
-            "\"prompt_tokens\":50,"
-            "\"completion_tokens\":30,"
-            "\"total_tokens\":80"
-        "}"
-    "}";
+                       "\"id\":\"chatcmpl-multi\","
+                       "\"model\":\"gpt-4\","
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":null,"
+                       "\"tool_calls\":[{"
+                       "\"id\":\"call_1\","
+                       "\"type\":\"function\","
+                       "\"function\":{"
+                       "\"name\":\"read_file\","
+                       "\"arguments\":\"{\\\"path\\\":\\\"/tmp/a\\\"}\""
+                       "}"
+                       "},{"
+                       "\"id\":\"call_2\","
+                       "\"type\":\"function\","
+                       "\"function\":{"
+                       "\"name\":\"grep\","
+                       "\"arguments\":\"{\\\"pattern\\\":\\\"test\\\",\\\"path\\\":\\\"/tmp/b\\\"}\""
+                       "}"
+                       "}]"
+                       "},"
+                       "\"finish_reason\":\"tool_calls\""
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":50,"
+                       "\"completion_tokens\":30,"
+                       "\"total_tokens\":80"
+                       "}"
+                       "}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
@@ -252,36 +242,35 @@ START_TEST(test_parse_multiple_tool_calls)
     ck_assert_str_eq(resp->content_blocks[1].data.tool_call.id, "call_2");
     ck_assert_str_eq(resp->content_blocks[1].data.tool_call.name, "grep");
 }
-END_TEST
 
-START_TEST(test_parse_text_with_tool_calls)
+END_TEST START_TEST(test_parse_text_with_tool_calls)
 {
     /* Some models may include both content and tool_calls */
     const char *json = "{"
-        "\"id\":\"chatcmpl-mixed\","
-        "\"model\":\"gpt-4\","
-        "\"choices\":[{"
-            "\"index\":0,"
-            "\"message\":{"
-                "\"role\":\"assistant\","
-                "\"content\":\"I'll read that file for you.\","
-                "\"tool_calls\":[{"
-                    "\"id\":\"call_xyz\","
-                    "\"type\":\"function\","
-                    "\"function\":{"
-                        "\"name\":\"read_file\","
-                        "\"arguments\":\"{\\\"path\\\":\\\"/tmp/test\\\"}\""
-                    "}"
-                "}]"
-            "},"
-            "\"finish_reason\":\"tool_calls\""
-        "}],"
-        "\"usage\":{"
-            "\"prompt_tokens\":10,"
-            "\"completion_tokens\":15,"
-            "\"total_tokens\":25"
-        "}"
-    "}";
+                       "\"id\":\"chatcmpl-mixed\","
+                       "\"model\":\"gpt-4\","
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":\"I'll read that file for you.\","
+                       "\"tool_calls\":[{"
+                       "\"id\":\"call_xyz\","
+                       "\"type\":\"function\","
+                       "\"function\":{"
+                       "\"name\":\"read_file\","
+                       "\"arguments\":\"{\\\"path\\\":\\\"/tmp/test\\\"}\""
+                       "}"
+                       "}]"
+                       "},"
+                       "\"finish_reason\":\"tool_calls\""
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":10,"
+                       "\"completion_tokens\":15,"
+                       "\"total_tokens\":25"
+                       "}"
+                       "}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
@@ -292,8 +281,8 @@ START_TEST(test_parse_text_with_tool_calls)
     ck_assert_str_eq(resp->content_blocks[0].data.text.text, "I'll read that file for you.");
     ck_assert_int_eq(resp->content_blocks[1].type, IK_CONTENT_TOOL_CALL);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Empty and Edge Case Tests
  * ================================================================ */
@@ -301,15 +290,15 @@ END_TEST
 START_TEST(test_parse_empty_choices)
 {
     const char *json = "{"
-        "\"id\":\"chatcmpl-empty\","
-        "\"model\":\"gpt-4\","
-        "\"choices\":[],"
-        "\"usage\":{"
-            "\"prompt_tokens\":0,"
-            "\"completion_tokens\":0,"
-            "\"total_tokens\":0"
-        "}"
-    "}";
+                       "\"id\":\"chatcmpl-empty\","
+                       "\"model\":\"gpt-4\","
+                       "\"choices\":[],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":0,"
+                       "\"completion_tokens\":0,"
+                       "\"total_tokens\":0"
+                       "}"
+                       "}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
@@ -320,19 +309,18 @@ START_TEST(test_parse_empty_choices)
     ck_assert_ptr_null(resp->content_blocks);
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
 }
-END_TEST
 
-START_TEST(test_parse_no_choices)
+END_TEST START_TEST(test_parse_no_choices)
 {
     const char *json = "{"
-        "\"id\":\"chatcmpl-nochoices\","
-        "\"model\":\"gpt-4\","
-        "\"usage\":{"
-            "\"prompt_tokens\":0,"
-            "\"completion_tokens\":0,"
-            "\"total_tokens\":0"
-        "}"
-    "}";
+                       "\"id\":\"chatcmpl-nochoices\","
+                       "\"model\":\"gpt-4\","
+                       "\"usage\":{"
+                       "\"prompt_tokens\":0,"
+                       "\"completion_tokens\":0,"
+                       "\"total_tokens\":0"
+                       "}"
+                       "}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
@@ -341,27 +329,26 @@ START_TEST(test_parse_no_choices)
     ck_assert_int_eq((int)resp->content_count, 0);
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
 }
-END_TEST
 
-START_TEST(test_parse_null_content)
+END_TEST START_TEST(test_parse_null_content)
 {
     const char *json = "{"
-        "\"id\":\"chatcmpl-null\","
-        "\"model\":\"gpt-4\","
-        "\"choices\":[{"
-            "\"index\":0,"
-            "\"message\":{"
-                "\"role\":\"assistant\","
-                "\"content\":null"
-            "},"
-            "\"finish_reason\":\"stop\""
-        "}],"
-        "\"usage\":{"
-            "\"prompt_tokens\":5,"
-            "\"completion_tokens\":0,"
-            "\"total_tokens\":5"
-        "}"
-    "}";
+                       "\"id\":\"chatcmpl-null\","
+                       "\"model\":\"gpt-4\","
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":null"
+                       "},"
+                       "\"finish_reason\":\"stop\""
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":5,"
+                       "\"completion_tokens\":0,"
+                       "\"total_tokens\":5"
+                       "}"
+                       "}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
@@ -370,27 +357,26 @@ START_TEST(test_parse_null_content)
     ck_assert_int_eq((int)resp->content_count, 0);
     ck_assert_ptr_null(resp->content_blocks);
 }
-END_TEST
 
-START_TEST(test_parse_empty_string_content)
+END_TEST START_TEST(test_parse_empty_string_content)
 {
     const char *json = "{"
-        "\"id\":\"chatcmpl-empty\","
-        "\"model\":\"gpt-4\","
-        "\"choices\":[{"
-            "\"index\":0,"
-            "\"message\":{"
-                "\"role\":\"assistant\","
-                "\"content\":\"\""
-            "},"
-            "\"finish_reason\":\"stop\""
-        "}],"
-        "\"usage\":{"
-            "\"prompt_tokens\":5,"
-            "\"completion_tokens\":0,"
-            "\"total_tokens\":5"
-        "}"
-    "}";
+                       "\"id\":\"chatcmpl-empty\","
+                       "\"model\":\"gpt-4\","
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":\"\""
+                       "},"
+                       "\"finish_reason\":\"stop\""
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":5,"
+                       "\"completion_tokens\":0,"
+                       "\"total_tokens\":5"
+                       "}"
+                       "}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
@@ -398,8 +384,8 @@ START_TEST(test_parse_empty_string_content)
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)resp->content_count, 0);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Error Response Tests
  * ================================================================ */
@@ -407,12 +393,12 @@ END_TEST
 START_TEST(test_parse_error_response)
 {
     const char *json = "{"
-        "\"error\":{"
-            "\"message\":\"Incorrect API key provided\","
-            "\"type\":\"invalid_request_error\","
-            "\"code\":\"invalid_api_key\""
-        "}"
-    "}";
+                       "\"error\":{"
+                       "\"message\":\"Incorrect API key provided\","
+                       "\"type\":\"invalid_request_error\","
+                       "\"code\":\"invalid_api_key\""
+                       "}"
+                       "}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
@@ -420,9 +406,8 @@ START_TEST(test_parse_error_response)
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_PROVIDER);
 }
-END_TEST
 
-START_TEST(test_parse_malformed_json)
+END_TEST START_TEST(test_parse_malformed_json)
 {
     const char *json = "{invalid json";
 
@@ -432,9 +417,8 @@ START_TEST(test_parse_malformed_json)
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 }
-END_TEST
 
-START_TEST(test_parse_not_object)
+END_TEST START_TEST(test_parse_not_object)
 {
     const char *json = "[\"array\", \"not\", \"object\"]";
 
@@ -444,8 +428,8 @@ START_TEST(test_parse_not_object)
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Error Parsing Tests
  * ================================================================ */
@@ -453,116 +437,111 @@ END_TEST
 START_TEST(test_parse_error_auth)
 {
     const char *json = "{"
-        "\"error\":{"
-            "\"message\":\"Invalid API key\","
-            "\"type\":\"invalid_request_error\","
-            "\"code\":\"invalid_api_key\""
-        "}"
-    "}";
+                       "\"error\":{"
+                       "\"message\":\"Invalid API key\","
+                       "\"type\":\"invalid_request_error\","
+                       "\"code\":\"invalid_api_key\""
+                       "}"
+                       "}";
 
     ik_error_category_t category;
     char *message = NULL;
     res_t result = ik_openai_parse_error(test_ctx, 401, json, strlen(json),
-                                          &category, &message);
+                                         &category, &message);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
     ck_assert_ptr_nonnull(message);
     ck_assert_str_eq(message, "invalid_request_error (invalid_api_key): Invalid API key");
 }
-END_TEST
 
-START_TEST(test_parse_error_rate_limit)
+END_TEST START_TEST(test_parse_error_rate_limit)
 {
     const char *json = "{"
-        "\"error\":{"
-            "\"message\":\"Rate limit exceeded\","
-            "\"type\":\"rate_limit_error\""
-        "}"
-    "}";
+                       "\"error\":{"
+                       "\"message\":\"Rate limit exceeded\","
+                       "\"type\":\"rate_limit_error\""
+                       "}"
+                       "}";
 
     ik_error_category_t category;
     char *message = NULL;
     res_t result = ik_openai_parse_error(test_ctx, 429, json, strlen(json),
-                                          &category, &message);
+                                         &category, &message);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
     ck_assert_str_eq(message, "rate_limit_error: Rate limit exceeded");
 }
-END_TEST
 
-START_TEST(test_parse_error_server)
+END_TEST START_TEST(test_parse_error_server)
 {
     const char *json = "{"
-        "\"error\":{"
-            "\"message\":\"Internal server error\""
-        "}"
-    "}";
+                       "\"error\":{"
+                       "\"message\":\"Internal server error\""
+                       "}"
+                       "}";
 
     ik_error_category_t category;
     char *message = NULL;
     res_t result = ik_openai_parse_error(test_ctx, 500, json, strlen(json),
-                                          &category, &message);
+                                         &category, &message);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
     ck_assert_str_eq(message, "Internal server error");
 }
-END_TEST
 
-START_TEST(test_parse_error_invalid_arg)
+END_TEST START_TEST(test_parse_error_invalid_arg)
 {
     ik_error_category_t category;
     char *message = NULL;
     res_t result = ik_openai_parse_error(test_ctx, 400, NULL, 0,
-                                          &category, &message);
+                                         &category, &message);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
     ck_assert_str_eq(message, "HTTP 400");
 }
-END_TEST
 
-START_TEST(test_parse_error_not_found)
+END_TEST START_TEST(test_parse_error_not_found)
 {
     ik_error_category_t category;
     char *message = NULL;
     res_t result = ik_openai_parse_error(test_ctx, 404, NULL, 0,
-                                          &category, &message);
+                                         &category, &message);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
     ck_assert_str_eq(message, "HTTP 404");
 }
-END_TEST
 
-START_TEST(test_parse_error_unknown)
+END_TEST START_TEST(test_parse_error_unknown)
 {
     ik_error_category_t category;
     char *message = NULL;
     res_t result = ik_openai_parse_error(test_ctx, 418, NULL, 0,
-                                          &category, &message);
+                                         &category, &message);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_UNKNOWN);
     ck_assert_str_eq(message, "HTTP 418");
 }
-END_TEST
 
-START_TEST(test_parse_error_malformed_json)
+END_TEST START_TEST(test_parse_error_malformed_json)
 {
     const char *json = "{invalid";
 
     ik_error_category_t category;
     char *message = NULL;
     res_t result = ik_openai_parse_error(test_ctx, 500, json, strlen(json),
-                                          &category, &message);
+                                         &category, &message);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
     ck_assert_str_eq(message, "HTTP 500");
 }
+
 END_TEST
 
 /* ================================================================

@@ -26,8 +26,7 @@ static void teardown(void)
  * Request Serialization Tests
  * ================================================================ */
 
-START_TEST(test_build_request_with_system_and_user_messages)
-{
+START_TEST(test_build_request_with_system_and_user_messages) {
     // Create a basic request
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
@@ -71,9 +70,7 @@ START_TEST(test_build_request_with_system_and_user_messages)
 
     yyjson_doc_free(doc);
 }
-END_TEST
-
-START_TEST(test_build_request_for_o1_model_with_reasoning_effort)
+END_TEST START_TEST(test_build_request_for_o1_model_with_reasoning_effort)
 {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "o1-preview");
@@ -111,9 +108,8 @@ START_TEST(test_build_request_for_o1_model_with_reasoning_effort)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_build_request_for_gpt5_model_without_reasoning_effort)
+END_TEST START_TEST(test_build_request_for_gpt5_model_without_reasoning_effort)
 {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-5-mini");
@@ -148,9 +144,8 @@ START_TEST(test_build_request_for_gpt5_model_without_reasoning_effort)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_build_request_with_tool_definitions)
+END_TEST START_TEST(test_build_request_with_tool_definitions)
 {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
@@ -161,7 +156,8 @@ START_TEST(test_build_request_with_tool_definitions)
     req->tool_count = 1;
     req->tools[0].name = talloc_strdup(req, "get_weather");
     req->tools[0].description = talloc_strdup(req, "Get weather for a location");
-    req->tools[0].parameters = talloc_strdup(req, "{\"type\":\"object\",\"properties\":{\"location\":{\"type\":\"string\"}}}");
+    req->tools[0].parameters = talloc_strdup(req,
+                                             "{\"type\":\"object\",\"properties\":{\"location\":{\"type\":\"string\"}}}");
 
     // Add user message
     req->messages = talloc_zero_array(req, ik_message_t, 1);
@@ -191,9 +187,8 @@ START_TEST(test_build_request_with_tool_definitions)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_build_request_without_optional_fields)
+END_TEST START_TEST(test_build_request_without_optional_fields)
 {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
@@ -225,9 +220,8 @@ START_TEST(test_build_request_without_optional_fields)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_verify_correct_headers)
+END_TEST START_TEST(test_verify_correct_headers)
 {
     const char *api_key = "sk-test-key-12345";
     char **headers = NULL;
@@ -253,9 +247,8 @@ START_TEST(test_verify_correct_headers)
     ck_assert(found_auth);
     ck_assert(found_content_type);
 }
-END_TEST
 
-START_TEST(test_verify_json_structure_matches_chat_completions_api)
+END_TEST START_TEST(test_verify_json_structure_matches_chat_completions_api)
 {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
@@ -292,6 +285,7 @@ START_TEST(test_verify_json_structure_matches_chat_completions_api)
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 /* ================================================================
