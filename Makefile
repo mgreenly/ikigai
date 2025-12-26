@@ -276,7 +276,7 @@ $(BUILDDIR)/tests/unit/repl/handle_request_error_test: $(BUILDDIR)/tests/unit/re
 
 $(BUILDDIR)/tests/unit/repl/handle_request_success_advanced_test: $(BUILDDIR)/tests/unit/repl/handle_request_success_advanced_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) -lgcov
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 $(BUILDDIR)/tests/unit/repl/repl_streaming_basic_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
@@ -289,7 +289,7 @@ $(BUILDDIR)/tests/unit/repl/repl_streaming_advanced_test: $(BUILDDIR)/tests/unit
 # Special rule for repl_actions_db_error_test (uses mocks, excludes DB modules)
 $(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) -lgcov
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 # Special rule for repl_actions_db_advanced_test (uses mocks, excludes DB modules)
 $(BUILDDIR)/tests/unit/repl/repl_actions_db_advanced_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_advanced_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
