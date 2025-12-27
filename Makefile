@@ -398,6 +398,10 @@ $(BUILDDIR)/tests/unit/providers/google/google_streaming_advanced_test: $(BUILDD
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
+$(BUILDDIR)/tests/unit/providers/google/google_vtable_test: $(BUILDDIR)/tests/unit/providers/google/google_vtable_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
 # Special rules for openai streaming tests (parser test doesn't need VCR, vtable test doesn't either)
 # Both use internal context, not VCR fixtures
 
