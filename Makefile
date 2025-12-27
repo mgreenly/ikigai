@@ -876,14 +876,14 @@ coverage:
 	@echo "Generating coverage report..."
 	@mkdir -p $(COVERAGE_DIR)
 	@lcov --capture --directory . --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --rc lcov_branch_coverage=1 --quiet
-	@lcov --extract $(COVERAGE_DIR)/coverage.info '*/src/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --quiet
-	@lcov --remove $(COVERAGE_DIR)/coverage.info '*/src/vendor/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --quiet
+	@lcov --extract $(COVERAGE_DIR)/coverage.info '*/src/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet
+	@lcov --remove $(COVERAGE_DIR)/coverage.info '*/src/vendor/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet
 	@echo ""
 	@echo "=== Coverage by File ===" > $(COVERAGE_DIR)/summary.txt
-	@lcov --list $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 2>&1 >> $(COVERAGE_DIR)/summary.txt
+	@lcov --list $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 >> $(COVERAGE_DIR)/summary.txt
 	@echo "" >> $(COVERAGE_DIR)/summary.txt
 	@echo "=== Coverage Summary ===" >> $(COVERAGE_DIR)/summary.txt
-	@lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors deprecated 2>&1 >> $(COVERAGE_DIR)/summary.txt
+	@lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 >> $(COVERAGE_DIR)/summary.txt
 	@echo "" >> $(COVERAGE_DIR)/summary.txt
 	@cat $(COVERAGE_DIR)/summary.txt
 	@echo "Coverage report saved to $(COVERAGE_DIR)/summary.txt"
