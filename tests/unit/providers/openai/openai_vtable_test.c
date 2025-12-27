@@ -6,6 +6,7 @@
 #include <check.h>
 #include <talloc.h>
 #include <sys/select.h>
+#include "logger.h"
 #include "providers/common/http_multi.h"
 #include "providers/openai/openai.h"
 #include "providers/provider.h"
@@ -94,6 +95,48 @@ END_TEST START_TEST(test_cancel_method)
     ck_assert(1);
 }
 
+END_TEST START_TEST(test_fdset_method)
+{
+    fd_set read_fds, write_fds, exc_fds;
+    int max_fd = -1;
+
+    FD_ZERO(&read_fds);
+    FD_ZERO(&write_fds);
+    FD_ZERO(&exc_fds);
+
+    res_t r = provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
+    ck_assert(!is_err(&r));
+}
+
+END_TEST START_TEST(test_perform_method)
+{
+    int running_handles = 0;
+
+    res_t r = provider->vt->perform(provider->ctx, &running_handles);
+    ck_assert(!is_err(&r));
+}
+
+END_TEST START_TEST(test_timeout_method)
+{
+    long timeout_ms = -1;
+
+    res_t r = provider->vt->timeout(provider->ctx, &timeout_ms);
+    ck_assert(!is_err(&r));
+}
+
+END_TEST START_TEST(test_info_read_method)
+{
+    // Create a minimal logger for testing
+    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
+    ck_assert_ptr_nonnull(logger);
+
+    // info_read is a void function
+    provider->vt->info_read(provider->ctx, logger);
+
+    // If we get here without crashing, the test passed
+    ck_assert(1);
+}
+
 END_TEST
 
 /* ================================================================
@@ -115,6 +158,10 @@ static Suite *openai_vtable_suite(void)
     tcase_add_unchecked_fixture(tc_vtable, setup_provider, teardown_provider);
     tcase_add_test(tc_vtable, test_cleanup_method);
     tcase_add_test(tc_vtable, test_cancel_method);
+    tcase_add_test(tc_vtable, test_fdset_method);
+    tcase_add_test(tc_vtable, test_perform_method);
+    tcase_add_test(tc_vtable, test_timeout_method);
+    tcase_add_test(tc_vtable, test_info_read_method);
     suite_add_tcase(s, tc_vtable);
 
     return s;
