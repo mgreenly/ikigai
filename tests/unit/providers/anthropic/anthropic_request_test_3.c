@@ -49,8 +49,7 @@ static ik_request_t *create_basic_request(TALLOC_CTX *ctx)
  * Role Mapping Tests
  * ================================================================ */
 
-START_TEST(test_role_user)
-{
+START_TEST(test_role_user) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->messages[0].role = IK_ROLE_USER;
     char *json = NULL;
@@ -68,9 +67,7 @@ START_TEST(test_role_user)
 
     yyjson_doc_free(doc);
 }
-END_TEST
-
-START_TEST(test_role_assistant)
+END_TEST START_TEST(test_role_assistant)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->messages[0].role = IK_ROLE_ASSISTANT;
@@ -89,9 +86,8 @@ START_TEST(test_role_assistant)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_role_tool_mapped_to_user)
+END_TEST START_TEST(test_role_tool_mapped_to_user)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->messages[0].role = IK_ROLE_TOOL;
@@ -111,8 +107,8 @@ START_TEST(test_role_tool_mapped_to_user)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Thinking Configuration Tests
  * ================================================================ */
@@ -135,9 +131,8 @@ START_TEST(test_thinking_none)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_thinking_low)
+END_TEST START_TEST(test_thinking_low)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
@@ -162,9 +157,8 @@ START_TEST(test_thinking_low)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_thinking_med)
+END_TEST START_TEST(test_thinking_med)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
@@ -186,9 +180,8 @@ START_TEST(test_thinking_med)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_thinking_high)
+END_TEST START_TEST(test_thinking_high)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
@@ -209,9 +202,8 @@ START_TEST(test_thinking_high)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_thinking_adjusts_max_tokens)
+END_TEST START_TEST(test_thinking_adjusts_max_tokens)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
@@ -231,9 +223,8 @@ START_TEST(test_thinking_adjusts_max_tokens)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_thinking_unsupported_model)
+END_TEST START_TEST(test_thinking_unsupported_model)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->model = talloc_strdup(req, "gpt-4");
@@ -252,6 +243,7 @@ START_TEST(test_thinking_unsupported_model)
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 /* ================================================================

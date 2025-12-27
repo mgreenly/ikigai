@@ -76,8 +76,7 @@ static void teardown(void)
 }
 
 // Test: Thinking level - none
-START_TEST(test_model_thinking_none)
-{
+START_TEST(test_model_thinking_none) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-sonnet-4-5/none");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->model, "claude-sonnet-4-5");

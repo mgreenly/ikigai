@@ -49,8 +49,7 @@ static ik_request_t *create_basic_request(TALLOC_CTX *ctx)
  * Tool Definition Tests
  * ================================================================ */
 
-START_TEST(test_tools_none)
-{
+START_TEST(test_tools_none) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->tool_count = 0;
     req->tools = NULL;
@@ -68,9 +67,7 @@ START_TEST(test_tools_none)
 
     yyjson_doc_free(doc);
 }
-END_TEST
-
-START_TEST(test_tools_single)
+END_TEST START_TEST(test_tools_single)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->tool_count = 1;
@@ -102,9 +99,8 @@ START_TEST(test_tools_single)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_tools_multiple)
+END_TEST START_TEST(test_tools_multiple)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->tool_count = 2;
@@ -128,9 +124,8 @@ START_TEST(test_tools_multiple)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_tool_choice_auto)
+END_TEST START_TEST(test_tool_choice_auto)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->tool_count = 1;
@@ -154,9 +149,8 @@ START_TEST(test_tool_choice_auto)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_tool_choice_none)
+END_TEST START_TEST(test_tool_choice_none)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->tool_count = 1;
@@ -180,9 +174,8 @@ START_TEST(test_tool_choice_none)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_tool_choice_required)
+END_TEST START_TEST(test_tool_choice_required)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->tool_count = 1;
@@ -206,9 +199,8 @@ START_TEST(test_tool_choice_required)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_tool_choice_default)
+END_TEST START_TEST(test_tool_choice_default)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->tool_count = 1;
@@ -233,8 +225,8 @@ START_TEST(test_tool_choice_default)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Header Building Tests
  * ================================================================ */
@@ -253,9 +245,8 @@ START_TEST(test_build_headers)
     ck_assert_str_eq(headers[2], "content-type: application/json");
     ck_assert_ptr_null(headers[3]);
 }
-END_TEST
 
-START_TEST(test_build_headers_different_key)
+END_TEST START_TEST(test_build_headers_different_key)
 {
     char **headers = NULL;
     res_t r = ik_anthropic_build_headers(test_ctx, "another-key", &headers);
@@ -264,8 +255,8 @@ START_TEST(test_build_headers_different_key)
     ck_assert_ptr_nonnull(headers);
     ck_assert_str_eq(headers[0], "x-api-key: another-key");
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Error Case Tests
  * ================================================================ */
@@ -286,9 +277,8 @@ START_TEST(test_serialize_invalid_tool_call_json)
     ck_assert(is_err(&r));
     ck_assert_int_eq(r.err->code, ERR_PARSE);
 }
-END_TEST
 
-START_TEST(test_serialize_invalid_tool_params_json)
+END_TEST START_TEST(test_serialize_invalid_tool_params_json)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->tool_count = 1;
@@ -304,6 +294,7 @@ START_TEST(test_serialize_invalid_tool_params_json)
     ck_assert(is_err(&r));
     ck_assert_int_eq(r.err->code, ERR_PARSE);
 }
+
 END_TEST
 
 /* ================================================================

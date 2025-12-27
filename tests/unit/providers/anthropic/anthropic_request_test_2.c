@@ -49,8 +49,7 @@ static ik_request_t *create_basic_request(TALLOC_CTX *ctx)
  * Message Content Tests
  * ================================================================ */
 
-START_TEST(test_serialize_single_text_message)
-{
+START_TEST(test_serialize_single_text_message) {
     ik_request_t *req = create_basic_request(test_ctx);
     char *json = NULL;
 
@@ -75,16 +74,14 @@ START_TEST(test_serialize_single_text_message)
 
     yyjson_doc_free(doc);
 }
-END_TEST
-
-START_TEST(test_serialize_multiple_content_blocks)
+END_TEST START_TEST(test_serialize_multiple_content_blocks)
 {
     ik_request_t *req = create_basic_request(test_ctx);
 
     // Add multiple content blocks
     req->messages[0].content_count = 2;
     req->messages[0].content_blocks = talloc_realloc(req, req->messages[0].content_blocks,
-                                                      ik_content_block_t, 2);
+                                                     ik_content_block_t, 2);
     req->messages[0].content_blocks[1].type = IK_CONTENT_TEXT;
     req->messages[0].content_blocks[1].data.text.text = talloc_strdup(req, "World");
 
@@ -105,9 +102,8 @@ START_TEST(test_serialize_multiple_content_blocks)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_serialize_thinking_content)
+END_TEST START_TEST(test_serialize_thinking_content)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->messages[0].content_blocks[0].type = IK_CONTENT_THINKING;
@@ -135,9 +131,8 @@ START_TEST(test_serialize_thinking_content)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_serialize_tool_call_content)
+END_TEST START_TEST(test_serialize_tool_call_content)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->messages[0].role = IK_ROLE_ASSISTANT;
@@ -171,9 +166,8 @@ START_TEST(test_serialize_tool_call_content)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_serialize_tool_result_content)
+END_TEST START_TEST(test_serialize_tool_result_content)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->messages[0].role = IK_ROLE_TOOL;
@@ -207,9 +201,8 @@ START_TEST(test_serialize_tool_result_content)
 
     yyjson_doc_free(doc);
 }
-END_TEST
 
-START_TEST(test_serialize_tool_result_error)
+END_TEST START_TEST(test_serialize_tool_result_error)
 {
     ik_request_t *req = create_basic_request(test_ctx);
     req->messages[0].role = IK_ROLE_TOOL;
@@ -235,6 +228,7 @@ START_TEST(test_serialize_tool_result_error)
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 /* ================================================================

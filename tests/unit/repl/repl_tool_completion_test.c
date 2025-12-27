@@ -130,12 +130,11 @@ START_TEST(test_handle_tool_completion_delegates_to_current) {
 }
 
 END_TEST
-
-
 /**
  * Test: ik_repl_handle_agent_tool_completion renders when agent is current
  */
-START_TEST(test_handle_agent_tool_completion_renders_current) {
+START_TEST(test_handle_agent_tool_completion_renders_current)
+{
     /* Set up state */
     agent->tool_thread_ctx = talloc_new(agent);
     agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
@@ -158,12 +157,11 @@ START_TEST(test_handle_agent_tool_completion_renders_current) {
 }
 
 END_TEST
-
-
 /**
  * Test: ik_repl_poll_tool_completions with agent in agents array
  */
-START_TEST(test_poll_tool_completions_agents_array) {
+START_TEST(test_poll_tool_completions_agents_array)
+{
     /* Set up agents array with one agent */
     repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
     repl->agents[0] = agent;
@@ -194,11 +192,11 @@ START_TEST(test_poll_tool_completions_agents_array) {
 }
 
 END_TEST
-
 /**
  * Test: ik_repl_poll_tool_completions with current agent not executing
  */
-START_TEST(test_poll_tool_completions_current_not_executing) {
+START_TEST(test_poll_tool_completions_current_not_executing)
+{
     /* Set up current agent in IDLE state */
     repl->agent_count = 0;
     repl->current = agent;

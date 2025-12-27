@@ -29,211 +29,214 @@ START_TEST(test_is_reasoning_model_null) {
     bool result = ik_openai_is_reasoning_model(NULL);
     ck_assert(!result);
 }
-END_TEST
-
-START_TEST(test_is_reasoning_model_empty) {
+END_TEST START_TEST(test_is_reasoning_model_empty)
+{
     bool result = ik_openai_is_reasoning_model("");
     ck_assert(!result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_o1) {
+END_TEST START_TEST(test_is_reasoning_model_o1)
+{
     bool result = ik_openai_is_reasoning_model("o1");
     ck_assert(result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_o1_mini) {
+END_TEST START_TEST(test_is_reasoning_model_o1_mini)
+{
     bool result = ik_openai_is_reasoning_model("o1-mini");
     ck_assert(result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_o1_preview) {
+END_TEST START_TEST(test_is_reasoning_model_o1_preview)
+{
     bool result = ik_openai_is_reasoning_model("o1-preview");
     ck_assert(result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_o3) {
+END_TEST START_TEST(test_is_reasoning_model_o3)
+{
     bool result = ik_openai_is_reasoning_model("o3");
     ck_assert(result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_o3_mini) {
+END_TEST START_TEST(test_is_reasoning_model_o3_mini)
+{
     bool result = ik_openai_is_reasoning_model("o3-mini");
     ck_assert(result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_o4) {
+END_TEST START_TEST(test_is_reasoning_model_o4)
+{
     bool result = ik_openai_is_reasoning_model("o4");
     ck_assert(result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_o4_turbo) {
+END_TEST START_TEST(test_is_reasoning_model_o4_turbo)
+{
     bool result = ik_openai_is_reasoning_model("o4-turbo");
     ck_assert(result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_o1_underscore) {
+END_TEST START_TEST(test_is_reasoning_model_o1_underscore)
+{
     bool result = ik_openai_is_reasoning_model("o1_variant");
     ck_assert(result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_o30_not_reasoning) {
+END_TEST START_TEST(test_is_reasoning_model_o30_not_reasoning)
+{
     // "o30" should NOT match - the '0' after "o3" is not a valid separator
     bool result = ik_openai_is_reasoning_model("o30");
     ck_assert(!result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_gpt4) {
+END_TEST START_TEST(test_is_reasoning_model_gpt4)
+{
     bool result = ik_openai_is_reasoning_model("gpt-4");
     ck_assert(!result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_gpt4o) {
+END_TEST START_TEST(test_is_reasoning_model_gpt4o)
+{
     bool result = ik_openai_is_reasoning_model("gpt-4o");
     ck_assert(!result);
 }
-END_TEST
 
-START_TEST(test_is_reasoning_model_claude) {
+END_TEST START_TEST(test_is_reasoning_model_claude)
+{
     bool result = ik_openai_is_reasoning_model("claude-3-5-sonnet");
     ck_assert(!result);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * ik_openai_reasoning_effort Tests
  * ================================================================ */
 
-START_TEST(test_reasoning_effort_none) {
+START_TEST(test_reasoning_effort_none)
+{
     const char *effort = ik_openai_reasoning_effort(IK_THINKING_NONE);
     ck_assert_ptr_null(effort);
 }
-END_TEST
 
-START_TEST(test_reasoning_effort_low) {
+END_TEST START_TEST(test_reasoning_effort_low)
+{
     const char *effort = ik_openai_reasoning_effort(IK_THINKING_LOW);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "low");
 }
-END_TEST
 
-START_TEST(test_reasoning_effort_med) {
+END_TEST START_TEST(test_reasoning_effort_med)
+{
     const char *effort = ik_openai_reasoning_effort(IK_THINKING_MED);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "medium");
 }
-END_TEST
 
-START_TEST(test_reasoning_effort_high) {
+END_TEST START_TEST(test_reasoning_effort_high)
+{
     const char *effort = ik_openai_reasoning_effort(IK_THINKING_HIGH);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "high");
 }
-END_TEST
 
-START_TEST(test_reasoning_effort_invalid) {
+END_TEST START_TEST(test_reasoning_effort_invalid)
+{
     // Test with an invalid enum value
     const char *effort = ik_openai_reasoning_effort((ik_thinking_level_t)999);
     ck_assert_ptr_null(effort);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * ik_openai_supports_temperature Tests
  * ================================================================ */
 
-START_TEST(test_supports_temperature_gpt4) {
+START_TEST(test_supports_temperature_gpt4)
+{
     bool result = ik_openai_supports_temperature("gpt-4");
     ck_assert(result);
 }
-END_TEST
 
-START_TEST(test_supports_temperature_gpt4o) {
+END_TEST START_TEST(test_supports_temperature_gpt4o)
+{
     bool result = ik_openai_supports_temperature("gpt-4o");
     ck_assert(result);
 }
-END_TEST
 
-START_TEST(test_supports_temperature_o1) {
+END_TEST START_TEST(test_supports_temperature_o1)
+{
     // Reasoning models do NOT support temperature
     bool result = ik_openai_supports_temperature("o1");
     ck_assert(!result);
 }
-END_TEST
 
-START_TEST(test_supports_temperature_o1_mini) {
+END_TEST START_TEST(test_supports_temperature_o1_mini)
+{
     bool result = ik_openai_supports_temperature("o1-mini");
     ck_assert(!result);
 }
-END_TEST
 
-START_TEST(test_supports_temperature_o3) {
+END_TEST START_TEST(test_supports_temperature_o3)
+{
     bool result = ik_openai_supports_temperature("o3");
     ck_assert(!result);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * ik_openai_prefer_responses_api Tests
  * ================================================================ */
 
-START_TEST(test_prefer_responses_api_gpt4) {
+START_TEST(test_prefer_responses_api_gpt4)
+{
     bool result = ik_openai_prefer_responses_api("gpt-4");
     ck_assert(!result);
 }
-END_TEST
 
-START_TEST(test_prefer_responses_api_o1) {
+END_TEST START_TEST(test_prefer_responses_api_o1)
+{
     // Reasoning models prefer Responses API
     bool result = ik_openai_prefer_responses_api("o1");
     ck_assert(result);
 }
-END_TEST
 
-START_TEST(test_prefer_responses_api_o3_mini) {
+END_TEST START_TEST(test_prefer_responses_api_o3_mini)
+{
     bool result = ik_openai_prefer_responses_api("o3-mini");
     ck_assert(result);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * ik_openai_validate_thinking Tests
  * ================================================================ */
 
-START_TEST(test_validate_thinking_null_model) {
+START_TEST(test_validate_thinking_null_model)
+{
     res_t r = ik_openai_validate_thinking(test_ctx, NULL, IK_THINKING_LOW);
     ck_assert(is_err(&r));
     ck_assert_ptr_nonnull(r.err);
     ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
     ck_assert(strstr(r.err->msg, "Model cannot be NULL") != NULL);
 }
-END_TEST
 
-START_TEST(test_validate_thinking_none_always_valid) {
+END_TEST START_TEST(test_validate_thinking_none_always_valid)
+{
     // NONE is valid for any model
     res_t r = ik_openai_validate_thinking(test_ctx, "gpt-4", IK_THINKING_NONE);
     ck_assert(!is_err(&r));
 }
-END_TEST
 
-START_TEST(test_validate_thinking_none_reasoning_model) {
+END_TEST START_TEST(test_validate_thinking_none_reasoning_model)
+{
     // NONE is valid for reasoning models too
     res_t r = ik_openai_validate_thinking(test_ctx, "o1", IK_THINKING_NONE);
     ck_assert(!is_err(&r));
 }
-END_TEST
 
-START_TEST(test_validate_thinking_low_non_reasoning) {
+END_TEST START_TEST(test_validate_thinking_low_non_reasoning)
+{
     // LOW is invalid for non-reasoning models
     res_t r = ik_openai_validate_thinking(test_ctx, "gpt-4", IK_THINKING_LOW);
     ck_assert(is_err(&r));
@@ -241,43 +244,44 @@ START_TEST(test_validate_thinking_low_non_reasoning) {
     ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
     ck_assert(strstr(r.err->msg, "does not support thinking") != NULL);
 }
-END_TEST
 
-START_TEST(test_validate_thinking_med_non_reasoning) {
+END_TEST START_TEST(test_validate_thinking_med_non_reasoning)
+{
     // MED is invalid for non-reasoning models
     res_t r = ik_openai_validate_thinking(test_ctx, "gpt-4o", IK_THINKING_MED);
     ck_assert(is_err(&r));
     ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
 }
-END_TEST
 
-START_TEST(test_validate_thinking_high_non_reasoning) {
+END_TEST START_TEST(test_validate_thinking_high_non_reasoning)
+{
     // HIGH is invalid for non-reasoning models
     res_t r = ik_openai_validate_thinking(test_ctx, "gpt-3.5-turbo", IK_THINKING_HIGH);
     ck_assert(is_err(&r));
     ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
 }
-END_TEST
 
-START_TEST(test_validate_thinking_low_reasoning) {
+END_TEST START_TEST(test_validate_thinking_low_reasoning)
+{
     // LOW is valid for reasoning models
     res_t r = ik_openai_validate_thinking(test_ctx, "o1", IK_THINKING_LOW);
     ck_assert(!is_err(&r));
 }
-END_TEST
 
-START_TEST(test_validate_thinking_med_reasoning) {
+END_TEST START_TEST(test_validate_thinking_med_reasoning)
+{
     // MED is valid for reasoning models
     res_t r = ik_openai_validate_thinking(test_ctx, "o3-mini", IK_THINKING_MED);
     ck_assert(!is_err(&r));
 }
-END_TEST
 
-START_TEST(test_validate_thinking_high_reasoning) {
+END_TEST START_TEST(test_validate_thinking_high_reasoning)
+{
     // HIGH is valid for reasoning models
     res_t r = ik_openai_validate_thinking(test_ctx, "o1-preview", IK_THINKING_HIGH);
     ck_assert(!is_err(&r));
 }
+
 END_TEST
 
 /* ================================================================

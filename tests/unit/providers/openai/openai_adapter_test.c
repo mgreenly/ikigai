@@ -47,6 +47,15 @@ END_TEST START_TEST(test_destroy_adapter_cleans_up_resources)
     talloc_free(provider);
 }
 
+END_TEST START_TEST(test_create_adapter_with_empty_api_key_returns_error)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_openai_create(test_ctx, "", &provider);
+
+    ck_assert(is_err(&result));
+    ck_assert_ptr_null(provider);
+}
+
 END_TEST START_TEST(test_vtable_async_methods_non_null)
 {
     ik_provider_t *provider = NULL;
@@ -104,6 +113,7 @@ static Suite *openai_adapter_suite(void)
     TCase *tc_create = tcase_create("Provider Creation");
     tcase_add_unchecked_fixture(tc_create, setup, teardown);
     tcase_add_test(tc_create, test_create_adapter_with_valid_credentials);
+    tcase_add_test(tc_create, test_create_adapter_with_empty_api_key_returns_error);
     tcase_add_test(tc_create, test_destroy_adapter_cleans_up_resources);
     tcase_add_test(tc_create, test_vtable_async_methods_non_null);
     tcase_add_test(tc_create, test_fdset_returns_ok);
