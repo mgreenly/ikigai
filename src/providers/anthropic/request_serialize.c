@@ -85,7 +85,7 @@ bool ik_anthropic_serialize_message_content(yyjson_mut_doc *doc, yyjson_mut_val 
     if (message->content_count == 1 && message->content_blocks[0].type == IK_CONTENT_TEXT) {
         if (!yyjson_mut_obj_add_str(doc, msg_obj, "content",
                                      message->content_blocks[0].data.text.text)) {
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
         return true;
     }
@@ -101,7 +101,7 @@ bool ik_anthropic_serialize_message_content(yyjson_mut_doc *doc, yyjson_mut_val 
     }
 
     if (!yyjson_mut_obj_add_val(doc, msg_obj, "content", content_arr)) {
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
     return true;
 }
@@ -143,7 +143,7 @@ bool ik_anthropic_serialize_messages(yyjson_mut_doc *doc, yyjson_mut_val *root,
         // Add role
         const char *role_str = ik_anthropic_role_to_string(req->messages[i].role);
         if (!yyjson_mut_obj_add_str(doc, msg_obj, "role", role_str)) {
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
 
         // Add content
@@ -152,12 +152,12 @@ bool ik_anthropic_serialize_messages(yyjson_mut_doc *doc, yyjson_mut_val *root,
         }
 
         if (!yyjson_mut_arr_add_val(messages_arr, msg_obj)) {
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "messages", messages_arr)) {
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
     return true;
 }
