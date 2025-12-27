@@ -168,6 +168,49 @@ START_TEST(test_rewind_with_multiple_message_pairs)
 
 END_TEST
 
+// Test: Rewind with tool result message (covers marks.c line 188)
+START_TEST(test_rewind_with_tool_result_message)
+{
+    // Create a user message
+    ik_message_t *msg_user = ik_message_create_text(ctx, IK_ROLE_USER, "Use a tool");
+    ck_assert_ptr_nonnull(msg_user);
+    res_t res = ik_agent_add_message(repl->current, msg_user);
+    ck_assert(is_ok(&res));
+
+    // Create a tool result message (IK_ROLE_TOOL)
+    ik_message_t *msg_tool = ik_message_create_tool_result(ctx, "call_123", "Tool output", false);
+    ck_assert_ptr_nonnull(msg_tool);
+    ck_assert(msg_tool->role == IK_ROLE_TOOL);
+    res = ik_agent_add_message(repl->current, msg_tool);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(repl->current->message_count, 2);
+
+    // Create a mark
+    res_t mark_res = ik_mark_create(repl, "with_tool");
+    ck_assert(is_ok(&mark_res));
+
+    // Add another message
+    ik_message_t *msg_user2 = ik_message_create_text(ctx, IK_ROLE_USER, "More messages");
+    ck_assert_ptr_nonnull(msg_user2);
+    res = ik_agent_add_message(repl->current, msg_user2);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(repl->current->message_count, 3);
+
+    // Rewind to mark
+    ik_mark_t *target_mark = NULL;
+    res_t find_res = ik_mark_find(repl, "with_tool", &target_mark);
+    ck_assert(is_ok(&find_res));
+
+    res_t rewind_res = ik_mark_rewind_to_mark(repl, target_mark);
+    ck_assert(is_ok(&rewind_res));
+
+    // Should be back to 2 messages, including the tool result
+    ck_assert_uint_eq(repl->current->message_count, 2);
+    ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
+    ck_assert(repl->current->messages[1]->role == IK_ROLE_TOOL);
+}
+END_TEST
+
 static Suite *mark_system_role_suite(void)
 {
     Suite *s = suite_create("Mark System Role");
@@ -177,6 +220,7 @@ static Suite *mark_system_role_suite(void)
 
     tcase_add_test(tc, test_rewind_preserves_message_order);
     tcase_add_test(tc, test_rewind_with_multiple_message_pairs);
+    tcase_add_test(tc, test_rewind_with_tool_result_message);
 
     suite_add_tcase(s, tc);
     return s;
