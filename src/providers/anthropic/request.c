@@ -19,11 +19,26 @@
 #include <string.h>
 #include <assert.h>
 
+// Forward declarations
+static bool serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
+                                     const ik_content_block_t *block);
+static bool serialize_message_content(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
+                                       const ik_message_t *message);
+static const char *role_to_string(ik_role_t role);
+static bool serialize_messages(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                                const ik_request_t *req);
+static bool serialize_thinking(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                                const ik_request_t *req);
+static bool serialize_tools(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                             const ik_request_t *req);
+static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req,
+                                         bool stream, char **out_json);
+
 /**
  * Serialize a single content block to Anthropic JSON format
  */
 static bool serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
-                                      const ik_content_block_t *block)
+                                     const ik_content_block_t *block)
 {
     assert(doc != NULL);   // LCOV_EXCL_BR_LINE
     assert(arr != NULL);   // LCOV_EXCL_BR_LINE
@@ -82,7 +97,7 @@ static bool serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
  * Otherwise, use array format.
  */
 static bool serialize_message_content(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
-                                        const ik_message_t *message)
+                                       const ik_message_t *message)
 {
     assert(doc != NULL);     // LCOV_EXCL_BR_LINE
     assert(msg_obj != NULL); // LCOV_EXCL_BR_LINE
@@ -134,7 +149,7 @@ static const char *role_to_string(ik_role_t role)
  * Serialize messages array
  */
 static bool serialize_messages(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                                 const ik_request_t *req)
+                                const ik_request_t *req)
 {
     assert(doc != NULL);  // LCOV_EXCL_BR_LINE
     assert(root != NULL); // LCOV_EXCL_BR_LINE
@@ -173,7 +188,7 @@ static bool serialize_messages(yyjson_mut_doc *doc, yyjson_mut_val *root,
  * Serialize thinking configuration
  */
 static bool serialize_thinking(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                                 const ik_request_t *req)
+                                const ik_request_t *req)
 {
     assert(doc != NULL);  // LCOV_EXCL_BR_LINE
     assert(root != NULL); // LCOV_EXCL_BR_LINE
@@ -214,7 +229,7 @@ static bool serialize_thinking(yyjson_mut_doc *doc, yyjson_mut_val *root,
  * Serialize tool definitions
  */
 static bool serialize_tools(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                              const ik_request_t *req)
+                             const ik_request_t *req)
 {
     assert(doc != NULL);  // LCOV_EXCL_BR_LINE
     assert(root != NULL); // LCOV_EXCL_BR_LINE

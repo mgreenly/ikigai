@@ -107,8 +107,8 @@ CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/config.c src/credenti
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
-UNIT_TEST_SOURCES = $(wildcard tests/unit/*/*_test.c) $(wildcard tests/unit/*/*/*_test.c)
-UNIT_TEST_TARGETS = $(patsubst tests/unit/%_test.c,$(BUILDDIR)/tests/unit/%_test,$(UNIT_TEST_SOURCES))
+UNIT_TEST_SOURCES = $(wildcard tests/unit/*/*_test.c) $(wildcard tests/unit/*/*/*_test.c) $(wildcard tests/unit/*/*_test_*.c) $(wildcard tests/unit/*/*/*_test_*.c)
+UNIT_TEST_TARGETS = $(patsubst tests/unit/%.c,$(BUILDDIR)/tests/unit/%,$(UNIT_TEST_SOURCES))
 
 INTEGRATION_TEST_SOURCES = $(wildcard tests/integration/*_test.c)
 INTEGRATION_TEST_TARGETS = $(patsubst tests/integration/%_test.c,$(BUILDDIR)/tests/integration/%_test,$(INTEGRATION_TEST_SOURCES))
