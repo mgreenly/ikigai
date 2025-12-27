@@ -221,6 +221,247 @@ END_TEST START_TEST(test_build_request_without_optional_fields)
     yyjson_doc_free(doc);
 }
 
+END_TEST START_TEST(test_build_request_with_streaming_enabled)
+{
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "gpt-4");
+    req->max_output_tokens = 1024;
+
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "Hello!");
+
+    char *json = NULL;
+    res_t r = ik_openai_serialize_chat_request(test_ctx, req, true, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
+
+    yyjson_val *stream = yyjson_obj_get(root, "stream");
+    ck_assert_ptr_nonnull(stream);
+    ck_assert(yyjson_get_bool(stream));
+
+    yyjson_val *stream_options = yyjson_obj_get(root, "stream_options");
+    ck_assert_ptr_nonnull(stream_options);
+
+    yyjson_val *include_usage = yyjson_obj_get(stream_options, "include_usage");
+    ck_assert_ptr_nonnull(include_usage);
+    ck_assert(yyjson_get_bool(include_usage));
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST START_TEST(test_build_request_with_tool_choice_none)
+{
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "gpt-4");
+    req->max_output_tokens = 1024;
+    req->tool_choice_mode = 1; // IK_TOOL_NONE
+
+    req->tools = talloc_zero_array(req, ik_tool_def_t, 1);
+    req->tool_count = 1;
+    req->tools[0].name = talloc_strdup(req, "get_weather");
+    req->tools[0].description = talloc_strdup(req, "Get weather");
+    req->tools[0].parameters = talloc_strdup(req, "{\"type\":\"object\",\"properties\":{}}");
+
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "Test");
+
+    char *json = NULL;
+    res_t r = ik_openai_serialize_chat_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
+
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "none");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST START_TEST(test_build_request_with_tool_choice_required)
+{
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "gpt-4");
+    req->max_output_tokens = 1024;
+    req->tool_choice_mode = 2; // IK_TOOL_REQUIRED
+
+    req->tools = talloc_zero_array(req, ik_tool_def_t, 1);
+    req->tool_count = 1;
+    req->tools[0].name = talloc_strdup(req, "get_weather");
+    req->tools[0].description = talloc_strdup(req, "Get weather");
+    req->tools[0].parameters = talloc_strdup(req, "{\"type\":\"object\",\"properties\":{}}");
+
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "Test");
+
+    char *json = NULL;
+    res_t r = ik_openai_serialize_chat_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
+
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "required");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST START_TEST(test_build_request_with_tool_choice_auto)
+{
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "gpt-4");
+    req->max_output_tokens = 1024;
+    req->tool_choice_mode = 0; // IK_TOOL_AUTO
+
+    req->tools = talloc_zero_array(req, ik_tool_def_t, 1);
+    req->tool_count = 1;
+    req->tools[0].name = talloc_strdup(req, "get_weather");
+    req->tools[0].description = talloc_strdup(req, "Get weather");
+    req->tools[0].parameters = talloc_strdup(req, "{\"type\":\"object\",\"properties\":{}}");
+
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "Test");
+
+    char *json = NULL;
+    res_t r = ik_openai_serialize_chat_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
+
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "auto");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST START_TEST(test_build_request_with_tool_choice_unknown_defaults_to_auto)
+{
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "gpt-4");
+    req->max_output_tokens = 1024;
+    req->tool_choice_mode = 99; // Unknown value
+
+    req->tools = talloc_zero_array(req, ik_tool_def_t, 1);
+    req->tool_count = 1;
+    req->tools[0].name = talloc_strdup(req, "get_weather");
+    req->tools[0].description = talloc_strdup(req, "Get weather");
+    req->tools[0].parameters = talloc_strdup(req, "{\"type\":\"object\",\"properties\":{}}");
+
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "Test");
+
+    char *json = NULL;
+    res_t r = ik_openai_serialize_chat_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
+
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "auto");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST START_TEST(test_build_request_with_invalid_tool_parameters)
+{
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "gpt-4");
+    req->max_output_tokens = 1024;
+
+    req->tools = talloc_zero_array(req, ik_tool_def_t, 1);
+    req->tool_count = 1;
+    req->tools[0].name = talloc_strdup(req, "get_weather");
+    req->tools[0].description = talloc_strdup(req, "Get weather");
+    req->tools[0].parameters = talloc_strdup(req, "invalid json{");
+
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "Test");
+
+    char *json = NULL;
+    res_t r = ik_openai_serialize_chat_request(test_ctx, req, false, &json);
+
+    ck_assert(is_err(&r));
+}
+
+END_TEST START_TEST(test_build_request_with_null_model)
+{
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = NULL;
+    req->max_output_tokens = 1024;
+
+    req->messages = talloc_zero_array(req, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(req, "Test");
+
+    char *json = NULL;
+    res_t r = ik_openai_serialize_chat_request(test_ctx, req, false, &json);
+
+    ck_assert(is_err(&r));
+}
+
 END_TEST START_TEST(test_verify_correct_headers)
 {
     const char *api_key = "sk-test-key-12345";
@@ -303,6 +544,13 @@ static Suite *openai_client_suite(void)
     tcase_add_test(tc_serialization, test_build_request_for_gpt5_model_without_reasoning_effort);
     tcase_add_test(tc_serialization, test_build_request_with_tool_definitions);
     tcase_add_test(tc_serialization, test_build_request_without_optional_fields);
+    tcase_add_test(tc_serialization, test_build_request_with_streaming_enabled);
+    tcase_add_test(tc_serialization, test_build_request_with_tool_choice_none);
+    tcase_add_test(tc_serialization, test_build_request_with_tool_choice_required);
+    tcase_add_test(tc_serialization, test_build_request_with_tool_choice_auto);
+    tcase_add_test(tc_serialization, test_build_request_with_tool_choice_unknown_defaults_to_auto);
+    tcase_add_test(tc_serialization, test_build_request_with_invalid_tool_parameters);
+    tcase_add_test(tc_serialization, test_build_request_with_null_model);
     tcase_add_test(tc_serialization, test_verify_correct_headers);
     tcase_add_test(tc_serialization, test_verify_json_structure_matches_chat_completions_api);
     suite_add_tcase(s, tc_serialization);

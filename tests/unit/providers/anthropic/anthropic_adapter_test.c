@@ -109,9 +109,7 @@ END_TEST START_TEST(test_timeout_returns_ok)
     ck_assert(!is_err(&r));
 }
 
-END_TEST
-
-START_TEST(test_cleanup_does_not_crash)
+END_TEST START_TEST(test_cleanup_does_not_crash)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
@@ -122,9 +120,8 @@ START_TEST(test_cleanup_does_not_crash)
 
     // Should complete without crashing
 }
-END_TEST
 
-START_TEST(test_cancel_does_not_crash)
+END_TEST START_TEST(test_cancel_does_not_crash)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
@@ -135,9 +132,8 @@ START_TEST(test_cancel_does_not_crash)
 
     // Should complete without crashing
 }
-END_TEST
 
-START_TEST(test_info_read_without_active_stream)
+END_TEST START_TEST(test_info_read_without_active_stream)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
@@ -152,6 +148,7 @@ START_TEST(test_info_read_without_active_stream)
 
     // Should complete without crashing
 }
+
 END_TEST
 
 /* ================================================================
@@ -169,8 +166,7 @@ static res_t test_completion_cb(const ik_provider_completion_t *completion, void
     return OK(NULL);
 }
 
-START_TEST(test_start_request_delegates_to_response_module)
-{
+START_TEST(test_start_request_delegates_to_response_module) {
     ik_provider_t *provider = NULL;
     res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -186,7 +182,7 @@ START_TEST(test_start_request_delegates_to_response_module)
     // Call start_request (non-streaming)
     completion_called = false;
     res_t start_res = provider->vt->start_request(provider->ctx, request,
-                                                    test_completion_cb, NULL);
+                                                  test_completion_cb, NULL);
 
     // The function should return OK - actual network call will happen async
     ck_assert(!is_err(&start_res));

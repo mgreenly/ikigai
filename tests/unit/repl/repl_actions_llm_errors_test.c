@@ -187,8 +187,7 @@ static void teardown(void)
 }
 
 // Test: ik_agent_get_provider fails (lines 146-150)
-START_TEST(test_get_provider_fails)
-{
+START_TEST(test_get_provider_fails) {
     // Set up model
     repl->current->model = talloc_strdup(repl->current, "gpt-4");
 
