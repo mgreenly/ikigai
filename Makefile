@@ -732,7 +732,10 @@ check-tsan:
 	@rm -rf build-tsan
 	@mkdir -p build-tsan/tests/unit build-tsan/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-tsan/tests/unit|' | xargs mkdir -p
-	@$(MAKE) -j$(MAKE_JOBS) check BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1
+	@echo "Building test binaries in parallel..."
+	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
+	@echo "Running tests sequentially (ThreadSanitizer + DB tests require serial execution)..."
+	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -j1 check-unit check-integration
 	@echo "✓ ThreadSanitizer checks passed!"
 
 check-dynamic:
