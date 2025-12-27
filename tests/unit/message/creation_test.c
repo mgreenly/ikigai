@@ -181,6 +181,143 @@ END_TEST START_TEST(test_message_from_db_msg_invalid_json)
     ck_assert(is_err(&res));
 }
 
+END_TEST START_TEST(test_message_from_db_msg_user_missing_content)
+{
+    char kind[] = "user";
+    ik_msg_t db_msg = {
+        .id = 6,
+        .kind = kind,
+        .content = NULL,
+        .data_json = NULL
+    };
+
+    ik_message_t *msg = NULL;
+    res_t res = ik_message_from_db_msg(test_ctx, &db_msg, &msg);
+
+    ck_assert(is_err(&res));
+}
+
+END_TEST START_TEST(test_message_from_db_msg_assistant_missing_content)
+{
+    char kind[] = "assistant";
+    ik_msg_t db_msg = {
+        .id = 7,
+        .kind = kind,
+        .content = NULL,
+        .data_json = NULL
+    };
+
+    ik_message_t *msg = NULL;
+    res_t res = ik_message_from_db_msg(test_ctx, &db_msg, &msg);
+
+    ck_assert(is_err(&res));
+}
+
+END_TEST START_TEST(test_message_from_db_msg_tool_call_missing_data_json)
+{
+    char kind[] = "tool_call";
+    char content[] = "Some tool call";
+    ik_msg_t db_msg = {
+        .id = 8,
+        .kind = kind,
+        .content = content,
+        .data_json = NULL
+    };
+
+    ik_message_t *msg = NULL;
+    res_t res = ik_message_from_db_msg(test_ctx, &db_msg, &msg);
+
+    ck_assert(is_err(&res));
+}
+
+END_TEST START_TEST(test_message_from_db_msg_tool_call_invalid_field_types)
+{
+    char kind[] = "tool_call";
+    char content[] = "Tool call";
+    char data_json[] = "{\"tool_call_id\":123,\"name\":\"test\",\"arguments\":\"{}\"}";
+    ik_msg_t db_msg = {
+        .id = 9,
+        .kind = kind,
+        .content = content,
+        .data_json = data_json
+    };
+
+    ik_message_t *msg = NULL;
+    res_t res = ik_message_from_db_msg(test_ctx, &db_msg, &msg);
+
+    ck_assert(is_err(&res));
+}
+
+END_TEST START_TEST(test_message_from_db_msg_tool_result_missing_data_json)
+{
+    char kind[] = "tool_result";
+    char content[] = "Result";
+    ik_msg_t db_msg = {
+        .id = 10,
+        .kind = kind,
+        .content = content,
+        .data_json = NULL
+    };
+
+    ik_message_t *msg = NULL;
+    res_t res = ik_message_from_db_msg(test_ctx, &db_msg, &msg);
+
+    ck_assert(is_err(&res));
+}
+
+END_TEST START_TEST(test_message_from_db_msg_tool_result_invalid_json)
+{
+    char kind[] = "tool_result";
+    char content[] = "Result";
+    char data_json[] = "{invalid}";
+    ik_msg_t db_msg = {
+        .id = 11,
+        .kind = kind,
+        .content = content,
+        .data_json = data_json
+    };
+
+    ik_message_t *msg = NULL;
+    res_t res = ik_message_from_db_msg(test_ctx, &db_msg, &msg);
+
+    ck_assert(is_err(&res));
+}
+
+END_TEST START_TEST(test_message_from_db_msg_tool_result_invalid_field_types)
+{
+    char kind[] = "tool_result";
+    char content[] = "Result";
+    char data_json[] = "{\"tool_call_id\":123,\"output\":\"result\"}";
+    ik_msg_t db_msg = {
+        .id = 12,
+        .kind = kind,
+        .content = content,
+        .data_json = data_json
+    };
+
+    ik_message_t *msg = NULL;
+    res_t res = ik_message_from_db_msg(test_ctx, &db_msg, &msg);
+
+    ck_assert(is_err(&res));
+}
+
+END_TEST START_TEST(test_message_from_db_msg_unknown_kind)
+{
+    char kind[] = "unknown_kind";
+    char content[] = "Test";
+    ik_msg_t db_msg = {
+        .id = 13,
+        .kind = kind,
+        .content = content,
+        .data_json = NULL
+    };
+
+    ik_message_t *msg = NULL;
+    res_t res = ik_message_from_db_msg(test_ctx, &db_msg, &msg);
+
+    ck_assert(is_err(&res));
+}
+
 END_TEST
 
 static Suite *creation_suite(void)
@@ -199,6 +336,14 @@ static Suite *creation_suite(void)
     tcase_add_test(tc, test_message_from_db_msg_tool_result);
     tcase_add_test(tc, test_message_from_db_msg_system);
     tcase_add_test(tc, test_message_from_db_msg_invalid_json);
+    tcase_add_test(tc, test_message_from_db_msg_user_missing_content);
+    tcase_add_test(tc, test_message_from_db_msg_assistant_missing_content);
+    tcase_add_test(tc, test_message_from_db_msg_tool_call_missing_data_json);
+    tcase_add_test(tc, test_message_from_db_msg_tool_call_invalid_field_types);
+    tcase_add_test(tc, test_message_from_db_msg_tool_result_missing_data_json);
+    tcase_add_test(tc, test_message_from_db_msg_tool_result_invalid_json);
+    tcase_add_test(tc, test_message_from_db_msg_tool_result_invalid_field_types);
+    tcase_add_test(tc, test_message_from_db_msg_unknown_kind);
 
     suite_add_tcase(s, tc);
 
