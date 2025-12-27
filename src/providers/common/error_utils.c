@@ -60,7 +60,7 @@ static const char *get_env_var_for_provider(const char *provider)
     } else if (strcmp(provider, "google") == 0) {
         return "GOOGLE_API_KEY";
     }
-    return "API_KEY";
+    return "API_KEY";  // LCOV_EXCL_LINE - defensive fallback for unknown provider
 }
 
 char *ik_error_user_message(TALLOC_CTX *ctx,
