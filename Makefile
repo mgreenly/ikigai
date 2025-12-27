@@ -338,8 +338,13 @@ $(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test: $(BUILDDIR)/tests/unit/r
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
-# Special rule for repl_actions_llm_test (uses mocks, excludes DB modules, agent_provider, request_tools)
-$(BUILDDIR)/tests/unit/repl/repl_actions_llm_test: $(BUILDDIR)/tests/unit/repl/repl_actions_llm_test.o $(filter-out $(BUILDDIR)/agent_provider.o $(BUILDDIR)/providers/request_tools.o,$(MODULE_OBJ_NO_DB)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+# Special rule for repl_actions_llm_basic_test (uses mocks, excludes DB modules, agent_provider, request_tools)
+$(BUILDDIR)/tests/unit/repl/repl_actions_llm_basic_test: $(BUILDDIR)/tests/unit/repl/repl_actions_llm_basic_test.o $(filter-out $(BUILDDIR)/agent_provider.o $(BUILDDIR)/providers/request_tools.o,$(MODULE_OBJ_NO_DB)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) -lgcov
+
+# Special rule for repl_actions_llm_errors_test (uses mocks, excludes DB modules, agent_provider, request_tools)
+$(BUILDDIR)/tests/unit/repl/repl_actions_llm_errors_test: $(BUILDDIR)/tests/unit/repl/repl_actions_llm_errors_test.o $(filter-out $(BUILDDIR)/agent_provider.o $(BUILDDIR)/providers/request_tools.o,$(MODULE_OBJ_NO_DB)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) -lgcov
 
