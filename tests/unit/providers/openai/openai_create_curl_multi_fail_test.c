@@ -22,12 +22,12 @@ static void teardown(void)
 }
 
 // Mock curl_multi_init_ to return NULL
-CURLM *curl_multi_init_(void) {
+CURLM *curl_multi_init_(void)
+{
     return NULL;
 }
 
-START_TEST(test_create_fails_when_curl_multi_init_fails)
-{
+START_TEST(test_create_fails_when_curl_multi_init_fails) {
     ik_provider_t *provider = NULL;
     res_t result = ik_openai_create(test_ctx, "sk-test-api-key-12345", &provider);
 

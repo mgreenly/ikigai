@@ -1,12 +1,12 @@
 /**
- * @file factory_test_stubs.c
+ * @file factory_stubs.c
  * @brief Stub implementations of provider-specific factories for testing
  *
  * These stubs are used to allow factory tests to link without requiring
  * the actual provider implementations. They simply return ERR_NOT_IMPLEMENTED.
  */
 
-#include "factory_test_stubs.h"
+#include "factory_stubs.h"
 
 // Stub implementation for OpenAI factory
 res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out)

@@ -48,7 +48,9 @@ START_TEST(test_start_request_with_chat_api) {
             .text = {
                 .text = talloc_strdup(test_ctx, "Hello!")
             }
+
         }
+
     };
 
     ik_message_t msg = {
@@ -80,9 +82,8 @@ START_TEST(test_start_request_with_chat_api) {
     /* Cleanup */
     talloc_free(provider);
 }
-END_TEST
-
-START_TEST(test_start_request_with_responses_api) {
+END_TEST START_TEST(test_start_request_with_responses_api)
+{
     /* Create provider with responses API enabled */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create_with_options(test_ctx, "sk-test-key", true, &provider);
@@ -96,7 +97,9 @@ START_TEST(test_start_request_with_responses_api) {
             .text = {
                 .text = talloc_strdup(test_ctx, "Test message")
             }
+
         }
+
     };
 
     ik_message_t msg = {
@@ -128,9 +131,9 @@ START_TEST(test_start_request_with_responses_api) {
     /* Cleanup */
     talloc_free(provider);
 }
-END_TEST
 
-START_TEST(test_start_request_with_o1_model) {
+END_TEST START_TEST(test_start_request_with_o1_model)
+{
     /* Create provider instance */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -143,7 +146,9 @@ START_TEST(test_start_request_with_o1_model) {
             .text = {
                 .text = talloc_strdup(test_ctx, "Test")
             }
+
         }
+
     };
 
     ik_message_t msg = {
@@ -175,9 +180,9 @@ START_TEST(test_start_request_with_o1_model) {
     /* Cleanup */
     talloc_free(provider);
 }
-END_TEST
 
-START_TEST(test_start_stream_with_chat_api) {
+END_TEST START_TEST(test_start_stream_with_chat_api)
+{
     /* Create provider instance */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -185,7 +190,7 @@ START_TEST(test_start_stream_with_chat_api) {
 
     /* Dummy stream callback */
     res_t (*stream_cb)(const ik_stream_event_t *, void *) =
-        (res_t (*)(const ik_stream_event_t *, void *))dummy_completion_cb;
+        (res_t (*)(const ik_stream_event_t *, void *)) dummy_completion_cb;
 
     /* Build minimal request */
     ik_content_block_t content = {
@@ -194,7 +199,9 @@ START_TEST(test_start_stream_with_chat_api) {
             .text = {
                 .text = talloc_strdup(test_ctx, "Stream test")
             }
+
         }
+
     };
 
     ik_message_t msg = {
@@ -227,9 +234,9 @@ START_TEST(test_start_stream_with_chat_api) {
     /* Cleanup */
     talloc_free(provider);
 }
-END_TEST
 
-START_TEST(test_start_stream_with_responses_api) {
+END_TEST START_TEST(test_start_stream_with_responses_api)
+{
     /* Create provider with responses API */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create_with_options(test_ctx, "sk-test-key", true, &provider);
@@ -237,7 +244,7 @@ START_TEST(test_start_stream_with_responses_api) {
 
     /* Dummy stream callback */
     res_t (*stream_cb)(const ik_stream_event_t *, void *) =
-        (res_t (*)(const ik_stream_event_t *, void *))dummy_completion_cb;
+        (res_t (*)(const ik_stream_event_t *, void *)) dummy_completion_cb;
 
     /* Build minimal request */
     ik_content_block_t content = {
@@ -246,7 +253,9 @@ START_TEST(test_start_stream_with_responses_api) {
             .text = {
                 .text = talloc_strdup(test_ctx, "Stream test")
             }
+
         }
+
     };
 
     ik_message_t msg = {
@@ -279,9 +288,9 @@ START_TEST(test_start_stream_with_responses_api) {
     /* Cleanup */
     talloc_free(provider);
 }
-END_TEST
 
-START_TEST(test_start_stream_with_o1_model) {
+END_TEST START_TEST(test_start_stream_with_o1_model)
+{
     /* Create provider */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -289,7 +298,7 @@ START_TEST(test_start_stream_with_o1_model) {
 
     /* Dummy stream callback */
     res_t (*stream_cb)(const ik_stream_event_t *, void *) =
-        (res_t (*)(const ik_stream_event_t *, void *))dummy_completion_cb;
+        (res_t (*)(const ik_stream_event_t *, void *)) dummy_completion_cb;
 
     /* Build request with o1 model */
     ik_content_block_t content = {
@@ -298,7 +307,9 @@ START_TEST(test_start_stream_with_o1_model) {
             .text = {
                 .text = talloc_strdup(test_ctx, "Test")
             }
+
         }
+
     };
 
     ik_message_t msg = {
@@ -331,6 +342,7 @@ START_TEST(test_start_stream_with_o1_model) {
     /* Cleanup */
     talloc_free(provider);
 }
+
 END_TEST
 
 /* ================================================================

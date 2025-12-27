@@ -344,6 +344,128 @@ START_TEST(test_empty_api_keys_in_file)
 }
 
 END_TEST
+// Test: Tilde expansion in path
+START_TEST(test_tilde_expansion)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    // Create file in /tmp with a key
+    const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
+    char *path = create_temp_credentials(json);
+
+    // Create a tilde path that will expand
+    const char *home = getenv("HOME");
+    ck_assert_ptr_nonnull(home);
+
+    // Create a file in home directory
+    char *home_path = talloc_asprintf(test_ctx, "%s/.ikigai_test_creds_%d.json", home, getpid());
+    FILE *f = fopen(home_path, "w");
+    fprintf(f, "%s", json);
+    fclose(f);
+    chmod(home_path, 0600);
+
+    // Load using tilde path
+    char *tilde_path = talloc_asprintf(test_ctx, "~/.ikigai_test_creds_%d.json", getpid());
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, tilde_path, &creds);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(creds);
+    ck_assert_str_eq(creds->openai_api_key, "test-key");
+
+    unlink(home_path);
+    unlink(path);
+}
+
+END_TEST
+// Test: HOME not set returns error
+START_TEST(test_home_not_set)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    // Save HOME and temporarily unset it
+    const char *home = getenv("HOME");
+    ck_assert_ptr_nonnull(home);
+    char *saved_home = talloc_strdup(test_ctx, home);
+    unsetenv("HOME");
+
+    // Try to load with tilde path
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, "~/.config/ikigai/credentials.json", &creds);
+
+    // Should return error
+    ck_assert(is_err(&result));
+    ck_assert_ptr_nonnull(result.err);
+
+    // Restore HOME
+    setenv("HOME", saved_home, 1);
+}
+
+END_TEST
+// Test: Provider object without api_key field
+START_TEST(test_provider_without_api_key)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    const char *json = "{ \"openai\": { \"other_field\": \"value\" } }";
+    char *path = create_temp_credentials(json);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_null(creds->openai_api_key);
+
+    unlink(path);
+}
+
+END_TEST
+// Test: Provider api_key is not a string (number)
+START_TEST(test_api_key_not_string)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    const char *json = "{ \"openai\": { \"api_key\": 12345 } }";
+    char *path = create_temp_credentials(json);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_null(creds->openai_api_key);
+
+    unlink(path);
+}
+
+END_TEST
+// Test: Provider field is not an object
+START_TEST(test_provider_not_object)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    const char *json = "{ \"openai\": \"not-an-object\" }";
+    char *path = create_temp_credentials(json);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_null(creds->openai_api_key);
+
+    unlink(path);
+}
+
+END_TEST
 
 static Suite *credentials_suite(void)
 {
@@ -367,6 +489,11 @@ static Suite *credentials_suite(void)
     tcase_add_test(tc_core, test_nonexistent_file_permissions);
     tcase_add_test(tc_core, test_json_not_object);
     tcase_add_test(tc_core, test_empty_api_keys_in_file);
+    tcase_add_test(tc_core, test_tilde_expansion);
+    tcase_add_test(tc_core, test_home_not_set);
+    tcase_add_test(tc_core, test_provider_without_api_key);
+    tcase_add_test(tc_core, test_api_key_not_string);
+    tcase_add_test(tc_core, test_provider_not_object);
 
     suite_add_tcase(s, tc_core);
 

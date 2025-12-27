@@ -4,7 +4,7 @@
  * @brief Unit tests for REPL event loop basic functionality
  */
 
-#include "repl_run_test_common.h"
+#include "repl_run_common.h"
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 

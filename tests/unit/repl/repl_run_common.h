@@ -1,10 +1,10 @@
 /**
- * @file repl_run_test_common.h
+ * @file repl_run_common.h
  * @brief Shared mock functions for REPL event loop tests
  */
 
-#ifndef IK_REPL_RUN_TEST_COMMON_H
-#define IK_REPL_RUN_TEST_COMMON_H
+#ifndef IK_REPL_RUN_COMMON_H
+#define IK_REPL_RUN_COMMON_H
 
 #include <check.h>
 #include <signal.h>
@@ -68,4 +68,4 @@ CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue);
 // Helper to initialize multi handle for REPL tests
 void init_repl_multi_handle(ik_repl_ctx_t *repl);
 
-#endif // IK_REPL_RUN_TEST_COMMON_H
+#endif // IK_REPL_RUN_COMMON_H

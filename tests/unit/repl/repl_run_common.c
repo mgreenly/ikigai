@@ -1,9 +1,9 @@
 /**
- * @file repl_run_test_common.c
+ * @file repl_run_common.c
  * @brief Shared mock implementations for REPL event loop tests
  */
 
-#include "repl_run_test_common.h"
+#include "repl_run_common.h"
 #include <curl/curl.h>
 #include <sys/select.h>
 #include <errno.h>

@@ -60,9 +60,8 @@ START_TEST(test_add_message_basic) {
     ck_assert_uint_eq(agent->message_count, 1);
     ck_assert_ptr_eq(agent->messages[0], msg);
 }
-END_TEST
-
-START_TEST(test_add_multiple_messages) {
+END_TEST START_TEST(test_add_multiple_messages)
+{
     ik_agent_ctx_t *agent = create_test_agent(test_ctx);
 
     for (int32_t i = 0; i < 20; i++) {
@@ -74,13 +73,14 @@ START_TEST(test_add_multiple_messages) {
     ck_assert_uint_eq(agent->message_count, 20);
     ck_assert(agent->message_capacity >= 20);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Clear Messages Tests
  * ================================================================ */
 
-START_TEST(test_clear_messages_empty) {
+START_TEST(test_clear_messages_empty)
+{
     ik_agent_ctx_t *agent = create_test_agent(test_ctx);
 
     ik_agent_clear_messages(agent);
@@ -89,9 +89,9 @@ START_TEST(test_clear_messages_empty) {
     ck_assert_uint_eq(agent->message_capacity, 0);
     ck_assert_ptr_null(agent->messages);
 }
-END_TEST
 
-START_TEST(test_clear_messages_with_data) {
+END_TEST START_TEST(test_clear_messages_with_data)
+{
     ik_agent_ctx_t *agent = create_test_agent(test_ctx);
     ik_message_t *msg = create_text_message(test_ctx, IK_ROLE_USER, "Hello");
     ik_agent_add_message(agent, msg);
@@ -102,13 +102,14 @@ START_TEST(test_clear_messages_with_data) {
     ck_assert_uint_eq(agent->message_capacity, 0);
     ck_assert_ptr_null(agent->messages);
 }
-END_TEST
 
+END_TEST
 /* ================================================================
  * Clone Messages Tests
  * ================================================================ */
 
-START_TEST(test_clone_messages_empty) {
+START_TEST(test_clone_messages_empty)
+{
     ik_agent_ctx_t *src = create_test_agent(test_ctx);
     ik_agent_ctx_t *dest = create_test_agent(test_ctx);
 
@@ -117,9 +118,9 @@ START_TEST(test_clone_messages_empty) {
     ck_assert(!is_err(&r));
     ck_assert_uint_eq(dest->message_count, 0);
 }
-END_TEST
 
-START_TEST(test_clone_messages_text) {
+END_TEST START_TEST(test_clone_messages_text)
+{
     ik_agent_ctx_t *src = create_test_agent(test_ctx);
     ik_agent_ctx_t *dest = create_test_agent(test_ctx);
 
@@ -135,9 +136,9 @@ START_TEST(test_clone_messages_text) {
     ck_assert_int_eq(dest->messages[0]->content_blocks[0].type, IK_CONTENT_TEXT);
     ck_assert_str_eq(dest->messages[0]->content_blocks[0].data.text.text, "Hello");
 }
-END_TEST
 
-START_TEST(test_clone_messages_thinking) {
+END_TEST START_TEST(test_clone_messages_thinking)
+{
     ik_agent_ctx_t *src = create_test_agent(test_ctx);
     ik_agent_ctx_t *dest = create_test_agent(test_ctx);
 
@@ -158,9 +159,9 @@ START_TEST(test_clone_messages_thinking) {
     ck_assert_int_eq(dest->messages[0]->content_blocks[0].type, IK_CONTENT_THINKING);
     ck_assert_str_eq(dest->messages[0]->content_blocks[0].data.thinking.text, "Let me think...");
 }
-END_TEST
 
-START_TEST(test_clone_messages_tool_call) {
+END_TEST START_TEST(test_clone_messages_tool_call)
+{
     ik_agent_ctx_t *src = create_test_agent(test_ctx);
     ik_agent_ctx_t *dest = create_test_agent(test_ctx);
 
@@ -185,9 +186,9 @@ START_TEST(test_clone_messages_tool_call) {
     ck_assert_str_eq(dest->messages[0]->content_blocks[0].data.tool_call.name, "test_tool");
     ck_assert_str_eq(dest->messages[0]->content_blocks[0].data.tool_call.arguments, "{\"arg\":\"value\"}");
 }
-END_TEST
 
-START_TEST(test_clone_messages_tool_result) {
+END_TEST START_TEST(test_clone_messages_tool_result)
+{
     ik_agent_ctx_t *src = create_test_agent(test_ctx);
     ik_agent_ctx_t *dest = create_test_agent(test_ctx);
 
@@ -212,9 +213,9 @@ START_TEST(test_clone_messages_tool_result) {
     ck_assert_str_eq(dest->messages[0]->content_blocks[0].data.tool_result.content, "Result data");
     ck_assert(!dest->messages[0]->content_blocks[0].data.tool_result.is_error);
 }
-END_TEST
 
-START_TEST(test_clone_messages_with_provider_metadata) {
+END_TEST START_TEST(test_clone_messages_with_provider_metadata)
+{
     ik_agent_ctx_t *src = create_test_agent(test_ctx);
     ik_agent_ctx_t *dest = create_test_agent(test_ctx);
 
@@ -229,6 +230,7 @@ START_TEST(test_clone_messages_with_provider_metadata) {
     ck_assert_ptr_nonnull(dest->messages[0]->provider_metadata);
     ck_assert_str_eq(dest->messages[0]->provider_metadata, "{\"usage\":{\"tokens\":100}}");
 }
+
 END_TEST
 
 /* ================================================================

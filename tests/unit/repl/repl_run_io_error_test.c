@@ -4,7 +4,7 @@
  * @brief Unit tests for REPL I/O error handling (read/select errors)
  */
 
-#include "repl_run_test_common.h"
+#include "repl_run_common.h"
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"

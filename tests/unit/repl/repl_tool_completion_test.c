@@ -134,7 +134,6 @@ START_TEST(test_handle_tool_completion_delegates_to_current) {
 }
 
 END_TEST
-
 /**
  * Test: ik_repl_handle_tool_completion calls the underlying function with current agent
  */
@@ -163,7 +162,6 @@ START_TEST(test_handle_tool_completion_calls_handler)
 }
 
 END_TEST
-
 /**
  * Test: ik_repl_handle_agent_tool_completion with tool loop continuation
  */
@@ -195,7 +193,6 @@ START_TEST(test_handle_agent_tool_completion_continues_loop)
 }
 
 END_TEST
-
 /**
  * Test: ik_repl_handle_agent_tool_completion renders when agent is current
  */
@@ -284,7 +281,6 @@ START_TEST(test_poll_tool_completions_current_not_executing)
 }
 
 END_TEST
-
 /**
  * Test: ik_repl_poll_tool_completions with current agent executing
  */
