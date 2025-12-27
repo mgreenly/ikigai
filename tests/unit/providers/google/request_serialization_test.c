@@ -32,8 +32,7 @@ static void teardown(void)
  * Request Serialization Tests
  * ================================================================ */
 
-START_TEST(test_serialize_request_missing_model)
-{
+START_TEST(test_serialize_request_missing_model) {
     ik_request_t req = {0};
     req.model = NULL;
     req.message_count = 0;

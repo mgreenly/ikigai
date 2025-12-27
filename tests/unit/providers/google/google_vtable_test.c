@@ -78,7 +78,7 @@ START_TEST(test_start_request_returns_immediately) {
 
     /* start_request should return immediately without blocking */
     res_t r = provider->vt->start_request(provider->ctx, request,
-                                         test_completion_cb, NULL);
+                                          test_completion_cb, NULL);
 
     vcr_ck_assert(!is_err(&r));
 
@@ -96,12 +96,13 @@ END_TEST
  * Re-enable this test when google non-streaming requests are fully implemented.
  */
 #if 0
-START_TEST(test_start_request_event_loop) {
+START_TEST(test_start_request_event_loop)
+{
     vcr_init("request_basic", "google");
 
     /* Start request */
     res_t r = provider->vt->start_request(provider->ctx, request,
-                                         test_completion_cb, NULL);
+                                          test_completion_cb, NULL);
     vcr_ck_assert(!is_err(&r));
 
     /* Run event loop */
@@ -144,6 +145,7 @@ START_TEST(test_start_request_event_loop) {
 
     vcr_finish();
 }
+
 END_TEST
 #endif
 

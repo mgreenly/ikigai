@@ -91,7 +91,7 @@ static void teardown(void)
 /* ========== ik_repl_handle_terminal_input Tests ========== */
 
 /* Commented out - requires mocking posix_read_
-START_TEST(test_terminal_input_read_error_eintr) {
+   START_TEST(test_terminal_input_read_error_eintr) {
     bool should_exit = false;
 
     // We can't easily mock posix_read_ to return EINTR in this test framework,
@@ -101,9 +101,9 @@ START_TEST(test_terminal_input_read_error_eintr) {
 
     // Note: This won't actually cover the EINTR path without mocking,
     // but serves as a placeholder for integration testing
-}
-END_TEST
-*/
+   }
+   END_TEST
+ */
 
 /* ========== ik_repl_handle_agent_request_success Tests ========== */
 
@@ -117,9 +117,8 @@ START_TEST(test_agent_request_success_with_response) {
     /* Verify response was cleared */
     ck_assert_ptr_null(agent->assistant_response);
 }
-END_TEST
-
-START_TEST(test_agent_request_success_empty_response) {
+END_TEST START_TEST(test_agent_request_success_empty_response)
+{
     /* Empty response should not create message */
     agent->assistant_response = talloc_strdup(agent, "");
 
@@ -128,10 +127,10 @@ START_TEST(test_agent_request_success_empty_response) {
     /* Response should still be freed */
     ck_assert_ptr_null(agent->assistant_response);
 }
-END_TEST
 
+END_TEST
 /* Commented out - requires full tool execution infrastructure
-START_TEST(test_agent_request_success_with_pending_tool_call) {
+   START_TEST(test_agent_request_success_with_pending_tool_call) {
     // Set up a pending tool call
     ik_tool_call_t *tool_call = talloc_zero(agent, ik_tool_call_t);
     tool_call->id = talloc_strdup(tool_call, "test-id");
@@ -146,14 +145,14 @@ START_TEST(test_agent_request_success_with_pending_tool_call) {
     ik_repl_handle_agent_request_success(repl, agent);
 
     // Function returns early when pending_tool_call exists
-}
-END_TEST
-*/
+   }
+   END_TEST
+ */
 
 /* ========== ik_repl_handle_select_timeout Tests ========== */
 
 /* Commented out - requires full render infrastructure
-START_TEST(test_select_timeout_advances_spinner) {
+   START_TEST(test_select_timeout_advances_spinner) {
     agent->spinner_state.visible = true;
     agent->spinner_state.frame_index = 0;
 
@@ -161,19 +160,20 @@ START_TEST(test_select_timeout_advances_spinner) {
     // but we can verify the function doesn't crash
     // res_t result = ik_repl_handle_select_timeout(repl);
     // Would need render infrastructure
-}
-END_TEST
-*/
+   }
+   END_TEST
+ */
 
 /* ========== ik_repl_handle_curl_events Tests ========== */
 
-START_TEST(test_curl_events_no_agents) {
+START_TEST(test_curl_events_no_agents)
+{
     res_t result = ik_repl_handle_curl_events(repl, 0);
     ck_assert(is_ok(&result));
 }
-END_TEST
 
-START_TEST(test_curl_events_current_not_in_array) {
+END_TEST START_TEST(test_curl_events_current_not_in_array)
+{
     /* Create a second agent that's not in the array */
     ik_agent_ctx_t *other_agent = talloc_zero(repl, ik_agent_ctx_t);
     other_agent->shared = shared;
@@ -194,10 +194,11 @@ START_TEST(test_curl_events_current_not_in_array) {
 
     pthread_mutex_destroy(&other_agent->tool_thread_mutex);
 }
+
 END_TEST
 
 /* Commented out - requires render framework
-START_TEST(test_curl_events_with_running_curl) {
+   START_TEST(test_curl_events_with_running_curl) {
     // Create mock provider instance
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -216,12 +217,12 @@ START_TEST(test_curl_events_with_running_curl) {
     // Mock perform will set still_running to 0
     res_t result = ik_repl_handle_curl_events(repl, 1);
     ck_assert(is_ok(&result));
-}
-END_TEST
-*/
+   }
+   END_TEST
+ */
 
 /* Commented out - requires render framework
-START_TEST(test_curl_events_with_http_error) {
+   START_TEST(test_curl_events_with_http_error) {
     // Create mock provider instance
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -243,14 +244,14 @@ START_TEST(test_curl_events_with_http_error) {
 
     // Error message should be freed
     ck_assert_ptr_null(agent->http_error_message);
-}
-END_TEST
-*/
+   }
+   END_TEST
+ */
 
 /* ========== Database persistence tests ========== */
 
 /* Commented out - requires actual database connection
-START_TEST(test_persist_with_provider_info) {
+   START_TEST(test_persist_with_provider_info) {
     // Set up database context
     shared->db_ctx = (void *)1;  // Non-NULL to enable persistence
     shared->session_id = 123;
@@ -266,10 +267,10 @@ START_TEST(test_persist_with_provider_info) {
 
     // Clean up
     shared->db_ctx = NULL;
-}
-END_TEST
+   }
+   END_TEST
 
-START_TEST(test_persist_with_thinking_level_low) {
+   START_TEST(test_persist_with_thinking_level_low) {
     shared->db_ctx = (void *)1;
     shared->session_id = 123;
 
@@ -280,10 +281,10 @@ START_TEST(test_persist_with_thinking_level_low) {
     ik_repl_handle_agent_request_success(repl, agent);
 
     shared->db_ctx = NULL;
-}
-END_TEST
+   }
+   END_TEST
 
-START_TEST(test_persist_with_thinking_level_med) {
+   START_TEST(test_persist_with_thinking_level_med) {
     shared->db_ctx = (void *)1;
     shared->session_id = 123;
 
@@ -294,10 +295,10 @@ START_TEST(test_persist_with_thinking_level_med) {
     ik_repl_handle_agent_request_success(repl, agent);
 
     shared->db_ctx = NULL;
-}
-END_TEST
+   }
+   END_TEST
 
-START_TEST(test_persist_with_thinking_level_high) {
+   START_TEST(test_persist_with_thinking_level_high) {
     shared->db_ctx = (void *)1;
     shared->session_id = 123;
 
@@ -308,10 +309,10 @@ START_TEST(test_persist_with_thinking_level_high) {
     ik_repl_handle_agent_request_success(repl, agent);
 
     shared->db_ctx = NULL;
-}
-END_TEST
+   }
+   END_TEST
 
-START_TEST(test_persist_with_usage_tokens) {
+   START_TEST(test_persist_with_usage_tokens) {
     shared->db_ctx = (void *)1;
     shared->session_id = 123;
 
@@ -324,9 +325,9 @@ START_TEST(test_persist_with_usage_tokens) {
     ik_repl_handle_agent_request_success(repl, agent);
 
     shared->db_ctx = NULL;
-}
-END_TEST
-*/
+   }
+   END_TEST
+ */
 
 /* ========== Test Suite Setup ========== */
 

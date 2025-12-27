@@ -34,7 +34,7 @@ static ik_agent_ctx_t *agent;
 
 /* Mock provider vtable for testing */
 static res_t mock_fdset(void *provider_ctx, fd_set *read_fds, fd_set *write_fds,
-                       fd_set *exc_fds, int *max_fd)
+                        fd_set *exc_fds, int *max_fd)
 {
     (void)provider_ctx;
     (void)read_fds;
@@ -139,9 +139,8 @@ START_TEST(test_setup_fd_sets_no_agents) {
     ck_assert_int_eq(max_fd, 0);
     ck_assert(FD_ISSET(0, &read_fds));
 }
-END_TEST
-
-START_TEST(test_setup_fd_sets_with_provider_instance) {
+END_TEST START_TEST(test_setup_fd_sets_with_provider_instance)
+{
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -160,20 +159,21 @@ START_TEST(test_setup_fd_sets_with_provider_instance) {
     ck_assert(is_ok(&result));
     ck_assert_int_eq(max_fd, 10);  /* Mock returns 10 */
 }
-END_TEST
 
+END_TEST
 /* ========== ik_repl_calculate_curl_min_timeout Tests ========== */
 
-START_TEST(test_curl_min_timeout_no_agents) {
+START_TEST(test_curl_min_timeout_no_agents)
+{
     long timeout = -1;
 
     res_t result = ik_repl_calculate_curl_min_timeout(repl, &timeout);
     ck_assert(is_ok(&result));
     ck_assert_int_eq(timeout, -1);
 }
-END_TEST
 
-START_TEST(test_curl_min_timeout_with_provider) {
+END_TEST START_TEST(test_curl_min_timeout_with_provider)
+{
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -191,25 +191,26 @@ START_TEST(test_curl_min_timeout_with_provider) {
     ck_assert(is_ok(&result));
     ck_assert_int_eq(timeout, 500);  /* Mock returns 500 */
 }
-END_TEST
 
+END_TEST
 /* ========== ik_repl_calculate_select_timeout_ms Tests ========== */
 
-START_TEST(test_select_timeout_default) {
+START_TEST(test_select_timeout_default)
+{
     long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
     ck_assert_int_eq(timeout, 1000);  /* Default when no timeouts active */
 }
-END_TEST
 
-START_TEST(test_select_timeout_with_spinner) {
+END_TEST START_TEST(test_select_timeout_with_spinner)
+{
     agent->spinner_state.visible = true;
 
     long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
     ck_assert_int_eq(timeout, 80);  /* Spinner timeout */
 }
-END_TEST
 
-START_TEST(test_select_timeout_with_executing_tool) {
+END_TEST START_TEST(test_select_timeout_with_executing_tool)
+{
     /* Add agent to repl */
     repl->agent_count = 1;
     repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
@@ -223,9 +224,9 @@ START_TEST(test_select_timeout_with_executing_tool) {
     long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
     ck_assert_int_eq(timeout, 50);  /* Tool poll timeout */
 }
-END_TEST
 
-START_TEST(test_select_timeout_with_scroll_detector) {
+END_TEST START_TEST(test_select_timeout_with_scroll_detector)
+{
     /* Create scroll detector */
     repl->scroll_det = ik_scroll_detector_create(repl);
     ck_assert_ptr_nonnull(repl->scroll_det);
@@ -234,9 +235,9 @@ START_TEST(test_select_timeout_with_scroll_detector) {
     /* Timeout will depend on scroll detector state, just verify it's calculated */
     ck_assert(timeout > 0 || timeout == -1);
 }
-END_TEST
 
-START_TEST(test_select_timeout_prefers_minimum) {
+END_TEST START_TEST(test_select_timeout_prefers_minimum)
+{
     /* Set multiple timeouts and verify minimum is returned */
     agent->spinner_state.visible = true;  /* 80ms */
 
@@ -246,6 +247,7 @@ START_TEST(test_select_timeout_prefers_minimum) {
     timeout = ik_repl_calculate_select_timeout_ms(repl, 50);  /* curl: 50ms */
     ck_assert_int_eq(timeout, 50);  /* Should pick curl (minimum) */
 }
+
 END_TEST
 
 /* ========== Test Suite Setup ========== */

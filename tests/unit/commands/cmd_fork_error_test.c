@@ -143,8 +143,7 @@ static void suite_teardown(void)
 }
 
 // Test: Warning displayed when model doesn't support thinking
-START_TEST(test_fork_warning_no_thinking_support)
-{
+START_TEST(test_fork_warning_no_thinking_support) {
     // Fork with a model that doesn't support thinking (gpt-4o-mini) but has thinking level set
     res_t res = ik_cmd_fork(test_ctx, repl, "--model gpt-4o-mini/high");
     ck_assert(is_ok(&res));
@@ -165,7 +164,6 @@ START_TEST(test_fork_warning_no_thinking_support)
     ck_assert(found_warning);
 }
 END_TEST
-
 // Test: thinking_level_to_string handles all enum values
 START_TEST(test_thinking_level_to_string_all_values)
 {
@@ -175,8 +173,8 @@ START_TEST(test_thinking_level_to_string_all_values)
     ck_assert_str_eq(thinking_level_to_string(IK_THINKING_HIGH), "high");
     ck_assert_str_eq(thinking_level_to_string((ik_thinking_level_t)999), "unknown");
 }
-END_TEST
 
+END_TEST
 // Test: build_fork_feedback with override=true
 START_TEST(test_build_fork_feedback_override)
 {
@@ -190,8 +188,8 @@ START_TEST(test_build_fork_feedback_override)
     ck_assert_ptr_nonnull(feedback);
     ck_assert(strstr(feedback, "Forked child with openai/gpt-4o/medium") != NULL);
 }
-END_TEST
 
+END_TEST
 // Test: build_fork_feedback with override=false
 START_TEST(test_build_fork_feedback_inherit)
 {
@@ -206,8 +204,8 @@ START_TEST(test_build_fork_feedback_inherit)
     ck_assert(strstr(feedback, "parent's model") != NULL);
     ck_assert(strstr(feedback, "anthropic/claude-3-5-sonnet-20241022/low") != NULL);
 }
-END_TEST
 
+END_TEST
 // Test: insert_fork_events with no session_id
 START_TEST(test_insert_fork_events_no_session)
 {
@@ -229,8 +227,8 @@ START_TEST(test_insert_fork_events_no_session)
     res_t res = insert_fork_events(test_ctx, test_repl, parent, child, 123);
     ck_assert(is_ok(&res));  // Should return OK without inserting
 }
-END_TEST
 
+END_TEST
 // Test: insert_fork_events with database error on parent insert
 START_TEST(test_insert_fork_events_db_error_parent)
 {
@@ -253,6 +251,7 @@ START_TEST(test_insert_fork_events_db_error_parent)
     res_t res = insert_fork_events(test_ctx, test_repl, parent, child, 123);
     ck_assert(is_err(&res));
 }
+
 END_TEST
 
 static Suite *cmd_fork_error_suite(void)

@@ -38,9 +38,7 @@ START_TEST(test_google_create_success) {
     ck_assert_ptr_nonnull(provider->vt);
     ck_assert_ptr_nonnull(provider->ctx);
 }
-END_TEST
-
-START_TEST(test_google_create_has_vtable)
+END_TEST START_TEST(test_google_create_has_vtable)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
@@ -57,7 +55,6 @@ START_TEST(test_google_create_has_vtable)
 }
 
 END_TEST
-
 /* ================================================================
  * Vtable Method Tests
  * ================================================================ */
@@ -74,9 +71,8 @@ START_TEST(test_google_cleanup)
     /* Provider should still be valid after cleanup */
     ck_assert_ptr_nonnull(provider->ctx);
 }
-END_TEST
 
-START_TEST(test_google_cancel)
+END_TEST START_TEST(test_google_cancel)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
@@ -88,9 +84,8 @@ START_TEST(test_google_cancel)
     /* Provider should still be valid after cancel */
     ck_assert_ptr_nonnull(provider->ctx);
 }
-END_TEST
 
-START_TEST(test_google_fdset)
+END_TEST START_TEST(test_google_fdset)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
@@ -107,9 +102,8 @@ START_TEST(test_google_fdset)
     res_t r = provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
     ck_assert(!is_err(&r));
 }
-END_TEST
 
-START_TEST(test_google_perform)
+END_TEST START_TEST(test_google_perform)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
@@ -121,9 +115,8 @@ START_TEST(test_google_perform)
     res_t r = provider->vt->perform(provider->ctx, &running_handles);
     ck_assert(!is_err(&r));
 }
-END_TEST
 
-START_TEST(test_google_timeout)
+END_TEST START_TEST(test_google_timeout)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
@@ -135,9 +128,8 @@ START_TEST(test_google_timeout)
     res_t r = provider->vt->timeout(provider->ctx, &timeout_ms);
     ck_assert(!is_err(&r));
 }
-END_TEST
 
-START_TEST(test_google_info_read)
+END_TEST START_TEST(test_google_info_read)
 {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
@@ -148,6 +140,7 @@ START_TEST(test_google_info_read)
     /* Call info_read - should not crash */
     provider->vt->info_read(provider->ctx, logger);
 }
+
 END_TEST
 
 /* ================================================================

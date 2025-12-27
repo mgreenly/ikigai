@@ -46,8 +46,7 @@ static void teardown(void)
 }
 
 /* Test: IK_STREAM_START event initializes state */
-START_TEST(test_stream_start_initializes)
-{
+START_TEST(test_stream_start_initializes) {
     ik_stream_event_t event = {
         .type = IK_STREAM_START,
         .data.start.model = "test-model"
@@ -60,7 +59,6 @@ START_TEST(test_stream_start_initializes)
     ck_assert_ptr_null(agent->assistant_response);
 }
 END_TEST
-
 /* Test: IK_STREAM_START clears existing assistant_response */
 START_TEST(test_stream_start_clears_existing_response)
 {
@@ -78,8 +76,8 @@ START_TEST(test_stream_start_clears_existing_response)
     /* Verify old response was cleared */
     ck_assert_ptr_null(agent->assistant_response);
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with text creates assistant_response */
 START_TEST(test_text_delta_creates_response)
 {
@@ -95,8 +93,8 @@ START_TEST(test_text_delta_creates_response)
     ck_assert_ptr_nonnull(agent->assistant_response);
     ck_assert_str_eq(agent->assistant_response, "Hello");
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TEXT_DELTA appends to existing response */
 START_TEST(test_text_delta_appends_to_response)
 {
@@ -114,8 +112,8 @@ START_TEST(test_text_delta_appends_to_response)
     /* Verify text was appended */
     ck_assert_str_eq(agent->assistant_response, "Hello world");
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with NULL text does nothing */
 START_TEST(test_text_delta_null_text)
 {
@@ -130,8 +128,8 @@ START_TEST(test_text_delta_null_text)
     /* Verify no response was created */
     ck_assert_ptr_null(agent->assistant_response);
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with newline flushes to scrollback */
 START_TEST(test_text_delta_newline_flushes)
 {
@@ -147,8 +145,8 @@ START_TEST(test_text_delta_newline_flushes)
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent->scrollback), 1);
     ck_assert_ptr_null(agent->streaming_line_buffer);
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TEXT_DELTA without newline buffers text */
 START_TEST(test_text_delta_no_newline_buffers)
 {
@@ -165,8 +163,8 @@ START_TEST(test_text_delta_no_newline_buffers)
     ck_assert_str_eq(agent->streaming_line_buffer, "Partial line");
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent->scrollback), 0);
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TEXT_DELTA appends to existing buffer */
 START_TEST(test_text_delta_appends_to_buffer)
 {
@@ -185,8 +183,8 @@ START_TEST(test_text_delta_appends_to_buffer)
     ck_assert_ptr_nonnull(agent->streaming_line_buffer);
     ck_assert_str_eq(agent->streaming_line_buffer, "Partial line");
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with buffered text and newline flushes both */
 START_TEST(test_text_delta_buffer_and_newline)
 {
@@ -205,8 +203,8 @@ START_TEST(test_text_delta_buffer_and_newline)
     ck_assert_ptr_null(agent->streaming_line_buffer);
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with just newline creates empty line */
 START_TEST(test_text_delta_empty_line)
 {
@@ -221,8 +219,8 @@ START_TEST(test_text_delta_empty_line)
     /* Verify empty line was added to scrollback */
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with multiple newlines */
 START_TEST(test_text_delta_multiple_newlines)
 {
@@ -239,8 +237,8 @@ START_TEST(test_text_delta_multiple_newlines)
     ck_assert_ptr_nonnull(agent->streaming_line_buffer);
     ck_assert_str_eq(agent->streaming_line_buffer, "Line 3");
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_THINKING_DELTA is handled (no-op) */
 START_TEST(test_thinking_delta)
 {
@@ -255,8 +253,8 @@ START_TEST(test_thinking_delta)
     /* Verify no scrollback changes (thinking not displayed during streaming) */
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent->scrollback), 0);
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TOOL_CALL_START is handled (no-op) */
 START_TEST(test_tool_call_start)
 {
@@ -269,8 +267,8 @@ START_TEST(test_tool_call_start)
     res_t result = ik_repl_stream_callback(&event, agent);
     ck_assert(is_ok(&result));
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TOOL_CALL_DELTA is handled (no-op) */
 START_TEST(test_tool_call_delta)
 {
@@ -282,8 +280,8 @@ START_TEST(test_tool_call_delta)
     res_t result = ik_repl_stream_callback(&event, agent);
     ck_assert(is_ok(&result));
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_TOOL_CALL_DONE is handled (no-op) */
 START_TEST(test_tool_call_done)
 {
@@ -294,8 +292,8 @@ START_TEST(test_tool_call_done)
     res_t result = ik_repl_stream_callback(&event, agent);
     ck_assert(is_ok(&result));
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_DONE stores token counts */
 START_TEST(test_stream_done_stores_tokens)
 {
@@ -307,6 +305,7 @@ START_TEST(test_stream_done_stores_tokens)
             .output_tokens = 200,
             .thinking_tokens = 50
         }
+
     };
 
     res_t result = ik_repl_stream_callback(&event, agent);
@@ -317,8 +316,8 @@ START_TEST(test_stream_done_stores_tokens)
     ck_assert_int_eq(agent->response_output_tokens, 200);
     ck_assert_int_eq(agent->response_thinking_tokens, 50);
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_ERROR stores error message */
 START_TEST(test_stream_error_stores_message)
 {
@@ -335,8 +334,8 @@ START_TEST(test_stream_error_stores_message)
     ck_assert_ptr_nonnull(agent->http_error_message);
     ck_assert_str_eq(agent->http_error_message, "Server error occurred");
 }
-END_TEST
 
+END_TEST
 /* Test: IK_STREAM_ERROR with NULL message does nothing */
 START_TEST(test_stream_error_null_message)
 {
@@ -352,6 +351,7 @@ START_TEST(test_stream_error_null_message)
     /* Verify no error message was stored */
     ck_assert_ptr_null(agent->http_error_message);
 }
+
 END_TEST
 
 /*

@@ -70,8 +70,7 @@ static void teardown(void)
 }
 
 /* Test: Completion stores tool_call in pending_tool_call */
-START_TEST(test_completion_stores_tool_call)
-{
+START_TEST(test_completion_stores_tool_call) {
     /* Create response with tool call content block */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->model = NULL;
@@ -160,7 +159,6 @@ START_TEST(test_completion_null_tool_call_clears_pending)
 }
 
 END_TEST
-
 /* Test: Completion with IK_FINISH_LENGTH maps to "length" */
 START_TEST(test_completion_finish_reason_length)
 {
@@ -184,8 +182,8 @@ START_TEST(test_completion_finish_reason_length)
     ck_assert_ptr_nonnull(repl->current->response_finish_reason);
     ck_assert_str_eq(repl->current->response_finish_reason, "length");
 }
-END_TEST
 
+END_TEST
 /* Test: Completion with IK_FINISH_TOOL_USE maps to "tool_use" */
 START_TEST(test_completion_finish_reason_tool_use)
 {
@@ -209,8 +207,8 @@ START_TEST(test_completion_finish_reason_tool_use)
     ck_assert_ptr_nonnull(repl->current->response_finish_reason);
     ck_assert_str_eq(repl->current->response_finish_reason, "tool_use");
 }
-END_TEST
 
+END_TEST
 /* Test: Completion with IK_FINISH_CONTENT_FILTER maps to "content_filter" */
 START_TEST(test_completion_finish_reason_content_filter)
 {
@@ -234,8 +232,8 @@ START_TEST(test_completion_finish_reason_content_filter)
     ck_assert_ptr_nonnull(repl->current->response_finish_reason);
     ck_assert_str_eq(repl->current->response_finish_reason, "content_filter");
 }
-END_TEST
 
+END_TEST
 /* Test: Completion with IK_FINISH_ERROR maps to "error" */
 START_TEST(test_completion_finish_reason_error)
 {
@@ -259,8 +257,8 @@ START_TEST(test_completion_finish_reason_error)
     ck_assert_ptr_nonnull(repl->current->response_finish_reason);
     ck_assert_str_eq(repl->current->response_finish_reason, "error");
 }
-END_TEST
 
+END_TEST
 /* Test: Completion with IK_FINISH_UNKNOWN maps to "unknown" */
 START_TEST(test_completion_finish_reason_unknown)
 {
@@ -284,6 +282,7 @@ START_TEST(test_completion_finish_reason_unknown)
     ck_assert_ptr_nonnull(repl->current->response_finish_reason);
     ck_assert_str_eq(repl->current->response_finish_reason, "unknown");
 }
+
 END_TEST
 
 /*
