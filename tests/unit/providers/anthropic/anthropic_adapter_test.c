@@ -8,6 +8,8 @@
 #include <sys/select.h>
 #include "providers/anthropic/anthropic.h"
 #include "providers/provider.h"
+#include "providers/request.h"
+#include "logger.h"
 
 static TALLOC_CTX *test_ctx;
 
@@ -109,6 +111,88 @@ END_TEST START_TEST(test_timeout_returns_ok)
 
 END_TEST
 
+START_TEST(test_cleanup_does_not_crash)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    // Call cleanup vtable function
+    provider->vt->cleanup(provider->ctx);
+
+    // Should complete without crashing
+}
+END_TEST
+
+START_TEST(test_cancel_does_not_crash)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    // Call cancel vtable function (no active stream)
+    provider->vt->cancel(provider->ctx);
+
+    // Should complete without crashing
+}
+END_TEST
+
+START_TEST(test_info_read_without_active_stream)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    // Create logger
+    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
+    ck_assert_ptr_nonnull(logger);
+
+    // Call info_read with no active stream
+    provider->vt->info_read(provider->ctx, logger);
+
+    // Should complete without crashing
+}
+END_TEST
+
+/* ================================================================
+ * Non-streaming Request Tests
+ * ================================================================ */
+
+static bool completion_called = false;
+static ik_provider_completion_t captured_completion;
+
+static res_t test_completion_cb(const ik_provider_completion_t *completion, void *ctx)
+{
+    (void)ctx;
+    captured_completion = *completion;
+    completion_called = true;
+    return OK(NULL);
+}
+
+START_TEST(test_start_request_delegates_to_response_module)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_anthropic_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    // Create a minimal request
+    ik_request_t *request = NULL;
+    res_t req_res = ik_request_create(test_ctx, "claude-3-5-sonnet-20241022", &request);
+    ck_assert(!is_err(&req_res));
+
+    req_res = ik_request_add_message(request, IK_ROLE_USER, "test");
+    ck_assert(!is_err(&req_res));
+
+    // Call start_request (non-streaming)
+    completion_called = false;
+    res_t start_res = provider->vt->start_request(provider->ctx, request,
+                                                    test_completion_cb, NULL);
+
+    // The function should return OK - actual network call will happen async
+    ck_assert(!is_err(&start_res));
+}
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -129,7 +213,15 @@ static Suite *anthropic_adapter_suite(void)
     tcase_add_test(tc_async, test_fdset_returns_ok);
     tcase_add_test(tc_async, test_perform_returns_ok);
     tcase_add_test(tc_async, test_timeout_returns_ok);
+    tcase_add_test(tc_async, test_cleanup_does_not_crash);
+    tcase_add_test(tc_async, test_cancel_does_not_crash);
+    tcase_add_test(tc_async, test_info_read_without_active_stream);
     suite_add_tcase(s, tc_async);
+
+    TCase *tc_request = tcase_create("Non-streaming Request");
+    tcase_add_unchecked_fixture(tc_request, setup, teardown);
+    tcase_add_test(tc_request, test_start_request_delegates_to_response_module);
+    suite_add_tcase(s, tc_request);
 
     return s;
 }
