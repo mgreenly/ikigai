@@ -8,6 +8,7 @@
 
 #include "agent.h"
 #include "config.h"
+#include "input_buffer/core.h"
 #include "message.h"
 #include "providers/provider.h"
 #include "providers/request.h"
@@ -83,6 +84,9 @@ static void setup(void)
     agent->response_finish_reason = NULL;
     agent->curl_still_running = 0;
     agent->pending_tool_call = NULL;
+    agent->input_buffer = NULL;  /* Not needed for most tests */
+    agent->provider = talloc_strdup(agent, "openai");
+    agent->model = talloc_strdup(agent, "gpt-4");
 
     pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     agent->tool_thread_running = false;
@@ -130,10 +134,11 @@ START_TEST(test_handle_tool_completion_delegates_to_current) {
 }
 
 END_TEST
+
 /**
- * Test: ik_repl_handle_agent_tool_completion renders when agent is current
+ * Test: ik_repl_handle_tool_completion calls the underlying function with current agent
  */
-START_TEST(test_handle_agent_tool_completion_renders_current)
+START_TEST(test_handle_tool_completion_calls_handler)
 {
     /* Set up state */
     agent->tool_thread_ctx = talloc_new(agent);
@@ -146,13 +151,82 @@ START_TEST(test_handle_agent_tool_completion_renders_current)
     agent->tool_thread_running = true;
     agent->tool_thread_complete = true;
 
-    /* Ensure agent is NOT current to avoid rendering */
+    /* Keep agent as current, but NULL after to avoid rendering */
+    /* Call the wrapper function - it will call the handler on repl->current */
+    ik_repl_handle_tool_completion(repl);
+
+    /* Verify it completed correctly */
+    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
+    ck_assert_uint_eq(agent->message_count, 2);
+}
+
+END_TEST
+
+/**
+ * Test: ik_repl_handle_agent_tool_completion with tool loop continuation
+ */
+START_TEST(test_handle_agent_tool_completion_continues_loop)
+{
+    /* Set up state for tool loop continuation */
+    agent->tool_thread_ctx = talloc_new(agent);
+    agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
+    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
+    agent->response_finish_reason = talloc_strdup(agent, "tool_calls");
+    agent->tool_iteration_count = 0;
+
+    /* Create thread and immediately mark as complete */
+    pthread_create_(&agent->tool_thread, NULL, dummy_thread_func, NULL);
+    agent->tool_thread_running = true;
+    agent->tool_thread_complete = true;
+
+    /* Make agent not current to avoid rendering */
     repl->current = NULL;
 
     /* Call the function */
     ik_repl_handle_agent_tool_completion(repl, agent);
 
-    /* Verify completion happened */
+    /* Verify tool iteration count was incremented */
+    ck_assert_int_eq(agent->tool_iteration_count, 1);
+    /* The continuation was triggered - curl_still_running should be set if submission succeeded,
+     * or agent goes to IDLE if it failed. We're testing the increment happened. */
+    ck_assert_uint_eq(agent->message_count, 2);  /* Tool messages were added */
+}
+
+END_TEST
+
+/**
+ * Test: ik_repl_handle_agent_tool_completion renders when agent is current
+ */
+START_TEST(test_handle_agent_tool_completion_renders_current)
+{
+    /* Set up rendering infrastructure */
+    ik_render_ctx_t *render = talloc_zero(ctx, ik_render_ctx_t);
+    render->tty_fd = -1;  /* Don't actually write */
+    render->rows = 24;
+    render->cols = 80;
+    repl->shared->render = render;
+
+    /* Create input buffer for agent */
+    agent->input_buffer = ik_input_buffer_create(agent);
+
+    /* Set up state */
+    agent->tool_thread_ctx = talloc_new(agent);
+    agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
+    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
+    agent->response_finish_reason = talloc_strdup(agent, "stop");
+
+    /* Create thread and immediately mark as complete */
+    pthread_create_(&agent->tool_thread, NULL, dummy_thread_func, NULL);
+    agent->tool_thread_running = true;
+    agent->tool_thread_complete = true;
+
+    /* Ensure agent IS current to trigger rendering */
+    repl->current = agent;
+
+    /* Call the function */
+    ik_repl_handle_agent_tool_completion(repl, agent);
+
+    /* Verify completion happened and state is correct */
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
 }
 
@@ -220,6 +294,40 @@ START_TEST(test_poll_tool_completions_current_not_executing)
 END_TEST
 
 /**
+ * Test: ik_repl_poll_tool_completions with current agent executing
+ */
+START_TEST(test_poll_tool_completions_current_executing)
+{
+    /* Set up current agent in EXECUTING_TOOL state */
+    repl->agent_count = 0;
+    repl->current = agent;
+
+    agent->tool_thread_ctx = talloc_new(agent);
+    agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
+    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
+    agent->response_finish_reason = talloc_strdup(agent, "stop");
+
+    /* Create thread and immediately mark as complete */
+    pthread_create_(&agent->tool_thread, NULL, dummy_thread_func, NULL);
+    agent->tool_thread_running = true;
+
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    agent->tool_thread_complete = true;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+
+    /* Call the function */
+    res_t result = ik_repl_poll_tool_completions(repl);
+
+    /* Verify success and tool was completed */
+    ck_assert(is_ok(&result));
+    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
+    ck_assert_uint_eq(agent->message_count, 2);
+}
+
+END_TEST
+
+/**
  * Test suite
  */
 static Suite *repl_tool_completion_suite(void)
@@ -229,9 +337,12 @@ static Suite *repl_tool_completion_suite(void)
     TCase *tc_core = tcase_create("core");
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_handle_tool_completion_delegates_to_current);
+    tcase_add_test(tc_core, test_handle_tool_completion_calls_handler);
+    tcase_add_test(tc_core, test_handle_agent_tool_completion_continues_loop);
     tcase_add_test(tc_core, test_handle_agent_tool_completion_renders_current);
     tcase_add_test(tc_core, test_poll_tool_completions_agents_array);
     tcase_add_test(tc_core, test_poll_tool_completions_current_not_executing);
+    tcase_add_test(tc_core, test_poll_tool_completions_current_executing);
     suite_add_tcase(s, tc_core);
 
     return s;
