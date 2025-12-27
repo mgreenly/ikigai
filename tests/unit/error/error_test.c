@@ -296,6 +296,10 @@ START_TEST(test_error_code_str)
     ck_assert_str_eq(error_code_str(ERR_DB_CONNECT), "Database connection error");
     ck_assert_str_eq(error_code_str(ERR_DB_MIGRATE), "Database migration error");
     ck_assert_str_eq(error_code_str(ERR_OUT_OF_MEMORY), "Out of memory");
+    ck_assert_str_eq(error_code_str(ERR_AGENT_NOT_FOUND), "Agent not found");
+    ck_assert_str_eq(error_code_str(ERR_PROVIDER), "Provider error");
+    ck_assert_str_eq(error_code_str(ERR_MISSING_CREDENTIALS), "Missing credentials");
+    ck_assert_str_eq(error_code_str(ERR_NOT_IMPLEMENTED), "Not implemented");
 }
 
 END_TEST

@@ -353,6 +353,27 @@ START_TEST(test_stream_error_null_message)
 }
 
 END_TEST
+/* Test: IK_STREAM_ERROR replaces existing error message */
+START_TEST(test_stream_error_replaces_existing_message)
+{
+    /* Set up existing error message */
+    agent->http_error_message = talloc_strdup(agent, "First error");
+
+    ik_stream_event_t event = {
+        .type = IK_STREAM_ERROR,
+        .data.error.category = IK_ERR_CAT_SERVER,
+        .data.error.message = "Second error"
+    };
+
+    res_t result = ik_repl_stream_callback(&event, agent);
+    ck_assert(is_ok(&result));
+
+    /* Verify error message was replaced */
+    ck_assert_ptr_nonnull(agent->http_error_message);
+    ck_assert_str_eq(agent->http_error_message, "Second error");
+}
+
+END_TEST
 
 /*
  * Test suite
@@ -382,6 +403,7 @@ static Suite *repl_stream_callback_suite(void)
     tcase_add_test(tc_stream, test_stream_done_stores_tokens);
     tcase_add_test(tc_stream, test_stream_error_stores_message);
     tcase_add_test(tc_stream, test_stream_error_null_message);
+    tcase_add_test(tc_stream, test_stream_error_replaces_existing_message);
     suite_add_tcase(s, tc_stream);
 
     return s;

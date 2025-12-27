@@ -136,8 +136,8 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
             }
             break;
 
-        default:
-            break;
+        default: // LCOV_EXCL_LINE - defensive: all event types handled above
+            break; // LCOV_EXCL_LINE
     }
 
     return OK(NULL);

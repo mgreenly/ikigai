@@ -114,9 +114,9 @@ res_t ik_anthropic_parse_content_blocks(TALLOC_CTX *ctx, yyjson_val *content_arr
 
             // Serialize input to JSON string
             char *input_json = yyjson_val_write(input_val, 0, NULL);
-            if (input_json == NULL) {
-                return ERR(ctx, PARSE, "Failed to serialize tool input");
-            }
+            if (input_json == NULL) { // LCOV_EXCL_LINE - only fails on OOM
+                return ERR(ctx, PARSE, "Failed to serialize tool input"); // LCOV_EXCL_LINE
+            } // LCOV_EXCL_LINE
             blocks[idx].data.tool_call.arguments = talloc_strdup(blocks, input_json);
             free(input_json); // yyjson allocates with malloc
             if (blocks[idx].data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE

@@ -111,6 +111,12 @@ END_TEST START_TEST(test_thinking_budget_gemini_3_pro)
     ck_assert_int_eq(budget, -1); // uses levels not budgets
 }
 
+END_TEST START_TEST(test_thinking_budget_null)
+{
+    int32_t budget = ik_google_thinking_budget(NULL, IK_THINKING_HIGH);
+    ck_assert_int_eq(budget, -1);
+}
+
 END_TEST
 /* ================================================================
  * Thinking Level String Tests
@@ -196,6 +202,18 @@ END_TEST START_TEST(test_can_disable_thinking_3_pro)
 {
     bool can_disable = ik_google_can_disable_thinking("gemini-3-pro");
     ck_assert(!can_disable); // uses levels
+}
+
+END_TEST START_TEST(test_can_disable_thinking_null)
+{
+    bool can_disable = ik_google_can_disable_thinking(NULL);
+    ck_assert(!can_disable);
+}
+
+END_TEST START_TEST(test_can_disable_thinking_1_5_pro)
+{
+    bool can_disable = ik_google_can_disable_thinking("gemini-1.5-pro");
+    ck_assert(!can_disable); // doesn't support thinking
 }
 
 END_TEST
@@ -322,6 +340,7 @@ static Suite *google_thinking_suite(void)
     tcase_add_test(tc_budget, test_thinking_budget_2_5_flash_none);
     tcase_add_test(tc_budget, test_thinking_budget_2_5_flash_med);
     tcase_add_test(tc_budget, test_thinking_budget_gemini_3_pro);
+    tcase_add_test(tc_budget, test_thinking_budget_null);
     suite_add_tcase(s, tc_budget);
 
     TCase *tc_level = tcase_create("Thinking Level Strings");
@@ -346,6 +365,8 @@ static Suite *google_thinking_suite(void)
     tcase_add_test(tc_disable, test_can_disable_thinking_2_5_flash);
     tcase_add_test(tc_disable, test_can_disable_thinking_2_5_flash_lite);
     tcase_add_test(tc_disable, test_can_disable_thinking_3_pro);
+    tcase_add_test(tc_disable, test_can_disable_thinking_null);
+    tcase_add_test(tc_disable, test_can_disable_thinking_1_5_pro);
     suite_add_tcase(s, tc_disable);
 
     TCase *tc_validate = tcase_create("Thinking Validation");

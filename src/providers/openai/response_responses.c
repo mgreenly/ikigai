@@ -128,9 +128,9 @@ static size_t count_content_blocks(yyjson_val *output_arr)
 {
     assert(output_arr != NULL); // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_is_arr(output_arr)) {
-        return 0;
-    }
+    if (!yyjson_is_arr(output_arr)) { // LCOV_EXCL_LINE - defensive: caller validates type
+        return 0; // LCOV_EXCL_LINE
+    } // LCOV_EXCL_LINE
 
     size_t total = 0;
     size_t idx, max;

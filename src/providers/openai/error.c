@@ -63,10 +63,10 @@ res_t ik_openai_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body,
     }
 
     yyjson_val *root = yyjson_doc_get_root(doc);
-    if (root == NULL) {
-        yyjson_doc_free(doc);
-        return ERR(ctx, PARSE, "OpenAI error response has no root");
-    }
+    if (root == NULL) { // LCOV_EXCL_LINE - defensive: yyjson always sets root if parse succeeds
+        yyjson_doc_free(doc); // LCOV_EXCL_LINE
+        return ERR(ctx, PARSE, "OpenAI error response has no root"); // LCOV_EXCL_LINE
+    } // LCOV_EXCL_LINE
 
     // Extract error object
     yyjson_val *error_obj = yyjson_obj_get(root, "error");
@@ -106,9 +106,9 @@ res_t ik_openai_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body,
  */
 static int32_t parse_duration(const char *duration)
 {
-    if (duration == NULL) {
-        return -1;
-    }
+    if (duration == NULL) { // LCOV_EXCL_LINE - defensive: called only after extracting from header
+        return -1; // LCOV_EXCL_LINE
+    } // LCOV_EXCL_LINE
 
     int32_t total_seconds = 0;
     const char *p = duration;

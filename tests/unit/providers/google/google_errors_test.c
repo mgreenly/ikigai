@@ -162,6 +162,14 @@ END_TEST START_TEST(test_map_errors_to_correct_categories)
     res_t r5 = ik_google_parse_error(test_ctx, 504, json5, strlen(json5), &cat5, &msg5);
     ck_assert(!is_err(&r5));
     ck_assert_int_eq(cat5, IK_ERR_CAT_TIMEOUT);
+
+    // Test unknown status code -> UNKNOWN
+    ik_error_category_t cat6;
+    char *msg6 = NULL;
+    const char *json6 = "{\"error\":{\"code\":418,\"message\":\"I'm a teapot\"}}";
+    res_t r6 = ik_google_parse_error(test_ctx, 418, json6, strlen(json6), &cat6, &msg6);
+    ck_assert(!is_err(&r6));
+    ck_assert_int_eq(cat6, IK_ERR_CAT_UNKNOWN);
 }
 
 END_TEST

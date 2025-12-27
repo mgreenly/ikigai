@@ -49,10 +49,10 @@ res_t ik_anthropic_handle_error(TALLOC_CTX *ctx, int32_t status, const char *bod
     }
 
     yyjson_val *root = yyjson_doc_get_root(doc);
-    if (root == NULL) {
-        yyjson_doc_free(doc);
-        return ERR(ctx, PARSE, "Anthropic error response has no root");
-    }
+    if (root == NULL) { // LCOV_EXCL_LINE - defensive: yyjson always sets root if parse succeeds
+        yyjson_doc_free(doc); // LCOV_EXCL_LINE
+        return ERR(ctx, PARSE, "Anthropic error response has no root"); // LCOV_EXCL_LINE
+    } // LCOV_EXCL_LINE
 
     // Extract error.type and error.message (optional - just for validation)
     yyjson_val *error_obj = yyjson_obj_get(root, "error");
