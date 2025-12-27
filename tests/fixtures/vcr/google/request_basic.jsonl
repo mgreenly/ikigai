@@ -1,0 +1,3 @@
+{"_request": {"method": "POST", "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=REDACTED", "headers": {"content-type": "application/json"}, "body": "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Hello!\"}]}],\"generationConfig\":{\"maxOutputTokens\":1024}}"}}
+{"_response": {"status": 200, "headers": {"content-type": "application/json"}}}
+{"_body": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello! How can I help you today?\"}],\"role\":\"model\"},\"finishReason\":\"STOP\"}],\"usageMetadata\":{\"promptTokenCount\":5,\"candidatesTokenCount\":7,\"totalTokenCount\":12},\"modelVersion\":\"gemini-2.0-flash\"}"}
