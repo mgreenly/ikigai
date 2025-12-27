@@ -142,13 +142,13 @@ START_TEST(test_start_tool_execution) {
     /* Start async tool execution */
     ik_repl_start_tool_execution(repl);
 
-    /* Verify thread was started - read under mutex to avoid data race */
+    /* Verify thread was started - read under mutex to avoid data race
+     * Note: We only check that running flag was set. Under TSAN, the thread
+     * may complete extremely quickly, so we can't assert !complete here. */
     pthread_mutex_lock_(&repl->current->tool_thread_mutex);
     bool running = repl->current->tool_thread_running;
-    bool initial_complete = repl->current->tool_thread_complete;
     pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
     ck_assert(running);
-    ck_assert(!initial_complete);
 
     /* Verify state transition */
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
