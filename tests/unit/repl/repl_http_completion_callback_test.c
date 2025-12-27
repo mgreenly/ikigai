@@ -377,6 +377,131 @@ START_TEST(test_completion_null_tool_call_clears_pending)
 
 END_TEST
 
+/* Test: Completion with IK_FINISH_LENGTH maps to "length" */
+START_TEST(test_completion_finish_reason_length)
+{
+    /* Create response with LENGTH finish reason */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;
+    response->finish_reason = IK_FINISH_LENGTH;
+    response->usage.output_tokens = 0;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
+
+    /* Call callback */
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
+    ck_assert(is_ok(&result));
+
+    /* Verify finish reason was mapped */
+    ck_assert_ptr_nonnull(repl->current->response_finish_reason);
+    ck_assert_str_eq(repl->current->response_finish_reason, "length");
+}
+END_TEST
+
+/* Test: Completion with IK_FINISH_TOOL_USE maps to "tool_use" */
+START_TEST(test_completion_finish_reason_tool_use)
+{
+    /* Create response with TOOL_USE finish reason */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;
+    response->finish_reason = IK_FINISH_TOOL_USE;
+    response->usage.output_tokens = 0;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
+
+    /* Call callback */
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
+    ck_assert(is_ok(&result));
+
+    /* Verify finish reason was mapped */
+    ck_assert_ptr_nonnull(repl->current->response_finish_reason);
+    ck_assert_str_eq(repl->current->response_finish_reason, "tool_use");
+}
+END_TEST
+
+/* Test: Completion with IK_FINISH_CONTENT_FILTER maps to "content_filter" */
+START_TEST(test_completion_finish_reason_content_filter)
+{
+    /* Create response with CONTENT_FILTER finish reason */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;
+    response->finish_reason = IK_FINISH_CONTENT_FILTER;
+    response->usage.output_tokens = 0;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
+
+    /* Call callback */
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
+    ck_assert(is_ok(&result));
+
+    /* Verify finish reason was mapped */
+    ck_assert_ptr_nonnull(repl->current->response_finish_reason);
+    ck_assert_str_eq(repl->current->response_finish_reason, "content_filter");
+}
+END_TEST
+
+/* Test: Completion with IK_FINISH_ERROR maps to "error" */
+START_TEST(test_completion_finish_reason_error)
+{
+    /* Create response with ERROR finish reason */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;
+    response->finish_reason = IK_FINISH_ERROR;
+    response->usage.output_tokens = 0;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
+
+    /* Call callback */
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
+    ck_assert(is_ok(&result));
+
+    /* Verify finish reason was mapped */
+    ck_assert_ptr_nonnull(repl->current->response_finish_reason);
+    ck_assert_str_eq(repl->current->response_finish_reason, "error");
+}
+END_TEST
+
+/* Test: Completion with IK_FINISH_UNKNOWN maps to "unknown" */
+START_TEST(test_completion_finish_reason_unknown)
+{
+    /* Create response with UNKNOWN finish reason */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;
+    response->finish_reason = IK_FINISH_UNKNOWN;
+    response->usage.output_tokens = 0;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
+
+    /* Call callback */
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
+    ck_assert(is_ok(&result));
+
+    /* Verify finish reason was mapped */
+    ck_assert_ptr_nonnull(repl->current->response_finish_reason);
+    ck_assert_str_eq(repl->current->response_finish_reason, "unknown");
+}
+END_TEST
+
 /*
  * Test suite
  */
@@ -400,6 +525,11 @@ static Suite *repl_http_completion_callback_suite(void)
     tcase_add_test(tc_core, test_completion_stores_tool_call);
     tcase_add_test(tc_core, test_completion_clears_previous_tool_call);
     tcase_add_test(tc_core, test_completion_null_tool_call_clears_pending);
+    tcase_add_test(tc_core, test_completion_finish_reason_length);
+    tcase_add_test(tc_core, test_completion_finish_reason_tool_use);
+    tcase_add_test(tc_core, test_completion_finish_reason_content_filter);
+    tcase_add_test(tc_core, test_completion_finish_reason_error);
+    tcase_add_test(tc_core, test_completion_finish_reason_unknown);
     suite_add_tcase(s, tc_core);
 
     return s;
