@@ -167,7 +167,6 @@ START_TEST(test_rewind_with_multiple_message_pairs)
 }
 
 END_TEST
-
 // Test: Rewind with tool result message (covers marks.c line 188)
 START_TEST(test_rewind_with_tool_result_message)
 {
@@ -209,6 +208,7 @@ START_TEST(test_rewind_with_tool_result_message)
     ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
     ck_assert(repl->current->messages[1]->role == IK_ROLE_TOOL);
 }
+
 END_TEST
 
 static Suite *mark_system_role_suite(void)

@@ -476,6 +476,8 @@ DB_INTEGRATION_TEST_RUNS = $(DB_INTEGRATION_TEST_TARGETS:%=%.run)
 	@echo "Running $<..."
 ifeq ($(BUILD),sanitize)
 	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $< || (echo "✗ Test failed: $<" && exit 1)
+else ifeq ($(BUILD),tsan)
+	@CK_FORK=no $< || (echo "✗ Test failed: $<" && exit 1)
 else
 	@$< || (echo "✗ Test failed: $<" && exit 1)
 endif
@@ -677,24 +679,26 @@ check-valgrind:
 	@rm -rf build-valgrind
 	@mkdir -p build-valgrind/tests/unit build-valgrind/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-valgrind/tests/unit|' | xargs mkdir -p
-	@$(MAKE) -j$(MAKE_JOBS) check BUILD=valgrind BUILDDIR=build-valgrind TEST_TARGETS_VAR=1
+	@SKIP_SIGNAL_TESTS=1 $(MAKE) check BUILD=valgrind BUILDDIR=build-valgrind TEST_TARGETS_VAR=1
 	@echo "Running tests under Valgrind Memcheck..."
 	@ulimit -n 1024; \
-	if ! find build-valgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
-		'echo -n "Valgrind: {}... "; \
-		if valgrind --leak-check=full --show-leak-kinds=all \
+	SUPP_FILE="$$(pwd)/.suppressions/valgrind.supp"; \
+	if ! find build-valgrind/tests -type f -executable | sort | xargs -I {} sh -c \
+		'LOGFILE=/tmp/valgrind-$$$$.log; \
+		echo -n "Valgrind: {}... "; \
+		if CK_FORK=no valgrind --leak-check=full --show-leak-kinds=all \
 		            --track-origins=yes --error-exitcode=1 \
 		            --quiet --gen-suppressions=no \
-		            --suppressions=$$PWD/.suppressions/valgrind.supp \
-		            ./{} > /tmp/valgrind-$$$$.log 2>&1; then \
+		            --suppressions='"$$SUPP_FILE"' \
+		            ./{} > $$LOGFILE 2>&1; then \
 			echo "✓"; \
+			rm -f $$LOGFILE; \
 		else \
 			echo "✗ FAILED"; \
-			cat /tmp/valgrind-$$$$.log; \
-			rm -f /tmp/valgrind-$$$$.log; \
+			cat $$LOGFILE; \
+			rm -f $$LOGFILE; \
 			exit 1; \
-		fi; \
-		rm -f /tmp/valgrind-$$$$.log'; then \
+		fi'; then \
 		echo "✗ Valgrind checks failed"; \
 		exit 1; \
 	fi

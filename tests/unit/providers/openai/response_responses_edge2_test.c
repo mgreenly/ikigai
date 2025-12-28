@@ -58,6 +58,67 @@ START_TEST(test_parse_response_skip_content_no_type) {
     ck_assert_int_eq((int)resp->content_count, 1);
 }
 
+END_TEST START_TEST(test_parse_response_message_no_content_array)
+{
+    const char *json = "{"
+                       "\"id\":\"resp-nocontent\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"type\":\"message\""
+                       "},{"
+                       "\"type\":\"message\","
+                       "\"content\":[{"
+                       "\"type\":\"output_text\","
+                       "\"text\":\"Valid text\""
+                       "}]"
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":5,"
+                       "\"completion_tokens\":2,"
+                       "\"total_tokens\":7"
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 1);
+}
+
+END_TEST START_TEST(test_parse_response_message_content_not_array)
+{
+    const char *json = "{"
+                       "\"id\":\"resp-contentnotarr\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"type\":\"message\","
+                       "\"content\":\"not an array\""
+                       "},{"
+                       "\"type\":\"message\","
+                       "\"content\":[{"
+                       "\"type\":\"output_text\","
+                       "\"text\":\"Valid text\""
+                       "}]"
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":5,"
+                       "\"completion_tokens\":2,"
+                       "\"total_tokens\":7"
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 1);
+}
+
 END_TEST START_TEST(test_parse_response_skip_content_type_not_string)
 {
     const char *json = "{"
@@ -393,6 +454,8 @@ static Suite *response_responses_edge2_suite(void)
     TCase *tc_edge = tcase_create("Invalid Types");
     tcase_add_checked_fixture(tc_edge, setup, teardown);
     tcase_add_test(tc_edge, test_parse_response_skip_content_no_type);
+    tcase_add_test(tc_edge, test_parse_response_message_no_content_array);
+    tcase_add_test(tc_edge, test_parse_response_message_content_not_array);
     tcase_add_test(tc_edge, test_parse_response_skip_content_type_not_string);
     tcase_add_test(tc_edge, test_parse_response_skip_unknown_content_type);
     tcase_add_test(tc_edge, test_parse_response_output_text_no_text_field);

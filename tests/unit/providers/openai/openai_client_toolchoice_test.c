@@ -26,8 +26,7 @@ static void teardown(void)
  * Tool Choice Tests
  * ================================================================ */
 
-START_TEST(test_build_request_with_tool_choice_none)
-{
+START_TEST(test_build_request_with_tool_choice_none) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
     req->max_output_tokens = 1024;
@@ -183,7 +182,6 @@ END_TEST START_TEST(test_build_request_with_tool_choice_unknown_defaults_to_auto
 }
 
 END_TEST
-
 /* ================================================================
  * Validation Tests
  * ================================================================ */

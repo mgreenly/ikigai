@@ -23,6 +23,27 @@
 }
 
 {
+   Check library - definitely lost in tcase_create
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:emalloc
+   fun:tcase_create
+   ...
+}
+
+{
+   Check library - indirectly lost in tcase_create
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   fun:emalloc
+   fun:check_list_create
+   fun:tcase_create
+   ...
+}
+
+{
    Talloc - possibly lost memory from malloc
    Memcheck:Leak
    match-leak-kinds: possible
@@ -137,6 +158,7 @@
    PostgreSQL - possibly lost memory from libpq
    Memcheck:Leak
    match-leak-kinds: possible
+   fun:*
    ...
    obj:*/libpq.so*
    ...
@@ -146,6 +168,7 @@
    OpenSSL - possibly lost memory from libcrypto
    Memcheck:Leak
    match-leak-kinds: possible
+   fun:*
    ...
    obj:*/libcrypto.so*
    ...
@@ -155,6 +178,7 @@
    OpenSSL - possibly lost memory from libssl
    Memcheck:Leak
    match-leak-kinds: possible
+   fun:*
    ...
    obj:*/libssl.so*
    ...

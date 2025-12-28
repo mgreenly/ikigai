@@ -424,6 +424,9 @@ static Suite *cmd_kill_target_suite(void)
     Suite *s = suite_create("Kill Command (Targeted)");
     TCase *tc = tcase_create("Targeted Kill");
 
+    // ThreadSanitizer adds significant overhead, increase timeout
+    tcase_set_timeout(tc, 30);
+
     tcase_add_checked_fixture(tc, setup, teardown);
 
     tcase_add_test(tc, test_kill_target_terminates_specific_agent);
