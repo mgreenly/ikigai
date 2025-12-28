@@ -54,6 +54,7 @@ For each file in the discovery results, spawn a fix sub-agent:
 ## Context
 
 Use `/persona coverage` to load the coverage skill set.
+Use `/load git` to load git conventions.
 
 ## Task
 
@@ -67,6 +68,7 @@ Coverage gaps to fix:
 Before reporting done, run these commands and fix any failures:
 1. `make lint`
 2. `make check`
+3. Commit the changes (follow git skill conventions)
 
 Report what you fixed and the final validation results.
 ```

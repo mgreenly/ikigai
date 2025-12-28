@@ -122,12 +122,16 @@ void test_write_error_handling(void) {
 | `curl_multi_info_read_()` | `curl_multi_info_read()` |
 | `curl_multi_strerror_()` | `curl_multi_strerror()` |
 
-### libpq & pthread
+### libpq
 | Wrapper | Wraps |
 |---------|-------|
 | `PQgetvalue_()` | `PQgetvalue()` |
 | `pq_exec_()` | `PQexec()` |
 | `pq_exec_params_()` | `PQexecParams()` |
+
+### pthread
+| Wrapper | Wraps |
+|---------|-------|
 | `pthread_mutex_init_()` | `pthread_mutex_init()` |
 | `pthread_mutex_destroy_()` | `pthread_mutex_destroy()` |
 | `pthread_mutex_lock_()` | `pthread_mutex_lock()` |

@@ -40,16 +40,16 @@ typedef struct err {
 
 | Code | Value | Usage |
 |------|-------|-------|
-| `OK` | 0 | Success |
-| `ERR_INVALID_ARG` | 1 | Invalid argument |
-| `ERR_OUT_OF_RANGE` | 2 | Out of range |
-| `ERR_IO` | 3 | File/config operations |
+| `OK` | 0 | Success/no error |
+| `ERR_INVALID_ARG` | 1 | Invalid argument passed to function |
+| `ERR_OUT_OF_RANGE` | 2 | Value out of valid range |
+| `ERR_IO` | 3 | File operations, config loading |
 | `ERR_PARSE` | 4 | JSON/protocol parsing |
-| `ERR_DB_CONNECT` | 5 | DB connection |
-| `ERR_DB_MIGRATE` | 6 | DB migration |
-| `ERR_OUT_OF_MEMORY` | 7 | Allocation failure |
-| `ERR_AGENT_NOT_FOUND` | 8 | Agent lookup |
-| `ERR_PROVIDER` | 9 | Provider errors |
+| `ERR_DB_CONNECT` | 5 | Database connection failures |
+| `ERR_DB_MIGRATE` | 6 | Database migration failures |
+| `ERR_OUT_OF_MEMORY` | 7 | Memory allocation failures |
+| `ERR_AGENT_NOT_FOUND` | 8 | Agent not found in array |
+| `ERR_PROVIDER` | 9 | Provider error |
 | `ERR_MISSING_CREDENTIALS` | 10 | Missing credentials |
 | `ERR_NOT_IMPLEMENTED` | 11 | Not implemented |
 
