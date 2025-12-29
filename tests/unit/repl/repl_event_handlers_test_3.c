@@ -19,6 +19,8 @@
 #include "../../../src/providers/provider.h"
 #include "../../../src/providers/common/http_multi.h"
 #include "../../../src/scroll_detector.h"
+#include "../../../src/input_buffer/core.h"
+#include "../../../src/render.h"
 #include "../../../src/tool.h"
 #include "../../../src/message.h"
 #include "../../../src/wrapper.h"
@@ -110,10 +112,18 @@ static void setup(void)
     /* Create shared context */
     shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->term = talloc_zero(shared, ik_term_ctx_t);
-    shared->term->tty_fd = 0;
+    shared->term->tty_fd = 1;
+    shared->term->screen_rows = 24;
+    shared->term->screen_cols = 80;
     shared->db_ctx = fake_db;
     shared->session_id = 123;
     shared->logger = NULL;
+
+    /* Create render context for tests that trigger render */
+    ik_render_ctx_t *render = NULL;
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
+    (void)res;  // Ignore result in test setup
+    shared->render = render;
 
     /* Create REPL context */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
@@ -127,6 +137,7 @@ static void setup(void)
     agent = talloc_zero(repl, ik_agent_ctx_t);
     agent->shared = shared;
     agent->scrollback = ik_scrollback_create(agent, 80);
+    agent->input_buffer = ik_input_buffer_create(agent);
     agent->curl_still_running = 0;
     agent->http_error_message = NULL;
     agent->assistant_response = NULL;

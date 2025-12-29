@@ -1,0 +1,60 @@
+# Fix Valgrind Memory Error
+
+You have ONE job: fix the memory error described below. Do not refactor unrelated code.
+
+## Load Required Skills
+
+Before starting, load these skills for context:
+- /load errors
+- /load memory
+- /load style
+
+## The Error
+
+**File:** {{file}}
+**Line:** {{line}}
+**Error Type:** {{error_type}}
+**Message:** {{message}}
+
+**Stack Trace:**
+```
+{{stack}}
+```
+
+## Make Output (tail)
+
+```
+{{make_output}}
+```
+
+## Instructions
+
+1. Read the file and understand the memory error
+2. Trace the data flow to find the root cause
+3. Fix the underlying bug
+
+## Common Valgrind Errors
+
+- **Invalid read/write**: Accessing freed memory or out of bounds
+- **Uninitialised value**: Using memory before initializing it
+- **Definitely lost**: Memory allocated but never freed (leak)
+- **Indirectly lost**: Memory only reachable through leaked memory
+- **Invalid free**: Freeing memory not from malloc, or double-free
+- **Mismatched free**: Using wrong deallocator (free vs delete)
+
+## Constraints
+
+- Do NOT add defensive NULL checks everywhere - fix the root cause
+- Do NOT suppress the error without fixing it
+- Do NOT refactor unrelated code
+- Keep changes minimal and focused
+
+## Validation
+
+Before reporting done, run:
+1. `make check` - ensure tests still pass
+2. `make check-valgrind` - ensure memory error is fixed
+
+## When Done
+
+Report what you fixed and the root cause. Be brief.

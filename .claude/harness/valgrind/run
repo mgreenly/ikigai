@@ -1,0 +1,326 @@
+#!/usr/bin/env python3
+import sys
+sys.dont_write_bytecode = True
+"""
+harness/valgrind - Automated Valgrind Memcheck error fix loop
+
+Runs make check-valgrind, fixes memory errors one at a time with escalation,
+commits on success, reverts on exhaustion, continues until all pass or
+no progress is made.
+"""
+
+import subprocess
+import sys
+import os
+import re
+from datetime import datetime
+from pathlib import Path
+
+# Configuration
+MAX_ATTEMPTS_PER_FILE = 8
+
+# Escalation ladder: (model, thinking_budget, display_name)
+ESCALATION_LADDER = {
+    1: ("claude-sonnet-4-20250514", "10000", "sonnet:thinking"),
+    2: ("claude-sonnet-4-20250514", "20000", "sonnet:think-hard"),
+    3: ("claude-sonnet-4-20250514", "50000", "sonnet:think-harder"),
+    4: ("claude-sonnet-4-20250514", "128000", "sonnet:ultrathink"),
+    5: ("claude-opus-4-20250514", "10000", "opus:thinking"),
+    6: ("claude-opus-4-20250514", "20000", "opus:think-hard"),
+    7: ("claude-opus-4-20250514", "50000", "opus:think-harder"),
+    8: ("claude-opus-4-20250514", "128000", "opus:ultrathink"),
+}
+
+SCRIPT_DIR = Path(__file__).parent.resolve()
+PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
+FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
+
+
+def log(msg: str) -> None:
+    """Print timestamped log message."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{timestamp} | valgrind | {msg}", flush=True)
+
+
+def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None, timeout: int | None = None) -> tuple[int, str, str]:
+    """Run a command and return (returncode, stdout, stderr)."""
+    result = subprocess.run(
+        cmd,
+        capture_output=capture,
+        text=True,
+        cwd=cwd or PROJECT_ROOT,
+        timeout=timeout,
+    )
+    return result.returncode, result.stdout or "", result.stderr or ""
+
+
+def run_make_valgrind() -> tuple[bool, str]:
+    """Run make check-valgrind and return (success, output)."""
+    log("Running make check-valgrind...")
+    code, stdout, stderr = run_cmd(["make", "check-valgrind"], timeout=1200)
+    output = stdout + stderr
+    return code == 0, output
+
+
+def parse_failures(output: str) -> list[dict]:
+    """
+    Parse Valgrind output to extract memory errors.
+    Returns list of {file, line, error_type, message, stack} dicts.
+    """
+    failures = []
+    seen_files = set()
+
+    # Valgrind error patterns:
+    # ==PID== Invalid read of size N
+    # ==PID== Conditional jump or move depends on uninitialised value(s)
+    # ==PID== Use of uninitialised value of size N
+    # ==PID== N bytes in M blocks are definitely lost
+    error_patterns = [
+        (re.compile(r'==\d+==\s+(Invalid (?:read|write) of size \d+)'), 'memory error'),
+        (re.compile(r'==\d+==\s+(Conditional jump or move depends on uninitialised value)'), 'uninitialized'),
+        (re.compile(r'==\d+==\s+(Use of uninitialised value of size \d+)'), 'uninitialized'),
+        (re.compile(r'==\d+==\s+(\d+ bytes in \d+ blocks are (?:definitely|indirectly|possibly) lost)'), 'memory leak'),
+        (re.compile(r'==\d+==\s+(Invalid free)'), 'invalid free'),
+        (re.compile(r'==\d+==\s+(Mismatched free)'), 'mismatched free'),
+    ]
+
+    # Location pattern: ==PID==    at/by 0x...: function (file.c:123)
+    location_pattern = re.compile(r'==\d+==\s+(?:at|by)\s+0x[0-9A-Fa-f]+:\s+\S+\s+\((\S+):(\d+)\)')
+
+    lines = output.split('\n')
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+
+        for pattern, error_category in error_patterns:
+            match = pattern.search(line)
+            if match:
+                error_type = match.group(1)
+                stack_lines = []
+
+                # Collect stack trace (next 20 lines)
+                for j in range(i + 1, min(i + 20, len(lines))):
+                    stack_lines.append(lines[j])
+
+                    loc_match = location_pattern.search(lines[j])
+                    if loc_match:
+                        file = loc_match.group(1)
+                        line_num = loc_match.group(2)
+                        if file not in seen_files and (file.startswith('src/') or file.startswith('tests/')):
+                            seen_files.add(file)
+                            failures.append({
+                                "file": file,
+                                "line": line_num,
+                                "error_type": f"Valgrind: {error_category}",
+                                "message": error_type,
+                                "stack": '\n'.join(stack_lines[:15]),
+                            })
+                            break
+                break
+
+        i += 1
+
+    return failures
+
+
+def load_prompt_template() -> str:
+    """Load the fix prompt template."""
+    if not FIX_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {FIX_PROMPT_TEMPLATE}")
+        sys.exit(1)
+    return FIX_PROMPT_TEMPLATE.read_text()
+
+
+def build_prompt(failure: dict, make_output: str) -> str:
+    """Build the fix prompt from template."""
+    template = load_prompt_template()
+
+    prompt = template.replace("{{file}}", failure["file"])
+    prompt = prompt.replace("{{line}}", failure["line"])
+    prompt = prompt.replace("{{error_type}}", failure["error_type"])
+    prompt = prompt.replace("{{message}}", failure["message"])
+    prompt = prompt.replace("{{stack}}", failure["stack"])
+    prompt = prompt.replace("{{make_output}}", make_output[-6000:])
+
+    return prompt
+
+
+def invoke_claude(prompt: str, model: str, thinking_budget: str) -> tuple[bool, str]:
+    """
+    Invoke Claude CLI with the prompt via stdin.
+    Returns (success, response).
+    """
+    import json
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        f.write(prompt)
+        prompt_file = f.name
+
+    try:
+        cmd = f'cat "{prompt_file}" | claude -p - --model {model} --allowedTools "Read,Edit,Write,Bash,Glob,Grep" --output-format json --max-turns 30'
+        env = os.environ.copy()
+        env["MAX_THINKING_TOKENS"] = thinking_budget
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
+            timeout=900,
+            env=env,
+        )
+        code = result.returncode
+        stdout = result.stdout or ""
+        stderr = result.stderr or ""
+    finally:
+        Path(prompt_file).unlink(missing_ok=True)
+
+    if code != 0:
+        return False, stderr
+
+    try:
+        result = json.loads(stdout)
+        return True, result.get("result", "")
+    except json.JSONDecodeError:
+        return True, stdout
+
+
+def git_get_modified_files() -> set[str]:
+    """Get set of currently modified/untracked files."""
+    code, stdout, _ = run_cmd(["git", "status", "--porcelain"])
+    files = set()
+    for line in stdout.strip().split('\n'):
+        if line.strip():
+            parts = line[3:].split(' -> ')
+            files.add(parts[-1])
+    return files
+
+
+def git_commit(failure: dict, model_name: str, attempt: int, files_before: set[str]) -> bool:
+    """Commit only files that changed during fix attempt."""
+    files_after = git_get_modified_files()
+    new_changes = files_after - files_before
+
+    if not new_changes:
+        return False
+
+    for f in new_changes:
+        run_cmd(["git", "add", f])
+
+    file_name = Path(failure["file"]).name
+    msg = f"fix: memory error in {file_name}\n\nharness/valgrind | {model_name} | attempt {attempt}"
+
+    code, _, _ = run_cmd(["git", "commit", "-m", msg])
+    return code == 0
+
+
+def git_revert(files_before: set[str] | None = None) -> None:
+    """Revert changes made during fix attempt."""
+    if files_before is not None:
+        files_after = git_get_modified_files()
+        new_changes = files_after - files_before
+        if new_changes:
+            log("Reverting uncommitted changes...")
+            for f in new_changes:
+                run_cmd(["git", "checkout", f])
+            run_cmd(["git", "clean", "-fd", "src/", "tests/"])
+    else:
+        code, stdout, _ = run_cmd(["git", "status", "--porcelain"])
+        if stdout.strip():
+            log("Reverting uncommitted changes...")
+            run_cmd(["git", "checkout", "."])
+            run_cmd(["git", "clean", "-fd"])
+
+
+def try_fix_file(failure: dict, make_output: str) -> bool:
+    """
+    Attempt to fix a memory error.
+    Returns True if fixed, False if exhausted attempts.
+    """
+    file = failure["file"]
+
+    files_before = git_get_modified_files()
+
+    for attempt in range(1, MAX_ATTEMPTS_PER_FILE + 1):
+        model, thinking_budget, model_name = ESCALATION_LADDER[attempt]
+
+        log(f"Trying {model_name} (attempt {attempt}/{MAX_ATTEMPTS_PER_FILE})")
+
+        prompt = build_prompt(failure, make_output)
+        success, response = invoke_claude(prompt, model, thinking_budget)
+
+        if not success:
+            log(f"{model_name} invocation FAILED: {response[:200]}")
+            continue
+
+        # Verify the fix
+        check_passed, _ = run_make_valgrind()
+
+        if check_passed:
+            log(f"{model_name} SUCCESS")
+            git_commit(failure, model_name, attempt, files_before)
+            return True
+        else:
+            log(f"{model_name} FAILED (memory errors remain)")
+
+    # Exhausted all attempts
+    log(f"SKIPPED - exhausted {MAX_ATTEMPTS_PER_FILE} attempts")
+    git_revert(files_before)
+    return False
+
+
+def main() -> int:
+    """Main entry point."""
+    log("Starting")
+    os.chdir(PROJECT_ROOT)
+
+    pass_num = 0
+
+    while True:
+        pass_num += 1
+        log(f"=== Pass {pass_num} ===")
+
+        success, output = run_make_valgrind()
+
+        if success:
+            log("All Valgrind checks passed!")
+            return 0
+
+        failures = parse_failures(output)
+
+        if not failures:
+            log("make check-valgrind failed but couldn't parse failures")
+            log("Output tail:")
+            for line in output.split('\n')[-30:]:
+                log(f"  {line}")
+            return 1
+
+        log(f"Found {len(failures)} memory errors")
+
+        fixed_count = 0
+        skipped = []
+
+        for i, failure in enumerate(failures, 1):
+            file = failure["file"]
+            error = failure["error_type"]
+            log(f"[{i}/{len(failures)}] {file}:{failure['line']} - {error}")
+
+            if try_fix_file(failure, output):
+                fixed_count += 1
+            else:
+                skipped.append(f"{file}:{failure['line']}")
+
+        log(f"Pass {pass_num} complete: {fixed_count} fixed, {len(skipped)} skipped")
+
+        if fixed_count == 0:
+            log("No progress made. Stopping.")
+            if skipped:
+                log("Skipped errors:")
+                for f in skipped:
+                    log(f"  - {f}")
+            return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

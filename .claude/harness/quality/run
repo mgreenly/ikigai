@@ -1,0 +1,19 @@
+#!/bin/bash
+# harness/quality - Run all quality checks in sequence
+#
+# Runs: check → coverage → filesize → complexity → sanitize → tsan → valgrind → helgrind
+# Stops on first failure.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+HARNESS_DIR="$(dirname "$SCRIPT_DIR")"
+
+"$HARNESS_DIR/filesize/run"
+"$HARNESS_DIR/check/run"
+"$HARNESS_DIR/complexity/run"
+"$HARNESS_DIR/sanitize/run"
+"$HARNESS_DIR/tsan/run"
+"$HARNESS_DIR/valgrind/run"
+"$HARNESS_DIR/helgrind/run"
+"$HARNESS_DIR/coverage/run"
