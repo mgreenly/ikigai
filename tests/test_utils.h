@@ -169,7 +169,21 @@ res_t ik_test_db_destroy(const char *db_name);
  */
 void ik_test_set_log_dir(const char *file_path);
 
-// ========== Terminal Reset Utilities ==========
+// ========== Terminal Utilities ==========
+
+/**
+ * Sanitize ANSI escape sequences for safe display
+ *
+ * Replaces ESC (0x1b) characters with "<ESC>" so terminal escape sequences
+ * can be logged without executing them. Useful for debug output in tests
+ * that capture render output.
+ *
+ * @param ctx Talloc context for allocation
+ * @param input Input buffer (may contain binary data)
+ * @param len Length of input buffer
+ * @return Sanitized string (null-terminated), or NULL on allocation failure
+ */
+char *ik_test_sanitize_ansi(TALLOC_CTX *ctx, const char *input, size_t len);
 
 /**
  * Reset terminal state after tests that may emit escape sequences.

@@ -455,7 +455,7 @@ static Suite *openai_coverage_suite(void)
     Suite *s = suite_create("OpenAI Coverage");
 
     TCase *tc_start_request = tcase_create("Start Request Error Paths");
-    tcase_add_unchecked_fixture(tc_start_request, setup, teardown);
+    tcase_add_checked_fixture(tc_start_request, setup, teardown);
     tcase_add_test(tc_start_request, test_start_request_chat_serialize_failure);
     tcase_add_test(tc_start_request, test_start_request_chat_url_failure);
     tcase_add_test(tc_start_request, test_start_request_headers_failure);
@@ -465,7 +465,7 @@ static Suite *openai_coverage_suite(void)
     suite_add_tcase(s, tc_start_request);
 
     TCase *tc_start_stream = tcase_create("Start Stream Error Paths");
-    tcase_add_unchecked_fixture(tc_start_stream, setup, teardown);
+    tcase_add_checked_fixture(tc_start_stream, setup, teardown);
     tcase_add_test(tc_start_stream, test_start_stream_chat_serialize_failure);
     tcase_add_test(tc_start_stream, test_start_stream_chat_url_failure);
     tcase_add_test(tc_start_stream, test_start_stream_headers_failure);

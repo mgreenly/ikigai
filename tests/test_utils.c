@@ -516,7 +516,47 @@ void ik_test_set_log_dir(const char *file_path)
     setenv("IKIGAI_LOG_DIR", log_dir, 1);
 }
 
-// ========== Terminal Reset Utilities ==========
+// ========== Terminal Utilities ==========
+
+char *ik_test_sanitize_ansi(TALLOC_CTX *ctx, const char *input, size_t len)
+{
+    if (ctx == NULL || input == NULL) {
+        return NULL;
+    }
+
+    // Count ESC characters to calculate output size
+    // Each ESC (1 byte) becomes "<ESC>" (5 bytes), so we add 4 bytes per ESC
+    size_t esc_count = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (input[i] == '\x1b') {
+            esc_count++;
+        }
+    }
+
+    // Allocate output buffer: original length + 4 bytes per ESC + null terminator
+    size_t out_size = len + (esc_count * 4) + 1;
+    char *output = talloc_size(ctx, out_size);
+    if (output == NULL) {
+        return NULL;
+    }
+
+    // Copy input, replacing ESC with <ESC>
+    size_t out_pos = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (input[i] == '\x1b') {
+            output[out_pos++] = '<';
+            output[out_pos++] = 'E';
+            output[out_pos++] = 'S';
+            output[out_pos++] = 'C';
+            output[out_pos++] = '>';
+        } else {
+            output[out_pos++] = input[i];
+        }
+    }
+    output[out_pos] = '\0';
+
+    return output;
+}
 
 void ik_test_reset_terminal(void)
 {

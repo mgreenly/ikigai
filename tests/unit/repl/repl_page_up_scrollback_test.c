@@ -162,7 +162,8 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     close(pipefd[0]);
     close(saved_stdout);
 
-    fprintf(stderr, "\n=== Rendered Output ===\n%s\n===\n", output);
+    char *sanitized = ik_test_sanitize_ansi(ctx, output, (size_t)bytes_read);
+    fprintf(stderr, "\n=== Rendered Output ===\n%s\n===\n", sanitized ? sanitized : "(sanitize failed)");
 
     // Verify earlier lines are now visible (lines 0-4)
     fprintf(stderr, "Checking for earlier lines:\n");
