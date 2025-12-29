@@ -698,7 +698,7 @@ check-valgrind:
 	if ! find build-valgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
 		'LOGFILE=/tmp/valgrind-$$$$.log; \
 		echo -n "Valgrind: {}... "; \
-		if CK_FORK=no valgrind --leak-check=full --show-leak-kinds=all \
+		if CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 valgrind --leak-check=full --show-leak-kinds=all \
 		            --track-origins=yes --error-exitcode=1 \
 		            --quiet --gen-suppressions=no \
 		            --suppressions='"$$SUPP_FILE"' \
