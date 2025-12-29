@@ -219,11 +219,12 @@ START_TEST(test_create_credentials_load_error)
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
 
-    // Now try to create provider - should fail due to bad JSON
+    // Now try to create provider - should fail due to missing credentials
+    // (malformed file is just a warning, env vars take priority)
     res_t res = ik_provider_create(ctx, "openai", &provider);
 
     ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
+    ck_assert_int_eq(error_code(res.err), ERR_MISSING_CREDENTIALS);
 
     // Restore credentials
     unlink(creds_path);

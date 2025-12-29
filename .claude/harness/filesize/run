@@ -9,6 +9,7 @@ commits on success, reverts on exhaustion, continues until all pass or
 no progress is made.
 """
 
+import argparse
 import subprocess
 import sys
 import os
@@ -17,18 +18,13 @@ from datetime import datetime
 from pathlib import Path
 
 # Configuration
-MAX_ATTEMPTS_PER_FILE = 8
+MAX_ATTEMPTS_PER_FILE = 3
 
 # Escalation ladder: (model, thinking_budget, display_name)
 ESCALATION_LADDER = {
-    1: ("claude-sonnet-4-20250514", "10000", "sonnet:thinking"),
-    2: ("claude-sonnet-4-20250514", "20000", "sonnet:think-hard"),
-    3: ("claude-sonnet-4-20250514", "50000", "sonnet:think-harder"),
-    4: ("claude-sonnet-4-20250514", "128000", "sonnet:ultrathink"),
-    5: ("claude-opus-4-20250514", "10000", "opus:thinking"),
-    6: ("claude-opus-4-20250514", "20000", "opus:think-hard"),
-    7: ("claude-opus-4-20250514", "50000", "opus:think-harder"),
-    8: ("claude-opus-4-20250514", "128000", "opus:ultrathink"),
+    1: ("claude-sonnet-4-20250514", "10000", "sonnet:think"),
+    2: ("claude-opus-4-20250514", "10000", "opus:think"),
+    3: ("claude-opus-4-20250514", "128000", "opus:ultrathink"),
 }
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
@@ -234,8 +230,38 @@ def try_fix_file(failure: dict) -> bool:
 
 def main() -> int:
     """Main entry point."""
-    log("Starting")
+    parser = argparse.ArgumentParser(description="Automated file size fix loop")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Identify oversized files without fixing them")
+    args = parser.parse_args()
+
+    log("Starting" + (" (dry-run)" if args.dry_run else ""))
     os.chdir(PROJECT_ROOT)
+
+    # Run file size check
+    success, output = run_make_filesize()
+
+    if success:
+        log("All file size checks passed!")
+        return 0
+
+    failures = parse_failures(output)
+
+    if not failures:
+        log("make filesize failed but couldn't parse failures")
+        log("Output tail:")
+        for line in output.split('\n')[-20:]:
+            log(f"  {line}")
+        return 1
+
+    log(f"Found {len(failures)} oversized files")
+
+    # Dry-run: just list failures and exit
+    if args.dry_run:
+        log("Files needing fixes:")
+        for failure in failures:
+            log(f"  - {failure['file']}: {failure['bytes']} bytes (limit: {failure['limit']})")
+        return 0
 
     pass_num = 0
 
@@ -243,22 +269,24 @@ def main() -> int:
         pass_num += 1
         log(f"=== Pass {pass_num} ===")
 
-        success, output = run_make_filesize()
+        if pass_num > 1:
+            # Re-run check for subsequent passes
+            success, output = run_make_filesize()
 
-        if success:
-            log("All file size checks passed!")
-            return 0
+            if success:
+                log("All file size checks passed!")
+                return 0
 
-        failures = parse_failures(output)
+            failures = parse_failures(output)
 
-        if not failures:
-            log("make filesize failed but couldn't parse failures")
-            log("Output tail:")
-            for line in output.split('\n')[-20:]:
-                log(f"  {line}")
-            return 1
+            if not failures:
+                log("make filesize failed but couldn't parse failures")
+                log("Output tail:")
+                for line in output.split('\n')[-20:]:
+                    log(f"  {line}")
+                return 1
 
-        log(f"Found {len(failures)} oversized files")
+            log(f"Found {len(failures)} oversized files")
 
         fixed_count = 0
         skipped = []

@@ -143,10 +143,11 @@ res_t ik_credentials_load(TALLOC_CTX *ctx, const char *path, ik_credentials_t **
         fprintf(stderr, "Warning: credentials file %s has insecure permissions (should be 0600)\n", expanded_path);
     }
 
-    // Load from file first
+    // Load from file first (errors are warnings, env vars take priority)
     res_t load_result = load_from_file(ctx, expanded_path, creds);
     if (is_err(&load_result)) {
-        return load_result;
+        // Warn but continue - env vars can still provide credentials
+        fprintf(stderr, "Warning: %s\n", load_result.err->msg);
     }
 
     // Override with environment variables (higher precedence)

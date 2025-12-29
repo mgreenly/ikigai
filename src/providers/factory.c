@@ -75,7 +75,8 @@ res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out)
     if (tmp_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     ik_credentials_t *creds = NULL;
-    res_t load_res = ik_credentials_load(tmp_ctx, NULL, &creds);
+    // Pass ctx (not tmp_ctx) so errors survive tmp_ctx cleanup
+    res_t load_res = ik_credentials_load(ctx, NULL, &creds);
     if (is_err(&load_res)) {
         talloc_free(tmp_ctx);
         return load_res;
