@@ -490,6 +490,8 @@ ifeq ($(BUILD),sanitize)
 	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $< || (echo "✗ Test failed: $<" && exit 1)
 else ifeq ($(BUILD),tsan)
 	@CK_FORK=no $< || (echo "✗ Test failed: $<" && exit 1)
+else ifeq ($(BUILD),valgrind)
+	@CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 $< || (echo "✗ Test failed: $<" && exit 1)
 else
 	@$< || (echo "✗ Test failed: $<" && exit 1)
 endif
