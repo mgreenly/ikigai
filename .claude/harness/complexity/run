@@ -14,6 +14,8 @@ import subprocess
 import sys
 import os
 import re
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -30,6 +32,43 @@ ESCALATION_LADDER = {
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
+DEFAULT_TIMEOUT = 900
+
+
+class Spinner:
+    """Threaded spinner for long-running operations."""
+
+    FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+    def __init__(self, message: str = ""):
+        self.message = message
+        self.running = False
+        self.thread: threading.Thread | None = None
+        self.start_time: float = 0
+
+    def _spin(self) -> None:
+        idx = 0
+        while self.running:
+            elapsed = int(time.time() - self.start_time)
+            mins, secs = divmod(elapsed, 60)
+            frame = self.FRAMES[idx % len(self.FRAMES)]
+            sys.stdout.write(f"\r{frame} {self.message} [{mins:02d}:{secs:02d}]")
+            sys.stdout.flush()
+            idx += 1
+            time.sleep(0.1)
+        sys.stdout.write("\r" + " " * 60 + "\r")
+        sys.stdout.flush()
+
+    def start(self) -> None:
+        self.running = True
+        self.start_time = time.time()
+        self.thread = threading.Thread(target=self._spin, daemon=True)
+        self.thread.start()
+
+    def stop(self) -> None:
+        self.running = False
+        if self.thread:
+            self.thread.join(timeout=1)
 
 
 def log(msg: str) -> None:
@@ -52,7 +91,10 @@ def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None) -> tu
 def run_make_complexity() -> tuple[bool, str]:
     """Run make complexity and return (success, output)."""
     log("Running make complexity...")
+    spinner = Spinner("Running make complexity")
+    spinner.start()
     code, stdout, stderr = run_cmd(["make", "complexity"])
+    spinner.stop()
     output = stdout + stderr
     return code == 0, output
 
@@ -137,7 +179,7 @@ def build_prompt(failure: dict, make_output: str) -> str:
     return prompt
 
 
-def invoke_claude(prompt: str, model: str, thinking_budget: str) -> tuple[bool, str]:
+def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, str]:
     """
     Invoke Claude CLI with the prompt via stdin.
     Returns (success, response).
@@ -149,22 +191,28 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str) -> tuple[bool, 
         f.write(prompt)
         prompt_file = f.name
 
+    spinner = Spinner(f"Waiting for {model_name}")
     try:
         cmd = f'cat "{prompt_file}" | claude -p - --model {model} --allowedTools "Read,Edit,Write,Bash,Glob,Grep" --output-format json --max-turns 30'
         env = os.environ.copy()
         env["MAX_THINKING_TOKENS"] = thinking_budget
+        spinner.start()
         result = subprocess.run(
             cmd,
             shell=True,
             capture_output=True,
             text=True,
             cwd=PROJECT_ROOT,
-            timeout=900,
+            timeout=timeout,
             env=env,
         )
+        spinner.stop()
         code = result.returncode
         stdout = result.stdout or ""
         stderr = result.stderr or ""
+    except subprocess.TimeoutExpired:
+        spinner.stop()
+        return False, f"Timeout after {timeout} seconds"
     finally:
         Path(prompt_file).unlink(missing_ok=True)
 
@@ -225,7 +273,7 @@ def git_revert(files_before: set[str] | None = None) -> None:
             run_cmd(["git", "clean", "-fd"])
 
 
-def try_fix_file(failure: dict, make_output: str) -> bool:
+def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
     """
     Attempt to fix a complex function.
     Returns True if fixed, False if exhausted attempts.
@@ -240,7 +288,7 @@ def try_fix_file(failure: dict, make_output: str) -> bool:
         log(f"Trying {model_name} (attempt {attempt}/{MAX_ATTEMPTS_PER_FILE})")
 
         prompt = build_prompt(failure, make_output)
-        success, response = invoke_claude(prompt, model, thinking_budget)
+        success, response = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
 
         if not success:
             log(f"{model_name} invocation FAILED: {response[:200]}")
@@ -267,9 +315,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Automated complexity fix loop")
     parser.add_argument("--dry-run", action="store_true",
                         help="Identify complex functions without fixing them")
+    parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
+                        help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     args = parser.parse_args()
 
-    log("Starting" + (" (dry-run)" if args.dry_run else ""))
+    opts = []
+    if args.dry_run:
+        opts.append("dry-run")
+    if args.time_out != DEFAULT_TIMEOUT:
+        opts.append(f"timeout={args.time_out}s")
+    log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
     os.chdir(PROJECT_ROOT)
 
     # Run complexity check
@@ -332,7 +387,7 @@ def main() -> int:
             score = failure["score"]
             log(f"[{i}/{len(failures)}] {file}:{func} - {issue} score {score}")
 
-            if try_fix_file(failure, output):
+            if try_fix_file(failure, output, args.time_out):
                 fixed_count += 1
             else:
                 skipped.append(f"{file}:{func}")

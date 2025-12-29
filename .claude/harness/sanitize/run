@@ -14,6 +14,8 @@ import subprocess
 import sys
 import os
 import re
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -30,6 +32,43 @@ ESCALATION_LADDER = {
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
+DEFAULT_TIMEOUT = 900
+
+
+class Spinner:
+    """Threaded spinner for long-running operations."""
+
+    FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+    def __init__(self, message: str = ""):
+        self.message = message
+        self.running = False
+        self.thread: threading.Thread | None = None
+        self.start_time: float = 0
+
+    def _spin(self) -> None:
+        idx = 0
+        while self.running:
+            elapsed = int(time.time() - self.start_time)
+            mins, secs = divmod(elapsed, 60)
+            frame = self.FRAMES[idx % len(self.FRAMES)]
+            sys.stdout.write(f"\r{frame} {self.message} [{mins:02d}:{secs:02d}]")
+            sys.stdout.flush()
+            idx += 1
+            time.sleep(0.1)
+        sys.stdout.write("\r" + " " * 60 + "\r")
+        sys.stdout.flush()
+
+    def start(self) -> None:
+        self.running = True
+        self.start_time = time.time()
+        self.thread = threading.Thread(target=self._spin, daemon=True)
+        self.thread.start()
+
+    def stop(self) -> None:
+        self.running = False
+        if self.thread:
+            self.thread.join(timeout=1)
 
 
 def log(msg: str) -> None:
@@ -53,24 +92,102 @@ def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None, timeo
 def run_make_sanitize() -> tuple[bool, str]:
     """Run make check-sanitize and return (success, output)."""
     log("Running make check-sanitize...")
+    spinner = Spinner("Running make check-sanitize")
+    spinner.start()
     code, stdout, stderr = run_cmd(["make", "check-sanitize"], timeout=600)
+    spinner.stop()
     output = stdout + stderr
     return code == 0, output
+
+
+def is_app_frame(file: str) -> bool:
+    """Check if a file path is application code (not library)."""
+    return file.startswith('src/') or file.startswith('tests/')
+
+
+def is_library_frame(function: str, file: str) -> bool:
+    """Check if a frame is from a library (libc, libasan, libtalloc)."""
+    # Skip libc functions
+    libc_funcs = {'free', 'malloc', 'calloc', 'realloc', 'aligned_alloc',
+                  'posix_memalign', 'memalign', 'pvalloc', 'valloc',
+                  '__interceptor_', 'vsnprintf_', 'vsprintf_', 'sprintf_'}
+    for func in libc_funcs:
+        if function.startswith(func) or func in function:
+            return True
+
+    # Skip libasan frames
+    if '__asan' in function or '__sanitizer' in function:
+        return True
+
+    # Skip libtalloc frames
+    if 'talloc' in file or 'talloc' in function:
+        return True
+
+    # Skip frames without source location
+    if not file or file.startswith('/') or '(' in file:
+        return True
+
+    return False
+
+
+def find_first_app_frame(lines: list[str], start: int, max_lines: int = 20) -> tuple[str, str, str]:
+    """
+    Find first application frame in a stack trace section.
+    Returns (file, line, function) or ("", "", "") if not found.
+    """
+    # Pattern: #N 0xADDR in function_name file.c:123
+    frame_pattern = re.compile(r'#\d+\s+0x[0-9a-f]+\s+in\s+(\S+)\s+(\S+):(\d+)')
+
+    for i in range(start, min(start + max_lines, len(lines))):
+        match = frame_pattern.search(lines[i])
+        if match:
+            function = match.group(1)
+            file = match.group(2)
+            line = match.group(3)
+
+            if is_library_frame(function, file):
+                continue
+
+            if is_app_frame(file):
+                return file, line, function
+
+    return "", "", ""
+
+
+def find_section_start(lines: list[str], start: int, pattern: str, max_lines: int = 50) -> int:
+    """Find the start of a section matching pattern. Returns -1 if not found."""
+    for i in range(start, min(start + max_lines, len(lines))):
+        if pattern in lines[i]:
+            return i
+    return -1
+
+
+def collect_stack_trace(lines: list[str], start: int, max_lines: int = 100) -> str:
+    """Collect the full ASan output from error start until next error or end."""
+    stack_lines = []
+    for i in range(start, min(start + max_lines, len(lines))):
+        line = lines[i]
+        # Stop at next error or summary
+        if i > start and '==ERROR:' in line:
+            break
+        if 'SUMMARY:' in line:
+            stack_lines.append(line)
+            break
+        stack_lines.append(line)
+    return '\n'.join(stack_lines)
 
 
 def parse_failures(output: str) -> list[dict]:
     """
     Parse sanitizer output to extract errors.
-    Returns list of {file, line, error_type, message, stack} dicts.
+    Returns list of dicts with all template variables.
     """
     failures = []
     seen_files = set()
 
     # AddressSanitizer pattern:
     # ==PID==ERROR: AddressSanitizer: error-type on address ...
-    #     #0 0x... in function file.c:123
-    asan_error = re.compile(r'==\d+==ERROR: AddressSanitizer: ([^\n]+)')
-    asan_location = re.compile(r'#\d+\s+0x[0-9a-f]+\s+in\s+\S+\s+(\S+):(\d+)')
+    asan_error = re.compile(r'==\d+==ERROR: AddressSanitizer: (\S+)')
 
     # UndefinedBehaviorSanitizer pattern:
     # file.c:123:45: runtime error: description
@@ -78,9 +195,7 @@ def parse_failures(output: str) -> list[dict]:
 
     # LeakSanitizer pattern:
     # Direct leak of N byte(s) in M object(s) allocated from:
-    #     #0 0x... in function file.c:123
     lsan_error = re.compile(r'(Direct|Indirect) leak of \d+ byte')
-    lsan_location = re.compile(r'#\d+\s+0x[0-9a-f]+\s+in\s+\S+\s+(\S+):(\d+)')
 
     lines = output.split('\n')
     i = 0
@@ -91,25 +206,43 @@ def parse_failures(output: str) -> list[dict]:
         asan_match = asan_error.search(line)
         if asan_match:
             error_type = asan_match.group(1).strip()
-            # Look for source location in next few lines
-            stack = []
-            for j in range(i + 1, min(i + 20, len(lines))):
-                loc_match = asan_location.search(lines[j])
-                if loc_match:
-                    file = loc_match.group(1)
-                    line_num = loc_match.group(2)
-                    stack.append(f"{file}:{line_num}")
-                    # Use first source file location (not libc, etc.)
-                    if file not in seen_files and (file.startswith('src/') or file.startswith('tests/')):
-                        seen_files.add(file)
-                        failures.append({
-                            "file": file,
-                            "line": line_num,
-                            "error_type": f"ASan: {error_type}",
-                            "message": error_type,
-                            "stack": '\n'.join(stack[:10]),
-                        })
-                        break
+
+            # Extract message (the description after error type)
+            message = line.split('AddressSanitizer:')[-1].strip() if 'AddressSanitizer:' in line else error_type
+
+            # Collect full stack trace
+            stack = collect_stack_trace(lines, i)
+
+            # Find crash location (first app frame after error)
+            file, line_num, _ = find_first_app_frame(lines, i + 1)
+
+            # Find "freed by thread" section
+            freed_start = find_section_start(lines, i, 'freed by thread')
+            freed_file, freed_line, freed_function = "", "", ""
+            if freed_start != -1:
+                freed_file, freed_line, freed_function = find_first_app_frame(lines, freed_start + 1)
+
+            # Find "previously allocated" section
+            alloc_start = find_section_start(lines, i, 'previously allocated')
+            allocated_file, allocated_line, allocated_function = "", "", ""
+            if alloc_start != -1:
+                allocated_file, allocated_line, allocated_function = find_first_app_frame(lines, alloc_start + 1)
+
+            if file and file not in seen_files:
+                seen_files.add(file)
+                failures.append({
+                    "file": file,
+                    "line": line_num,
+                    "error_type": error_type,
+                    "message": message,
+                    "freed_file": freed_file,
+                    "freed_line": freed_line,
+                    "freed_function": freed_function,
+                    "allocated_file": allocated_file,
+                    "allocated_line": allocated_line,
+                    "allocated_function": allocated_function,
+                    "stack": stack,
+                })
             i += 1
             continue
 
@@ -119,13 +252,19 @@ def parse_failures(output: str) -> list[dict]:
             file = ubsan_match.group(1)
             line_num = ubsan_match.group(2)
             message = ubsan_match.group(3)
-            if file not in seen_files and (file.startswith('src/') or file.startswith('tests/')):
+            if file not in seen_files and is_app_frame(file):
                 seen_files.add(file)
                 failures.append({
                     "file": file,
                     "line": line_num,
-                    "error_type": "UBSan",
+                    "error_type": "undefined-behavior",
                     "message": message,
+                    "freed_file": "",
+                    "freed_line": "",
+                    "freed_function": "",
+                    "allocated_file": "",
+                    "allocated_line": "",
+                    "allocated_function": "",
                     "stack": "",
                 })
             i += 1
@@ -135,22 +274,23 @@ def parse_failures(output: str) -> list[dict]:
         lsan_match = lsan_error.search(line)
         if lsan_match:
             leak_type = lsan_match.group(1)
-            # Look for source location
-            for j in range(i + 1, min(i + 20, len(lines))):
-                loc_match = lsan_location.search(lines[j])
-                if loc_match:
-                    file = loc_match.group(1)
-                    line_num = loc_match.group(2)
-                    if file not in seen_files and (file.startswith('src/') or file.startswith('tests/')):
-                        seen_files.add(file)
-                        failures.append({
-                            "file": file,
-                            "line": line_num,
-                            "error_type": f"LSan: {leak_type} leak",
-                            "message": f"{leak_type} memory leak",
-                            "stack": "",
-                        })
-                        break
+            # Find allocation location
+            file, line_num, function = find_first_app_frame(lines, i + 1)
+            if file and file not in seen_files:
+                seen_files.add(file)
+                failures.append({
+                    "file": file,
+                    "line": line_num,
+                    "error_type": f"{leak_type.lower()}-leak",
+                    "message": f"{leak_type} memory leak",
+                    "freed_file": "",
+                    "freed_line": "",
+                    "freed_function": "",
+                    "allocated_file": file,
+                    "allocated_line": line_num,
+                    "allocated_function": function,
+                    "stack": collect_stack_trace(lines, i),
+                })
             i += 1
             continue
 
@@ -167,21 +307,55 @@ def load_prompt_template() -> str:
     return FIX_PROMPT_TEMPLATE.read_text()
 
 
+def process_conditionals(template: str, variables: dict) -> str:
+    """
+    Process Handlebars-style {{#if var}}...{{/if}} conditionals.
+    Includes block content if variable is truthy, removes it otherwise.
+    """
+    # Pattern: {{#if var_name}}...content...{{/if}}
+    pattern = re.compile(r'\{\{#if\s+(\w+)\}\}(.*?)\{\{/if\}\}', re.DOTALL)
+
+    def replacer(match: re.Match) -> str:
+        var_name = match.group(1)
+        content = match.group(2)
+        if variables.get(var_name):
+            return content
+        return ""
+
+    return pattern.sub(replacer, template)
+
+
 def build_prompt(failure: dict, make_output: str) -> str:
     """Build the fix prompt from template."""
     template = load_prompt_template()
 
-    prompt = template.replace("{{file}}", failure["file"])
-    prompt = prompt.replace("{{line}}", failure["line"])
-    prompt = prompt.replace("{{error_type}}", failure["error_type"])
-    prompt = prompt.replace("{{message}}", failure["message"])
-    prompt = prompt.replace("{{stack}}", failure["stack"])
-    prompt = prompt.replace("{{make_output}}", make_output[-6000:])
+    # Build variables dict for conditional processing
+    variables = {
+        "file": failure["file"],
+        "line": failure["line"],
+        "error_type": failure["error_type"],
+        "message": failure["message"],
+        "freed_file": failure.get("freed_file", ""),
+        "freed_line": failure.get("freed_line", ""),
+        "freed_function": failure.get("freed_function", ""),
+        "allocated_file": failure.get("allocated_file", ""),
+        "allocated_line": failure.get("allocated_line", ""),
+        "allocated_function": failure.get("allocated_function", ""),
+        "stack": failure.get("stack", ""),
+        "make_output": make_output[-6000:],
+    }
+
+    # Process conditionals first
+    prompt = process_conditionals(template, variables)
+
+    # Then substitute variables
+    for key, value in variables.items():
+        prompt = prompt.replace("{{" + key + "}}", value)
 
     return prompt
 
 
-def invoke_claude(prompt: str, model: str, thinking_budget: str) -> tuple[bool, str]:
+def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, str]:
     """
     Invoke Claude CLI with the prompt via stdin.
     Returns (success, response).
@@ -193,22 +367,28 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str) -> tuple[bool, 
         f.write(prompt)
         prompt_file = f.name
 
+    spinner = Spinner(f"Waiting for {model_name}")
     try:
         cmd = f'cat "{prompt_file}" | claude -p - --model {model} --allowedTools "Read,Edit,Write,Bash,Glob,Grep" --output-format json --max-turns 30'
         env = os.environ.copy()
         env["MAX_THINKING_TOKENS"] = thinking_budget
+        spinner.start()
         result = subprocess.run(
             cmd,
             shell=True,
             capture_output=True,
             text=True,
             cwd=PROJECT_ROOT,
-            timeout=900,
+            timeout=timeout,
             env=env,
         )
+        spinner.stop()
         code = result.returncode
         stdout = result.stdout or ""
         stderr = result.stderr or ""
+    except subprocess.TimeoutExpired:
+        spinner.stop()
+        return False, f"Timeout after {timeout} seconds"
     finally:
         Path(prompt_file).unlink(missing_ok=True)
 
@@ -270,7 +450,7 @@ def git_revert(files_before: set[str] | None = None) -> None:
             run_cmd(["git", "clean", "-fd"])
 
 
-def try_fix_file(failure: dict, make_output: str) -> bool:
+def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
     """
     Attempt to fix a sanitizer error.
     Returns True if fixed, False if exhausted attempts.
@@ -285,7 +465,7 @@ def try_fix_file(failure: dict, make_output: str) -> bool:
         log(f"Trying {model_name} (attempt {attempt}/{MAX_ATTEMPTS_PER_FILE})")
 
         prompt = build_prompt(failure, make_output)
-        success, response = invoke_claude(prompt, model, thinking_budget)
+        success, response = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
 
         if not success:
             log(f"{model_name} invocation FAILED: {response[:200]}")
@@ -312,9 +492,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Automated sanitizer error fix loop")
     parser.add_argument("--dry-run", action="store_true",
                         help="Identify sanitizer errors without fixing them")
+    parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
+                        help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     args = parser.parse_args()
 
-    log("Starting" + (" (dry-run)" if args.dry_run else ""))
+    opts = []
+    if args.dry_run:
+        opts.append("dry-run")
+    if args.time_out != DEFAULT_TIMEOUT:
+        opts.append(f"timeout={args.time_out}s")
+    log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
     os.chdir(PROJECT_ROOT)
 
     # Run sanitizer check
@@ -375,7 +562,7 @@ def main() -> int:
             error = failure["error_type"]
             log(f"[{i}/{len(failures)}] {file}:{failure['line']} - {error}")
 
-            if try_fix_file(failure, output):
+            if try_fix_file(failure, output, args.time_out):
                 fixed_count += 1
             else:
                 skipped.append(f"{file}:{failure['line']}")
