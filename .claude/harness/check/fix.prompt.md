@@ -1,5 +1,7 @@
 # Fix Test Failure
 
+**UNATTENDED EXECUTION:** This task runs automatically without human oversight. Diagnose and fix the issue autonomously. Do not stop to ask for confirmation or clarification.
+
 You have ONE job: fix the failing test described below. Do not fix other tests. Do not refactor unrelated code. Fix this ONE issue and stop.
 
 ## Load Required Skills

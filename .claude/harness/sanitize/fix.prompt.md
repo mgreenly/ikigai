@@ -1,5 +1,7 @@
 # Fix Sanitizer Error
 
+**UNATTENDED EXECUTION:** This task runs automatically without human oversight. Diagnose and fix the issue autonomously. Do not stop to ask for confirmation or clarification.
+
 You have ONE job: fix the memory or undefined behavior error described below. Do not refactor unrelated code.
 
 ## Load Required Skills

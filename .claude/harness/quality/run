@@ -13,6 +13,11 @@ set -e
 
 START_TIME=$SECONDS
 
+log() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    printf '%s | %-10s | %s\n' "$timestamp" "quality" "$1"
+}
+
 format_elapsed() {
     local total=$1
     local hours=$((total / 3600))
@@ -32,7 +37,7 @@ HARNESS_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Verify clean workspace before starting
 if [ -n "$(git status --porcelain)" ]; then
-    echo "ERROR: Git workspace is not clean. Commit or stash changes before running quality checks."
+    log "ERROR: Git workspace is not clean. Commit or stash changes before running quality checks."
     git status --short
     exit 1
 fi
@@ -53,33 +58,45 @@ STEPS=(
 
 run_step() {
     local step="$1"
-    local head_before head_after
+    local head_before head_after step_exit
 
     head_before=$(git rev-parse HEAD)
     "$HARNESS_DIR/$step/run" $ARGS
+    step_exit=$?
     head_after=$(git rev-parse HEAD)
 
     if [ "$head_before" != "$head_after" ]; then
         return 1  # commits made, signal restart
     fi
-    return 0  # no commits, continue
+
+    if [ $step_exit -ne 0 ]; then
+        return 2  # step failed with no commits, unrecoverable
+    fi
+
+    return 0  # passed, continue
 }
 
 pass=1
 while true; do
-    echo "=== Quality pass $pass ==="
+    log "Quality pass $pass"
     restart=false
 
     for step in "${STEPS[@]}"; do
-        if ! run_step "$step"; then
-            echo "Step '$step' made commits, restarting from beginning"
+        run_step "$step"
+        result=$?
+
+        if [ $result -eq 1 ]; then
+            log "Step '$step' made commits, restarting from beginning"
             restart=true
             break
+        elif [ $result -eq 2 ]; then
+            log "Step '$step' failed with no progress, stopping"
+            exit 1
         fi
     done
 
     if [ "$restart" = false ]; then
-        echo "=== All quality checks passed (elapsed: $(format_elapsed $((SECONDS - START_TIME)))) ==="
+        log "All quality checks passed (elapsed: $(format_elapsed $((SECONDS - START_TIME))))"
         break
     fi
 

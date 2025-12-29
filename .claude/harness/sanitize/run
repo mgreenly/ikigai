@@ -101,6 +101,49 @@ def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None, timeo
     return result.returncode, result.stdout or "", result.stderr or ""
 
 
+def drop_test_databases() -> None:
+    """Drop all test databases to ensure clean state."""
+    log("Cleaning up test databases...")
+
+    # Get list of test databases
+    list_cmd = [
+        "psql",
+        "postgresql://ikigai:ikigai@localhost/postgres",
+        "-t",  # tuples only (no headers/footers)
+        "-c",
+        "SELECT datname FROM pg_database WHERE datname LIKE 'ikigai_test_%';"
+    ]
+
+    code, stdout, stderr = run_cmd(list_cmd)
+    if code != 0:
+        log(f"Warning: Failed to list test databases: {stderr}")
+        return
+
+    # Parse database names from output
+    db_names = [line.strip() for line in stdout.strip().split('\n') if line.strip()]
+
+    if not db_names:
+        log("No test databases found")
+        return
+
+    log(f"Found {len(db_names)} test database(s) to drop")
+
+    # Drop each database
+    for db_name in db_names:
+        log(f"Dropping {db_name}...")
+        drop_cmd = [
+            "psql",
+            "postgresql://ikigai:ikigai@localhost/postgres",
+            "-c",
+            f"DROP DATABASE IF EXISTS {db_name};"
+        ]
+        code, _, stderr = run_cmd(drop_cmd)
+        if code != 0:
+            log(f"Warning: Failed to drop {db_name}: {stderr}")
+        else:
+            log(f"Dropped {db_name}")
+
+
 def run_make_sanitize() -> tuple[bool, str]:
     """Run make check-sanitize and return (success, output)."""
     log("Running make check-sanitize...")
@@ -516,6 +559,16 @@ def main() -> int:
         opts.append(f"timeout={args.time_out}s")
     log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
     os.chdir(PROJECT_ROOT)
+
+    # Clean build to start fresh
+    log("Running make clean...")
+    spinner = Spinner("Running make clean")
+    spinner.start()
+    run_cmd(["make", "clean"])
+    spinner.stop()
+
+    # Drop test databases
+    drop_test_databases()
 
     # Run sanitizer check
     success, output = run_make_sanitize()

@@ -1,5 +1,7 @@
 # Split Oversized File
 
+**UNATTENDED EXECUTION:** This task runs automatically without human oversight. Diagnose and fix the issue autonomously. Do not stop to ask for confirmation or clarification.
+
 You have ONE job: split the oversized file into smaller, well-organized modules. Do not refactor unrelated code.
 
 ## Load Required Skills
