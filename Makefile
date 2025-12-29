@@ -107,7 +107,7 @@ CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/config.c src/credenti
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
-UNIT_TEST_SOURCES = $(wildcard tests/unit/*/*_test.c) $(wildcard tests/unit/*/*/*_test.c) $(wildcard tests/unit/*/*_test_*.c) $(wildcard tests/unit/*/*/*_test_*.c)
+UNIT_TEST_SOURCES = $(wildcard tests/unit/*/*_test.c) $(wildcard tests/unit/*/*/*_test.c)
 UNIT_TEST_TARGETS = $(patsubst tests/unit/%.c,$(BUILDDIR)/tests/unit/%,$(UNIT_TEST_SOURCES))
 
 INTEGRATION_TEST_SOURCES = $(wildcard tests/integration/*_test.c)
@@ -173,43 +173,6 @@ $(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-# Pattern rules for split test files with numeric suffixes (e.g., anthropic_request_test_1.c)
-$(BUILDDIR)/tests/unit/%_test_1.o: tests/unit/%_test_1.c
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILDDIR)/tests/unit/%_test_2.o: tests/unit/%_test_2.c
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILDDIR)/tests/unit/%_test_3.o: tests/unit/%_test_3.c
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILDDIR)/tests/unit/%_test_4.o: tests/unit/%_test_4.c
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILDDIR)/tests/unit/%_test_1: $(BUILDDIR)/tests/unit/%_test_1.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
-	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
-
-$(BUILDDIR)/tests/unit/%_test_2: $(BUILDDIR)/tests/unit/%_test_2.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
-	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
-
-$(BUILDDIR)/tests/unit/%_test_3: $(BUILDDIR)/tests/unit/%_test_3.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
-	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
-
-$(BUILDDIR)/tests/unit/%_test_4: $(BUILDDIR)/tests/unit/%_test_4.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
-	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
-
 $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
@@ -228,6 +191,20 @@ $(BUILDDIR)/tests/unit/providers/common/http_multi_info_test: $(BUILDDIR)/tests/
 
 # Note: Provider factory test no longer needs separate stubs since stubs.c
 # is now part of MODULE_OBJ and will be replaced when actual providers are implemented
+
+# OpenAI serialize test helper compilation
+OPENAI_SERIALIZE_HELPERS_SRC = $(wildcard tests/unit/providers/openai/helpers/*.c)
+OPENAI_SERIALIZE_HELPERS_OBJ = $(patsubst tests/unit/providers/openai/helpers/%.c,$(BUILDDIR)/tests/unit/providers/openai/helpers/%.o,$(OPENAI_SERIALIZE_HELPERS_SRC))
+
+$(BUILDDIR)/tests/unit/providers/openai/helpers/%.o: tests/unit/providers/openai/helpers/%.c | $(BUILDDIR)/tests/unit/providers/openai/helpers
+	$(CC) $(CFLAGS) -I tests/unit/providers/openai -c -o $@ $<
+
+$(BUILDDIR)/tests/unit/providers/openai/helpers:
+	@mkdir -p $@
+
+$(BUILDDIR)/tests/unit/providers/openai/openai_serialize_test: $(BUILDDIR)/tests/unit/providers/openai/openai_serialize_test.o $(OPENAI_SERIALIZE_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
 $(BUILDDIR)/tests/integration/%_test.o: tests/integration/%_test.c | $(BUILDDIR)/tests/integration
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -467,7 +444,7 @@ $(BUILDDIR)/tests/integration/db: | $(BUILDDIR)/tests/integration
 -include $(wildcard $(BUILDDIR)/tests/integration/db/*.d)
 
 clean:
-	rm -rf build build-* bin $(COVERAGE_DIR) coverage_html
+	rm -rf build build-* bin $(COVERAGE_DIR) coverage_html reports
 	rm -rf distros/dist distros/*/build 2>/dev/null || true
 	find . -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" -delete 2>/dev/null || true
 	find src tests -name "*.d" -delete 2>/dev/null || true
@@ -491,27 +468,29 @@ UNIT_TEST_RUNS = $(UNIT_TEST_TARGETS:%=%.run)
 INTEGRATION_TEST_RUNS = $(INTEGRATION_TEST_TARGETS:%=%.run)
 DB_INTEGRATION_TEST_RUNS = $(DB_INTEGRATION_TEST_TARGETS:%=%.run)
 
-# Pattern rule to run a test
+# Pattern rule to run a test with XML report output
+# Reports are written to reports/check/ mirroring the test structure
+# Test stdout/stderr redirected to /dev/null - results are in XML
 %.run: %
-	@echo "Running $<..."
+	@mkdir -p $(dir $(patsubst build/tests/%,reports/check/%,$<))
 ifeq ($(BUILD),sanitize)
-	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp $< || (echo "✗ Test failed: $<" && exit 1)
+	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp CK_XML_LOG_FILE_NAME=$(patsubst build/tests/%,reports/check/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
 else ifeq ($(BUILD),tsan)
-	@CK_FORK=no $< || (echo "✗ Test failed: $<" && exit 1)
+	@CK_FORK=no CK_XML_LOG_FILE_NAME=$(patsubst build/tests/%,reports/check/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
 else ifeq ($(BUILD),valgrind)
-	@CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 $< || (echo "✗ Test failed: $<" && exit 1)
+	@CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 CK_XML_LOG_FILE_NAME=$(patsubst build/tests/%,reports/check/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
 else
-	@$< || (echo "✗ Test failed: $<" && exit 1)
+	@CK_XML_LOG_FILE_NAME=$(patsubst build/tests/%,reports/check/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
 endif
 
 check:
 ifdef TEST
 	@$(MAKE) $(FILTERED_TEST)
 	@for test in $(FILTERED_TEST); do \
-		echo "Running $$test..."; \
-		$$test || (echo "✗ Test failed: $$test" && exit 1); \
+		report_path=$$(echo "$$test" | sed 's|build/tests/|reports/check/|').xml; \
+		mkdir -p $$(dirname "$$report_path"); \
+		CK_XML_LOG_FILE_NAME="$$report_path" $$test >/dev/null 2>&1 && echo "🟢 $$test" || (echo "🔴 $$test" && exit 1); \
 	done
-	@echo "Test passed: $(TEST)"
 else
 	@$(MAKE) -j$(MAKE_JOBS) check-unit check-integration
 	@echo "All tests passed!"
@@ -704,7 +683,7 @@ check-sanitize:
 	@BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
 	@echo "Running tests in parallel..."
 	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) check-unit check-integration
-	@echo "✓ Sanitizer checks passed!"
+	@echo "🟢 Sanitizer checks passed!"
 
 check-valgrind:
 	@echo "Building for Valgrind with enhanced debug info..."
@@ -716,22 +695,20 @@ check-valgrind:
 	@ulimit -n 1024; \
 	SUPP_FILE="$$(pwd)/.suppressions/valgrind.supp"; \
 	if ! find build-valgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
-		'LOGFILE=/tmp/valgrind-$$$$.log; \
-		echo -n "Valgrind: {}... "; \
+		'REPORT_PATH=$$(echo "{}" | sed "s|build-valgrind/tests/|reports/valgrind/|").xml; \
+		mkdir -p $$(dirname "$$REPORT_PATH"); \
 		if CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 valgrind --leak-check=full --show-leak-kinds=all \
 		            --track-origins=yes --error-exitcode=1 \
-		            --quiet --gen-suppressions=no \
+		            --xml=yes --xml-file="$$REPORT_PATH" \
+		            --gen-suppressions=no \
 		            --suppressions='"$$SUPP_FILE"' \
-		            ./{} > $$LOGFILE 2>&1; then \
-			echo "✓"; \
-			rm -f $$LOGFILE; \
+		            ./{} >/dev/null 2>&1; then \
+			echo "🟢 {}"; \
 		else \
-			echo "✗ FAILED"; \
-			cat $$LOGFILE; \
-			rm -f $$LOGFILE; \
+			echo "🔴 {}"; \
 			exit 1; \
 		fi'; then \
-		echo "✗ Valgrind checks failed"; \
+		echo "🔴 Valgrind checks failed"; \
 		exit 1; \
 	fi
 	@total=$$(find build-valgrind/tests -type f -executable | wc -l); \
@@ -744,20 +721,19 @@ check-helgrind:
 	@echo "Running tests under Valgrind Helgrind..."
 	@ulimit -n 1024; \
 	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
-		'echo -n "Helgrind: {}... "; \
+		'REPORT_PATH=$$(echo "{}" | sed "s|build-helgrind/tests/|reports/helgrind/|").xml; \
+		mkdir -p $$(dirname "$$REPORT_PATH"); \
 		if CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 valgrind --tool=helgrind --error-exitcode=1 \
-		            --history-level=approx --quiet \
+		            --history-level=approx \
+		            --xml=yes --xml-file="$$REPORT_PATH" \
 		            --suppressions=$(CURDIR)/.suppressions/helgrind.supp \
-		            ./{} > /tmp/helgrind-$$$$.log 2>&1; then \
-			echo "✓"; \
+		            ./{} >/dev/null 2>&1; then \
+			echo "🟢 {}"; \
 		else \
-			echo "✗ FAILED"; \
-			cat /tmp/helgrind-$$$$.log; \
-			rm -f /tmp/helgrind-$$$$.log; \
+			echo "🔴 {}"; \
 			exit 1; \
-		fi; \
-		rm -f /tmp/helgrind-$$$$.log'; then \
-		echo "✗ Helgrind checks failed"; \
+		fi'; then \
+		echo "🔴 Helgrind checks failed"; \
 		exit 1; \
 	fi
 	@total=$$(find build-helgrind/tests -type f -executable | wc -l); \
@@ -772,7 +748,7 @@ check-tsan:
 	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
 	@echo "Running tests in parallel..."
 	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) check-unit check-integration
-	@echo "✓ ThreadSanitizer checks passed!"
+	@echo "🟢 ThreadSanitizer checks passed!"
 
 check-dynamic:
 ifeq ($(PARALLEL),1)
@@ -785,7 +761,7 @@ else
 	@$(MAKE) check-helgrind
 	@$(MAKE) check-tsan
 endif
-	@echo "✓ All dynamic analysis checks passed!"
+	@echo "🟢 All dynamic analysis checks passed!"
 
 distro-images:
 	@echo "Building Docker images for distributions: $(DISTROS)"
@@ -793,7 +769,7 @@ distro-images:
 		echo "Building ikigai-ci-$$distro..."; \
 		docker build -f distros/$$distro/Dockerfile -t ikigai-ci-$$distro . || exit 1; \
 	done
-	@echo "✓ All images built successfully!"
+	@echo "🟢 All images built successfully!"
 
 distro-images-clean:
 	@echo "Removing Docker images for distributions: $(DISTROS)"
@@ -801,12 +777,12 @@ distro-images-clean:
 		echo "Removing ikigai-ci-$$distro..."; \
 		docker rmi ikigai-ci-$$distro 2>/dev/null || true; \
 	done
-	@echo "✓ All images removed!"
+	@echo "🟢 All images removed!"
 
 distro-clean:
 	@echo "Cleaning build artifacts using $(word 1,$(DISTROS)) Docker image..."
 	@docker run --rm --user $$(id -u):$$(id -g) -v "$$(pwd)":/workspace ikigai-ci-$(word 1,$(DISTROS)) bash -c "make clean"
-	@echo "✓ Clean complete!"
+	@echo "🟢 Clean complete!"
 
 distro-check:
 	@echo "Testing on distributions: $(DISTROS)"
@@ -820,10 +796,10 @@ distro-check:
 			docker build -f distros/$$distro/Dockerfile -t ikigai-ci-$$distro . || exit 1; \
 			docker run --rm --user $$(id -u):$$(id -g) -v "$$(pwd)":/workspace ikigai-ci-$$distro bash -c "make ci" || exit 1; \
 		fi; \
-		echo "✓ $$distro passed!"; \
+		echo "🟢 $$distro passed!"; \
 	done
 	@echo ""
-	@echo "✓ All distributions passed!"
+	@echo "🟢 All distributions passed!"
 
 distro-package:
 	@echo "Building packages for distributions: $(DISTROS)"
@@ -833,10 +809,10 @@ distro-package:
 		echo "=== Building package for $$distro ==="; \
 		docker build -f distros/$$distro/Dockerfile -t ikigai-ci-$$distro . || exit 1; \
 		docker run --rm --user $$(id -u):$$(id -g) -v "$$(pwd)":/workspace ikigai-ci-$$distro bash -c "distros/$$distro/package.sh" || exit 1; \
-		echo "✓ $$distro package built!"; \
+		echo "🟢 $$distro package built!"; \
 	done
 	@echo ""
-	@echo "✓ All packages built!"
+	@echo "🟢 All packages built!"
 	@echo ""
 	@ls -lh distros/dist/*.deb distros/dist/*.rpm 2>/dev/null || true
 
@@ -858,24 +834,24 @@ complexity:
 	@echo "Checking complexity in src/*.c..."
 	@output=$$(complexity --threshold=$(COMPLEXITY_THRESHOLD) src/*.c 2>&1); \
 	if echo "$$output" | grep -q "^Complexity Scores$$"; then \
-		echo "✗ Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
+		echo "🔴 Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
 		echo "$$output"; \
 		exit 1; \
 	fi; \
 	if echo "$$output" | grep -q "nesting depth reached level [6-9]"; then \
-		echo "✗ Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
+		echo "🔴 Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
 		echo "$$output" | grep "nesting depth"; \
 		exit 1; \
 	fi
 	@echo "Checking complexity in tests/unit/*/*.c..."
 	@output=$$(find tests/unit -name "*.c" -exec complexity --threshold=$(COMPLEXITY_THRESHOLD) {} \; 2>&1); \
 	if echo "$$output" | grep -q "^Complexity Scores$$"; then \
-		echo "✗ Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
+		echo "🔴 Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
 		echo "$$output"; \
 		exit 1; \
 	fi; \
 	if echo "$$output" | grep -q "nesting depth reached level [6-9]"; then \
-		echo "✗ Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
+		echo "🔴 Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
 		echo "$$output" | grep "nesting depth"; \
 		exit 1; \
 	fi
@@ -883,17 +859,17 @@ complexity:
 	@if [ -d tests/integration ]; then \
 		output=$$(complexity --threshold=$(COMPLEXITY_THRESHOLD) tests/integration/*.c 2>&1); \
 		if echo "$$output" | grep -q "^Complexity Scores$$"; then \
-			echo "✗ Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
+			echo "🔴 Cyclomatic complexity exceeds threshold ($(COMPLEXITY_THRESHOLD))"; \
 			echo "$$output"; \
 			exit 1; \
 		fi; \
 		if echo "$$output" | grep -q "nesting depth reached level [6-9]"; then \
-			echo "✗ Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
+			echo "🔴 Nesting depth exceeds threshold ($(NESTING_DEPTH_THRESHOLD))"; \
 			echo "$$output" | grep "nesting depth"; \
 			exit 1; \
 		fi; \
 	fi
-	@echo "✓ All complexity checks passed"
+	@echo "🟢 All complexity checks passed"
 
 filesize:
 	@echo "Checking file sizes (max: $(MAX_FILE_BYTES) bytes)..."
@@ -901,14 +877,14 @@ filesize:
 	for file in $$(find src -name "*.c" -o -name "*.h" | grep -v vendor); do \
 		bytes=$$(wc -c < "$$file"); \
 		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
-			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
+			echo "🔴 $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
 	for file in $$(find tests/unit -name "*.c"); do \
 		bytes=$$(wc -c < "$$file"); \
 		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
-			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
+			echo "🔴 $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
@@ -916,7 +892,7 @@ filesize:
 		[ -f "$$file" ] || continue; \
 		bytes=$$(wc -c < "$$file"); \
 		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
-			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
+			echo "🔴 $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
@@ -925,15 +901,15 @@ filesize:
 		case "$$file" in project/backlog/*) continue ;; esac; \
 		bytes=$$(wc -c < "$$file"); \
 		if [ $$bytes -gt $(MAX_FILE_BYTES) ]; then \
-			echo "✗ $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
+			echo "🔴 $$file: $$bytes bytes (exceeds $(MAX_FILE_BYTES))"; \
 			failed=1; \
 		fi; \
 	done; \
 	if [ $$failed -eq 1 ]; then \
-		echo "✗ Some files exceed $(MAX_FILE_BYTES) byte limit"; \
+		echo "🔴 Some files exceed $(MAX_FILE_BYTES) byte limit"; \
 		exit 1; \
 	fi
-	@echo "✓ All file size checks passed"
+	@echo "🟢 All file size checks passed"
 
 lint: complexity filesize
 
@@ -954,7 +930,7 @@ ci:
 	@$(MAKE) check-tsan
 	@$(MAKE) check-valgrind
 	@$(MAKE) check-helgrind
-	@echo "✓ All CI checks passed"
+	@echo "🟢 All CI checks passed"
 
 coverage:
 	@echo "Building with coverage instrumentation..."
@@ -986,9 +962,9 @@ coverage:
 	if [ "$$(echo "$$LINE_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ] && \
 	   [ "$$(echo "$$FUNC_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ] && \
 	   [ "$$(echo "$$BRANCH_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ]; then \
-		echo "✓ All coverage thresholds met ($(COVERAGE_THRESHOLD)%)"; \
+		echo "🟢 All coverage thresholds met ($(COVERAGE_THRESHOLD)%)"; \
 	else \
-		echo "✗ Coverage below $(COVERAGE_THRESHOLD)% threshold"; \
+		echo "🔴 Coverage below $(COVERAGE_THRESHOLD)% threshold"; \
 		exit 1; \
 	fi
 	@echo ""
@@ -996,11 +972,11 @@ coverage:
 	@EXCL_COUNT=$$(grep -r "LCOV_EXCL_" src/ | wc -l); \
 	echo "Found $$EXCL_COUNT LCOV_EXCL_* markers (limit: $(LCOV_EXCL_COVERAGE))"; \
 	if [ $$EXCL_COUNT -gt $(LCOV_EXCL_COVERAGE) ]; then \
-		echo "✗ LCOV exclusions exceed limit ($$EXCL_COUNT > $(LCOV_EXCL_COVERAGE))"; \
+		echo "🔴 LCOV exclusions exceed limit ($$EXCL_COUNT > $(LCOV_EXCL_COVERAGE))"; \
 		echo "   This indicates new code is using coverage exclusions instead of proper testing."; \
 		exit 1; \
 	else \
-		echo "✓ LCOV exclusion count within limit"; \
+		echo "🟢 LCOV exclusion count within limit"; \
 	fi
 
 # Default package manager and package list (Debian)

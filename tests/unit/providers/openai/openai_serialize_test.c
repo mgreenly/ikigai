@@ -4,9 +4,9 @@
  */
 
 #include <check.h>
-#include "openai_serialize_user_test.h"
-#include "openai_serialize_assistant_test.h"
-#include "openai_serialize_tool_test.h"
+#include "helpers/openai_serialize_user_test.h"
+#include "helpers/openai_serialize_assistant_test.h"
+#include "helpers/openai_serialize_tool_test.h"
 
 /* ================================================================
  * Test Suite Coordination
