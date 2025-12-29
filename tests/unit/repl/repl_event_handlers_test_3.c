@@ -64,45 +64,6 @@ res_t ik_repl_render_frame_(void *repl_ctx)
     return OK(NULL);
 }
 
-/* Mock provider vtable */
-static res_t mock_fdset(void *provider_ctx, fd_set *read_fds, fd_set *write_fds,
-                        fd_set *exc_fds, int *max_fd)
-{
-    (void)provider_ctx;
-    (void)read_fds;
-    (void)write_fds;
-    (void)exc_fds;
-    *max_fd = 10;
-    return OK(NULL);
-}
-
-static res_t mock_timeout(void *provider_ctx, long *timeout)
-{
-    (void)provider_ctx;
-    *timeout = 500;
-    return OK(NULL);
-}
-
-static res_t mock_perform(void *provider_ctx, int *still_running)
-{
-    (void)provider_ctx;
-    *still_running = 0;
-    return OK(NULL);
-}
-
-static void mock_info_read(void *provider_ctx, ik_logger_t *logger)
-{
-    (void)provider_ctx;
-    (void)logger;
-}
-
-static ik_provider_vtable_t mock_vt = {
-    .fdset = mock_fdset,
-    .timeout = mock_timeout,
-    .perform = mock_perform,
-    .info_read = mock_info_read,
-    .cleanup = NULL
-};
 
 static void setup(void)
 {
