@@ -695,7 +695,7 @@ check-valgrind:
 	@echo "Running tests under Valgrind Memcheck..."
 	@ulimit -n 1024; \
 	SUPP_FILE="$$(pwd)/.suppressions/valgrind.supp"; \
-	if ! find build-valgrind/tests -type f -executable | sort | xargs -I {} sh -c \
+	if ! find build-valgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
 		'LOGFILE=/tmp/valgrind-$$$$.log; \
 		echo -n "Valgrind: {}... "; \
 		if CK_FORK=no valgrind --leak-check=full --show-leak-kinds=all \
