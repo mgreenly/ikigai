@@ -34,9 +34,12 @@ Before starting, load these skills for context:
 3. Identify the root cause of the failure
 4. Fix the issue - prefer fixing the source code over modifying test expectations
 5. Only modify test expectations if they are clearly incorrect
+6. Verify your fix by running: `{{verify_command}}`
+7. If the test still fails, continue fixing until it passes
 
 ## Constraints
 
+- Do NOT run `make check` - use only the verify command above
 - Do NOT fix other failing tests you might notice
 - Do NOT refactor code beyond what's needed for this fix
 - Do NOT add new features or improvements

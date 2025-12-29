@@ -213,11 +213,20 @@ def build_prompt(failure: dict, make_output: str) -> str:
     """Build the fix prompt from template."""
     template = load_prompt_template()
 
+    # Compute verify command: tests/unit/foo_test.c -> make build/tests/unit/foo_test.run
+    test_file = failure["file"]
+    if test_file.endswith(".c"):
+        test_binary = test_file[:-2]  # Remove .c
+    else:
+        test_binary = test_file
+    verify_command = f"make build/{test_binary}.run"
+
     # Simple placeholder replacement
     prompt = template.replace("{{file}}", failure["file"])
     prompt = prompt.replace("{{line}}", failure["line"])
     prompt = prompt.replace("{{message}}", failure["message"])
     prompt = prompt.replace("{{make_output}}", make_output[-4000:])  # Last 4k chars
+    prompt = prompt.replace("{{verify_command}}", verify_command)
 
     return prompt
 
